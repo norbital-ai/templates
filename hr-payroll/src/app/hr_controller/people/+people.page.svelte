@@ -6,7 +6,7 @@
 	import { t } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
 	import { AppShell, Columns, Split, Stack } from '@norbital-ai/ui/layout';
-	import { Chart, Table, Tabs } from '@norbital-ai/ui';
+	import { Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	import { todayKey } from '../../../lib/ui/calendar.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
 	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
@@ -37,6 +37,9 @@
 	);
 	const TURNOVER = $derived(t('app.people.chart_turnover_rate'));
 	const HIRES = $derived(t('app.people.chart_hire_rate'));
+	// a rate in percent, one decimal: the chart's axis reads 4.2, not 0.042
+	const rate = (count: number, average: number) =>
+		average > 0 ? Math.round((count / average) * 1000) / 10 : 0;
 	/** The last twelve payroll months: leavers and hires over the month's average headcount. */
 	const trend = $derived.by(() => {
 		const [year, month] = today.split('-').map(Number) as [number, number];
@@ -54,8 +57,8 @@
 			const hires = ranges.filter((r) => r.start >= start && r.start <= end).length;
 			return {
 				month: key,
-				[TURNOVER]: average > 0 ? leavers / average : 0,
-				[HIRES]: average > 0 ? hires / average : 0
+				[TURNOVER]: rate(leavers, average),
+				[HIRES]: rate(hires, average)
 			};
 		});
 	});
@@ -63,13 +66,11 @@
 		trend.reduce((sum, m) => sum + decodeNumber(m[TURNOVER]), 0) / trend.length
 	);
 	const percent = (n: number) =>
-		n.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 1 });
+		(n / 100).toLocaleString(bolt.locale, { style: 'percent', maximumFractionDigits: 1 });
 </script>
 
 {#snippet empty(message: string)}
-	<p class="text-sm text-muted-foreground">
-		{scope.unknown ? t('app.hr_controller.loading_scope') : message}
-	</p>
+	<EmptyState title={scope.unknown ? t('app.hr_controller.loading_scope') : message} />
 {/snippet}
 
 {#snippet summary()}
@@ -147,8 +148,8 @@
 
 <AppShell
 	icon="lucide:users"
-	title="People"
-	description="Workforce health, and one profile per person carrying their employments, contractual terms and statutory registrations"
+	title={t('app.people.title')}
+	description={t('app.people.description')}
 	variant="full"
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}

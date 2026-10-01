@@ -19,6 +19,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -141,6 +147,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -286,6 +293,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -637,7 +651,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -682,6 +696,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -705,6 +739,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -827,6 +867,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -972,6 +1013,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -1332,7 +1380,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -1377,6 +1425,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -1400,6 +1468,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -1522,6 +1596,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -1667,6 +1742,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -2027,7 +2109,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -2073,6 +2155,26 @@
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -2095,6 +2197,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -2217,6 +2325,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -2365,6 +2474,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -2714,7 +2830,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -2759,6 +2875,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -2782,6 +2918,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -2904,6 +3046,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -3050,6 +3193,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -3410,7 +3560,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -3455,6 +3605,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -3478,6 +3648,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -3600,6 +3776,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -3748,6 +3925,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -4106,7 +4290,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -4151,6 +4335,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -4174,6 +4378,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -4296,6 +4506,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -4444,6 +4655,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -4795,7 +5013,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -4840,6 +5058,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -4863,6 +5101,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -4985,6 +5229,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -5133,6 +5378,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -5493,7 +5745,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -5538,6 +5790,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -5561,6 +5833,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -5683,6 +5961,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -5833,6 +6112,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -6191,7 +6477,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -6236,6 +6522,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -6259,6 +6565,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -6381,6 +6693,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -6530,6 +6843,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -6899,7 +7219,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -6944,6 +7264,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -6967,6 +7307,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -7089,6 +7435,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -7238,6 +7585,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -7607,7 +7961,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -7653,6 +8007,26 @@
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -7675,6 +8049,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -7797,6 +8177,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -7948,6 +8329,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -8329,7 +8717,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -8374,6 +8762,456 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "LI_EI_OCC_ENROLMENT",
+				"label": "勞保、就保、災保 加保",
+				"authority": "勞工保險條例 §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11): 應於其所屬勞工到職…之當日，列表通知保險人; 勞工職業災害保險及保護法 §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12): 到職…之當日，列表通知保險人辦理投保手續",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "employment.service_start",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI enrolment acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LI_EI_OCC_WITHDRAWAL",
+				"label": "勞保、就保、災保 退保",
+				"authority": "勞工保險條例 §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11): 離職…之當日，列表通知保險人; 勞工職業災害保險及保護法 §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12): 離職…之當日，列表通知保險人辦理退保手續",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "employment.exit_date",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI withdrawal acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_ENROLMENT",
+				"label": "健保 投保",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15): 投保單位應於保險對象合於投保條件之日起三日內，向保險人辦理投保 — 民法 §120(2) 始日不算入: the third day after the hire day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 3)",
+				"evidence": [
+					{
+						"key": "nhia_reference",
+						"type": "string",
+						"label": "NHIA enrolment acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_WITHDRAWAL",
+				"label": "健保 退保",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15): 並於退保原因發生之日起三日內，向保險人辦理退保 — the third day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "nhia_reference",
+						"type": "string",
+						"label": "NHIA withdrawal acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PENSION_START_NOTICE",
+				"label": "勞退 開始提繳申報",
+				"authority": "勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18): 雇主應於勞工到職、離職、復職或死亡之日起七日內，列表通知勞保局，辦理開始或停止提繳手續 — the seventh day after the hire day (民法 §120(2))",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 7)",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI pension start acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PENSION_STOP_NOTICE",
+				"label": "勞退 停止提繳申報",
+				"authority": "勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18): 離職…之日起七日內，列表通知勞保局，辦理…停止提繳手續 — the seventh day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 7)",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI pension stop acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LI_EI_OCC_PREMIUM_REMITTANCE",
+				"label": "勞保、就保、災保 保險費 及 墊償提繳費 繳納",
+				"authority": "勞工保險條例 §16(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16): 由投保單位負責扣、收繳，並須於次月底前，連同投保單位負擔部分，一併向保險人繳納; 就業保險法 §40 applies it; 勞工職業災害保險及保護法 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28) with the premium — the last day of the month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Premium payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_PENSION_REMITTANCE",
+				"label": "勞退 提繳 繳納",
+				"authority": "勞工退休金條例 §19(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19): 雇主應提繳及收取之退休金，應…按月…繳納 — BLI bills the month and payment is due 再次月底前, the last day of the second month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 2))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Pension payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_PREMIUM_REMITTANCE",
+				"label": "健保 保險費 繳納",
+				"authority": "全民健康保險法 §30(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30): 第一類…保險費，按月…由投保單位 於次月底前 向保險人繳納; §34 雇主補充保險費 with it — the last day of the month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "NHI premium payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_SUPPLEMENTARY_PREMIUM_REMITTANCE",
+				"label": "健保 補充保險費 扣繳 繳納",
+				"authority": "全民健康保險法 §31 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10): 扣費義務人 withholds at payment and remits by the end of the month after payment",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(run.pay_date, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Supplementary premium payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_TAX_REMITTANCE",
+				"label": "薪資扣繳稅款 繳納 (居住者)",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 扣繳義務人…應於每月十日前將上一月內所扣稅款向國庫繳清 — the tenth of the month after the pay date. The §92(2) non-resident branch (within ten days of withholding) is not raised: the run site does not say which run withheld non-resident tax.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 10)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Tax payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_WITHHOLDING_RETURN",
+				"label": "各類所得扣繳暨免扣繳憑單 申報",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 並應於每年一月底前將上一年內扣繳各納稅義務人之稅款數額，開具扣繳憑單，彙報該管稽徵機關查核 — 31 January after the year. Owner rule 2026-10-01: the base date is raised; the extension to 5 February where January has three or more consecutive holidays only lengthens it, so the base date is never late.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.end, 1))",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Tax office filing receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATES_TO_PAYEES",
+				"label": "扣繳憑單 填發納稅義務人",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 並應於二月十日前將扣繳憑單填發納稅義務人 — 10 February after the year (15 February where January has three or more consecutive holidays; the base date is raised, owner rule 2026-10-01)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(month_end(add_months(period.end, 1)), 10)",
+				"evidence": [
+					{
+						"key": "issue_reference",
+						"type": "string",
+						"label": "Certificate issue record reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SEVERANCE_PAYMENT",
+				"label": "資遣費 發給",
+				"authority": "勞工退休金條例 §12(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12): 依前項規定計算之資遣費，應於終止勞動契約後三十日內發給; 勞動基準法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17) the same for old-system service — owed on §11, the §13 proviso, §14 and §20 (the exit fact lsa_termination_ground); the thirtieth day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Severance payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "RETIREMENT_PAYMENT",
+				"label": "退休金 給付 (舊制年資)",
+				"authority": "勞動基準法 §55(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55): 第一項所定退休金，雇主應於勞工退休之日起三十日內給付 — raised on a RETIREMENT exit with old-system service months (the new system pays nothing from the employer); instalments approved by the authority are recorded on the instance",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\" && has(employment.exit_facts.old_system_service_months) && double(employment.exit_facts.old_system_service_months) > 0.0"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Retirement payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LAYOFF_REPORT",
+				"label": "資遣通報",
+				"authority": "就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33): 雇主資遣員工時，應於員工離職之十日前，將被資遣員工之…列冊通報 — ten days before the last day, on the employer terminations §11 and §20. Owner rule 2026-10-01: a §14 termination is the worker’s own, not 雇主資遣, and raises no report.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"]"
+				},
+				"due": "add_days(employment.exit_date, -10)",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Layoff report submission reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LAYOFF_REPORT_FORCE_MAJEURE",
+				"label": "資遣通報 (天災、事變或不可抗力)",
+				"authority": "就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33) 但書: 其資遣係因天災、事變或其他不可抗力之情事所致者，應自被資遣員工離職之日起三日內為之 — the §13 proviso; the third day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground == \"ARTICLE_13_PROVISO\""
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Layoff report submission reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PERSONNEL_RECORDS_RETENTION",
+				"label": "勞工名卡、保險及退休金紀錄 保存",
+				"authority": "勞動基準法 §7(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=7): 勞工名卡，應保管至勞工離職後五年; 勞工保險條例 §10(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10) and 勞工退休金條例 §21(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21): kept five years from the departure",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "employment.exit_date",
+				"retain_years": "5",
+				"evidence": [
+					{
+						"key": "record_location",
+						"type": "string",
+						"label": "Where the worker card and insurance records are kept",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WAGE_AND_ATTENDANCE_RECORDS",
+				"label": "工資清冊 及 出勤紀錄 保存",
+				"authority": "勞動基準法 §23(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23): 工資清冊應保存五年; §30(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30): 出勤紀錄…應保存五年",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "run.pay_date",
+				"retain_years": "5",
+				"evidence": [
+					{
+						"key": "record_location",
+						"type": "string",
+						"label": "Where the wage roster and attendance records are kept",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
+		],
+		"checks": [
+			{
+				"code": "MINOR_UNDER_15",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 15.0 && !(\"under_15_exception_reference\" in terms.fact_keys)",
+				"message": "A worker under fifteen at hire may be employed only after graduating from junior high school or with the authority’s permit; record its reference in the terms input under_15_exception_reference.",
+				"authority": "勞動基準法 §45(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=45): 雇主不得僱用未滿十五歲之人從事工作。但國民中學畢業或經主管機關認定其工作性質及環境無礙其身心健康而許可者，不在此限"
+			},
+			{
+				"code": "MINOR_GUARDIAN_CONSENT",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 18.0 && !(\"guardian_consent_reference\" in terms.fact_keys)",
+				"message": "A worker under eighteen at hire needs the legal representative’s written consent and proof of age on file; record its reference in the terms input guardian_consent_reference.",
+				"authority": "勞動基準法 §46 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=46): 未滿十八歲之人受僱從事工作者，雇主應置備其法定代理人同意書及其年齡證明文件"
+			},
+			{
+				"code": "FIXED_TERM_CATEGORY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && !(\"fixed_term_category\" in terms.fact_keys)",
+				"message": "A fixed-term contract states which fixed-term work it is — TEMPORARY, SHORT_TERM, SEASONAL or SPECIFIC — in the terms input fixed_term_category; continuing work is an indefinite contract.",
+				"authority": "勞動基準法 §9(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9): 臨時性、短期性、季節性及特定性工作得為定期契約；有繼續性工作應為不定期契約; 施行細則 §6 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_LIMIT",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && \"fixed_term_category\" in terms.fact_keys && ((terms.facts.fixed_term_category in [\"TEMPORARY\", \"SHORT_TERM\"] && employment.exit_date >= add_months(employment.service_start, 6)) || (terms.facts.fixed_term_category == \"SEASONAL\" && employment.exit_date >= add_months(employment.service_start, 9)))",
+				"message": "A temporary or short-term contract lasts six months at most, a seasonal one nine; a longer term is not that fixed-term work — record an indefinite contract, or the category that fits.",
+				"authority": "勞動基準法施行細則 §6 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6): 臨時性工作…其工作期間在六個月以內者; 短期性工作: 可預期於六個月內完成之非繼續性工作; 季節性工作…其工作期間在九個月以內者"
+			},
+			{
+				"code": "SPECIFIC_TERM_APPROVAL",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && \"fixed_term_category\" in terms.fact_keys && terms.facts.fixed_term_category == \"SPECIFIC\" && employment.exit_date >= add_months(employment.service_start, 12) && !(\"specific_term_approval_reference\" in terms.fact_keys)",
+				"message": "A specific-work contract longer than one year is reported to the authority for approval; record the approval reference in the terms input specific_term_approval_reference.",
+				"authority": "勞動基準法施行細則 §6(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6): 特定性工作…其工作期間超過一年者，應報請主管機關核備"
+			},
+			{
+				"code": "GARNISHMENT_OVER_ONE_THIRD",
+				"at": "DEDUCTION",
+				"severity": "WARN",
+				"when": "deduction.code == \"COURT_GARNISHMENT\" && deduction.amount > deduction.gross / 3.0",
+				"message": "The garnishment deducted exceeds one third of this period’s wage; deduct it only where the order itself fixes the larger amount.",
+				"authority": "強制執行法 §115-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 其債權…得扣押 各期給付數額三分之一 unless the court departs from it — owner rule 2026-10-01: a warning, never a cap, measured against the period’s gross wage, since the garnishee deducts what the order fixes"
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "fixed_term_category",
+				"type": "string",
+				"label": "定期契約 category",
+				"options": ["TEMPORARY", "SHORT_TERM", "SEASONAL", "SPECIFIC"],
+				"description": "勞動基準法 §9(1), 施行細則 §6: TEMPORARY 臨時性 (unforeseeable, non-continuing, six months at most); SHORT_TERM 短期性 (expected to finish within six months); SEASONAL 季節性 (nine months at most); SPECIFIC 特定性 (finishable in a set period; over a year needs the authority’s approval). Recorded on the first terms of a fixed-term (CONTRACT) employment."
+			},
+			{
+				"key": "specific_term_approval_reference",
+				"type": "string",
+				"label": "特定性定期契約 核備 reference",
+				"min_length": 1,
+				"description": "施行細則 §6(4): the authority’s approval reference for a specific-work contract of more than one year."
+			},
+			{
+				"key": "under_15_exception_reference",
+				"type": "string",
+				"label": "Under-fifteen hiring exception reference",
+				"min_length": 1,
+				"description": "勞動基準法 §45(1): the junior-high graduation certificate or the authority’s permit that lets a worker under fifteen be employed."
+			},
+			{
+				"key": "guardian_consent_reference",
+				"type": "string",
+				"label": "法定代理人同意書 reference",
+				"min_length": 1,
+				"description": "勞動基準法 §46: the legal representative’s written consent and the proof of age kept for a worker under eighteen."
 			}
 		]
 	},
@@ -8397,6 +9235,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -8519,6 +9363,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -8669,6 +9514,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -9070,7 +9922,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -9116,6 +9968,456 @@
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "LI_EI_OCC_ENROLMENT",
+				"label": "勞保、就保、災保 加保",
+				"authority": "勞工保險條例 §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11): 應於其所屬勞工到職…之當日，列表通知保險人; 勞工職業災害保險及保護法 §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12): 到職…之當日，列表通知保險人辦理投保手續",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "employment.service_start",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI enrolment acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LI_EI_OCC_WITHDRAWAL",
+				"label": "勞保、就保、災保 退保",
+				"authority": "勞工保險條例 §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11): 離職…之當日，列表通知保險人; 勞工職業災害保險及保護法 §12 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12): 離職…之當日，列表通知保險人辦理退保手續",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "employment.exit_date",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI withdrawal acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_ENROLMENT",
+				"label": "健保 投保",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15): 投保單位應於保險對象合於投保條件之日起三日內，向保險人辦理投保 — 民法 §120(2) 始日不算入: the third day after the hire day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 3)",
+				"evidence": [
+					{
+						"key": "nhia_reference",
+						"type": "string",
+						"label": "NHIA enrolment acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_WITHDRAWAL",
+				"label": "健保 退保",
+				"authority": "全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15): 並於退保原因發生之日起三日內，向保險人辦理退保 — the third day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "nhia_reference",
+						"type": "string",
+						"label": "NHIA withdrawal acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PENSION_START_NOTICE",
+				"label": "勞退 開始提繳申報",
+				"authority": "勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18): 雇主應於勞工到職、離職、復職或死亡之日起七日內，列表通知勞保局，辦理開始或停止提繳手續 — the seventh day after the hire day (民法 §120(2))",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 7)",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI pension start acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PENSION_STOP_NOTICE",
+				"label": "勞退 停止提繳申報",
+				"authority": "勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18): 離職…之日起七日內，列表通知勞保局，辦理…停止提繳手續 — the seventh day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 7)",
+				"evidence": [
+					{
+						"key": "bli_reference",
+						"type": "string",
+						"label": "BLI pension stop acceptance reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LI_EI_OCC_PREMIUM_REMITTANCE",
+				"label": "勞保、就保、災保 保險費 及 墊償提繳費 繳納",
+				"authority": "勞工保險條例 §16(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16): 由投保單位負責扣、收繳，並須於次月底前，連同投保單位負擔部分，一併向保險人繳納; 就業保險法 §40 applies it; 勞工職業災害保險及保護法 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28) with the premium — the last day of the month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Premium payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_PENSION_REMITTANCE",
+				"label": "勞退 提繳 繳納",
+				"authority": "勞工退休金條例 §19(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19): 雇主應提繳及收取之退休金，應…按月…繳納 — BLI bills the month and payment is due 再次月底前, the last day of the second month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 2))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Pension payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_PREMIUM_REMITTANCE",
+				"label": "健保 保險費 繳納",
+				"authority": "全民健康保險法 §30(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30): 第一類…保險費，按月…由投保單位 於次月底前 向保險人繳納; §34 雇主補充保險費 with it — the last day of the month after the wage month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "NHI premium payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "NHI_SUPPLEMENTARY_PREMIUM_REMITTANCE",
+				"label": "健保 補充保險費 扣繳 繳納",
+				"authority": "全民健康保險法 §31 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10): 扣費義務人 withholds at payment and remits by the end of the month after payment",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "month_end(add_months(run.pay_date, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Supplementary premium payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_TAX_REMITTANCE",
+				"label": "薪資扣繳稅款 繳納 (居住者)",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 扣繳義務人…應於每月十日前將上一月內所扣稅款向國庫繳清 — the tenth of the month after the pay date. The §92(2) non-resident branch (within ten days of withholding) is not raised: the run site does not say which run withheld non-resident tax.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 10)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Tax payment receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_WITHHOLDING_RETURN",
+				"label": "各類所得扣繳暨免扣繳憑單 申報",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 並應於每年一月底前將上一年內扣繳各納稅義務人之稅款數額，開具扣繳憑單，彙報該管稽徵機關查核 — 31 January after the year. Owner rule 2026-10-01: the base date is raised; the extension to 5 February where January has three or more consecutive holidays only lengthens it, so the base date is never late.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.end, 1))",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Tax office filing receipt reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATES_TO_PAYEES",
+				"label": "扣繳憑單 填發納稅義務人",
+				"authority": "所得稅法 §92(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92): 並應於二月十日前將扣繳憑單填發納稅義務人 — 10 February after the year (15 February where January has three or more consecutive holidays; the base date is raised, owner rule 2026-10-01)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(month_end(add_months(period.end, 1)), 10)",
+				"evidence": [
+					{
+						"key": "issue_reference",
+						"type": "string",
+						"label": "Certificate issue record reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SEVERANCE_PAYMENT",
+				"label": "資遣費 發給",
+				"authority": "勞工退休金條例 §12(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12): 依前項規定計算之資遣費，應於終止勞動契約後三十日內發給; 勞動基準法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17) the same for old-system service — owed on §11, the §13 proviso, §14 and §20 (the exit fact lsa_termination_ground); the thirtieth day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Severance payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "RETIREMENT_PAYMENT",
+				"label": "退休金 給付 (舊制年資)",
+				"authority": "勞動基準法 §55(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55): 第一項所定退休金，雇主應於勞工退休之日起三十日內給付 — raised on a RETIREMENT exit with old-system service months (the new system pays nothing from the employer); instalments approved by the authority are recorded on the instance",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\" && has(employment.exit_facts.old_system_service_months) && double(employment.exit_facts.old_system_service_months) > 0.0"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Retirement payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LAYOFF_REPORT",
+				"label": "資遣通報",
+				"authority": "就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33): 雇主資遣員工時，應於員工離職之十日前，將被資遣員工之…列冊通報 — ten days before the last day, on the employer terminations §11 and §20. Owner rule 2026-10-01: a §14 termination is the worker’s own, not 雇主資遣, and raises no report.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"]"
+				},
+				"due": "add_days(employment.exit_date, -10)",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Layoff report submission reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LAYOFF_REPORT_FORCE_MAJEURE",
+				"label": "資遣通報 (天災、事變或不可抗力)",
+				"authority": "就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33) 但書: 其資遣係因天災、事變或其他不可抗力之情事所致者，應自被資遣員工離職之日起三日內為之 — the §13 proviso; the third day after the last day",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.lsa_termination_ground) && employment.exit_facts.lsa_termination_ground == \"ARTICLE_13_PROVISO\""
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "filing_reference",
+						"type": "string",
+						"label": "Layoff report submission reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PERSONNEL_RECORDS_RETENTION",
+				"label": "勞工名卡、保險及退休金紀錄 保存",
+				"authority": "勞動基準法 §7(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=7): 勞工名卡，應保管至勞工離職後五年; 勞工保險條例 §10(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10) and 勞工退休金條例 §21(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21): kept five years from the departure",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "employment.exit_date",
+				"retain_years": "5",
+				"evidence": [
+					{
+						"key": "record_location",
+						"type": "string",
+						"label": "Where the worker card and insurance records are kept",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WAGE_AND_ATTENDANCE_RECORDS",
+				"label": "工資清冊 及 出勤紀錄 保存",
+				"authority": "勞動基準法 §23(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23): 工資清冊應保存五年; §30(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30): 出勤紀錄…應保存五年",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "run.pay_date",
+				"retain_years": "5",
+				"evidence": [
+					{
+						"key": "record_location",
+						"type": "string",
+						"label": "Where the wage roster and attendance records are kept",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
+		],
+		"checks": [
+			{
+				"code": "MINOR_UNDER_15",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 15.0 && !(\"under_15_exception_reference\" in terms.fact_keys)",
+				"message": "A worker under fifteen at hire may be employed only after graduating from junior high school or with the authority’s permit; record its reference in the terms input under_15_exception_reference.",
+				"authority": "勞動基準法 §45(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=45): 雇主不得僱用未滿十五歲之人從事工作。但國民中學畢業或經主管機關認定其工作性質及環境無礙其身心健康而許可者，不在此限"
+			},
+			{
+				"code": "MINOR_GUARDIAN_CONSENT",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 18.0 && !(\"guardian_consent_reference\" in terms.fact_keys)",
+				"message": "A worker under eighteen at hire needs the legal representative’s written consent and proof of age on file; record its reference in the terms input guardian_consent_reference.",
+				"authority": "勞動基準法 §46 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=46): 未滿十八歲之人受僱從事工作者，雇主應置備其法定代理人同意書及其年齡證明文件"
+			},
+			{
+				"code": "FIXED_TERM_CATEGORY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && !(\"fixed_term_category\" in terms.fact_keys)",
+				"message": "A fixed-term contract states which fixed-term work it is — TEMPORARY, SHORT_TERM, SEASONAL or SPECIFIC — in the terms input fixed_term_category; continuing work is an indefinite contract.",
+				"authority": "勞動基準法 §9(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9): 臨時性、短期性、季節性及特定性工作得為定期契約；有繼續性工作應為不定期契約; 施行細則 §6 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_LIMIT",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && \"fixed_term_category\" in terms.fact_keys && ((terms.facts.fixed_term_category in [\"TEMPORARY\", \"SHORT_TERM\"] && employment.exit_date >= add_months(employment.service_start, 6)) || (terms.facts.fixed_term_category == \"SEASONAL\" && employment.exit_date >= add_months(employment.service_start, 9)))",
+				"message": "A temporary or short-term contract lasts six months at most, a seasonal one nine; a longer term is not that fixed-term work — record an indefinite contract, or the category that fits.",
+				"authority": "勞動基準法施行細則 §6 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6): 臨時性工作…其工作期間在六個月以內者; 短期性工作: 可預期於六個月內完成之非繼續性工作; 季節性工作…其工作期間在九個月以內者"
+			},
+			{
+				"code": "SPECIFIC_TERM_APPROVAL",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && !employment.open_ended && \"fixed_term_category\" in terms.fact_keys && terms.facts.fixed_term_category == \"SPECIFIC\" && employment.exit_date >= add_months(employment.service_start, 12) && !(\"specific_term_approval_reference\" in terms.fact_keys)",
+				"message": "A specific-work contract longer than one year is reported to the authority for approval; record the approval reference in the terms input specific_term_approval_reference.",
+				"authority": "勞動基準法施行細則 §6(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6): 特定性工作…其工作期間超過一年者，應報請主管機關核備"
+			},
+			{
+				"code": "GARNISHMENT_OVER_ONE_THIRD",
+				"at": "DEDUCTION",
+				"severity": "WARN",
+				"when": "deduction.code == \"COURT_GARNISHMENT\" && deduction.amount > deduction.gross / 3.0",
+				"message": "The garnishment deducted exceeds one third of this period’s wage; deduct it only where the order itself fixes the larger amount.",
+				"authority": "強制執行法 §115-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 其債權…得扣押 各期給付數額三分之一 unless the court departs from it — owner rule 2026-10-01: a warning, never a cap, measured against the period’s gross wage, since the garnishee deducts what the order fixes"
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "fixed_term_category",
+				"type": "string",
+				"label": "定期契約 category",
+				"options": ["TEMPORARY", "SHORT_TERM", "SEASONAL", "SPECIFIC"],
+				"description": "勞動基準法 §9(1), 施行細則 §6: TEMPORARY 臨時性 (unforeseeable, non-continuing, six months at most); SHORT_TERM 短期性 (expected to finish within six months); SEASONAL 季節性 (nine months at most); SPECIFIC 特定性 (finishable in a set period; over a year needs the authority’s approval). Recorded on the first terms of a fixed-term (CONTRACT) employment."
+			},
+			{
+				"key": "specific_term_approval_reference",
+				"type": "string",
+				"label": "特定性定期契約 核備 reference",
+				"min_length": 1,
+				"description": "施行細則 §6(4): the authority’s approval reference for a specific-work contract of more than one year."
+			},
+			{
+				"key": "under_15_exception_reference",
+				"type": "string",
+				"label": "Under-fifteen hiring exception reference",
+				"min_length": 1,
+				"description": "勞動基準法 §45(1): the junior-high graduation certificate or the authority’s permit that lets a worker under fifteen be employed."
+			},
+			{
+				"key": "guardian_consent_reference",
+				"type": "string",
+				"label": "法定代理人同意書 reference",
+				"min_length": 1,
+				"description": "勞動基準法 §46: the legal representative’s written consent and the proof of age kept for a worker under eighteen."
+			}
 		]
 	},
 	{
@@ -9138,6 +10440,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -9260,6 +10568,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
@@ -9410,6 +10719,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -9788,7 +11104,7 @@
 				"label": "勞基法 termination ground",
 				"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop.",
 				"options": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
-				"required_when": "employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
+				"required_when": "employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\", \"RESIGNATION\", \"MUTUAL\"] || employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"])",
 				"valid_when": "!(employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] && employment.on_leave(employment.exit_date, [\"OCCUPATIONAL_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]))",
 				"validation_message": "勞基法 §13: the employer may not end the contract inside the §50 maternity stop or the §59 medical period, and the last day falls on approved maternity or occupational injury leave. Only a §13 proviso termination (force majeure, approved by the authority) may end it then."
 			},
@@ -9833,6 +11149,26 @@
 				"type": "boolean",
 				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
 				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	}

@@ -10,7 +10,7 @@ import { exitSettlementOutput, settleExit } from '../lib/leave/exit-settlement.j
 const leave_encashment_on_exit = automation({
 	description:
 		'On or after departure, submits unused leave encashment and eligible separation payments for HR approval. Future departures are deferred to the daily check. Dismissals require review; the departure reason alone does not establish forfeiture. Existing requests are skipped on retry.',
-	on: { updated: 'employments', fields: ['effective_range', 'exit_reason', 'exit_facts'] },
+	on: { updated: 'employments', fields: ['effective_range', 'exit_ground', 'exit_facts'] },
 	input: {
 		ids: { kind: 'list', of: { kind: 'id', of: 'employments' }, optional: true },
 		/** The contract to settle, when started by hand. */

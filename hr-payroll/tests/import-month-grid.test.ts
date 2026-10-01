@@ -147,7 +147,7 @@ test('a long-form overtime row carries prior consent, and a declared input colum
 	]);
 });
 
-test('an overtime cell that is not a half-hour step between 0 and 24 refuses the sheet by name', () => {
+test('an overtime cell outside 0 to 24 refuses the sheet by name; its step is the write’s to judge', () => {
 	const read = (cell: unknown) =>
 		expandOvertimeMonthGrid(
 			{
@@ -165,7 +165,8 @@ test('an overtime cell that is not a half-hour step between 0 and 24 refuses the
 			},
 			'2026-05'
 		);
-	assert.throws(() => read('2.3'), /half-hour steps/);
+	// The keying step is the governing version's `overtime_unit_hours`, judged at the write.
+	assert.equal(read('2.3')[0].overtime_hours, 2.3);
 	assert.throws(() => read(-1), /cannot be negative/);
 	assert.throws(() => read(25), /cannot exceed the 24 hours/);
 	assert.throws(() => read('three'), /is not a number of hours/);

@@ -48,7 +48,22 @@ test('signed DOLE DA 01-2019 positive example keeps SSS cash, premium shares and
 			signed_differential: 34893.69,
 			employer_differential: 34893.69,
 			basic_salary_share: 34893.69,
-			employee_cash_entitlement: 104893.69
+			employee_cash_entitlement: 104893.69,
+			// L5 (docs/capability-plan.md): the result carries the case type's priced phases.
+			phases: [
+				{
+					code: 'MATERNITY',
+					index: 1,
+					day_index: 0,
+					days: 105,
+					start: '2026-10-05',
+					end: '2027-01-17',
+					wage: 109550,
+					award: 0,
+					employer_pays: 34893.69,
+					reimbursable: 0
+				}
+			]
 		}
 	);
 });

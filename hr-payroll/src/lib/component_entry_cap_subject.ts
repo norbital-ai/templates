@@ -45,7 +45,7 @@ type CapEmployment = {
 	readonly company_id: string;
 	readonly employee_number: string | null;
 	readonly effective_range: unknown;
-	readonly exit_reason: string | null;
+	readonly exit_ground: string | null;
 };
 type CapEmployee = Record<string, unknown> & {
 	readonly id: string;
@@ -128,7 +128,7 @@ export async function capSubjects(
 		const at = (date: string): PersonContext =>
 			personContext({
 				employee: employee as never,
-				employment: stint({ ...contract, exit_reason: employment.exit_reason }, []),
+				employment: stint({ ...contract, exit_ground: employment.exit_ground }, []),
 				terms: payRequestTerms(ownTerms, contract, date) as never,
 				children: childrenOn(employee?.children ?? [], date),
 				company: company as never,

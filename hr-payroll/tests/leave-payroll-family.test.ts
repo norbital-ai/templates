@@ -155,6 +155,16 @@ test('benefit day counts retain separate fractions and exclude nonworking dates'
 	assert.equal(fullyUnpaidDays(facts, january, [], working), 1);
 });
 
+test('a lineage code with no charge in the window reads 0, not a missing key', () => {
+	const sick = { ...catalogue, id: id(9), code: 'SICK_LEAVE', is_npl: false };
+	const coverage = leaveCoverage(
+		prepared([timeOff(10, [charge('2027-01-04')])], { catalogues: [catalogue, sick] }),
+		january
+	);
+	assert.deepEqual(coverage.byCode, { UNPAID: 1, SICK_LEAVE: 0 });
+	assert.deepEqual(coverage.fullDaysByCode, { UNPAID: 1, SICK_LEAVE: 0 });
+});
+
 test('cross-year unpaid leave settles exact dated halves once, with each period’s rate', () => {
 	// The split is the caller’s now: a time-off entry settles whole in one window, so the standing
 	// December charge and the January half are two entries, each priced by its own period’s rate.

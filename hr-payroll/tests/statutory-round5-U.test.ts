@@ -195,7 +195,7 @@ const LEAVER = {
 	wage: 60_000,
 	citizenship: 'CITIZEN',
 	exit_date: '2026-01-20',
-	exit_reason: 'RESIGNATION'
+	exit_ground: 'RESIGNATION'
 } as const;
 
 /** Six elected hours (Monday 5 and Saturday 10 January), three of them taken on 15 January. */
@@ -284,7 +284,7 @@ test('TW round 5 — §32-1: a deferred joiner’s elected hours are credited by
 	);
 	const leaving = chain({
 		periods: ['2026-01', '2026-02'],
-		person: { ...joiner, exit_date: '2026-02-20', exit_reason: 'RESIGNATION' },
+		person: { ...joiner, exit_date: '2026-02-20', exit_ground: 'RESIGNATION' },
 		plant
 	});
 	assert.deepEqual(workLines(leaving.slips.get(KEY)!), [
@@ -390,7 +390,7 @@ const RAISED = {
 	wage: 60_000,
 	citizenship: 'CITIZEN',
 	exit_date: '2026-07-20',
-	exit_reason: 'RESIGNATION'
+	exit_ground: 'RESIGNATION'
 } as const;
 
 const cashOut = (slip: BuiltPayslip) =>
@@ -459,7 +459,7 @@ const SEVERANCE_LEAVER = {
 	citizenship: 'CITIZEN',
 	hire_date: '2019-02-01',
 	exit_date: '2026-01-31',
-	exit_reason: 'REDUNDANCY'
+	exit_ground: 'REDUNDANCY'
 } as const;
 const MONTHS = ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12'] as const;
 const monthEnd = (month: string) =>
@@ -550,7 +550,7 @@ const timeOff = (world: PayrollWorld, code: string, from: string, to: string) =>
 		reference: `${code}-${from}`,
 		from_date: from,
 		to_date: to,
-		event_date: code === 'MATERNITY_LEAVE' ? from : null,
+		facts: code === 'MATERNITY_LEAVE' ? { event_kind: 'BIRTH', event_date: from } : {},
 		half_day_start: false,
 		half_day_end: false,
 		days: charges.length,
@@ -983,10 +983,10 @@ test('TW round 5 — D15: a resignation or dismissal must state its 勞基法 ar
 	// 勞退條例 §12); §15 (a plain resignation) does not; §11 dismissal owes it, §12 does not. The
 	// departure is resolved against the version's exit declarations when separation pay is raised.
 	const fields = settingsVersions('TW')[1]!.exit_facts;
-	const leaver = (exit_reason: string) =>
+	const leaver = (exit_ground: string) =>
 		personContext({
 			employee: null,
-			employment: { service_start: '2020-01-01', exit_date: '2026-01-20', exit_reason },
+			employment: { service_start: '2020-01-01', exit_date: '2026-01-20', exit_ground },
 			terms: null,
 			asOf: '2026-01-20'
 		});

@@ -98,7 +98,7 @@ type Person = {
 	wage: number;
 	hire?: string;
 	exit?: string;
-	exit_reason?: string;
+	exit_ground?: string;
 	exit_facts?: Row;
 	dob?: string;
 	gender?: 'MALE' | 'FEMALE';
@@ -155,7 +155,7 @@ const person = (p: Person): ProbeInput[] => {
 				company_id: '@company',
 				employee_number: `P-TH-${p.ref}`,
 				effective_range: { from: hire, to: p.exit ?? null },
-				...(p.exit_reason == null ? {} : { exit_reason: p.exit_reason }),
+				...(p.exit_ground == null ? {} : { exit_ground: p.exit_ground }),
 				...(p.exit_facts == null ? {} : { exit_facts: p.exit_facts })
 			}
 		},
@@ -666,7 +666,7 @@ register(
 			'A seven-hour normal day that is not hazardous work (09:00–17:00, an hour’s rest): THB21,000 is THB100 an hour (÷ 30 × 7) and the eighth hour is overtime; four hours on Monday 5 January 2026 at 1.5× = 600.',
 		citation: [
 			`LPA ss.5, 61, 68 (${LPA}): the hourly rate of a monthly wage is monthly ÷ (30 × the normal hours a day); overtime is work beyond the normal hours: 21,000 ÷ (30 × 7) = 100; 4 × 1.5 × 100 = 600.`,
-			`LPA s.27 para.3: 20 minutes’ rest (17:00–17:20) before two or more hours of overtime.`,
+			`LPA s.27 para.4: 20 minutes’ rest (17:00–17:20) before two or more hours of overtime.`,
 			`${SSA}: 875. ${P96}: 252,000 → 81,500 net → nil, and 252,600 with the overtime still nil.`,
 			'Gross 21,600; net 21,600 − 875 = 20,725.'
 		],
@@ -797,8 +797,10 @@ register(
 				] as const
 			).map(([from, to]) =>
 				timeOff('malee', 'MATERNITY_LEAVE', from, to, {
-					event_kind: 'BIRTH',
-					event_date: '2026-01-15'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-01-15'
+					}
 				})
 			)
 		],
@@ -821,9 +823,11 @@ register(
 		inputs: [
 			...person({ ref: 'arthit', wage: 30_000 }),
 			timeOff('arthit', 'CHILD_BIRTH_LEAVE', '2026-02-09', '2026-02-13', {
-				event_kind: 'BIRTH',
-				event_relationship: 'SPOUSE',
-				event_date: '2026-02-06'
+				facts: {
+					event_kind: 'BIRTH',
+					event_relationship: 'SPOUSE',
+					event_date: '2026-02-06'
+				}
 			})
 		],
 		period: '2026-02',
@@ -1655,7 +1659,7 @@ register(
 				wage: 150_000,
 				hire: '2006-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			adhoc('sev20', 'SEVERANCE_PAY', 0, EXIT)
@@ -1692,7 +1696,7 @@ register(
 				dob: '1966-01-10',
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETIREMENT'
+				exit_ground: 'RETIREMENT'
 			}),
 			adhoc('retire', 'SEVERANCE_PAY', 0, EXIT)
 		],
@@ -1819,7 +1823,7 @@ register(
 				wage: 60_000,
 				hire: '2015-01-01',
 				exit: '2026-03-15',
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}),
 			encashOnExit('leaver', '2026-03-15', 1),
 			adhoc('leaver', 'SEVERANCE_PAY', 0, '2026-03-15'),
@@ -1859,7 +1863,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			encashOnExit('encash', EXIT, 1),
@@ -1905,7 +1909,7 @@ register(
 				wage: 30_000,
 				hire,
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
@@ -1948,7 +1952,7 @@ register(
 				wage: 30_000,
 				hire: '2020-04-01',
 				exit: EXIT,
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: { fixed_term_project_exempt: false }
 			}),
 			adhoc('expiry', 'SEVERANCE_PAY', 0, EXIT)
@@ -1983,7 +1987,7 @@ register(
 				wage: 30_000,
 				hire: '2025-12-03',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			...person({
@@ -1991,7 +1995,7 @@ register(
 				wage: 30_000,
 				hire: '2024-04-01',
 				exit: EXIT,
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: { fixed_term_project_exempt: true }
 			})
 		],
@@ -2016,7 +2020,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}),
 			adhoc('lieu', 'SEVERANCE_PAY', 0, EXIT),
 			adhoc('lieu', 'NOTICE_IN_LIEU', 0, EXIT)
@@ -2052,7 +2056,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { ...SERVED, dismissed_for_cause: true }
 			}),
 			...person({
@@ -2060,7 +2064,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { ...SERVED, dismissed_for_cause: false }
 			}),
 			adhoc('nocause', 'SEVERANCE_PAY', 0, EXIT)
@@ -2096,7 +2100,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { relocation_objection: true }
 			}),
 			...person({
@@ -2104,7 +2108,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { relocation_objection: true, relocation_notice_posted: true }
 			}),
 			adhoc('reloc', 'SEVERANCE_PAY', 0, EXIT),
@@ -2154,7 +2158,7 @@ register(
 				wage: 30_000,
 				hire: '2016-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { technology_restructuring: true }
 			}),
 			...person({
@@ -2163,7 +2167,7 @@ register(
 				dob: '1970-03-01',
 				hire: '1996-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { technology_restructuring: true }
 			}),
 			adhoc('tech10', 'SEVERANCE_PAY', 0, EXIT),
@@ -2258,7 +2262,7 @@ register(
 			`${SSA}: 9,677.42 × 5% = 483.87 → 484. ${P96}: nil.`,
 			'Net 9,677.42 − 484 = 9,193.42.'
 		],
-		inputs: person({ ref: 'resign', wage: 30_000, exit: '2026-03-10', exit_reason: 'RESIGNATION' }),
+		inputs: person({ ref: 'resign', wage: 30_000, exit: '2026-03-10', exit_ground: 'RESIGNATION' }),
 		period: '2026-03',
 		expected: [
 			{
@@ -2271,6 +2275,2672 @@ register(
 					'SSO.employee': 484,
 					'SSO.employer': 484
 				}
+			}
+		]
+	})
+);
+
+// ─── Round 9 (30 Sep 2026): the branches each register row names as unproven ─────────────────
+/** Every Monday–Friday of a month (no holiday is recorded unless the case adds one). */
+const weekdaysOf = (month: string) =>
+	Array.from({ length: 31 }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`).filter(
+		(date) =>
+			!Number.isNaN(Date.parse(`${date}T00:00:00Z`)) &&
+			new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date &&
+			![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay())
+	);
+/** One input with extra values over its own. */
+const withValues = (input: ProbeInput, values: Row): ProbeInput => ({
+	...input,
+	values: { ...input.values, ...values }
+});
+/** A young worker's month, every weekday clocked (ss.46–48 are judged on the timed day). */
+const clockedMonth = (
+	ref: string,
+	month: string,
+	day: readonly (readonly [string, string])[] = NORMAL_DAY
+) => weekdaysOf(month).map((date) => workDay(ref, date, day, 0));
+const CERT = { certificate_file: 'medical-certificate.pdf' };
+/** A twelve-hour guard shift 09:00–22:00, its hour of s.27 rest split into two agreed half hours. */
+const guardTwelve: ProbeInput = {
+	collection: 'shift_definitions',
+	ref: 'guard12',
+	values: {
+		company_id: '@company',
+		code: 'TH-GUARD-TWELVE',
+		name: 'Guard 0900 to 2200',
+		variant: {
+			kind: 'WORK',
+			start_time: '09:00',
+			end_time: '22:00',
+			break_minutes: 60,
+			break_start_time: '13:00'
+		},
+		effective_range: { from: EPOCH, to: null }
+	}
+};
+const guardDay = (ref: string, date: string, agreedAt: string): ProbeInput => ({
+	collection: 'work_days',
+	values: {
+		employment_id: `@${ref}_job`,
+		work_date: date,
+		shift_definition_id: '@guard12',
+		worked_intervals: [
+			['09:00', '13:00'],
+			['13:30', '17:30'],
+			['18:00', '22:00']
+		].map(([start, end]) => ({
+			start: `${date}T${start}:00+07:00`,
+			end: `${date}T${end}:00+07:00`
+		})),
+		approved_overtime_hours: 0,
+		facts: {
+			normal_hours_redistribution_agreed_at: agreedAt,
+			split_break_agreed_at: '2026-04-20T05:00:00.000Z'
+		}
+	}
+});
+/**
+ * The guard's agreed week as the contract from `from` (a Monday): a roster may not add normal hours
+ * to the terms' pattern (work_days pattern conformity), so a longer agreed normal day is a terms row
+ * naming a pattern that carries it. EPOCH (1990-01-01) is a Monday, so day 0 is Monday.
+ */
+const guardContract = (
+	ref: string,
+	from: string,
+	days: readonly ('@guard12' | '@work' | '@rest')[]
+): { pattern: ProbeInput; changes: Row[] } => ({
+	pattern: {
+		collection: 'shift_patterns',
+		ref: `${ref}_week`,
+		values: {
+			company_id: '@company',
+			code: `TH-GUARD-${ref.toUpperCase()}`,
+			name: `Guard week (${ref})`,
+			pattern: { days: days.map((roster_code_id) => ({ roster_code_id })) },
+			effective_range: { from: EPOCH, to: null }
+		}
+	},
+	changes: [{ from, shift_pattern_id: `@${ref}_week` }]
+});
+const GUARD_MONDAY = ['@guard12', '@work', '@work', '@work', '@work', '@rest', '@rest'] as const;
+const GUARD_WEEKDAYS = [
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@rest',
+	'@rest'
+] as const;
+const FOUR_HOURS: Variant = {
+	kind: 'WORK',
+	start_time: '09:00',
+	end_time: '13:00',
+	break_minutes: 0
+};
+const SEVEN_HOURS: Variant = {
+	kind: 'WORK',
+	start_time: '09:00',
+	end_time: '17:00',
+	break_minutes: 60,
+	break_start_time: '13:00'
+};
+const HAZARDOUS: Row = { facts: { hazardous_work: true, pregnancy_status: 'NOT_PREGNANT' } };
+const NOT_OFFERED = (code: string) =>
+	`${code} is not offered to .*: its eligibility rule does not hold for them\\.`;
+
+register(
+	// ─── Notice 14 blocks, comparators and worksites (TH-WAGE-01, -02, -03, -04, -07) ──────────
+	th({
+		id: 'TH-WAGE-01-4',
+		description:
+			'A monthly wage of THB11,999.70 in Bangkok, February 2026: 11,999.70 ÷ 30 = 399.99 a day is below the THB400 floor on each of the 20 normal working days, so the run is refused (cl.20).',
+		citation: [
+			`Notice 14 (${N14}) and the Ministry table: Bangkok THB400; cl.20 no employer may pay less. Owner rule 2026-09-28 (register TH-WAGE-01): a monthly wage is held to the rate × 30, each normal working day at monthly ÷ 30, the unrounded day compared.`
+		],
+		inputs: person({ ref: 'low', wage: 11_999.7 }),
+		period: '2026-02',
+		refused:
+			'P-TH-low is paid 399\\.99 a day on 20 normal working day\\(s\\) from 2026-02-02, below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-01-5',
+		description:
+			'A daily THB370 worker moved from Mae Rim (357) to Mueang Chiang Mai (380) on Monday 16 February 2026 by a new terms row: the ten Mueang weekdays 16–27 February are below the floor and the run is refused; the Mae Rim days are not.',
+		citation: [
+			`Notice 14 (${N14}) cls.3, 7, 20: Mueang Chiang Mai THB380, the rest of Chiang Mai THB357, owed per day at the day’s workplace.`
+		],
+		inputs: person({
+			ref: 'moved',
+			wage: 370,
+			terms: dailyTerms('Chiang Mai/Mae Rim'),
+			changes: [{ from: '2026-02-16', worksite: 'Chiang Mai/Mueang Chiang Mai' }]
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-moved is paid 370 a day on 10 normal working day\\(s\\) from 2026-02-16, below the Chiang Mai/Mueang Chiang Mai daily minimum wage of 380',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-01-6',
+		description:
+			'A semi-monthly contract of THB11,999.70 a month in Bangkok, first half of February 2026: its day is 11,999.70 ÷ 30 = 399.99, below THB400, so the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cl.20. Owner rule 2026-09-28 (register TH-WAGE-01): a semi-monthly base_salary is its month, held to the rate × 30.`
+		],
+		company: { pay_frequency: 'SEMI_MONTHLY' },
+		inputs: person({ ref: 'semi', wage: 11_999.7, terms: { pay_frequency: 'SEMI_MONTHLY' } }),
+		period: '2026-02-1',
+		refused: 'P-TH-semi is paid 399\\.99 a day on .* below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-01-7',
+		description:
+			'A weekly wage of THB2,769 in Bangkok, the first February 2026 payday: taken to its month (× 52 ÷ 12 = 11,999) its day is 399.9667, below THB400, so the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cl.20. Owner rule 2026-09-28 (register TH-WAGE-01): a weekly wage × 52 ÷ 12 is its month, then ÷ 30; 2,769 × 52 ÷ 12 ÷ 30 = 399.9667.`
+		],
+		company: { pay_frequency: 'WEEKLY' },
+		inputs: person({ ref: 'wk', wage: 2_769, terms: { pay_frequency: 'WEEKLY' } }),
+		period: '2026-02-1',
+		refused: 'P-TH-wk is paid 399\\.9667 a day on .* below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-02-3',
+		description:
+			'A daily THB370 worker whose terms record Mae Rim (357) works Monday 2 February 2026 at Mueang Chiang Mai (380), recorded on the work day: that one day is below the floor and the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cls.3, 7, 20: the floor is owed at the workplace the day was worked; a day across a district boundary is held to that day’s site.`
+		],
+		inputs: [
+			...person({ ref: 'split', wage: 370, terms: dailyTerms('Chiang Mai/Mae Rim') }),
+			withValues(workDay('split', '2026-02-02', NORMAL_DAY, 0), {
+				worksite: 'Chiang Mai/Mueang Chiang Mai'
+			})
+		],
+		period: '2026-02',
+		refused:
+			'P-TH-split is paid 370 a day on 1 normal working day\\(s\\) from 2026-02-02, below the Chiang Mai/Mueang Chiang Mai daily minimum wage of 380',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-02-4',
+		description:
+			'A worksite recorded as the bare province Chiang Mai, whose Mueang district has its own rate, names no floor: the run is refused until the district is recorded.',
+		citation: [
+			`Notice 14 (${N14}) cls.3, 7: Chiang Mai has two rates (Mueang Chiang Mai 380, the rest 357), so the province alone does not say which is owed.`
+		],
+		inputs: person({ ref: 'bare', wage: 400, terms: dailyTerms('Chiang Mai') }),
+		period: '2026-02',
+		refused: 'P-TH-bare: record the worksite on 2026-02-\\d\\d as a province or province/district',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-03-3',
+		description:
+			'A type-2 hotel in Mae Rim paying THB370 a day, February 2026: the nationwide THB400 binds (not Chiang Mai’s 357), so the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cl.2(1), cl.20 and explanation items 7, 12: hotels of type 2–4 THB400 nationwide; the higher rate binds.`
+		],
+		inputs: person({
+			ref: 'hotel2',
+			wage: 370,
+			terms: dailyTerms('Chiang Mai/Mae Rim', 'HOTEL_TYPE_2')
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-hotel2 is paid 370 a day on .* below the Chiang Mai/Mae Rim HOTEL_TYPE_2 daily minimum wage of 400',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-03-4',
+		description:
+			'A worksite sector the version’s table does not name (HOTEL_TYPE_5: the hotel regulation has four types) cannot be priced: the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cl.2(1): the THB400 sector rate is for hotels of type 2–4 under the hotel-category regulation, which defines types 1–4 only.`
+		],
+		inputs: person({ ref: 'type5', wage: 400, terms: dailyTerms('Yala', 'HOTEL_TYPE_5') }),
+		period: '2026-02',
+		refused: 'P-TH-type5: the worksite sector "HOTEL_TYPE_5" is not in the version',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-04-3',
+		description:
+			'An hourly THB94.99 worker on a four-hour normal day in Mueang Chiang Mai, February 2026: 94.99 × 4 = 379.96 is below the whole day’s THB380, so the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cls.19, 20: the daily rate is the wage for the normal working day however short; an hourly rate is held to it over the day’s paid hours.`
+		],
+		work: FOUR_HOURS,
+		inputs: person({
+			ref: 'hr9499',
+			wage: 94.99,
+			terms: { pay_frequency: 'HOURLY', worksite: 'Chiang Mai/Mueang Chiang Mai' }
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-hr9499 is paid 379\\.96 a day on .* below the Chiang Mai/Mueang Chiang Mai daily minimum wage of 380',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-04-4',
+		description:
+			'A daily THB370 worker on a four-hour normal day in Mueang Chiang Mai, February 2026: the floor is the whole 380, not 380 × 4/8, so the run is refused.',
+		citation: [`Notice 14 (${N14}) cls.19, 20.`],
+		work: FOUR_HOURS,
+		inputs: person({
+			ref: 'short370',
+			wage: 370,
+			terms: dailyTerms('Chiang Mai/Mueang Chiang Mai')
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-short370 is paid 370 a day on .* below the Chiang Mai/Mueang Chiang Mai daily minimum wage of 380',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-04-5',
+		description:
+			'Hazardous work on its seven-hour normal day in Bangkok, hourly THB57.15, February 2026: 57.15 × 7 = 400.05 meets the THB400 day; 20 days = 8,001.',
+		citation: [
+			`Notice 14 (${N14}) cls.19, 20: the normal working day is at most 7 hours in hazardous work; LPA s.23 para.1 (${LPA}).`,
+			`${SSA}: 8,001 × 5% = 400.05 → 400. ${P96}: 96,012 annualised, nil.`,
+			'Net 8,001 − 400 = 7,601.'
+		],
+		work: SEVEN_HOURS,
+		inputs: person({
+			ref: 'haz5715',
+			wage: 57.15,
+			terms: { pay_frequency: 'HOURLY', worksite: 'Bangkok', ...HAZARDOUS }
+		}),
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'haz5715_job',
+				lines: {
+					gross: 8_001,
+					net: 7_601,
+					employer_cost: 400,
+					'SSO.employee': 400,
+					'SSO.employer': 400
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-WAGE-04-6',
+		description:
+			'The same seven-hour hazardous day at hourly THB57.14: 57.14 × 7 = 399.98 is below THB400, so the run is refused.',
+		citation: [`Notice 14 (${N14}) cls.19, 20; LPA s.23 para.1 (${LPA}).`],
+		work: SEVEN_HOURS,
+		inputs: person({
+			ref: 'haz5714',
+			wage: 57.14,
+			terms: { pay_frequency: 'HOURLY', worksite: 'Bangkok', ...HAZARDOUS }
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-haz5714 is paid 399\\.98 a day on .* below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-07-2',
+		description:
+			'A Service Establishment Act venue in Yala paying THB399 a day, February 2026: the nationwide THB400 binds (not Yala’s 337), so the run is refused.',
+		citation: [
+			`Notice 14 (${N14}) cl.2(2), cl.20 and explanation items 7, 13: a service establishment under the Service Establishment Act THB400 nationwide.`
+		],
+		inputs: person({
+			ref: 'venue399',
+			wage: 399,
+			terms: dailyTerms('Yala', 'SERVICE_ESTABLISHMENT')
+		}),
+		period: '2026-02',
+		refused:
+			'P-TH-venue399 is paid 399 a day on .* below the Yala SERVICE_ESTABLISHMENT daily minimum wage of 400',
+		expected: []
+	}),
+
+	// ─── Guards, s.65 classes and hours limits (TH-WORK-03, -06, -07) ───────────────────────────
+	th({
+		id: 'TH-WORK-03-2',
+		description:
+			'An hourly guard on THB60, October 2026, works an agreed twelve-hour normal day on Monday 26 October inside a 44-hour week: the four normal hours above eight earn the 2025 regulation’s 1.25× supplement (4 × 60 × 1.25 = 300) on top of 180 paid hours.',
+		citation: [
+			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a guard may agree a normal day above eight hours within 48 a week; a non-monthly guard is paid at least 1.25× the hourly rate for the normal hours above eight.',
+			`LPA ss.23, 27 (${LPA}): the day’s hour of rest may be split by prior agreement. 22 weekdays × 8 + 4 = 180 hours × 60 = 10,800; + 300 = 11,100.`,
+			`${SSA}: the supplement is pay for normal working time: 11,100 × 5% = 555. ${P96}: 133,200 annualised, nil. EWF: one worker, under ten, not covered.`,
+			'Net 11,100 − 555 = 10,545.'
+		],
+		inputs: [
+			guardTwelve,
+			guardContract('guardh', '2026-10-26', GUARD_MONDAY).pattern,
+			...person({
+				ref: 'guardh',
+				wage: 60,
+				terms: { pay_frequency: 'HOURLY', statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('guardh', '2026-10-26', GUARD_MONDAY).changes
+			}),
+			guardDay('guardh', '2026-10-26', '2026-10-25T05:00:00.000Z')
+		],
+		period: '2026-10',
+		expected: [
+			{
+				employment: 'guardh_job',
+				lines: {
+					gross: 11_100,
+					net: 10_545,
+					employer_cost: 555,
+					'SSO.employee': 555,
+					'SSO.employer': 555
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-WORK-03-3',
+		description:
+			'A monthly guard whose twelve-hour normal day on Monday 27 April 2026 was agreed only at 10:00 that morning, after the shift began: the redistributed day lacks the prior agreement and the run is refused.',
+		citation: [
+			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf); LPA s.23 (' +
+				LPA +
+				'): a normal day above eight hours needs the worker’s prior agreement.'
+		],
+		inputs: [
+			guardTwelve,
+			guardContract('gagree', '2026-04-27', GUARD_MONDAY).pattern,
+			...person({
+				ref: 'gagree',
+				wage: 24_000,
+				terms: { statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('gagree', '2026-04-27', GUARD_MONDAY).changes
+			}),
+			guardDay('gagree', '2026-04-27', '2026-04-27T03:00:00.000Z')
+		],
+		period: '2026-04',
+		refused:
+			'P-TH-gagree needs a prior worker agreement for the redistributed normal day on 2026-04-27',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-06-3',
+		description:
+			'A s.65(3)–(9) employee (say, water-gate work) on THB24,000 (hourly 100), January 2026: Monday 5 January three overtime hours at the hourly rate (300, not 1.5×); Saturday 10 January weekly holiday nine hours: eight at s.62(1) 1× (800) and the ninth at the hourly rate (100, not 3×).',
+		citation: [
+			`LPA s.65 (${LPA}, re-read 30 Sep 2026): the classes of s.65(1)–(9) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but those of (3)–(9) are paid the working-day hourly rate for each hour worked; s.66 removes only class (1) from s.62, so s.62(1) holiday-work pay stays. s.68: 24,000 ÷ 240 = 100.`,
+			'300 + 800 + 100 = 1,200; gross 25,200.',
+			`${SSA}: 875. ${P96}: 288,000 and 289,200 annualised both nil after 170,500 of deductions.`,
+			'Net 25,200 − 875 = 24,325.'
+		],
+		inputs: [
+			...person({
+				ref: 'gate',
+				wage: 24_000,
+				terms: { work_classification: 'OVERTIME_AT_HOURLY_RATE' }
+			}),
+			workDay('gate', '2026-01-05', LONG_DAY, 3),
+			workDay('gate', '2026-01-10', NINE_HOURS, 9)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'gate_job',
+				lines: {
+					gross: 25_200,
+					net: 24_325,
+					employer_cost: 875,
+					BASIC: 24_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-WORK-06-4',
+		description:
+			'A s.65(2) canvassing salesperson paid commission, on THB24,000, works the same long Monday and nine-hour Saturday: no overtime or holiday-overtime pay at all, but s.62(1) holiday-work pay for the eight holiday hours (800).',
+		citation: [
+			`LPA ss.65(2), 66 (${LPA}, re-read 30 Sep 2026): class (2) has no s.61 or s.63 pay and, unlike (3)–(9), no hourly compensation; s.66 excludes only class (1) from s.62.`,
+			`${SSA}: 875. ${P96}: nil.`,
+			'Gross 24,800; net 24,800 − 875 = 23,925.'
+		],
+		inputs: [
+			...person({
+				ref: 'canvass',
+				wage: 24_000,
+				terms: { work_classification: 'COMMISSION_SALES' }
+			}),
+			workDay('canvass', '2026-01-05', LONG_DAY, 3),
+			workDay('canvass', '2026-01-10', NINE_HOURS, 9)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'canvass_job',
+				lines: {
+					gross: 24_800,
+					net: 23_925,
+					employer_cost: 875,
+					BASIC: 24_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-WORK-07-2',
+		description:
+			'Hazardous work on its seven-hour day with four overtime hours on Monday 5 January 2026: s.31 forbids overtime in hazardous work, so the run is refused.',
+		citation: [`LPA ss.23 para.1, 31 (${LPA}, read 30 Sep 2026).`],
+		work: SEVEN_HOURS,
+		inputs: [
+			...person({ ref: 'hazot', wage: 21_000, terms: HAZARDOUS }),
+			workDay(
+				'hazot',
+				'2026-01-05',
+				[
+					['09:00', '13:00'],
+					['14:00', '17:00'],
+					['17:20', '21:20']
+				],
+				4
+			)
+		],
+		period: '2026-01',
+		refused: 'P-TH-hazot cannot work overtime or on a holiday in Thai hazardous work on 2026-01-05',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-3',
+		description:
+			'Hazardous work on the weekly holiday, Saturday 10 January 2026, seven hours: s.31 forbids holiday work in hazardous work, so the run is refused.',
+		citation: [`LPA ss.23 para.1, 31 (${LPA}, read 30 Sep 2026).`],
+		work: SEVEN_HOURS,
+		inputs: [
+			...person({ ref: 'hazhol', wage: 21_000, terms: HAZARDOUS }),
+			workDay(
+				'hazhol',
+				'2026-01-10',
+				[
+					['09:00', '13:00'],
+					['14:00', '17:00']
+				],
+				7
+			)
+		],
+		period: '2026-01',
+		refused:
+			'P-TH-hazhol cannot work overtime or on a holiday in Thai hazardous work on 2026-01-10',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-4',
+		description:
+			'Hazardous work rostered on the eight-hour office day, January 2026: above the seven-hour hazardous normal day, so the run is refused.',
+		citation: [
+			`LPA s.23 para.1 (${LPA}): hazardous work at most 7 normal hours a day and 42 a week.`
+		],
+		inputs: person({ ref: 'haz8', wage: 21_000, terms: HAZARDOUS }),
+		period: '2026-01',
+		refused: 'P-TH-haz8 has a hazardous normal shift above the 7-hour limit on 2026-01-\\d\\d',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-5',
+		description:
+			'Three overtime hours on Monday 5 January 2026 whose consent is recorded at 10:00, after the working day began: the occasion had no prior consent and the run is refused.',
+		citation: [
+			`LPA s.24 (${LPA}): overtime needs the employee’s prior consent on each occasion, save the s.24 para.2 continuous or emergency work and s.25’s businesses.`
+		],
+		inputs: [
+			...person({ ref: 'noconsent', wage: 24_000 }),
+			withValues(workDay('noconsent', '2026-01-05', LONG_DAY, 3), {
+				overtime_consented_at: '2026-01-05T10:00:00+07:00'
+			})
+		],
+		period: '2026-01',
+		refused:
+			'P-TH-noconsent needs the worker.s prior consent for overtime or holiday work on 2026-01-05',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-6',
+		description:
+			'Four company holidays 5–8 January 2026 each worked nine hours (36 hours of holiday work and holiday overtime) fill the week’s 36-hour ceiling, so three overtime hours on Friday 9 January are refused at entry; the four holidays are paid: 4 × (800 + 300) = 4,400.',
+		citation: [
+			`LPA s.26 and Ministerial Regulation No.3 B.E.2541 cl.3 (${LPA}): overtime, holiday work and holiday overtime together at most 36 hours a week.`,
+			`LPA ss.62(1), 63, 68: 8 × 100 + 1 × 300 a holiday on THB24,000.`,
+			`${SSA}: 875. ${P96}: 292,400 annualised, nil.`,
+			'Gross 28,400; net 28,400 − 875 = 27,525.'
+		],
+		inputs: [
+			...['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08'].map((date, n) =>
+				holiday(date, `Company holiday ${n + 1}`)
+			),
+			...person({ ref: 'capot', wage: 24_000 }),
+			...['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08'].map((date) =>
+				workDay('capot', date, NINE_HOURS, 9)
+			),
+			{
+				...workDay('capot', '2026-01-09', LONG_DAY, 3),
+				refused:
+					'2026-01-09 would hold 3 h of approved overtime, above the .* h left within the 36-hour limit "combined_overtime_holiday_week"'
+			}
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'capot_job',
+				lines: {
+					gross: 28_400,
+					net: 27_525,
+					employer_cost: 875,
+					BASIC: 24_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+
+	// ─── Young and pregnant workers (TH-HR-07) ──────────────────────────────────────────────────
+	th({
+		id: 'TH-HR-07-2',
+		description:
+			'A 17-year-old, every February 2026 weekday clocked, works three overtime hours on Monday 2 February: s.48 forbids overtime under 18, so the run is refused.',
+		citation: [`LPA s.48 (${LPA}): no employee under 18 may work overtime or on a holiday.`],
+		inputs: [
+			...person({ ref: 'teenot', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+			...clockedMonth('teenot', '2026-02').filter(
+				(input) => input.values.work_date !== '2026-02-02'
+			),
+			workDay('teenot', '2026-02-02', LONG_DAY, 3)
+		],
+		period: '2026-02',
+		refused: 'P-TH-teenot cannot work overtime in Thailand while under 18 on 2026-02-02',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-3',
+		description:
+			'A pregnant employee works three overtime hours on Monday 5 January 2026 with no evidence of a s.39/1 para.2 executive, academic, clerical or financial role: the run is refused.',
+		citation: [
+			`LPA s.39/1 (${LPA}): no night, overtime or holiday work for a pregnant employee; working-day overtime only in the listed roles and without harm to her health.`
+		],
+		inputs: [
+			...person({
+				ref: 'pregot',
+				wage: 30_000,
+				gender: 'FEMALE',
+				terms: { facts: { hazardous_work: false, pregnancy_status: 'PREGNANT' } }
+			}),
+			workDay('pregot', '2026-01-05', LONG_DAY, 3)
+		],
+		period: '2026-01',
+		refused:
+			'P-TH-pregot needs supported Thai s\\.39/1 role and health evidence before pregnant working-day overtime on 2026-01-05',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-4',
+		description:
+			'A 17-year-old on a 15:00–23:00 normal shift (the hour’s rest at 19:00), February 2026, every weekday clocked: the hour after 22:00 is night work with no prior written Director-General permission, so the run is refused.',
+		citation: [
+			`LPA s.47 (${LPA}): no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission.`
+		],
+		work: {
+			kind: 'WORK',
+			start_time: '15:00',
+			end_time: '23:00',
+			break_minutes: 60,
+			break_start_time: '19:00'
+		},
+		inputs: [
+			...person({ ref: 'teennight', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+			...clockedMonth('teennight', '2026-02', [
+				['15:00', '19:00'],
+				['20:00', '23:00']
+			])
+		],
+		period: '2026-02',
+		refused:
+			'P-TH-teennight needs prior written Thai Director-General permission for under-18 night work on 2026-02-02',
+		expected: []
+	}),
+
+	// ─── Leave (TH-LEAVE-02, -03, -05, -06, -07) ────────────────────────────────────────────────
+	th({
+		id: 'TH-LEAVE-02-1',
+		description:
+			'Five days of child-care leave (9–13 February 2026) for a newborn with a certified condition, on THB30,000: each day paid at 50%, so half of five calendar days comes off: 5 × 0.5 × 30,000 ÷ 28 = 2,678.57.',
+		citation: [
+			'LPA s.41 para.4 and s.59/1 as added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage.',
+			'Owner rule 2026-09-28 (register TH-WORK-05): a day of a monthly wage off pay is monthly ÷ the month’s days. Gross 30,000 − 2,678.57 = 27,321.43.',
+			`${SSA}: 875. ${P96}: 327,857.16 − 170,500 = 157,357.16 → 7,357.16 × 5% = 367.858 ÷ 12 = 30.6548 → 30.65.`,
+			'Net 27,321.43 − 875 − 30.65 = 26,415.78.'
+		],
+		inputs: [
+			...person({ ref: 'carer', wage: 30_000, gender: 'FEMALE' }),
+			{
+				...timeOff('carer', 'CHILD_CARE_LEAVE', '2026-02-09', '2026-02-13', {
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-20'
+					}
+				}),
+				files: CERT
+			}
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'carer_job',
+				lines: {
+					gross: 27_321.43,
+					net: 26_415.78,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 30.65
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-02-2',
+		description:
+			'Sixteen working days of child-care leave (2–23 February 2026) for one child: above the 15 days s.41 para.4 grants, so the entry is refused and the month is paid whole.',
+		citation: [
+			'LPA s.41 para.4 as added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf): “not more than fifteen days”.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'carer16', wage: 30_000, gender: 'FEMALE' }),
+			{
+				...timeOff('carer16', 'CHILD_CARE_LEAVE', '2026-02-02', '2026-02-23', {
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-20'
+					}
+				}),
+				files: CERT,
+				refused:
+					'CHILD_CARE_LEAVE grants 15 days for this event; 0 are already taken and this would add 16\\.'
+			}
+		],
+		period: '2026-02',
+		expected: [{ employment: 'carer16_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-03-2',
+		description:
+			'Sixteen working days of spouse-birth leave (9 February – 2 March 2026) for one birth: above the 15 days s.41/1 grants, so the entry is refused and February is paid whole.',
+		citation: [
+			'LPA ss.41/1, 59/2 as added by No.9 ss.6, 8 (https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 15 days for each birth.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'arthit16', wage: 30_000 }),
+			{
+				...timeOff('arthit16', 'CHILD_BIRTH_LEAVE', '2026-02-09', '2026-03-02', {
+					facts: {
+						event_kind: 'BIRTH',
+						event_relationship: 'SPOUSE',
+						event_date: '2026-02-06'
+					}
+				}),
+				refused:
+					'CHILD_BIRTH_LEAVE grants 15 days for this event; 0 are already taken and this would add 16\\.'
+			}
+		],
+		period: '2026-02',
+		expected: [{ employment: 'arthit16_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-05-2',
+		description:
+			'Annual leave on 10 February 2026: refused for an employee hired 12 February 2025 (a day short of a year’s service); granted to one hired 10 February 2025 (a full year served). Both months paid whole.',
+		citation: [
+			`LPA s.30 (${LPA}): at least six working days of annual leave for an employee who has worked continuously for one full year; pro rata before that is the employer’s option, not modelled.`,
+			`${SSA}; ${P96}: the THB30,000 figures above (both hired in 2025, twelve payments in 2026).`
+		],
+		inputs: [
+			...person({ ref: 'young', wage: 30_000, hire: '2025-02-12' }),
+			{
+				...timeOff('young', 'ANNUAL_LEAVE', '2026-02-10', '2026-02-10'),
+				refused: 'Leave on 2026-02-10 cannot be approved: INELIGIBLE\\.'
+			},
+			...person({ ref: 'anniv', wage: 30_000, hire: '2025-02-10' }),
+			timeOff('anniv', 'ANNUAL_LEAVE', '2026-02-10', '2026-02-10')
+		],
+		period: '2026-02',
+		expected: [
+			{ employment: 'young_job', lines: plain30k },
+			{ employment: 'anniv_job', lines: plain30k }
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-06-2',
+		description:
+			'Sick leave with certificates, 5–30 January (20 working days) and 2–16 February 2026 (11): the 30th working day of the year (13 February) is the last paid; Monday 16 February, the 31st, comes off at 30,000 ÷ 28 = 1,071.43.',
+		citation: [
+			`LPA ss.32, 57 (${LPA}): sick leave as actually ill, wages for not more than 30 working days a year; a certificate may be asked for from three working days.`,
+			'Owner rule 2026-09-28 (register TH-WORK-05): an unpaid day of a monthly wage is monthly ÷ the month’s days. Gross 28,928.57.',
+			`${SSA}: 875. ${P96}: 347,142.84 − 170,500 = 176,642.84 → 26,642.84 × 5% = 1,332.142 ÷ 12 = 111.0118 → 111.01.`,
+			'Net 28,928.57 − 875 − 111.01 = 27,942.56.'
+		],
+		inputs: [
+			...person({ ref: 'ill', wage: 30_000 }),
+			{ ...timeOff('ill', 'SICK_LEAVE', '2026-01-05', '2026-01-30'), files: CERT },
+			{ ...timeOff('ill', 'SICK_LEAVE', '2026-02-02', '2026-02-16'), files: CERT }
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'ill_job',
+				lines: {
+					gross: 28_928.57,
+					net: 27_942.56,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 111.01
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-06-3',
+		description:
+			'Three working days of sick leave (10–12 February 2026) with no medical certificate: the certificate may be required from the third working day, so the entry is refused and the month is paid whole.',
+		citation: [
+			`LPA s.32 (${LPA}): “ลาป่วยตั้งแต่สามวันทำงานขึ้นไป” — from three working days the employer may require a first-class physician’s certificate.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'nocert', wage: 30_000 }),
+			{
+				...timeOff('nocert', 'SICK_LEAVE', '2026-02-10', '2026-02-12'),
+				refused: 'A certificate is required for this time off\\.'
+			}
+		],
+		period: '2026-02',
+		expected: [{ employment: 'nocert_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-07-2',
+		description:
+			'Three days of certified sterilisation leave (10–12 February 2026): paid, the month unchanged.',
+		citation: [
+			`LPA ss.33, 57 para.2 (${LPA}): leave for sterilisation as a first-class physician prescribes and certifies, with wages.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'steril', wage: 30_000 }),
+			{ ...timeOff('steril', 'STERILISATION_LEAVE', '2026-02-10', '2026-02-12'), files: CERT }
+		],
+		period: '2026-02',
+		expected: [{ employment: 'steril_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-07-3',
+		description:
+			'Five days of military leave for a reserve training call (9–13 February 2026): paid, inside the 60 days a year s.58 pays.',
+		citation: [
+			`LPA ss.35, 58 (${LPA}): leave for military inspection, training or readiness testing, with wages for not more than 60 days a year.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'reserve', wage: 30_000 }),
+			timeOff('reserve', 'MILITARY_LEAVE', '2026-02-09', '2026-02-13')
+		],
+		period: '2026-02',
+		expected: [{ employment: 'reserve_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-07-4',
+		description:
+			'Four days of personal-business leave (9–12 February 2026) against the three a year the catalogue grants: the entry is refused and the month is paid whole.',
+		citation: [
+			`LPA ss.34, 57/1 (${LPA}): at least three working days a year, wages for not more than three. Owner rule 2026-09-28 (register TH-LEAVE-07): the catalogue grants the statutory three; a longer grant is the employer’s, keyed as unpaid leave.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'errand', wage: 30_000 }),
+			{
+				...timeOff('errand', 'PERSONAL_BUSINESS_LEAVE', '2026-02-09', '2026-02-12'),
+				refused: 'Insufficient leave in .*: 1 more days are needed after existing commitments\\.'
+			}
+		],
+		period: '2026-02',
+		expected: [{ employment: 'errand_job', lines: plain30k }]
+	}),
+
+	// ─── Social security and withholding (TH-SS-01, -02, -12; TH-PIT-02, -20) ──────────────────
+	th({
+		id: 'TH-SS-01-3',
+		description:
+			'THB30,000 in December 2025, the last month of the THB15,000 ceiling: 750 each side; withholding for tax year 2025 with its remainder on the year’s last payment.',
+		citation: [
+			`${SSA}; base THB1,650–15,000 before 1 January 2026 (MR B.E.2568 cl.3 raises it from then): 15,000 × 5% = 750.`,
+			`${P96}: 360,000 − 100,000 − 60,000 − 750 × 12 = 191,000 → 41,000 × 5% = 2,050 ÷ 12 = 170.8333 → 170.83; December carries 2,050 − 12 × 170.83 = 0.04: 170.87.`,
+			'Net 30,000 − 750 − 170.87 = 29,079.13.'
+		],
+		inputs: person({ ref: 'dec25', wage: 30_000 }),
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'dec25_job',
+				lines: {
+					gross: 30_000,
+					net: 29_079.13,
+					employer_cost: 750,
+					'SSO.employee': 750,
+					'SSO.employer': 750,
+					'PIT.employee': 170.87
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SS-02-3',
+		description:
+			'A registered Songkhla employer, December 2025 (the first flood-relief month, still under the THB15,000 ceiling): 3% × 15,000 = 450 each side, and the 450 is the s.47(1)(ฌ) relief the withholding annualises.',
+		citation: [
+			'Flood-relief notice cl.1 (https://ratchakitcha.soc.go.th/documents/100888.pdf): 3% each for wage months December 2025–May 2026.',
+			`${SSA}: 15,000 × 3% = 450.`,
+			`${P96}: 360,000 − 100,000 − 60,000 − 450 × 12 = 194,600 → 44,600 × 5% = 2,230 ÷ 12 = 185.8333 → 185.83; December carries 2,230 − 12 × 185.83 = 0.04: 185.87.`,
+			'Net 30,000 − 450 − 185.87 = 29,364.13.'
+		],
+		company: { facts: { sso_flood_relief_area: true } },
+		inputs: person({ ref: 'flooddec', wage: 30_000, terms: { worksite: 'Songkhla/Hat Yai' } }),
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'flooddec_job',
+				lines: {
+					gross: 30_000,
+					net: 29_364.13,
+					employer_cost: 450,
+					'SSO.employee': 450,
+					'SSO.employer': 450,
+					'PIT.employee': 185.87
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SS-12-2',
+		description:
+			'A worker hired at 14 (born 10 February 2011) on THB12,000, January 2026: still under 15 at the month’s end, not yet insured: no SSO, no tax.',
+		citation: [
+			`${SSA} s.33 para.1: an employee aged 15–60 is insured. Owner rule 2026-09-28 (register TH-SS-12): the lower bound is read on the period end.`,
+			`${P96}: 144,000 annualised, nil.`
+		],
+		inputs: [
+			...person({ ref: 'young14', wage: 12_000, dob: '2011-02-10', hire: '2025-12-01' }),
+			...clockedMonth('young14', '2026-01')
+		],
+		period: '2026-01',
+		expected: [
+			{ employment: 'young14_job', lines: { gross: 12_000, net: 12_000, employer_cost: 0 } }
+		]
+	}),
+	th({
+		id: 'TH-SS-12-3',
+		description:
+			'The same worker in February 2026, 15 from 10 February: insured for the month, 12,000 × 5% = 600 each side.',
+		citation: [
+			`${SSA} s.33 para.1. Owner rule 2026-09-28 (register TH-SS-12): 15 on the period end, the whole month’s wage contributory.`,
+			`${P96}: nil. Net 12,000 − 600 = 11,400.`
+		],
+		inputs: [
+			...person({ ref: 'turns15', wage: 12_000, dob: '2011-02-10', hire: '2025-12-01' }),
+			...clockedMonth('turns15', '2026-02')
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'turns15_job',
+				lines: {
+					gross: 12_000,
+					net: 11_400,
+					employer_cost: 600,
+					'SSO.employee': 600,
+					'SSO.employer': 600
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-PIT-02-6',
+		description:
+			'Hired on 1 December 2026 on THB400,000 a month: the year’s one payment is its own annual income (× 1, not × 12).',
+		citation: [
+			`${P96} cl.1(1): the payment × the payments due in the tax year, for a December hire one: 400,000 − 100,000 − 60,000 − 875 = 239,125 → 89,125 × 5% = 4,456.25 ÷ 1.`,
+			`${SSA}: 875.`,
+			'Net 400,000 − 875 − 4,456.25 = 394,668.75.'
+		],
+		inputs: person({ ref: 'dechire', wage: 400_000, hire: '2026-12-01' }),
+		period: '2026-12',
+		expected: [
+			{
+				employment: 'dechire_job',
+				lines: {
+					gross: 400_000,
+					net: 394_668.75,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 4_456.25
+				}
+			}
+		]
+	}),
+
+	// ─── Exit (TH-EXIT-04, -07) ─────────────────────────────────────────────────────────────────
+	th({
+		id: 'TH-EXIT-04-2',
+		description:
+			'Retrenched on 31 March 2026 after three years on THB30,000 with notice given on payday 28 February (effective payday 31 March): notice was served, so pay in lieu is not offered; 180 days’ severance, exempt.',
+		citation: [
+			`LPA ss.17 para.2, 17/1, 118(3) (${LPA}).`,
+			`${SEVERANCE_TAX_LAW}: 180,000 inside the exemption. ${P96}: 164.58. ${SSA}: 875.`,
+			'Net 210,000 − 875 − 164.58 = 208,960.42.'
+		],
+		inputs: [
+			...person({
+				ref: 'served',
+				wage: 30_000,
+				hire: '2023-04-01',
+				exit: EXIT,
+				exit_ground: 'RETRENCHMENT',
+				exit_facts: SERVED
+			}),
+			adhoc('served', 'SEVERANCE_PAY', 0, EXIT),
+			{ ...adhoc('served', 'NOTICE_IN_LIEU', 0, EXIT), refused: NOT_OFFERED('NOTICE_IN_LIEU') }
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'served_job',
+				lines: {
+					gross: 210_000,
+					net: 208_960.42,
+					SEVERANCE_PAY: 180_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 164.58
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-EXIT-04-3',
+		description:
+			'The same retrenchment with notice given on Sunday 1 March 2026, the day after the February payday: it takes effect on the payday after 31 March, 30 April, so April’s 30,000 is owed in lieu.',
+		citation: [
+			`LPA ss.17 para.2, 17/1, 118(3) (${LPA}): notice at or before a payday takes effect on the next payday.`,
+			`${SEVERANCE_TAX_LAW}: the 30,000 in lieu is outside the exemption and withheld with salary: ${P96}: 164.58 + 1,500 = 1,664.58.`,
+			'Net 240,000 − 875 − 1,664.58 = 237,460.42.'
+		],
+		inputs: [
+			...person({
+				ref: 'late',
+				wage: 30_000,
+				hire: '2023-04-01',
+				exit: EXIT,
+				exit_ground: 'RETRENCHMENT',
+				exit_facts: { notice_given_on: '2026-03-01' }
+			}),
+			adhoc('late', 'SEVERANCE_PAY', 0, EXIT),
+			adhoc('late', 'NOTICE_IN_LIEU', 0, EXIT)
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'late_job',
+				lines: {
+					gross: 240_000,
+					net: 237_460.42,
+					NOTICE_IN_LIEU: 30_000,
+					SEVERANCE_PAY: 180_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 1_664.58
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-EXIT-04-4',
+		description:
+			'A resignation effective 31 March 2026: the employer owes no notice, so pay in lieu is not offered; March paid whole.',
+		citation: [
+			`LPA ss.17, 17/1 (${LPA}): notice and pay in lieu bind the party ending the contract; an employee resigning is owed none.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'quits', wage: 30_000, exit: EXIT, exit_ground: 'RESIGNATION' }),
+			{ ...adhoc('quits', 'NOTICE_IN_LIEU', 0, EXIT), refused: NOT_OFFERED('NOTICE_IN_LIEU') }
+		],
+		period: '2026-03',
+		expected: [{ employment: 'quits_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-EXIT-07-2',
+		description:
+			'Technology restructuring on 31 March 2026 after ten years on THB30,000 with the 60 days’ notice given: no s.121 para.2 payment in lieu (not offered); s.118 300 days + s.122 15 × 10 = 450 days’ severance.',
+		citation: [
+			`LPA ss.118, 121, 122 (${LPA}, read 30 Sep 2026): s.121 para.2 pays 60 days in lieu only where the 60 days’ notice was not given; s.122 is owed either way.`,
+			`${SEVERANCE_TAX_LAW}: 450,000 − 400,000 = 50,000 − 70,000 (7,000 × 10 years) → nil. ${P96}: 164.58. ${SSA}: 875.`,
+			'Net 480,000 − 875 − 164.58 = 478,960.42.'
+		],
+		inputs: [
+			...person({
+				ref: 'tech60',
+				wage: 30_000,
+				hire: '2016-04-01',
+				exit: EXIT,
+				exit_ground: 'RETRENCHMENT',
+				exit_facts: { technology_restructuring: true, technology_notice_60_days: true }
+			}),
+			adhoc('tech60', 'SEVERANCE_PAY', 0, EXIT),
+			{ ...adhoc('tech60', 'NOTICE_IN_LIEU', 0, EXIT), refused: NOT_OFFERED('NOTICE_IN_LIEU') }
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'tech60_job',
+				lines: {
+					gross: 480_000,
+					net: 478_960.42,
+					SEVERANCE_PAY: 450_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 164.58
+				}
+			}
+		]
+	})
+);
+
+// ─── Round 9, second pass (30 Sep 2026): later sealed steps, registration, part years ────────
+const unregistered = (ref: string, code: string, from: string): ProbeInput => ({
+	collection: 'employment_statutory_facts',
+	values: {
+		employee_id: `@${ref}`,
+		employment_id: `@${ref}_job`,
+		statutory_contribution_id: `@law:statutory_contributions:${code}`,
+		effective_range: { from, to: null },
+		status: { kind: 'NOT_REGISTERED', reason: 'The employer has not registered the employee' }
+	}
+});
+const guardWeek = (ref: string, dates: readonly string[]) =>
+	dates.map((date) => guardDay(ref, date, `${dayBefore(date)}T05:00:00.000Z`));
+
+register(
+	// ─── Social security later steps and registration (TH-SS-01; TH-PIT-01; TH-EWF-01, -02) ─────
+	th({
+		id: 'TH-SS-01-4',
+		description:
+			'THB30,000 in January 2029, the first month of the THB20,000 ceiling: 1,000 each side, and 1,000 × 12 the s.47(1)(ฌ) relief.',
+		citation: [
+			'Social Security Act ss.33, 46 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09); 5% (MR B.E.2565 Schedule B); base THB1,650–20,000 1 January 2029–31 December 2031 (MR B.E.2568 cl.3(2), https://www.sso.go.th/wpr/download/download_by_pool_file/47755): 20,000 × 5% = 1,000.',
+			`${P96}: 360,000 − 100,000 − 60,000 − 12,000 = 188,000 → 38,000 × 5% = 1,900 ÷ 12 = 158.3333 → 158.33.`,
+			'Net 30,000 − 1,000 − 158.33 = 28,841.67. One employee: the Employee Welfare Fund does not cover the business (LPA s.130 para.1).'
+		],
+		inputs: person({ ref: 'y2029', wage: 30_000 }),
+		period: '2029-01',
+		expected: [
+			{
+				employment: 'y2029_job',
+				lines: {
+					gross: 30_000,
+					net: 28_841.67,
+					employer_cost: 1_000,
+					'SSO.employee': 1_000,
+					'SSO.employer': 1_000,
+					'PIT.employee': 158.33
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SS-01-5',
+		description:
+			'THB30,000 in January 2032, the first month of the THB23,000 ceiling: 1,150 each side.',
+		citation: [
+			'Social Security Act ss.33, 46; 5% (MR B.E.2565 Schedule B); base THB1,650–23,000 from 1 January 2032 (MR B.E.2568 cl.3(3), https://www.sso.go.th/wpr/download/download_by_pool_file/47755): 23,000 × 5% = 1,150.',
+			`${P96}: 360,000 − 100,000 − 60,000 − 13,800 = 186,200 → 36,200 × 5% = 1,810 ÷ 12 = 150.8333 → 150.83.`,
+			'Net 30,000 − 1,150 − 150.83 = 28,699.17.'
+		],
+		inputs: person({ ref: 'y2032', wage: 30_000 }),
+		period: '2032-01',
+		expected: [
+			{
+				employment: 'y2032_job',
+				lines: {
+					gross: 30_000,
+					net: 28_699.17,
+					employer_cost: 1_150,
+					'SSO.employee': 1_150,
+					'SSO.employer': 1_150,
+					'PIT.employee': 150.83
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SS-01-6',
+		description:
+			'An employee the employer has not registered with the SSO, THB30,000 in February 2026: the s.46 contribution is still assessed (875 each side) and the run warns that registration is incomplete.',
+		citation: [
+			`${SSA}: s.33 insures by employment, not by the employer’s registration; s.34 registration within 30 days is the employer’s duty and a missing one relieves no one.`,
+			`${P96}: the THB30,000 figures above.`
+		],
+		inputs: [...person({ ref: 'unsso', wage: 30_000 }), unregistered('unsso', 'SSO', '2020-01-01')],
+		period: '2026-02',
+		warnings: ['SSO: registration incomplete; statutory liability assessed\\.'],
+		expected: [{ employment: 'unsso_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-PIT-01-4',
+		description:
+			'An employee recorded as not registered for withholding, THB30,000 in February 2026: s.50(1) tax is still withheld (164.58), with the registration warning.',
+		citation: [
+			`${P96}: s.50(1) binds every payer of s.40(1) income; no registration condition. 164.58 as above.`,
+			`${SSA}: 875.`
+		],
+		inputs: [...person({ ref: 'unpit', wage: 30_000 }), unregistered('unpit', 'PIT', '2020-01-01')],
+		period: '2026-02',
+		warnings: ['PIT: registration incomplete; statutory liability assessed\\.'],
+		expected: [{ employment: 'unpit_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-EWF-01-3',
+		description:
+			'Ten employees in October 2026, one recorded NOT_REGISTERED for the Employee Welfare Fund: non-registration is no exemption, so the run is refused.',
+		citation: [
+			`LPA s.130 para.1 (${LPA}): every employee of a business with ten or more employees is a member; the only exclusions are para.2’s provident fund or welfare arrangement (register TH-EWF-01).`
+		],
+		inputs: [
+			...Array.from({ length: 10 }, (_, index) =>
+				person({ ref: `ewfu${index}`, wage: 20_000 })
+			).flat(),
+			unregistered('ewfu9', 'EWF', '2026-10-01')
+		],
+		period: '2026-10',
+		refused: 'EWF: the recorded not-registered status cannot establish an exemption',
+		expected: []
+	}),
+	th({
+		id: 'TH-EWF-02-4',
+		description:
+			'A voluntary fund member on THB30,003 in October 2026: 0.25% is 75.0075, kept to the satang (75.01) each side, not rounded to the baht.',
+		citation: [
+			'EWF rate regulation B.E.2568 cl.3(1) (https://ratchakitcha.soc.go.th/documents/86102.pdf): 0.25% each side. Owner rule 2026-09-28 (register TH-EWF-02): cl.3 states no rounding, so each share is the satang: 30,003 × 0.25% = 75.0075 → 75.01.',
+			`${SSA}: 875. ${P96}: 360,036 − 100,000 − 60,000 − 10,500 = 189,536 → 39,536 × 5% = 1,976.80 ÷ 12 = 164.7333 → 164.73.`,
+			'Net 30,003 − 875 − 75.01 − 164.73 = 28,888.26; employer 950.01.'
+		],
+		inputs: [
+			...person({ ref: 'vol3', wage: 30_003 }),
+			statutory(
+				'vol3',
+				'EWF',
+				{
+					voluntary_ewf_member: true,
+					voluntary_ewf_consent_reference: 'worker-and-employer-consent-3',
+					voluntary_ewf_certificate_reference: 'DLPW-certificate-3'
+				},
+				'2026-10-01'
+			)
+		],
+		period: '2026-10',
+		expected: [
+			{
+				employment: 'vol3_job',
+				lines: {
+					gross: 30_003,
+					net: 28_888.26,
+					employer_cost: 950.01,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'EWF.employee': 75.01,
+					'EWF.employer': 75.01,
+					'PIT.employee': 164.73
+				}
+			}
+		]
+	}),
+
+	// ─── Exit part years and deadlines (TH-EXIT-04, -05, -07; TH-PIT-05; TH-HR-30) ──────────────
+	th({
+		id: 'TH-EXIT-07-3',
+		description:
+			'Technology restructuring with the 60 days’ notice given, 31 March 2026, THB30,000: exactly six years (hired 1 April 2020) is not “over six years”, so s.118’s 240 days only; six years and 182 days (hired 1 October 2019) counts the part year over 180 days: 240 + 15 × 7 = 345 days.',
+		citation: [
+			`LPA ss.118(4), 121, 122 (${LPA}, read 30 Sep 2026): s.122 adds at least 15 days per full year of service for an employee of more than six years, a part year over 180 days counted as a year, the s.122 amount at most 360 days. 1 October 2025 – 31 March 2026 is 182 days.`,
+			`${SEVERANCE_TAX_LAW}: 240,000 and 345,000 are inside the 400-day wage (400,000): exempt. ${P96}: 164.58. ${SSA}: 875.`,
+			'Nets 270,000 − 1,039.58 = 268,960.42 and 375,000 − 1,039.58 = 373,960.42.'
+		],
+		inputs: [
+			...(
+				[
+					['six', '2020-04-01'],
+					['sixplus', '2019-10-01']
+				] as const
+			).flatMap(([ref, hire]) => [
+				...person({
+					ref,
+					wage: 30_000,
+					hire,
+					exit: EXIT,
+					exit_ground: 'RETRENCHMENT',
+					exit_facts: { technology_restructuring: true, technology_notice_60_days: true }
+				}),
+				adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
+			])
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'six_job',
+				lines: {
+					gross: 270_000,
+					net: 268_960.42,
+					SEVERANCE_PAY: 240_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 164.58
+				}
+			},
+			{
+				employment: 'sixplus_job',
+				lines: {
+					gross: 375_000,
+					net: 373_960.42,
+					SEVERANCE_PAY: 345_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 164.58
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-PIT-05-3',
+		description:
+			'Two retirements on 31 March 2026 at 60 on THB90,000 (day 3,000), 300 days’ severance 900,000 each, none exempt (retirement): ten years and 183 days (hired 30 September 2015) is eleven s.48(5) years; ten years and 182 days (hired 1 October 2015) is ten.',
+		citation: [
+			`LPA ss.118(5), 118/1 (${LPA}): 300 × 3,000 = 900,000.`,
+			`${SEVERANCE_TAX_LAW}; Revenue Code s.48(5): 7,000 × years, a part year of 183 days or more a year. 30 September 2025 – 31 March 2026 is 183 days: 900,000 − 77,000 = 823,000 × 50% = 411,500 → 7,500 + 111,500 × 10% = 18,650. 1 October 2025 – 31 March 2026 is 182: 900,000 − 70,000 = 830,000 × 50% = 415,000 → 7,500 + 115,000 × 10% = 19,000.`,
+			`${P96}: the salary alone (cl.1 excludes the s.48(5) payment): 1,080,000 − 100,000 − 60,000 − 10,500 = 909,500 → 65,000 + 159,500 × 20% = 96,900 ÷ 12 = 8,075. ${SSA}: 875.`,
+			'Nets 990,000 − 875 − 8,075 − 18,650 = 962,400 and 990,000 − 875 − 8,075 − 19,000 = 962,050.'
+		],
+		inputs: [
+			...(
+				[
+					['r183', '2015-09-30'],
+					['r182', '2015-10-01']
+				] as const
+			).flatMap(([ref, hire]) => [
+				...person({
+					ref,
+					wage: 90_000,
+					dob: '1966-01-10',
+					hire,
+					exit: EXIT,
+					exit_ground: 'RETIREMENT'
+				}),
+				adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
+			])
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'r183_job',
+				lines: {
+					gross: 990_000,
+					net: 962_400,
+					SEVERANCE_PAY: 900_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 8_075,
+					'SEVERANCE_TAX.employee': 18_650
+				}
+			},
+			{
+				employment: 'r182_job',
+				lines: {
+					gross: 990_000,
+					net: 962_050,
+					SEVERANCE_PAY: 900_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 8_075,
+					'SEVERANCE_TAX.employee': 19_000
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-EXIT-04-5',
+		description:
+			'Dismissed for a s.119 cause on Monday 16 March 2026 after three years on THB30,000, no notice given: neither severance nor pay in lieu is offered; 16 of 31 days’ salary, and the month-end run warns that s.70 para.2’s three days ran out on 19 March.',
+		citation: [
+			`LPA ss.17 para.2, 70 para.2, 118, 119 (${LPA}): no notice or severance on a s.119 dismissal; where the employer terminates, money owed is paid within three days.`,
+			'Owner rule 2026-09-28 (register TH-WORK-05): 30,000 × 16/31 = 15,483.87.',
+			`${SSA}: 15,483.87 × 5% = 774.19 → 774. ${P96}: 185,806.44 − 92,903.22 − 60,000 − 9,288 = 23,615.22 → nil.`,
+			'Net 15,483.87 − 774 = 14,709.87.'
+		],
+		inputs: [
+			...person({
+				ref: 'cause16',
+				wage: 30_000,
+				hire: '2023-04-01',
+				exit: '2026-03-16',
+				exit_ground: 'DISMISSAL',
+				exit_facts: { dismissed_for_cause: true }
+			}),
+			{
+				...adhoc('cause16', 'SEVERANCE_PAY', 0, '2026-03-16'),
+				refused: NOT_OFFERED('SEVERANCE_PAY')
+			},
+			{
+				...adhoc('cause16', 'NOTICE_IN_LIEU', 0, '2026-03-16'),
+				refused: NOT_OFFERED('NOTICE_IN_LIEU')
+			}
+		],
+		period: '2026-03',
+		warnings: [
+			'FINAL_PAY_LATE: P-TH-cause16 left on 2026-03-16.*by 2026-03-19.*pays on 2026-03-31'
+		],
+		expected: [
+			{
+				employment: 'cause16_job',
+				lines: {
+					gross: 15_483.87,
+					net: 14_709.87,
+					employer_cost: 774,
+					BASIC: 15_483.87,
+					'SSO.employee': 774,
+					'SSO.employer': 774
+				}
+			}
+		]
+	}),
+
+	// ─── Leave edges (TH-LEAVE-01, -07) ─────────────────────────────────────────────────────────
+	th({
+		id: 'TH-LEAVE-07-5',
+		description:
+			'Military leave on 60 working days, 5 January – 27 March 2026, then Monday 30 March: the 61st day is past s.58’s 60 paid days and comes off at 30,000 ÷ 31 = 967.74.',
+		citation: [
+			`LPA ss.35, 58 (${LPA}): wages for military leave for not more than 60 days a year. 5–30 January 20, 2–27 February 20, 2–27 March 20 working days.`,
+			'Owner rule 2026-09-28 (register TH-WORK-05): gross 30,000 − 967.74 = 29,032.26.',
+			`${SSA}: 875. ${P96}: 348,387.12 − 170,500 = 177,887.12 → 1,394.356 ÷ 12 = 116.19.`,
+			'Net 29,032.26 − 875 − 116.19 = 28,041.07.'
+		],
+		inputs: [
+			...person({ ref: 'drill', wage: 30_000 }),
+			timeOff('drill', 'MILITARY_LEAVE', '2026-01-05', '2026-01-30'),
+			timeOff('drill', 'MILITARY_LEAVE', '2026-02-02', '2026-02-27'),
+			timeOff('drill', 'MILITARY_LEAVE', '2026-03-02', '2026-03-30')
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'drill_job',
+				lines: {
+					gross: 29_032.26,
+					net: 28_041.07,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 116.19
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-01-2',
+		description:
+			'Maternity leave 1–10 December 2025 for one birth crosses 7 December 2025 (98/45 days before, 120/60 from): the entry is refused for transition review and December is paid whole.',
+		citation: [
+			'LPA s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): 120 days, 60 paid, against 98 and 45 before; No.9 states no transitional rule for leave begun before it (register TH-LEAVE-01).',
+			'The December 2025 THB30,000 figures of TH-SS-01-3: SSO 750, PIT 170.87, net 29,079.13.'
+		],
+		inputs: [
+			...person({ ref: 'cross', wage: 30_000, gender: 'FEMALE' }),
+			{
+				...timeOff('cross', 'MATERNITY_LEAVE', '2025-12-01', '2025-12-10', {
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-01'
+					}
+				}),
+				refused: 'MATERNITY_LEAVE across 2025-12-07 requires transition review\\.'
+			}
+		],
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'cross_job',
+				lines: {
+					gross: 30_000,
+					net: 29_079.13,
+					employer_cost: 750,
+					'SSO.employee': 750,
+					'SSO.employer': 750,
+					'PIT.employee': 170.87
+				}
+			}
+		]
+	}),
+
+	// ─── The 48-hour week (TH-WORK-03, -07) ─────────────────────────────────────────────────────
+	th({
+		id: 'TH-WORK-03-4',
+		description:
+			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, so the run is refused.',
+		citation: [
+			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a normal day above eight hours only within 48 normal hours a week.',
+			`LPA s.23 (${LPA}): normal hours at most 48 a week.`
+		],
+		inputs: [
+			guardTwelve,
+			guardContract('g60', '2026-10-26', GUARD_WEEKDAYS).pattern,
+			...person({
+				ref: 'g60',
+				wage: 24_000,
+				terms: { statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('g60', '2026-10-26', GUARD_WEEKDAYS).changes
+			}),
+			...guardWeek('g60', ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'])
+		],
+		period: '2026-10',
+		refused:
+			'P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"',
+		expected: []
+	})
+);
+
+// ─── Round 10 (30 Sep 2026): s.23 redistribution, s.27 rest, s.24–25 consent exceptions, ss.39/1, 46–48, s.76
+// deductions, s.51 Student Loan Fund, two employers, daily-paid maternity, training leave ──────────────────
+const plain24k = {
+	gross: 24_000,
+	net: 23_125,
+	employer_cost: 875,
+	BASIC: 24_000,
+	'SSO.employee': 875,
+	'SSO.employer': 875
+};
+const PLAIN24K_LAW = `${SSA}: 24,000 → 875 each side. ${P96}: 288,000 − 100,000 − 60,000 − 10,500 = 117,500 → nil.`;
+/** A week whose Monday is a nine-hour normal day and whose Tuesday is `tuesday` (LPA s.23 para.1). */
+const nineHourWeek = (tuesday: Variant): ProbeInput[] => [
+	...(
+		[
+			['nine', 'TH-NINE', { ...OFFICE, end_time: '19:00' }],
+			['tue', 'TH-TUESDAY', tuesday]
+		] as const
+	).map(([ref, code, variant]) => ({
+		collection: 'shift_definitions',
+		ref,
+		values: {
+			company_id: '@company',
+			code,
+			name: code,
+			variant,
+			effective_range: { from: EPOCH, to: null }
+		}
+	})),
+	{
+		collection: 'shift_patterns',
+		ref: 'week9',
+		values: {
+			company_id: '@company',
+			code: 'TH-NINE-WEEK',
+			name: 'Nine-hour Monday, then Tuesday, 3 x work, 2 x weekly holiday',
+			pattern: {
+				days: ['@nine', '@tue', '@work', '@work', '@work', '@rest', '@rest'].map(
+					(roster_code_id) => ({ roster_code_id })
+				)
+			},
+			effective_range: { from: EPOCH, to: null }
+		}
+	}
+];
+const NINE_DAY = [
+	['09:00', '13:00'],
+	['14:00', '19:00']
+] as const;
+/** A work day recorded without the per-occasion consent, under a s.24/s.25 exception and its evidence. */
+const excepted = (
+	ref: string,
+	date: string,
+	day: readonly (readonly [string, string])[],
+	approved: number,
+	facts: Row
+): ProbeInput =>
+	withValues(workDay(ref, date, day, approved), { overtime_consented_at: null, facts });
+const deduction = (ref: string, code: string, amount: number, evidence = true): ProbeInput => ({
+	...adhoc(ref, code, amount, '2026-02-16'),
+	...(evidence ? { files: { evidence_file: `${code.toLowerCase()}-${ref}.pdf` } } : {})
+});
+const S76 = `LPA ss.70, 76, 77 (${LPA}; English text of the Department of Labour Protection and Welfare, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/Labour_Protection_Act_BE2541.pdf, read 30 Sep 2026): deductions under (2) union dues, (3) cooperative debts, (4) deposits or damage, (5) provident fund, each at most 10% and together at most one-fifth of the money due under s.70, unless the employee consents in advance in writing; (1) tax and payments provided by law are outside.`;
+/** THB30,000 in February 2026 (the plain30k slip) less `other` baht of non-statutory deductions. */
+const less30k = (other: number) => ({
+	...plain30k,
+	total_deductions: Math.round((875 + 164.58 + other) * 100) / 100,
+	net: Math.round((28_960.42 - other) * 100) / 100
+});
+
+register(
+	// ─── s.23 redistributed normal day (TH-WORK-07) ─────────────────────────────────────────────
+	th({
+		id: 'TH-WORK-07-7',
+		description:
+			'A nine-hour normal Monday agreed the day before, offset by a seven-hour Tuesday (40 normal hours in the week), January 2026: the ninth hour on Monday 5 January is ordinary working time, no overtime; THB24,000 paid whole.',
+		citation: [
+			`LPA s.23 para.1 as amended by No.2 B.E.2551 (${LPA}; MoL English text, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/Labour_Protection_Act_BE2541.pdf, read 30 Sep 2026): where a day’s normal hours are under eight, the parties may agree to make up the rest on other normal days, at most nine a day and 48 a week; para.2’s 1.5× for the hours above eight binds only daily, hourly and piece-rate pay, not a monthly wage.`,
+			PLAIN24K_LAW,
+			'Net 24,000 − 875 = 23,125.'
+		],
+		inputs: [
+			...nineHourWeek(SEVEN_HOURS),
+			...person({ ref: 'nine', wage: 24_000, terms: { shift_pattern_id: '@week9' } }),
+			withValues(workDay('nine', '2026-01-05', NINE_DAY, 0), {
+				facts: { normal_hours_redistribution_agreed_at: '2026-01-04T05:00:00.000Z' }
+			})
+		],
+		period: '2026-01',
+		expected: [{ employment: 'nine_job', lines: plain24k }]
+	}),
+	th({
+		id: 'TH-WORK-07-8',
+		description:
+			'The same agreed nine-hour Monday with no shorter day in the week (Tuesday stays eight hours): the extra hour has nothing to offset it, so the run is refused.',
+		citation: [
+			`LPA s.23 para.1 (${LPA}): a normal day above eight hours only where the week’s other normal days are shortened to keep the total.`
+		],
+		inputs: [
+			...nineHourWeek(OFFICE),
+			...person({ ref: 'noshort', wage: 24_000, terms: { shift_pattern_id: '@week9' } }),
+			withValues(workDay('noshort', '2026-01-05', NINE_DAY, 0), {
+				facts: { normal_hours_redistribution_agreed_at: '2026-01-04T05:00:00.000Z' }
+			})
+		],
+		period: '2026-01',
+		refused: 'shorter-day hours to offset',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-9',
+		description:
+			'A nine-hour Monday with no redistribution agreement, the ninth hour planned as overtime with consent: it is s.61 overtime at 1.5 × 100 = 150 on THB24,000.',
+		citation: [
+			`LPA ss.23, 61, 68 (${LPA}): without the s.23 agreement the normal day is eight hours; work beyond it is overtime at least 1.5× the hourly rate, 24,000 ÷ (30 × 8) = 100.`,
+			`${SSA}: overtime outside the s.5 wage: 875. ${P96}: 288,000 and 288,150 annualised both nil (cl.1(5)).`,
+			'Gross 24,150; net 24,150 − 875 = 23,275.'
+		],
+		inputs: [
+			...nineHourWeek(SEVEN_HOURS),
+			...person({ ref: 'unagreed', wage: 24_000, terms: { shift_pattern_id: '@week9' } }),
+			workDay('unagreed', '2026-01-05', NINE_DAY, 1)
+		],
+		period: '2026-01',
+		expected: [{ employment: 'unagreed_job', lines: { ...plain24k, gross: 24_150, net: 23_275 } }]
+	}),
+
+	// ─── s.27 rest (TH-WORK-07) ─────────────────────────────────────────────────────────────────
+	th({
+		id: 'TH-WORK-07-10',
+		description:
+			'A 09:00–18:00 normal day whose hour of rest is not timed (no break start on the shift), January 2026: nothing shows a rest within the first five hours, so the run is refused.',
+		citation: [
+			`LPA s.27 para.1 (${LPA}): a rest of at least one hour a day after no more than five consecutive hours of work.`
+		],
+		work: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+		inputs: person({ ref: 'untimed', wage: 24_000 }),
+		period: '2026-01',
+		refused: 'over five consecutive hours without a timed Thai s\\.27 break',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-11',
+		description:
+			'Monday 5 January 2026 worked 09:00–11:00 and 14:00–18:00: a three-hour rest, which s.27 para.3 counts as working time beyond two hours; the run is refused for the wage treatment the law requires.',
+		citation: [
+			`LPA s.27 para.3 (${LPA}; MoL English text, https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/Labour_Protection_Act_BE2541.pdf, read 30 Sep 2026): rest periods together above two hours a day count as normal working time for the excess.`
+		],
+		inputs: [
+			...person({ ref: 'longrest', wage: 24_000 }),
+			workDay(
+				'longrest',
+				'2026-01-05',
+				[
+					['09:00', '11:00'],
+					['14:00', '18:00']
+				],
+				0
+			)
+		],
+		period: '2026-01',
+		refused: 'Thai s\\.27 wage treatment for rest over two hours',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-12',
+		description:
+			'Monday 5 January 2026 with the hour of rest split into two half hours (09:00–11:00, 11:30–13:30, 14:00–18:00) and no agreement recorded: the run is refused.',
+		citation: [
+			`LPA s.27 para.1 (${LPA}): the employer and employee may agree to split the rest into periods, each of which together make at least one hour — by prior agreement.`
+		],
+		inputs: [
+			...person({ ref: 'split', wage: 24_000 }),
+			workDay(
+				'split',
+				'2026-01-05',
+				[
+					['09:00', '11:00'],
+					['11:30', '13:30'],
+					['14:00', '18:00']
+				],
+				0
+			)
+		],
+		period: '2026-01',
+		refused: 'prior split-break agreement',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-13',
+		description:
+			'The same split rest on Monday 5 January 2026, agreed on 4 January: lawful, the eight hours are normal time and THB24,000 is paid whole.',
+		citation: [`LPA s.27 para.1 (${LPA}).`, PLAIN24K_LAW, 'Net 23,125.'],
+		inputs: [
+			...person({ ref: 'splitok', wage: 24_000 }),
+			withValues(
+				workDay(
+					'splitok',
+					'2026-01-05',
+					[
+						['09:00', '11:00'],
+						['11:30', '13:30'],
+						['14:00', '18:00']
+					],
+					0
+				),
+				{ facts: { split_break_agreed_at: '2026-01-04T05:00:00.000Z' } }
+			)
+		],
+		period: '2026-01',
+		expected: [{ employment: 'splitok_job', lines: plain24k }]
+	}),
+	th({
+		id: 'TH-WORK-07-14',
+		description:
+			'Three overtime hours on Monday 5 January 2026 after only five minutes’ rest (18:00–18:05): two or more hours of overtime need 20 minutes’ rest first, so the run is refused.',
+		citation: [
+			`LPA s.27 para.4 (${LPA}): where overtime of two hours or more follows normal work, a rest of at least 20 minutes before it.`
+		],
+		inputs: [
+			...person({ ref: 'norest', wage: 24_000 }),
+			workDay(
+				'norest',
+				'2026-01-05',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['18:05', '21:05']
+				],
+				3
+			)
+		],
+		period: '2026-01',
+		refused: 'timed 20-minute rest before Thai overtime',
+		expected: []
+	}),
+
+	// ─── s.24–25 consent exceptions (TH-WORK-07) ────────────────────────────────────────────────
+	th({
+		id: 'TH-WORK-07-15',
+		description:
+			'Three overtime hours on Monday 5 January 2026 with no consent but under the s.24 para.2 continuous-work exception (work that would damage if stopped), its production log recorded: paid at 1.5 × 100 = 450.',
+		citation: [
+			`LPA s.24 para.2 (${LPA}): where work must continue lest it be damaged, or is emergency work, the employer may require overtime as necessary without the consent.`,
+			`${SSA}: 875. ${P96}: 288,000 and 288,450 both nil.`,
+			'Gross 24,450; net 24,450 − 875 = 23,575.'
+		],
+		inputs: [
+			...person({ ref: 'kiln', wage: 24_000 }),
+			excepted('kiln', '2026-01-05', LONG_DAY, 3, {
+				consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED',
+				consent_exception_reference: 'production-log-7'
+			})
+		],
+		period: '2026-01',
+		expected: [{ employment: 'kiln_job', lines: { ...plain24k, gross: 24_450, net: 23_575 } }]
+	}),
+	th({
+		id: 'TH-WORK-07-16',
+		description:
+			'A hotel employee works the weekly holiday, Saturday 10 January 2026, eight hours without a recorded consent under the s.25 hotel exception (licence recorded): s.62(1) 8 × 100 = 800.',
+		citation: [
+			`LPA s.25 paras.1–2 (${LPA}): holiday work without consent where the work must continue, is emergency work (para.1), or is in a hotel, entertainment, transport, food-and-drink, club, association or health-facility business or others the Ministerial Regulation lists.`,
+			`LPA ss.62(1), 68: 8 × 24,000 ÷ 240 = 800. ${SSA}: 875. ${P96}: nil.`,
+			'Gross 24,800; net 24,800 − 875 = 23,925.'
+		],
+		inputs: [
+			...person({ ref: 'hotelhol', wage: 24_000 }),
+			excepted('hotelhol', '2026-01-10', NORMAL_DAY, 8, {
+				consent_exception: 'HOLIDAY_HOTEL',
+				consent_exception_reference: 'hotel-licence-9'
+			})
+		],
+		period: '2026-01',
+		expected: [{ employment: 'hotelhol_job', lines: { ...plain24k, gross: 24_800, net: 23_925 } }]
+	}),
+	th({
+		id: 'TH-WORK-07-17',
+		description:
+			'The s.25 hotel holiday-work exception claimed for overtime on an ordinary Monday, 5 January 2026: it covers holiday work only, so the run is refused.',
+		citation: [
+			`LPA ss.24–25 (${LPA}): s.25’s business list lifts consent for holiday work; s.24 para.1 still requires consent for overtime on a working day.`
+		],
+		inputs: [
+			...person({ ref: 'misuse', wage: 24_000 }),
+			excepted('misuse', '2026-01-05', LONG_DAY, 3, {
+				consent_exception: 'HOLIDAY_HOTEL',
+				consent_exception_reference: 'hotel-licence-9'
+			})
+		],
+		period: '2026-01',
+		refused: 'holiday-work exception on an ordinary day',
+		expected: []
+	}),
+	th({
+		id: 'TH-WORK-07-18',
+		description:
+			'The continuous-work exception claimed for Monday 5 January 2026 with no evidence reference: the work day is refused, and January pays THB24,000 plain.',
+		citation: [
+			`LPA s.24 para.2 (${LPA}). Owner rule 2026-09-28 (register TH-WORK-07): an exception to the consent the Act requires is recorded with its evidence.`,
+			PLAIN24K_LAW,
+			'Net 24,000 − 875 = 23,125.'
+		],
+		inputs: [
+			...person({ ref: 'noproof', wage: 24_000 }),
+			{
+				...excepted('noproof', '2026-01-05', LONG_DAY, 3, {
+					consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED'
+				}),
+				refused: '2026-01-05 needs evidence for the Thai consent exception'
+			}
+		],
+		period: '2026-01',
+		expected: [{ employment: 'noproof_job', lines: plain24k }]
+	}),
+
+	// ─── Young and pregnant workers (TH-HR-07) ──────────────────────────────────────────────────
+	th({
+		id: 'TH-HR-07-5',
+		description:
+			'A 17-year-old, every February 2026 weekday clocked, works Saturday 7 February, a weekly holiday: s.48 forbids holiday work under 18, so the run is refused.',
+		citation: [`LPA s.48 (${LPA}): no employee under 18 may work overtime or on a holiday.`],
+		inputs: [
+			...person({ ref: 'teenhol', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+			...clockedMonth('teenhol', '2026-02'),
+			workDay('teenhol', '2026-02-07', NORMAL_DAY, 8)
+		],
+		period: '2026-02',
+		refused: 'P-TH-teenhol cannot work on a Thai holiday.*under 18',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-6',
+		description:
+			'A pregnant employee works the weekly holiday, Saturday 10 January 2026: s.39/1 forbids holiday work while pregnant, so the run is refused.',
+		citation: [
+			`LPA s.39/1 para.1 (${LPA}): no work 22:00–06:00, overtime or holiday work by a pregnant employee.`
+		],
+		inputs: [
+			...person({
+				ref: 'preghol',
+				wage: 24_000,
+				gender: 'FEMALE',
+				terms: { facts: { hazardous_work: false, pregnancy_status: 'PREGNANT' } }
+			}),
+			workDay('preghol', '2026-01-10', NORMAL_DAY, 8)
+		],
+		period: '2026-01',
+		refused: 'P-TH-preghol cannot perform Thai night or holiday work while pregnant',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-7',
+		description:
+			'A pregnant employee rostered 15:00–23:00 (rest at 19:00), January 2026: the hour after 22:00 is night work s.39/1 forbids, so the run is refused.',
+		citation: [`LPA s.39/1 para.1 (${LPA}).`],
+		work: {
+			kind: 'WORK',
+			start_time: '15:00',
+			end_time: '23:00',
+			break_minutes: 60,
+			break_start_time: '19:00'
+		},
+		inputs: person({
+			ref: 'pregnight',
+			wage: 24_000,
+			gender: 'FEMALE',
+			terms: { facts: { hazardous_work: false, pregnancy_status: 'PREGNANT' } }
+		}),
+		period: '2026-01',
+		refused: 'P-TH-pregnight cannot perform Thai night or holiday work while pregnant',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-8',
+		description:
+			'A 17-year-old clocked every February 2026 weekday, Monday 2 February worked 09:00–13:01 before the hour’s rest: more than four hours without a continuous hour’s rest, so the run is refused.',
+		citation: [
+			`LPA s.46 (${LPA}): an employee under 18 has a rest of at least one continuous hour after no more than four hours of work.`
+		],
+		inputs: [
+			...person({ ref: 'teenrun', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+			...clockedMonth('teenrun', '2026-02').filter(
+				(input) => input.values.work_date !== '2026-02-02'
+			),
+			workDay(
+				'teenrun',
+				'2026-02-02',
+				[
+					['09:00', '13:01'],
+					['14:01', '18:00']
+				],
+				0
+			)
+		],
+		period: '2026-02',
+		refused: 'continuous 60-minute rest.*four hours',
+		expected: []
+	}),
+	th({
+		id: 'TH-HR-07-9',
+		description:
+			'A 17-year-old with no clocked work days in February 2026: ss.46–48 are judged on the timed day, so the run is refused until the work and rest are recorded.',
+		citation: [
+			`LPA ss.46–48 (${LPA}). Owner rule 2026-09-28 (register TH-HR-07): an under-18 day is proven by its timed records.`
+		],
+		inputs: person({ ref: 'teenblank', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+		period: '2026-02',
+		refused: 'timed work and rest records',
+		expected: []
+	}),
+
+	// ─── Guards across the cutover, non-monthly (TH-WORK-03) ─────────────────────────────────────
+	th({
+		id: 'TH-WORK-03-5',
+		description:
+			'An hourly guard on THB100, April 2026: Saturday 18 April nine hours and Thursday 23 April three overtime hours under the 2009 regulation (1× per overtime hour); Friday 24 April three hours at 1.25× and Saturday 25 April’s ninth hour at 2.5× under the 2025 regulation; each weekly holiday’s eight normal hours at s.62(2)’s 2× (the hourly-paid are not paid the weekly holiday).',
+		citation: [
+			'2009 guard regulation (MoL copy, https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf): overtime and holiday overtime at one hourly rate each; 2025 regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): working-day overtime ≥ 1.25×, holiday overtime ≥ 2.5×.',
+			`LPA ss.56 para.1, 62(2) (${LPA}): an hourly employee is not paid for the weekly holiday, so holiday work earns at least 2× per hour: 8 × 200 = 1,600 each Saturday.`,
+			'April 2026 has 22 weekdays: 176 normal hours × 100 = 17,600. 18 Apr 1,600 + 100; 23 Apr 300; 24 Apr 375; 25 Apr 1,600 + 250: 4,225; gross 21,825.',
+			`${SSA}: s.5 wage 17,600 → ceiling 17,500 → 875. ${P96}: 211,200 − 100,000 − 60,000 − 10,500 = 40,700 → nil, with the overtime still nil.`,
+			'Net 21,825 − 875 = 20,950.'
+		],
+		inputs: [
+			...person({
+				ref: 'hguard',
+				wage: 100,
+				terms: { pay_frequency: 'HOURLY', statutory_work_category: 'GUARD_DUTY' }
+			}),
+			workDay('hguard', '2026-04-18', NINE_HOURS, 9),
+			workDay('hguard', '2026-04-23', LONG_DAY, 3),
+			workDay('hguard', '2026-04-24', LONG_DAY, 3),
+			workDay('hguard', '2026-04-25', NINE_HOURS, 9)
+		],
+		period: '2026-04',
+		expected: [
+			{
+				employment: 'hguard_job',
+				lines: {
+					gross: 21_825,
+					net: 20_950,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+
+	// ─── s.76 deductions and the Student Loan Fund (TH-DEDUCT-01, -02) ──────────────────────────
+	th({
+		id: 'TH-DEDUCT-01-1',
+		description:
+			'Union dues of THB3,000 on THB30,000, February 2026: exactly 10% of the money due, so they are taken.',
+		citation: [S76, '10% × 30,000 = 3,000.', `${SSA}; ${P96}: the THB30,000 figures above.`],
+		inputs: [
+			...person({ ref: 'union', wage: 30_000 }),
+			deduction('union', 'UNION_DUES', 3_000, false)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'union_job', lines: less30k(3_000) }]
+	}),
+	th({
+		id: 'TH-DEDUCT-01-2',
+		description:
+			'Union dues of THB3,000.01 on THB30,000 without the employee’s consent to exceed: a satang over s.76’s 10%, so the run is refused.',
+		citation: [S76, '10% × 30,000 = 3,000 < 3,000.01.'],
+		inputs: [
+			...person({ ref: 'unionover', wage: 30_000 }),
+			deduction('unionover', 'UNION_DUES', 3_000.01, false)
+		],
+		period: '2026-02',
+		refused:
+			'DEDUCTION_CEILING_EXCEEDED.*P-TH-unionover: deductions exceed the lawful ceiling by 0\\.01 THB',
+		expected: []
+	}),
+	th({
+		id: 'TH-DEDUCT-01-3',
+		description:
+			'Union dues THB3,000 and a consented cooperative debt THB3,000 on THB30,000: each at 10%, together exactly one-fifth, so both are taken.',
+		citation: [
+			S76,
+			'20% × 30,000 = 6,000 = 3,000 + 3,000.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'fifth', wage: 30_000 }),
+			deduction('fifth', 'UNION_DUES', 3_000, false),
+			deduction('fifth', 'COOPERATIVE_DEDUCTION', 3_000)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'fifth_job', lines: less30k(6_000) }]
+	}),
+	th({
+		id: 'TH-DEDUCT-01-4',
+		description:
+			'The same two deductions plus a consented damage compensation of THB0.01: each item within 10% but together a satang over one-fifth, so the run is refused.',
+		citation: [S76, '3,000 + 3,000 + 0.01 = 6,000.01 > 6,000.'],
+		inputs: [
+			...person({ ref: 'fifthover', wage: 30_000 }),
+			deduction('fifthover', 'UNION_DUES', 3_000, false),
+			deduction('fifthover', 'COOPERATIVE_DEDUCTION', 3_000),
+			deduction('fifthover', 'DAMAGE_COMPENSATION', 0.01)
+		],
+		period: '2026-02',
+		refused:
+			'DEDUCTION_CEILING_EXCEEDED.*P-TH-fifthover: deductions exceed the lawful ceiling by 0\\.01 THB',
+		expected: []
+	}),
+	th({
+		id: 'TH-DEDUCT-01-5',
+		description:
+			'A THB10,000 cooperative repayment the employee consented in writing to have taken above the s.76 limits, on THB30,000: taken whole.',
+		citation: [
+			S76,
+			's.76 last para.: “except with the prior consent of the Employee”; s.77 the consent in writing (the uploaded evidence).',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'consented', wage: 30_000 }),
+			deduction('consented', 'CONSENTED_DEDUCTION', 10_000)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'consented_job', lines: less30k(10_000) }]
+	}),
+	th({
+		id: 'TH-DEDUCT-02-1',
+		description:
+			'A Student Loan Fund notification of THB5,000 for February 2026 beside the full one-fifth of s.76 deductions (union 3,000, cooperative 3,000) on THB30,000: the Fund’s amount is a payment the law requires, outside s.76’s limits, taken after tax and social security.',
+		citation: [
+			'Student Loan Fund Act B.E.2560 s.51 para.1 (as replaced by Act No.2 B.E.2566 s.23, https://www.studentloan.or.th/en/system/files/files/knowledge/140A020N0000000001400.pdf) and para.2 (https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/prbkys.pdf): the payer of s.40(1) income deducts the amount the Fund notifies, first after withholding tax and the social-security and labour-protection deductions.',
+			S76,
+			`${SSA}; ${P96}: the THB30,000 figures above; the repayment is no income-tax relief.`,
+			'Net 28,960.42 − 5,000 − 6,000 = 17,960.42.'
+		],
+		inputs: [
+			...person({ ref: 'slf', wage: 30_000 }),
+			deduction('slf', 'UNION_DUES', 3_000, false),
+			deduction('slf', 'COOPERATIVE_DEDUCTION', 3_000),
+			deduction('slf', 'SLF_DEDUCTION', 5_000)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'slf_job', lines: less30k(11_000) }]
+	}),
+
+	// ─── One insured person, two employers (TH-SS-11) ───────────────────────────────────────────
+	th({
+		id: 'TH-SS-11-2',
+		description:
+			'An insured person employed at the same time by this company on THB12,000 (the Bangkok floor, 400 × 30) and by a second company on THB20,000, January 2026: this employer assesses s.33 on its own wage alone, 12,000 × 5% = 600 each side, not on the combined 32,000 (which would reach the 17,500 ceiling).',
+		citation: [
+			`${SSA}; s.46 para.3–4 and s.48 (same consolidation): contributions on the wages from each employer are computed separately, each employer liable under ss.46–47.`,
+			`${P96}: this employer withholds on its own payment: 144,000 − 72,000 − 60,000 − 7,200 → nil.`,
+			'Bangkok daily minimum wage 400 (the version’s MINIMUM_WAGE; a monthly wage ÷ 30): 12,000 ÷ 30 = 400, at the floor — 10,000 was below it and refused.',
+			'Net 12,000 − 600 = 11,400.'
+		],
+		inputs: [
+			...person({ ref: 'dual', wage: 12_000 }),
+			{
+				collection: 'companies',
+				ref: 'co2',
+				values: {
+					settings_code: 'TH',
+					name: 'TH-SS-11-2 second employer',
+					pay_cutoff_day: 1,
+					pay_frequency: 'MONTHLY',
+					effective_range: { from: EPOCH, to: null }
+				}
+			},
+			...week().map((input) =>
+				withValues(
+					{ ...input, ref: `${input.ref}2` },
+					{
+						company_id: '@co2',
+						code: `${String(input.values.code)}-2`,
+						...(input.collection === 'shift_patterns'
+							? {
+									pattern: {
+										days: [
+											'@work2',
+											'@work2',
+											'@work2',
+											'@work2',
+											'@work2',
+											'@rest2',
+											'@rest2'
+										].map((roster_code_id) => ({ roster_code_id }))
+									}
+								}
+							: {})
+					}
+				)
+			),
+			{
+				collection: 'employments',
+				ref: 'dual2_job',
+				values: {
+					employee_id: '@dual',
+					company_id: '@co2',
+					employee_number: 'P-TH-dual-2',
+					effective_range: { from: '2020-01-01', to: null }
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@dual2_job',
+					residency_status: 'CITIZEN',
+					tax_residency: 'RESIDENT',
+					currency: 'THB',
+					base_salary: 20_000,
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: 'PERMANENT',
+					worksite: 'Bangkok',
+					facts: { hazardous_work: false, pregnancy_status: 'NOT_PREGNANT' },
+					shift_pattern_id: '@week2',
+					effective_range: { from: '2020-01-01', to: null }
+				}
+			}
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'dual_job',
+				lines: {
+					gross: 12_000,
+					net: 11_400,
+					employer_cost: 600,
+					BASIC: 12_000,
+					'SSO.employee': 600,
+					'SSO.employer': 600
+				}
+			}
+		]
+	}),
+
+	// ─── Leave (TH-LEAVE-01, -07) ───────────────────────────────────────────────────────────────
+	th({
+		id: 'TH-LEAVE-01-3',
+		description:
+			'A daily-paid worker (THB400, Bangkok) on maternity leave from Monday 2 February 2026 after a 1 February birth: every day of the leave to 28 February (27 days, holidays counted, all within the first 60) is paid at the working-day wage: 10,800.',
+		citation: [
+			`LPA s.41 paras.1, 3 and s.59 as amended by No.9 (in force 7 December 2025; https://ratchakitcha.soc.go.th/documents/89818.pdf, consolidation ${LPA}): up to 120 days, holidays within the leave counted; the employee is paid a wage equal to the working-day wage throughout the leave, for not more than 60 days: 27 × 400 = 10,800.`,
+			`${SSA}: leave pay is wage (s.5): 10,800 × 5% = 540. ${P96}: 129,600 annualised, nil.`,
+			'Net 10,800 − 540 = 10,260.'
+		],
+		inputs: [
+			...person({
+				ref: 'mdaily',
+				wage: 400,
+				gender: 'FEMALE',
+				terms: {
+					...dailyTerms('Bangkok'),
+					facts: { hazardous_work: false, pregnancy_status: 'PREGNANT' }
+				}
+			}),
+			timeOff('mdaily', 'MATERNITY_LEAVE', '2026-02-02', '2026-02-28', {
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-02-01'
+				}
+			})
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'mdaily_job',
+				lines: {
+					gross: 10_800,
+					net: 10_260,
+					employer_cost: 540,
+					'SSO.employee': 540,
+					'SSO.employer': 540
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-07-6',
+		description:
+			'Two days of training leave (10–11 February 2026) with no agreed pay: s.36 grants the leave but no wage, so the two calendar days come off at 30,000 ÷ 28 = 1,071.43 each.',
+		citation: [
+			`LPA ss.36, 57 (${LPA}): training or skills-development leave per the Ministerial Regulation; no section pays wages for it (s.57 pays sick and sterilisation, s.57/1 personal business, s.58 military). The catalogue pays the agreed fraction, here none.`,
+			'Owner rule 2026-09-28 (register TH-WORK-05): 30,000 − 2 × 1,071.43 = 27,857.14.',
+			`${SSA}: 875. ${P96}: 334,285.68 − 170,500 = 163,785.68 → 13,785.68 × 5% = 689.284 ÷ 12 = 57.44.`,
+			'Net 27,857.14 − 875 − 57.44 = 26,924.70.'
+		],
+		inputs: [
+			...person({ ref: 'course', wage: 30_000 }),
+			timeOff('course', 'TRAINING_LEAVE', '2026-02-10', '2026-02-11', {})
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'course_job',
+				lines: {
+					gross: 27_857.14,
+					net: 26_924.7,
+					employer_cost: 875,
+					'SSO.employee': 875,
+					'SSO.employer': 875,
+					'PIT.employee': 57.44
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-LEAVE-07-7',
+		description:
+			'A 17-year-old takes three days’ leave for a training course (10–12 February 2026), the other February weekdays clocked: s.52 pays up to 30 days a year, so THB12,000 is paid whole.',
+		citation: [
+			`LPA s.52 (${LPA}): an employee under 18 may take leave for meetings, seminars, training or study, paid for not more than 30 days a year.`,
+			`${SSA}: 12,000 × 5% = 600. ${P96}: 144,000 − 72,000 − 60,000 − 7,200 = 4,800 → nil.`,
+			'Net 12,000 − 600 = 11,400.'
+		],
+		inputs: [
+			...person({ ref: 'teenstudy', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
+			...clockedMonth('teenstudy', '2026-02').filter(
+				(input) =>
+					!['2026-02-10', '2026-02-11', '2026-02-12'].includes(String(input.values.work_date))
+			),
+			timeOff('teenstudy', 'YOUNG_WORKER_TRAINING_LEAVE', '2026-02-10', '2026-02-12')
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'teenstudy_job',
+				lines: {
+					gross: 12_000,
+					net: 11_400,
+					employer_cost: 600,
+					BASIC: 12_000,
+					'SSO.employee': 600,
+					'SSO.employer': 600
+				}
+			}
+		]
+	})
+);
+
+// ─── Phase 2 (1 Oct 2026): the capability configuration (stored checks, tables, duties, orders) ─
+const N15 = 'https://ratchakitcha.soc.go.th/documents/117083.pdf';
+/** The office terms facts with one more declared input. */
+const withFact = (facts: Row): Row => ({
+	facts: { hazardous_work: false, pregnancy_status: 'NOT_PREGNANT', ...facts }
+});
+/** A THB30,000 employee hired 1 January 2026 whose terms record a wage-law route. */
+const routed = (ref: string, route: string) =>
+	person({ ref, wage: 30_000, hire: '2026-01-01', terms: withFact({ wage_route: route }) });
+/** A daily-paid Bangkok worker from 2020 whose terms from 1 October 2026 record a skill standard. */
+const skilled = (ref: string, wage: number, standard: string, terms: Row = dailyTerms('Bangkok')) =>
+	person({
+		ref,
+		wage,
+		terms,
+		changes: [{ from: '2026-10-01', ...withFact({ skill_standard: standard }) }]
+	});
+/** October 2026 has 22 weekdays (1 October is a Thursday); no holiday is recorded. */
+const dailyOct = (rate: number) => {
+	const gross = rate * 22;
+	const sso = Math.floor((gross * 5) / 100 + 0.5);
+	return { gross, net: gross - sso, employer_cost: sso, 'SSO.employee': sso, 'SSO.employer': sso };
+};
+/** A Legal Execution Department seizure order recovered by its rule (L6). */
+const seizure = (ref: string, rule: string): ProbeInput => ({
+	collection: 'loans',
+	values: {
+		employment_id: `@${ref}_job`,
+		loan_catalogue_id: '@law:loan_catalogue:SEIZURE_ORDER',
+		principal: 50_000,
+		effective_range: { from: '2026-02-01', to: '2026-12-31' },
+		reference: `LED-${ref}`,
+		creditor: 'THIRD_PARTY',
+		authority: 'Legal Execution Department — wage seizure order (probe)',
+		recovery_rule: rule,
+		priority: 0,
+		on_exit: 'RULE'
+	}
+});
+const CPC302 =
+	'Civil Procedure Code s.302(3) (Council of State consolidation, https://searchlaw.ocs.go.th): wages, pension, compensation and like income of a non-government employee are not subject to seizure up to THB20,000 a month in total, or the amount the enforcement officer sets; owner rule 2026-09-30 (register TH-DEDUCT-03): measured on net pay after tax, social security and every other deduction; a seizure is a payment provided by law (LPA s.76(1)), outside the s.76 limits.';
+
+register(
+	// ─── LPA s.4: public employers (TH-WAGE-05, -08) ─────────────────────────────────────────────
+	th({
+		id: 'TH-WAGE-05-1',
+		description:
+			'A company recorded as central government employs one person on THB30,000 in February 2026: the Labour Protection Act does not cover it, so the run is refused rather than priced as LPA employment.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): the Act does not apply to central, provincial or local government administration or to State Enterprise Labour Relations Act state enterprises; Ministry explanation of Notice 14 item 9 (${N14}).`
+		],
+		company: { facts: { employer_legal_class: 'CENTRAL_GOVERNMENT' } },
+		inputs: person({ ref: 'gov', wage: 30_000 }),
+		period: '2026-02',
+		refused:
+			'the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-05-2',
+		description:
+			'A private cleaning contractor recorded PRIVATE whose employee works at a ministry’s premises, THB30,000 in February 2026: the Act covers the contractor, so the ordinary slip is paid.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): only the listed public bodies are outside the Act; a private company working for or at a government body is an ordinary employer.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		company: { facts: { employer_legal_class: 'PRIVATE' } },
+		inputs: person({ ref: 'cleaner', wage: 30_000 }),
+		period: '2026-02',
+		expected: [{ employment: 'cleaner_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-WAGE-08-1',
+		description:
+			'A company recorded as a State Enterprise Labour Relations Act state enterprise, one employee on THB30,000 in February 2026: outside the Act, so the run is refused.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): the Act does not apply to state enterprises under the State Enterprise Labour Relations Act.`
+		],
+		company: { facts: { employer_legal_class: 'STATE_ENTERPRISE' } },
+		inputs: person({ ref: 'selra', wage: 30_000 }),
+		period: '2026-02',
+		refused:
+			'the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise',
+		expected: []
+	}),
+
+	// ─── Notice 14 exclusions and special statutes (TH-WAGE-09–12, TH-HR-19–21) ──────────────────
+	...(
+		[
+			['TH-WAGE-09-1', 'charity', 'NON_PROFIT_WORK', 'work that seeks no economic profit'],
+			['TH-WAGE-10-1', 'docker', 'VESSEL_CARGO_HANDLING', 'loading cargo on a sea-going vessel'],
+			['TH-WAGE-12-1', 'farm', 'SEASONAL_AGRICULTURE', 'seasonal agriculture']
+		] as const
+	).map(([id, ref, route, work]) =>
+		th({
+			id,
+			description: `THB30,000 for ${work} (terms route ${route}), February 2026: Notice 14’s explanation puts the work outside the notice and no special rule is transcribed, so the run still pays the ordinary slip (at or above the Notice 14 floor) and warns.`,
+			citation: [
+				`Ministry explanation of Notice 14 (${N14}); owner rule 2026-09-30 (register ${id.slice(0, 10)}): an exclusion only lifts a minimum, so holding the Notice 14 rate is lawful; the special rule is not transcribed.`,
+				`${SSA}; ${P96}: the THB30,000 figures above (hired 1 January 2026, twelve payments).`
+			],
+			inputs: routed(ref, route),
+			period: '2026-02',
+			warnings: [
+				`WAGE_ROUTE_SPECIAL_RULE: P-TH-${ref}: the terms record work Notice 14.s explanation puts outside the notice`
+			],
+			expected: [{ employment: `${ref}_job`, lines: plain30k }]
+		})
+	),
+	...(
+		[
+			['TH-WAGE-11-1', 'homework', 'HOME_WORK', 'Home Workers Protection Act B.E.2553'],
+			['TH-HR-19-1', 'fisher', 'SEA_FISHING', 'Labour Protection in Fishery Work Act B.E.2562'],
+			['TH-HR-20-1', 'seafarer', 'SEAFARER', 'Maritime Labour Act B.E.2558']
+		] as const
+	).map(([id, ref, route, statute]) =>
+		th({
+			id,
+			description: `Terms recording route ${route}, February 2026: the work falls under the ${statute}, not a Labour Protection Act contract this lineage prices, so the run is refused.`,
+			citation: [`${statute}; LPA s.5 (${LPA}) employee and employer.`],
+			inputs: routed(ref, route),
+			period: '2026-02',
+			refused: 'the terms record work under its own statute',
+			expected: []
+		})
+	),
+	th({
+		id: 'TH-WAGE-11-2',
+		description:
+			'An ordinary employee working from home on THB30,000 (route NOTICE_14 recorded), February 2026: remote work does not change the contract, so the ordinary slip is paid.',
+		citation: [
+			`LPA s.23/1 (${LPA}): an employee working outside the workplace keeps the Act’s rights; Notice 14 applies (${N14}).`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: routed('remote', 'NOTICE_14'),
+		period: '2026-02',
+		expected: [{ employment: 'remote_job', lines: plain30k }]
+	}),
+
+	// ─── Skill-standard wages, Notice 15 (TH-SKILL-02) and the student notice (TH-SKILL-03) ──────
+	th({
+		id: 'TH-SKILL-02-1',
+		description:
+			'A daily-paid grade-1 flux-cored welder on THB600 in Bangkok, October 2026: above Notice 15’s THB550 and Notice 14’s THB400, so 22 weekdays are paid: 13,200; SSO 660 each side.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(1), 4: grade 1 THB550 a normal working day, in force from 14 September 2026.`,
+			`${SSA}: 13,200 × 5% = 660. ${P96}: 158,400 − 79,200 − 60,000 − 7,920 = 11,280 → nil.`,
+			'Net 13,200 − 660 = 12,540.'
+		],
+		inputs: skilled('weld1', 600, 'FLUX_CORED_WELDER_1'),
+		period: '2026-10',
+		expected: [{ employment: 'weld1_job', lines: dailyOct(600) }]
+	}),
+	th({
+		id: 'TH-SKILL-02-2',
+		description:
+			'A daily-paid grade-2 flux-cored welder on THB600 in Bangkok, October 2026: below Notice 15’s THB650 though above the geographic THB400, so the run is refused.',
+		citation: [`Notice 15 (${N15}) cls.3(2), 4, 5: grade 2 THB650 a normal working day.`],
+		inputs: skilled('weld2', 600, 'FLUX_CORED_WELDER_2'),
+		period: '2026-10',
+		refused: 'the wage is below the skill-standard daily rate',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-02-3',
+		description:
+			'A monthly MIG welder grade 2 on THB19,500, October 2026: 19,500 ÷ 30 = 650 meets Notice 15’s THB650 exactly, so the slip is paid.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(4), 4. Owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30.`,
+			`${SSA}: the 17,500 ceiling → 875. ${P96}: 234,000 − 100,000 − 60,000 − 10,500 = 63,500 → nil.`,
+			'Net 19,500 − 875 = 18,625.'
+		],
+		inputs: skilled('mig2', 19_500, 'MIG_WELDER_2', {}),
+		period: '2026-10',
+		expected: [
+			{
+				employment: 'mig2_job',
+				lines: {
+					gross: 19_500,
+					net: 18_625,
+					employer_cost: 875,
+					BASIC: 19_500,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SKILL-02-4',
+		description:
+			'A monthly MIG welder grade 2 on THB19,499.70, October 2026: 649.99 a day is one satang below THB650, so the run is refused.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(4), 4; owner rule 2026-09-28 (register TH-WAGE-01): month ÷ 30, unrounded.`
+		],
+		inputs: skilled('mig2low', 19_499.7, 'MIG_WELDER_2', {}),
+		period: '2026-10',
+		refused: 'the wage is below the skill-standard daily rate',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-02-5',
+		description:
+			'An off-grid solar installer grade 1 on hourly terms, October 2026: the lineage compares the per-day skill rate only with a daily, weekly or monthly wage, so the run is refused.',
+		citation: [`Notice 15 (${N15}) cls.3(5), 4: THB560 per normal working day.`],
+		inputs: skilled('solar', 80, 'OFF_GRID_SOLAR_INSTALLER_1', {
+			pay_frequency: 'HOURLY',
+			worksite: 'Bangkok'
+		}),
+		period: '2026-10',
+		refused: 'the terms record a skill standard on hourly pay',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-03-1',
+		description:
+			'A 20-year-old part-time student paid THB40 an hour on a four-hour normal day in Bangkok, February 2026: the THB40 student notice is advice, not a floor; the employed student is owed Notice 14’s whole day (THB400), so 160 a day is refused.',
+		citation: [
+			'Student Notice 2 cls.3–5 (https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER3/DRAWER052/GENERAL/DATA0000/00000536.PDF): THB40 an hour is advice for qualifying students; it sets no minimum and exempts no employee.',
+			`Notice 14 (${N14}) cls.19, 20: the day’s rate is owed for a normal working day however short.`
+		],
+		work: FOUR_HOURS,
+		inputs: person({
+			ref: 'student',
+			wage: 40,
+			dob: '2006-03-01',
+			terms: { pay_frequency: 'HOURLY', worksite: 'Bangkok', employment_type: 'PART_TIME' }
+		}),
+		period: '2026-02',
+		refused: 'P-TH-student is paid 160 a day on .* below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+
+	// ─── Spouse-birth leave window, s.41/1 (TH-LEAVE-03) ─────────────────────────────────────────
+	th({
+		id: 'TH-LEAVE-03-3',
+		description:
+			'Spouse-birth leave for a birth on 6 February 2026: a day before the birth (5 February), the 91st day after it (8 May) and an entry naming no birth day are each refused; February is paid whole.',
+		citation: [
+			'LPA s.41/1 added by No.9 (https://ratchakitcha.soc.go.th/documents/89818.pdf): leave within 90 days counted from the birth; CCC s.193/3 para.2: the birth day is not counted, so the 90th day is 7 May 2026. Owner rule 2026-09-28 (register TH-LEAVE-03): a day before the birth is outside.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'window', wage: 30_000 }),
+			...(
+				[
+					[
+						'2026-02-05',
+						{ event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+					],
+					[
+						'2026-05-08',
+						{ event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+					],
+					['2026-02-10', { event_kind: 'BIRTH', event_relationship: 'SPOUSE' }]
+				] as const
+			).map(([day, facts]) => ({
+				...timeOff('window', 'CHILD_BIRTH_LEAVE', day, day, { facts }),
+				refused:
+					'event_date' in facts
+						? 'spouse-birth leave is taken within 90 days counted from the birth'
+						: 'Per-event leave requires the dated event that grants it: CHILD_BIRTH_LEAVE entry .* names no event date'
+			}))
+		],
+		period: '2026-02',
+		expected: [{ employment: 'window_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-03-4',
+		description:
+			'Spouse-birth leave on Thursday 7 May 2026, the 90th day after a 6 February birth: inside the window, paid at the working-day wage; May is paid whole.',
+		citation: [
+			'LPA ss.41/1, 59/2 added by No.9 (https://ratchakitcha.soc.go.th/documents/89818.pdf); CCC s.193/3 para.2: day 1 is 7 February, day 90 is 7 May.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'day90', wage: 30_000 }),
+			timeOff('day90', 'CHILD_BIRTH_LEAVE', '2026-05-07', '2026-05-07', {
+				facts: { event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+			})
+		],
+		period: '2026-05',
+		expected: [{ employment: 'day90_job', lines: plain30k }]
+	}),
+
+	// ─── Interest on late wages, s.9 (TH-HR-29) ──────────────────────────────────────────────────
+	th({
+		id: 'TH-HR-29-1',
+		description:
+			'January 2026’s THB30,000 wage, due 31 January, paid 15 February: s.9 interest of 15% a year for 15 days, 30,000 × 0.15 × 15 ÷ 365 = 184.93, paid with February’s wages outside SSO and PIT.',
+		citation: [
+			`LPA s.9 para.1 (${LPA}): 15% a year during the default. Owner rule 2026-09-30 (register TH-HR-29): the days after the due day through the paid day (CCC s.193/3 para.2) over 365, half up to the satang; not a wage (SSA s.5) and s.40(4)(ก) interest, not s.40(1) income.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`,
+			'Net 28,960.42 + 184.93 = 29,145.35.'
+		],
+		inputs: [
+			...person({ ref: 'late', wage: 30_000 }),
+			{
+				collection: 'adhoc_requests',
+				values: {
+					employment_id: '@late_job',
+					catalogue_id: '@law:adhoc_catalogue:LATE_WAGE_INTEREST',
+					amount: 30_000,
+					event_date: '2026-02-15',
+					pay_period: '2026-02',
+					reason: 'January wage paid 15 days late (probe)',
+					facts: { wage_due_on: '2026-01-31', paid_on: '2026-02-15' }
+				}
+			}
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'late_job',
+				lines: {
+					...plain30k,
+					gross: 30_184.93,
+					net: 29_145.35,
+					LATE_WAGE_INTEREST: 184.93
+				}
+			}
+		]
+	}),
+
+	// ─── Wage seizure, CPC s.302(3) (TH-DEDUCT-03) ───────────────────────────────────────────────
+	th({
+		id: 'TH-DEDUCT-03-1',
+		description:
+			'A seizure order on THB30,000, February 2026, withholding what net pay has above THB20,000: 28,960.42 − 20,000 = 8,960.42 is withheld and 20,000 paid.',
+		citation: [CPC302, `${SSA}; ${P96}: the THB30,000 figures above.`],
+		inputs: [
+			...person({ ref: 'seize', wage: 30_000 }),
+			seizure('seize', 'max(0.0, payment.net - 20000.0)')
+		],
+		period: '2026-02',
+		expected: [{ employment: 'seize_job', lines: less30k(8_960.42) }]
+	}),
+	th({
+		id: 'TH-DEDUCT-03-2',
+		description:
+			'A seizure order of 30% of THB30,000 gross (9,000), February 2026: net pay would fall to 19,960.42, below the THB20,000 protected, so the run is refused.',
+		citation: [CPC302],
+		inputs: [
+			...person({ ref: 'seize30', wage: 30_000 }),
+			seizure('seize30', '0.3 * payment.gross')
+		],
+		period: '2026-02',
+		refused: 'the seizure order would leave less than THB20,000',
+		expected: []
+	}),
+
+	// ─── The obligation ledger (TH-SS-01, -12; TH-PIT-04, -09; TH-EXIT-01; TH-EWF-03) ───────────
+	// Duty instances are raised by the obligation_calendar sweep; `saved` reads them after the event run.
+	th({
+		id: 'TH-SS-01-7',
+		description:
+			'February 2026: a hire on 2 February raises the s.34 registration due 30 days later (4 March); the finalised run raises the SSO return due 15 March and the ภ.ง.ด.1 due 7 March (the run pays on 28 February).',
+		citation: [
+			`${SSA}: s.34 registration within 30 days, s.47 remittance by the 15th of the next month; CCC s.193/3 para.2 (the first day not counted).`,
+			'Revenue Code ss.52, 59 (https://www.rd.go.th/5937.html): withholding filed and remitted within 7 days of the next month.',
+			`${SSA}; ${P96}: the THB30,000 figures above for the continuing employee.`
+		],
+		inputs: [
+			...person({ ref: 'remit', wage: 30_000 }),
+			...person({ ref: 'newhire', wage: 30_000, hire: '2026-02-02' })
+		],
+		period: '2026-02',
+		expected: [{ employment: 'remit_job', lines: plain30k }],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_REGISTRATION', subject_id: '@newhire_job' },
+				rows: [{ trigger_ref: 'HIRE', due_on: '2026-03-04', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_MONTHLY_REMITTANCE', subject_id: '@run' },
+				rows: [{ trigger_ref: '2026-02', due_on: '2026-03-15', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'PND1_MONTHLY_FILING', subject_id: '@run' },
+				rows: [{ trigger_ref: '2026-02', due_on: '2026-03-07', state: 'OPEN' }]
+			}
+		]
+	}),
+	th({
+		id: 'TH-EXIT-01-2',
+		description:
+			'A resignation on 10 March 2026: the s.44 leaving notice is due 15 April and the s.50 bis certificate a month after the exit (10 April); a resignation raises no s.70 para.2 three-day final-pay duty.',
+		citation: [
+			`${SSA}: s.44 notice of an insured person leaving by the 15th of the next month.`,
+			'Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the certificate within one month of the employment ending.',
+			`LPA s.70 para.2 (${LPA}): three days only where the employer terminates.`,
+			'The slip as TH-HR-30-1: 30,000 × 10/31 = 9,677.42; SSO 484; net 9,193.42.'
+		],
+		inputs: person({ ref: 'leaver', wage: 30_000, exit: '2026-03-10', exit_ground: 'RESIGNATION' }),
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'leaver_job',
+				lines: {
+					gross: 9_677.42,
+					net: 9_193.42,
+					employer_cost: 484,
+					BASIC: 9_677.42,
+					'SSO.employee': 484,
+					'SSO.employer': 484
+				}
+			}
+		],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_EXIT_NOTICE', subject_id: '@leaver_job' },
+				rows: [{ trigger_ref: '2026-03-10', due_on: '2026-04-15', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'WITHHOLDING_CERTIFICATE_EXIT', subject_id: '@leaver_job' },
+				rows: [{ trigger_ref: '2026-03-10', due_on: '2026-04-10', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'FINAL_PAY_DUE', subject_id: '@leaver_job' },
+				rows: []
 			}
 		]
 	})

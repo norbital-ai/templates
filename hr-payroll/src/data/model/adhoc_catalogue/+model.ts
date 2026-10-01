@@ -8,7 +8,7 @@ export default model({
 	description:
 		'The ad hoc catalogue of one jurisdiction settings version: the classes of one-off pay — bonus, back pay, ex-gratia, festival and separation payments, claw-backs — with the bands that price and cap them, the schemes each counts toward, the evidence a request demands and who raises one. Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:hand-coins',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text', optional: true },
@@ -32,8 +32,13 @@ export default model({
 		 * `entry.unpaid_salary`: a forfeiture of unpaid salary (PH RA 10361 s.32) spends what it takes.
 		 */
 		reduces_unpaid_salary: { kind: 'bool', optional: true },
-		/** MANUAL is HR; SEPARATION is raised for a leaver in the final period. */
-		raised_by: { kind: 'enum', values: ['MANUAL', 'SEPARATION'], default: 'MANUAL' }
+		/**
+		 * MANUAL is HR; SEPARATION is raised for a leaver in the final period; SCHEDULED is raised by
+		 * `scheduled_entries` for everyone its `schedule` names, on or before each due day.
+		 */
+		raised_by: { kind: 'enum', values: ['MANUAL', 'SEPARATION', 'SCHEDULED'], default: 'MANUAL' },
+		/** SCHEDULED only: the due days, who is owed them and the duty each occurrence records. */
+		schedule: { kind: 'custom', of: 'catalogue_schedule', optional: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
 	search: { text: ['code', 'name'] }

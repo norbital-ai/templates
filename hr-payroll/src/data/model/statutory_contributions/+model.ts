@@ -4,7 +4,7 @@ export default model({
 	description:
 		'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the rules that select and price its charge. Sealed with its version. A rule that names `produced.<code>.employee|employer` depends on that scheme; there is no sequence and no relief junction. Each scheme states what it is assessed on as one expression over the reserved lines and its version’s catalogue rows.',
 	icon: 'lucide:landmark',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
@@ -12,11 +12,13 @@ export default model({
 		authority: { kind: 'text', optional: true },
 		/**
 		 * MONTH: the rules are a monthly schedule (a semi-monthly company charges the month once). MONTH_TO_DATE charges
-		 * on actual receipts so far, less prior withholding, at every cut-off without projecting unpaid wages.
+		 * on actual receipts so far, less prior withholding, at every cut-off without projecting unpaid wages. QUARTER and
+		 * YEAR charge once, in the month that closes the tax year's quarter or the tax year (and in an employment's final
+		 * period), priced as a MONTH scheme there; the base states the window it reads (`year.*`, `history.*`).
 		 */
 		assessment_period: {
 			kind: 'enum',
-			values: ['PAY_PERIOD', 'MONTH', 'MONTH_TO_DATE'],
+			values: ['PAY_PERIOD', 'MONTH', 'MONTH_TO_DATE', 'QUARTER', 'YEAR'],
 			default: 'PAY_PERIOD'
 		},
 		/** COMPANY: one charge on the whole run, the employer's own levy. */
@@ -50,6 +52,26 @@ export default model({
 		rules: { kind: 'custom', of: 'contribution_rules' },
 		/** One CEL over the reserved lines and catalogue words: what the scheme is assessed on. */
 		assessed_on: { kind: 'text', default: '' },
+		/**
+		 * Overrides of `assessed_on`, read in order: the first whose `when` holds states the base instead (a daily-paid
+		 * worker's declared day wage times the days, a base the law fixes from the prior year). Same site as
+		 * `assessed_on`; an override reads no other scheme. Absent or empty: `assessed_on` always.
+		 */
+		base_when: {
+			kind: 'json',
+			shape: {
+				kind: 'list',
+				of: {
+					kind: 'object',
+					fields: {
+						when: { kind: 'text' },
+						base: { kind: 'text' },
+						authority: { kind: 'text' }
+					}
+				}
+			},
+			optional: true
+		},
 		/** The parts a scheme splits its base into (SG CPF ordinary and additional); `[]` when none. */
 		parts: { kind: 'custom', of: 'code_list' },
 		/** The ordinary part of the base, where a ceiling splits it. */

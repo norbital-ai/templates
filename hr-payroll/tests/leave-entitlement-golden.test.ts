@@ -19,6 +19,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, grantedDays, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
 import { inclusiveDays, monthsEnd } from '../src/lib/payroll/run/dates.ts';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import type { LeaveEntitlement } from '../src/lib/datatypes/leave_entitlement.ts';
+import { id, leaveContext, submission, timeOff } from './helpers/manual-leave-context.ts';
 import {
 	evaluateNumberOver,
 	isEligible,
@@ -80,6 +83,13 @@ type Facts = {
 	 * band would then claim every person the fixture did not think to age.
 	 */
 	readonly age?: number;
+	/** The measured working week (`terms.ordinary_hours_per_week`, `terms.working_days_per_week`). */
+	readonly week?: {
+		readonly ordinary_hours_per_week: number;
+		readonly working_days_per_week: number;
+	};
+	/** Lineage-declared terms facts (`terms.facts.<key>`). */
+	readonly termsFacts?: Readonly<Record<string, number>>;
 };
 
 /**
@@ -143,8 +153,10 @@ function grant(
 				residency_status: facts.citizenship ?? null,
 				work_classification: facts.classification ?? null,
 				employment_type: facts.employment_type ?? null,
-				statutory_work_category: facts.statutory_work_category ?? null
+				statutory_work_category: facts.statutory_work_category ?? null,
+				facts: facts.termsFacts ?? null
 			},
+			week: facts.week ?? null,
 			children: (facts.childAges ?? []).map((age, index) => ({
 				child_birthdate: bornFor(age, asOf),
 				citizenship: facts.childCitizenship?.[index] ?? null,
@@ -195,7 +207,7 @@ const MARRIED_MALE = { gender: 'MALE', marital_status: 'MARRIED' } as const;
 // leave row) and the leave ladder does not move across any seam.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-for (const lineage of ['MY', 'MY-nihon'] as const)
+for (const lineage of ['MY'] as const)
 	test(`${lineage} — the Employment Act leave ladders, on every sealed version`, () => {
 		for (const version of settingsVersions(lineage).keys()) {
 			// s.60E(1): eight days under two years, twelve under five, sixteen at five or more.
@@ -279,11 +291,10 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('Philippines — service incentive leave and the special statutory leaves', () => {
-	// No sealed version changes the leave law: the same ladder on all seven (6 January 2026 is
-	// RR 29-2025, 7 February NCR-DW-06, 20 May RIX-DW-06, 2026-09-26 Wage Order NCR-28 — none a
-	// leave row).
+	// No sealed version changes the leave law: the same ladder on every one (each is a wage order,
+	// RR 29-2025 or a withholding correction — none a leave row).
 	const BIRTH = { kind: 'BIRTH' } as const;
-	for (const version of [0, 1, 2, 3, 4, 5, 6]) {
+	for (const version of settingsVersions('PH').keys()) {
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE'), [0, 5, 5]);
 		// RA 10361 s.29: a kasambahay has the five days on their own row, never encashed.
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE', { employment_type: 'DOMESTIC' }), [
@@ -1250,6 +1261,73 @@ test('VN — a maternity grant of N months ends on the calendar, not after 30 ×
 		assert.equal(row.entitlement.calendar_months, true);
 });
 
+test('JP — 労働基準法 §39 and 育児・介護休業法 leaves on every sealed version', () => {
+	// 労働基準法施行規則 §24-3: five-hour days, so a week under 30 hours on `days` working days.
+	const PART = (days: number) => ({
+		week: { ordinary_hours_per_week: 5 * days, working_days_per_week: days }
+	});
+	for (const version of settingsVersions('JP').keys()) {
+		// §39(1)–(3): 10, then 11, 12, 14, 16, 18, 20 at 0.5–6.5 years, each given six months early
+		// (recorded default): the hire day 10, 30 months (the grant due at 2.5 years) 12, 70 months
+		// (due at 5.5 years) 18.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE'), [10, 12, 18]);
+		// §24-3, the same six-month-early shift: 4 days 7/…/9/…/13, 3 days 5/…/6/…/10,
+		// 2 days 3/…/4/…/6, 1 day 1/…/2/…/3.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(4)), [7, 9, 13]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(3)), [5, 6, 10]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(2)), [3, 4, 6]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(1)), [1, 2, 3]);
+		// Five days a week at under 30 hours is no §24-3 worker: the full ladder.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(5)), [10, 12, 18]);
+		// §65(1)–(2): 42 + 56 = 98 calendar days; 98 + 56 = 154 for a multiple pregnancy; a woman's.
+		const birth = (kind: string) => ({ event: { kind } });
+		assert.deepEqual(
+			ladder('JP', version, 'MATERNITY_LEAVE', { ...FEMALE, ...birth('BIRTH') }),
+			[98, 98, 98]
+		);
+		assert.deepEqual(
+			ladder('JP', version, 'MATERNITY_LEAVE', { ...FEMALE, ...birth('MULTIPLE_BIRTH') }),
+			[154, 154, 154]
+		);
+		assert.deepEqual(ladder('JP', version, 'MATERNITY_LEAVE', { ...MALE, ...birth('BIRTH') }), [
+			null,
+			null,
+			null
+		]);
+		// 育児・介護休業法 §9-2: 28 days of 出生時育児休業 per birth or adoption, from day one.
+		assert.deepEqual(
+			ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('BIRTH')),
+			[28, 28, 28]
+		);
+		assert.deepEqual(
+			ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('ADOPTION')),
+			[28, 28, 28]
+		);
+		// §5: 育児休業 is bounded by the child's age, which the engine does not meter.
+		assert.deepEqual(ladder('JP', version, 'CHILDCARE_LEAVE'), [null, null, null]);
+		// §11, §15(1): 93 days per 対象家族; only a family-care event opens it.
+		assert.deepEqual(
+			ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('FAMILY_CARE')),
+			[93, 93, 93]
+		);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('BIRTH')), [
+			null,
+			null,
+			null
+		]);
+		// §16-5(1): 5 days a year, 10 for two or more 対象家族.
+		const carers = (care_family_members: number) => ({ termsFacts: { care_family_members } });
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(0)), [0, 0, 0]);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(1)), [5, 5, 5]);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(3)), [10, 10, 10]);
+		// §16-2(1): 5 days a year, 10 for two or more children; a child under ten counts (default).
+		const kids = (childAges: readonly number[]) => ({ childAges });
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([9])), [5, 5, 5]);
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([2, 9])), [10, 10, 10]);
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([10])), [0, 0, 0]);
+	}
+});
+
 test('every sealed version of every lineage has a leave golden', () => {
 	// Not "were the numbers checked" — the tests above do that — but "was any version skipped".
 	const missing: string[] = [];
@@ -1263,4 +1341,137 @@ test('every sealed version of every lineage has a leave golden', () => {
 		}
 	}
 	assert.deepEqual(missing, [], 'a sealed version with no leave golden is a law nothing checks');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// LIT-06 — the leave rounding and fraction steps are the row's stored configuration: the engine
+// reads `scaled_rounding`, `hour_rounding`, `month_counts_when` and `hour_share_step`, and each
+// lineage's seed carries the step it applied before the steps moved out of the engine.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+/** A 2026 calendar-year grant for a 2025 hire, asked on 30 June, optionally measured in hours. */
+const grantOf = (
+	rule: LeaveEntitlement,
+	hourly?: { readonly grantHoursPerDay: number; readonly normalDailyHours: number }
+) =>
+	computedEntitlement({
+		rule,
+		window: { start: '2026-01-01', end: '2026-12-31' },
+		asOf: '2026-06-30',
+		hireDate: '2025-01-01',
+		exitDate: null,
+		servedOn: () => true,
+		eligibleOn: () => true,
+		personOn: (date) =>
+			personContext({
+				employee: { date_of_birth: '1990-01-01' },
+				employment: { service_start: '2025-01-01' },
+				terms: null,
+				asOf: date
+			}),
+		hourlyBasisOn: hourly == null ? undefined : () => hourly
+	}).entitlement;
+
+const UPFRONT_SEVEN: LeaveEntitlement = {
+	availability: 'UPFRONT',
+	proration: 'NONE',
+	year_start_month: 1,
+	bands: [{ eligibility: '', days: 7 }]
+};
+
+test('LIT-06 — a grant the scale moved rounds by the row’s scaled_rounding, not its day rounding', () => {
+	// 7 × 0.6 = 4.2 days. Up to the half day: 8.4 half days → 9 → 4.5. Down to the day: 4.
+	// Absent is the exact figure. The row's WHOLE_DAY (4.2 → 4) does not reach a scaled grant.
+	const scaled = { ...UPFRONT_SEVEN, scale: '0.6', rounding: 'WHOLE_DAY' } as const;
+	assert.equal(grantOf({ ...scaled, scaled_rounding: { step: 0.5, mode: 'UP' } }), 4.5);
+	assert.equal(grantOf({ ...scaled, scaled_rounding: { step: 1, mode: 'DOWN' } }), 4);
+	assert.ok(Math.abs(grantOf(scaled)! - 4.2) < 1e-9);
+	// Unscaled, the named day rounding stands: 4.2 whole days, a fraction under a half dropped.
+	assert.equal(
+		grantOf({ ...UPFRONT_SEVEN, rounding: 'WHOLE_DAY', bands: [{ eligibility: '', days: 4.2 }] }),
+		4
+	);
+});
+
+test('LIT-06 — an hourly grant rounds by the row’s hour_rounding', () => {
+	// 7 days × (20 / 44 × 8) hours = 1120 / 44 = 25.4545… hours. Up to the thousandth: 25.455.
+	// Down to the hour: 25. Absent is exact.
+	const hourly = { grantHoursPerDay: (20 / 44) * 8, normalDailyHours: 5 };
+	const rule = { ...UPFRONT_SEVEN, requires_hourly_for_part_time: true };
+	assert.equal(grantOf({ ...rule, hour_rounding: { step: 0.001, mode: 'UP' } }, hourly), 25.455);
+	assert.equal(grantOf({ ...rule, hour_rounding: { step: 1, mode: 'DOWN' } }, hourly), 25);
+	assert.ok(Math.abs(grantOf(rule, hourly)! - 1120 / 44) < 1e-9);
+});
+
+test('LIT-06 — a HALF_MONTHS month counts at the row’s month_counts_when share', () => {
+	const annual = leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement;
+	const partYear = (rule: LeaveEntitlement) =>
+		computedEntitlement({
+			rule,
+			window: { start: '2026-01-01', end: '2026-12-31' },
+			asOf: '2026-12-31',
+			hireDate: '2026-01-15',
+			exitDate: null,
+			servedOn: () => true,
+			eligibleOn: () => true,
+			personOn: (date) =>
+				personContext({
+					employee: { date_of_birth: '1990-01-01' },
+					employment: { service_start: '2026-01-15' },
+					terms: null,
+					asOf: date
+				})
+		}).entitlement;
+	// A 15 January joiner holds 17 of January's 31 days: 17 ≥ 0.5 × 31 = 15.5 counts January (12
+	// months → 12 days); 17 < 0.6 × 31 = 18.6 does not (11 months → 11 days).
+	assert.equal(partYear(annual), 12);
+	assert.equal(partYear({ ...annual, month_counts_when: 0.6 }), 11);
+	assert.throws(
+		() => partYear({ ...annual, month_counts_when: null }),
+		/share of days a month counts at/
+	);
+});
+
+test('LIT-06 — leave by the hour charges the share of the shift to the row’s hour_share_step', () => {
+	// The fixture's shift is 09:00–18:00 with an hour's break: 480 paid minutes, 8 hours.
+	const share = (hours: number, step: number | null) => {
+		const context = leaveContext();
+		context.catalogues.push({
+			...context.catalogues[0]!,
+			id: id(90),
+			code: 'HOURLY',
+			unit: 'HOUR',
+			entitlement: { ...UPFRONT_SEVEN, hour_share_step: step }
+		});
+		return planLeaveActivity(
+			context,
+			{ ...submission({ ...timeOff('2026-02-03'), hours }, 'H1'), catalogue_id: id(90) },
+			id(91)
+		).days;
+	};
+	// 3.1 / 8 = 0.3875 = 3.1 eighths → 3 eighths = 0.375; absent, the exact 0.3875.
+	assert.equal(share(3.1, 0.125), 0.375);
+	assert.equal(share(3.1, null), 0.3875);
+	// 0.4 / 8 = 0.05 = 0.4 eighths → 0, held at one step: 0.125.
+	assert.equal(share(0.4, 0.125), 0.125);
+	// A quarter-day step: 3.1 / 8 = 1.55 quarters → 2 → 0.5.
+	assert.equal(share(3.1, 0.25), 0.5);
+});
+
+test('LIT-06 — every lineage seeds the step its rows applied before the steps were stored', () => {
+	for (const lineage of LINEAGES)
+		for (const row of leaveCatalogue(lineage)) {
+			const rule = row.entitlement;
+			const where = `${lineage} ${row.code}`;
+			// A scaled grant was rounded up to the half day, never below the hours owed.
+			if ((rule.scale ?? '').trim() !== '')
+				assert.deepEqual(rule.scaled_rounding, { step: 0.5, mode: 'UP' }, where);
+			// An hourly grant was rounded up to the thousandth of an hour.
+			if (rule.requires_hourly_for_part_time === true)
+				assert.deepEqual(rule.hour_rounding, { step: 0.001, mode: 'UP' }, where);
+			// VN Decree 145/2020 art.66(2): a part month counts at half its days.
+			if (rule.proration === 'HALF_MONTHS') assert.equal(rule.month_counts_when, 0.5, where);
+			// An hourly row charged to the eighth of the shift (an hour of an eight-hour day).
+			if (row.unit === 'HOUR') assert.equal(rule.hour_share_step, 0.125, where);
+		}
 });

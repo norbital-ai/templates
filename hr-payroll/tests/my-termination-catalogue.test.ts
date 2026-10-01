@@ -19,7 +19,7 @@ const cases = [
 	{ category: 'NON_MANUAL', wages: 3000, type: 'DOMESTIC', expected: false }
 ];
 
-for (const lineage of ['MY', 'MY-nihon']) {
+for (const lineage of ['MY']) {
 	const rows: Row[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${lineage}/adhoc_catalogue.json`, import.meta.url),
@@ -33,7 +33,7 @@ for (const lineage of ['MY', 'MY-nihon']) {
 					employment: {
 						type: example.type,
 						service_months: 24,
-						exit_reason: 'REDUNDANCY'
+						exit_ground: 'REDUNDANCY'
 					},
 					terms: {
 						statutory_wages: example.wages,

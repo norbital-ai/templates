@@ -14,6 +14,7 @@ import { periodGrammarFault, resolveWindow } from '../../lib/payroll/run/period.
 import { decodeNumber } from '../../lib/wire.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { coversDate } from './run/effective.js';
+import { historyReachDays } from '../expressions/functions/history.js';
 
 type PayrollCollection =
 	| 'companies'
@@ -50,6 +51,16 @@ type PayrollCollection =
  */
 export type PayrollWorld = { readonly [C in PayrollCollection]: readonly WorkspaceRow<C>[] } & {
 	readonly fact_evidence?: readonly WorkspaceRow<'fact_evidence'>[];
+	/** The company's worksite revisions (`worksite.*`); absent is none recorded. */
+	readonly worksites?: readonly WorkspaceRow<'worksites'>[];
+	/** The people's dated fact revisions (`employee.facts.*`); absent is none recorded. */
+	readonly person_facts?: readonly WorkspaceRow<'person_facts'>[];
+	/** The people's history outside this payroll (`history.external`); absent is none recorded. */
+	readonly employment_history?: readonly WorkspaceRow<'employment_history'>[];
+	/** The lineage versions' table rows (`table()`, `band()`, `bands()`); absent is none. */
+	readonly reference_rows?: readonly WorkspaceRow<'reference_rows'>[];
+	/** The first day `work_days` covers: `history.days(window)` refuses a window before it. */
+	readonly work_days_from?: string;
 };
 
 /** The largest page the run reads of one collection; a run that reaches it refuses rather than lie. */
@@ -94,7 +105,6 @@ async function wave1(db: Reads, companyId: string) {
 		shift_definitions,
 		shift_patterns,
 		employments,
-		payroll_runs,
 		claim_requests,
 		adhoc_requests,
 		employment_statutory_facts
@@ -111,7 +121,6 @@ async function wave1(db: Reads, companyId: string) {
 		readAll<WorkspaceRow<'shift_definitions'>>(db, 'shift_definitions', onCompany),
 		readAll<WorkspaceRow<'shift_patterns'>>(db, 'shift_patterns', onCompany),
 		readAll<WorkspaceRow<'employments'>>(db, 'employments', onCompany),
-		readAll<WorkspaceRow<'payroll_runs'>>(db, 'payroll_runs', { company_id: { eq: companyId } }),
 		// The money families reach the people through the employment relation, so their consumption history
 		// (a pinned claim or ad hoc request) is in hand by wave 2.
 		readAll<WorkspaceRow<'claim_requests'>>(db, 'claim_requests', {
@@ -132,7 +141,6 @@ async function wave1(db: Reads, companyId: string) {
 		shift_definitions: complete(shift_definitions, 'shift definitions'),
 		shift_patterns: complete(shift_patterns, 'shift patterns'),
 		employments: complete(employments, 'employments'),
-		payroll_runs: complete(payroll_runs, 'payroll runs'),
 		claim_requests: complete(claim_requests, 'claim requests'),
 		adhoc_requests: complete(adhoc_requests, 'ad hoc requests'),
 		employment_statutory_facts: complete(employment_statutory_facts, 'statutory facts')
@@ -228,7 +236,10 @@ async function wave2(
 		leave_entries,
 		loans,
 		loan_repayments,
-		payslips
+		worksites,
+		person_facts,
+		employment_history,
+		reference_rows
 	] = await Promise.all([
 		readAll<WorkspaceRow<'employees'>>(db, 'employees', { id: { in: employeeIds }, ...APPROVED }),
 		readAll<WorkspaceRow<'employment_terms'>>(db, 'employment_terms', people),
@@ -303,7 +314,54 @@ async function wave2(
 		readAll<WorkspaceRow<'loan_repayments'>>(db, 'loan_repayments', {
 			employment_id: { in: employmentIds }
 		}),
-		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } })
+		readAll<WorkspaceRow<'worksites'>>(db, 'worksites', {
+			company_id: { eq: companyId },
+			...APPROVED
+		}),
+		readAll<WorkspaceRow<'person_facts'>>(db, 'person_facts', {
+			employee_id: { in: employeeIds },
+			...APPROVED
+		}),
+		readAll<WorkspaceRow<'employment_history'>>(db, 'employment_history', {
+			employee_id: { in: employeeIds },
+			...APPROVED
+		}),
+		// Every version clones its tables whole: JP's 34 versions carry 9,356 rows (4.1 MB, SPECIFIC_MW
+		// labels mostly), over one crossing's 4 MiB. The run reads the row's own columns, not its audit
+		// stamps; 5,000 rows are 2.4 MB at JP's widest.
+		readAll<WorkspaceRow<'reference_rows'>>(db, 'reference_rows', under, 5000, {
+			id: true,
+			settings_id: true,
+			table: true,
+			code: true,
+			parent_code: true,
+			label: true,
+			effective_range: true,
+			range_from: true,
+			range_to: true,
+			values: true,
+			approval_id: true
+		})
+	]);
+	// The history is its own crossing: its first pages beside the wave's answers put a company's second
+	// run over the 4 MiB answer wall (Nihon, 89 slips: 3.4 MB of wave, 1 MB of slips, 0.4 MB of run).
+	// ponytail: each payslip page is still a crossing; a slip no longer stores its schemes' statute text
+	// (~4 KB a slip), so 200 a page reach a year of a 90-person company in ~6 pages.
+	const [payslips, payroll_runs] = await Promise.all([
+		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } }),
+		// A run row carries every person's trace, which no pricing path reads: the run is read without it,
+		// in one crossing whatever the company's size.
+		readAll<WorkspaceRow<'payroll_runs'>>(
+			db,
+			'payroll_runs',
+			{ company_id: { eq: companyId } },
+			undefined,
+			Object.fromEntries(
+				Object.entries(everyField('payroll_runs')).filter(
+					([field]) => field !== 'calculation_trace'
+				)
+			)
+		)
 	]);
 	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last
 	// piece-workdays, so 400 weeks at one workday a week). Sparse work beyond that horizon refuses
@@ -338,7 +396,19 @@ async function wave2(
 				...(version.work_day_facts ?? [])
 			].some((field) => field.evidence != null)
 	);
-	const [earlierPieceDays, earlierPieceRosters, fact_evidence] = await Promise.all([
+	// E4: the version's literal history windows size the earlier work days (`history.days`).
+	const reach = historyReachDays(
+		[
+			governing,
+			...statutory_contributions,
+			...leave_catalogue,
+			...claim_catalogue,
+			...adhoc_catalogue,
+			...allowance_catalogue
+		].map((row) => JSON.stringify(row ?? null))
+	);
+	const historyFrom = addDays(spanFrom, -reach);
+	const [earlierPieceDays, earlierPieceRosters, fact_evidence, earlierDays] = await Promise.all([
 		readAll<WorkspaceRow<'work_days'>>(
 			db,
 			'work_days',
@@ -363,10 +433,25 @@ async function wave2(
 					],
 					...APPROVED
 				})
+			: [],
+		reach > 0
+			? readAll<WorkspaceRow<'work_days'>>(
+					db,
+					'work_days',
+					{ ...people, work_date: { gte: historyFrom, lt: spanFrom } },
+					1000
+				)
 			: []
 	]);
+	const pieceIdSet = new Set(earlierPieceDays.map((row) => row.id));
+	const earlier = [...earlierPieceDays, ...earlierDays.filter((row) => !pieceIdSet.has(row.id))];
+	const work_days_from = [
+		reach > 0 ? historyFrom : spanFrom,
+		...(pieceIds.length > 0 ? [pieceHistoryFrom] : [])
+	].toSorted()[0]!;
 	return {
 		...first,
+		payroll_runs: complete(payroll_runs, 'payroll runs'),
 		jurisdiction_settings: [...first.jurisdiction_settings, ...foreignSettings],
 		employees: complete(employees, 'employees'),
 		employment_terms: complete(employment_terms, 'employment terms'),
@@ -380,13 +465,18 @@ async function wave2(
 		allowance_catalogue: complete(allowance_catalogue, 'allowance catalogue'),
 		loan_catalogue: complete(loan_catalogue, 'loan catalogue'),
 		jurisdiction_holidays: complete(jurisdiction_holidays, 'published holidays'),
-		work_days: complete([...earlierPieceDays, ...work_days], 'work days'),
+		work_days: complete([...earlier, ...work_days], 'work days'),
+		work_days_from,
 		rosters: complete([...earlierPieceRosters, ...rosters], 'rosters'),
 		leave_entries: complete(leave_entries, 'leave entries'),
 		loans: complete(loans, 'loans'),
 		loan_repayments: complete(loan_repayments, 'loan repayments'),
 		payslips: complete(payslips, 'payslips'),
-		fact_evidence: complete(fact_evidence, 'fact evidence')
+		fact_evidence: complete(fact_evidence, 'fact evidence'),
+		worksites: complete(worksites, 'worksites'),
+		person_facts: complete(person_facts, 'person facts'),
+		employment_history: complete(employment_history, 'employment history'),
+		reference_rows: complete(reference_rows, 'reference rows')
 	};
 }
 

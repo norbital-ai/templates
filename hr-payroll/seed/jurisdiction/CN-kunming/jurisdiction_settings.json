@@ -40,6 +40,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -100,6 +105,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -143,7 +149,7 @@
 				"terms_when": "terms.worksite != \"\"",
 				"block_terms_when": true
 			},
-			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53). High-temperature allowance (derived_lines HIGH_TEMPERATURE_ALLOWANCE): CNY10 per person per qualifying working day (outdoor ≥35°C, or indoor ≥33°C that cannot be lowered) under 云人社发〔2013〕98号 and 防暑降温措施管理办法 art.17 (https://www.nhc.gov.cn/zhjcj/c100093/201207/2cdae24e57d04213944bcc6ef736a69b.shtml); wages (工资总额), so normal-time pay for IIT. The 98号 repeal check is open (register CN-KM13).",
 			"encashment": {
 				"reference": "EVENT_DATE",
 				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
@@ -152,7 +158,15 @@
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
 				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
-			}
+			},
+			"derived_lines": [
+				{
+					"code": "HIGH_TEMPERATURE_ALLOWANCE",
+					"when": "has(day_facts.high_temperature_day) && day_facts.high_temperature_day > 0.0",
+					"amount": "10.0 * day_facts.high_temperature_day",
+					"component": "BASE"
+				}
+			]
 		},
 		"payroll": {
 			"vocabularies": {
@@ -251,6 +265,12 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "union_established",
+				"type": "boolean",
+				"label": "Trade union established",
+				"description": "The entity has a trade union (Yunnan Measure implementing the Trade Union Law art.27): it remits union funds of 2% of the month’s total wages. Unrecorded is no union."
 			}
 		],
 		"exit_facts": [
@@ -273,7 +293,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -378,6 +398,140 @@
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "MINIMUM_WAGE",
+				"label": "Minimum wage by worksite (code: the worksite key terms record): monthly and hourly floors",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "monthly",
+						"type": "number",
+						"label": "Monthly floor (CNY)",
+						"required": true,
+						"minimum": 0
+					},
+					{
+						"key": "hourly",
+						"type": "number",
+						"label": "Hourly floor (CNY), part-time non-full-time work",
+						"required": true,
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pay_frequency == \"HOURLY\" && table(\"MINIMUM_WAGE\", after.worksite) != null && double(after.basic_salary) < double(table(\"MINIMUM_WAGE\", after.worksite).hourly)",
+				"message": "The hourly rate is below the hourly minimum wage of the worksite’s class (MINIMUM_WAGE table).",
+				"authority": "云人社发〔2025〕19号 from 1 October 2025 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf; register CN-KM01): CNY2,170 / 2,020 a month and CNY21 / 20 an hour; Mo Han 1,870 / 19 by the other-counties class (CN-KM01.mo-han-1870). The hourly standard applies to non-full-time work (最低工资规定 art.5); the monthly floor stays with work_rules.wages."
+			},
+			{
+				"code": "PREGNANCY_NO_EXTENDED_HOURS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
+				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			}
+		],
+		"person_facts": [
+			{
+				"key": "pregnancy_start",
+				"type": "date",
+				"label": "Pregnancy start",
+				"description": "The medically certified start of a current pregnancy (Order 232 art.10). End the person-fact revision at delivery or termination of the pregnancy; unrecorded is not pregnant."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "high_temperature_day",
+				"type": "number",
+				"integer": true,
+				"minimum": 0,
+				"maximum": 1,
+				"label": "High-temperature working day",
+				"description": "1 where the day’s work was outdoors at 35°C or above, or indoors at 33°C or above that the employer’s measures cannot bring lower (防暑降温措施管理办法 art.17; 云人社发〔2013〕98号). Unrecorded is 0."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_REGISTRATION",
+				"label": "Social-insurance registration of a new worker",
+				"authority": "Social Insurance Law art.58 (http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm): within 30 days of hire; 云人社规〔2024〕1号 art.13 (https://hrss.yn.gov.cn/Uploads/NewsPhoto//files/20241212/3b763cd4-8a47-4475-9941-a15be8b45911.pdf; register CN-KM29)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_REGISTRATION",
+				"label": "Housing-fund account opening or transfer for a hire",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.6–9 (https://zc.51shebao.com/detail/825467; register CN-KM19): register within 30 days of hire",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_TRANSFER",
+				"label": "Housing-fund account sealing or transfer on departure",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.23–25 (https://zc.51shebao.com/detail/825467; register CN-KM23): the old employer’s 30-day local-transfer duty",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund remittance of both shares",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.10–14 (https://zc.51shebao.com/detail/825467; register CN-KM20): withhold the worker share and remit both within five days after payday",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "\"HOUSING_FUND\" in run.remittances"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"amount": "run.remittances.HOUSING_FUND"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"label": "Monthly social-insurance declaration and payment to the tax department",
+				"authority": "云南税务公告〔2023〕5号 (https://ylbz.yn.gov.cn/index.php?c=show&id=3576; register CN-KM17): declare each employee’s contribution wage and pay by the 20th. Owner rule 2026-09-28, law read in reproduction without the month named: the 20th of the contribution (wage) month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 19)",
+				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
+			},
+			{
+				"code": "UNION_FUNDS",
+				"label": "Trade-union funds (2% of the month’s wages)",
+				"authority": "Yunnan Measure implementing the Trade Union Law (revised 30 Nov 2022) arts.27, 30 (https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html; register CN-KM35): 2% of the total wages, 5‰ a day when late. Owner rule 2026-09-28, law silent on the day in the text read: due the 15th of the month after the wage month, with the monthly tax declaration that collects it",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(company.facts.union_established) && company.facts.union_established"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"amount": "round(run.gross * 0.02, 0.01, \"HALF_UP\")",
+				"late_charge": "round(obligation.amount_due * 0.005 * double(obligation.days_late), 0.01, \"HALF_UP\")"
+			}
 		]
 	},
 	{
@@ -421,6 +575,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -481,6 +640,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -524,7 +684,7 @@
 				"terms_when": "terms.worksite != \"\"",
 				"block_terms_when": true
 			},
-			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53). High-temperature allowance (derived_lines HIGH_TEMPERATURE_ALLOWANCE): CNY10 per person per qualifying working day (outdoor ≥35°C, or indoor ≥33°C that cannot be lowered) under 云人社发〔2013〕98号 and 防暑降温措施管理办法 art.17 (https://www.nhc.gov.cn/zhjcj/c100093/201207/2cdae24e57d04213944bcc6ef736a69b.shtml); wages (工资总额), so normal-time pay for IIT. The 98号 repeal check is open (register CN-KM13).",
 			"encashment": {
 				"reference": "EVENT_DATE",
 				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
@@ -533,7 +693,15 @@
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
 				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
-			}
+			},
+			"derived_lines": [
+				{
+					"code": "HIGH_TEMPERATURE_ALLOWANCE",
+					"when": "has(day_facts.high_temperature_day) && day_facts.high_temperature_day > 0.0",
+					"amount": "10.0 * day_facts.high_temperature_day",
+					"component": "BASE"
+				}
+			]
 		},
 		"payroll": {
 			"vocabularies": {
@@ -650,6 +818,12 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "union_established",
+				"type": "boolean",
+				"label": "Trade union established",
+				"description": "The entity has a trade union (Yunnan Measure implementing the Trade Union Law art.27): it remits union funds of 2% of the month’s total wages. Unrecorded is no union."
 			}
 		],
 		"exit_facts": [
@@ -672,7 +846,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -776,6 +950,140 @@
 				"owner": "Payroll",
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "MINIMUM_WAGE",
+				"label": "Minimum wage by worksite (code: the worksite key terms record): monthly and hourly floors",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "monthly",
+						"type": "number",
+						"label": "Monthly floor (CNY)",
+						"required": true,
+						"minimum": 0
+					},
+					{
+						"key": "hourly",
+						"type": "number",
+						"label": "Hourly floor (CNY), part-time non-full-time work",
+						"required": true,
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pay_frequency == \"HOURLY\" && table(\"MINIMUM_WAGE\", after.worksite) != null && double(after.basic_salary) < double(table(\"MINIMUM_WAGE\", after.worksite).hourly)",
+				"message": "The hourly rate is below the hourly minimum wage of the worksite’s class (MINIMUM_WAGE table).",
+				"authority": "云人社发〔2025〕19号 from 1 October 2025 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf; register CN-KM01): CNY2,170 / 2,020 a month and CNY21 / 20 an hour; Mo Han 1,870 / 19 by the other-counties class (CN-KM01.mo-han-1870). The hourly standard applies to non-full-time work (最低工资规定 art.5); the monthly floor stays with work_rules.wages."
+			},
+			{
+				"code": "PREGNANCY_NO_EXTENDED_HOURS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
+				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			}
+		],
+		"person_facts": [
+			{
+				"key": "pregnancy_start",
+				"type": "date",
+				"label": "Pregnancy start",
+				"description": "The medically certified start of a current pregnancy (Order 232 art.10). End the person-fact revision at delivery or termination of the pregnancy; unrecorded is not pregnant."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "high_temperature_day",
+				"type": "number",
+				"integer": true,
+				"minimum": 0,
+				"maximum": 1,
+				"label": "High-temperature working day",
+				"description": "1 where the day’s work was outdoors at 35°C or above, or indoors at 33°C or above that the employer’s measures cannot bring lower (防暑降温措施管理办法 art.17; 云人社发〔2013〕98号). Unrecorded is 0."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_REGISTRATION",
+				"label": "Social-insurance registration of a new worker",
+				"authority": "Social Insurance Law art.58 (http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm): within 30 days of hire; 云人社规〔2024〕1号 art.13 (https://hrss.yn.gov.cn/Uploads/NewsPhoto//files/20241212/3b763cd4-8a47-4475-9941-a15be8b45911.pdf; register CN-KM29)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_REGISTRATION",
+				"label": "Housing-fund account opening or transfer for a hire",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.6–9 (https://zc.51shebao.com/detail/825467; register CN-KM19): register within 30 days of hire",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_TRANSFER",
+				"label": "Housing-fund account sealing or transfer on departure",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.23–25 (https://zc.51shebao.com/detail/825467; register CN-KM23): the old employer’s 30-day local-transfer duty",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund remittance of both shares",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.10–14 (https://zc.51shebao.com/detail/825467; register CN-KM20): withhold the worker share and remit both within five days after payday",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "\"HOUSING_FUND\" in run.remittances"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"amount": "run.remittances.HOUSING_FUND"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"label": "Monthly social-insurance declaration and payment to the tax department",
+				"authority": "云南税务公告〔2023〕5号 (https://ylbz.yn.gov.cn/index.php?c=show&id=3576; register CN-KM17): declare each employee’s contribution wage and pay by the 20th. Owner rule 2026-09-28, law read in reproduction without the month named: the 20th of the contribution (wage) month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 19)",
+				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
+			},
+			{
+				"code": "UNION_FUNDS",
+				"label": "Trade-union funds (2% of the month’s wages)",
+				"authority": "Yunnan Measure implementing the Trade Union Law (revised 30 Nov 2022) arts.27, 30 (https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html; register CN-KM35): 2% of the total wages, 5‰ a day when late. Owner rule 2026-09-28, law silent on the day in the text read: due the 15th of the month after the wage month, with the monthly tax declaration that collects it",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(company.facts.union_established) && company.facts.union_established"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"amount": "round(run.gross * 0.02, 0.01, \"HALF_UP\")",
+				"late_charge": "round(obligation.amount_due * 0.005 * double(obligation.days_late), 0.01, \"HALF_UP\")"
 			}
 		]
 	},
@@ -820,6 +1128,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -880,6 +1193,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -923,7 +1237,7 @@
 				"terms_when": "terms.worksite != \"\"",
 				"block_terms_when": true
 			},
-			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
+			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53). High-temperature allowance (derived_lines HIGH_TEMPERATURE_ALLOWANCE): CNY10 per person per qualifying working day (outdoor ≥35°C, or indoor ≥33°C that cannot be lowered) under 云人社发〔2013〕98号 and 防暑降温措施管理办法 art.17 (https://www.nhc.gov.cn/zhjcj/c100093/201207/2cdae24e57d04213944bcc6ef736a69b.shtml); wages (工资总额), so normal-time pay for IIT. The 98号 repeal check is open (register CN-KM13).",
 			"encashment": {
 				"reference": "EVENT_DATE",
 				"day_amount": "employment.earned_monthly_average(12, [\"OVERTIME\"]) / 21.75 * 2.0",
@@ -932,7 +1246,15 @@
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
 				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
-			}
+			},
+			"derived_lines": [
+				{
+					"code": "HIGH_TEMPERATURE_ALLOWANCE",
+					"when": "has(day_facts.high_temperature_day) && day_facts.high_temperature_day > 0.0",
+					"amount": "10.0 * day_facts.high_temperature_day",
+					"component": "BASE"
+				}
+			]
 		},
 		"payroll": {
 			"vocabularies": {
@@ -1049,6 +1371,12 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
+			},
+			{
+				"key": "union_established",
+				"type": "boolean",
+				"label": "Trade union established",
+				"description": "The entity has a trade union (Yunnan Measure implementing the Trade Union Law art.27): it remits union funds of 2% of the month’s total wages. Unrecorded is no union."
 			}
 		],
 		"exit_facts": [
@@ -1071,7 +1399,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1175,6 +1503,140 @@
 				"owner": "Payroll",
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "MINIMUM_WAGE",
+				"label": "Minimum wage by worksite (code: the worksite key terms record): monthly and hourly floors",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "monthly",
+						"type": "number",
+						"label": "Monthly floor (CNY)",
+						"required": true,
+						"minimum": 0
+					},
+					{
+						"key": "hourly",
+						"type": "number",
+						"label": "Hourly floor (CNY), part-time non-full-time work",
+						"required": true,
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pay_frequency == \"HOURLY\" && table(\"MINIMUM_WAGE\", after.worksite) != null && double(after.basic_salary) < double(table(\"MINIMUM_WAGE\", after.worksite).hourly)",
+				"message": "The hourly rate is below the hourly minimum wage of the worksite’s class (MINIMUM_WAGE table).",
+				"authority": "Yunnan HRSS 29 August 2026 from 1 September 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html; register CN-KM02): CNY2,270 / 2,120 a month and CNY22 / 21 an hour; Mo Han 1,970 / 20. The hourly standard applies to non-full-time work (最低工资规定 art.5); the monthly floor stays with work_rules.wages."
+			},
+			{
+				"code": "PREGNANCY_NO_EXTENDED_HOURS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
+				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			}
+		],
+		"person_facts": [
+			{
+				"key": "pregnancy_start",
+				"type": "date",
+				"label": "Pregnancy start",
+				"description": "The medically certified start of a current pregnancy (Order 232 art.10). End the person-fact revision at delivery or termination of the pregnancy; unrecorded is not pregnant."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "high_temperature_day",
+				"type": "number",
+				"integer": true,
+				"minimum": 0,
+				"maximum": 1,
+				"label": "High-temperature working day",
+				"description": "1 where the day’s work was outdoors at 35°C or above, or indoors at 33°C or above that the employer’s measures cannot bring lower (防暑降温措施管理办法 art.17; 云人社发〔2013〕98号). Unrecorded is 0."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_REGISTRATION",
+				"label": "Social-insurance registration of a new worker",
+				"authority": "Social Insurance Law art.58 (http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm): within 30 days of hire; 云人社规〔2024〕1号 art.13 (https://hrss.yn.gov.cn/Uploads/NewsPhoto//files/20241212/3b763cd4-8a47-4475-9941-a15be8b45911.pdf; register CN-KM29)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_REGISTRATION",
+				"label": "Housing-fund account opening or transfer for a hire",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.6–9 (https://zc.51shebao.com/detail/825467; register CN-KM19): register within 30 days of hire",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_ACCOUNT_TRANSFER",
+				"label": "Housing-fund account sealing or transfer on departure",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.23–25 (https://zc.51shebao.com/detail/825467; register CN-KM23): the old employer’s 30-day local-transfer duty",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund remittance of both shares",
+				"authority": "昆公积金规〔2020〕2号 management measure arts.10–14 (https://zc.51shebao.com/detail/825467; register CN-KM20): withhold the worker share and remit both within five days after payday",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "\"HOUSING_FUND\" in run.remittances"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"amount": "run.remittances.HOUSING_FUND"
+			},
+			{
+				"code": "SI_TAX_DECLARATION",
+				"label": "Monthly social-insurance declaration and payment to the tax department",
+				"authority": "云南税务公告〔2023〕5号 (https://ylbz.yn.gov.cn/index.php?c=show&id=3576; register CN-KM17): declare each employee’s contribution wage and pay by the 20th. Owner rule 2026-09-28, law read in reproduction without the month named: the 20th of the contribution (wage) month",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 19)",
+				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
+			},
+			{
+				"code": "UNION_FUNDS",
+				"label": "Trade-union funds (2% of the month’s wages)",
+				"authority": "Yunnan Measure implementing the Trade Union Law (revised 30 Nov 2022) arts.27, 30 (https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html; register CN-KM35): 2% of the total wages, 5‰ a day when late. Owner rule 2026-09-28, law silent on the day in the text read: due the 15th of the month after the wage month, with the monthly tax declaration that collects it",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(company.facts.union_established) && company.facts.union_established"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"amount": "round(run.gross * 0.02, 0.01, \"HALF_UP\")",
+				"late_charge": "round(obligation.amount_due * 0.005 * double(obligation.days_late), 0.01, \"HALF_UP\")"
 			}
 		]
 	}

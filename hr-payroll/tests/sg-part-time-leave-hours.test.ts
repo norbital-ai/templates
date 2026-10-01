@@ -77,6 +77,59 @@ test('SG part-time leave refuses an absent comparator with recorded comparator h
 	);
 });
 
+// LIT-1: the part-time boundary and the absent-comparator day and week are the row's stored
+// `part_time_hours`, not engine literals. Part-Time Employees Regulations reg.2(1) (below 35 a
+// week) and reg.2(2) (8 a day, 44 a week with no similar full-time employee):
+// https://sso.agc.gov.sg/SL/EmA1968-RG8?WholeDoc=1
+test('LIT-1 — every SG hourly row seeds the reg.2 part-time hours', () => {
+	for (const row of leaves)
+		if (row.entitlement.requires_hourly_for_part_time === true)
+			assert.deepEqual(
+				row.entitlement.part_time_hours,
+				{ part_time_below_hours: 35, comparator_weekly_hours: 44, comparator_daily_hours: 8 },
+				`${row.settings_id} ${row.code}`
+			);
+});
+
+test('LIT-1 — an absent comparator converts at the row’s stored day and week', () => {
+	const absent = (part_time_hours: unknown) => {
+		const context = partTimeContext();
+		Object.assign(context.terms[0], {
+			comparable_full_time_presence: 'ABSENT',
+			comparable_full_time_daily_hours: null,
+			comparable_full_time_weekly_hours: null
+		});
+		Object.assign(context.catalogues[0], {
+			entitlement: { ...context.catalogues[0].entitlement, part_time_hours }
+		});
+		return leaveRules(context, id(1), id(7)).entitlementAt(
+			{ start: '2026-01-01', end: '2026-12-31' },
+			'2026-07-01'
+		);
+	};
+	// Seeded 35/44/8: 14 days × 20 / 44 × 8 = 2240 / 44 = 50.9090… hours, up to the thousandth.
+	const seeded = absent(
+		leaves.find((leave) => leave.code === 'SICK_LEAVE').entitlement.part_time_hours
+	);
+	assert.equal(seeded.unit, 'HOUR');
+	assert.ok(Math.abs(seeded.entitlement - 50.91) < 1e-9);
+	// Stored 25/50/10: 14 × 20 / 50 × 10 = 56 hours — the engine reads the row, not 44 and 8.
+	const stored = absent({
+		part_time_below_hours: 25,
+		comparator_weekly_hours: 50,
+		comparator_daily_hours: 10
+	});
+	assert.equal(stored.entitlement, 56);
+	// Stored boundary 20: a 20-hour week is no longer part-time, so the PART_TIME label conflicts.
+	assert.throws(
+		() =>
+			absent({ part_time_below_hours: 20, comparator_weekly_hours: 44, comparator_daily_hours: 8 }),
+		/part-time status conflicts with contracted weekly hours/
+	);
+	// No stored hours on an hourly row: refused, never a built-in default.
+	assert.throws(() => absent(null), /states no part-time hours/);
+});
+
 test('SG leave refuses a mixed full-time and part-time year before granting the wrong unit', () => {
 	for (const startsPartTime of [true, false]) {
 		const context = partTimeContext();

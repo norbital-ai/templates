@@ -14,6 +14,7 @@ import { coversDate } from '../../lib/payroll/run/effective.js';
 import { addDays, daysBetween, inclusiveDays, monthDay } from '../../lib/payroll/run/dates.js';
 import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
 import { resolveHolidays } from '../holiday-calendar.js';
+import { personCondition } from '../scheduled/entries.js';
 import {
 	patternAnchor,
 	patternDaysPerWeek,
@@ -27,8 +28,10 @@ import * as Predicate from 'effect/Predicate';
 import { resolveCompanyFacts } from '../declared-facts.js';
 import { personFactsForVersion } from '../payroll/facts.js';
 import {
+	DATED,
 	isEligible,
 	personContext,
+	type DatedCompany,
 	type PersonContext,
 	type PersonInput
 } from '../../lib/payroll/run/eligibility.js';
@@ -56,7 +59,7 @@ export type LeaveContext = {
 		readonly employee_id: string;
 		readonly company_id: string;
 		readonly effective_range: StoredRange | null;
-		readonly exit_reason?: string | null | undefined;
+		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		readonly prior_service_months?: number | null | undefined;
 	}[];
@@ -68,6 +71,8 @@ export type LeaveContext = {
 		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 		/** Dated entity fact revisions, so a leave rule reads the facts of its own date. */
 		readonly fact_revisions?: readonly CompanyFactRevision[] | undefined;
+		/** The version's tables and worksites on a date, where the caller bound them (a lifecycle check). */
+		readonly [DATED]?: DatedCompany | undefined;
 	}[];
 	employees: {
 		readonly id: string;
@@ -177,6 +182,8 @@ export type LeaveContext = {
 		readonly paid_by: 'EMPLOYER' | 'FUND';
 		readonly consumes_code: string | null;
 		readonly unit: 'DAY' | 'HOUR';
+		/** The event or state inputs an entry of this row records (`leave.facts.<key>`). */
+		readonly event_facts?: readonly FactKey[] | null;
 	}[];
 	holidays: HolidayRow[];
 	workDays: {
@@ -239,6 +246,8 @@ export type LeaveContext = {
 type Stored<T> = T & { readonly approval_id: string | null };
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 const settled = { approval_id: { isNull: true } } as const;
+/** Two leave years of at most 366 days: the current entitlement window and its carry source. */
+const ANNUAL_LOOKBACK_DAYS = 732;
 
 /**
  * One batched read of employment history and manual activity, as the workspace (a transform's
@@ -296,7 +305,7 @@ export async function readLeaveContext(
 			company_id: row.company_id,
 			effective_range: row.effective_range
 		}),
-		exit_reason: row.exit_reason ?? null,
+		exit_ground: row.exit_ground ?? null,
 		exit_facts: row.exit_facts ?? null,
 		prior_service_months: row.prior_service_months ?? null
 	}));
@@ -351,7 +360,7 @@ export async function readLeaveContext(
 			? []
 			: readAll<LeaveContext['holidays'][number]>(reads, 'jurisdiction_holidays', {
 					company_id: { in: companyIds },
-					date: { gte: addDays(window.end, -732), lte: window.end },
+					date: { gte: addDays(window.end, -ANNUAL_LOOKBACK_DAYS), lte: window.end },
 					published_at: { isNull: false },
 					...settled
 				}),
@@ -377,7 +386,7 @@ export async function readLeaveContext(
 			? []
 			: readAll<NonNullable<LeaveContext['annualAttendance']>[number]>(reads, 'work_days', {
 					employment_id: { in: ids },
-					work_date: { gte: addDays(window.end, -732), lte: window.end },
+					work_date: { gte: addDays(window.end, -ANNUAL_LOOKBACK_DAYS), lte: window.end },
 					...settled
 				})
 	]);
@@ -590,7 +599,12 @@ export function personAt(
 	const versionIds = new Set(lineage.map((row) => row.id));
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
 	const range = employment.effective_range;
-	const yearBefore = addDays(date, -365);
+	// The same day twelve calendar months back (29 February → 28 February), not 365 days.
+	const yearBefore = monthDay(
+		decodeNumber(date.slice(0, 4)) - 1,
+		decodeNumber(date.slice(5, 7)) - 1,
+		decodeNumber(date.slice(8, 10))
+	);
 	const term = terms.find((row) => coversDate(row.effective_range, date)) ?? null;
 	// The contract's week, so a part-timer's grant can be read against their contracted hours
 	// (`entitlement.scale`): the stated hours, else the pattern's.
@@ -612,7 +626,7 @@ export function personAt(
 			service_start: range == null ? '' : dateKey(range.start),
 			prior_service_months: employment.prior_service_months ?? 0,
 			exit_date: range?.end == null ? null : dateKey(range.end),
-			exit_reason: employment.exit_reason ?? null,
+			exit_ground: employment.exit_ground ?? null,
 			exit_facts: employment.exit_facts ?? {},
 			absent_days_12m: (context.absences ?? []).filter(
 				(row) =>
@@ -772,7 +786,7 @@ export function leaveRules(
 	 */
 	// Keyed by the facts themselves: a context is mutated in place by callers that amend terms or
 	// a person between queries, so identity alone would serve a stale reading. The employment's
-	// exit reason and exit facts are part of the person, so they are part of the key.
+	// exit ground and exit facts are part of the person, so they are part of the key.
 	const people = personCache(
 		context,
 		JSON.stringify([
@@ -781,7 +795,7 @@ export function leaveRules(
 			company.id,
 			hire,
 			exit,
-			context.employments.find((row) => row.id === employmentId)?.exit_reason ?? null,
+			context.employments.find((row) => row.id === employmentId)?.exit_ground ?? null,
 			context.employments.find((row) => row.id === employmentId)?.exit_facts ?? {},
 			context.facts ?? [],
 			context.absences ?? [],
@@ -970,7 +984,8 @@ export function leaveRules(
 			company.id,
 			window.start,
 			window.end,
-			(date) => terms.find((row) => coversDate(row.effective_range, date))?.worksite
+			(date) => terms.find((row) => coversDate(row.effective_range, date))?.worksite,
+			personCondition(personOn)
 		);
 		let withoutHolidays = 0;
 		let withHolidays = 0;

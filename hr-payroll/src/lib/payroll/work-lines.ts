@@ -11,6 +11,7 @@ import type { CatalogueComponent } from '../../lib/payroll/run/configuration.js'
 import type { WorkRules } from '../datatypes/work_rules.js';
 import { INCENTIVE_LINE, OVERTIME_LINE } from './work-bands.js';
 import { splitsOvertime } from '../scheduling/work-limits.js';
+import { DERIVED_LINE, type DerivedLine } from './run/accumulate.js';
 
 const WORK_LINE_CODES = {
 	salary: 'BASIC',
@@ -49,7 +50,10 @@ function item(options: {
  * component identity is the pair.
  */
 export function workPayItems(
-	work: WorkRules & { readonly settings_id: string }
+	work: WorkRules & {
+		readonly settings_id: string;
+		readonly derived_lines?: readonly DerivedLine[] | null | undefined;
+	}
 ): CatalogueComponent[] {
 	const items: CatalogueComponent[] = [
 		item({
@@ -108,6 +112,20 @@ export function workPayItems(
 					})
 				])
 	];
+	// A period-derived line (`derived_lines`) is priced after every other line (`deriveLines`),
+	// never by the catalogue walk: normal-time wages (BASE) or a day's pay (DAY_PAY).
+	for (const line of work.derived_lines ?? [])
+		items.push(
+			item({
+				settingsId: work.settings_id,
+				code: line.code,
+				output: `${DERIVED_LINE}:${line.code}`,
+				definition: {
+					source: line.component === 'DAY_PAY' ? 'DERIVED_DAY' : 'DERIVED_NORMAL',
+					unit: 'MONEY'
+				}
+			})
+		);
 	const seen = new Set(items.map((row) => row.output));
 	const add = (line: string, label: string, day = false) => {
 		const output = `${line}:${label}`;

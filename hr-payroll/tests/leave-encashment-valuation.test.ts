@@ -283,7 +283,7 @@ test('MY: 2,601 / 26 × 1.5 rounds once to 150.06 (EA 60I)', () => {
 	assert.equal(amount(cashWorld('MY', 2601)), 150.06);
 });
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code}: weekly leave pay uses wages / 6 and monthly allowances / 26`, () => {
 		const world = cashWorld(code, 601, '2026-06-28', '2026-06-4', 'WEEKLY');
 		world.leave_entries[0]!.due_on = '2026-06-28';
@@ -434,7 +434,7 @@ test('SG gross pay includes a qualifying wage allowance and excludes food reimbu
 });
 
 test('MY fixed normal-hours allowances enter the section 60I monthly wage', () => {
-	const world = cashWorld('MY-nihon', 2600);
+	const world = cashWorld('MY', 2600);
 	world.employment_terms[0]!.allowances = [
 		{ catalogue_id: world.allowance_catalogue.find((row) => row.code === 'SUA')!.id, amount: 260 }
 	];
@@ -545,7 +545,7 @@ test('MY semi-monthly cash-out uses the monthly salary unit without doubling it'
 	);
 });
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code}: encashment tax below RM10 is exempt independently of normal MTD`, () => {
 		// LHDN MTD 2026, section E(3–5), pp.19–20: the RM10 minimum applies separately
 		// to normal and additional remuneration. Normal annual tax is RM1,320.7242:

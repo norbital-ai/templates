@@ -94,7 +94,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "8a856bdb-7485-5a23-9d26-6ba8f479e797",
@@ -118,7 +154,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "f442bb2a-7098-5f6d-9010-48dc7107e0d0",
@@ -142,7 +214,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "170ff497-3214-5a77-9358-c2778fb5f6e4",
@@ -219,7 +327,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "9adab635-01fc-5fbf-afa8-930fbae52b5d",
@@ -316,7 +460,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "80639dba-52a4-505b-b42f-fa0e6d43f3d7",
@@ -340,7 +520,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "db9f1ef2-acee-516e-a0d8-3f34edcb2bcd",
@@ -364,7 +580,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "3d7a88d0-22e3-5e5e-b4fd-e193fd7944a4",
@@ -441,7 +693,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5c560547-cd34-574f-81ce-72c7776ee5d5",
@@ -538,7 +826,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "d66204a4-cb4e-5708-af80-37f6ae4c6901",
@@ -562,7 +886,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "d2465609-6266-5d45-9a9f-780cdf56a342",
@@ -586,7 +946,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e1988ef7-1084-5c4e-871c-4d5641fc20e0",
@@ -663,7 +1059,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "7fa9c424-d4c9-5d07-9bcb-fec00d2aa8dd",
@@ -760,7 +1192,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "dc8baf25-363c-5b26-9379-b8df023d70b7",
@@ -784,7 +1252,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "8857439a-b4bb-5960-8f4f-6658cc70bc18",
@@ -808,7 +1312,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "a8aeb76b-5146-5779-a6a4-43b108c4245a",
@@ -885,15 +1425,51 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "829c2f6c-0a84-59b1-94c4-aebdab9e3df2",
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "FUNERAL_LEAVE",
 		"name": "Funeral leave (丧假)",
-		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
-		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version. 沪劳资发〔87〕130号 (from 15 October 1987, kept in force to 15 August 2031 by 沪人社规〔2026〕12号; https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418045.html, read 30 Sep 2026): 职工的岳父母或公婆死亡后，需要职工料理丧事的，由本单位行政领导批准，可给予一至三天的丧假 … 在批准的丧假和路程假期间，职工的工资照发 — a parent-in-law (PARENT_IN_LAW) is in the row at the same discretionary maximum of 3 (owner rule 2026-09-28; register CN-SH17); its distance-dependent paid travel days are not seeded. Fix in place 30 Sep 2026 (a transcription omission, the law unchanged).",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -909,15 +1485,51 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "50364ddf-6f0c-58fb-a8aa-45a78e3497df",
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "FUNERAL_LEAVE",
 		"name": "Funeral leave (丧假)",
-		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
-		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version. 沪劳资发〔87〕130号 (from 15 October 1987, kept in force to 15 August 2031 by 沪人社规〔2026〕12号; https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418045.html, read 30 Sep 2026): 职工的岳父母或公婆死亡后，需要职工料理丧事的，由本单位行政领导批准，可给予一至三天的丧假 … 在批准的丧假和路程假期间，职工的工资照发 — a parent-in-law (PARENT_IN_LAW) is in the row at the same discretionary maximum of 3 (owner rule 2026-09-28; register CN-SH17); its distance-dependent paid travel days are not seeded. Fix in place 30 Sep 2026 (a transcription omission, the law unchanged).",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -933,15 +1545,51 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "c0304486-a89b-59db-ab35-d0ea7b81851f",
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "FUNERAL_LEAVE",
 		"name": "Funeral leave (丧假)",
-		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
-		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version. 沪劳资发〔87〕130号 (from 15 October 1987, kept in force to 15 August 2031 by 沪人社规〔2026〕12号; https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418045.html, read 30 Sep 2026): 职工的岳父母或公婆死亡后，需要职工料理丧事的，由本单位行政领导批准，可给予一至三天的丧假 … 在批准的丧假和路程假期间，职工的工资照发 — a parent-in-law (PARENT_IN_LAW) is in the row at the same discretionary maximum of 3 (owner rule 2026-09-28; register CN-SH17); its distance-dependent paid travel days are not seeded. Fix in place 30 Sep 2026 (a transcription omission, the law unchanged).",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -957,15 +1605,51 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ced19b16-c34c-50b8-9bd3-94fbe962f3c3",
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "FUNERAL_LEAVE",
 		"name": "Funeral leave (丧假)",
-		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
-		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version. 沪劳资发〔87〕130号 (from 15 October 1987, kept in force to 15 August 2031 by 沪人社规〔2026〕12号; https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418045.html, read 30 Sep 2026): 职工的岳父母或公婆死亡后，需要职工料理丧事的，由本单位行政领导批准，可给予一至三天的丧假 … 在批准的丧假和路程假期间，职工的工资照发 — a parent-in-law (PARENT_IN_LAW) is in the row at the same discretionary maximum of 3 (owner rule 2026-09-28; register CN-SH17); its distance-dependent paid travel days are not seeded. Fix in place 30 Sep 2026 (a transcription omission, the law unchanged).",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -980,6 +1664,126 @@
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
 		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
+	},
+	{
+		"id": "8730ca76-4560-5dc1-a055-d61d1e2b6e59",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "addb27ec-6498-53fe-9949-c7ec1597afa9",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3ef486cf-171b-5249-b4fb-4d2370be2730",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dcfa6890-4a96-5351-b4f6-42105acee546",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
 		"can_encash": false,
 		"encash_on_exit": false
 	}

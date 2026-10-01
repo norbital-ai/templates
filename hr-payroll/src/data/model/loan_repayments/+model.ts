@@ -1,6 +1,9 @@
 import { model } from '@norbital-ai/bolt';
 
-/** One amount due under an agreement, recovered whole by exactly one payslip, or not yet at all. */
+/**
+ * One amount due under an agreement, recovered whole by exactly one payslip, or not yet at all. Under a
+ * rule-recovered order the run writes the row with the amount it withheld, already linked to its payslip.
+ */
 export default model({
 	description:
 		'One amount due under a loan agreement, in the order it is recovered. Payroll consumes repayments, never the loan master, and links the one that settled it through `payslip_id`.',

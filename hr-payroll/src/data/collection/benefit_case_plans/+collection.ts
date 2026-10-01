@@ -1,14 +1,15 @@
 import { collection } from '@norbital-ai/bolt';
 import { dateKey, isCalendarDate } from '../../../lib/iso-day.js';
 import {
+	advanceDue,
 	calculateBenefitCandidate,
+	caseSite,
 	positiveCents,
 	readCaseEvidence,
 	readCaseLineages,
 	snapshotContributionMonths,
 	evidenceOf
 } from '../../../lib/benefit-cases/benefit.js';
-import { addDays } from '../../../lib/payroll/run/dates.js';
 import { refuse } from '../../../lib/refuse.js';
 import { decodeNumber } from '../../../lib/wire.js';
 
@@ -107,6 +108,10 @@ c.transform(async (inputs, ctx) => {
 			refuse('Monthly full pay needs a referenced document and assessed qualifying allowances.');
 		const application = dateKey(caseRow.application_on);
 		if (!isCalendarDate(application)) refuse('A benefit advance needs the dated application.');
+		if (type.credits == null || type.advance_due == null)
+			refuse(`${type.case_type} declares no advance priced on contribution credits.`);
+		const caseEvidence = evidenceOf(evidence, caseRow.id);
+		const dueOn = advanceDue(type, caseSite(type, caseRow, caseEvidence));
 		const actual = caseRow.event_kind != null && isCalendarDate(dateKey(caseRow.event_on));
 		const basisDay = actual ? dateKey(caseRow.event_on) : dateKey(caseRow.expected_event_on);
 		if (!isCalendarDate(basisDay)) refuse('A pre-event candidate needs an expected event date.');
@@ -114,7 +119,7 @@ c.transform(async (inputs, ctx) => {
 		const claimed = (type.qualifications ?? []).find((q) => caseRow.facts?.[q.claim] === true);
 		if (!actual && claimed != null) refuse(claimed.message);
 		const history = months.filter(
-			(row) => row.employee_id === caseRow.employee_id && row.scheme_code === type.credit_scheme
+			(row) => row.employee_id === caseRow.employee_id && row.scheme_code === type.credits?.scheme
 		);
 		const candidate = calculateBenefitCandidate({
 			case_type: type,
@@ -128,8 +133,9 @@ c.transform(async (inputs, ctx) => {
 							...caseRow.facts
 						}
 					},
-			evidence: evidenceOf(evidence, caseRow.id),
-			months: history
+			evidence: caseEvidence,
+			months: history,
+			currency: lineages.currencyOf(caseRow)
 		});
 		if (candidate.qualifying_window.through >= dateKey(today).slice(0, 7))
 			refuse(
@@ -145,7 +151,7 @@ c.transform(async (inputs, ctx) => {
 			)
 		)
 			refuse('An advance plan cannot count a contribution paid after the plan date.');
-		if (!candidate.contribution_qualified || candidate.candidate_benefit <= 0)
+		if (candidate.candidate_benefit <= 0)
 			refuse('The documented contribution months do not establish a positive advance candidate.');
 		return {
 			...input,
@@ -153,7 +159,7 @@ c.transform(async (inputs, ctx) => {
 			...(prior == null ? {} : { supersedes_plan_id: prior.id }),
 			plan_created_on: on(dateKey(today)),
 			application_on_at_plan: on(application),
-			advance_due_on: on(addDays(application, type.advance_due_days)),
+			advance_due_on: on(dueOn),
 			event_basis_kind: actual ? ('ACTUAL_EVENT' as const) : ('EXPECTED_EVENT' as const),
 			event_basis_on: on(basisDay),
 			candidate_amount: candidate.candidate_benefit,
@@ -215,7 +221,7 @@ c.query('advance_status', async (input, ctx) => {
 		plan.candidate_window_through == null ||
 		plan.history_snapshot == null ||
 		snapshotContributionMonths(
-			currentMonths.rows.filter((row) => row.scheme_code === type.credit_scheme),
+			currentMonths.rows.filter((row) => row.scheme_code === type.credits?.scheme),
 			plan.candidate_window_from,
 			plan.candidate_window_through
 		) !== plan.history_snapshot

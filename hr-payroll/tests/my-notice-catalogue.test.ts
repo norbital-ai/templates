@@ -7,6 +7,7 @@ import {
 	noticeMonthlyWages,
 	serviceYearsOn
 } from '../src/lib/expressions/notice-period.ts';
+import { roundStep, type RoundMode } from '../src/lib/payroll/run/rounding.ts';
 
 // Execute the actual stored formulas with the production notice functions. This isolates the
 // catalogue from the payroll loader's concurrently changing API; it does not prove gather or save.
@@ -17,9 +18,9 @@ const engine = new Environment({
 engine.registerFunction('map.service_years_on(dyn): int', serviceYearsOn);
 engine.registerFunction('map.notice_days_remaining(dyn, dyn, dyn): double', noticeDaysRemaining);
 engine.registerFunction('map.notice_monthly_wages(dyn, dyn, dyn, dyn): double', noticeMonthlyWages);
-engine.registerFunction(
-	'round_cent(dyn): double',
-	(value) => Math.round(Number(value) * 100) / 100
+// The stored bands call `round(value, step, 'MODE')` (round 10); bind the engine's own stepping.
+engine.registerFunction('round(dyn, dyn, string): double', (value, step, mode) =>
+	roundStep(Number(value), Number(step), mode as RoundMode)
 );
 
 type Row = {
@@ -67,7 +68,7 @@ function person(
 			type: overrides.type ?? (overrides.domestic ? 'DOMESTIC' : 'PERMANENT'),
 			service_start: overrides.hire ?? '2025-01-01',
 			exit_date: overrides.exit ?? '2026-01-31',
-			exit_reason: overrides.reason ?? 'UNILATERAL',
+			exit_ground: overrides.reason ?? 'UNILATERAL',
 			exit_facts: declarations,
 			exit_fact_keys: Object.keys(declarations)
 		},
@@ -80,7 +81,7 @@ function person(
 	};
 }
 
-for (const code of ['MY', 'MY-nihon']) {
+for (const code of ['MY']) {
 	const versions: Version[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${code}/jurisdiction_settings.json`, import.meta.url),

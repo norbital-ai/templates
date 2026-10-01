@@ -4,7 +4,12 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessStatutory, buildStatutory, expectStatutory } from './fixtures/statutory-world.ts';
+import {
+	assessStatutory,
+	buildStatutory,
+	chargeOf,
+	expectStatutory
+} from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { isEligible, personContext } from '../src/lib/payroll/run/eligibility.ts';
 
@@ -53,15 +58,36 @@ test('presence counts: whole entry and exit days, clipped to the rule date, by c
 		{ start: '2026-01-01', end: null }
 	];
 	const march31 = on('2026-03-31', history);
-	assert.deepEqual(
-		[march31.presence_recorded, march31.presence_days, march31.presence_years_90],
-		[true, 90, 3]
+	assert.deepEqual([march31.presence_recorded, march31.presence_days], [true, 90]);
+	// presence_days_in(n): the calendar year n before 2026, whole; 0 is this year through the rule
+	// date, and a year before the first stay reads 0.
+	const daysIn = (n: number, days: number, asOf = '2026-03-31') =>
+		isEligible(`employee.presence_days_in(${n}) == ${days}`, person(asOf, history));
+	[90, 90, 89, 90, 90, 0].forEach((days, n) =>
+		assert.equal(daysIn(n, days), true, `presence_days_in(${n})`)
 	);
-	// s.7(1)(c): 90 days this year and 90 in three of the four preceding years — resident on the
-	// 31st, not on the 30th (89 days).
-	const s7c = 'employee.presence_days >= 90 && employee.presence_years_90 >= 3';
+	assert.equal(daysIn(0, 89, '2026-03-30'), true);
+	// s.7(1)(c)(ii): 90 days this year and 90 in any three of the four preceding years, the rule
+	// writing the four years itself — 2025, 2023, 2022 at 90 (2024 at 89): resident on the 31st,
+	// not on the 30th (89 days this year).
+	const s7c =
+		'employee.presence_days >= 90 && (employee.presence_days_in(1) >= 90 ? 1 : 0) + (employee.presence_days_in(2) >= 90 ? 1 : 0) + (employee.presence_days_in(3) >= 90 ? 1 : 0) + (employee.presence_days_in(4) >= 90 ? 1 : 0) >= 3';
 	assert.equal(isEligible(s7c, person('2026-03-31', history)), true);
 	assert.equal(isEligible(s7c, person('2026-03-30', history)), false);
+	// Drop 2022 (four years back): only 2023 and 2025 reach 90 — two of four, not resident. A 90-day
+	// year five back (2021) is outside the four and does not stand in for it.
+	const twoOfFour = [{ start: '2021-01-01', end: '2021-03-31' }, ...history.slice(1)];
+	assert.equal(isEligible(s7c, person('2026-03-31', twoOfFour)), false);
+	// A stay crossing years splits by calendar year: 1 Dec 2024 – 31 Mar 2025 is 31 in 2024
+	// (two back) and 90 in 2025 (one back).
+	const across = person('2026-01-10', [{ start: '2024-12-01', end: '2025-03-31' }]);
+	assert.equal(
+		isEligible(
+			'employee.presence_days_in(2) == 31 && employee.presence_days_in(1) == 90 && employee.presence_days_in(0) == 0',
+			across
+		),
+		true
+	);
 	assert.equal(on('2026-03-30', history).presence_days, 89);
 	// A stay ending 31 December and one entering 1 January are one unbroken stay: 31 linked days.
 	const crossing = on('2026-01-15', [
@@ -104,7 +130,7 @@ test('presence counts: whole entry and exit days, clipped to the rule date, by c
 	assert.equal(on('2026-03-31', history).employment_days, 0);
 });
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — presence alone proves no employment day; sixty recorded employment days are exempt, sixty-one are not (ITA Sch.6 paras 21–22)`, () => {
 		const claiming = (key: string) => ({
 			...foreigner(key),
@@ -143,7 +169,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(pcb('2026-01', '2026-03-01', foreigner('NR')), 'NR', 'PCB', 1500.3, 0);
 	});
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — a stay linked to 182 consecutive days of the previous year is resident; 181 is not (ITA s.7(1)(b))`, () => {
 		// Both in Malaysia without a break since 2025, 31 days in January 2026. From 3 July 2025,
 		// 3–31 July (29) + 31 + 30 + 31 + 30 + 31 = 182 consecutive days in 2025: resident for 2026
@@ -196,4 +222,46 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			0
 		);
 		assert.equal(notes('U-181', '2025-07-04'), 1);
+	});
+
+for (const code of ['MY'] as const)
+	test(`${code} — 90 days this year and 90 in three of the four preceding years is resident; two of four is not (ITA s.7(1)(c)(ii))`, () => {
+		// March 2026, 5,001, both recorded NON_RESIDENT. P3: 1 January – 31 March in 2022, 2023, 2025
+		// (90 days each) and 2026 (90 by the 31st); 2024 to 29 March, 89 (leap year). P2: the same
+		// but 2021 in place of 2022 — five years back, outside the four: two of four. A third,
+		// recorded RESIDENT with no stays, is the resident MTD P3 must match; P2 is D(a)'s 30% ×
+		// 5,001 = 1,500.30.
+		const years = ['2023', '2024', '2025'];
+		const p3 = ['2022', ...years];
+		const p2 = ['2021', ...years];
+		const rows = (key: string, from: readonly string[]) =>
+			[...from, '2026'].map((year) => ({
+				key,
+				start: `${year}-01-01`,
+				end: year === '2026' ? null : year === '2024' ? '2024-03-29' : `${year}-03-31`
+			}));
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-03',
+				people: [foreigner('P3'), foreigner('P2'), { ...foreigner('R'), tax_residency: 'RESIDENT' }]
+			},
+			(world: PayrollWorld) => {
+				Object.assign(world, {
+					presence_periods: [...rows('P3', p3), ...rows('P2', p2)].map((row, index) => ({
+						id: `stay-${index}`,
+						employee_id: world.employees.find((person) => person.name === row.key)!.id,
+						jurisdiction_code: 'MY',
+						period: { from: row.start, to: row.end },
+						employment_exercised: false,
+						reference: 'passport stamps',
+						approval_id: null
+					}))
+				});
+			}
+		);
+		const resident = chargeOf(book, 'R', 'PCB');
+		assert.notEqual(resident.employee, 1500.3);
+		expectStatutory(book, 'P3', 'PCB', resident.employee, resident.employer);
+		expectStatutory(book, 'P2', 'PCB', 1500.3, 0);
 	});

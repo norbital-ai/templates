@@ -60,12 +60,7 @@ describe('leave activity fields', () => {
 			available_from: null,
 			expires_on: null,
 			reason: null,
-			event_kind: null,
-			event_relationship: null,
-			event_child_index: null,
-			event_wife_prior_living_biological_children: null,
-			event_date: null,
-			agreed_pay_fraction: null
+			facts: {}
 		});
 	});
 

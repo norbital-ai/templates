@@ -8,6 +8,6 @@
 	collection="adhoc_requests"
 	dateLabel={bolt.t('component.adhoc_event_date')}
 	title={bolt.t('app.adhoc.title')}
-	description="One-off payments and deductions — bonus, back pay, separation pay, claw-backs — with the payroll capture that settled each"
+	description={bolt.t('app.adhoc.description')}
 	icon="lucide:hand-coins"
 />

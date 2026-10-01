@@ -93,7 +93,7 @@ actual Work dates, approved Leave charges or debit valuations and each payslip's
 protect the effective terms through those dates. Future entitlement projections do not advance
 them. There is no separate seal log to import.
 
-Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, recorded once and
+Departure is the contract's own `exit_date`, `exit_ground` (a `TERMINATION_GROUND` code) and `exit_note`, recorded once and
 immutable afterwards. It preserves the signed contract; the only thing it generates is the held
 departure encashment ([leave.md](leave.md#encashment-on-departure)). A missing
 departure reason remains unresolved.

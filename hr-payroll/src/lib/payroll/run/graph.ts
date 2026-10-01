@@ -18,6 +18,7 @@ import type {
 import type { PayslipAdjustment } from '../../../lib/datatypes/payslip_adjustments.js';
 import type { PayslipProration } from '../../../lib/datatypes/payslip_proration.js';
 import type { Settlement } from './settle.js';
+import type { OrderRepaymentCreate } from '../loan.js';
 
 export type PendingPayslip = {
 	readonly employmentId: string;
@@ -33,6 +34,8 @@ export type PendingPayslip = {
 	readonly inLieuSlices?: MeasuredEmployment['inLieuSlices'] | undefined;
 	readonly overtimeDays?: number | undefined;
 	readonly minimumWage?: number | undefined;
+	/** What each deduction order withheld, as the repayment rows this payslip writes (L6). */
+	readonly orderRepayments?: readonly OrderRepaymentCreate[] | undefined;
 };
 
 /** The sources one payslip captured, by family. */
@@ -43,6 +46,7 @@ type PayslipCaptures = Readonly<{
 	adhoc: readonly string[];
 	leave: readonly string[];
 	loanRepayments: readonly string[];
+	orderRepayments: readonly OrderRepaymentCreate[];
 	wagePeriods: readonly string[];
 }>;
 
@@ -61,8 +65,12 @@ export function payrollRunGraph(options: {
 			workDays: payslip.captured.workDays,
 			claims: payslip.captured.payRequests.CLAIM,
 			adhoc: payslip.captured.payRequests.ADHOC,
-			leave: payslip.captured.leave.map((capture) => capture.leave_entry_id),
+			// An entry an earlier slip pinned keeps that pin; this slip priced its later days only.
+			leave: payslip.captured.leave.flatMap((capture) =>
+				capture.continued === true ? [] : [capture.leave_entry_id]
+			),
 			loanRepayments: payslip.captured.loanRepayments,
+			orderRepayments: payslip.orderRepayments ?? [],
 			wagePeriods: payslip.captured.wagePeriods
 		});
 		return {
@@ -74,7 +82,6 @@ export function payrollRunGraph(options: {
 			proration: payslip.proration,
 			statutory: payslip.charges.map((charge) => ({
 				scheme_code: charge.contribution.row.code,
-				authority: charge.contribution.row.authority,
 				label: charge.contribution.row.short_name ?? null,
 				listing_order: charge.contribution.row.listing_order ?? null,
 				listing_group: charge.contribution.row.listing_group ?? null,
@@ -83,7 +90,6 @@ export function payrollRunGraph(options: {
 				assessment_frequency: charge.assessmentFrequency,
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
-				directed_amount: charge.directed,
 				rebate_amount: charge.rebate ?? 0,
 				rule_when: charge.ruleReference,
 				...(charge.ruleReference != null &&
@@ -184,7 +190,14 @@ export function payrollRunPayload(built: {
 			claim_requests: linkActions(capture.claims),
 			adhoc_requests: linkActions(capture.adhoc),
 			leave_entries: linkActions(capture.leave),
-			loan_repayments: linkActions(capture.loanRepayments),
+			// The nested create stamps `payslip_id`; a deleted draft releases it like any pin.
+			loan_repayments:
+				capture.loanRepayments.length === 0 && capture.orderRepayments.length === 0
+					? undefined
+					: {
+							...(capture.loanRepayments.length === 0 ? {} : { link: capture.loanRepayments }),
+							...(capture.orderRepayments.length === 0 ? {} : { create: capture.orderRepayments })
+						},
 			payslip_wage_periods:
 				capture.wagePeriods.length === 0
 					? undefined

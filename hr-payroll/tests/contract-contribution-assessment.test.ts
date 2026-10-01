@@ -106,7 +106,11 @@ function contract(
 }
 
 const fixed = scheme('PUB_FIXED', [
-	{ when: 'base >= 0.0', employee: 'round_cent(100.01)', employer: 'round_cent(200.03)' }
+	{
+		when: 'base >= 0.0',
+		employee: 'round(100.01, 0.01, "HALF_UP")',
+		employer: 'round(200.03, 0.01, "HALF_UP")'
+	}
 ]);
 
 test('two contracts receive one fixed assessment, with deterministic cent allocations and their own bases', () => {
@@ -177,10 +181,10 @@ for (const cutoff of ['FIRST', 'SPLIT'] as const)
 
 test('a periodic progressive threshold applies to combined contract remuneration', () => {
 	const ladder = scheme('PUB_PERIOD', [
-		{ when: 'base <= 1000.0', employee: 'round_cent(0.0)', employer: '0.0' },
+		{ when: 'base <= 1000.0', employee: 'round(0.0, 0.01, "HALF_UP")', employer: '0.0' },
 		{
 			when: 'base > 1000.0',
-			employee: 'round_cent(0.0 + (base - 1000.0) * 10.0 / 100.0)',
+			employee: 'round(0.0 + (base - 1000.0) * 10.0 / 100.0, 0.01, "HALF_UP")',
 			employer: '0.0'
 		}
 	]);
@@ -256,7 +260,7 @@ test('personal relief, a shared relief cap and prior YTD are applied once for th
 	const tax = scheme('PUB_TAX', [
 		{
 			when: 'true',
-			employee: `round_cent((${scaled} - scheme.year_to_date.employee > 0.0 ? (${scaled} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0))`,
+			employee: `round((${scaled} - scheme.year_to_date.employee > 0.0 ? (${scaled} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0), 0.01, 'HALF_UP')`,
 			employer: '0.0'
 		}
 	]);
@@ -266,7 +270,7 @@ test('personal relief, a shared relief cap and prior YTD are applied once for th
 			[
 				{
 					when: 'base >= 0.0',
-					employee: `round_cent(base * ${employee}.0 / 100.0)`,
+					employee: `round(base * ${employee}.0 / 100.0, 0.01, 'HALF_UP')`,
 					employer: '0.0'
 				}
 			],
@@ -287,7 +291,11 @@ test('personal relief, a shared relief cap and prior YTD are applied once for th
 
 test('rounding leftovers never create a negative allocation on a small final contract', () => {
 	const tiny = scheme('PUB_TINY', [
-		{ when: 'base >= 0.0', employee: 'round_cent(0.02)', employer: 'round_cent(0.01)' }
+		{
+			when: 'base >= 0.0',
+			employee: 'round(0.02, 0.01, "HALF_UP")',
+			employer: 'round(0.01, 0.01, "HALF_UP")'
+		}
 	]);
 	const result = assessContributions(['c', 'b', 'a'].map((id) => contract(id, 1, [tiny])));
 	assert.deepEqual(

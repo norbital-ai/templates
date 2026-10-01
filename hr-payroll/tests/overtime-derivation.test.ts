@@ -12,14 +12,38 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	nightWindowHours,
-	deriveDailyOvertime,
-	dailyWorkedHours,
-	ordinaryWorkedHours
-} from '../src/lib/payroll/run/overtime.ts';
+import * as overtime from '../src/lib/payroll/run/overtime.ts';
 import { roundMinute } from '../src/lib/payroll/run/rounding.ts';
 import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
+
+/** These days are clocked in a UTC+8 frame; the engine passes each day's offset for its version's zone. */
+const UTC8 = 8 * 60;
+type Args<F extends (...args: never[]) => unknown> = Parameters<F>;
+const nightWindowHours = (
+	entry: Args<typeof overtime.nightWindowHours>[0],
+	window: Args<typeof overtime.nightWindowHours>[1],
+	shift: Args<typeof overtime.nightWindowHours>[2],
+	offset = UTC8,
+	overtimeHours?: number
+) => overtime.nightWindowHours(entry, window, shift, offset, overtimeHours);
+const deriveDailyOvertime = (
+	entry: Args<typeof overtime.deriveDailyOvertime>[0],
+	day: Args<typeof overtime.deriveDailyOvertime>[1],
+	breaks?: Args<typeof overtime.deriveDailyOvertime>[2],
+	offset = UTC8,
+	...rest: [
+		Args<typeof overtime.deriveDailyOvertime>[4]?,
+		Args<typeof overtime.deriveDailyOvertime>[5]?
+	]
+) => overtime.deriveDailyOvertime(entry, day, breaks, offset, ...rest);
+const dailyWorkedHours = (
+	entry: Args<typeof overtime.dailyWorkedHours>[0],
+	day: Args<typeof overtime.dailyWorkedHours>[1]
+) => overtime.dailyWorkedHours(entry, day, UTC8);
+const ordinaryWorkedHours = (
+	entry: Args<typeof overtime.ordinaryWorkedHours>[0],
+	shift: Args<typeof overtime.ordinaryWorkedHours>[1]
+) => overtime.ordinaryWorkedHours(entry, shift, UTC8);
 
 /** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {

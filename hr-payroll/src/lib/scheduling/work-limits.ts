@@ -25,6 +25,7 @@ import { resolveSchedule, type ScheduledDay } from '../../lib/payroll/run/schedu
 import type { ShiftDefinition } from '../../lib/payroll/run/configuration.js';
 import type { WorkRules } from '../datatypes/work_rules.js';
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
+import { personCondition } from '../scheduled/entries.js';
 import type { ShiftPatternLike } from './work-pattern.js';
 import { rosterCodeKind, workWindow } from './roster-code.js';
 import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
@@ -237,7 +238,7 @@ export type OvertimeSplit = {
 
 /** One planned day the split reads: its plan, and the total overtime the operator planned on it. */
 type OvertimeSplitDay = SchedulePlanDay & {
-	/** The day's total planned overtime, in half-hour steps: approved plus incentive. */
+	/** The day's total planned overtime, on the keying step: approved plus incentive. */
 	readonly total_overtime_hours: number;
 	/** A stored day the split does not re-split: the approved hours it keeps, counted as they stand. */
 	readonly fixed_overtime_hours?: number | undefined;
@@ -358,7 +359,11 @@ type OvertimeDay = SchedulePlanDay & {
 	readonly holiday?: boolean | undefined;
 };
 
-const floorHalf = (hours: number): number => Math.floor(Math.max(0, hours) * 2 + 1e-9) / 2;
+/** Hours floored to the keying step (`work_rules.overtime_unit_hours`); absent keeps them exact. */
+const floorToUnit = (hours: number, unit: number | undefined): number =>
+	unit == null
+		? Math.max(0, hours)
+		: Math.round(Math.floor(Math.max(0, hours) / unit + 1e-9) * unit * 1e6) / 1e6;
 
 /**
  * Split each day's total planned overtime into the hours within the limits
@@ -370,7 +375,7 @@ const floorHalf = (hours: number): number => Math.floor(Math.max(0, hours) * 2 +
  * stored day the file does not restate: its approved hours are counted in their periods as they
  * stand, and it is returned unchanged. The other days are allocated chronologically, each taking
  * the least headroom its caps (`overtimeCaps`) leave after the fixed days and the days before it,
- * floored to the half hour where a cap binds, so both entries stay in half-hour steps. An emergency
+ * floored to `unitHours` where a cap binds, so both entries stay on the keying step. An emergency
  * day is outside every ceiling: all of it is overtime and it consumes nothing. Returns every day's
  * split, keyed by date.
  */
@@ -379,6 +384,8 @@ export function splitPlannedOvertime(options: {
 	readonly limits: readonly WorkLimit[];
 	/** The company's `pay_cutoff_day`: the day the assessment month opens. */
 	readonly cutoffDay?: number | undefined;
+	/** `work_rules.overtime_unit_hours`: the step a binding cap floors to. */
+	readonly unitHours?: number | undefined;
 }): ReadonlyMap<string, OvertimeSplit> {
 	const { caps, plannedHours, uncounted, dayLeft, bucket } = overtimeCaps(
 		options.limits,
@@ -425,8 +432,8 @@ export function splitPlannedOvertime(options: {
 					: limit.max_hours - (used.get(bucket(limit, day.date)) ?? 0);
 			headroom = Math.min(headroom, free.get(limit)! + left);
 		}
-		// A cap that binds leaves half-hour steps; an unbound total stands as planned.
-		const approved = headroom >= total ? total : floorHalf(headroom);
+		// A cap that binds leaves whole keying steps; an unbound total stands as planned.
+		const approved = headroom >= total ? total : floorToUnit(headroom, options.unitHours);
 		for (const limit of caps)
 			if (limit.period !== 'DAY') add(limit, day.date, Math.max(0, approved - free.get(limit)!));
 		split.set(day.date, { approved_overtime_hours: approved, incentive_hours: total - approved });
@@ -460,7 +467,7 @@ type OvertimeBreach = {
  * (`overtimeCaps`).
  *
  * `maximum` is, per date, the most approved overtime the day can hold with every other day of the
- * window at its stored approved hours: the least room its caps leave, floored to the half hour, and
+ * window at its stored approved hours: the least room its caps leave, floored to `unitHours`, and
  * the limit that binds. Null is a day no cap bounds (no overtime limit, or an emergency day).
  *
  * `breaches` are the days over their headroom, read in date order: a period cap's first day whose
@@ -472,6 +479,8 @@ export function overtimeHeadroom(options: {
 	readonly days: readonly HeadroomDay[];
 	readonly limits: readonly WorkLimit[];
 	readonly cutoffDay?: number | undefined;
+	/** `work_rules.overtime_unit_hours`: the step a maximum floors to. */
+	readonly unitHours?: number | undefined;
 }): {
 	readonly maximum: ReadonlyMap<string, OvertimeMaximum | null>;
 	readonly breaches: readonly OvertimeBreach[];
@@ -532,13 +541,13 @@ export function overtimeHeadroom(options: {
 			day.date,
 			least == null || least.others === Number.POSITIVE_INFINITY
 				? null
-				: { hours: floorHalf(least.others), limit: least.limit }
+				: { hours: floorToUnit(least.others, options.unitHours), limit: least.limit }
 		);
 		if (breach != null)
 			breaches.push({
 				date: day.date,
 				approved: day.overtime,
-				maximum: floorHalf(breach.room),
+				maximum: floorToUnit(breach.room, options.unitHours),
 				limit: breach.limit
 			});
 		for (const limit of caps)
@@ -639,6 +648,8 @@ function resolvedDays(options: {
 	) => { readonly pattern: ShiftPatternLike['pattern']; readonly anchor: string | null } | null;
 	/** The worksite the person's terms record on a date: a local day reaches only that site's staff. */
 	readonly worksiteOn: (date: string) => string | null | undefined;
+	/** The person on a date, for a holiday's `applies_when` (a religion's own day); none reaches nobody. */
+	readonly personOn?: ((date: string) => PersonContext) | undefined;
 }): ReadonlyMap<string, ScheduledDay> {
 	const resolved = new Map<string, ScheduledDay>();
 	const precedence = options.work?.holiday_rest_precedence;
@@ -673,7 +684,8 @@ function resolvedDays(options: {
 					options.companyId,
 					window.start,
 					window.end,
-					options.worksiteOn
+					options.worksiteOn,
+					options.personOn == null ? undefined : personCondition(options.personOn)
 				),
 				shiftById,
 				holidayRestPrecedence: precedence,

@@ -13,7 +13,10 @@ import {
 import { payrollRunPayload } from '../../../lib/payroll/run/graph.js';
 import {
 	assertPayrollPeriodAvailable,
-	assertPayrollRunDeletable
+	assertPayrollRunDeletable,
+	nextRunSequence,
+	RUN_KINDS,
+	type RunKind
 } from '../../../lib/payroll/run/period.js';
 import { payrollRunPrecheck } from '../../../lib/payroll/run/precheck.js';
 import { describeIssues } from '../../../lib/payroll/run/validate.js';
@@ -21,10 +24,11 @@ import { refuse } from '../../../lib/refuse.js';
 import { assertBenefitCasePayrollCashSafe } from '../../../lib/benefit-cases/payroll-guard.js';
 
 /**
- * A run is one write: a person chooses a company, a period, and optionally its contractual pay due
- * date. The transform derives the settlement date, the windows, the governing settings version, every payslip and the pin on every source each slip
- * consumed — so a caller has no way to assert a single figure. The population is not a choice: the run covers
- * every eligible employment; individual cases are held per payslip (`ON_HOLD`).
+ * A run is one write: a person chooses a company, a period, a kind, and optionally its contractual pay due
+ * date (else the version's pay calendar dates it) and, for an OFF_CYCLE or CORRECTION run, the requests it pays. The transform derives the settlement date, the windows, the governing settings version, every payslip and the pin on every source each slip
+ * consumed — so a caller has no way to assert a single figure. The population follows the kind (`population` in
+ * `engine.ts`): a REGULAR run covers every eligible employment; individual cases are held per payslip (`ON_HOLD`).
+ * The sequence is derived: one past the period's highest.
  *
  * A run is a frozen container (L-TPL-hr-payroll-131): no `update`, no state. Deleting a run is the settlement
  * lock's release, and the only one: its payslips go with it (owned) and their pins are released by `setNull`.
@@ -32,7 +36,7 @@ import { assertBenefitCasePayrollCashSafe } from '../../../lib/benefit-cases/pay
  */
 const c = collection('payroll_runs', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['company_id', 'period', 'pay_due_date'] } },
+	create: { input: { columns: ['company_id', 'period', 'pay_due_date', 'kind', 'sources'] } },
 	delete: { transform: true }
 });
 
@@ -95,7 +99,7 @@ c.transform(async (inputs, ctx) => {
 		for (const run of deleting)
 			assertPayrollRunDeletable(
 				siblings.filter((other) => other.company_id === run.company_id && !gone.has(other.id)),
-				run.period
+				run
 			);
 		return inputs;
 	}
@@ -115,7 +119,15 @@ c.transform(async (inputs, ctx) => {
 				: dateKey(input.pay_due_date);
 		if (payDueDate !== undefined && !isCalendarDate(payDueDate))
 			return ctx.refuse('Pay due date must be a real calendar day.', { field: 'pay_due_date' });
-		return { company_id: String(input.company_id), period, payDueDate };
+		const kind = (input.kind ?? 'REGULAR') as RunKind;
+		if (!RUN_KINDS.includes(kind))
+			return ctx.refuse(`Run kind must be one of ${RUN_KINDS.join(', ')}.`, { field: 'kind' });
+		const sources = [...new Set(input.sources ?? [])];
+		if (sources.length > 0 && (kind === 'REGULAR' || kind === 'FINAL'))
+			return ctx.refuse(`A ${kind} run pays by its population, not by selected requests.`, {
+				field: 'sources'
+			});
+		return { company_id: String(input.company_id), period, payDueDate, kind, sources };
 	});
 	const companies = new Set<string>();
 	for (const run of runs) {
@@ -130,12 +142,14 @@ c.transform(async (inputs, ctx) => {
 	return Promise.all(
 		runs.map(async (run) => {
 			const world = worlds.get(`${run.company_id}:${run.period}`)!;
-			assertPayrollPeriodAvailable(world.payroll_runs, run.period);
+			assertPayrollPeriodAvailable(world.payroll_runs, run.period, run.kind);
 			const facts = gatherPayrollRun({
 				world,
 				companyId: run.company_id,
 				period: run.period,
-				payDueDate: run.payDueDate
+				payDueDate: run.payDueDate,
+				kind: run.kind,
+				sources: run.sources
 			});
 			await assertBenefitCasePayrollCashSafe(
 				ctx.db,
@@ -154,12 +168,15 @@ c.transform(async (inputs, ctx) => {
 			if (blocking.length > 0) refuse(describeIssues(blocking));
 			const built = buildPayrollRun(facts);
 			console.log(
-				`[payroll-result] ${run.period} payslips=${built.payslipCount} base=${built.baseCount} ` +
+				`[payroll-result] ${run.period} ${run.kind} payslips=${built.payslipCount} base=${built.baseCount} ` +
 					`adjustments=${built.adjustmentCount} captured=${built.capturedCount}`
 			);
 			return {
 				company_id: run.company_id,
 				period: run.period,
+				kind: run.kind,
+				sequence: nextRunSequence(world.payroll_runs, run.period),
+				...(run.sources.length === 0 ? {} : { sources: run.sources }),
 				...(await derivedColumns(facts)),
 				calculation_trace: built.calculation_trace,
 				company_charges: built.company_charges,
@@ -171,6 +188,11 @@ c.transform(async (inputs, ctx) => {
 	);
 });
 
-type Stored = { readonly id: string; readonly company_id: string; readonly period: string };
+type Stored = {
+	readonly id: string;
+	readonly company_id: string;
+	readonly period: string;
+	readonly sequence: number | null;
+};
 
 export default c;

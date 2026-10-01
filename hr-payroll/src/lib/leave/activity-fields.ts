@@ -1,6 +1,7 @@
 import type { PlainDate } from '@norbital-ai/std/date';
 import { dateKey } from '../iso-day.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * One manual Leave activity, flat.
@@ -34,15 +35,51 @@ export type LeaveEntryActivity = {
 	readonly available_from?: string | null | undefined;
 	readonly expires_on?: string | null | undefined;
 	readonly reason?: string | null | undefined;
-	readonly event_kind?: string | null | undefined;
-	readonly event_relationship?: string | null | undefined;
-	readonly event_child_index?: number | null | undefined;
-	readonly event_wife_prior_living_biological_children?: number | null | undefined;
-	readonly event_date?: string | null | undefined;
-	/** Time off paid at a share the parties agreed (VN Labour Code art.99 stoppage): 0.7 is 70% of the day wage. */
-	readonly agreed_pay_fraction?: number | null | undefined;
+	/**
+	 * The event or state the entry answers to, as its catalogue row declares it (`event_facts`): read
+	 * through `leaveEventOf`.
+	 */
+	readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 	readonly charges?: readonly LeaveCharge[] | undefined;
 };
+
+/**
+ * The event an entry answers to, from its declared facts under these keys: which event
+ * (`event_kind`), whose (`event_relationship`), which child (`event_child_index`, 1-based into the
+ * person's children), the wife's earlier living children (`event_wife_prior_living_biological_children`),
+ * the event's day (`event_date`) and a day-wage share the parties agreed (`agreed_pay_fraction`).
+ * An undeclared or unrecorded key reads null.
+ */
+export type LeaveEvent = {
+	readonly kind: string | null;
+	readonly relationship: string | null;
+	readonly child_index: number | null;
+	readonly wife_prior_living_biological_children: number | null;
+	readonly date: string | null;
+	readonly agreed_pay_fraction: number | null;
+};
+
+const textFact = (value: unknown): string | null =>
+	Predicate.isString(value) && value.trim() !== '' ? value : null;
+const numberFact = (value: unknown): number | null =>
+	Predicate.isNumber(value) && Number.isFinite(value) ? value : null;
+
+export function leaveEventOf(entry: {
+	readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
+}): LeaveEvent {
+	const facts = entry.facts ?? {};
+	const date = textFact(facts.event_date);
+	return {
+		kind: textFact(facts.event_kind),
+		relationship: textFact(facts.event_relationship),
+		child_index: numberFact(facts.event_child_index),
+		wife_prior_living_biological_children: numberFact(
+			facts.event_wife_prior_living_biological_children
+		),
+		date: date == null ? null : dateKey(date) || null,
+		agreed_pay_fraction: numberFact(facts.agreed_pay_fraction)
+	};
+}
 
 /**
  * Field presence is the discriminator, in the one order that is unambiguous.
@@ -75,18 +112,11 @@ export const LEAVE_DAY_COLUMNS = [
 	'destination_from',
 	'destination_to',
 	'available_from',
-	'expires_on',
-	'event_date'
+	'expires_on'
 ] as const;
 
 /** The decimal columns of a leave entry, which the wire carries as text. */
-const LEAVE_DECIMAL_COLUMNS = [
-	'days',
-	'hours',
-	'encash_days',
-	'encash_hours',
-	'agreed_pay_fraction'
-] as const;
+const LEAVE_DECIMAL_COLUMNS = ['days', 'hours', 'encash_days', 'encash_hours'] as const;
 
 /** A stored leave row with every day resolved to its calendar day and every decimal to a number. */
 export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
@@ -118,12 +148,7 @@ export function normaliseLeaveDays<T extends LeaveEntryActivity>(row: T): T {
 		available_from: null,
 		expires_on: null,
 		reason: null,
-		event_kind: null,
-		event_relationship: null,
-		event_child_index: null,
-		event_wife_prior_living_biological_children: null,
-		event_date: null,
-		agreed_pay_fraction: null
+		facts: {}
 	} as const;
 }
 
@@ -148,12 +173,7 @@ export function emptyActivityFields() {
 		available_from: null,
 		expires_on: null,
 		reason: null,
-		event_kind: null,
-		event_relationship: null,
-		event_child_index: null,
-		event_wife_prior_living_biological_children: null,
-		event_date: null,
-		agreed_pay_fraction: null
+		facts: {}
 	} as const;
 }
 

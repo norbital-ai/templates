@@ -7,9 +7,9 @@
 	 */
 	import { t, type MessageKey } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
-	import { AppShell, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cover, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Badge, Table, Tabs } from '@norbital-ai/ui';
+	import { Badge, EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	import { inclusiveDays } from '../../../lib/payroll/run/dates.js';
 	import { companyPeriods, payDateFor, periodWindow, todayKey } from '../../../lib/ui/calendar.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
@@ -104,11 +104,24 @@
 		current: 'app.payroll.status_current',
 		next: 'app.payroll.status_upcoming'
 	};
+	// the header paragraph and the late/unpaid counts, as the toolbar's ⓘ
+	const cyclesDescription = $derived(
+		[
+			t('app.payroll.payroll_cycles_description'),
+			late > 0 ? t('app.payroll.late_count', { count: late }) : null,
+			unpaid === 1
+				? t('app.payroll.unpaid_run_one')
+				: t('app.payroll.unpaid_runs_many', { count: unpaid })
+		]
+			.filter((part) => part != null)
+			.join(' · ')
+	);
 	const EXPORTS = [
 		['bank-files', 'app.payroll.export_bank_files'],
 		['payslip-pdfs', 'app.payroll.export_payslip_pdfs'],
 		['payroll-report-xlsx', 'app.payroll.export_workbook'],
-		['catalogue-entries-xlsx', 'app.payroll.export_catalogue_entries']
+		['catalogue-entries-xlsx', 'app.payroll.export_catalogue_entries'],
+		['returns', 'app.payroll.export_returns']
 	] as const;
 </script>
 
@@ -126,20 +139,23 @@
 	)}{/snippet}
 
 {#snippet empty(message: string)}
-	<p class="text-sm text-muted-foreground">
-		{scope.unknown ? t('app.hr_controller.loading_scope') : message}
-	</p>
+	<EmptyState title={scope.unknown ? t('app.hr_controller.loading_scope') : message} />
 {/snippet}
 
 {#snippet overview()}
 	{#if scope.id == null}
 		{@render empty(t('app.payroll.empty_overview'))}
 	{:else}
-		<Cover as="section" gap="md" top={cyclesHeader} aria-label={t('app.payroll.payroll_cycles')}>
+		<Cover as="section" gap="md" aria-label={t('app.payroll.payroll_cycles')}>
 			<Table
 				of={cycles}
 				key="cycles"
-				toolbar={{ search: false, filter: false }}
+				toolbar={{
+					title: t('app.payroll.payroll_cycles'),
+					description: cyclesDescription,
+					search: false,
+					filter: false
+				}}
 				columns={[
 					{ field: 'status', label: t('app.payroll.status'), cell: statusCell },
 					{ field: 'pay_date', label: t('app.payroll.pay_date'), cell: dayCell },
@@ -151,22 +167,6 @@
 			/>
 		</Cover>
 	{/if}
-{/snippet}
-{#snippet cyclesHeader()}
-	<Inline align="end" justify="between" gap="md">
-		<Stack gap="xs">
-			<h2 class="text-heading">{t('app.payroll.payroll_cycles')}</h2>
-			<p class="text-sm text-muted-foreground">{t('app.payroll.payroll_cycles_description')}</p>
-		</Stack>
-		<p class="shrink-0 text-sm text-muted-foreground">
-			{#if late > 0}<span class="font-medium text-destructive"
-					>{t('app.payroll.late_count', { count: late })}</span
-				> ·{/if}
-			{unpaid === 1
-				? t('app.payroll.unpaid_run_one')
-				: t('app.payroll.unpaid_runs_many', { count: unpaid })}
-		</p>
-	</Inline>
 {/snippet}
 
 {#snippet runsTab()}
@@ -236,8 +236,8 @@
 
 <AppShell
 	icon="lucide:badge-dollar-sign"
-	title="Payroll"
-	description="Create payroll runs, review payslips, export payments, and audit calculations"
+	title={t('app.payroll.title')}
+	description={t('app.payroll.description')}
 	variant="full"
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}

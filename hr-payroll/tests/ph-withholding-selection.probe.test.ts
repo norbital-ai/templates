@@ -6,7 +6,7 @@ import { governed, isInForceCandidate, settingsInForce } from '../src/lib/jurisd
 import { contribute, selectRule } from '../src/lib/payroll/run/contribute.ts';
 import { accumulatePayslip } from '../src/lib/payroll/run/accumulate.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
-import { cumulativeHistory } from '../src/lib/payroll/statutory-history.ts';
+import { cumulativeHistory } from '../src/lib/payroll/history.ts';
 import { evaluateNumber, runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 type ContributionInput = Parameters<typeof contribute>[0];
@@ -180,7 +180,8 @@ for (const scenario of monthlyCases)
 				base_salary: scenario.basic
 			},
 			week: { ordinary_hours_per_week: 48, working_days_per_week: 6 },
-			company: { region: 'NCR' },
+			// RA 9178 s.8: a declared BMBE certificate lifts the minimum wage; this ordinary employer has none.
+			company: { region: 'NCR', facts: { bmbe_certificate_of_authority: false } },
 			period: { leave_pay: { MATERNITY_LEAVE: scenario.maternity ?? 0 } },
 			wageFloor: setting.work_rules.wages.by_region.NCR,
 			asOf: end
@@ -259,7 +260,8 @@ for (const scenario of monthlyCases)
 
 test('PH replacement snapshots govern both ends of every corrected interval', () => {
 	// A replacement replaces a voided snapshot; a later law change inside its interval (RIX-DW-06 on
-	// 20 May 2026) is a successor cloned from the replacement, which carries the rest of it.
+	// 20 May 2026) is a successor cloned from the replacement or from one of its successors, and
+	// together they tile the voided snapshot's interval.
 	const replacements = active.filter(
 		(row) =>
 			row.change_summary?.includes('R45') &&
@@ -271,8 +273,14 @@ test('PH replacement snapshots govern both ends of every corrected interval', ()
 		assert(original);
 		assert(original.voided_at);
 		const chain = [replacement];
-		for (let next; (next = active.find((row) => row.cloned_from_id === chain.at(-1)!.id));)
-			chain.push(next);
+		for (let at = 0; at < chain.length; at++)
+			chain.push(...active.filter((row) => row.cloned_from_id === chain[at]!.id));
+		chain.sort((a, b) =>
+			String(a.effective_range.start).localeCompare(String(b.effective_range.start))
+		);
+		for (const [index, version] of chain.entries())
+			if (index > 0)
+				assert.equal(version.effective_range.start, chain[index - 1]!.effective_range.end);
 		assert.deepEqual(
 			{ start: chain[0]!.effective_range.start, end: chain.at(-1)!.effective_range.end },
 			original.effective_range

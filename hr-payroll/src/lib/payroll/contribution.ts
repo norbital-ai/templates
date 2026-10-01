@@ -27,7 +27,6 @@ type FactStanding = {
 	readonly rate_override?: number | null | undefined;
 	readonly since?: string | null | undefined;
 	readonly first_contribution_due_on?: string | null | undefined;
-	readonly instalments?: readonly unknown[] | null | undefined;
 	readonly elections?: Readonly<Record<string, unknown>> | null | undefined;
 	readonly opening?: readonly unknown[] | null | undefined;
 	readonly child_claims?: readonly unknown[] | null | undefined;
@@ -41,7 +40,6 @@ const factStanding = (status: FactStanding | undefined): string =>
 				rate_override: status?.rate_override ?? null,
 				since: status?.since ?? null,
 				first_contribution_due_on: status?.first_contribution_due_on ?? null,
-				instalments: status?.instalments ?? [],
 				elections: status?.elections ?? {},
 				opening: status?.opening ?? [],
 				child_claims: status?.child_claims ?? [],
@@ -167,7 +165,6 @@ export function assessContributions(
 						);
 			const employee = allocate(charge.employee, weights);
 			const employer = allocate(charge.employer, weights);
-			const directed = allocate(charge.directed, weights);
 			const rebate = allocate(charge.rebate ?? 0, weights);
 			const { parts: _parts, ...rest } = charge;
 			for (const [position, contract] of ordered.entries()) {
@@ -179,7 +176,6 @@ export function assessContributions(
 					inputs: part.inputs,
 					employee: employee[position]!,
 					employer: employer[position]!,
-					directed: directed[position]!,
 					rebate: rebate[position]!
 				});
 			}
@@ -194,7 +190,7 @@ import type { PersonInput } from '../../lib/payroll/run/eligibility.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { realignStatutoryFacts } from '../../lib/payroll/run/statutory-facts.js';
-import { ordinaryDivisorDays } from '../../lib/payroll/run/ordinary-rate.js';
+import { monthlyFactor, ordinaryDivisorDays } from '../../lib/payroll/run/ordinary-rate.js';
 import { live, coversDate, effectiveWithin, readRange } from '../../lib/payroll/run/effective.js';
 import type { Configuration } from '../../lib/payroll/run/configuration.js';
 import type { WorkspaceRow } from '../rows.js';
@@ -251,9 +247,11 @@ import type { MeasuredEmployment } from './family.js';
 import {
 	cumulativeHistory as summarizeHistory,
 	type AssessmentFrequency,
+	type HistoryAccess,
 	type StatutoryHistorySummary,
 	type StatutoryPeriodHistory
-} from './statutory-history.js';
+} from './history.js';
+import type { CompanyAccess } from '../expressions/functions/company.js';
 
 const electionOf = (status: StatutoryFactStatus | undefined, key: string): unknown =>
 	status?.kind === 'REGISTERED' ? (status.elections?.[key] ?? null) : null;
@@ -318,8 +316,7 @@ function coverageFacts(bundle: EmploymentBundle, configuration: Configuration, a
 					);
 			}
 		}
-		if (!schemeExpressions(scheme).some((expression) => expression.includes('coverage_days_30(')))
-			continue;
+		if (!mentionsText(scheme, 'coverage_days(')) continue;
 		const window =
 			scheme.row.assessment_period !== 'PAY_PERIOD'
 				? monthBounds(bundle.window.period.slice(0, 7))
@@ -399,6 +396,8 @@ export function assessCompanyContributions(options: {
 	readonly accumulations: readonly AccumulatedPayslip[];
 	/** Every employment charge of the run: a company levy reads their sums as `produced.<code>`. */
 	readonly charges: readonly ContributionCharge[];
+	/** The entity's employments over the tax year, for `company.*` aggregates; absent refuses a read. */
+	readonly company?: CompanyAccess | undefined;
 }): ContributionCharge[] {
 	const { configuration, gathered, window, period } = options;
 	const companySchemes = configuration.contributions.filter(
@@ -467,7 +466,8 @@ export function assessCompanyContributions(options: {
 		yearToDate,
 		yearEarned,
 		produced: producedSums(options.charges),
-		monthPrior: gathered.companyMonthPrior
+		monthPrior: gathered.companyMonthPrior,
+		companyAccess: options.company
 	});
 }
 
@@ -527,9 +527,7 @@ export function contributionYearToDate(options: {
 			const key = `${employeeId}:${charge.scheme_code}`;
 			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0, ordinary: 0 };
 			totals.set(key, {
-				// Directed tax instalments settle a separate liability; they are not the
-				// current year's statutory withholding or a contribution eligible for relief.
-				employee: running.employee + charge.employee_amount - (charge.directed_amount ?? 0),
+				employee: running.employee + charge.employee_amount,
 				employer: running.employer + charge.employer_amount,
 				base: running.base + charge.base_amount,
 				ordinary: running.ordinary + (charge.ordinary_amount ?? 0),
@@ -598,7 +596,7 @@ function minimumWageScale(
 }
 
 /**
- * A leaver whose final pay falls due before this run's pay date (`payroll.final_pay_due_days`).
+ * A leaver whose final pay falls due before this run's pay date (`payroll.final_pay_deadlines`).
  * A warning: the run still pays on its date, and the operator reads who is owed sooner.
  */
 export function finalPayIssues(options: {
@@ -606,9 +604,8 @@ export function finalPayIssues(options: {
 	readonly bundles: readonly EmploymentBundle[];
 	readonly payDate: string;
 }): RunIssue[] {
-	const fallback = options.configuration.jurisdiction.payroll.final_pay_due_days;
 	const rules = options.configuration.jurisdiction.payroll.final_pay_deadlines ?? [];
-	if (fallback == null && rules.length === 0) return [];
+	if (rules.length === 0) return [];
 	const issues: RunIssue[] = [];
 	for (const bundle of options.bundles) {
 		const exit = employmentDates(bundle.employment).exit;
@@ -628,8 +625,8 @@ export function finalPayIssues(options: {
 		const rule = rules.find(
 			(candidate) => candidate.when.trim() === '' || isEligible(candidate.when, person)
 		);
-		const due = rule?.days ?? fallback;
-		if (due == null) continue;
+		if (rule == null) continue;
+		const due = rule.days;
 		const deadline =
 			rule?.basis === 'WORKING_DAYS' || rule?.basis === 'NON_REST_HOLIDAY_DAYS'
 				? workingDayDeadline(
@@ -702,7 +699,9 @@ function workingDayDeadline(
 		terms: () => ({
 			work_pattern: pattern?.pattern ?? null,
 			pattern_anchor: patternAnchor(pattern),
-			normal_daily_hours: 0
+			normal_daily_hours: 0,
+			// every day read here is after the exit
+			projected: true
 		}),
 		workDays: [],
 		configuration
@@ -752,7 +751,16 @@ function floorIssues(options: {
 		const segments = versionSegments(options.configuration, bundle.employedDays);
 		for (const segment of segments)
 			issues.push(...dailyFloorIssues(segment.configuration, bundle, segment, measured));
-		for (const { segment, term, against, during, start } of floorTerms(
+		// A shortfall against the same floor in consecutive versions is one span: a version that
+		// changes nothing for this person does not split the warning.
+		const below: {
+			readonly start: string;
+			end: string;
+			readonly termId: string;
+			readonly severity: RunIssue['severity'];
+			readonly message: (during: string) => string;
+		}[] = [];
+		for (const { segment, term, against, during, start, end } of floorTerms(
 			bundle,
 			segments,
 			measured
@@ -773,8 +781,10 @@ function floorIssues(options: {
 			if (
 				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
 				person.terms.monthly_basic <= 0 &&
-				person.employee.citizenship === 'CITIZEN' &&
-				(options.headcountCitizens ?? 0) >= 5 &&
+				isEligible(configuration.jurisdiction.work_rules.wages?.results_pay?.applies_when, {
+					...person,
+					company: { ...person.company, headcount_citizens: options.headcountCitizens ?? 0 }
+				}) &&
 				options.charges
 					?.get(bundle.employment.id)
 					?.some(
@@ -841,23 +851,47 @@ function floorIssues(options: {
 				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
 				['PIECE_RATE', 'TASK_BASIS'].includes(person.terms.statutory_work_category) &&
 				person.terms.monthly_basic <= 0;
+			const message = (span: string) =>
+				`${bundle.employment.employee_number} ${resultsOnly ? 'has payable' : 'is contracted at'} ${payable} ${unit}` +
+				(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
+				', below the ' +
+				`${workplace(configuration, person)} minimum wage of ${stated} the version states${span}. ` +
+				(resultsOnly
+					? 'Record and pay enough results wages for the full calendar month before running payroll.'
+					: blocking
+						? 'Raise the contract terms before running payroll.'
+						: 'The run pays the contract; raise the terms or record why the wage stands.');
+			const last = below.at(-1);
+			if (
+				last != null &&
+				last.termId === term.id &&
+				last.message('') === message('') &&
+				addDays(last.end, 1) === start
+			)
+				last.end = end;
+			else
+				below.push({
+					start,
+					end,
+					termId: term.id,
+					severity: blocking ? 'BLOCKER' : 'WARNING',
+					// a span the whole run covers is named with no dates, as a single segment is
+					message: during === '' ? () => message('') : message
+				});
+		}
+		const employed = bundle.employedDays;
+		for (const span of below)
 			issues.push({
 				code: 'MINIMUM_WAGE_BELOW',
-				severity: blocking ? 'BLOCKER' : 'WARNING',
-				message:
-					`${bundle.employment.employee_number} ${resultsOnly ? 'has payable' : 'is contracted at'} ${payable} ${unit}` +
-					(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
-					', below the ' +
-					`${workplace(configuration, person)} minimum wage of ${stated} the version states${during}. ` +
-					(resultsOnly
-						? 'Record and pay enough results wages for the full calendar month before running payroll.'
-						: blocking
-							? 'Raise the contract terms before running payroll.'
-							: 'The run pays the contract; raise the terms or record why the wage stands.'),
+				severity: span.severity,
+				message: span.message(
+					span.start === employed.start && span.end === employed.end
+						? ''
+						: ` from ${span.start} to ${span.end}`
+				),
 				collection: 'employment_terms',
-				recordId: term.id
+				recordId: span.termId
 			});
-		}
 	}
 	return issues;
 }
@@ -929,7 +963,7 @@ function* floorTerms(
 			if (against == null) continue;
 			const during =
 				segments.length > 1 || datedTerms.length > 1 ? ` from ${start} to ${asOf}` : '';
-			yield { segment, term, against, during, start };
+			yield { segment, term, against, during, start, end: asOf };
 		}
 	}
 }
@@ -1006,8 +1040,9 @@ function raiseFloors(
  * district key overriding its province) and the sector's. The day is the normal day however short
  * the employer makes it (cl.19), so a daily rate meets the whole floor and an hourly rate meets it
  * over the day's scheduled hours. A monthly or semi-monthly wage (`base_salary` is the month for
- * both) is the month over the version's `ordinary_divisor_days`, a weekly one its month (× 52 ÷ 12)
- * over it (owner rule 2026-09-28, register TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
+ * both) is the month over the version's `ordinary_divisor_days`, a weekly one its month (the
+ * version's `rate_conversions.weekly_to_monthly`) over it (owner rule 2026-09-28, register
+ * TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
  * One issue per terms row.
  */
 function dailyFloorIssues(
@@ -1033,7 +1068,7 @@ function dailyFloorIssues(
 	>();
 	// Per terms row: whether the order covers the person (null where it does not) and blocks, and
 	// the version's divisor over them.
-	const judged = new Map<string, { blocking: boolean; divisor: number } | null>();
+	const judged = new Map<string, { blocking: boolean; divisor: number; weekly: number } | null>();
 	// A work day's recorded site overrides the terms' worksite for that day (cl.20: the day's workplace).
 	const siteOn = new Map(
 		bundle.workDays
@@ -1066,7 +1101,11 @@ function dailyFloorIssues(
 								expression: configuration.work.ordinary_divisor_days,
 								person,
 								employeeNumber: number
-							})
+							}),
+							weekly:
+								term.pay_frequency === 'WEEKLY'
+									? monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person })
+									: 1
 						}
 					: null
 			);
@@ -1101,7 +1140,7 @@ function dailyFloorIssues(
 				: term.pay_frequency === 'HOURLY'
 					? [day.shift.paid_minutes, 60]
 					: term.pay_frequency === 'WEEKLY'
-						? [52, 12 * judgement.divisor]
+						? [judgement.weekly, judgement.divisor]
 						: [1, judgement.divisor];
 		if (cents(rate * scale) >= cents(floor * per)) continue;
 		const paid = Math.round((rate * scale * 10_000) / per) / 10_000;
@@ -1498,7 +1537,15 @@ function wageAgainstFloor(
 					]
 				: partTimeMonthlyHourly && hourly != null
 					? [
-							(person.terms.monthly_basic * 12) / (contractedWeek * 52),
+							person.terms.monthly_basic /
+								monthlyFactor(
+									'HOURLY',
+									{
+										ordinary_hours_per_week: contractedWeek,
+										working_days_per_week: person.terms.working_days_per_week
+									},
+									{ work: configuration.work, person }
+								),
 							hourly * scale,
 							'an hour (converted from monthly part-time pay)',
 							statedHourly
@@ -1520,7 +1567,16 @@ function wageAgainstFloor(
 							: hourly != null && person.employment.type === 'PART_TIME'
 								? [
 										person.terms.monthly_basic,
-										(hourly * scale * (term.ordinary_hours_per_week ?? 0) * 52) / 12,
+										hourly *
+											scale *
+											monthlyFactor(
+												'HOURLY',
+												{
+													ordinary_hours_per_week: term.ordinary_hours_per_week ?? 0,
+													working_days_per_week: person.terms.working_days_per_week
+												},
+												{ work: configuration.work, person }
+											),
 										'a month',
 										`${statedHourly} an hour over ${term.ordinary_hours_per_week ?? 0} hours a week`
 									]
@@ -1967,20 +2023,21 @@ function windowWage(
 			}
 			if (segment.configuration.jurisdiction.work_rules.wages?.classified_by_worksite)
 				workplaces.add(`${terms.worksite?.trim() ?? ''}|${terms.worksite_sector?.trim() ?? ''}`);
+			const person = personContext({
+				employee: null,
+				employment: { service_start: '' },
+				terms,
+				company: segment.configuration.company,
+				asOf: day
+			});
+			// A workplace-keyed order's scale is judged on each day's own terms (JP: the hourly
+			// rate × that contract's scheduled hours a month).
 			const wage =
 				Object.keys(monthlyOrder?.by_region ?? {}).length === 0 &&
 				Object.keys(monthlyOrder?.by_employment_type ?? {}).length === 0
 					? null
-					: personMinimumWage(
-							segment.configuration,
-							personContext({
-								employee: null,
-								employment: { service_start: '' },
-								terms,
-								company: segment.configuration.company,
-								asOf: day
-							})
-						);
+					: personMinimumWage(segment.configuration, person) *
+						(monthlyOrder?.workplace_keyed ? minimumWageScale(segment.configuration, person) : 1);
 			if (wage == null) {
 				missing += 1;
 				continue;
@@ -2067,6 +2124,55 @@ export function configuredMonthlyWageAverage(
 	return average;
 }
 
+/** The pay period as the run measured it: what `person.period.*` reads at every run stage. */
+export function measuredPeriod(measured: MeasuredEmployment): NonNullable<PersonInput['period']> {
+	return {
+		working_days: measured.periodWorkingDays,
+		unpaid_days: measured.periodUnpaidDays,
+		unpaid_full_days: measured.periodFullyUnpaidDays,
+		leave_days: measured.periodLeaveDays,
+		leave_full_days: measured.periodFullLeaveDays,
+		leave_pay: measured.periodLeavePay,
+		overtime_days: measured.periodOvertimeDays,
+		arrears: measured.arrears?.amount ?? 0
+	};
+}
+
+/**
+ * What one scheme's expressions name, asked once per scheme: a ladder is hundreds of expressions and
+ * every person's assessment asked the same text questions of it. Keyed by the memoized expression list.
+ */
+const schemeScans = new WeakMap<readonly string[], Map<string, unknown>>();
+function scanOf<T>(
+	scheme: Parameters<typeof schemeExpressions>[0],
+	key: string,
+	scan: (expressions: readonly string[]) => T
+): T {
+	const expressions = schemeExpressions(scheme);
+	let scans = schemeScans.get(expressions);
+	if (scans === undefined) schemeScans.set(expressions, (scans = new Map()));
+	if (!scans.has(key)) scans.set(key, scan(expressions));
+	return scans.get(key) as T;
+}
+const mentionsText = (scheme: Parameters<typeof schemeExpressions>[0], needle: string): boolean =>
+	scanOf(scheme, `text:${needle}`, (expressions) =>
+		expressions.some((expression) => expression.includes(needle))
+	);
+const matchesOf = (
+	scheme: Parameters<typeof schemeExpressions>[0],
+	pattern: RegExp
+): ReadonlySet<string> =>
+	scanOf(
+		scheme,
+		`re:${pattern.source}`,
+		(expressions) =>
+			new Set(
+				expressions.flatMap((expression) =>
+					[...expression.matchAll(pattern)].map((match) => match[1]!)
+				)
+			)
+	);
+
 export function prepareContributionAssessment(
 	options: Parameters<typeof contributionAssessment>[0]
 ): ContractAssessment {
@@ -2100,6 +2206,10 @@ function contributionAssessment(options: {
 	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
 	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
 	readonly monthPrior?: MonthPrior | undefined;
+	/** The person's saved past, for `history.*` in a scheme's expressions; absent refuses a read. */
+	readonly history?: HistoryAccess | undefined;
+	/** The entity's employments over the tax year, for `company.*` aggregates; absent refuses a read. */
+	readonly company?: CompanyAccess | undefined;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
@@ -2113,13 +2223,7 @@ function contributionAssessment(options: {
 	const payMonth = monthBounds(bundle.window.period.slice(0, 7));
 	for (const scheme of configuration.contributions) {
 		if (scheme.row.assessment_period === 'PAY_PERIOD') continue;
-		const keys = new Set(
-			schemeExpressions(scheme).flatMap((expression) =>
-				[...expression.matchAll(/company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g)].map(
-					(match) => match[1]!
-				)
-			)
-		);
+		const keys = matchesOf(scheme, /company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g);
 		for (const revision of configuration.companyFactRevisions) {
 			const range = readRange(revision.effective_range);
 			if (range == null) continue;
@@ -2193,11 +2297,9 @@ function contributionAssessment(options: {
 	// Computed only when a scheme's own expressions mention `history`: the cumulative-average
 	// summary is a seed-selectable method, never a jurisdiction branch in the engine.
 	const historyPeriodCodes = new Set(
-		configuration.contributions.flatMap((scheme) =>
-			schemeExpressions(scheme).flatMap((expression) =>
-				[...expression.matchAll(/history\.([A-Z0-9_]+)\.periods\b/g)].map((match) => match[1]!)
-			)
-		)
+		configuration.contributions.flatMap((scheme) => [
+			...matchesOf(scheme, /history\.([A-Z0-9_]+)\.periods\b/g)
+		])
 	);
 	let cumulativeHistory: ReadonlyMap<string, StatutoryHistorySummary> | null = null;
 	const historyFor = (code: string): StatutoryHistorySummary | undefined => {
@@ -2210,6 +2312,8 @@ function contributionAssessment(options: {
 				})
 			),
 			frequency: assessmentFrequency,
+			weeksPerMonth: () =>
+				monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person }),
 			requirePeriodsFor: historyPeriodCodes,
 			triggers: new Map(
 				configuration.contributions.flatMap((scheme) =>
@@ -2242,16 +2346,7 @@ function contributionAssessment(options: {
 		},
 		// The pay month's working days and the employed ones it did not pay, so a scheme can count
 		// the days without wages (VN art.33(5): fourteen or more in the month contribute nothing).
-		period: {
-			working_days: measured.periodWorkingDays,
-			unpaid_days: measured.periodUnpaidDays,
-			unpaid_full_days: measured.periodFullyUnpaidDays,
-			leave_days: measured.periodLeaveDays,
-			leave_full_days: measured.periodFullLeaveDays,
-			leave_pay: measured.periodLeavePay,
-			overtime_days: measured.periodOvertimeDays,
-			arrears: measured.arrears?.amount ?? 0
-		},
+		period: measuredPeriod(measured),
 		facts: personFacts(configuration.contributions, currentFacts),
 		asOf
 	};
@@ -2328,17 +2423,16 @@ function contributionAssessment(options: {
 			bundle.termsHistory,
 			bundle.employment.employee_number
 		);
+	// The dated wage above scales per day; coverage (`applies_when`) reads the whole person, which
+	// that per-day trace does not build. ponytail: build it when a keyed order narrows coverage.
 	if (
 		workplaceKeyed &&
 		segments.some(
 			(segment) =>
-				(segment.configuration.jurisdiction.work_rules.wages?.scale ?? '').trim() !== '' ||
 				(segment.configuration.jurisdiction.work_rules.wages?.applies_when ?? '').trim() !== ''
 		)
 	)
-		refuse(
-			'A workplace-keyed wage floor with variable coverage or scale needs dated person assessment.'
-		);
+		refuse('A workplace-keyed wage floor with variable coverage needs dated person assessment.');
 	const minimumWage = workplaceKeyed
 		? wageWindow == null
 			? 0
@@ -2449,6 +2543,10 @@ function contributionAssessment(options: {
 			yearQuantityPayments: options.yearQuantityPayments,
 			earnedByMonth: options.earnedByMonth,
 			paidWagesByMonth: options.paidWagesByMonth,
+			trailingWageMonths: {
+				short: configuration.jurisdiction.payroll.trailing_wage_short_months ?? null,
+				long: configuration.jurisdiction.payroll.trailing_wage_long_months ?? null
+			},
 			monthPrior: options.monthPrior,
 			monthlyContributionDays: measured.monthlyContributionDays,
 			componentsByCode: new Map(
@@ -2478,12 +2576,12 @@ function contributionAssessment(options: {
 							? weeklyInstalments(bundle.window.period).length
 							: 1,
 				// A MONTH-assessed scheme reads the month's wage from one instalment: a half is doubled,
-				// a week is the year's 52 over 12 (SSS Circular 2014-002: weekly × 52 ÷ 12).
+				// a week is the version's weeks a month (`rate_conversions.weekly_to_monthly`).
 				monthFactor:
 					bundle.window.payFrequency === 'SEMI_MONTHLY'
 						? 2
 						: bundle.window.payFrequency === 'WEEKLY'
-							? 52 / 12
+							? monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person })
 							: 1,
 				// A weekly company charges the month's schemes in the last week, when the month is known.
 				monthlyOn:
@@ -2531,7 +2629,7 @@ function contributionAssessment(options: {
 				...person,
 				wage_floor: floor,
 				wage_floor_pay: configuration.contributions.some((scheme) =>
-					schemeExpressions(scheme).some((expression) => expression.includes('wage_floor_pay'))
+					mentionsText(scheme, 'wage_floor_pay')
 				)
 					? wageFloorPay(measured, configuration, bundle.employedDays ?? bundle.window.salary)
 					: person.wage_floor_pay
@@ -2541,7 +2639,9 @@ function contributionAssessment(options: {
 			// insurance base, so SI's `terms.fixed_allowances` leaves it out where PIT's keeps it.
 			fixedAllowancesFor: (scheme) => contractAllowancesOn(bundle, configuration, asOf, scheme),
 			minimumWage,
-			minimumWageApplies: covered
+			minimumWageApplies: covered,
+			historyAccess: options.history,
+			companyAccess: options.company
 		}
 	};
 }

@@ -18,7 +18,14 @@ const SITE_USE: Readonly<Record<ExpressionContext['site'], string>> = {
 	leave_day: '`leave_catalogue.pay_fraction` — one charged leave day',
 	rest_break: '`work_rules.breaks[]` — one day’s rest-break obligation',
 	payment:
-		'`jurisdiction_settings.payment_facts[]` and `settlement_facts[]` conditions — one actual payment'
+		'`jurisdiction_settings.payment_facts[]` and `settlement_facts[]` conditions — one actual payment',
+	rate: '`work_rules.ordinary_rate`, `leave_pay_reference`, `encashment_reference` and `proration` — one person’s rates',
+	obligation: '`duty_types[].due`, `amount`, `late_charge` and `trigger.when` — one duty instance',
+	filing: '`returns[].columns[].value` and `population` — one row of a return or bank file',
+	case: '`case_types[].phases[].days`, `award` and `qualifications` — one benefit case phase',
+	check: '`jurisdiction_settings.checks[].when` — one lifecycle stage of one employment',
+	order: '`loans.recovery_rule` — one deduction order on one payslip',
+	derived_line: '`work_rules.derived_lines[].amount` and `when` — a line the period’s totals decide'
 };
 
 /** A table cell: the pipe is the table's own character. */

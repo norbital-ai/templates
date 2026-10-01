@@ -132,7 +132,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0))",
+				"amount": "round((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -152,7 +152,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0))",
+				"amount": "round((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -172,7 +172,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0) + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * floor_unit((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0)) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0))",
+				"amount": "round((person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 2.0 : 1.0) * ((person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) > 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage ? 3.0 * person.employment.exit_facts.lcl47_average_monthly_wage * ((round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0)) > 12.0 ? 12.0 : (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) : (person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) > minimum_wage(person.terms.worksite) ? person.employment.earned_monthly_average(12, [], person.terms.monthly_wage) : minimum_wage(person.terms.worksite)) * (round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN') + (((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) >= 6.0 ? 1.0 : ((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) - 12.0 * round((person.employment.service_months_exact + person.employment.exit_facts.lcl10_transferred_service_months - (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_months)) / 12.0, 1, 'DOWN')) > 0.0 ? 0.5 : 0.0))) + (person.employment.exit_facts.lcl_termination_ground == \"ART_87\" ? 0.0 : person.employment.exit_facts.lcl97_pre2008_compensation) + (person.employment.exit_facts.lcl_termination_ground == \"ART_40\" && person.employment.exit_facts.notice_days_given < 30.0 ? person.employment.earned_monthly_average(1, [], person.terms.monthly_wage) : 0.0), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -192,7 +192,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"amount": "round(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -212,7 +212,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"amount": "round(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -232,7 +232,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE)",
+				"amount": "round(entry.amount < person.period.leave_pay.MATERNITY_LEAVE ? entry.amount : person.period.leave_pay.MATERNITY_LEAVE, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -252,7 +252,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -272,7 +272,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"amount": "round(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -292,7 +292,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -322,7 +322,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
+				"amount": "round((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -356,7 +356,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
+				"amount": "round(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -386,7 +386,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -406,7 +406,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -426,7 +426,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -446,7 +446,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"amount": "round(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -466,7 +466,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -496,7 +496,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
+				"amount": "round((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -530,7 +530,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
+				"amount": "round(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -560,7 +560,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -580,7 +580,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -600,7 +600,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -620,7 +620,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"amount": "round(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -640,7 +640,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -670,7 +670,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
+				"amount": "round((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -704,7 +704,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
+				"amount": "round(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date), 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -734,7 +734,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],
@@ -754,7 +754,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(entry.amount)",
+				"amount": "round(entry.amount, 0.01, 'HALF_UP')",
 				"limit": null
 			}
 		],

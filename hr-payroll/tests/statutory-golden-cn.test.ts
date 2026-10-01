@@ -574,20 +574,19 @@ test('Shanghai — an ordinary bonus joins the month’s cumulative wage; a seco
 			),
 		/once per tax year/
 	);
-	assert.throws(
-		() =>
-			buildStatutory(
-				{
-					code: SH,
-					period: '2026-01',
-					region: 'SHANGHAI',
-					companyFacts: SH_2026_FACTS,
-					people: [person('SH-NR-BONUS', 20_000, { tax_residency: 'NON_RESIDENT' })]
-				},
-				(world) => adhoc(world, 'SH-NR-BONUS', 'ANNUAL_BONUS_SEPARATE', 12_000, '2026-01-10')
-			),
-		/resident election/
-	);
+	// A non-resident's multi-month bonus (MOF/STA 2019 No.35 item 3(2), transcribed into every Shanghai
+	// version 30 Sep 2026): [(12,000 ÷ 6) × 3% − 0] × 6 = 360, apart from the wage.
+	const nonResident = buildStatutory(
+		{
+			code: SH,
+			period: '2026-01',
+			region: 'SHANGHAI',
+			companyFacts: SH_2026_FACTS,
+			people: [person('SH-NR-BONUS', 20_000, { tax_residency: 'NON_RESIDENT' })]
+		},
+		(world) => adhoc(world, 'SH-NR-BONUS', 'ANNUAL_BONUS_SEPARATE', 12_000, '2026-01-10')
+	).slips.get('SH-NR-BONUS')!;
+	assert.deepEqual(charge(nonResident, 'IIT_BONUS'), [12_000, 360, 0]);
 });
 
 test('Shanghai — first wage income in July deducts from January; the 60,000 election; the rent cap (CN-N11, N44, N54)', () => {
@@ -815,7 +814,7 @@ test('Shanghai — a mid-month joiner and a leaver on the 21.75-day conversion (
 		companyFacts: SH_2026_FACTS,
 		people: [
 			person('SH-JOINER', 22_000, { hire_date: '2026-01-19', hf: { first_ever_account: true } }),
-			person('SH-LEAVER', 22_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' })
+			person('SH-LEAVER', 22_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' })
 		]
 	});
 	// 22,000 ÷ 21.75 a paid day. Joiner on Monday 19 January: 10 working days → 10,114.942… →
@@ -1002,7 +1001,7 @@ function annualLeaveOnExit(
 					...(code === KM ? { base: 21_000 } : {}),
 					hire_date: '2019-01-01',
 					exit_date: exit,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				})
 			]
 		},
@@ -1493,8 +1492,8 @@ test('Shanghai — final pay is due on the exit day; a month-end run pays a mid-
 		region: 'SHANGHAI',
 		companyFacts: SH_2026_FACTS,
 		people: [
-			person('SH-MID', 22_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
-			person('SH-END', 22_000, { exit_date: '2026-01-31', exit_reason: 'RESIGNATION' })
+			person('SH-MID', 22_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
+			person('SH-END', 22_000, { exit_date: '2026-01-31', exit_ground: 'RESIGNATION' })
 		]
 	});
 	const late = warnings.filter((line) => line.startsWith('FINAL_PAY_LATE'));
@@ -1515,8 +1514,8 @@ test('Kunming — final pay within five working days of the end of the relations
 		region: 'CATEGORY_I',
 		companyFacts: KM_2026_FACTS,
 		people: [
-			person('KM-MID', 21_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
-			person('KM-LATE-MONTH', 21_000, { exit_date: '2026-01-27', exit_reason: 'RESIGNATION' })
+			person('KM-MID', 21_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
+			person('KM-LATE-MONTH', 21_000, { exit_date: '2026-01-27', exit_ground: 'RESIGNATION' })
 		]
 	});
 	const late = warnings.filter((line) => line.startsWith('FINAL_PAY_LATE'));
@@ -1538,7 +1537,7 @@ test('Kunming — a joiner and a leaver on the 21.75-day conversion, one unpaid 
 			companyFacts: KM_2026_FACTS,
 			people: [
 				person('KM-JOINER', 21_750, { hire_date: '2026-01-19', hf: { first_ever_account: true } }),
-				person('KM-LEAVER', 21_750, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
+				person('KM-LEAVER', 21_750, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
 				person('KM-NPL', 21_750),
 				person('KM-BONUS', 20_000),
 				person('KM-YEB', 20_000)
@@ -1750,7 +1749,7 @@ function severance(
 				person(leaver.key, leaver.wage, {
 					hire_date: leaver.hire,
 					exit_date: leaver.exit,
-					exit_reason: leaver.ground === 'ART_41' ? 'REDUNDANCY' : 'MUTUAL',
+					exit_ground: leaver.ground === 'ART_41' ? 'REDUNDANCY' : 'MUTUAL',
 					...(leaver.base == null ? {} : { base: leaver.base }),
 					...(leaver.hfBase == null ? {} : { hfBase: leaver.hfBase })
 				})
@@ -2271,8 +2270,10 @@ function maternityMonth(
 					reference: `ML-${index}`,
 					from_date: entry.from,
 					to_date: entry.to,
-					event_kind: 'BIRTH',
-					event_date: entry.from,
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: entry.from
+					},
 					half_day_start: false,
 					half_day_end: false,
 					days: dates.length,
@@ -2973,7 +2974,7 @@ test('both cities — an early-retirement subsidy is spread over the actual year
 					person(key, 20_000, {
 						hire_date: '2010-01-01',
 						exit_date: '2026-06-30',
-						exit_reason: 'RETIREMENT'
+						exit_ground: 'RETIREMENT'
 					})
 				]
 			},
@@ -3104,6 +3105,9 @@ test('both cities — 丧假: three paid days for a parent, the spouse or a chil
 				[3, 3, 3, null],
 				`${code} ${version.name}`
 			);
+			// Shanghai only: 沪劳资发〔87〕130号 (kept to 15 Aug 2031 by 沪人社规〔2026〕12号) gives 一至三天 for a
+			// 岳父母或公婆 funeral, the discretionary maximum 3 (register CN-SH17); Yunnan has no such rule.
+			assert.equal(days('PARENT_IN_LAW'), code === SH ? 3 : null, `${code} ${version.name}`);
 			assert.equal(seeded(leaveCatalogue(code), version.id, 'FUNERAL_LEAVE').is_npl, false);
 		}
 });

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readAll } from '../src/lib/reads.ts';
 
-// F19 (probe FINDINGS #11): MY-nihon's second run read the first run's 84 payslips (1.6 MB of
+// F19 (probe FINDINGS #11): MY's second run read the first run's 84 payslips (1.6 MB of
 // JSON) and its calculation trace in whole-row, unpaged crossings, past the 4 MiB answer wall at
 // reads.ts. A whole-row read of a run-history collection now pages; a narrowed read does not.
 const fake = (total) => {
@@ -24,16 +24,16 @@ const fake = (total) => {
 	};
 };
 
-test('a whole-row payslip read of 84 slips takes two crossings of at most 50', async () => {
-	const reads = fake(84);
+test('a whole-row payslip read of 284 slips takes two crossings of at most 200', async () => {
+	const reads = fake(284);
 	const rows = await readAll(reads, 'payslips', { employment_id: { in: ['e'] } });
-	assert.equal(rows.length, 84);
-	assert.deepEqual(rows.at(-1), { id: 'r83' });
+	assert.equal(rows.length, 284);
+	assert.deepEqual(rows.at(-1), { id: 'r283' });
 	assert.deepEqual(
 		reads.calls.map((call) => [call.limit, call.after]),
 		[
-			[50, undefined],
-			[50, 50]
+			[200, undefined],
+			[200, 200]
 		]
 	);
 });

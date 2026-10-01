@@ -5,23 +5,9 @@ import type { LeaveCharge } from '../datatypes/leave_charges.js';
 
 /** One leave entry as the planner reads it: decimals as numbers, days as calendar days. */
 export type LeaveActivity = Required<
-	Omit<
-		LeaveEntryActivity,
-		| 'hours'
-		| 'no_pay_origin'
-		| 'event_child_index'
-		| 'event_wife_prior_living_biological_children'
-		| 'agreed_pay_fraction'
-	>
+	Omit<LeaveEntryActivity, 'hours' | 'no_pay_origin' | 'facts'>
 > &
-	Pick<
-		LeaveEntryActivity,
-		| 'hours'
-		| 'no_pay_origin'
-		| 'event_child_index'
-		| 'event_wife_prior_living_biological_children'
-		| 'agreed_pay_fraction'
-	> & {
+	Pick<LeaveEntryActivity, 'hours' | 'no_pay_origin' | 'facts'> & {
 		readonly id: string;
 		readonly employment_id: string;
 		readonly catalogue_id: string;
@@ -32,6 +18,8 @@ export type LeaveActivity = Required<
 		readonly allocations: readonly LeaveAllocation[];
 		readonly approval_id: string | null;
 		readonly payslip_id: string | null;
+		/** The entry that opened this one's episode; null where it opens its own. */
+		readonly episode_id?: string | null;
 	};
 
 /**

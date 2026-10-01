@@ -390,8 +390,8 @@
 
 <AppShell
 	icon="lucide:user-round"
-	title="Employee Self-Service"
-	description="View your schedule, leave, pay requests, loans, payslips, and profile"
+	title={t('app.hr_employee.title')}
+	description={t('app.hr_employee.description')}
 	variant="full"
 >
 	<Tabs

@@ -1,5 +1,6 @@
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { dateKey } from '../../../lib/iso-day.js';
+import { conditionOf } from '../../../lib/holiday-calendar.js';
 import { addDays, monthBounds } from '../../../lib/payroll/run/dates.js';
 import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
 import { ABSENCE_DECISION_FACTS, leaveWindowOf } from '../../../lib/leave/entitlement.js';
@@ -57,6 +58,7 @@ import {
 import { resolveFactValues } from '../../../lib/declared-facts.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 import * as Predicate from 'effect/Predicate';
+import { worksiteFault } from '../worksites/lib/in-force.js';
 
 const columns = [
 	'employment_id',
@@ -68,6 +70,7 @@ const columns = [
 	'comparable_full_time_daily_hours',
 	'incentive_hours',
 	'worksite',
+	'worksite_id',
 	'piece_units',
 	'piece_unit_rate',
 	'requested_by',
@@ -221,10 +224,16 @@ function workedIntervalsProblem(
 }
 
 /**
- * Approved overtime and incentive hours are each keyed in half-hour steps, and a day cannot hold more of them together
- * than a day has hours. They are not judged against the clock: the plan is the record.
+ * Approved overtime and incentive hours are each keyed in steps of the governing version's
+ * `work_rules.overtime_unit_hours`, and a day cannot hold more of them together than a day has hours. They are not
+ * judged against the clock: the plan is the record.
  */
-function plannedHoursProblem(approved: unknown, incentive: unknown): string | null {
+function plannedHoursProblem(
+	approved: unknown,
+	incentive: unknown,
+	unit: number | undefined,
+	workDate: string
+): string | null {
 	let sum = 0;
 	for (const [label, stated] of [
 		['Approved overtime', approved],
@@ -234,8 +243,8 @@ function plannedHoursProblem(approved: unknown, incentive: unknown): string | nu
 		const value = hours(stated);
 		if (!Number.isFinite(value) || value < 0)
 			return `${label} must be zero or a positive number of hours.`;
-		if (Math.round(value * 2) !== value * 2)
-			return `${label} is keyed in half-hour steps — 0.5, 1, 1.5, and so on.`;
+		if (unit != null && Math.abs(value / unit - Math.round(value / unit)) > 1e-9)
+			return `${label} of ${value} h on ${workDate} is not keyed in the ${unit}-hour steps the work rules state.`;
 		sum += value;
 	}
 	return sum > 24
@@ -501,7 +510,13 @@ c.transform(async (inputs, ctx) => {
 
 	const employments = await db.read('employments', {
 		where: { id: { in: ids } },
-		select: { id: true, company_id: true, employee_number: true, effective_range: true },
+		select: {
+			id: true,
+			company_id: true,
+			employee_id: true,
+			employee_number: true,
+			effective_range: true
+		},
 		all: true
 	});
 	const companyIds = [...new Set(employments.rows.map((row) => String(row.company_id)))];
@@ -702,6 +717,19 @@ c.transform(async (inputs, ctx) => {
 		replaces: holiday.replaces == null ? null : day(holiday.replaces),
 		published_at: holiday.published_at == null ? null : String(holiday.published_at)
 	}));
+	// A holiday with `applies_when` (a religion's own day) reads the person: only then are they read.
+	const employeeById = new Map(
+		holidays.some((row) => conditionOf(row) != null)
+			? (
+					await db.read('employees', {
+						where: {
+							id: { in: [...new Set(employments.rows.map((row) => row.employee_id))] as never[] }
+						},
+						all: true
+					})
+				).rows.map((row) => [String(row.id), row])
+			: []
+	);
 	const windowsByCompany = new Map(
 		[...Map.groupBy(runs.rows, (run) => String(run.company_id))].map(([companyId, grouped]) => [
 			companyId,
@@ -916,7 +944,15 @@ c.transform(async (inputs, ctx) => {
 				worksiteOn: (date) =>
 					termsByEmployment
 						.get(employmentId)
-						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite
+						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite,
+				personOn: (date) =>
+					personContext({
+						employee:
+							employeeById.get(String(employmentById.get(employmentId)?.employee_id)) ?? null,
+						employment: { service_start: '' },
+						terms: null,
+						asOf: date
+					})
 			});
 			const headroomOf = (written: boolean) =>
 				overtimeHeadroom({
@@ -932,7 +968,8 @@ c.transform(async (inputs, ctx) => {
 						};
 					}),
 					limits: applicable,
-					cutoffDay
+					cutoffDay,
+					unitHours: version.work_rules?.overtime_unit_hours
 				}).breaches;
 			// Only what this write puts over a limit refuses it: a day whose approved hours it changes, or a stored day it
 			// pushes over. A day already over before the write, left at the same figure, is not this write's to answer.
@@ -1021,6 +1058,31 @@ c.transform(async (inputs, ctx) => {
 		}
 	}
 
+	// A day worked away from the terms' worksite names one of its company's, in force that day.
+	const siteIds = [
+		...new Set(
+			inputs.flatMap((input, index) => {
+				const id = '$delete' in input ? null : (input.worksite_id ?? existing[index]?.worksite_id);
+				return id == null ? [] : [id];
+			})
+		)
+	];
+	const named =
+		siteIds.length === 0
+			? []
+			: (await db.read('worksites', { where: { id: { in: siteIds } }, all: true })).rows;
+	const sites =
+		named.length === 0
+			? []
+			: (
+					await db.read('worksites', {
+						where: {
+							company_id: { in: [...new Set(named.map((site) => site.company_id))] },
+							code: { in: [...new Set(named.map((site) => site.code))] }
+						},
+						all: true
+					})
+				).rows;
 	const assignments: Parameters<typeof assertNoOverlap>[1][number][] = [];
 	for (const [index, row] of inputs.entries()) {
 		const input = row as Write;
@@ -1047,7 +1109,9 @@ c.transform(async (inputs, ctx) => {
 				input.approved_overtime_hours !== undefined
 					? input.approved_overtime_hours
 					: stored?.approved_overtime_hours,
-				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours
+				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours,
+				versionOn(employmentId, workDate)?.work_rules?.overtime_unit_hours,
+				workDate
 			);
 		if (problem != null) ctx.refuse(problem);
 		// Recorded inputs are judged against every sealed live version of the entity's lineage.
@@ -1067,6 +1131,11 @@ c.transform(async (inputs, ctx) => {
 					.flatMap((version) => version.work_day_facts ?? [])
 			);
 			if (fault != null) refuse(fault, { field: 'facts' });
+		}
+		const worksiteId = input.worksite_id !== undefined ? input.worksite_id : stored?.worksite_id;
+		if (worksiteId != null) {
+			const fault = worksiteFault(sites, worksiteId, companyOf(employmentId)?.id, workDate);
+			if (fault != null) refuse(fault, { field: 'worksite_id' });
 		}
 		// The version's person-day protections a write can judge: no incentive hours where the version
 		// refuses them, consent (or its exception) for a planned occasion, and every day rule that

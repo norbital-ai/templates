@@ -8,7 +8,7 @@ export default model({
 	description:
 		'A named shift pattern of one legal entity: the repeating day cycle of roster codes, or the declared week (days and paid minutes), that employment terms point at. The days a week a contract works are the pattern’s; a cycle projects every day an employment has no roster row for.',
 	icon: 'lucide:repeat',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text' },

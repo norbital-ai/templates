@@ -1,5 +1,5 @@
 /**
- * Round 3, letter G — MY/MY-nihon taxable termination compensation through PCB, and the ID PTKP
+ * Round 3, letter G — MY taxable termination compensation through PCB, and the ID PTKP
  * status fixed on 1 January of the tax year.
  *
  * Every expected figure is derived by hand in the comment beside it from the instrument named;
@@ -27,10 +27,10 @@ import { personFactsOn } from '../src/lib/payroll/facts.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// MY / MY-nihon — the taxable part of termination compensation is PCB additional remuneration.
+// MY — the taxable part of termination compensation is PCB additional remuneration.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-for (const code of ['MY', 'MY-nihon'] as const satisfies readonly Lineage[]) {
+for (const code of ['MY'] as const satisfies readonly Lineage[]) {
 	test(`${code} round 3 — termination compensation above RM10,000 a completed year reaches PCB as additional remuneration`, () => {
 		// A supervisor of manual labour (EA First Schedule para 2: inside the Regulations at any
 		// wage) at RM20,000 a month, hired 1 January 2021, retrenched 31 January 2026.
@@ -72,7 +72,7 @@ for (const code of ['MY', 'MY-nihon'] as const satisfies readonly Lineage[]) {
 						registrations: { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } },
 						hire_date: '2021-01-01',
 						exit_date: '2026-01-31',
-						exit_reason: 'RETRENCHMENT'
+						exit_ground: 'RETRENCHMENT'
 					}
 				]
 			},

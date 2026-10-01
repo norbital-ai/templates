@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * Staff loans, salary advances and overpayment recoveries of one legal entity: the agreement, and what its plan
-	 * still has to recover. A repayment is recovered whole by the one payslip it links, and counts once that slip is
+	 * Staff loans, salary advances, overpayment recoveries and third-party deduction orders of one legal entity: the
+	 * agreement, and what its plan still has to recover. A repayment is recovered whole by the one payslip it links, and counts once that slip is
 	 * paid: a draft has paid nobody.
 	 */
 	import ScopeGate from '../../../../lib/ui/ScopeGate.svelte';
@@ -15,6 +15,7 @@
 	import { companyScope, employmentNames } from '../../../../lib/ui/company-scope.svelte.js';
 	import { formatNumeric } from '../../../../lib/ui/display-formatters.js';
 	import { liveRows } from '../../../../lib/ui/live.svelte.js';
+	import { decodeNumber } from '../../../../lib/wire.js';
 
 	const scope = companyScope();
 	const person = employmentNames(() => scope.id);
@@ -34,13 +35,23 @@
 				})
 	);
 	const byLoan = $derived(Map.groupBy(repayments.current ?? [], (row) => row.loan_id));
-	function progress(id: Id<'loans'>): string {
-		const plan = byLoan.get(id) ?? [];
+	type LoanRow = {
+		readonly id: Id<'loans'>;
+		readonly principal: unknown;
+		readonly recovery_rule: string | null;
+	};
+	function progress(row: LoanRow): string {
+		const plan = byLoan.get(row.id) ?? [];
 		const recovered = plan.reduce(
 			(sum, row) => sum + (row.payslip_id?.paid_at != null ? row.amount_due : 0),
 			0
 		);
-		const p = repaymentProgress(plan, recovered);
+		// A rule-recovered order's rows are what payroll withheld, not a plan summing to the principal.
+		const p = repaymentProgress(
+			plan,
+			recovered,
+			(row.recovery_rule ?? '').trim() !== '' ? decodeNumber(row.principal) : undefined
+		);
 		if (p == null) return '—';
 		return p.settled
 			? t('app.loans.progress_settled', { paid: p.paidRepayments, total: p.totalRepayments })
@@ -53,12 +64,12 @@
 </script>
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
-{#snippet progressCell({ row }: { row: { readonly id: Id<'loans'> } })}{progress(row.id)}{/snippet}
+{#snippet progressCell({ row }: { row: LoanRow })}{progress(row)}{/snippet}
 
 <AppShell
 	icon="lucide:hand-coins"
-	title="Loans"
-	description="Review staff loans, salary advances, and overpayment recoveries with their derived outstanding balance"
+	title={t('app.loans.title')}
+	description={t('app.loans.description')}
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}
 	<ScopeGate {scope} empty={t('app.loans.empty')}>

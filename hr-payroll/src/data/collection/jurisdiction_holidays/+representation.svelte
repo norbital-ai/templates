@@ -29,6 +29,7 @@
 			<Field name="given_to" label={t('holiday_calendar.given_to')} />
 			<Field name="worksite" label={t('component.worksite')} />
 			<Field name="religion" label={t('component.religion')} />
+			<Field name="applies_when" label={t('component.applies_when')} />
 			<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>
 			<Field name="replaces" label={t('holiday_calendar.replaces')} />
 			<Column span="all">

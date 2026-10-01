@@ -10,6 +10,7 @@ import type { PayrollSettings } from '../../../lib/datatypes/payroll_settings.js
 import type { LeaveEntitlement } from '../../../lib/datatypes/leave_entitlement.js';
 import { plain } from '../../../lib/wire.js';
 import * as Predicate from 'effect/Predicate';
+import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 
 type Row = {
 	readonly settings_id?: string;
@@ -18,6 +19,7 @@ type Row = {
 	readonly pay_fraction?: string;
 	readonly consumes_code?: string | null;
 	readonly entitlement?: LeaveEntitlement;
+	readonly event_facts?: readonly FactKey[];
 };
 
 const c = collection('leave_catalogue', {
@@ -40,7 +42,9 @@ const c = collection('leave_catalogue', {
 				'consumes_code',
 				'unit',
 				'evidence_after_days',
-				'entitlement'
+				'entitlement',
+				'event_facts',
+				'schedule'
 			]
 		}
 	},
@@ -61,7 +65,9 @@ const c = collection('leave_catalogue', {
 				'consumes_code',
 				'unit',
 				'evidence_after_days',
-				'entitlement'
+				'entitlement',
+				'event_facts',
+				'schedule'
 			]
 		}
 	},
@@ -152,12 +158,28 @@ c.transform(async (inputs, ctx) => {
 				compileExpression({ expression: lifetime, site: 'person', type: 'days' }),
 				'Lifetime days: '
 			);
+		const eventFacts = (row.event_facts ?? []) as readonly FactKey[];
 		const fraction = row.pay_fraction ?? '';
 		if (fraction.trim() !== '')
 			fault(
-				compileExpression({ expression: fraction, site: 'leave_day', type: 'number' }),
+				compileExpression({
+					expression: fraction,
+					site: 'leave_day',
+					type: 'number',
+					eventFacts
+				}),
 				'Pay fraction: '
 			);
+		// An event input's own conditions read the leave day, the entry's other inputs beside it.
+		for (const field of eventFacts)
+			for (const [kind, expression] of [
+				['requirement', field.required_when],
+				['validation', field.valid_when]
+			] as const)
+				fault(
+					compileExpression({ expression, site: 'leave_day', type: 'boolean', eventFacts }),
+					`Event input ${field.key} ${kind}: `
+				);
 		if (row.consumes_code != null && row.consumes_code === row.code)
 			ctx.refuse('A leave row cannot draw from its own pool; leave `consumes_code` empty.', {
 				field: 'consumes_code'

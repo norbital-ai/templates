@@ -1,5 +1,5 @@
 import type { Decimal } from '@norbital-ai/std/decimal';
-import type { BenefitCaseType } from '../datatypes/payroll_settings.js';
+import type { BenefitCaseType } from '../datatypes/case_types.js';
 import { dateKey, isCalendarDate } from '../iso-day.js';
 import { addDays, daysBetween } from '../payroll/run/dates.js';
 import { readRange } from '../payroll/run/effective.js';
@@ -7,9 +7,12 @@ import { cents } from '../payroll/run/rounding.js';
 import { refuse } from '../refuse.js';
 import { decodeNumber } from '../wire.js';
 import {
+	advanceDue,
+	casePhases,
 	caseSite,
 	compensableDays,
 	employeePaymentKinds,
+	employerPays,
 	movementKind,
 	type CaseEvidence,
 	type CaseFacts
@@ -43,9 +46,10 @@ function premiumShares(type: BenefitCaseType, premiums: Premiums): Record<string
 }
 
 /**
- * Full pay over the compensable days, net of the employee's premium shares and the actual award:
- * the employer's differential, never negative. The difference is rounded once, after the
- * multiplication (a 14,006.75 × 3.5 full pay less 2,984.07 and 49,000 is −2,960.45, not −2,960.44).
+ * The case priced at pay time: the phases over the evidenced monthly salary, the employee's premium
+ * shares and the actual award (`case.salary`, `case.premiums`, `case.award`). Full pay is the
+ * phases' `wage`; the employer's differential is their `employer_pays`, never negative. Every
+ * figure and its rounding is the case type's; this only sums the phases.
  */
 export function calculateBenefitPay(input: {
 	readonly case_type: BenefitCaseType;
@@ -57,7 +61,6 @@ export function calculateBenefitPay(input: {
 	readonly actual_award: Amount;
 }) {
 	const type = input.case_type;
-	const days = compensableDays(type, caseSite(type, input.benefit_case, input.evidence));
 	const monthly = money(input.monthly_salary, 'Monthly salary');
 	if (monthly === 0) refuse('Benefit full pay needs an evidenced positive monthly salary.');
 	const shares = premiumShares(type, input.employee_premiums);
@@ -67,16 +70,21 @@ export function calculateBenefitPay(input: {
 		Object.values(shares).reduce((sum, share) => sum + share, 0),
 		input.currency
 	);
-	const rawFullPay = (monthly * days) / type.full_pay_days_divisor;
-	const rawDifference = rawFullPay - premiums - award;
-	const signedDifferential =
-		rawDifference < 0
-			? -cents(-rawDifference, input.currency)
-			: cents(rawDifference, input.currency);
-	const employerDifferential = Math.max(0, signedDifferential);
+	const phases = casePhases(
+		type,
+		caseSite(type, input.benefit_case, input.evidence, { salary: monthly, premiums, award }),
+		input.currency
+	);
+	const total = (pick: (phase: (typeof phases)[number]) => number) =>
+		cents(
+			phases.reduce((sum, phase) => sum + pick(phase), 0),
+			input.currency
+		);
+	const signedDifferential = total((phase) => phase.employer_pays);
+	const employerDifferential = employerPays(signedDifferential);
 	return {
-		compensable_days: days,
-		full_pay: cents(rawFullPay, input.currency),
+		compensable_days: phases.reduce((sum, phase) => sum + phase.days, 0),
+		full_pay: total((phase) => phase.wage),
 		employee_premium_shares: premiums,
 		award,
 		signed_differential: signedDifferential,
@@ -84,7 +92,8 @@ export function calculateBenefitPay(input: {
 		/** The differential is basic salary; the award is not. */
 		basic_salary_share: employerDifferential,
 		/** The award plus the employer differential; prior transfers are offset from this. */
-		employee_cash_entitlement: cents(award + employerDifferential, input.currency)
+		employee_cash_entitlement: cents(award + employerDifferential, input.currency),
+		phases
 	};
 }
 
@@ -446,9 +455,9 @@ export function planBenefitCasePayslips(input: {
 		cutoffs,
 		employee_cash: employeeCash
 	});
-	const advanceDue = addDays(dateKey(caseRow.application_on), type.advance_due_days);
+	const dueOn = advanceDue(type, caseSite(type, caseRow, input.evidence));
 	const firstPayday = dateKey(input.cutoffs[0]!.pay_on);
-	const cashDeadline = advanceDue < firstPayday ? advanceDue : firstPayday;
+	const cashDeadline = dueOn !== '' && dueOn < firstPayday ? dueOn : firstPayday;
 	const cashByDeadline = (component: string) =>
 		Math.round(
 			employeeCash

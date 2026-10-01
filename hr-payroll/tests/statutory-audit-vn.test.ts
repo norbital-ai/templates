@@ -231,7 +231,7 @@ test('VN audit — the pre-July 10% flat withholding threshold is 2,000,000 per 
 		citizenship: 'CITIZEN',
 		hire_date: hire,
 		exit_date: exit,
-		exit_reason: 'END_OF_CONTRACT',
+		exit_ground: 'END_OF_CONTRACT',
 		registrations: {
 			PIT: {
 				kind: 'REGISTERED',
@@ -361,7 +361,7 @@ test('VN audit — who is owed severance and job-loss allowance (Labour Code art
 		evaluateBoolean(expressionEngine, separation(code, settingsId).eligibility, {
 			employment: {
 				service_months: service,
-				exit_reason: reason,
+				exit_ground: reason,
 				exit_fact_keys: Object.keys(facts),
 				exit_facts: facts
 			},
@@ -401,7 +401,7 @@ test('VN audit — the final settlement is due in 14 working days, 30 days only 
 					rule.when.trim() === '' ||
 					evaluateBoolean(expressionEngine, rule.when, {
 						employment: {
-							exit_reason: reason,
+							exit_ground: reason,
 							exit_fact_keys: Object.keys(facts),
 							exit_facts: facts
 						}

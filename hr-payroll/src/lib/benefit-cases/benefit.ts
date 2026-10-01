@@ -1,14 +1,23 @@
 import type { Decimal } from '@norbital-ai/std/decimal';
 import { Schema } from 'effect';
 import * as Predicate from 'effect/Predicate';
-import type { BenefitCaseType, PayrollSettings } from '../datatypes/payroll_settings.js';
+import type { BenefitCaseType } from '../datatypes/case_types.js';
+import type { PayrollSettings } from '../datatypes/payroll_settings.js';
 import { factScalar } from '../datatypes/fact_keys.js';
 import { factValuesFault } from '../declared-facts.js';
 import { evidenceFault } from '../entity-facts.js';
 import { EMPTY_OF } from '../expressions/compile.js';
-import { evaluateBoolean, evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
+import { EXPRESSION_CONTEXTS } from '../expressions/contexts.js';
+import {
+	evaluateBoolean,
+	evaluateDate,
+	evaluateNumber,
+	expressionEngine
+} from '../expressions/evaluate.js';
 import { dateKey, isCalendarDate } from '../iso-day.js';
 import { governed, isInForceCandidate, settingsInForce } from '../jurisdiction_settings.js';
+import { addDays, inclusiveDays, periodMonth } from '../payroll/run/dates.js';
+import { cents } from '../payroll/run/rounding.js';
 import { readAll, type Reads } from '../reads.js';
 import { refuse } from '../refuse.js';
 import { decodeNumber } from '../wire.js';
@@ -156,10 +165,13 @@ export const evidenceOf = (
 	caseId: string
 ) => evidence.filter((row) => (row.subject as { readonly id?: string } | null)?.id === caseId);
 
-/** A case as the engine reads it: its event and its recorded facts. */
+/** A case as the engine reads it: its event, its span and its recorded facts. */
 export type CaseFacts = {
 	readonly event_kind?: string | null | undefined;
 	readonly event_on?: string | null | undefined;
+	readonly application_on?: string | null | undefined;
+	readonly leave_from?: string | null | undefined;
+	readonly leave_through?: string | null | undefined;
 	readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 };
 
@@ -177,16 +189,52 @@ export const caseDay = (row: {
 	readonly application_on?: string | null | undefined;
 }) => dateKey(row.event_on ?? row.expected_event_on ?? row.application_on);
 
+/** One contribution credit the case reads: a statement month paid before its window closed. */
+export type CaseCredit = {
+	readonly period: string;
+	readonly amount: number;
+	readonly paid_on: string;
+};
+/** One month of saved pay before the event. */
+export type CaseEarning = { readonly period: string; readonly amount: number };
+/** One earlier case of the same person. */
+export type PreviousCase = {
+	readonly kind: string;
+	readonly started_on: string;
+	readonly ended_on: string;
+	readonly days: number;
+};
+
+/** What a case reads beyond its own row; each is empty (or 0) where the caller has none. */
+export type CaseInputs = {
+	readonly credits?: readonly CaseCredit[] | undefined;
+	readonly earnings?: readonly CaseEarning[] | undefined;
+	readonly previous?: readonly PreviousCase[] | undefined;
+	/** The actual award recorded for the case. */
+	readonly award?: number | undefined;
+	/** The monthly salary the case's pay replaces. */
+	readonly salary?: number | undefined;
+	/** The employee's premium shares over the case, summed. */
+	readonly premiums?: number | undefined;
+};
+
+const day = (value: string | null | undefined) => {
+	const date = dateKey(value);
+	return isCalendarDate(date) ? date : '';
+};
+
 /**
- * The case site every case-type expression reads: the event, the declared facts (a missing one
- * reads as its default or empty value) with the qualifications beside them, and the fact keys
- * whose evidence is recorded. `recorded` is the raw record, so an undeclared claim stays apart
- * from a false one.
+ * The `case` site every case-type expression reads: `case.*` (the event, the span, the declared
+ * facts — a missing one reads as its default or empty value — with the qualifications beside them,
+ * the fact keys whose evidence is recorded, and the pay inputs), `phase.*` (blank until a phase is
+ * priced), `credits`, `earnings` and `previous`. `recorded` is the raw record, so an undeclared
+ * claim stays apart from a false one; it is not an expression root.
  */
 export function caseSite(
 	type: BenefitCaseType,
 	row: CaseFacts,
-	evidence: readonly CaseEvidence[] = []
+	evidence: readonly CaseEvidence[] = [],
+	inputs: CaseInputs = {}
 ) {
 	const recorded: Record<string, Scalar> = Object.fromEntries(
 		Object.entries(row.facts ?? {}).filter(
@@ -196,13 +244,7 @@ export function caseSite(
 				Predicate.isBoolean(entry[1])
 		)
 	);
-	const day = dateKey(row.event_on);
-	const date = isCalendarDate(day) ? day : '';
-	const event = {
-		kind: row.event_kind ?? '',
-		date,
-		month: date === '' ? 0 : decodeNumber(date.slice(5, 7))
-	};
+	const eventOn = day(row.event_on);
 	const facts: Record<string, Scalar> = Object.fromEntries(
 		type.facts.map((field) => [
 			field.key,
@@ -220,10 +262,34 @@ export function caseSite(
 			)
 		)
 	];
-	const base = { event, facts, evidenced };
+	const blank = EXPRESSION_CONTEXTS.case.blank as {
+		readonly person: object;
+		readonly phase: object;
+	};
+	const site = {
+		person: structuredClone(blank.person),
+		case: {
+			kind: type.case_type,
+			event_kind: row.event_kind ?? '',
+			event_on: eventOn,
+			event_month: eventOn === '' ? 0 : decodeNumber(eventOn.slice(5, 7)),
+			application_on: day(row.application_on),
+			started_on: day(row.leave_from) || eventOn,
+			ended_on: day(row.leave_through),
+			facts,
+			evidenced,
+			award: inputs.award ?? 0,
+			salary: inputs.salary ?? 0,
+			premiums: inputs.premiums ?? 0
+		},
+		phase: { ...blank.phase } as Record<string, string | number>,
+		credits: inputs.credits ?? [],
+		earnings: inputs.earnings ?? [],
+		previous: inputs.previous ?? []
+	};
 	for (const q of type.qualifications ?? [])
-		facts[q.key] = evaluateBoolean(expressionEngine, q.when, base);
-	return { ...base, recorded };
+		facts[q.key] = evaluateBoolean(expressionEngine, q.when, site);
+	return { ...site, recorded };
 }
 export type CaseSite = ReturnType<typeof caseSite>;
 
@@ -248,12 +314,86 @@ export function caseFactsFault(type: BenefitCaseType, row: CaseFacts): string | 
 	return null;
 }
 
-/** The case's compensable days: the case type's `days` over its site. */
+/** One priced phase: its days from the case's first day, and each money figure it declares. */
+export type PricedPhase = {
+	readonly code: string;
+	readonly index: number;
+	readonly start: string;
+	readonly end: string;
+	readonly days: number;
+	readonly award: number;
+	readonly wage: number;
+	/** Signed: a negative figure pays nothing (`employerPays`). */
+	readonly employer_pays: number;
+	readonly reimbursable: number;
+};
+
+/** The phases with days, in order, each running on from the one before; money is not evaluated. */
+function phaseSpans(type: BenefitCaseType, site: CaseSite) {
+	let start = site.case.started_on;
+	const spans: { code: string; index: number; start: string; end: string; days: number }[] = [];
+	for (const [position, phase] of type.phases.entries()) {
+		const at = { code: phase.code, index: position + 1, start, end: '', days: 0, day_index: 0 };
+		const days = evaluateNumber(expressionEngine, phase.days, { ...site, phase: at });
+		if (!Number.isInteger(days) || days < 0)
+			refuse(`The ${type.case_type} ${phase.code} phase establishes no whole days.`);
+		if (days === 0) continue;
+		const end = start === '' ? '' : addDays(start, days - 1);
+		spans.push({ ...at, end, days });
+		start = end === '' ? '' : addDays(end, 1);
+	}
+	return spans;
+}
+
+/** The case's compensable days: the days of its phases. */
 export function compensableDays(type: BenefitCaseType, site: CaseSite): number {
-	const days = evaluateNumber(expressionEngine, type.days, site);
-	if (!Number.isInteger(days) || days <= 0)
-		refuse(`The ${type.case_type} facts establish no whole compensable days.`);
+	const days = phaseSpans(type, site).reduce((total, span) => total + span.days, 0);
+	if (days <= 0) refuse(`The ${type.case_type} facts establish no whole compensable days.`);
 	return days;
+}
+
+/** Every phase with days, priced: each money expression over the site and the phase so far. */
+export function casePhases(
+	type: BenefitCaseType,
+	site: CaseSite,
+	currency?: string
+): PricedPhase[] {
+	const spans = phaseSpans(type, site);
+	if (spans.length === 0)
+		refuse(`The ${type.case_type} facts establish no whole compensable days.`);
+	return spans.map((span) => {
+		const phase = type.phases[span.index - 1]!;
+		const priced: Record<string, string | number> = { ...span, day_index: 0 };
+		const money = (key: string, expression: string | null | undefined) => {
+			priced[key] =
+				expression == null
+					? 0
+					: cents(
+							evaluateNumber(expressionEngine, expression, { ...site, phase: priced }),
+							currency
+						);
+		};
+		money('award', phase.award);
+		money('wage', phase.wage);
+		money('employer_pays', phase.employer_pays);
+		money('reimbursable', phase.reimbursable);
+		return {
+			...span,
+			award: priced['award'] as number,
+			wage: priced['wage'] as number,
+			employer_pays: priced['employer_pays'] as number,
+			reimbursable: priced['reimbursable'] as number
+		};
+	});
+}
+
+/** A signed employer figure as paid: never below nothing. */
+export const employerPays = (signed: number) => Math.max(0, signed);
+
+/** The day the employer must have advanced the award, or '' where the case type declares none. */
+export function advanceDue(type: BenefitCaseType, site: CaseSite): string {
+	const expression = type.advance_due?.trim();
+	return expression ? evaluateDate(expressionEngine, expression, site) : '';
 }
 
 /** Each qualification's standing for this event. */
@@ -277,7 +417,7 @@ export function claimStatuses(type: BenefitCaseType, site: CaseSite): Record<str
 					? 'UNDECLARED'
 					: recorded !== true
 						? 'NOT_CLAIMED'
-						: site.facts[q.key] === true
+						: site.case.facts[q.key] === true
 							? 'DOCUMENTED_FOR_EVENT'
 							: 'DOCUMENT_MISSING_OR_OUTSIDE_EVENT';
 			return [q.key, status];
@@ -383,66 +523,208 @@ const monthFrom = (day: string, offset: number) =>
 		.slice(0, 7);
 
 /**
- * The scheme award a complete statement window supports, before any actual award: the highest
- * credits paid before the window closes, times the compensable days over the daily divisor.
+ * A case's statement window: its months, its close, and the credits paid before the close. Every
+ * month of the window must be recorded; the credits' worth is the phases' `award`, not this.
+ */
+export function windowCredits(
+	type: BenefitCaseType,
+	benefitCase: CaseFacts,
+	evidence: readonly CaseEvidence[] | undefined,
+	months: readonly ContributionMonth[]
+) {
+	const window = type.credits;
+	if (window == null) refuse(`${type.case_type} prices no contribution credits.`);
+	const date = dateKey(benefitCase.event_on);
+	const closesBack = evaluateNumber(
+		expressionEngine,
+		window.closes_months_before_event,
+		caseSite(type, benefitCase, evidence)
+	);
+	const closes = `${monthFrom(date, -closesBack)}-01`;
+	const expected = Array.from({ length: window.months }, (_, index) =>
+		monthFrom(closes, index - window.months)
+	);
+	const byMonth = new Map<string, ContributionMonth>();
+	for (const row of months) {
+		if ((row.scheme_code ?? window.scheme) !== window.scheme) continue;
+		if (row.coverage_month < expected[0]! || row.coverage_month > expected.at(-1)!) continue;
+		validateContributionMonth(row, window.cap);
+		if (byMonth.has(row.coverage_month)) refuse('Duplicate contribution coverage month.');
+		byMonth.set(row.coverage_month, row);
+	}
+	if (expected.some((month) => !byMonth.has(month)))
+		refuse(
+			`A benefit cash calculation needs all ${window.months} ${window.scheme} contribution months.`
+		);
+	const credits: CaseCredit[] = expected
+		.map((month) => byMonth.get(month)!)
+		.filter((row) => row.paid_on != null && dateKey(row.paid_on) < closes)
+		.map((row) => ({
+			period: row.coverage_month,
+			amount: decodeNumber(row.credited_amount),
+			paid_on: dateKey(row.paid_on)
+		}));
+	return {
+		qualifying_window: { from: expected[0]!, through: expected.at(-1)! },
+		window_closes_on: closes,
+		credits
+	};
+}
+
+/** The refusal a case's event and claims earn before any figure is priced, or nothing. */
+function assertPriceable(
+	type: BenefitCaseType,
+	benefitCase: CaseFacts,
+	evidence: readonly CaseEvidence[] | undefined
+) {
+	const date = dateKey(benefitCase.event_on);
+	if (!isCalendarDate(date)) refuse('A benefit case event needs a real calendar date.');
+	if (date < type.min_event_on)
+		refuse(`The ${type.case_type} rules price an event on or after ${type.min_event_on}.`);
+	if (!type.event_kinds.includes(benefitCase.event_kind ?? ''))
+		refuse(`Unknown ${type.case_type} event kind.`);
+	const factFault = caseFactsFault(type, benefitCase);
+	if (factFault != null) refuse(factFault);
+	const unproven = unprovenClaim(type, caseSite(type, benefitCase, evidence));
+	if (unproven != null) refuse(unproven);
+}
+
+/**
+ * The scheme award a complete statement window supports, before any actual award: the case
+ * type's phases priced over the credits paid before the window closes.
  */
 export function calculateBenefitCandidate(input: {
 	readonly case_type: BenefitCaseType;
 	readonly benefit_case: CaseFacts;
 	readonly evidence?: readonly CaseEvidence[] | undefined;
 	readonly months: readonly ContributionMonth[];
+	readonly currency?: string | undefined;
 }) {
 	const type = input.case_type;
-	const date = dateKey(input.benefit_case.event_on);
-	if (!isCalendarDate(date)) refuse('A benefit case event needs a real calendar date.');
-	if (date < type.min_event_on)
-		refuse(`The ${type.case_type} rules price an event on or after ${type.min_event_on}.`);
-	if (!type.event_kinds.includes(input.benefit_case.event_kind ?? ''))
-		refuse(`Unknown ${type.case_type} event kind.`);
-	const factFault = caseFactsFault(type, input.benefit_case);
-	if (factFault != null) refuse(factFault);
-	const site = caseSite(type, input.benefit_case, input.evidence);
-	const unproven = unprovenClaim(type, site);
-	if (unproven != null) refuse(unproven);
-	const closesBack = evaluateNumber(
-		expressionEngine,
-		type.credit_window.ends_months_before_event,
-		site
+	if (type.credits == null) refuse(`${type.case_type} prices no contribution credits.`);
+	assertPriceable(type, input.benefit_case, input.evidence);
+	const window = windowCredits(type, input.benefit_case, input.evidence, input.months);
+	const phases = casePhases(
+		type,
+		caseSite(type, input.benefit_case, input.evidence, { credits: window.credits }),
+		input.currency
 	);
-	const closes = `${monthFrom(date, -closesBack)}-01`;
-	const expected = Array.from({ length: type.credit_window.months }, (_, index) =>
-		monthFrom(closes, index - type.credit_window.months)
-	);
-	const byMonth = new Map<string, ContributionMonth>();
-	for (const row of input.months) {
-		if ((row.scheme_code ?? type.credit_scheme) !== type.credit_scheme) continue;
-		if (row.coverage_month < expected[0]! || row.coverage_month > expected.at(-1)!) continue;
-		validateContributionMonth(row, type.credit_cap);
-		if (byMonth.has(row.coverage_month)) refuse('Duplicate contribution coverage month.');
-		byMonth.set(row.coverage_month, row);
-	}
-	if (expected.some((month) => !byMonth.has(month)))
-		refuse(
-			`A benefit cash calculation needs all ${type.credit_window.months} ${type.credit_scheme} contribution months.`
-		);
-	const paidCredits = expected
-		.map((month) => byMonth.get(month)!)
-		.filter((row) => row.paid_on != null && dateKey(row.paid_on) < closes)
-		.map((row) => Math.round(decodeNumber(row.credited_amount) * 100));
-	const qualified = paidCredits.length >= type.credit_min_count;
-	const top = paidCredits.sort((a, b) => b - a).slice(0, type.credit_top_count);
-	const totalCents = top.reduce((sum, credit) => sum + credit, 0);
-	const days = compensableDays(type, site);
 	return {
-		qualifying_window: { from: expected[0]!, through: expected.at(-1)! },
-		window_closes_on: closes,
-		paid_months: paidCredits.length,
-		contribution_qualified: qualified,
-		total_credit: qualified ? totalCents / 100 : 0,
-		daily_credit: qualified ? totalCents / (type.daily_divisor * 100) : 0,
-		compensable_days: days,
-		candidate_benefit: qualified ? Math.round((totalCents * days) / type.daily_divisor) / 100 : 0
+		qualifying_window: window.qualifying_window,
+		window_closes_on: window.window_closes_on,
+		paid_months: window.credits.length,
+		compensable_days: phases.reduce((total, phase) => total + phase.days, 0),
+		candidate_benefit: cents(
+			phases.reduce((total, phase) => total + phase.award, 0),
+			input.currency
+		),
+		phases
 	};
+}
+
+/**
+ * The whole case priced from what it reads: every phase's days, award, wage, employer pay and
+ * refund, and the employer's outlay and net cost. The employer's outlay is its own pay, plus the
+ * award where the case type has the employer advance it (`advance_due`); the refund comes off it.
+ */
+export function assessCase(input: {
+	readonly case_type: BenefitCaseType;
+	readonly benefit_case: CaseFacts;
+	readonly evidence?: readonly CaseEvidence[] | undefined;
+	readonly inputs: CaseInputs;
+	readonly currency?: string | undefined;
+}) {
+	const type = input.case_type;
+	assertPriceable(type, input.benefit_case, input.evidence);
+	const site = caseSite(type, input.benefit_case, input.evidence, input.inputs);
+	const phases = casePhases(type, site, input.currency);
+	const total = (pick: (phase: PricedPhase) => number) =>
+		cents(
+			phases.reduce((sum, phase) => sum + pick(phase), 0),
+			input.currency
+		);
+	const award = total((phase) => phase.award);
+	const employer = employerPays(total((phase) => phase.employer_pays));
+	const dueOn = advanceDue(type, site);
+	const outlay = cents(employer + (dueOn === '' ? 0 : award), input.currency);
+	const reimbursable = total((phase) => phase.reimbursable);
+	return {
+		compensable_days: phases.reduce((sum, phase) => sum + phase.days, 0),
+		award,
+		wage: total((phase) => phase.wage),
+		employer_pays: employer,
+		reimbursable,
+		advance_due_on: dueOn === '' ? null : dueOn,
+		employer_outlay: outlay,
+		employer_net_cost: cents(outlay - reimbursable, input.currency),
+		phases
+	};
+}
+
+/** Saved pay per month, over the `months` months before the event's month, oldest first. */
+export async function readCaseEarnings(
+	db: Reads,
+	employmentId: string,
+	eventOn: string,
+	months: number
+): Promise<CaseEarning[]> {
+	const from = monthFrom(eventOn, -months);
+	const through = monthFrom(eventOn, -1);
+	const slips = await readAll<{
+		readonly payroll_run_id: string;
+		readonly paid_at?: string | null;
+		readonly gross: unknown;
+	}>(db, 'payslips', { employment_id: { eq: employmentId } }, undefined, {
+		payroll_run_id: true,
+		paid_at: true,
+		gross: true
+	});
+	const paid = slips.filter((slip) => slip.paid_at != null);
+	const runs =
+		paid.length === 0
+			? []
+			: await readAll<{ readonly id: string; readonly period: string }>(
+					db,
+					'payroll_runs',
+					{ id: { in: [...new Set(paid.map((slip) => slip.payroll_run_id))] } },
+					undefined,
+					{ id: true, period: true }
+				);
+	const monthOf = new Map(runs.map((run) => [run.id, periodMonth(run.period)]));
+	// ponytail: gross by the run's month; read history.slips (wage month, classes) when a case type
+	// needs earnings by class or arrears in their own month.
+	const byMonth = new Map<string, number>();
+	for (const slip of paid) {
+		const month = monthOf.get(slip.payroll_run_id);
+		if (month == null || month < from || month > through) continue;
+		byMonth.set(month, (byMonth.get(month) ?? 0) + (decodeNumber(slip.gross) || 0));
+	}
+	return [...byMonth]
+		.toSorted(([left], [right]) => left.localeCompare(right))
+		.map(([period, amount]) => ({ period, amount }));
+}
+
+/** A person's cases before this one, oldest first, as `previous` reads them. */
+export function previousCases(
+	caseId: string,
+	started: string,
+	rows: readonly (CaseFacts & { readonly id: string; readonly case_type: string })[]
+): PreviousCase[] {
+	return rows
+		.flatMap((row) => {
+			const start = day(row.leave_from) || day(row.event_on);
+			if (row.id === caseId || start === '' || (started !== '' && start >= started)) return [];
+			const end = day(row.leave_through);
+			return [
+				{
+					kind: row.case_type,
+					started_on: start,
+					ended_on: end,
+					days: end === '' ? 0 : inclusiveDays(start, end)
+				}
+			];
+		})
+		.toSorted((left, right) => left.started_on.localeCompare(right.started_on));
 }
 
 /** A positive amount to the cent, or NaN. */

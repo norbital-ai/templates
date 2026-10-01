@@ -4,7 +4,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -96,11 +96,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "6cce70cf-cc38-53b3-8f34-e3fcbb5c2957",
@@ -119,7 +129,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -169,7 +183,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e3f7fb22-dd31-5445-ac9a-457ab8c2b3a8",
@@ -199,7 +249,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ff27fe08-8ad2-5a5a-acc8-45497374cc17",
@@ -251,7 +337,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "8e05b3b6-2f9c-566f-bcca-02902fa8397b",
@@ -448,8 +570,8 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -489,7 +611,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -501,7 +624,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -593,11 +716,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "a43e72ab-e989-57d0-af5f-5772a2445293",
@@ -616,7 +749,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -640,7 +777,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -667,7 +805,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "d5bb0987-7bb1-51dc-839e-6625f8243bdf",
@@ -697,7 +871,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "a977372b-727f-5929-a9a1-9172ecfa89c7",
@@ -749,7 +959,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "c8c04e77-8066-5736-91c6-d3be7948b8fb",
@@ -836,7 +1082,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -947,8 +1194,8 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -988,7 +1235,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -1000,7 +1248,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1092,11 +1340,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "2e8e5194-82fc-5b4b-b181-dd85edacfacb",
@@ -1115,7 +1373,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1139,7 +1401,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -1166,7 +1429,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5356a9a6-c8ce-563e-ae1a-a92ed88afc50",
@@ -1196,7 +1495,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e4159bd4-c366-5abe-8b30-631c154ea733",
@@ -1248,7 +1583,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "278e44a0-e7cf-5d40-adcf-ae41a30ac0d8",
@@ -1335,7 +1706,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -1446,8 +1818,8 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -1487,7 +1859,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -1499,7 +1872,7 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1591,11 +1964,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "42bce39c-008c-52bd-b34c-87514acfb70c",
@@ -1614,7 +1997,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1664,7 +2051,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "964fbb90-a878-5807-8f7a-7a8ae7db9943",
@@ -1694,7 +2117,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "504de8b0-40bd-51c7-99b8-a03b187d7f96",
@@ -1746,7 +2205,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "94b564a7-5d71-5582-b3e9-0a515dbc677e",
@@ -1943,8 +2438,8 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -1984,7 +2479,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -1996,7 +2492,7 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2088,11 +2584,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "c5af8dba-5a7f-5c2c-9452-caa7e71696cc",
@@ -2111,7 +2617,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2135,7 +2645,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2162,7 +2673,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "f6cadc3c-8de9-59f6-8361-cb71a41cc438",
@@ -2192,7 +2739,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "fd91804f-b4bc-5c9c-8205-96237c0b6f52",
@@ -2244,7 +2827,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "0ae7aa3b-9960-51cb-8d52-4c9e0ec203a4",
@@ -2331,7 +2950,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2442,8 +3062,8 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -2483,7 +3103,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -2495,7 +3116,7 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2587,11 +3208,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "75620427-e994-5164-837b-fca28a64f641",
@@ -2610,7 +3241,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2634,7 +3269,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2661,7 +3297,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "3fa483fd-e784-52ba-9ba9-a4e3082d7935",
@@ -2691,7 +3363,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "3f8fe24b-f3f8-52ff-99dc-353588e81a17",
@@ -2743,7 +3451,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "555c0f2c-039d-5615-9444-e9de6d97149c",
@@ -2830,7 +3574,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2941,8 +3686,8 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -2982,7 +3727,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -2994,7 +3740,7 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -3086,11 +3832,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "87b8fc62-de7b-5e98-8ce5-85e9c70b597d",
@@ -3109,7 +3865,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3159,7 +3919,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "33b6482e-15dd-5a82-8d6c-23f3328b7324",
@@ -3189,7 +3985,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e5e5e663-aa76-5f2d-9187-2a737df509df",
@@ -3241,7 +4073,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ba543bbc-b696-58ce-aec9-f48c42a8f726",
@@ -3438,8 +4306,8 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -3479,7 +4347,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -3491,7 +4360,7 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -3583,11 +4452,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "d0e5eb45-da3d-5733-bbc9-794b1a8782a0",
@@ -3606,7 +4485,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3630,7 +4513,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -3657,7 +4541,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "b9bd9d87-2a1c-51fa-bdeb-98d581489724",
@@ -3687,7 +4607,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5258b902-3f04-5263-9e67-6c5cf6bf2994",
@@ -3739,7 +4695,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "27b97049-85ed-5c0b-9c95-87e9c916e060",
@@ -3826,7 +4818,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -3937,8 +4930,8 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -3978,7 +4971,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -3990,7 +4984,7 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -4082,11 +5076,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "e9174237-ad38-57c6-bc05-035af5cf1ebe",
@@ -4105,7 +5109,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4129,7 +5137,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4156,7 +5165,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ce284da7-1229-5855-b75d-ec158e7b4e9c",
@@ -4186,7 +5231,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "aac2021f-df3f-5b77-83c1-d4728d97d111",
@@ -4238,7 +5319,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "16f014ad-31fd-5926-ae1d-40d93379a240",
@@ -4325,7 +5442,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4436,8 +5554,8 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -4477,7 +5595,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -4489,7 +5608,7 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -4581,11 +5700,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "599731ff-213a-5755-94ea-58d3fb8fcde0",
@@ -4604,7 +5733,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4655,7 +5788,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5ccfe950-b392-591d-8bf0-9b2f6b90e9c8",
@@ -4685,7 +5854,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "8d52c96a-0254-5ade-8679-023ca871413d",
@@ -4737,7 +5942,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5f41517b-d5e3-5bc8-a157-ad3fdfb3b455",
@@ -4824,7 +6065,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4935,8 +6177,8 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -4976,7 +6218,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -4988,7 +6231,7 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -5080,11 +6323,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "93c33b38-860d-5a6f-888d-c746d0f90c81",
@@ -5103,7 +6356,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5154,7 +6411,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e7254907-3a05-5b4c-a174-b53da0d6ea9a",
@@ -5184,7 +6477,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "9aab635c-434a-5cb5-8ca5-c0b26166b936",
@@ -5236,7 +6565,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "dd294f97-6906-53da-8086-8c2f948a510d",
@@ -5323,7 +6688,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -5434,8 +6800,8 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -5475,7 +6841,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -5487,7 +6854,7 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -5579,11 +6946,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "bcc04fb0-661d-564a-bb61-ab9d41893306",
@@ -5602,7 +6979,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5652,7 +7033,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ca1a9a9e-7963-54b6-a619-1f91a9b2db29",
@@ -5682,7 +7099,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "cef9bcc9-9620-5616-b877-ea108442a7fa",
@@ -5734,7 +7187,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "36c56512-8a65-5273-a2fa-5e63ff14792b",
@@ -5931,8 +7420,8 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -5972,7 +7461,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -5984,7 +7474,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -6076,11 +7566,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "4a35610b-736f-587f-b8f2-fb5c83663c65",
@@ -6099,7 +7599,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6150,7 +7654,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "3def30e8-7235-5104-ae51-dc9a6cc96c0f",
@@ -6180,7 +7720,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "2ba91f88-6e03-55eb-bd15-444de7c23953",
@@ -6232,7 +7808,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "c565fe4d-b877-5e7d-9425-3a222e863c2c",
@@ -6319,7 +7931,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -6430,8 +8043,8 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -6471,7 +8084,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -6483,7 +8097,7 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -6575,11 +8189,21 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "e7a22a98-2897-5426-94bb-e8a0284e612a",
@@ -6598,7 +8222,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6649,7 +8277,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "2fc69ca6-171d-5c98-8d0e-a66f271d005c",
@@ -6679,7 +8343,43 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "7d9c4f55-b386-527b-aa69-b40b7e01c5d9",
@@ -6731,7 +8431,43 @@
 		"is_npl": false,
 		"can_encash": true,
 		"pay_fraction": "event.kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "170674f0-8d7a-5a6d-9ea5-947395cd1590",
@@ -6818,7 +8554,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -6929,8 +8666,8 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
-		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_ground REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"weekly_days": 2,
@@ -6970,7 +8707,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,

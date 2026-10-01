@@ -14,11 +14,25 @@
  * selected without re-reading the payslip.
  */
 
-import type { FamilyPayItem, PricedItem } from '../../../lib/payroll/family.js';
+import {
+	baseLine,
+	type FamilyPayItem,
+	type MeasuredBase,
+	type PricedItem
+} from '../../../lib/payroll/family.js';
+import type { CatalogueComponent } from './configuration.js';
+import {
+	evaluateBoolean,
+	evaluateNumber,
+	expressionEngine,
+	type ExpressionEngine
+} from '../../expressions/evaluate.js';
+import { cents } from './rounding.js';
 import { leaveRowCode } from '../../../lib/leave/codes.js';
 import { INCENTIVE_LINE } from '../../../lib/payroll/work-bands.js';
 import { CATALOGUE_WORDS, type CatalogueWord } from '../../../lib/expressions/contexts.js';
 import { decodeNumber } from '../../wire.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
@@ -193,6 +207,13 @@ export function accumulatePayslip(options: {
 				familyOf.set(rowCode, 'LEAVE');
 				countsTowardOf.set(rowCode, []);
 			}
+			// A derived line (`work_rules.derived_lines`) is a reserved magnitude and its own code, so
+			// a scheme can leave a top-up out of its wage (`BASE - code('MW_TOP_UP')`).
+			if ((item.catalogueComponent.output ?? '').startsWith(`${DERIVED_LINE}:`)) {
+				codes.set(code, (codes.get(code) ?? 0) + item.amount);
+				familyOf.set(code, 'WORK');
+				countsTowardOf.set(code, []);
+			}
 			if (reserved === 'OVERTIME') {
 				// The incentive slice — the planned hours beyond the statutory limits — is its own
 				// magnitude too, for a law that taxes the overrun (VN Decree 253/2026 art.26(3)). Its
@@ -305,7 +326,7 @@ export function catalogueWords(
  */
 export type MonthPrior = {
 	readonly accumulation: AccumulatedPayslip;
-	/** Ordinary charges and base, with authority-directed instalments tracked separately. */
+	/** Ordinary charges and base. */
 	readonly charged: ReadonlyMap<
 		string,
 		{
@@ -313,7 +334,6 @@ export type MonthPrior = {
 			employer: number;
 			base: number;
 			ordinary: number;
-			directed?: number | undefined;
 			rebate?: number | undefined;
 		}
 	>;
@@ -373,4 +393,77 @@ export function accumulateSettledPayslip(
 		} as PricedItem & { readonly quantity?: number | null };
 	});
 	return accumulatePayslip({ items, ordinaryHour });
+}
+
+/**
+ * E6 — a pay line the period's totals decide (`work_rules.derived_lines`): a minimum-wage top-up,
+ * a guaranteed minimum, a per-output premium. `amount` is a money expression and `when` a boolean,
+ * both over the person site, the reserved lines (`BASE`, `DAY_PAY`, …), `code('X')` and
+ * `day_facts.<key>` (the period's totals of the declared numeric `work_day_facts`). `component`
+ * is the reserved line the money feeds: `BASE` (normal-time wages, the default) or `DAY_PAY`.
+ */
+export type DerivedLine = {
+	readonly code: string;
+	readonly when?: string | null | undefined;
+	readonly amount: string;
+	readonly component?: 'BASE' | 'DAY_PAY' | null | undefined;
+};
+
+/** The Work item output a derived line settles under: `derived:<code>`. */
+export const DERIVED_LINE = 'derived';
+
+/**
+ * The derived lines of one payslip, in declaration order, each read after the work, leave and
+ * money lines and after the derived lines before it — so a second line sees the first. A line
+ * whose `when` is false or whose amount is not positive is not written. Money is rounded to the
+ * currency's minor unit; any other rounding is the expression's own (`round(x, step, mode)`).
+ */
+export function deriveLines(options: {
+	readonly rules: readonly DerivedLine[];
+	readonly items: readonly PricedItem[];
+	/** The version's catalogue: every derived line has its `derived:<code>` Work item there. */
+	readonly components: readonly CatalogueComponent[];
+	/** The person-site object of the payslip (`personContext`), plus `day_facts`. */
+	readonly context: Readonly<Record<string, unknown>>;
+	readonly currency: string;
+	readonly ordinaryHour?: number | undefined;
+	readonly engine?: ExpressionEngine | undefined;
+}): MeasuredBase[] {
+	const derived: MeasuredBase[] = [];
+	for (const rule of options.rules) {
+		const output = `${DERIVED_LINE}:${rule.code}`;
+		const component = options.components.find((row) => row.output === output);
+		if (component == null)
+			throw new Error(`The derived line ${rule.code} has no Work item in this version.`);
+		const accumulation = accumulatePayslip({
+			items: [...options.items, ...derived],
+			ordinaryHour: options.ordinaryHour
+		});
+		const engine: ExpressionEngine = {
+			...(options.engine ?? expressionEngine),
+			code: (code) => accumulation.codes.get(code) ?? 0
+		};
+		const context = { ...options.context, ...accumulation.reserved };
+		const when = (rule.when ?? '').trim();
+		if (when !== '' && !evaluateBoolean(engine, when, context)) continue;
+		const amount = cents(evaluateNumber(engine, rule.amount, context), options.currency);
+		if (amount > 0) derived.push(baseLine(component, 'EARNING', amount));
+	}
+	return derived;
+}
+
+/** `day_facts.<key>`: each numeric work-day fact summed over the days inside the window. */
+export function dayFactTotals(
+	days: readonly { readonly date: string; readonly facts?: unknown }[],
+	window: { readonly start: string; readonly end: string }
+): Record<string, number> {
+	const totals: Record<string, number> = {};
+	for (const day of days) {
+		if (day.date < window.start || day.date > window.end) continue;
+		if (!Predicate.isObjectOrArray(day.facts)) continue;
+		for (const [key, value] of Object.entries(day.facts))
+			if (Predicate.isNumber(value) && Number.isFinite(value))
+				totals[key] = (totals[key] ?? 0) + value;
+	}
+	return totals;
 }

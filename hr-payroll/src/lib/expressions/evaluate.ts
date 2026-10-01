@@ -8,7 +8,7 @@
  */
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
-import { roundMoney, type RoundingMethod } from '../../lib/payroll/run/rounding.js';
+import type { RoundMode } from '../../lib/payroll/run/rounding.js';
 import { addDays, exactMonths, monthDay } from '../../lib/payroll/run/dates.js';
 import { isCalendarDate } from '../iso-day.js';
 import {
@@ -39,10 +39,19 @@ import {
 	leaveTaken,
 	leaveDays,
 	onLeave,
+	presenceDaysIn,
 	serviceDaysBefore,
 	serviceMonthsNet
 } from './person-functions.js';
 import * as Predicate from 'effect/Predicate';
+import { decodeNumber } from '../wire.js';
+import { REGISTERED_FUNCTIONS } from './functions/index.js';
+import type { SpanDay } from './functions/spans.js';
+import { tablesIn, type TableLookup } from './functions/tables.js';
+import type { CompanyAccess } from './functions/company.js';
+import { historyIn } from './functions/history.js';
+import { evaluationObserver } from '../trace/observer.js';
+import type { HistoryAccess } from '../payroll/history.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -67,10 +76,22 @@ export type ExpressionEngine = {
 		((code: string, monthsBack: number, months: number) => number) | undefined;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
 	readonly daysUnder?: ((age: number) => number) | undefined;
-	/** Covered days on a thirty-day calendar; age 0 leaves coverage uncapped by age. */
-	readonly coverageDays30?: ((since: string, age: number) => number) | undefined;
-	/** Replaces every money rounding (`round_unit`, `floor_unit`, …): a caller that rounds a blend once. */
-	readonly round?: ((value: number, method: RoundingMethod) => number) | undefined;
+	/** `run_hours_before_rest(minutes)`: a work day's hours before its first rest of at least `minutes`. */
+	readonly runHoursBeforeRest?: ((minutes: number) => number) | undefined;
+	/** Covered days on a `monthDays`-day insurance calendar; age 0 leaves coverage uncapped by age. */
+	readonly coverageDays?: ((since: string, age: number, monthDays: number) => number) | undefined;
+	/** Replaces every `round(value, step, mode)`: a caller that rounds a blend once. */
+	readonly round?:
+		| ((value: number, rounding: { readonly step: number; readonly mode: RoundMode }) => number)
+		| undefined;
+	/** The person's day on a `YYYY-MM-DD` date, for `span(...)` counts and `days()`; none reads every kind as empty. */
+	readonly calendar?: ((date: string) => SpanDay | undefined) | undefined;
+	/** The version's reference tables on this evaluation's resolution date (`table()`, `band()`, `bands()`). */
+	readonly tables?: TableLookup | undefined;
+	/** The person's saved past (`history.slips|days|leave|terms|external(…)`); none refuses. */
+	readonly history?: HistoryAccess | undefined;
+	/** The entity's employments (`company.headcount_on(…)`, `company.year.headcount_average(…)`); none refuses. */
+	readonly company?: CompanyAccess | undefined;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
@@ -113,21 +134,6 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		}
 	],
 	[
-		'round_cent(dyn): double',
-		(value) => (bound.round ?? roundMoney)(Number(value), 'NEAREST_CENT')
-	],
-	[
-		'truncate_cent(dyn): double',
-		(value) => (bound.round ?? roundMoney)(Number(value), 'TRUNCATE_CENT')
-	],
-	['up_5_cents(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'UP_5_CENTS')],
-	[
-		'round_unit(dyn): double',
-		(value) => (bound.round ?? roundMoney)(Number(value), 'NEAREST_UNIT')
-	],
-	['floor_unit(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'FLOOR_UNIT')],
-	['up_to_unit(dyn): double', (value) => (bound.round ?? roundMoney)(Number(value), 'UP_TO_UNIT')],
-	[
 		'progressive(dyn, list<dyn>): double',
 		(value, table) => {
 			const amount = Number(value);
@@ -153,6 +159,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.age_on(string): int', ageOn],
 	['map.birthday(int): string', birthday],
 	['map.age_months_on(string): int', ageMonthsOn],
+	['map.presence_days_in(int): int', presenceDaysIn],
 	['map.taken(string): double', leaveTaken],
 	['map.earned_monthly_average(int): double', earnedMonthlyAverage],
 	['map.piece_wages_last_workdays(int): double', pieceWagesLastWorkdays],
@@ -171,8 +178,13 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.payday_notice_days(dyn, dyn, dyn): double', paydayNoticeDays],
 	['days_under(int): double', (age) => bound.daysUnder?.(Number(age)) ?? 0],
 	[
-		'coverage_days_30(string, int): double',
-		(since, age) => bound.coverageDays30?.(String(since), Number(age)) ?? 0
+		'run_hours_before_rest(double): double',
+		(minutes) => bound.runHoursBeforeRest?.(decodeNumber(minutes)) ?? 0
+	],
+	[
+		'coverage_days(string, int, int): double',
+		(since, age, monthDays) =>
+			bound.coverageDays?.(String(since), Number(age), Number(monthDays)) ?? 0
 	],
 	['map.days(string): double', leaveDays],
 	[
@@ -223,7 +235,12 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 		earnedDailyExcess: options.earnedDailyExcess,
 		earnedAverage: options.earnedAverage,
 		daysUnder: options.daysUnder,
-		coverageDays30: options.coverageDays30
+		runHoursBeforeRest: options.runHoursBeforeRest,
+		coverageDays: options.coverageDays,
+		calendar: options.calendar,
+		tables: options.tables,
+		history: options.history,
+		company: options.company
 	};
 }
 
@@ -244,6 +261,10 @@ const environment = new Environment({
 	homogeneousAggregateLiterals: false
 });
 for (const [signature, handler] of OPS) environment.registerFunction(signature, handler);
+for (const entry of REGISTERED_FUNCTIONS)
+	environment.registerFunction(entry.signature, (...args: unknown[]) =>
+		entry.handler(bound, ...args)
+	);
 
 const programs = new Map<string, ParseResult>();
 const PROGRAM_CAP = 65_536;
@@ -257,19 +278,48 @@ export function programFor(expression: string): ParseResult {
 	return program;
 }
 
-function evaluateExpression(
-	engine: ExpressionEngine,
-	expression: string,
-	context: object
-): unknown {
+/** One evaluation, or, inside a line trace scope (`lib/trace/record.ts`), the observer's recording of it. */
+function run(engine: ExpressionEngine, expression: string, context: object): unknown {
+	const observe = evaluationObserver();
+	return observe == null
+		? evaluateBound(engine, expression, context)
+		: observe(engine, expression, context, (traced) => evaluateBound(traced, expression, context));
+}
+
+let evaluations = 0;
+/** How many expressions this isolate has evaluated: the operation count a payroll run's cost guard bounds. */
+export const evaluationCount = (): number => evaluations;
+
+/** A program with `engine` bound; an engine that binds no tables or history borrows the context's (`TABLES`, `HISTORY`). */
+function evaluateBound(engine: ExpressionEngine, expression: string, context: object): unknown {
+	evaluations += 1;
 	const program = programFor(expression);
+	const tables = engine.tables ?? tablesIn(context);
+	const history = engine.history ?? historyIn(context);
 	const previous = bound;
-	bound = engine;
+	bound =
+		tables === engine.tables && history === engine.history
+			? engine
+			: { ...engine, tables, history };
 	try {
 		return program(context);
 	} finally {
 		bound = previous;
 	}
+}
+
+/** One evaluation with `engine` bound: what every typed evaluator and the write-time compiler run. */
+export function evaluateExpression(
+	engine: ExpressionEngine,
+	expression: string,
+	context: object
+): unknown {
+	return run(engine, expression, context);
+}
+
+/** One evaluation under the engine already bound: a person read inside another evaluation keeps it. */
+export function evaluateUnderBound(expression: string, context: object): unknown {
+	return run(bound, expression, context);
 }
 
 export function evaluateNumber(
@@ -293,6 +343,20 @@ export function evaluateBoolean(
 	const value = evaluateExpression(engine, expression, context);
 	if (!Predicate.isBoolean(value))
 		throw new Error(`The expression "${expression}" produced ${String(value)}, not a boolean.`);
+	return value;
+}
+
+/** The same, for the sites that require a `YYYY-MM-DD` date (a duty's `due`). */
+export function evaluateDate(
+	engine: ExpressionEngine,
+	expression: string,
+	context: object
+): string {
+	const value = evaluateExpression(engine, expression, context);
+	if (!Predicate.isString(value) || !isCalendarDate(value))
+		throw new Error(
+			`The expression "${expression}" produced ${String(value)}, not a YYYY-MM-DD day.`
+		);
 	return value;
 }
 

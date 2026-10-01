@@ -2,7 +2,7 @@ import { customField } from '@norbital-ai/bolt';
 
 const f = customField({
 	description:
-		'The statutory schemes charged on a payslip (or a run): each the code and authority of the scheme, the wage it was charged on, what it took from the employee (negative where a year-end rung refunds), what it cost the employer, the directed instalments inside the employee share, and the rule condition it was read from.',
+		'The statutory schemes charged on a payslip (or a run): each the code and authority of the scheme, the wage it was charged on, what it took from the employee (negative where a year-end rung refunds), what it cost the employer, and the rule condition it was read from.',
 	shape: {
 		kind: 'list',
 		of: {
@@ -22,7 +22,6 @@ const f = customField({
 				},
 				employee_amount: { kind: 'number' },
 				employer_amount: { kind: 'number' },
-				directed_amount: { kind: 'number', optional: true },
 				rebate_amount: { kind: 'number', optional: true },
 				rule_when: { kind: 'text', optional: true },
 				/** The amount was assessed from dated, single-payment facts. */

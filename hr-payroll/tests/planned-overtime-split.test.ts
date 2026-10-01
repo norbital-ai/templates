@@ -190,7 +190,7 @@ test('ID: holiday and rest-day overtime stay outside the 4 h a day and the 18 h 
 });
 
 test('MY: the 104-hour cap excludes rest days and public holidays, including substitutes', () => {
-	for (const code of ['MY', 'MY-nihon'])
+	for (const code of ['MY'])
 		for (const version of settingsVersions(code)) {
 			const limits = applicableLimits(version.work_rules.limits, null);
 			// EA s.60A(4)(a), first proviso: 100 ordinary hours, then rest-day and gazetted/
@@ -286,17 +286,18 @@ test('the month is the assessment window: with a 21st cutoff the 20th and the 21
 	]);
 });
 
-test('headroom is floored to the half hour, so both entries stay in half-hour steps', () => {
+test('headroom is floored to overtime_unit_hours, so both entries stay on the keying step', () => {
 	const split = splitPlannedOvertime({
 		days: [work(dayOf(1), 4, { paid_minutes: 555 })],
-		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)]
+		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)],
+		unitHours: 0.5
 	});
 	// 12 − 9.25 = 2.75 → 2.5 within, 1.5 incentive.
 	assert.deepEqual(pairs(split), [[dayOf(1), 2.5, 1.5]]);
 });
 
-test('MY-nihon: the s.60A(7) twelve hours of work bound every day — ordinary, off, rest and holiday', () => {
-	for (const version of settingsVersions('MY-nihon')) {
+test('MY: the s.60A(7) twelve hours of work bound every day — ordinary, off, rest and holiday', () => {
+	for (const version of settingsVersions('MY')) {
 		const limits = applicableLimits(version.work_rules.limits, null);
 		// 6 h on a 7.5-hour shift is 4.5 within twelve and 1.5 incentive; 14 h on an OFF or a rest
 		// day is 12 and 2; so is 14 h on a holiday, whose shift is not worked on top of its plan.

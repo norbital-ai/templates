@@ -10,7 +10,12 @@ import test from 'node:test';
 import lateArrival from '../src/automation/+late_arrival_notice.automation.ts';
 
 const d = (day) => ({ $d: day });
-const COMPANY = { id: 'company:1', name: 'Public Fixture Co', settings_code: 'TEST' };
+const COMPANY = {
+	id: 'company:1',
+	name: 'Public Fixture Co',
+	settings_code: 'TEST',
+	late_arrival_grace_minutes: 15
+};
 const VERSION = {
 	id: 'version:1',
 	code: 'TEST',
@@ -47,9 +52,14 @@ const workDay = (overrides = {}) => ({
 });
 
 /** The run over planted rows at an instant: what it notified, scheduled and returned. */
-async function run({ now = '2026-09-22T00:45:00.000Z', workDays = [], leave = [] } = {}) {
+async function run({
+	now = '2026-09-22T00:45:00.000Z',
+	workDays = [],
+	leave = [],
+	company = COMPANY
+} = {}) {
 	const rows = {
-		companies: [COMPANY],
+		companies: [company],
 		jurisdiction_settings: [VERSION],
 		shift_definitions: SHIFTS,
 		employments: [EMPLOYMENT],
@@ -127,4 +137,19 @@ test('the run schedules itself for the next shift start plus the grace, under on
 	assert.deepEqual(scheduled, [
 		{ name: 'late_arrival_notice', input: {}, at: '2026-09-22T00:45:00.000Z', key: 'late_arrival' }
 	]);
+});
+
+test("the grace is the company's own policy: thirty minutes moves the reminder from 08:45 to 09:00", async () => {
+	// 08:30 in Kuala Lumpur is 00:30Z; plus thirty minutes is 01:00Z.
+	const company = { ...COMPANY, late_arrival_grace_minutes: 30 };
+	const early = await run({ workDays: [workDay()], now: '2026-09-22T00:45:00.000Z', company });
+	assert.equal(early.result.reminded, 0);
+	assert.deepEqual(early.scheduled, [
+		{ name: 'late_arrival_notice', input: {}, at: '2026-09-22T01:00:00.000Z', key: 'late_arrival' }
+	]);
+	assert.equal(
+		(await run({ workDays: [workDay()], now: '2026-09-22T01:00:00.000Z', company })).result
+			.reminded,
+		1
+	);
 });

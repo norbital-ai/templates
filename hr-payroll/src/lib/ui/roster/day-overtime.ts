@@ -41,6 +41,7 @@ export function windowOvertime(options: {
 	readonly observed: ObservedDays;
 	readonly limits: HeadroomOptions['limits'];
 	readonly cutoffDay: number;
+	readonly unitHours: HeadroomOptions['unitHours'];
 }): OvertimeMaximum | null {
 	const byDate = new Map(options.stored.map((day) => [day.date, day]));
 	const days: HeadroomOptions['days'][number][] = [];
@@ -63,8 +64,11 @@ export function windowOvertime(options: {
 		});
 	}
 	return (
-		overtimeHeadroom({ days, limits: options.limits, cutoffDay: options.cutoffDay }).maximum.get(
-			options.date
-		) ?? null
+		overtimeHeadroom({
+			days,
+			limits: options.limits,
+			cutoffDay: options.cutoffDay,
+			unitHours: options.unitHours
+		}).maximum.get(options.date) ?? null
 	);
 }

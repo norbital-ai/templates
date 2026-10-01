@@ -8,6 +8,8 @@ import {
 import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import {
 	accumulateSettledPayslip,
+	dayFactTotals,
+	deriveLines,
 	sumAccumulations,
 	type AccumulatedPayslip,
 	type QuantityPayment,
@@ -52,7 +54,7 @@ import {
 } from '../expressions/person-functions.js';
 import type { PayslipProration } from '../datatypes/payslip_proration.js';
 import type { InLieuSlice, PayrollTrace } from '../datatypes/payroll_trace.js';
-import type { PayslipWageMonth } from './reference-wages.js';
+import type { PayslipWageMonth } from './history.js';
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
@@ -82,8 +84,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const unpaidDaysIn = (window: { readonly start: string; readonly end: string }) =>
 			unpaidLeaveDays(bundle.leave, window);
 		const currency = configuration.jurisdiction.payroll.currency;
-		const finalDate = employmentDates(bundle.employment).exit;
-		if (finalDate == null) throw new Error('An ended contract requires a final service date.');
+		// An OFF_CYCLE or CORRECTION run takes this branch for a person still employed (engine.ts
+		// `population`): their requests are priced on the window's last day.
+		const finalDate = employmentDates(bundle.employment).exit ?? options.salary.end;
 		const leave = calculateLeavePayroll({
 			prepared: bundle.leave,
 			window: options.salary,
@@ -460,6 +463,29 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	}
 
 	adjustments.push(...workAttendance.adjustments);
+	// E6: the lines the period's totals decide, read after every work, leave and money line.
+	const derivedLines = configuration.jurisdiction.work_rules.derived_lines ?? [];
+	if (derivedLines.length > 0)
+		for (const line of deriveLines({
+			rules: derivedLines,
+			items: [...base, ...adjustments],
+			components: configuration.catalogueComponents,
+			context: {
+				...subject,
+				day_facts: dayFactTotals(
+					bundle.workDays.map((day) => ({ date: dateKey(day.work_date), facts: day.facts })),
+					attendance
+				)
+			},
+			currency,
+			ordinaryHour: hourlyRate
+		})) {
+			base.push(line);
+			componentAmounts.set(
+				line.catalogueComponent.code,
+				(componentAmounts.get(line.catalogueComponent.code) ?? 0) + line.amount
+			);
+		}
 
 	const repaymentRecoveries = options.deferredWagesOnly
 		? []
@@ -664,7 +690,7 @@ import { prepareMoneyConsumption } from './money.js';
 import { prepareAllowanceSteps } from './allowances.js';
 import { contractAllowancesOn } from './contract-allowances.js';
 import { contributionYearToDate } from './contribution.js';
-import { buildStatutoryHistory } from './statutory-history.js';
+import { buildStatutoryHistory } from './history.js';
 import type { PayrollWorld } from './world.js';
 
 /**
@@ -692,7 +718,6 @@ function monthPriorOf(options: {
 					employer: number;
 					base: number;
 					ordinary: number;
-					directed: number;
 					rebate: number;
 				}
 			>;
@@ -712,7 +737,6 @@ function monthPriorOf(options: {
 					employer: number;
 					base: number;
 					ordinary: number;
-					directed: number;
 					rebate: number;
 				}
 			>()
@@ -724,16 +748,13 @@ function monthPriorOf(options: {
 				employer: 0,
 				base: 0,
 				ordinary: 0,
-				directed: 0,
 				rebate: 0
 			};
-			const directed = charge.directed_amount ?? 0;
 			entry.charged.set(charge.scheme_code, {
-				employee: running.employee + charge.employee_amount - directed,
+				employee: running.employee + charge.employee_amount,
 				employer: running.employer + charge.employer_amount,
 				base: running.base + charge.base_amount,
 				ordinary: running.ordinary + (charge.ordinary_amount ?? 0),
-				directed: running.directed + directed,
 				rebate: running.rebate + (charge.rebate_amount ?? 0)
 			});
 		}
@@ -1151,7 +1172,12 @@ export function calculateFamilyAssessments(options: {
 			gathered.paidWagesByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const wages = calculateFamilies({
 			bundle,
-			configuration: atWorksite(configuration, bundle.termsHistory),
+			configuration: atWorksite(
+				configuration,
+				bundle.termsHistory,
+				bundle.workDays,
+				bundle.employee
+			),
 			period,
 			salary: bundle.window.salary,
 			periodsRemaining: projection.payslipsRemaining,
@@ -1257,7 +1283,9 @@ export function calculateFamilyAssessments(options: {
 				paidWagesByMonth,
 				monthPrior: gathered.monthPrior.get(
 					`${run.measured.bundle.employment.employee_id}:${period.slice(0, 7)}`
-				)
+				),
+				history: run.measured.bundle.history,
+				company: gathered.company
 			})
 		})
 	);
@@ -1272,7 +1300,8 @@ export function calculateFamilyAssessments(options: {
 		window,
 		period,
 		accumulations: measuredContracts.map(({ calculation }) => calculation.accumulation),
-		charges: [...chargesByEmployment.values()].flat()
+		charges: [...chargesByEmployment.values()].flat(),
+		company: gathered.company
 	});
 	return { measuredContracts, chargesByEmployment, companyCharges, issues };
 }

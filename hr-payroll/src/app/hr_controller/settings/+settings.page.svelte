@@ -2,14 +2,15 @@
 	/**
 	 * The jurisdiction configuration app: one version of one settings lineage (MY, SG, …), chosen in the header, shared
 	 * by every entity bound to the lineage. Tabs: the version itself (its facts and work rules, the collection's record
-	 * view), statutory contributions, the five money catalogues, and the comparison of two snapshots. The header also carries the version's lifecycle: a new draft cloned from it, its seal, a wrong seal's
-	 * void. A sealed version is law that has frozen: no table under it offers a create.
+	 * view, whose header carries the version's lifecycle: a new draft cloned from it, its seal, a wrong seal's void),
+	 * statutory contributions, the five money catalogues, and the comparison of two snapshots. A sealed version is law
+	 * that has frozen: no table under it offers a create.
 	 */
 	import { t } from '../../../lib/ui/t.js';
 	import { Toaster } from 'svelte-sonner';
 	import { AppShell, Inline } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Combobox, RecordShell, Spinner, Table, Tabs } from '@norbital-ai/ui';
+	import { Combobox, EmptyState, RecordShell, Spinner, Table, Tabs } from '@norbital-ai/ui';
 	import { newestFirst } from '../../../lib/jurisdiction_settings.js';
 	import {
 		jurisdictionOptions,
@@ -17,7 +18,8 @@
 		resolveJurisdictionScope
 	} from './jurisdiction-scope.svelte.js';
 	import SnapshotChanges from './SnapshotChanges.svelte';
-	import VersionLifecycle from './VersionLifecycle.svelte';
+	import { setContext } from 'svelte';
+	import { CHOOSE_SETTINGS_VERSION } from '../../../lib/ui/settings-version-lifecycle.svelte';
 
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
@@ -38,6 +40,8 @@
 		['loan_catalogue', 'lucide:landmark']
 	] as const;
 	type Catalogue = (typeof CATALOGUES)[number][0];
+	// a clone from the version's own actions shows the new draft here
+	setContext(CHOOSE_SETTINGS_VERSION, (id: Id<'jurisdiction_settings'>) => (chosen = id));
 </script>
 
 {#snippet general()}
@@ -126,7 +130,7 @@
 {#snippet loanTab()}{@render catalogue('loan_catalogue')}{/snippet}
 
 {#snippet changes()}
-	{#if version}<SnapshotChanges code={version.code} {versions} selectedVersion={version} />{/if}
+	{#if version}<SnapshotChanges {versions} selectedVersion={version} />{/if}
 {/snippet}
 
 <Toaster />
@@ -145,16 +149,13 @@
 			value={scope?.versionId ?? null}
 			onChange={(next) => (chosen = next)}
 		/>
-		{#if version}
-			<VersionLifecycle {version} lineage={versions} onChosen={(id) => (chosen = id)} />
-		{/if}
 	{/snippet}
 	{#if all.current === undefined}
 		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
 			<Spinner class="size-4" /><span>{t('component.loading')}</span>
 		</Inline>
 	{:else if scope == null}
-		<p class="py-6 text-sm text-muted-foreground">{t('app.settings.choose_jurisdiction_empty')}</p>
+		<EmptyState title={t('app.settings.choose_jurisdiction_empty')} />
 	{:else}
 		<Tabs
 			tabs={[

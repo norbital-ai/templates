@@ -215,7 +215,7 @@ const chain = (options: {
 				people: [
 					options.exit == null
 						? PERSON
-						: { ...PERSON, exit_date: options.exit, exit_reason: 'RESIGNATION' }
+						: { ...PERSON, exit_date: options.exit, exit_ground: 'RESIGNATION' }
 				]
 			},
 			(world) => {

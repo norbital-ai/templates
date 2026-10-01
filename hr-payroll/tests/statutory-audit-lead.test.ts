@@ -30,7 +30,7 @@ function vnSeverance(windowMonths: number | null, incompleteHistory = false): nu
 					citizenship: 'CITIZEN',
 					hire_date: '2023-06-01',
 					exit_date: '2026-06-30',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					registrations: { UI: { kind: 'NOT_REGISTERED' } }
 				}
 			]

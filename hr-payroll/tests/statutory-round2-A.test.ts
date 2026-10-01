@@ -74,7 +74,7 @@ const settled = (
 	});
 
 test('MY EA s.24(8): deductions in a month stay within half the wages, statutory deductions counted', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		// Wages 3,000 → s.24(8) half = 1,500; EPF/SOCSO/EIS/MTD 400 are s.24(2)(d) deductions under
 		// the section, leaving 1,100. Loans 700 then 500 = 1,200 > 1,100: the last recovery (500) is
 		// dropped whole and stays outstanding; 700 ≤ 1,100 fits.
@@ -307,7 +307,7 @@ const vnLate = (exit: string, holidays: readonly string[] = []) =>
 					key: 'VN-LEAVER',
 					wage: 10_000_000,
 					exit_date: exit,
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					citizenship: 'CITIZEN',
 					registrations: {
 						PIT: {
@@ -349,7 +349,7 @@ test('SG EA s.23: a resignation with notice served is paid on the last day, with
 				code: 'SG',
 				period: '2026-01',
 				people: [
-					{ key: 'SG-QUIT', wage: 6000, exit_date: '2026-01-10', exit_reason: 'RESIGNATION' }
+					{ key: 'SG-QUIT', wage: 6000, exit_date: '2026-01-10', exit_ground: 'RESIGNATION' }
 				]
 			},
 			(world) => {
@@ -377,7 +377,7 @@ test('SG EA s.22: employer exit is payable immediately unless same-day payment w
 				code: 'SG',
 				period: '2026-01',
 				people: [
-					{ key: 'SG-DISMISSED', wage: 6000, exit_date: '2026-01-23', exit_reason: 'DISMISSAL' }
+					{ key: 'SG-DISMISSED', wage: 6000, exit_date: '2026-01-23', exit_ground: 'DISMISSAL' }
 				]
 			},
 			(world) => {
@@ -450,7 +450,7 @@ async function exitPayout(code: string, exitReason: string, facts: Record<string
 	const employment = {
 		...context.employments[0],
 		employee_number: 'E-1',
-		exit_reason: exitReason,
+		exit_ground: exitReason,
 		approval_id: null
 	};
 	const rows = {
@@ -484,7 +484,7 @@ async function exitPayout(code: string, exitReason: string, facts: Record<string
 }
 
 test('MY s.60E(3A) proviso and SG s.88A(8): a misconduct dismissal gets no annual-leave pay-out; every other departure does', async () => {
-	for (const code of ['MY', 'MY-nihon', 'SG']) {
+	for (const code of ['MY', 'SG']) {
 		assert.equal(await exitPayout(code, 'DISMISSAL', { misconduct_dismissal: true }), 0, code);
 		// Unrecorded on a dismissal is refused, not read as "no misconduct" (round 5, D15).
 		await assert.rejects(

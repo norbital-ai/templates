@@ -1,6 +1,11 @@
 import { isEligible, scalarFacts, type PersonContext } from '../lib/payroll/run/eligibility.js';
 import { refuse } from './refuse.js';
-import { factScalar, factValueFault, type FactKey } from './datatypes/fact_keys.js';
+import {
+	factScalar,
+	factValueFault,
+	type CodeResolver,
+	type FactKey
+} from './datatypes/fact_keys.js';
 import { coversDate } from '../lib/payroll/run/effective.js';
 import { EMPTY_OF } from './expressions/compile.js';
 import { evaluateBoolean, expressionEngine } from './expressions/evaluate.js';
@@ -9,14 +14,17 @@ import * as Predicate from 'effect/Predicate';
 /**
  * Validate supplied values without inventing a declaration for missing data. `complete` is the
  * calculation's check: a required value must be present, and a value whose declaration demands
- * evidence counts only where `evidenced` says its evidence is recorded (no answer is none).
+ * evidence counts only where `evidenced` says its evidence is recorded (no answer is none). With
+ * `codes`, a `code` value must be a row of its table in force on the caller's date, under the code
+ * its `parent_fact` holds.
  */
 export function factValuesFault(
 	fields: readonly FactKey[],
 	values: Readonly<Record<string, unknown>>,
 	complete = false,
 	when?: (expression: string) => boolean,
-	evidenced?: (key: string) => boolean
+	evidenced?: (key: string) => boolean,
+	codes?: CodeResolver
 ): string | null {
 	for (const field of fields) {
 		const value = Object.hasOwn(values, field.key) ? values[field.key] : undefined;
@@ -27,8 +35,15 @@ export function factValuesFault(
 		)
 			return `${field.label?.trim() || field.key} is required before calculation.`;
 		if (value !== undefined) {
-			const fault = factValueFault(field, value);
+			const fault = factValueFault(field, value, codes);
 			if (fault != null) return fault;
+			const parent = field.parent_fact == null ? undefined : values[field.parent_fact];
+			if (
+				codes != null &&
+				parent !== undefined &&
+				codes(field.table ?? '', String(value))?.parent_code !== parent
+			)
+				return `${field.label?.trim() || field.key} ${String(value)} does not belong under ${field.parent_fact} ${String(parent)}.`;
 			if (field.valid_when != null && when != null && !when(field.valid_when))
 				return (
 					field.validation_message?.trim() ||
@@ -51,9 +66,10 @@ export function requireFactValues(
 	values: Readonly<Record<string, unknown>>,
 	scope: string,
 	when?: (expression: string) => boolean,
-	evidenced?: (key: string) => boolean
+	evidenced?: (key: string) => boolean,
+	codes?: CodeResolver
 ): void {
-	const fault = factValuesFault(fields, values, true, when, evidenced);
+	const fault = factValuesFault(fields, values, true, when, evidenced, codes);
 	if (fault != null) refuse(`${scope}: ${fault}`);
 }
 

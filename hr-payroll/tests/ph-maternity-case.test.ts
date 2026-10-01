@@ -314,8 +314,10 @@ test('PH saved cash assessment requires the actual award, exact full-span wages 
 		employment_id: 'contract',
 		leave_code: 'MATERNITY_LEAVE',
 		approval_id: null,
-		event_kind: 'BIRTH',
-		event_date: '2026-10-05',
+		facts: {
+			event_kind: 'BIRTH',
+			event_date: '2026-10-05'
+		},
 		charges: daysBetween(application.leave_from, application.leave_through).map((date) => ({
 			date,
 			days: 1

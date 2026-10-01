@@ -7,8 +7,13 @@
  * `produced.<code>.employee` is the producer's relievable amount (year to date plus this period,
  * capped within its shared pool, projected when `project_relief_annually`, floored at zero);
  * `employee_this_period` and `employer` are plain. The mention is the dependency (`orderSchemes`).
- * NOT_REGISTERED skips only where the scheme says SKIP; no matching rule charges zero. A directed instalment (MY Form CP38) is added
- * after the ladder, carried apart as `directed`.
+ * NOT_REGISTERED skips only where the scheme says SKIP; no matching rule charges zero. A directed
+ * instalment is a third-party deduction order (`loans`), not a charge.
+ *
+ * The base is `assessed_on`, or the first `base_when` override whose `when` holds. A QUARTER or
+ * YEAR scheme charges once, in the period closing its window (`closesWindow`). A scheme's
+ * expressions read the version's tables (`band()`, `table()`), the person's saved past
+ * (`history.*`) and, where bound, the entity's employments (`company.*`).
  */
 
 import { refuse } from '../../../lib/refuse.js';
@@ -23,10 +28,14 @@ import {
 } from '../../../lib/expressions/contexts.js';
 import {
 	evaluateBoolean,
+	evaluateExpression,
 	evaluateNumber,
+	programFor,
 	runtimeExpressionEngine,
 	type ExpressionEngine
 } from '../../../lib/expressions/evaluate.js';
+import { evaluationObserver } from '../../../lib/trace/observer.js';
+import * as Predicate from 'effect/Predicate';
 import {
 	catalogueWords,
 	countsToward,
@@ -44,12 +53,15 @@ import { addDays, completedMonths, inclusiveDays, monthBounds, monthDay } from '
 import { producedMentions, producedMentionsOf } from './mentions.js';
 import type { PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
-import { cents, roundMoney, type RoundingMethod } from './rounding.js';
+import { cents, roundMoney, roundStep, type RoundMode } from './rounding.js';
 import type { StatutoryFactStatus } from '../../../lib/datatypes/statutory_fact_status.js';
 import type {
 	AssessmentFrequency,
+	HistoryAccess,
 	StatutoryHistorySummary
-} from '../../../lib/payroll/statutory-history.js';
+} from '../../../lib/payroll/history.js';
+import { tablesIn } from '../../../lib/expressions/functions/tables.js';
+import type { CompanyAccess } from '../../../lib/expressions/functions/company.js';
 
 /**
  * The one rule of a scheme that governs, or null when none does: rules are read in declaration
@@ -62,8 +74,142 @@ export function selectRule(
 	context: Record<string, unknown>,
 	engine: ExpressionEngine
 ): ContributionRule | null {
-	for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;
+	// A traced evaluation records every `when` it reads, so a traced ladder reads them all.
+	if (evaluationObserver() != null) {
+		for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;
+		return null;
+	}
+	// A ladder repeats its guards (citizenship, age, registration) on every band, so a rule is read
+	// as its top-level `&&` operands, each asked once per selection. CEL's `&&` is false when any
+	// operand is false (whatever the others, errors included) and true when every one is true; any
+	// other answer (an error, a non-boolean) reads the whole `when`, as an unsplit ladder would.
+	const known = new Map<string, boolean | null>();
+	const valueOf = (conjunct: string) => {
+		let value = known.get(conjunct);
+		if (value === undefined) {
+			try {
+				const result = evaluateExpression(engine, conjunct, context);
+				value = Predicate.isBoolean(result) ? result : null;
+			} catch {
+				value = null;
+			}
+			known.set(conjunct, value);
+		}
+		return value;
+	};
+	for (const rule of rules) {
+		const conjuncts = conjunctTexts(rule.when);
+		let verdict: boolean | null = conjuncts.length > 0 ? true : null;
+		for (const conjunct of conjuncts) {
+			const value = valueOf(conjunct);
+			if (value !== true) {
+				verdict = value;
+				break;
+			}
+		}
+		if (verdict === false) continue;
+		if (verdict === true || evaluateBoolean(engine, rule.when, context)) return rule;
+	}
 	return null;
+}
+
+type CelNode = {
+	readonly op: string;
+	readonly args: unknown;
+	readonly start: number;
+	readonly end: number;
+};
+const isCelNode = (value: unknown): value is CelNode =>
+	Predicate.hasProperty(value, 'op') &&
+	Predicate.hasProperty(value, 'args') &&
+	Predicate.hasProperty(value, 'start');
+
+/** Whether two parsed trees are one expression: the same operators over the same operands. */
+function sameTree(a: unknown, b: unknown): boolean {
+	if (isCelNode(a) || isCelNode(b))
+		return isCelNode(a) && isCelNode(b) && a.op === b.op && sameTree(a.args, b.args);
+	if (Array.isArray(a) || Array.isArray(b))
+		return (
+			Array.isArray(a) &&
+			Array.isArray(b) &&
+			a.length === b.length &&
+			a.every((item, index) => sameTree(item, b[index]))
+		);
+	return Object.is(a, b);
+}
+
+/**
+ * A node's source text. The parser's span starts at the node's first token and ends at its last,
+ * so a parenthesised leading or trailing operand loses its parentheses; the span's own balance
+ * (outside string literals) says how many.
+ */
+function spanText(source: string, node: CelNode): string {
+	const span = source.slice(node.start, node.end);
+	let depth = 0;
+	let unopened = 0;
+	let quote = '';
+	for (let index = 0; index < span.length; index += 1) {
+		const char = span[index]!;
+		if (quote !== '') {
+			if (char === '\\') index += 1;
+			else if (char === quote) quote = '';
+		} else if (char === '"' || char === "'") quote = char;
+		else if (char === '(') depth += 1;
+		else if (char === ')') {
+			if (depth > 0) depth -= 1;
+			else unopened += 1;
+		}
+	}
+	return '('.repeat(unopened) + span + ')'.repeat(depth);
+}
+
+/** The top-level `&&` operands of a `when`, with their text; `[]` for one that is not a conjunction. */
+const conjunctsOfWhen = new Map<
+	string,
+	readonly { readonly text: string; readonly node: CelNode }[]
+>();
+function conjunctsOf(when: string) {
+	let conjuncts = conjunctsOfWhen.get(when);
+	if (conjuncts !== undefined) return conjuncts;
+	const nodes: CelNode[] = [];
+	const walk = (node: CelNode) => {
+		if (node.op === '&&' && Array.isArray(node.args))
+			for (const arg of node.args as CelNode[]) walk(arg);
+		else nodes.push(node);
+	};
+	try {
+		const ast: unknown = programFor(when).ast;
+		if (isCelNode(ast) && ast.op === '&&') walk(ast);
+	} catch {
+		// A malformed `when` is evaluated whole, and refuses there.
+	}
+	conjuncts = nodes.map((node) => ({ text: spanText(when, node), node }));
+	conjunctsOfWhen.set(when, conjuncts);
+	return conjuncts;
+}
+
+/** Whether an operand's text is the operand: parsed back, it is the same tree. */
+function parsesBack(text: string, node: CelNode): boolean {
+	try {
+		return sameTree(programFor(text).ast, node);
+	} catch {
+		return false;
+	}
+}
+
+/** A `when`'s operands as evaluable text, or `[]` where it is no conjunction or one operand's text
+ * does not parse back to that operand. */
+const textsOfWhen = new Map<string, readonly string[]>();
+function conjunctTexts(when: string): readonly string[] {
+	let texts = textsOfWhen.get(when);
+	if (texts === undefined) {
+		const conjuncts = conjunctsOf(when);
+		texts = conjuncts.every(({ text, node }) => parsesBack(text, node))
+			? conjuncts.map(({ text }) => text)
+			: [];
+		textsOfWhen.set(when, texts);
+	}
+	return texts;
 }
 
 export type { StatutoryFactStatus } from '../../../lib/datatypes/statutory_fact_status.js';
@@ -84,8 +230,6 @@ export type ContributionCharge = {
 	readonly employee: number;
 	readonly employer: number;
 	readonly assessmentFrequency: AssessmentFrequency;
-	/** The directed instalments added after the ladder; already inside `employee`. */
-	readonly directed: number;
 	readonly rebate?: number | undefined;
 	/** The `when` expression of the rule that governed, or null where none held. */
 	readonly ruleReference: string | null;
@@ -156,6 +300,9 @@ type SchemeAssessment = {
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
+	/** The version's `payroll.trailing_wage_{short,long}_months`: the windows the trailing slots average. */
+	readonly trailingWageMonths?:
+		{ readonly short?: number | null; readonly long?: number | null } | undefined;
 	/** The month's earlier instalments (semi-monthly, weekly): a MONTH scheme prices the month on their sum. */
 	readonly monthPrior?: MonthPrior | undefined;
 	readonly monthlyContributionDays?:
@@ -192,7 +339,7 @@ type SchemeAssessment = {
 		/**
 		 * The days of the pay month the employment covered, in the proration basis's own units — the
 		 * sum of the payslip's proration segments. Statutory coverage calendars are separate:
-		 * `coverage_days_30` measures a thirty-day insurance month independently of wage proration.
+		 * `coverage_days` measures a fixed-length insurance month independently of wage proration.
 		 */
 		readonly daysEmployed: number;
 		readonly daysInMonth: number;
@@ -229,6 +376,10 @@ type SchemeAssessment = {
 	readonly minimumWage: number | null;
 	/** Whether the version's wages order covers this person; `wage_floor` is 0 when it does not. */
 	readonly minimumWageApplies?: boolean | undefined;
+	/** The person's saved past, for `history.slips|days|leave|terms|external(…)`. */
+	readonly historyAccess?: HistoryAccess | undefined;
+	/** The entity's employments, for `company.headcount_on(…)` and `company.year.headcount_average(…)`. */
+	readonly companyAccess?: CompanyAccess | undefined;
 };
 
 type ContributeInput = SchemeAssessment & {
@@ -364,7 +515,13 @@ function engineFor(
 		Partial<
 			Pick<
 				SchemeAssessment,
-				'yearEarned' | 'componentsByCode' | 'yearQuantityPayments' | 'year' | 'coverageByScheme'
+				| 'yearEarned'
+				| 'componentsByCode'
+				| 'yearQuantityPayments'
+				| 'year'
+				| 'coverageByScheme'
+				| 'historyAccess'
+				| 'companyAccess'
 			>
 		>,
 	accumulation: AccumulatedPayslip,
@@ -372,7 +529,11 @@ function engineFor(
 ): ExpressionEngine {
 	return runtimeExpressionEngine({
 		minimumWage: () => input.minimumWage ?? 0,
-		coverageDays30: (since, age) => {
+		// The version's tables on the person's date: the context clone drops the hidden key.
+		tables: tablesIn(input.person),
+		history: input.historyAccess,
+		company: input.companyAccess,
+		coverageDays: (since, age, monthDays) => {
 			const born = input.person.employee.birth_date;
 			const ends = [input.person.employment.exit_date].filter((date) => date !== '');
 			if (born !== '' && age > 0)
@@ -401,13 +562,17 @@ function engineFor(
 				const end =
 					termination != null && termination <= input.period.end ? termination : input.period.end;
 				if (start > end) continue;
-				// Continuing cover runs to day 30, including February. A termination uses its
-				// actual day, capped at 30; joining on the 31st counts as joining on day 30.
+				// Continuing cover runs to day `monthDays` whatever the month's length. A termination
+				// uses its actual day, capped at `monthDays`; so does a join after that day.
 				const last =
 					termination != null && termination <= input.period.end
-						? Math.min(30, Number.parseInt(end.slice(8, 10), 10))
-						: 30;
-				for (let day = Math.min(30, Number.parseInt(start.slice(8, 10), 10)); day <= last; day += 1)
+						? Math.min(monthDays, Number.parseInt(end.slice(8, 10), 10))
+						: monthDays;
+				for (
+					let day = Math.min(monthDays, Number.parseInt(start.slice(8, 10), 10));
+					day <= last;
+					day += 1
+				)
 					days.add(day);
 			}
 			return days.size;
@@ -559,6 +724,19 @@ export function earnedAverage(
 	return present === 0 ? 0 : total / months;
 }
 
+/** `assessed_on` and every `base_when` override's condition and base: what the base reads. */
+const baseExpressionsOfRow = new WeakMap<ContributionConfig['row'], readonly string[]>();
+const baseExpressions = (contribution: ContributionConfig): readonly string[] => {
+	const cached = baseExpressionsOfRow.get(contribution.row);
+	if (cached !== undefined) return cached;
+	const expressions = [
+		contribution.row.assessed_on ?? '',
+		...(contribution.row.base_when ?? []).flatMap((override) => [override.when, override.base])
+	];
+	baseExpressionsOfRow.set(contribution.row, expressions);
+	return expressions;
+};
+
 /** Every expression of one scheme, for the context keys it names. Memoized on the row: a
  * withholding ladder is thousands of expressions and the context is built per candidate. */
 const expressionsOfRow = new WeakMap<ContributionConfig['row'], readonly string[]>();
@@ -566,7 +744,7 @@ export const schemeExpressions = (contribution: ContributionConfig): readonly st
 	const cached = expressionsOfRow.get(contribution.row);
 	if (cached !== undefined) return cached;
 	const expressions = [
-		contribution.row.assessed_on ?? '',
+		...baseExpressions(contribution),
 		contribution.row.ordinary_on ?? '',
 		contribution.row.remittance_rounding_when ?? '',
 		...contribution.row.elections.flatMap((field) => [
@@ -599,6 +777,11 @@ type SchemeMentions = Readonly<{
 	readonly historyCodes: readonly string[];
 	readonly producedCodes: readonly string[];
 	readonly companyFactKeys: readonly string[];
+	/** `year.earned.<code>` codes the `assessed_on` grammar reads (only text naming `earned` is parsed). */
+	readonly yearEarnedCodes: readonly string[];
+	readonly dependentMonths: boolean;
+	readonly trailingShort: boolean;
+	readonly trailingLong: boolean;
 }>;
 const mentionsOfExpressions = new WeakMap<readonly string[], SchemeMentions>();
 /** `assessed_on` alone is passed as a fresh one-element array per accumulation; cache it by value. */
@@ -628,7 +811,17 @@ function schemeMentions(expressions: readonly string[]): SchemeMentions {
 		companyFactKeys: distinct([
 			...expressions.flatMap((expression) => openKeyMentions(expression, 'person.company.facts')),
 			...expressions.flatMap((expression) => openKeyMentions(expression, 'company.facts'))
-		])
+		]),
+		yearEarnedCodes: distinct(
+			expressions.flatMap((expression) =>
+				expression.includes('earned') ? assessedOnMentions(expression).yearEarned : []
+			)
+		),
+		dependentMonths: expressions.some((expression) =>
+			expression.includes('scheme.dependent_months')
+		),
+		trailingShort: expressions.some((expression) => expression.includes('scheme.trailing_short')),
+		trailingLong: expressions.some((expression) => expression.includes('scheme.trailing_long'))
 	};
 	mentionsOfExpressions.set(expressions, mentions);
 	if (expressions.length === 1) mentionsOfOneExpression.set(expressions[0]!, mentions);
@@ -669,10 +862,9 @@ function schemeObject(options: {
 		contribution.row.code,
 		status?.kind !== 'NOT_REGISTERED'
 	);
+	const mentions = schemeMentions(schemeExpressions(contribution));
 	const dependentMonths =
-		schemeExpressions(contribution).some((expression) =>
-			expression.includes('scheme.dependent_months')
-		) &&
+		mentions.dependentMonths &&
 		input.period.lastOfYear &&
 		input.person.employment.exit_date === '' &&
 		input.person.terms.tax_residency === 'RESIDENT' &&
@@ -683,13 +875,12 @@ function schemeObject(options: {
 					`${contribution.row.code}: dated dependant declarations are required for annual finalisation.`
 				))
 			: 0;
-	const mentions = schemeMentions(schemeExpressions(contribution));
-	const childClaims: Record<string, number> = Object.fromEntries(
-		mentions.childClaimKeys.map((key) => [key, 0])
+	const childClaims: Record<string, { full: number; half: number }> = Object.fromEntries(
+		mentions.childClaimKeys.map((key) => [key, { full: 0, half: 0 }])
 	);
 	for (const claim of registered?.child_claims ?? []) {
 		if (claim.year !== input.year.start.slice(0, 4)) continue;
-		childClaims[claim.relief_class] = claim.full_count + claim.half_count / 2;
+		childClaims[claim.relief_class] = { full: claim.full_count, half: claim.half_count };
 	}
 	const deductions = deductionTotals(
 		registered?.deduction_claims ?? [],
@@ -699,7 +890,12 @@ function schemeObject(options: {
 	for (const [prefix, amounts] of Object.entries(deductions))
 		for (const key of mentions.deductionKeys.get(prefix) ?? []) amounts[key] ??= 0;
 	const since = registered?.since ?? '';
-	const trailingWage = (months: number): { base: number; months: number } => {
+	const trailingWage = (window: 'short' | 'long'): { base: number; months: number } => {
+		const months =
+			input.trailingWageMonths?.[window] ??
+			refuse(
+				`${contribution.row.code}: scheme.trailing_${window} requires payroll.trailing_wage_${window}_months in the sealed settings version.`
+			);
 		let month = input.period.key.slice(0, 7);
 		let wages = 0;
 		let employed = 0;
@@ -709,7 +905,7 @@ function schemeObject(options: {
 			const paid = input.paidWagesByMonth?.get(month);
 			if (paid == null)
 				refuse(
-					`${contribution.row.code}: paid wage for ${month} is missing from the trailing ${months}-month BPJS history.`
+					`${contribution.row.code}: paid wage for ${month} is missing from the trailing ${months}-month wage history.`
 				);
 			wages += paid;
 			employed += 1;
@@ -730,21 +926,17 @@ function schemeObject(options: {
 		),
 		first_year: input.firstYear?.(contribution.row.code) ?? 0,
 		dependent_months: dependentMonths,
-		trailing_3m:
+		trailing_short:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			!input.person.terms.weather_dependent_piece &&
-			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_3m')
-			)
-				? trailingWage(3)
+			mentions.trailingShort
+				? trailingWage('short')
 				: { base: 0, months: 0 },
-		trailing_12m:
+		trailing_long:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			input.person.terms.weather_dependent_piece &&
-			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_12m')
-			)
-				? trailingWage(12)
+			mentions.trailingLong
+				? trailingWage('long')
 				: { base: 0, months: 0 },
 		projection: {
 			payslips_remaining: input.projection.payslipsRemaining,
@@ -827,7 +1019,8 @@ function schemeContext(options: {
 			})()
 		])
 	);
-	const person = structuredClone(input.person) as PersonContext & {
+	// Only `terms` is rewritten below; the rest is read, so it is shared rather than cloned per scheme.
+	const person = { ...input.person, terms: { ...input.person.terms } } as PersonContext & {
 		company: { facts: Record<string, unknown> };
 		terms: { basic_salary: number; fixed_allowances: number; monthly_wage: number };
 	};
@@ -836,9 +1029,7 @@ function schemeContext(options: {
 		person.terms.fixed_allowances = fixed;
 		person.terms.monthly_wage = person.terms.basic_salary + fixed;
 	}
-	for (const expression of expressions)
-		for (const code of assessedOnMentions(expression).yearEarned)
-			if (!(code in yearEarned)) yearEarned[code] = 0;
+	for (const code of mentions.yearEarnedCodes) if (!(code in yearEarned)) yearEarned[code] = 0;
 	// Resolved facts contain every declared key. A missing key is a catalogue defect.
 	for (const key of mentions.companyFactKeys)
 		if (!Object.hasOwn(person.company.facts, key))
@@ -867,6 +1058,8 @@ function schemeContext(options: {
 			...yearCatalogueWords(input, contribution.row.code, contribution.row.parts ?? [])
 		},
 		scheme: schemeObject({ input, contribution, status: options.status }),
+		// The entity root the company aggregates hang off: its facts and its assessment year.
+		company: { facts: person.company.facts, year: { from: input.year.start, to: input.year.end } },
 		produced: producedObject(
 			options.produced ?? new Map(),
 			options.reads ?? new Map(),
@@ -878,8 +1071,8 @@ function schemeContext(options: {
 }
 
 /**
- * The value of one scheme's `assessed_on` over one accumulation, and the lines the formula
- * selected. Clamped at zero: a base is a quantity of chargeable wages, and there is no negative
+ * The value of one scheme's base over one accumulation — the first `base_when` override whose
+ * condition holds, else `assessed_on` — and the lines the formula selected. Clamped at zero: a base is a quantity of chargeable wages, and there is no negative
  * wage. Evaluated inside the ordered loop, so a formula may read `produced.<code>` of the schemes
  * already charged — an employer premium taxed as the employee's income.
  */
@@ -890,11 +1083,12 @@ function assessedBase(options: {
 	readonly produced: ReadonlyMap<string, Produced>;
 	readonly reads: ReadonlyMap<string, number>;
 	readonly ordinaryReads?: ReadonlyMap<string, number> | undefined;
-	/** The formula to evaluate instead of the row's own `assessed_on`, e.g. its ordinary part. */
+	/** The formula to evaluate instead of the row's own base, e.g. its ordinary part. */
 	readonly expression?: string | undefined;
 }): { readonly base: number; readonly selected: readonly AccumulationLine[] } {
-	const expression = (options.expression ?? options.contribution.row.assessed_on ?? '').trim();
-	if (expression === '') return { base: 0, selected: [] };
+	const overrides = options.expression == null ? (options.contribution.row.base_when ?? []) : [];
+	const own = (options.expression ?? options.contribution.row.assessed_on ?? '').trim();
+	if (own === '' && overrides.length === 0) return { base: 0, selected: [] };
 	const status =
 		options.contribution.row.registration_subject === 'COMPANY'
 			? undefined
@@ -904,7 +1098,7 @@ function assessedBase(options: {
 			input: options.input,
 			contribution: options.contribution,
 			status,
-			expressions: [expression],
+			expressions: options.expression == null ? baseExpressions(options.contribution) : [own],
 			produced: options.produced,
 			reads: options.reads,
 			ordinaryReads: options.ordinaryReads
@@ -927,11 +1121,13 @@ function assessedBase(options: {
 			options.contribution.row.parts ?? []
 		)
 	};
-	const value = evaluateNumber(
-		engineFor(options.input, options.accumulation, options.contribution.row.id),
-		expression,
-		context
-	);
+	const engine = engineFor(options.input, options.accumulation, options.contribution.row.id);
+	// The first override whose condition holds states the base; none holding leaves `assessed_on`.
+	const expression = (
+		overrides.find((override) => evaluateBoolean(engine, override.when, context))?.base ?? own
+	).trim();
+	if (expression === '') return { base: 0, selected: [] };
+	const value = evaluateNumber(engine, expression, context);
 	return {
 		base: cents(Math.max(0, value), options.input.currency),
 		selected: selectedLines(expression, options.accumulation, options.contribution.row.code)
@@ -966,26 +1162,6 @@ function selectedLines(
 				countsToward(accumulation.countsTowardOf.get(line.code), scheme, part)
 		);
 	});
-}
-
-/** The directed instalments covering this period, as the authority's direction names them. */
-function directedFor(
-	status: StatutoryFactStatus | undefined,
-	periodKey: string,
-	currency: string,
-	collected: number
-): number {
-	if (status?.kind !== 'REGISTERED' || status.instalments == null) return 0;
-	const month = periodKey.slice(0, 7);
-	return cents(
-		Math.max(
-			0,
-			status.instalments
-				.filter((row) => row.from <= month && month <= row.to)
-				.reduce((sum, row) => sum + row.amount, 0) - collected
-		),
-		currency
-	);
 }
 
 /**
@@ -1062,9 +1238,10 @@ function residencyPriced(options: {
 	});
 	const blended = (pick: (rule: ContributionRule) => string) => {
 		const calls = priced.map(({ rule, context }) => {
-			const roundings: [RoundingMethod, number][] = [];
-			const round = (value: number, method: RoundingMethod) => {
-				roundings.push([method, value]);
+			type Rounding = { readonly step: number; readonly mode: RoundMode };
+			const roundings: [Rounding, number][] = [];
+			const round = (value: number, rounding: Rounding) => {
+				roundings.push([rounding, value]);
 				return value;
 			};
 			evaluateNumber({ ...engine, round }, pick(rule), context);
@@ -1074,15 +1251,18 @@ function residencyPriced(options: {
 		if (
 			calls.some(
 				(call) =>
-					call.some(([method], index) => first[index]?.[0] !== method) ||
-					call.length !== first.length
+					call.some(
+						([rounding], index) =>
+							first[index]?.[0].step !== rounding.step || first[index]?.[0].mode !== rounding.mode
+					) || call.length !== first.length
 			)
 		)
 			refuse(`${options.code}: the statuses of a conversion month must round alike.`);
-		const once = first.map(([method], index) =>
-			roundMoney(
+		const once = first.map(([rounding], index) =>
+			roundStep(
 				priced.reduce((sum, { weight }, segment) => sum + weight * calls[segment]![index]![1], 0),
-				method
+				rounding.step,
+				rounding.mode
 			)
 		);
 		return priced.reduce((sum, { rule, context, weight }) => {
@@ -1173,6 +1353,28 @@ function monthlyAssessment(input: SchemeAssessment): SchemeAssessment {
 	};
 }
 
+/**
+ * Whether this period charges a scheme of this assessment period. Every period charges a
+ * PAY_PERIOD, MONTH or MONTH_TO_DATE scheme. A QUARTER or YEAR scheme charges once: in the last
+ * instalment of the month that closes the tax year's quarter (its third, sixth, ninth or twelfth
+ * month) or the tax year, and in an employment's final period, whenever that falls.
+ */
+export function closesWindow(
+	assessmentPeriod: string,
+	input: Pick<SchemeAssessment, 'period' | 'year' | 'person'>
+): boolean {
+	if (assessmentPeriod !== 'QUARTER' && assessmentPeriod !== 'YEAR') return true;
+	const exit = input.person.employment.exit_date;
+	if (exit !== '' && exit <= input.period.end) return true;
+	if (input.period.index < input.period.instalments) return false;
+	const months = (date: string) =>
+		Number.parseInt(date.slice(0, 4), 10) * 12 + Number.parseInt(date.slice(5, 7), 10);
+	const into = months(input.period.end) - months(input.year.start);
+	return assessmentPeriod === 'YEAR'
+		? input.period.end.slice(0, 7) === input.year.end.slice(0, 7)
+		: into % 3 === 2;
+}
+
 export function contribute(input: ContributeInput): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
 	const assessmentFrequency: AssessmentFrequency =
@@ -1206,6 +1408,13 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				`${code}: per-unit rules require a PAY_PERIOD employment scheme without an ordinary split, except dated payment occasions.`
 			);
 		if (contribution.row.assessment_scope === 'COMPANY') continue;
+		// A QUARTER or YEAR scheme is nobody's charge outside the period that closes its window; a
+		// consumer that names it reads zero.
+		if (!closesWindow(contribution.row.assessment_period, input)) {
+			produced.set(code, { base: 0, employee: 0, employer: 0 });
+			monthlyProduced.set(code, { base: 0, employee: 0, employer: 0 });
+			continue;
+		}
 		const expressions = schemeExpressions(contribution);
 		const status =
 			contribution.row.registration_subject === 'COMPANY'
@@ -1332,13 +1541,12 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			ruleReference: string | null,
 			chargeBase: number = base,
 			reads: readonly ContributionRead[] = [],
-			directed = 0,
 			lines: readonly ContributionLine[] = evaluated.selected,
 			rebate = 0
 		) => {
 			produced.set(code, {
 				base,
-				employee: employee - directed,
+				employee,
 				employer,
 				ordinaryEmployee,
 				monthEstimate
@@ -1347,7 +1555,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				const prior = input.monthPrior?.charged.get(code);
 				monthlyProduced.set(code, {
 					base: chargeBase + (prior?.base ?? 0),
-					employee: employee - directed + (prior?.employee ?? 0),
+					employee: employee + (prior?.employee ?? 0),
 					employer: employer + (prior?.employer ?? 0),
 					ordinaryEmployee
 				});
@@ -1361,7 +1569,6 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					: { ordinary: cents(ordinary * share - (already?.ordinary ?? 0), input.currency) }),
 				employee,
 				employer,
-				directed,
 				rebate,
 				ruleReference,
 				...(remittanceRounding == null ? {} : { remittanceRounding }),
@@ -1510,7 +1717,6 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					null,
 					-already.base,
 					[],
-					0,
 					evaluated.selected,
 					-(already.rebate ?? 0)
 				);
@@ -1578,14 +1784,6 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 							input.currency
 						);
 		}
-		const directed = deferred
-			? 0
-			: directedFor(
-					status,
-					input.period.key,
-					input.currency,
-					input.monthPrior?.charged.get(code)?.directed ?? 0
-				);
 		// A declaration that changed inside the period prices each of its standings on its own days
 		// (a mid-month election, a re-enrolment after a gap), the shares summed.
 		const standings = input.standingsByScheme?.get(contribution.row.id);
@@ -1768,10 +1966,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			});
 		// Truing the month up: the month's charge less what the earlier instalments already took,
 		// and the base stored is the month's less theirs, so the year's sum is the month once.
-		const employee = cents(
-			assessedEmployee * share - (already?.employee ?? 0) + directed,
-			input.currency
-		);
+		const employee = cents(assessedEmployee * share - (already?.employee ?? 0), input.currency);
 		const employer = cents(assessedEmployer * share - (already?.employer ?? 0), input.currency);
 		const chargeBase = cents(base * share - (already?.base ?? 0), input.currency);
 		const assessedRebate =
@@ -1796,7 +1991,6 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 						}),
 				employer_amount: schemeProduced.get(readCode)?.employer ?? 0
 			})),
-			directed,
 			evaluated.selected,
 			rebate
 		);
@@ -1824,6 +2018,8 @@ export function contributeCompany(input: {
 	/** The employment schemes' sums over the run, readable as `produced.<code>.base|employee|employer`. */
 	readonly produced?: ReadonlyMap<string, Produced> | undefined;
 	readonly monthPrior?: CompanyMonthPrior | undefined;
+	/** The entity's employments, for `company.headcount_on(…)` and `company.year.headcount_average(…)`. */
+	readonly companyAccess?: CompanyAccess | undefined;
 }): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
 	const produced = new Map<string, Produced>(input.produced ?? []);
@@ -1855,13 +2051,18 @@ export function contributeCompany(input: {
 		year: input.year,
 		projection: input.projection,
 		person: input.person,
-		minimumWage: input.minimumWage
+		minimumWage: input.minimumWage,
+		companyAccess: input.companyAccess
 	};
 	for (const contribution of input.contributions) {
 		if (contribution.row.assessment_scope !== 'COMPANY') continue;
 		if (contribution.row.rules.some((rule) => rule.per_unit))
 			refuse(`${contribution.row.code}: per-unit rules require an employment scheme.`);
 		const monthly = contribution.row.assessment_period !== 'PAY_PERIOD';
+		if (!closesWindow(contribution.row.assessment_period, assessment)) {
+			monthlyProduced.set(contribution.row.code, { base: 0, employee: 0, employer: 0 });
+			continue;
+		}
 		// Company levies settle at the closing cut-off, after the whole salary fund is available.
 		if (
 			monthly &&
@@ -1936,7 +2137,6 @@ export function contributeCompany(input: {
 			base: cents(assessed - (already?.base ?? 0), input.currency),
 			employee: 0,
 			employer: cents(assessedEmployer - (already?.employer ?? 0), input.currency),
-			directed: 0,
 			ruleReference: rule?.when ?? null,
 			...(warnings.size === 0 ? {} : { warnings: [...warnings] }),
 			inputs: evaluated.selected,

@@ -81,15 +81,20 @@ test('attendance: ordered, non-overlapping intervals, only the last open; [] is 
 	await clock(null);
 });
 
-test('planned hours are half-hour steps, within the 24 a day has', async () => {
+test('planned hours are keyed in the version’s overtime_unit_hours, within the 24 a day has', async () => {
+	const stepped = workDayTables({
+		versions: [
+			{ ...VERSION, work_rules: { limits: [], bands: [], breaks: [], overtime_unit_hours: 0.5 } }
+		]
+	});
 	const plan = (approved_overtime_hours, incentive_hours = 0) =>
 		writeDay(
 			workDays,
 			{ employment_id: 'emp-1', work_date: '2026-07-01', approved_overtime_hours, incentive_hours },
 			undefined,
-			basic
+			stepped
 		);
-	await assert.rejects(plan(1.25), /half-hour steps/);
+	await assert.rejects(plan(1.25), /1\.25 h on 2026-07-01 is not keyed in the 0\.5-hour steps/);
 	await assert.rejects(plan(20, 5), /24 hours a day has/);
 	await assert.rejects(plan(-1), /zero or a positive/);
 });

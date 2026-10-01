@@ -16,7 +16,8 @@ export type HolidayRow = Pick<
 	| 'given_to'
 	| 'worksite'
 	| 'published_at'
->;
+> &
+	Partial<Pick<WorkspaceRow<'jurisdiction_holidays'>, 'applies_when'>>;
 
 /** How much a kind pays over an ordinary day: DOUBLE is two regular holidays, SPECIAL the least. */
 const RANK: Record<HolidayRow['kind'], number> = {
@@ -28,6 +29,10 @@ const RANK: Record<HolidayRow['kind'], number> = {
 
 /** A worksite as both sides record it; blank is none. */
 const siteOf = (worksite: string | null | undefined) => worksite?.trim() || null;
+
+/** A row's person condition (`applies_when`); blank is none. */
+export const conditionOf = (row: Pick<HolidayRow, 'applies_when'>) =>
+	row.applies_when?.trim() || null;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
 function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
@@ -55,13 +60,17 @@ function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
  * A row naming a worksite is a local day (PH RA 12271: "in the City of Navotas"): it reaches only
  * the days `worksiteOn` places at that site. Without it, the company's own calendar: rows with no
  * worksite. A local day on a company-wide date keeps the dearer of the two.
+ *
+ * A row with `applies_when` (a religion's own day) is a holiday only where `appliesOn` says the
+ * person on that day meets it; without `appliesOn` — a company-wide read — it is not there.
  */
 export function resolveHolidays(
 	rows: readonly HolidayRow[],
 	companyId: string,
 	start: string,
 	end: string,
-	worksiteOn: (date: string) => string | null | undefined = () => null
+	worksiteOn: (date: string) => string | null | undefined = () => null,
+	appliesOn?: (expression: string, date: string) => boolean
 ): ReadonlyMap<string, HolidaySnapshot> {
 	if (!isCalendarDate(start) || !isCalendarDate(end) || start > end)
 		refuse('Holiday coverage needs a valid ordered date range.');
@@ -72,6 +81,8 @@ export function resolveHolidays(
 		if (date < start || date > end) continue;
 		const site = siteOf(row.worksite);
 		if (site != null && site !== siteOf(worksiteOn(date))) continue;
+		const condition = conditionOf(row);
+		if (condition != null && appliesOn?.(condition, date) !== true) continue;
 		const held = holidays.get(date);
 		if (held != null) {
 			if ((held.worksite != null) === (site != null))
@@ -107,10 +118,13 @@ export function resolveHolidayInputs(
 	if (!ordered.length) return { holidays: new Map(), snapshots: [], inputs: [] };
 	const [start, end] = [ordered[0]!, ordered.at(-1)!];
 	const holidays = new Map(resolveHolidays(rows, companyId, start, end));
-	// The local days no company-wide read returns; a run still captures them as evidence.
+	// The local and person-conditioned days no company-wide read returns; a run still captures them.
 	const local = rows
 		.filter(
-			(row) => row.company_id === companyId && row.published_at != null && siteOf(row.worksite)
+			(row) =>
+				row.company_id === companyId &&
+				row.published_at != null &&
+				(siteOf(row.worksite) != null || conditionOf(row) != null)
 		)
 		.filter((row) => dateKey(row.date) >= start && dateKey(row.date) <= end)
 		.map(holidaySnapshot);

@@ -146,6 +146,11 @@
 					{/snippet}
 				</Field>
 				<Field
+					name="base_when"
+					label={t('component.scheme_base_when')}
+					help={t('component.scheme_base_when_hint')}
+				/>
+				<Field
 					name="parts"
 					label={t('component.scheme_parts')}
 					help={t('component.scheme_parts_hint')}

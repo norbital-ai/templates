@@ -163,6 +163,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		KASAMBAHAY_FORFEITURE: [],
 		STATUTORY_ADJUSTMENT: [],
 		THIRTEENTH_MONTH_PAY: ['WTAX.SPECIAL'],
+		// PD 851: the year-end 13th month (SCHEDULED) carries the same tax treatment as the separation share.
+		THIRTEENTH_MONTH_PAY_YEAR_END: ['WTAX.SPECIAL'],
 		allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
 		// SSS IRR (RA 11199) Rule 12 s.6(iii): compensation includes "Bonuses (except Christmas bonus)".
 		// Circular 460 p.2: fund salary is remuneration "however designated" for services rendered (PH-HD02).
@@ -189,7 +191,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		MEAL_ALLOWANCE: ['PIT.MEAL'],
 		HOUSING: ['PIT.HOUSING'],
 		JOB_LOSS_ALLOWANCE: [],
-		SEVERANCE_ALLOWANCE: []
+		SEVERANCE_ALLOWANCE: [],
+		// Labour Code art.102: a deduction for damaged property comes out of net pay, outside every base.
+		PROPERTY_DAMAGE_COMPENSATION: []
 	},
 	// 所得稅法 §14(1)(3): a bonus is 薪資所得; 勞退條例 §14 and NHI supplement read it; severance is outside.
 	// 勞基法 §2(3) with 施行細則 §10: a monthly 伙食津貼 is 工資 (no §10 exclusion); 查核準則 §88(2)(1)
@@ -212,6 +216,19 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 			'OCC_INJURY'
 		],
 		OCC_INJURY_OFFSET: [],
+		// 勞基法 §2(3): a 全勤獎金 paid for work is 工資, in every wage base like the monthly meal allowance.
+		FULL_ATTENDANCE_BONUS: [
+			'EI',
+			'INCOME_TAX',
+			'INCOME_TAX_NON_RESIDENT',
+			'LABOR_PENSION',
+			'LABOR_PENSION_RESERVE',
+			'LI',
+			'NHI',
+			'NHI_PART_TIME',
+			'NHI_SUPPLEMENT_EMPLOYER',
+			'OCC_INJURY'
+		],
 		// 強制執行法 §115-1: the attached wage stays the worker's; a net deduction outside every base (TW-WAGE-06).
 		COURT_GARNISHMENT: [],
 		// 勞基法 §59 職業災害補償費: not 工資 (施行細則 §10(7)), exempt from income tax (所得稅法 §4(1)(3)-(4)).
@@ -266,6 +283,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH21_DAILY', 'PPH26'],
 		THR: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		// Permenaker 6/2016: THR before the worker's own holiday (SCHEDULED), taxed as THR.
+		THR_HOLIDAY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		// PP 68/2009 art.1 angka 4: uang pesangon is any payment, under whatever name, made in connection
 		// with the end of service, so uang pisah carries the final severance rates like pesangon;
 		// only a non-resident's enters PPh 26.
@@ -276,7 +295,20 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// s.50(1). Social Security Act s.5 wages exclude a bonus; LPA s.118 severance is outside both.
 	// LPA s.17/1 pay in lieu of notice is a one-time payment on leaving (DG Notification No.45
 	// cl.1(ง)), withheld with severance under s.50(1) para.3, and not pay for work (SSA s.5).
-	TH: { BONUS: ['PIT'], NOTICE_IN_LIEU: [], SEVERANCE_PAY: [] },
+	// LPA s.76(2)–(4) and last para.; Student Loan Fund Act B.E.2560 s.51: deductions from net pay,
+	// outside every base.
+	TH: {
+		BONUS: ['PIT'],
+		// LPA s.9: interest on late wages is not wages; it counts toward nothing
+		LATE_WAGE_INTEREST: [],
+		NOTICE_IN_LIEU: [],
+		SEVERANCE_PAY: [],
+		SLF_DEDUCTION: [],
+		UNION_DUES: [],
+		COOPERATIVE_DEDUCTION: [],
+		DAMAGE_COMPENSATION: [],
+		CONSENTED_DEDUCTION: []
+	},
 	// 个人所得税法 art.2 and 实施条例 art.6: a bonus is 工资薪金 in the cumulative withholding; the annual
 	// one-time bonus may be taxed apart (财政部 税务总局公告2023年第30号, to 31 Dec 2027). The SI and
 	// housing-fund base is the prior year's average wage, so neither enters a current month.
@@ -312,10 +344,39 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		ONE_CHILD_SUBSIDY: [],
 		CHILDCARE_SUBSIDY: [],
 		TRAVEL_ALLOWANCE: [],
-		MISSED_MEAL_SUBSIDY: []
+		MISSED_MEAL_SUBSIDY: [],
+		// 劳部发〔1994〕489号 art.16: a loss recovered from net pay reduces no insured or taxable wage.
+		EMPLOYEE_DAMAGE_DEDUCTION: []
+	},
+	// 健康保険法 §3(5), 厚生年金保険法 §3(1)(iii): the monthly premiums are charged on the declared
+	// 標準報酬月額 (HEALTH.standard_monthly_remuneration), never on the month's pay, so no class counts
+	// toward HEALTH, PENSION or CHILD_CONTRIBUTION. 徴収法 §2(2): 賃金 is every payment for labour,
+	// 通勤手当 and 賞与 included, so both bear EMPLOYMENT_INSURANCE and WORKERS_COMP. 所得税法 §9(1)(v)
+	// with 施行令 §20の2: INCOME_TAX subtracts the exempt 通勤手当 by code. RESIDENT_TAX charges the
+	// municipality's notice, not this base; its membership is the pay an exit lump collection may be
+	// taken from (地方税法 §321-5(2)).
+	JP: {
+		COMMUTING: ['EMPLOYMENT_INSURANCE', 'INCOME_TAX', 'RESIDENT_TAX', 'WORKERS_COMP'],
+		// 健康保険法 §3(6), 厚生年金保険法 §3(1)(iv): 標準賞与額; 所得税法 §186: the bonus table.
+		BONUS: [
+			'EMPLOYMENT_INSURANCE',
+			'HEALTH_BONUS',
+			'INCOME_TAX_BONUS',
+			'PENSION_BONUS',
+			'RESIDENT_TAX',
+			'WORKERS_COMP'
+		],
+		// 所得税基本通達 36-38の2: the meal value is pay to INCOME_TAX; the worker's charge is no pay.
+		MEAL_IN_KIND: ['INCOME_TAX'],
+		MEAL_CHARGE: [],
+		// 労働基準法 §26 休業手当 is 賃金 (徴収法 §2(2)) and 給与所得 (所得税法 §28).
+		SHUTDOWN_ALLOWANCE: ['EMPLOYMENT_INSURANCE', 'INCOME_TAX', 'RESIDENT_TAX', 'WORKERS_COMP'],
+		// 所得税法 §30(1), 地方税法 §50-2 and §328: 退職所得, taxed apart; not 報酬, 賞与 or 賃金.
+		RETIREMENT_ALLOWANCE: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX'],
+		// 労働基準法 §20 解雇予告手当: 退職所得 (所得税基本通達 30-5), not 賃金 for labour insurance.
+		DISMISSAL_NOTICE_PAY: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX']
 	}
 };
-MATRIX['MY-nihon'] = MATRIX.MY;
 MATRIX['CN-kunming'] = MATRIX['CN-shanghai'];
 
 /** The classes the law owes on separation, raised by off-boarding for an eligible leaver. */
@@ -340,6 +401,9 @@ const SEPARATION = new Set([
 	// PH: a leaver's pro-rata 13th month (DOLE Handbook 2024 ch.13 §G; PD 851 Revised Guidelines ¶6), EM-1.
 	'THIRTEENTH_MONTH_PAY'
 ]);
+
+/** The classes the law owes on a date, raised ahead of it by the scheduled-entries automation. */
+const SCHEDULED = new Set(['THIRTEENTH_MONTH_PAY_YEAR_END', 'THR_HOLIDAY']);
 
 for (const lineage of LINEAGES) {
 	test(`${lineage}: every version carries the membership matrix`, () => {
@@ -375,11 +439,15 @@ for (const lineage of LINEAGES) {
 				})
 			);
 			assert.deepEqual(actual, wanted, `${lineage} ${version.code}`);
-			// The separation classes are the ones off-boarding raises; every other ad hoc class is HR's.
+			// Separation classes are raised by off-boarding, scheduled ones on their date; the rest are HR's.
 			for (const row of adhocCatalogue(lineage).filter((row) => row.settings_id === version.id))
 				assert.equal(
 					row.raised_by,
-					SEPARATION.has(row.code) ? 'SEPARATION' : 'MANUAL',
+					SEPARATION.has(row.code)
+						? 'SEPARATION'
+						: SCHEDULED.has(row.code)
+							? 'SCHEDULED'
+							: 'MANUAL',
 					`${lineage} ${row.code}`
 				);
 			// Every membership names a scheme of the same version, and a part the scheme declares.

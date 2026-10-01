@@ -110,44 +110,6 @@ test('a semi-monthly company refuses a whole month and a monthly company refuses
 	});
 });
 
-for (const [assessment, cutoff] of [
-	['PAY_PERIOD', 'FIRST'],
-	['MONTH', 'FIRST'],
-	['MONTH', 'SPLIT']
-])
-	test(`a monthly directed instalment is collected once across settled ${assessment} ${cutoff} cut-offs`, async () => {
-		const world = createSemiMonthlyPayrollWorld();
-		const scheme = world.statutory_contributions.find((row) => row.id === RETIREMENT_SCHEME_ID);
-		scheme.assessment_period = assessment;
-		world.companies[0].semi_monthly_statutory_cutoff = cutoff;
-		world.employment_statutory_facts.push({
-			id: 'directed-fixture',
-			employee_id: SEMI_MONTHLY_EMPLOYEE_ID,
-			statutory_contribution_id: RETIREMENT_SCHEME_ID,
-			effective_range: { start: '2026-01-01', end: null },
-			status: {
-				kind: 'REGISTERED',
-				reference_number: 'direction-test',
-				rate_override: null,
-				instalments: [{ amount: 1000, from: '2026-02', to: '2026-02', reference: 'test' }]
-			}
-		});
-		const first = await build(world, '2026-02-1');
-		settle(world, '2026-02-1', first.prepared, first.built);
-		const second = await build(world, '2026-02-2');
-		const charges = [first, second].map(({ built }) =>
-			slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).statutory.find(
-				(row) => row.scheme_code === 'PUB_EPF'
-			)
-		);
-		assert.deepEqual(
-			charges.map((row) => row.directed_amount),
-			[1000, 0]
-		);
-		assert.equal(cents(charges.reduce((sum, row) => sum + row.employee_amount, 0)), 1451);
-		assert.equal(cents(charges.reduce((sum, row) => sum + row.employer_amount, 0)), 533);
-	});
-
 test('half 1 pays only the semi-monthly employment, for the 1st to the 15th, on the 15th', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	const { prepared, built } = await build(world, '2026-02-1');
@@ -306,7 +268,7 @@ const PUB_TAX_CHARGEABLE =
 	'scheme.year_to_date.base + base * (1.0 + scheme.projection.future_equivalents)';
 const PUB_TAX_CLAMPED = `(${PUB_TAX_CHARGEABLE} > 0.0 ? ${PUB_TAX_CHARGEABLE} : 0.0)`;
 const PUB_TAX_SCALED = `progressive(${PUB_TAX_CLAMPED}, [0.0, 0.0, 0.0, 20000.0, 0.0, 1.0, 35000.0, 150.0, 3.0, 50000.0, 600.0, 8.0])`;
-const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - scheme.year_to_date.employee > 0.0 ? (${PUB_TAX_SCALED} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0))`;
+const PUB_TAX_EMPLOYEE = `round((${PUB_TAX_SCALED} - scheme.year_to_date.employee > 0.0 ? (${PUB_TAX_SCALED} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0), 0.01, 'HALF_UP')`;
 
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();

@@ -23,6 +23,8 @@ export type ReportLine = {
 	readonly calculationSource: string;
 	readonly amount: number;
 	readonly quantity: number | null;
+	/** The line's working as figures, where it has one: a prorated base line's `500.00 × 16/31`. */
+	readonly detail?: string | undefined;
 	/** An audited company expense whose cash never passes through the employee. */
 	readonly isCompanyDirect: boolean;
 	/** A capped employee reimbursement, excluding unrelated non-wage payments such as tax refunds. */

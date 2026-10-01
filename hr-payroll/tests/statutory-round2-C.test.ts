@@ -281,7 +281,7 @@ test('VN — under the December 2025 version the premium of overtime beyond the 
 });
 
 test('MY — a non-citizen EPF member from before 1 August 1998 stays on Parts A and C, not Part F (Act A1760; KWSP)', () => {
-	for (const lineage of ['MY', 'MY-nihon'] as const) {
+	for (const lineage of ['MY'] as const) {
 		// A non-citizen on EPF or EIS declares both answers (round 5, D15).
 		const elector = {
 			EPF: { kind: 'REGISTERED', elections: { member_before_1998: true } },
@@ -318,7 +318,7 @@ test('MY — a non-citizen EPF member from before 1 August 1998 stays on Parts A
 });
 
 test('MY — a foreign employee is outside the EIS by rule, except the para 10(b)/(c) identity-card holder (Act 800 First Schedule para 10)', () => {
-	for (const lineage of ['MY', 'MY-nihon'] as const) {
+	for (const lineage of ['MY'] as const) {
 		const book = assessStatutory({
 			code: lineage,
 			period: '2026-07',

@@ -57,6 +57,7 @@ const nihon = {
 		}
 	],
 	wages: { by_region: {} },
+	overtime_unit_hours: 0.5,
 	holiday_rest_precedence: 'SUBSTITUTE'
 };
 

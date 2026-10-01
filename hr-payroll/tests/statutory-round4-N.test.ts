@@ -73,7 +73,7 @@ test('PH — the 365 factor is the contract’s paid_rest_days, never the payrol
 });
 
 // A payroll group is an employer's own label, so no statute is read from it. The one reading
-// allowed is MY-nihon's `ordinary_divisor_days`: company terms, not law — the customer's hourly
+// allowed is MY's `ordinary_divisor_days`: company terms, not law — the customer's hourly
 // rate is basic × 12 ÷ (52 × 45) for payroll group 6D and ÷ (52 × 42.5) for 5D (owner-approved
 // customer pricing, 2026-09-23; the lineage's authority). Anywhere else in any lineage it fails.
 test('no lineage reads payroll_group for statutory meaning', () => {
@@ -87,7 +87,7 @@ test('no lineage reads payroll_group for statutory meaning', () => {
 				? gunzipSync(readFileSync(path)).toString('utf8')
 				: readFileSync(path, 'utf8');
 			const read =
-				lineage === 'MY-nihon' && file === 'jurisdiction_settings.json'
+				lineage === 'MY' && file === 'jurisdiction_settings.json'
 					? JSON.stringify(
 							JSON.parse(text).map((version: { work_rules: Record<string, unknown> }) => ({
 								...version,

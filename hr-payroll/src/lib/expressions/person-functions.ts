@@ -76,6 +76,13 @@ export function ageMonthsOn(employee: unknown, date: unknown): bigint {
 	return pair == null ? 0n : BigInt(completedMonths(...pair));
 }
 
+/** `employee.presence_days_in(years_back)`: days present in the calendar year that many years before the rule date's; 0 with none recorded. */
+export function presenceDaysIn(employee: unknown, yearsBack: unknown): bigint {
+	const byYear = (employee as { presence_by_years_back?: Readonly<Record<string, unknown>> })
+		.presence_by_years_back;
+	return BigInt(decodeNumber(byYear?.[String(yearsBack)] ?? 0));
+}
+
 /** `leave.taken(code)`: the days of that code charged in the leave year before this day. */
 export function leaveTaken(leave: unknown, code: unknown): number {
 	const taken = (leave as { year_taken?: Record<string, unknown> }).year_taken;

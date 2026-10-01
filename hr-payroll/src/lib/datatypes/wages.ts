@@ -258,6 +258,11 @@ export const wagesValueSchema = Schema.Struct({
 			task_only_time_events_refused: Schema.optionalKey(Schema.Boolean),
 			/** Scheme code whose levy refuses zero-basic results wages it cannot classify (MY HRDF). */
 			levy_scheme: Schema.optionalKey(Schema.String),
+			/**
+			 * Who that levy refusal reaches: a boolean over the person (`company.headcount_citizens` is
+			 * the run's citizen count), empty for everyone `levy_scheme` charges.
+			 */
+			applies_when: Schema.optionalKey(Schema.String),
 			/** Ad hoc catalogue codes of the results wages `levy_scheme` cannot classify. */
 			levy_unclassified_codes: Schema.optionalKey(Schema.Array(Schema.String)),
 			/**
@@ -322,6 +327,7 @@ export const wagesValueSchema = Schema.Struct({
 				.map((rule) => person(rule.when) ?? person(rule.holds))
 				.find((fault) => fault != null) ??
 			(wages.hourly_floor == null ? null : person(wages.hourly_floor.allowed_when)) ??
+			person(wages.results_pay?.applies_when ?? '') ??
 			(wages.monthly_by_sector ?? [])
 				.flatMap((row) => [row.when, row.valid_when])
 				.map((expression) =>

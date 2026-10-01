@@ -51,7 +51,7 @@ const LOCAL = { EPF_NON_CITIZEN: OUT };
 const FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
 const versionIdOn = (world: PayrollWorld, date: string) =>
-	settingsVersions(world.companies[0]?.settings_code === 'MY-nihon' ? 'MY-nihon' : 'MY').find(
+	settingsVersions('MY').find(
 		(v) =>
 			String(v.effective_range.start).slice(0, 10) <= date &&
 			date < String(v.effective_range.end).slice(0, 10)
@@ -312,7 +312,7 @@ test('MY audit — HRD levy bands at 4/5 and 9/10 Malaysian employees', () => {
 });
 
 test('MY audit — only declared Malaysian citizens enter HRD headcount in both lineages', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const [name, citizens, other, expectedLevy] of [
 			['nine plus permanent resident', 9, 'PERMANENT_RESIDENT', 15],
 			['nine plus foreigner', 9, 'FOREIGNER', null],
@@ -346,7 +346,7 @@ test('MY audit — only declared Malaysian citizens enter HRD headcount in both 
 });
 
 test('MY audit — HRD worker scope and missing-registration liability in every active version', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const period of ['2025-12', '2026-01', '2026-06', '2026-08', '2028-06', '2031-06']) {
 			const people = (count: number, first: Partial<Person> = {}): Person[] =>
 				Array.from({ length: count }, (_, index) => ({
@@ -421,7 +421,7 @@ test('MY audit — HRD worker scope and missing-registration liability in every 
 });
 
 test('MY audit — HRD employer class and rate history in every active version', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const period of ['2025-12', '2026-01', '2026-06', '2026-08', '2028-06', '2031-06']) {
 			const year = Number(period.slice(0, 4));
 			for (const [name, companyFacts, expected] of [
@@ -503,7 +503,7 @@ test('MY audit — HRD employer class and rate history in every active version',
 
 test('MY audit — P.U. (A) 13/2026 exempts registered scheduled education employers in 2026', () => {
 	const scheduled = ['85102', '85104', '85212', '85222', '85302', '8541', '8542', '8549', '85500'];
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const charge = (
 			period: string,
 			companyFacts: Record<string, string | number>
@@ -615,7 +615,7 @@ function separation(exitReason: string, noticeDays: number | null, code: string)
 					registrations: LOCAL,
 					hire_date: '2023-05-15',
 					exit_date: '2026-01-31',
-					exit_reason: exitReason
+					exit_ground: exitReason
 				}
 			]
 		},
@@ -722,7 +722,7 @@ test('MY audit — a piece-classified worker with basic wages is assessed agains
 });
 
 test('MY audit — full-month no-basic piece wages are measured, captured and assessed', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const key = `${code}-PIECE_RATE`;
 		const world = createStatutoryWorld({
 			code,
@@ -772,7 +772,7 @@ test('MY audit — full-month piece pay gets a separate minimum-wage top-up befo
 		cutoff = 1,
 		hire = '2015-01-01',
 		category = 'PIECE_RATE',
-		code: 'MY' | 'MY-nihon' = 'MY',
+		code: 'MY' = 'MY',
 		frequency: Person['pay_frequency'] = 'MONTHLY',
 		record = true
 	) =>
@@ -808,7 +808,7 @@ test('MY audit — full-month piece pay gets a separate minimum-wage top-up befo
 				});
 			}
 		);
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const topped = run(1_699.99, 1, '2015-01-01', 'PIECE_RATE', code);
 		const slip = topped.slips.get('RESULTS')!;
 		assert.equal(slip.gross, 1_700);
@@ -866,7 +866,7 @@ test('MY audit — full-month piece pay gets a separate minimum-wage top-up befo
 });
 
 test('MY audit — a recorded task result cannot be posted as piece wages before its earning class is known', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const world = createStatutoryWorld({
 			code,
 			period: '2026-01',
@@ -903,7 +903,7 @@ test('MY audit — a recorded task result cannot be posted as piece wages before
 });
 
 test('MY audit — evidenced monthly task, trip and commission earnings settle under their own statutory classes', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const [wageClass, ordinaryPCB] of [
 			['TASK_MONTHLY_WAGE', 1_800],
 			['TRIP_MONTHLY_WAGE', 1_800],
@@ -955,7 +955,7 @@ test('MY audit — evidenced monthly task, trip and commission earnings settle u
 });
 
 test('MY audit — task, trip and commission wages refuse unevidenced, cross-month and untyped results', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const run = (wageClass: string, date: string, evidenced: boolean) =>
 			buildStatutory(
 				{
@@ -988,7 +988,7 @@ test('MY audit — task, trip and commission wages refuse unevidenced, cross-mon
 });
 
 test('MY audit — a short full-month result wage receives a saved statutory top-up before contribution', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const wageClass of [
 			'TASK_MONTHLY_WAGE',
 			'TRIP_MONTHLY_WAGE',
@@ -1030,7 +1030,7 @@ test('MY audit — a short full-month result wage receives a saved statutory top
 });
 
 test('MY audit — task/trip wage and commission top-up refuse unresolved HRD levy at a liable employer', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const [wageClass, amount] of [
 			['TASK_MONTHLY_WAGE', 1_800],
 			['TRIP_MONTHLY_WAGE', 1_800],
@@ -1062,7 +1062,7 @@ test('MY audit — task/trip wage and commission top-up refuse unresolved HRD le
 });
 
 test('MY audit — an evidenced zero-results month pays and pins the full minimum-wage top-up', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const world = createStatutoryWorld({
 			code,
 			period: '2026-09',
@@ -1107,7 +1107,7 @@ test('MY audit — an evidenced zero-results month pays and pins the full minimu
 });
 
 test('MY audit — zero-results attestation requires month-end, zero, evidence, uniqueness and no result wage', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const run = (change: (world: PayrollWorld) => void) => {
 			const world = createStatutoryWorld({
 				code,
@@ -1183,7 +1183,7 @@ test('MY audit — zero-results attestation requires month-end, zero, evidence, 
 });
 
 test('MY audit — a generic SKBBK registration status cannot release liability in a saved run', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		for (const [period, citizenship, registrations] of [
 			['2026-06', 'CITIZEN', LOCAL],
 			['2026-09', 'FOREIGNER', FOREIGN]
@@ -1271,7 +1271,7 @@ test('MY audit — an HRD liable employer cannot levy unclassified zero-basic pi
 });
 
 test('MY audit — an explicit Sabah or Sarawak worksite cannot use the Peninsular payroll profile', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+	for (const code of ['MY'] as const)
 		for (const worksite of ['Sabah/Kota Kinabalu', 'Malaysia/Sarawak/Kuching'])
 			assert.throws(
 				() =>
@@ -1294,7 +1294,7 @@ test('MY audit — an explicit Sabah or Sarawak worksite cannot use the Peninsul
 });
 
 test('MY audit — each salary day needs a typed Peninsular or Labuan worksite state before a payslip is built', () => {
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const run = (state: string | null) => {
 			const world = createStatutoryWorld({
 				code,

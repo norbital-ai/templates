@@ -37,6 +37,11 @@ export default model({
 		 * the entry's calendar year (art.5(2): a holiday that falls twice in a year carries two THRs).
 		 */
 		religion: { kind: 'text', optional: true },
+		/**
+		 * CEL over the person on the day (`employee.religion == "HINDU"`, `employee.facts.<key>`): the
+		 * day is a holiday only for the staff it holds for. Empty is everyone the row reaches.
+		 */
+		applies_when: { kind: 'text', optional: true },
 		/** A Google event id, a spreadsheet, or nothing for a hand entry. */
 		source: { kind: 'text', optional: true },
 		/** Payroll, leave and rosters read published rows only. */

@@ -168,7 +168,7 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 	}).filter((row) => row != null);
 }
 
-/** Blank overtime is no approval; a stated figure is kept, in the half-hour steps the write path enforces. */
+/** Blank overtime is no approval; a stated figure is kept, on the keying step the write path enforces. */
 function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
 	const evidence = (reader: RowReader, field: string) => {
 		const value = reader.text(field);
@@ -205,8 +205,8 @@ function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
 		};
 		if (text == null) return { employee_number, work_date, overtime_hours: 0, ...facts };
 		const value = decodeNumber(text);
-		if (!Number.isFinite(value) || value < 0 || value > 24 || Math.round(value * 2) !== value * 2) {
-			reader.reject('overtime_hours', 'a number of hours in half-hour steps between 0 and 24');
+		if (!Number.isFinite(value) || value < 0 || value > 24) {
+			reader.reject('overtime_hours', 'a number of hours between 0 and 24');
 			return { employee_number, work_date, overtime_hours: 0, ...facts };
 		}
 		return { employee_number, work_date, overtime_hours: value, ...facts };

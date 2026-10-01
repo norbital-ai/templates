@@ -134,6 +134,23 @@ test('a roster names every employed day, never PH, and becomes the roster of rec
 		run(world(), { roster: roster().filter((row) => row.work_date < '2026-01-30') }),
 		/write REST or OFF[\s\S]*PERSON: 2026-01-30, 2026-01-31/
 	);
+	// a day approved full-day leave owns may stay blank; a half day it leaves free may not
+	const onLeave = (half_day_end = false) =>
+		world({
+			leave: [
+				{
+					id: 'annual',
+					employment_id: 'rehire',
+					from_date: '2026-01-30',
+					to_date: '2026-01-31',
+					half_day_start: false,
+					half_day_end
+				}
+			]
+		});
+	const blanks = { roster: roster().filter((row) => row.work_date < '2026-01-30') };
+	await run(onLeave(), blanks);
+	await assert.rejects(run(onLeave(true), blanks), /write REST or OFF[\s\S]*PERSON: 2026-01-31$/m);
 	await assert.rejects(
 		run(world(), {
 			roster: roster().map((row) =>

@@ -1,5 +1,6 @@
 import { collection, type Id } from '@norbital-ai/bolt';
-import { readRange } from '../../../lib/payroll/run/effective.js';
+import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
+import { readAll } from '../../../lib/reads.js';
 import { factValueFault, type FactKey } from '../../../lib/datatypes/fact_keys.js';
 import {
 	contractOverlapFault,
@@ -12,6 +13,7 @@ import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
 import { readLeaveContext } from '../../../lib/leave/context.js';
 import { departureFactsMissing } from '../../../lib/leave/exit-settlement.js';
+import { employmentCheckIssues, refuseChecks } from '../../../lib/checks.js';
 
 /** Contracts. A referenced contract is frozen and undeletable (the delete guard reads its references). */
 const employments = collection('employments', {
@@ -25,7 +27,7 @@ const employments = collection('employments', {
 				'bank',
 				'effective_range',
 				'prior_service_months',
-				'exit_reason',
+				'exit_ground',
 				'exit_facts',
 				'comments'
 			],
@@ -39,6 +41,7 @@ const employments = collection('employments', {
 							'base_salary',
 							'worksite',
 							'worksite_sector',
+							'worksite_id',
 							'allowances',
 							'pay_frequency',
 							'work_classification',
@@ -72,7 +75,7 @@ const employments = collection('employments', {
 				'bank',
 				'effective_range',
 				'prior_service_months',
-				'exit_reason',
+				'exit_ground',
 				'exit_facts',
 				'comments',
 				// the departure settlement's stamps (leave_encashment_on_exit / _due), granted to their policy alone
@@ -86,7 +89,10 @@ const employments = collection('employments', {
 export default employments;
 
 /** What a departed contract may still take, and what an open one may change without clearing its references. */
-const DEPARTURE_NOTES = new Set(['comments', 'exit_reason', 'exit_facts']);
+const DEPARTURE_NOTES = new Set(['comments', 'exit_ground', 'exit_facts']);
+
+/** The stored table a departure's ground is a code of. */
+const TERMINATION_GROUND = 'TERMINATION_GROUND';
 
 const lastDayOf = (range: unknown) => {
 	const end = readRange(range)?.end;
@@ -104,7 +110,7 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 		employee_id?: string | null;
 		company_id?: string | null;
 		effective_range?: unknown;
-		exit_reason?: string | null;
+		exit_ground?: string | null;
 		exit_facts?: Readonly<Record<string, unknown>> | null;
 	};
 	const candidates: Candidate[] = inputs.map((input, index) => ({
@@ -121,6 +127,8 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 			)
 			.map(([key]) => key);
 	};
+	const changedOrNew = (index: number, key: string) =>
+		existing[index] == null ? !('$delete' in inputs[index]!) : changedKeys(index).includes(key);
 	// An end not yet passed may move earlier (an early departure); that is not a reopening.
 	const shortens = (index: number) => {
 		const stored = existing[index];
@@ -138,17 +146,21 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	const declared = candidates.filter(
 		(row, index) => !('$delete' in inputs[index]!) && Object.keys(row.exit_facts ?? {}).length > 0
 	);
+	// A ground being recorded or revised is judged against the table in force on the last day.
+	const grounded = candidates.flatMap((row, index) =>
+		(row.exit_ground ?? '').trim() !== '' && changedOrNew(index, 'exit_ground') ? [row] : []
+	);
 	// A departure being recorded or revised: its owed declarations are judged against the leaver on the last day.
 	const leaving = candidates.flatMap((row, index) =>
 		lastDayOf(row.effective_range) != null &&
 		changedKeys(index).some(
-			(key) => key === 'exit_reason' || key === 'exit_facts' || key === 'effective_range'
+			(key) => key === 'exit_ground' || key === 'exit_facts' || key === 'effective_range'
 		)
 			? [index]
 			: []
 	);
 	const departures = inputs.flatMap((_, index) =>
-		changedKeys(index).some((key) => key === 'exit_reason' || key === 'exit_facts')
+		changedKeys(index).some((key) => key === 'exit_ground' || key === 'exit_facts')
 			? [existing[index]!.id]
 			: []
 	);
@@ -179,8 +191,8 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	const nested = candidates.filter((_, index) => nestedTermsFacts(index).length > 0);
 	const entityIds = [
 		...new Set(
-			[...declared, ...nested, ...leaving.map((index) => candidates[index]!)].flatMap((row) =>
-				row.company_id == null ? [] : [row.company_id]
+			[...declared, ...grounded, ...nested, ...leaving.map((index) => candidates[index]!)].flatMap(
+				(row) => (row.company_id == null ? [] : [row.company_id])
 			)
 		)
 	];
@@ -214,6 +226,47 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	const versions =
 		codes.length === 0 ? [] : (await db.read('jurisdiction_settings', sealedLineages(codes))).rows;
 
+	const groundVersions = grounded.flatMap((row) => {
+		const lastDay = lastDayOf(row.effective_range);
+		if (lastDay == null)
+			return refuse('A departure ground requires a last working day.', { field: 'exit_ground' });
+		const code = companies.find((company) => company.id === row.company_id)?.settings_code;
+		const version = code == null ? null : settingsInForce(versions, code, lastDay);
+		if (version == null)
+			return refuse(
+				'A departure ground requires a sealed jurisdiction version on the last working day.',
+				{ field: 'exit_ground' }
+			);
+		return [{ row, lastDay, code: code!, version }];
+	});
+	const grounds =
+		groundVersions.length === 0
+			? []
+			: await readAll<{ settings_id: string; code: string; effective_range: unknown }>(
+					db,
+					'reference_rows',
+					{
+						settings_id: { in: [...new Set(groundVersions.map((entry) => entry.version.id))] },
+						table: { eq: TERMINATION_GROUND },
+						code: { in: [...new Set(groundVersions.map((entry) => entry.row.exit_ground!.trim()))] }
+					},
+					undefined,
+					{ settings_id: true, code: true, effective_range: true }
+				);
+	for (const { row, lastDay, code, version } of groundVersions) {
+		const ground = row.exit_ground!.trim();
+		if (
+			!grounds.some(
+				(entry) =>
+					entry.settings_id === version.id &&
+					entry.code === ground &&
+					coversDate(entry.effective_range, lastDay)
+			)
+		)
+			refuse(`${code} has no departure ground ${ground} in force on ${lastDay}.`, {
+				field: 'exit_ground'
+			});
+	}
 	for (const row of declared) {
 		const lastDay = lastDayOf(row.effective_range);
 		if (lastDay == null)
@@ -255,7 +308,7 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 						? {
 								...stored,
 								effective_range: readRange(row.effective_range),
-								exit_reason: row.exit_reason ?? null,
+								exit_ground: row.exit_ground ?? null,
 								exit_facts: row.exit_facts ?? null
 							}
 						: stored
@@ -286,6 +339,35 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 		];
 		const overlap = contractOverlapFault(row, peers);
 		if (overlap != null) refuse(overlap, { field: 'effective_range' });
+	}
+	// The version's stored checks (E9): a hire at EMPLOYMENT_START, with its nested first terms; a departure
+	// being recorded or moved at EXIT, over the merged row (an open EXIT-blocking duty refuses it too).
+	for (const [index, row] of candidates.entries()) {
+		const input = inputs[index]!;
+		if ('$delete' in input) continue;
+		if (existing[index] == null) {
+			const date = dateKey(readRange(row.effective_range)?.start);
+			if (date === '') continue;
+			refuseChecks(
+				await employmentCheckIssues(db, {
+					at: 'EMPLOYMENT_START',
+					employment: row,
+					terms: (input.employment_terms?.create ?? []) as readonly Readonly<
+						Record<string, unknown>
+					>[],
+					date
+				}),
+				refuse
+			);
+		} else if (leaving.includes(index))
+			refuseChecks(
+				await employmentCheckIssues(db, {
+					at: 'EXIT',
+					employment: row,
+					date: lastDayOf(row.effective_range)!
+				}),
+				refuse
+			);
 	}
 	return inputs.map((input, index) => {
 		const stored = existing[index];
