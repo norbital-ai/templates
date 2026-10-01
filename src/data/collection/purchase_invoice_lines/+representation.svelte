@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { bolt } from '$bolt';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import type { FormState, RecordView } from '@norbital-ai/ui';
 	import { Picker } from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 
 	let { view }: { view: RecordView<'purchase_invoice_lines'> } = $props();
+	const t = bolt.t;
 </script>
 
 <!-- the invoiceable lines are the invoice's own order's -->
@@ -35,5 +37,11 @@
 	{view}
 	subtitle={['purchase_invoice_id']}
 	editors={{ purchase_order_line_id: orderLine }}
-	fields={['purchase_invoice_id', 'purchase_order_line_id', 'quantity', 'unit_cost', 'tax_rate']}
+	sections={[
+		{
+			name: 'line',
+			title: t('section.line'),
+			fields: ['purchase_invoice_id', 'purchase_order_line_id', 'quantity', 'unit_cost', 'tax_rate']
+		}
+	]}
 />

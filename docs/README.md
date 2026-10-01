@@ -60,8 +60,9 @@ confirmed and the owner.
 ![A confirmed quote](images/03-quote-record.png)
 
 A quote carries the account and a contact (picked from that account's people), the currency and
-whether prices include tax, the valid-until date, and the trade terms: payment, shipping, place of
-loading and delivery, packaging, shipping mark, time of shipment and any other terms. The currency
+whether prices include tax, and the valid-until date. The **Trade terms** section (payment, shipping,
+place of loading and delivery, packaging, shipping mark, time of shipment and any other terms) and
+**Notes** start collapsed, showing the payment terms and the first words of the notes. The currency
 is the account's unless you choose another. Each quote is numbered `QT-<year>-<nnnn>` when it is
 created.
 

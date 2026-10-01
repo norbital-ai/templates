@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { bolt } from '$bolt';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import type { FormState, RecordView } from '@norbital-ai/ui';
 	import { Picker } from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 
 	let { view }: { view: RecordView<'sales_invoice_lines'> } = $props();
+	const t = bolt.t;
 </script>
 
 <!-- the billable lines are the invoice's own quote's -->
@@ -31,5 +33,11 @@
 	{view}
 	subtitle={['sales_invoice_id']}
 	editors={{ quote_line_id: quoteLine }}
-	fields={['sales_invoice_id', 'quote_line_id', 'quantity', 'unit_price', 'tax_rate']}
+	sections={[
+		{
+			name: 'line',
+			title: t('section.line'),
+			fields: ['sales_invoice_id', 'quote_line_id', 'quantity', 'unit_price', 'tax_rate']
+		}
+	]}
 />
