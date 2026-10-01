@@ -135,9 +135,11 @@ export type Scenario = {
 	};
 	leave: {
 		personalDays: number;
-		/** 普通傷病假 days this month, hospitalised or not (art. 4: one 30-day half-pay allowance a year) */
+		/** 普通傷病假 days this month, not hospitalised (art. 4(1)(1): thirty a year at most) */
 		sickDays: number;
 		sickPriorDays: number;
+		/** 住院傷病假 days this month (art. 4(1)(2)); the year's thirty half-paid days are shared with 普通傷病假 */
+		hospitalisedDays: number;
 		/** 生理假 days this month and earlier this year (GEEA art. 14) */
 		menstrualDays: number;
 		menstrualPriorDays: number;
@@ -202,6 +204,18 @@ const span = (a: string, b: string) => (D(b) - D(a)) / DAY + 1;
 export const ageOn = (birth: string, on: string) =>
 	+on.slice(0, 4) - +birth.slice(0, 4) - (on.slice(5) < birth.slice(5) ? 1 : 0);
 /** Service from hire to the last day inclusive: completed years, months and the remaining days. */
+/**
+ * DEFAULT (seed SEVERANCE_PAY `employment.service_months_exact`, law silent on the part-year measure — 勞退條例 §12(1)
+ * says only 未滿一年者，以比例計給): completed months to the day after `last`, plus the part month as the share of its
+ * own days (hire 23 Dec, last day 20 Mar: 2 months + 26/28).
+ */
+export const exactMonths = (hire: string, last: string) => {
+	const end = addDays(last, 1);
+	let m = 0;
+	while (addMonths(hire, m + 1) <= end) m++;
+	const from = addMonths(hire, m);
+	return m + (span(from, end) - 1) / (span(from, addMonths(hire, m + 1)) - 1);
+};
 export const service = (hire: string, last: string) => {
 	const end = addDays(last, 1);
 	let months = 0;
@@ -331,6 +345,13 @@ const SUPP_RATE = 0.0211;
 const ARREARS_RATE = 0.00025;
 const EMPLOYER_PENSION = 0.06;
 const SUBSIDY = { MILD: 0.25, MODERATE: 0.5, SEVERE: 1 } as const;
+const LEAVE_DEDUCTIONS = [
+	'PERSONAL_LEAVE',
+	'SICK_LEAVE',
+	'HOSPITALISED_SICK_LEAVE',
+	'MENSTRUAL_LEAVE',
+	'MATERNITY_LEAVE'
+];
 
 /** 115年度 table cell: 80,001–500,000 by NT$500 rows, 0–11 dependants; the 說明 (三) formula outside. */
 export function tableTax(law: Law, salary: number, dependants: number) {
@@ -398,6 +419,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	let monthlyRate = 0; // the month's normal monthly wage (for ÷ 30 day rates)
 	let insuredWage: number;
 	const parental = sc.leave.parentalWholeMonth;
+	// 勞工請假規則 §7: 事假期間不給工資; the 伙食津貼 is 工資 (LSA art. 2(3)), so its 事假 days go unpaid too (seed
+	// payroll.allowance_npl_prorates true, day = allowance ÷ 30 as TW-WAGE-05)
+	const mealNpl = (e.mealAllowance * sc.leave.personalDays) / 30;
 	if (e.pay.basis === 'HOURLY') {
 		const hourly = Math.max(e.pay.hourly, law.mwHourly);
 		earn('BASIC', parental ? 0 : hourly * e.pay.hours);
@@ -417,30 +441,40 @@ export function computePayslip(sc: Scenario): Payslip {
 				monthlyRate = raised;
 			} else if (whole) {
 				earn('BASIC', agreed);
-				earn('MEAL_ALLOWANCE', e.mealAllowance);
+				earn('MEAL_ALLOWANCE', e.mealAllowance - mealNpl);
 			} else {
 				// DEFAULT (TW-WAGE-05): a part month of service is paid by the calendar day at 月薪 ÷ 30
 				const days = span(start, end);
 				earn('BASIC', Math.min(agreed, (agreed * days) / 30));
-				earn('MEAL_ALLOWANCE', Math.min(e.mealAllowance, (e.mealAllowance * days) / 30));
+				earn('MEAL_ALLOWANCE', Math.min(e.mealAllowance, (e.mealAllowance * days) / 30) - mealNpl);
 			}
-			if (e.pay.raise && whole) earn('MEAL_ALLOWANCE', e.mealAllowance);
+			if (e.pay.raise && whole) earn('MEAL_ALLOWANCE', e.mealAllowance - mealNpl);
 		}
 	}
 	const day = monthlyRate / 30; // LSA art. 2(3); DEFAULT ÷ 30 (TW-WAGE-05)
 	const hour = day / 8; // DEFAULT: 月薪 ÷ 30 ÷ 8 absent agreement
-	// LEAVE art. 7: 事假 unpaid (the allowance stays whole, TW-WAGE-05 golden); art. 4(3): sick half pay to 30 days
+	// LEAVE art. 7: 事假 unpaid; art. 4(3): half pay for the year's first 30 days of 普通傷病假, hospitalised or not
+	// (DEFAULT: this month's non-hospital days use the allowance first)
 	if (sc.leave.personalDays > 0) earn('PERSONAL_LEAVE', -day * sc.leave.personalDays);
-	if (sc.leave.sickDays > 0) {
-		const half = Math.min(sc.leave.sickDays, Math.max(0, 30 - sc.leave.sickPriorDays));
-		earn('SICK_LEAVE', -(day / 2) * half - day * (sc.leave.sickDays - half));
-	}
+	const halfOf = (days: number, used: number) => {
+		const half = Math.min(days, Math.max(0, 30 - used));
+		return -(day / 2) * half - day * (days - half);
+	};
+	if (sc.leave.sickDays > 0) earn('SICK_LEAVE', halfOf(sc.leave.sickDays, sc.leave.sickPriorDays));
+	if (sc.leave.hospitalisedDays > 0)
+		earn(
+			'HOSPITALISED_SICK_LEAVE',
+			halfOf(sc.leave.hospitalisedDays, sc.leave.sickPriorDays + sc.leave.sickDays)
+		);
 	// GEEA art. 14: 生理假 half pay; the first three days of the year stand apart, the rest count to 病假 (half
 	// pay while the year's thirty last, then unpaid). DEFAULT: this month's 病假 entries use the allowance first.
 	if (sc.leave.menstrualDays > 0) {
 		const apart = Math.min(sc.leave.menstrualDays, Math.max(0, 3 - sc.leave.menstrualPriorDays));
 		const counted = sc.leave.menstrualDays - apart;
-		const left = Math.max(0, 30 - sc.leave.sickPriorDays - sc.leave.sickDays);
+		const left = Math.max(
+			0,
+			30 - sc.leave.sickPriorDays - sc.leave.sickDays - sc.leave.hospitalisedDays
+		);
 		const halfCounted = Math.min(counted, left);
 		earn('MENSTRUAL_LEAVE', -(day / 2) * (apart + halfCounted) - day * (counted - halfCounted));
 	}
@@ -503,14 +537,13 @@ export function computePayslip(sc: Scenario): Payslip {
 		}
 		// 資遣費 (LSA art. 14(4) applies it to a worker's art. 14 termination):
 		//  - new system, LPA art. 12: half a month's average wage a year, a part year pro rata, six months at most
-		//    (DEFAULT: part year = months/12 + days/365); retained old-system months before it are paid under
+		//    (DEFAULT: part year by `exactMonths`); retained old-system months before it are paid under
 		//    LSA art. 17 (LPA art. 11(2)): one month a year, remaining months pro rata.
 		//  - old system retained, LSA art. 17: one month a year, remaining months pro rata, a part month as a month.
 		let pay = 0;
 		if (x.cause === 'LAYOFF_S11' || x.cause === 'WORKER_S14') {
 			if (e.pension.system === 'NEW') {
-				const nsvc = service(addMonths(e.hireDate, e.oldSystemServiceMonths), x.date);
-				const years = nsvc.years + nsvc.months / 12 + nsvc.days / 365;
+				const years = Math.max(0, exactMonths(e.hireDate, x.date) - e.oldSystemServiceMonths) / 12;
 				pay = (e.oldSystemServiceMonths / 12 + Math.min(6, years / 2)) * x.averageMonthlyWage;
 			} else pay = ((svc.totalMonths + (svc.days > 0 ? 1 : 0)) / 12) * x.averageMonthlyWage;
 		}
@@ -597,6 +630,7 @@ export function computePayslip(sc: Scenario): Payslip {
 			'MEAL_ALLOWANCE',
 			'PERSONAL_LEAVE',
 			'SICK_LEAVE',
+			'HOSPITALISED_SICK_LEAVE',
 			'MENSTRUAL_LEAVE',
 			'MATERNITY_LEAVE'
 		].reduce((s, c) => s + (lines[c]?.amount ?? 0), 0);
@@ -637,6 +671,7 @@ export function computePayslip(sc: Scenario): Payslip {
 		'MEAL_ALLOWANCE',
 		'PERSONAL_LEAVE',
 		'SICK_LEAVE',
+		'HOSPITALISED_SICK_LEAVE',
 		'MENSTRUAL_LEAVE',
 		'MATERNITY_LEAVE'
 	];
@@ -722,5 +757,7 @@ export function computePayslip(sc: Scenario): Payslip {
 			'NHI_SUPPLEMENT_EMPLOYER.employer': Math.max(0, r0((payroll - insured) * SUPP_RATE))
 		};
 	}
+	// The engine states a leave deduction as its positive amount (gross is already net of it)
+	for (const c of LEAVE_DEDUCTIONS) if (lines[c]) lines[c] = { amount: -lines[c].amount! };
 	return { lines, companyLines };
 }

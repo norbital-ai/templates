@@ -716,11 +716,12 @@ export function generateProfiles(): Scenario[] {
 		['1986-06-02', '2026-06', 'care not yet: 40 attained 2026-06-01', ['JP-SI-21', 'JP-SI-12']],
 		['1986-03-01', '2026-03', 'care starts in February (1.59%)', ['JP-SI-21', 'JP-SI-12']],
 		['1986-03-02', '2026-03', 'care not yet in February', ['JP-SI-21', 'JP-SI-12']],
+		// 1986 has no 29 February, and a 29 February birth always turns 40 in a leap year: the edge is at 70
 		[
-			'1986-02-29',
+			'1956-02-29',
 			'2026-03',
-			'leap birthday: 40th on 1 March, attained 28 February',
-			['JP-SI-21', 'JP-SI-12']
+			'leap birthday: 70th on 1 March, attained 28 February — no pension for February',
+			['JP-SI-12', 'JP-SI-19']
 		],
 		['1961-06-01', '2026-06', 'care stops: 65 attained 2026-05-31', ['JP-SI-21', 'JP-SI-12']],
 		['1961-06-02', '2026-06', 'care continues in May', ['JP-SI-21', 'JP-SI-12']],
@@ -886,11 +887,12 @@ export function generateProfiles(): Scenario[] {
 		'77h overtime: 17h at 150%',
 		june.map((d) => day(d, '09:00', '21:30'))
 	);
+	// 労働基準法 §36(6)(ii): overtime plus statutory-holiday work stays under 100 hours a month even under a special clause
 	ot(
-		'110h-night',
+		'99h-night',
 		['JP-OT-04', 'JP-OT-05', 'JP-OT-01'],
-		'110h overtime with night hours: 175% beyond 60h',
-		june.map((d) => day(d, '09:00', '23:00'))
+		'99h overtime with night hours: 175% beyond 60h',
+		june.map((d) => day(d, '09:00', '22:30'))
 	);
 	ot('mixed', ['JP-OT-03', 'JP-OT-04'], 'weekday, Saturday and Sunday work in one month', [
 		day('2026-06-09', '09:00', '22:30'),

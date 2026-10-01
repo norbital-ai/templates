@@ -1883,7 +1883,8 @@ export function generateProfiles(): Scenario[] {
 			'2026-03-02',
 			'2026-03-02',
 			['CN-SH51.follow-up'],
-			'follow-up'
+			// the harness keys the catalogue event from the detail: IUD_FOLLOWUP
+			'IUD followup'
 		],
 		[
 			'FAMILY_PLANNING_PROCEDURE_LEAVE',
@@ -1939,6 +1940,7 @@ export function generateProfiles(): Scenario[] {
 						'tubal ligation',
 						'IUD insertion',
 						'IUD removal',
+						'IUD followup',
 						'implant insertion',
 						'implant removal',
 						'diagnostic curettage'

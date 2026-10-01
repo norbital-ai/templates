@@ -1246,6 +1246,9 @@ function core(s: Scenario, withTax: boolean): Core {
 		return fail(
 			'EMPLOYMENT_INSURANCE: REGISTERED GENERAL worker contracted under 20 hours a week (雇用保険法 §6(i))'
 		);
+	// 源泉徴収税額表: pay due from 2027 needs the 令和9年分 tables, which no sealed version carries (JP-TAX-22 refuses)
+	if (withTax && end >= '2027-01-01')
+		return fail('INCOME_TAX: pay due from 1 January 2027 needs the 令和9年分 tables');
 	// EI: the 令和9年度 rates are not published (JP-EI-02 DEFAULT refuses)
 	if (e.employmentInsurance.registered && end >= '2027-04-01')
 		return fail('EMPLOYMENT_INSURANCE: 令和9年度 rates not published');
@@ -1523,7 +1526,9 @@ export function computePayslip(s: Scenario): Payslip {
 		unsupported: c.unsupported,
 		gross,
 		total_deductions,
-		net: gross - total_deductions,
+		// DEFAULT (engine settle: net = max(0, balance)): a deficit is recorded apart as unfunded, never paid negative
+		// (労働基準法 §24 pays wages; it never charges the worker through the payslip)
+		net: Math.max(0, gross - total_deductions),
 		employer_cost: gross + sum('employer')
 	};
 }

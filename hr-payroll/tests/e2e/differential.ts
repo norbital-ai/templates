@@ -355,7 +355,11 @@ export function judge(
 		// SALARY is the engine's BASIC net of deductions or not: the totals carry the money either way)
 		const judged = TOTALS.includes(key) || statutory(key) || key in saved.lines;
 		if (skip.has(key) || !judged) continue;
-		const engine = saved.lines[key] ?? 0;
+		// a slip's employer_cost is what the employer pays on top of gross; the oracles state the whole cost
+		const engine =
+			key === 'employer_cost'
+				? (saved.lines.employer_cost ?? 0) + (saved.lines.gross ?? 0)
+				: (saved.lines[key] ?? 0);
 		const oracle = verdict.lines[key] ?? 0;
 		if (Math.abs(engine - oracle) > 0.01 + 1e-9) out.push(at(key, engine, oracle));
 	}

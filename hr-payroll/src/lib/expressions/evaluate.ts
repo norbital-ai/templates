@@ -286,8 +286,13 @@ function run(engine: ExpressionEngine, expression: string, context: object): unk
 		: observe(engine, expression, context, (traced) => evaluateBound(traced, expression, context));
 }
 
+let evaluations = 0;
+/** How many expressions this isolate has evaluated: the operation count a payroll run's cost guard bounds. */
+export const evaluationCount = (): number => evaluations;
+
 /** A program with `engine` bound; an engine that binds no tables or history borrows the context's (`TABLES`, `HISTORY`). */
 function evaluateBound(engine: ExpressionEngine, expression: string, context: object): unknown {
+	evaluations += 1;
 	const program = programFor(expression);
 	const tables = engine.tables ?? tablesIn(context);
 	const history = engine.history ?? historyIn(context);

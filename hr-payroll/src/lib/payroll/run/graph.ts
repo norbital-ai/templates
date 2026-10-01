@@ -82,7 +82,6 @@ export function payrollRunGraph(options: {
 			proration: payslip.proration,
 			statutory: payslip.charges.map((charge) => ({
 				scheme_code: charge.contribution.row.code,
-				authority: charge.contribution.row.authority,
 				label: charge.contribution.row.short_name ?? null,
 				listing_order: charge.contribution.row.listing_order ?? null,
 				listing_group: charge.contribution.row.listing_group ?? null,

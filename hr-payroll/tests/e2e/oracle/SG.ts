@@ -692,10 +692,13 @@ export function computePayslip(s: Scenario): Payslip {
 					: 'SG-EA35.hospitalisation'
 		);
 
-	// EA s.28(2): "in the case of a monthly-rated employee the amount of deduction in respect of any one day is the gross
-	// rate of pay for one day's work" (s.107A Third Schedule). EA s.88(3): an absence without consent or excuse on the
-	// working day immediately before or after a public holiday forfeits that holiday's pay, once per holiday.
-	// DEFAULT (law silent): a public holiday is not itself a "working day" when finding the neighbour.
+	// EA s.28(1)–(2): a deduction for absence bears to the month's salary no larger proportion than the time absent bears
+	// to the time the employee was required to work — one working day of the month is the month's gross ÷ its working
+	// days (the s.20A share; tracker SG-EA14.unexcused-absence, probe SG-EA14-2). EA s.88(3): an absence without consent
+	// or excuse on the working day immediately before or after a public holiday forfeits that holiday's pay, once per
+	// holiday; DEFAULT (law silent on the quantum for a monthly-rated employee): the holiday, itself a working day of
+	// the month, comes off at the same share. DEFAULT (law silent): a public holiday is not itself a "working day" when
+	// finding the neighbour.
 	const workingNeighbour = (h: string, step: 1 | -1) => {
 		const pool = required.filter((d) => !holidays.has(d));
 		return step === -1 ? pool.filter((d) => d < h).at(-1) : pool.find((d) => d > h);
@@ -711,13 +714,13 @@ export function computePayslip(s: Scenario): Payslip {
 	);
 	const absenceDays = [...absent].filter((d) => employed(d));
 	const absenceDeduction = cents(
-		[...absenceDays, ...forfeited].reduce((a, d) => a + grossDay(rateOn(d).G), 0)
+		[...absenceDays, ...forfeited].reduce((a, d) => a + dayShare(d), 0)
 	);
 	if (absenceDays.length > 0) hit('SG-EA14.unexcused-absence', 'SG-EA40.fixed-monthly');
 	if (forfeited.length > 0) hit('SG-EA33.adjacent-absence');
 	if (absenceDeduction > 0)
 		notes.push(
-			`EA s.28(2)/s.88(3): ${absenceDays.length + forfeited.length} gross day(s) deducted`
+			`EA s.28(2)/s.88(3): ${absenceDays.length + forfeited.length} working-day share(s) deducted`
 		);
 	salary = cents(Math.max(0, salary - absenceDeduction));
 

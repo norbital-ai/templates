@@ -127,10 +127,10 @@ function epf(s: Scenario, age: number, wage: number, wageExBonus: number): Epf {
 	// Part A (under 60, citizen or PR): employee 11%; employer 13% where wages ≤ RM5,000 else 12%. The Part A bonus
 	// note keeps 13% when only the bonus lifts the month over RM5,000 (tracker MY-WAGEBASE-01 golden 3,000 + 12,000).
 	const lowBand = cents(wageExBonus) <= 500000;
+	// Part A is one schedule for citizens and PRs alike; the seed books it on scheme EPF. EPF_PR is Part C (PR 60+).
 	if (age < 60) {
-		const code = cz === 'CITIZEN' ? 'EPF' : 'EPF_PR';
 		return {
-			code,
+			code: 'EPF',
 			employee: epfShare(w, 1100),
 			employer: epfShare(w, lowBand ? 1300 : 1200),
 			part: 'A'
@@ -447,9 +447,20 @@ export function computePayslip(s: Scenario): Expected {
 			out.branches.push('basic:whole-month');
 		} else {
 			// [EA] s.18A: monthly wages × days eligible ÷ days of the wage period; rounded to the sen (law silent on the
-			// sen; half-up). Fixed allowances are "wages" (s.2) and prorate with the basic.
-			earn('BASIC', r2((e.rate * eligible) / dim));
-			earn('FIXED_ALLOWANCE', r2((e.fixedAllowance * eligible) / dim));
+			// sen; half-up). Fixed allowances are "wages" (s.2) and prorate with the basic. The slip shows the days
+			// employed on BASIC and the s.18A(c) unpaid days as their own negative UNPAID_LEAVE line; the month's
+			// wages (their sum) are rounded once.
+			const employed = eligible + unpaid;
+			const basic = employed === dim ? e.rate : r2((e.rate * employed) / dim);
+			const allowance =
+				employed === dim ? e.fixedAllowance : r2((e.fixedAllowance * employed) / dim);
+			earn('BASIC', basic);
+			earn('FIXED_ALLOWANCE', allowance);
+			if (unpaid)
+				earn(
+					'UNPAID_LEAVE',
+					r2((e.rate * eligible) / dim) + r2((e.fixedAllowance * eligible) / dim) - basic - allowance
+				);
 			out.branches.push(
 				`s18A:${from > first ? 'a-joiner' : ''}${to < last ? 'b-leaver' : ''}${unpaid ? 'c-unpaid' : ''}`
 			);
@@ -553,7 +564,8 @@ export function computePayslip(s: Scenario): Expected {
 				const dd = iso(d);
 				indemnity += monthlyWages / daysIn(+dd.slice(0, 4), +dd.slice(5, 7));
 			}
-			const code = x.cause === 'EMPLOYER_TERMINATION' ? 'NOTICE_INDEMNITY' : 'NOTICE_INDEMNITY_DUE';
+			// the seed's catalogue codes: NOTICE_IN_LIEU the employer pays, NOTICE_INDEMNITY the employee owes
+			const code = x.cause === 'EMPLOYER_TERMINATION' ? 'NOTICE_IN_LIEU' : 'NOTICE_INDEMNITY_DUE';
 			out.lines[code] = { amount: r2(x.cause === 'EMPLOYER_TERMINATION' ? indemnity : -indemnity) };
 			out.branches.push(
 				`s13(1):${weeks}w-${x.cause === 'EMPLOYER_TERMINATION' ? 'employer-pays' : 'employee-owes'}`
@@ -567,7 +579,7 @@ export function computePayslip(s: Scenario): Expected {
 	}
 
 	const amt = (code: string) => out.lines[code]?.amount ?? 0;
-	const basicAll = amt('BASIC') + amt('FIXED_ALLOWANCE');
+	const basicAll = amt('BASIC') + amt('FIXED_ALLOWANCE') + amt('UNPAID_LEAVE');
 	// ---- contribution bases [BASES]
 	const epfNormal = basicAll + amt('REST_DAY_WORK') + amt('HOLIDAY_WORK'); // Act 452 s.2 excludes overtime, travelling allowance, termination benefits
 	const epfTotal = epfNormal + amt('BONUS') + amt('ENCASHMENT');
@@ -625,12 +637,16 @@ export function computePayslip(s: Scenario): Expected {
 
 	// EIS: Act 800 First Schedule — excluded under 18 or from 60 (para 8); first liable at 57+ (para 9); foreign
 	// employees other than permanent residents (para 10).
+	// Act 800 is in force from 1 January 2018 and para 8 excludes those under 18, so no EIS contribution was
+	// due before the later of those two dates, whatever the SOCSO history.
+	const at18 = `${+s.employee.birthDate.slice(0, 4) + 18}${s.employee.birthDate.slice(4)}`;
+	const eisFirst = [s.employee.firstContributionDate, '2018-01-01', at18].sort().at(-1)!;
 	const eisOut =
 		age < 18
 			? 'under-18'
 			: age >= 60
 				? 'age-60'
-				: entryAge >= 57
+				: ageOn(s.employee.birthDate, eisFirst) >= 57
 					? 'entry-57'
 					: s.employee.citizenship === 'FOREIGNER'
 						? 'foreign'
@@ -684,7 +700,7 @@ export function computePayslip(s: Scenario): Expected {
 			Yt,
 			Kt: Math.max(0, (ep?.employee ?? 0) - K1), // E(13)(iii): total EPF less EPF on normal remuneration
 			category: s.employee.pcbCategory,
-			children: s.employee.children + 0.5 * (s.employee.childrenHalf ?? 0), // [ITA] s.48(4): 50% each
+			children: s.employee.children - 0.5 * (s.employee.childrenHalf ?? 0), // [ITA] s.48(4): a shared child counts 50%
 			zakat: s.employee.zakat,
 			prior: s.employee.tp3 ?? { remuneration: 0, epf: 0, mtd: 0, zakat: 0 }
 		});
@@ -711,13 +727,9 @@ export function computePayslip(s: Scenario): Expected {
 	// First Schedule (P.U.(A)84/2021): a listed-industry employer with ≥ 10 Malaysian employees is liable; 5-9 may
 	// register (optional, 0.5%). s.15(4): an optional employer whose count exceeds its limit pays 1%; s.15(5) keeps 1%
 	// to the end of that year after a decrease; s.15(6) restores 0.5% the next year; s.15(7) an increase: 1% at once.
+	// A compulsory registrant stays at 1% below ten (HRD Corp Circular 5/2018, tracker MY-HRD13).
 	const hc = s.company.hrdHeadcount;
-	const hrdClass =
-		hc === undefined || s.company.hrd !== 'COMPULSORY'
-			? s.company.hrd
-			: hc >= 10
-				? 'COMPULSORY'
-				: 'NOT_LIABLE';
+	const hrdClass = s.company.hrd;
 	const optionalHigh = hc !== undefined && (hc >= 10 || s.company.hrdHighRateYear === y);
 	if (hrdClass !== 'NOT_LIABLE' && cz === 'CITIZEN') {
 		if (e.employmentType === 'PART_TIME')
@@ -739,7 +751,7 @@ export function computePayslip(s: Scenario): Expected {
 
 	// ---- totals
 	const gross = Object.entries(out.lines)
-		.filter(([, l]) => l.amount !== undefined && l.amount > 0)
+		.filter(([code, l]) => l.amount !== undefined && code !== 'NOTICE_INDEMNITY_DUE')
 		.reduce((a, [, l]) => a + l.amount!, 0);
 	const owed = -(out.lines.NOTICE_INDEMNITY_DUE?.amount ?? 0);
 	const totalDeductions = deductions.reduce((a, b) => a + b, 0) + owed;

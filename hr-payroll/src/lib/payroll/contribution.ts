@@ -316,8 +316,7 @@ function coverageFacts(bundle: EmploymentBundle, configuration: Configuration, a
 					);
 			}
 		}
-		if (!schemeExpressions(scheme).some((expression) => expression.includes('coverage_days(')))
-			continue;
+		if (!mentionsText(scheme, 'coverage_days(')) continue;
 		const window =
 			scheme.row.assessment_period !== 'PAY_PERIOD'
 				? monthBounds(bundle.window.period.slice(0, 7))
@@ -2139,6 +2138,41 @@ export function measuredPeriod(measured: MeasuredEmployment): NonNullable<Person
 	};
 }
 
+/**
+ * What one scheme's expressions name, asked once per scheme: a ladder is hundreds of expressions and
+ * every person's assessment asked the same text questions of it. Keyed by the memoized expression list.
+ */
+const schemeScans = new WeakMap<readonly string[], Map<string, unknown>>();
+function scanOf<T>(
+	scheme: Parameters<typeof schemeExpressions>[0],
+	key: string,
+	scan: (expressions: readonly string[]) => T
+): T {
+	const expressions = schemeExpressions(scheme);
+	let scans = schemeScans.get(expressions);
+	if (scans === undefined) schemeScans.set(expressions, (scans = new Map()));
+	if (!scans.has(key)) scans.set(key, scan(expressions));
+	return scans.get(key) as T;
+}
+const mentionsText = (scheme: Parameters<typeof schemeExpressions>[0], needle: string): boolean =>
+	scanOf(scheme, `text:${needle}`, (expressions) =>
+		expressions.some((expression) => expression.includes(needle))
+	);
+const matchesOf = (
+	scheme: Parameters<typeof schemeExpressions>[0],
+	pattern: RegExp
+): ReadonlySet<string> =>
+	scanOf(
+		scheme,
+		`re:${pattern.source}`,
+		(expressions) =>
+			new Set(
+				expressions.flatMap((expression) =>
+					[...expression.matchAll(pattern)].map((match) => match[1]!)
+				)
+			)
+	);
+
 export function prepareContributionAssessment(
 	options: Parameters<typeof contributionAssessment>[0]
 ): ContractAssessment {
@@ -2189,13 +2223,7 @@ function contributionAssessment(options: {
 	const payMonth = monthBounds(bundle.window.period.slice(0, 7));
 	for (const scheme of configuration.contributions) {
 		if (scheme.row.assessment_period === 'PAY_PERIOD') continue;
-		const keys = new Set(
-			schemeExpressions(scheme).flatMap((expression) =>
-				[...expression.matchAll(/company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g)].map(
-					(match) => match[1]!
-				)
-			)
-		);
+		const keys = matchesOf(scheme, /company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g);
 		for (const revision of configuration.companyFactRevisions) {
 			const range = readRange(revision.effective_range);
 			if (range == null) continue;
@@ -2269,11 +2297,9 @@ function contributionAssessment(options: {
 	// Computed only when a scheme's own expressions mention `history`: the cumulative-average
 	// summary is a seed-selectable method, never a jurisdiction branch in the engine.
 	const historyPeriodCodes = new Set(
-		configuration.contributions.flatMap((scheme) =>
-			schemeExpressions(scheme).flatMap((expression) =>
-				[...expression.matchAll(/history\.([A-Z0-9_]+)\.periods\b/g)].map((match) => match[1]!)
-			)
-		)
+		configuration.contributions.flatMap((scheme) => [
+			...matchesOf(scheme, /history\.([A-Z0-9_]+)\.periods\b/g)
+		])
 	);
 	let cumulativeHistory: ReadonlyMap<string, StatutoryHistorySummary> | null = null;
 	const historyFor = (code: string): StatutoryHistorySummary | undefined => {
@@ -2603,7 +2629,7 @@ function contributionAssessment(options: {
 				...person,
 				wage_floor: floor,
 				wage_floor_pay: configuration.contributions.some((scheme) =>
-					schemeExpressions(scheme).some((expression) => expression.includes('wage_floor_pay'))
+					mentionsText(scheme, 'wage_floor_pay')
 				)
 					? wageFloorPay(measured, configuration, bundle.employedDays ?? bundle.window.salary)
 					: person.wage_floor_pay

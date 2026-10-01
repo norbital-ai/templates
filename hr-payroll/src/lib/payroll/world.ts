@@ -66,9 +66,6 @@ export type PayrollWorld = { readonly [C in PayrollCollection]: readonly Workspa
 /** The largest page the run reads of one collection; a run that reaches it refuses rather than lie. */
 const PAGE_LIMIT = 20_000;
 
-/** People's traces one page of runs holds: a 2 MB crossing answer over 50 KB a person. */
-const RUN_PAGE_PEOPLE = 2_000_000 / 50_000;
-
 const APPROVED = { approval_id: { isNull: true } } as const;
 
 /**
@@ -239,12 +236,10 @@ async function wave2(
 		leave_entries,
 		loans,
 		loan_repayments,
-		payslips,
 		worksites,
 		person_facts,
 		employment_history,
-		reference_rows,
-		payroll_runs
+		reference_rows
 	] = await Promise.all([
 		readAll<WorkspaceRow<'employees'>>(db, 'employees', { id: { in: employeeIds }, ...APPROVED }),
 		readAll<WorkspaceRow<'employment_terms'>>(db, 'employment_terms', people),
@@ -319,7 +314,6 @@ async function wave2(
 		readAll<WorkspaceRow<'loan_repayments'>>(db, 'loan_repayments', {
 			employment_id: { in: employmentIds }
 		}),
-		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } }),
 		readAll<WorkspaceRow<'worksites'>>(db, 'worksites', {
 			company_id: { eq: companyId },
 			...APPROVED
@@ -347,15 +341,24 @@ async function wave2(
 			range_to: true,
 			values: true,
 			approval_id: true
-		}),
-		// A run row carries every person's trace, so a page holds as many runs as the company's
-		// headcount leaves room for: a run a crossing at Nihon's 84 people, every run at once at one.
-		// ponytail: 50 KB a person is the Nihon measure; a wider trace needs a wider allowance here.
+		})
+	]);
+	// The history is its own crossing: its first pages beside the wave's answers put a company's second
+	// run over the 4 MiB answer wall (Nihon, 89 slips: 3.4 MB of wave, 1 MB of slips, 0.4 MB of run).
+	// ponytail: each payslip page is still a crossing; a slip no longer stores its schemes' statute text
+	// (~4 KB a slip), so 200 a page reach a year of a 90-person company in ~6 pages.
+	const [payslips, payroll_runs] = await Promise.all([
+		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } }),
+		// A run row carries every person's trace, which no pricing path reads: the run is read without it,
+		// in one crossing whatever the company's size.
 		readAll<WorkspaceRow<'payroll_runs'>>(
 			db,
 			'payroll_runs',
 			{ company_id: { eq: companyId } },
-			Math.max(1, Math.floor(RUN_PAGE_PEOPLE / Math.max(1, first.employments.length)))
+			undefined,
+			Object.fromEntries(
+				Object.entries(everyField('payroll_runs')).filter(([field]) => field !== 'calculation_trace')
+			)
 		)
 	]);
 	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last

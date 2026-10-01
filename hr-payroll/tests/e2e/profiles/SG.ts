@@ -467,7 +467,14 @@ export function generateProfiles(): Scenario[] {
 			[],
 			's.88(2): holiday inside requested no-pay leave unpaid'
 		],
-		['absent-1', '2026-09', {}, { absent: ['2026-09-10'] }, [], 's.28(2): gross day deducted'],
+		[
+			'absent-1',
+			'2026-09',
+			{},
+			{ absent: ['2026-09-10'] },
+			[],
+			's.28(2): one working-day share deducted'
+		],
 		[
 			'absent-1-allowance',
 			'2026-10',

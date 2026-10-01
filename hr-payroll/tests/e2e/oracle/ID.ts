@@ -30,8 +30,9 @@
  *
  * DEFAULT marks an owner-rule default where the law is silent (recorded in docs/inventory/indonesia.csv):
  *   ID-106 calendar-day proration; ID-161 part-month BPJS bases and the whole-month Kesehatan floor lift;
- *   ID-127 half-up whole-rupiah charges; ID-15 contributions stop from the month the worker is already of
- *   pension age on the period's first day (oracle reading). Wage lines are kept to the sen (half-up).
+ *   ID-127 half-up whole-rupiah charges; ID-15 contributions stop from the month in which the worker attains
+ *   pension age (age on the period's last day; PP 45/2015 art 15 names no month boundary, the seed's JP rule
+ *   reads the age at the assessment date). Wage lines are kept to the sen (half-up).
  * Pure TypeScript; nothing is imported from src.
  */
 
@@ -688,7 +689,14 @@ export function computePayslip(s: Scenario): Payslip {
 	const rateBasic = em.raise === null ? em.basic : em.raise.basic;
 	const fixedPaid = r2((em.fixedAllowance * paidDays) / cal);
 	const nonFixedPaid = r2((em.nonFixedAllowance * paidDays) / cal);
-	add('BASIC', basicPaid);
+	// DEFAULT (the seed's work lines): BASIC is the employed days' salary, the unpaid days a separate ABSENCE line
+	// inside gross (left unnamed here: `finish` takes it off gross and does not emit it).
+	const absence =
+		em.raise === null && unpaid > 0
+			? r2(r2((em.basic * (employedDays - reducedLoss)) / cal) - basicPaid)
+			: 0;
+	add('BASIC', r2(basicPaid + absence));
+	add('ABSENCE', -absence);
 	add('FIXED_ALLOWANCE', fixedPaid);
 	add('NON_FIXED_ALLOWANCE', nonFixedPaid);
 	const monthWagePaid = r2(basicPaid + fixedPaid); // "pada bulan yang bersangkutan" (JP, Kesehatan)
@@ -705,9 +713,11 @@ export function computePayslip(s: Scenario): Payslip {
 	}
 	add('OVERTIME', r2((otBase / 173) * multiplier)); // art 32(2): 1/173 of the monthly wage per hour
 
-	// ----- THR (Permenaker 6/2016 arts 2–3): completed months at the holiday -----
+	// ----- THR (Permenaker 6/2016 arts 2–3): completed months of service -----
+	// DEFAULT (law silent on the day service is counted to): at the art 5(4) payment deadline, seven days before the
+	// holiday (the seed's THR_HOLIDAY schedule due date; probe ID-13-3 refuses a request under one month on that basis).
 	if (inp.thrHolidayDate !== null) {
-		const m = completedMonths(em.hireDate, inp.thrHolidayDate);
+		const m = completedMonths(em.hireDate, addDays(inp.thrHolidayDate, -7));
 		if (m >= 1) add('THR', m >= 12 ? monthly : r2((m / 12) * monthly));
 		else inputsRefused.push('ID-13: THR needs at least one month of continuous service');
 	}
@@ -720,8 +730,9 @@ export function computePayslip(s: Scenario): Payslip {
 		const [pf, uf, pisah] = CAUSE[em.exitCause as keyof typeof CAUSE];
 		const years = Math.floor(completedMonths(em.hireDate, addDays(em.exitDate!, 1)) / 12);
 		// UU13 art 157(1): wage = basic + fixed allowances
-		const pes = r2(pesangonMonths(years) * pf * monthly);
-		const upmk = r2(upmkMonths(years) * uf * monthly);
+		// DEFAULT (law silent on rounding severance; ID-127 and the seed's PESANGON/UPMK bands): half-up to the rupiah.
+		const pes = r0(pesangonMonths(years) * pf * monthly);
+		const upmk = r0(upmkMonths(years) * uf * monthly);
 		add('PESANGON', pes);
 		add('UPMK', upmk);
 		if (pisah) add('UANG_PISAH', inp.uangPisah);
@@ -749,7 +760,7 @@ export function computePayslip(s: Scenario): Payslip {
 	}
 
 	// ----- BPJS -----
-	const age = ageOn(ee.birthDate, first);
+	const age = ageOn(ee.birthDate, last);
 	const bpjsTk = ee.citizen || ee.foreignWorkMonths >= 6; // PP 46 art 2(2); ID-175
 	const charge = (code: string, base: number, eePct: number, erPct: number) => {
 		statutory[code] = {
@@ -885,19 +896,23 @@ export function computePayslip(s: Scenario): Payslip {
 	return { ...finish(components, statutory, notes), inputsRefused, taxDue };
 }
 
+const NET_ADDITIONS = ['THR'];
 function finish(
 	components: Record<string, number>,
 	statutory: Record<string, Line>,
 	notes: string[]
 ): Payslip {
+	// DEFAULT (law silent on the payslip's "gross"; the seed's catalogue destinations): THR is a net addition (NET),
+	// paid with the slip but outside its gross.
+	const netAdds = r2(NET_ADDITIONS.reduce((a, code) => a + Math.max(0, components[code] ?? 0), 0));
 	const gross = r2(
-		Object.values(components)
-			.filter((v) => v > 0)
-			.reduce((a, b) => a + b, 0)
+		Object.entries(components)
+			.filter(([code, v]) => (v > 0 && !NET_ADDITIONS.includes(code)) || code === 'ABSENCE')
+			.reduce((a, [, b]) => a + b, 0)
 	);
-	const other = -Object.values(components)
-		.filter((v) => v < 0)
-		.reduce((a, b) => a + b, 0);
+	const other = -Object.entries(components)
+		.filter(([code, v]) => v < 0 && code !== 'ABSENCE')
+		.reduce((a, [, b]) => a + b, 0);
 	const eeSum = Object.values(statutory).reduce((a, l) => a + l.employee, 0);
 	const erSum = Object.values(statutory).reduce((a, l) => a + l.employer, 0);
 	const total_deductions = r2(eeSum + other);
@@ -908,7 +923,7 @@ function finish(
 		statutory,
 		gross,
 		total_deductions,
-		net: r2(gross - total_deductions),
+		net: r2(gross + netAdds - total_deductions),
 		employer_cost: r2(gross + erSum),
 		taxDue: 0,
 		notes

@@ -515,7 +515,15 @@ function workContext(
 	const workDayByDate = new Map(
 		bundle.workDays.map((day) => [requiredDateKey(day.work_date, 'work_days.work_date'), day])
 	);
+	// One answer per date: the schedule asks each day (and each week's later days) many times, and
+	// every answer is a pure function of the date over this contract's fixed inputs.
+	const scheduleTermsByDate = new Map<IsoDate, ReturnType<typeof scheduleTermsOn>>();
 	const scheduleTermsAt = (date: IsoDate) => {
+		let terms = scheduleTermsByDate.get(date);
+		if (terms === undefined) scheduleTermsByDate.set(date, (terms = scheduleTermsOn(date)));
+		return terms;
+	};
+	const scheduleTermsOn = (date: IsoDate) => {
 		const covering = bundle.termsHistory.find((candidate) =>
 			coversDate(candidate.effective_range, date)
 		);

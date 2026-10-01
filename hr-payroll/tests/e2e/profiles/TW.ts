@@ -50,6 +50,7 @@ const base = (): Omit<Scenario, 'id' | 'rows' | 'branches'> => ({
 		personalDays: 0,
 		sickDays: 0,
 		sickPriorDays: 0,
+		hospitalisedDays: 0,
 		menstrualDays: 0,
 		menstrualPriorDays: 0,
 		maternityDays: 0,
@@ -439,11 +440,17 @@ export function generateProfiles(): Scenario[] {
 		[4, 30],
 		[10, 20]
 	] as const)
+		// 勞工請假規則 §4(1)(1): non-hospital sick days stop at thirty a year, so days past them are 住院 (§4(1)(2))
 		add(
 			`sick-${d}-after-${prior}`,
 			['TW-LEAVE-02'],
 			[prior + d <= 30 ? 'sick-half-pay' : 'sick-beyond-30'],
-			{ leave: { sickDays: d, sickPriorDays: prior } }
+			{
+				leave:
+					prior + d <= 30
+						? { sickDays: d, sickPriorDays: prior }
+						: { hospitalisedDays: d, sickPriorDays: prior }
+			}
 		);
 
 	// ---- hours: art. 24 weekday and 休息日 tiers, art. 39 holiday, art. 40 例假 emergency ----
@@ -749,12 +756,13 @@ export function generateProfiles(): Scenario[] {
 				exit: exitOf(exit, 'RESIGNATION')
 			}
 		);
-	for (const [d, prior, sick, sickPrior] of [
-		[1, 0, 0, 0],
-		[1, 2, 0, 0],
-		[2, 3, 0, 0],
-		[1, 3, 0, 30],
-		[2, 4, 3, 26]
+	// GEEA art. 14: 每月得請生理假一日 — one day a month, so the earlier days sit in earlier months of the year
+	for (const [d, prior, sick, sickPrior, period] of [
+		[1, 0, 0, 0, '2026-03'],
+		[1, 2, 0, 0, '2026-03'],
+		[1, 3, 0, 0, '2026-06'],
+		[1, 3, 0, 30, '2026-06'],
+		[1, 4, 3, 26, '2026-07']
 	] as const)
 		add(
 			`menstrual-${d}-after-${prior}-sick-${sick}-${sickPrior}`,
@@ -767,6 +775,7 @@ export function generateProfiles(): Scenario[] {
 						: 'menstrual-counted-to-sick'
 			],
 			{
+				period,
 				leave: {
 					menstrualDays: d,
 					menstrualPriorDays: prior,
@@ -791,7 +800,7 @@ export function generateProfiles(): Scenario[] {
 		);
 	add('paternity-7', ['TW-LEAVE-05'], ['paternity-full-pay'], { leave: { paternityDays: 7 } });
 	add('hospitalised-sick', ['TW-LEAVE-02'], ['hospitalised-within-30', 'hospitalised-beyond-30'], {
-		leave: { sickDays: 12, sickPriorDays: 22 }
+		leave: { sickDays: 4, sickPriorDays: 22, hospitalisedDays: 8 }
 	});
 	add('occ-injury-whole', ['TW-EXIT-05'], ['original-wage-whole'], {
 		leave: { occInjuryDays: 31 }

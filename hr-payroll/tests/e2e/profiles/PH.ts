@@ -272,7 +272,7 @@ export function generateProfiles(): PHScenario[] {
 		base('wh09-mwe-commission-taxed', {
 			rows: ['PH-WH09', 'PH-LB05', ...CORE],
 			branches: ['MWE commission taxed on the table'],
-			defaults: ['MWE contributions come out of the exempt SMW'],
+			defaults: ['MWE contributions relieve the taxable commission'],
 			employment: { monthlyBasic: 16421.25 },
 			commission: 30000
 		})
@@ -424,7 +424,7 @@ export function generateProfiles(): PHScenario[] {
 				rows: ['PH-SS11', 'PH-HD03', 'PH-PR01', 'PH-HR02'],
 				branches: [branch],
 				defaults: [
-					'kasambahay part month by calendar days',
+					'kasambahay part month = employed weekdays × monthly × 12/261',
 					'one month of service judged at the window end'
 				],
 				employment: { ...kas, hireDate: hire }
@@ -443,8 +443,8 @@ export function generateProfiles(): PHScenario[] {
 				rows: ['PH-SS11', 'PH-HD03', 'PH-HL01', 'PH-PR01', 'PH-HR02'],
 				branches: [branch],
 				defaults: [
-					'kasambahay part month by calendar days',
-					'PhilHealth: employer pays all below PHP5,000 month compensation',
+					'kasambahay part month = employed weekdays × monthly × 12/261',
+					'PhilHealth: employer pays all only below a PHP5,000 monthly wage',
 					'PhilHealth on the full contractual basic'
 				],
 				history: 'CONSTANT_BASIC',
@@ -456,7 +456,7 @@ export function generateProfiles(): PHScenario[] {
 		base('kas-unjust-dismissal', {
 			rows: ['PH-HR45', 'PH-SS11', 'PH-HD03'],
 			branches: ['earned pay + 15 days indemnity'],
-			defaults: ['kasambahay day = monthly × 12/365', 'indemnity outside SSS/HDMF, tax-exempt'],
+			defaults: ['kasambahay day = monthly × 12/261', 'indemnity outside SSS/HDMF, tax-exempt'],
 			employment: { ...kas, hireDate: '2025-01-06', exitDate: '2026-10-20' },
 			exitCause: 'KASAMBAHAY_UNJUST_DISMISSAL',
 			history: 'CONSTANT_BASIC'
@@ -467,7 +467,7 @@ export function generateProfiles(): PHScenario[] {
 			rows: ['PH-HR45'],
 			branches: ['up to 15 days unpaid salary forfeited'],
 			defaults: [
-				'kasambahay day = monthly × 12/365',
+				'kasambahay day = monthly × 12/261',
 				'forfeiture does not reduce SSS compensation'
 			],
 			employment: { ...kas, hireDate: '2025-01-06', exitDate: '2026-10-25' },
@@ -790,9 +790,10 @@ export function generateProfiles(): PHScenario[] {
 					silDaysToEncash: t === '7m' ? undefined : 3.75
 				})
 			);
-	for (const [id, exit, pay] of [
-		['taxable-refund', '2026-10-15', 45000],
-		['taxable-month-end', '2026-10-31', 45000]
+	for (const [id, exit, pay, sil] of [
+		// SIL days encashed within the year's accrual at the exit (5 a year, 3.75 by 15 Oct, 4.17 by 31 Oct)
+		['taxable-refund', '2026-10-15', 45000, 3.75],
+		['taxable-month-end', '2026-10-31', 45000, 4]
 	] as const)
 		push(
 			base(`exit-${id}`, {
@@ -802,7 +803,7 @@ export function generateProfiles(): PHScenario[] {
 				employment: { hireDate: '2019-02-01', exitDate: exit, monthlyBasic: pay },
 				exitCause: 'REDUNDANCY',
 				thirteenthMonth: true,
-				silDaysToEncash: 5
+				silDaysToEncash: sil
 			})
 		);
 	const retire: [string, string, string, string][] = [

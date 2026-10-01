@@ -279,9 +279,19 @@ export function computePayslip(sc: Scenario): Payslip {
 	const overLimit = Math.max(0, otHours - 40); // generator puts any excess on weekday OT only
 	let otPay = 0;
 	let otTaxableOld = 0; // taxable under PIT04 (premium exempt)
+	// DEFAULT (VN-PRORATE-01, law silent on rounding): overtime is keyed and priced per work day, each day's amount
+	// rounded to the đồng (seed: the payslip carries each day's overtime amount). Scenario days: weekday overtime in
+	// days of at most 4 hours (LC art.107(2)(a): 12 hours a day), rest-day overtime in days of at most 8.
+	const perDay: Record<string, number> = { OT_WEEKDAY: 4, OT_REST_DAY: 8 };
+	const dayRounded = (code: string, h: number, m: number) => {
+		const step = perDay[code] ?? h;
+		let sum = 0;
+		for (let left = h; left > 0; left -= step) sum += r0(hourly * m * Math.min(step, left));
+		return sum;
+	};
 	for (const [code, h, m, normal] of otParts) {
 		if (h <= 0) continue;
-		const amount = r0(hourly * m * h);
+		const amount = dayRounded(code, h, m);
 		lines[code] = { amount, base: h };
 		otPay += amount;
 		otTaxableOld += hourly * normal * (code === 'OT_WEEKDAY' ? h - overLimit : h);
@@ -408,8 +418,12 @@ export function computePayslip(sc: Scenario): Payslip {
 			if (p === period) worked -= t.unpaidDays + t.sickDays; // sick days are not paid leave days (art.66(2))
 			if (worked * 2 >= workingDays(`${p}-01`, monthEnd(p))) months += 1;
 		}
-		// LAW SILENT on rounding the day count (D145 art.66(1) states none): the fraction is kept.
-		const untaken = Math.max(0, ((12 + Math.floor(fullYears / 5)) * months) / 12 - x.leaveTaken);
+		// LAW SILENT on rounding the day count (D145 art.66(1) states none; VN-LC113-02: none may be invented): the
+		// fraction is kept to the thousandth of a day a leave entry stores (`encash_days` scale 3), never rounded up.
+		const untaken = Math.max(
+			0,
+			Math.floor(((12 + Math.floor(fullYears / 5)) * months * 1000) / 12 + EPS) / 1000 - x.leaveTaken
+		);
 		if (untaken > 0) {
 			// D145 art.67(3): the contract wage of the month before the exit month; DEFAULT (VN-LC113-03) ÷ its normal
 			// working days
@@ -454,7 +468,8 @@ export function computePayslip(sc: Scenario): Payslip {
 			taxable - eeIns - self - dep * e.dependants - Math.min(e.voluntaryPension, pensionCap);
 		pit = r0(ladder(Math.max(0, assessable), is2026 ? LADDER_2026 : LADDER_2025));
 	}
-	if (pit > 0) lines.PIT = { employee: pit, base: taxable };
+	// the base is kept when no tax is due: it is the payment a resident payment-occasion declaration reconciles to
+	lines.PIT = pit > 0 ? { employee: pit, base: taxable } : { base: taxable };
 
 	const deductions = eeIns + pit + (lines.UNION_DUES?.employee ?? 0);
 	lines.gross = { amount: gross };

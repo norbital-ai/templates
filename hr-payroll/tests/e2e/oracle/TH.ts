@@ -289,7 +289,8 @@ export function computePayslip(sc: Scenario): Payslip {
 				? e.pay.monthly
 				: r2((e.pay.monthly * employedDays) / daysIn(period));
 		lines.SALARY = { amount: salary, base: employedDays };
-		// unpaid-day equivalents (each day at monthly ÷ 30)
+		// unpaid-day equivalents. DEFAULT (TH-WORK-05, seed work_rules.proration CALENDAR_DAYS, probes TH-LEAVE-06-2,
+		// TH-LEAVE-07-6): an unpaid day of a monthly wage is monthly ÷ the month's calendar days
 		let unpaid = sc.leave.unpaidDays;
 		// LPA s.57: sick leave paid up to 30 working days a year
 		unpaid +=
@@ -313,8 +314,10 @@ export function computePayslip(sc: Scenario): Payslip {
 				if (n > 60 && n <= 120) unpaid += 1;
 			}
 		}
-		if (unpaid > 0) lines.UNPAID_LEAVE = { amount: -r2(unpaid * perDay), base: unpaid };
-		regular = salary + (lines.UNPAID_LEAVE?.amount ?? 0);
+		// a deduction line carries its amount positive, as the engine's slip does
+		if (unpaid > 0)
+			lines.UNPAID_LEAVE = { amount: r2((unpaid * e.pay.monthly) / daysIn(period)), base: unpaid };
+		regular = salary - (lines.UNPAID_LEAVE?.amount ?? 0);
 	} else {
 		perDay = e.pay.daily;
 		// LPA s.56(2): traditional holidays paid to all; weekly holidays not paid to daily staff (s.56(1))
@@ -343,6 +346,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	const hourly = perDay / e.normalDailyHours;
 	const cls = e.workClass;
 	let special = 0;
+	// DEFAULT (seed work_rules.bands): every band of the day is one OVERTIME line, each band's day amount kept to the
+	// satang; the scenario's working-day overtime is worked at most three hours a day (the probe shape)
+	let premium = 0;
 	if (sc.time.overtimeHours > 0) {
 		// s.61 ≥1.5×; s.65(1),(2) none; s.65(3)–(9) the hourly rate per hour; guard: MR 2552 cl.2 1× before
 		// 24 Apr 2026, MR 2568 cl.3 ≥1.25× from then
@@ -357,10 +363,8 @@ export function computePayslip(sc: Scenario): Payslip {
 							: 1
 						: 0;
 		if (m > 0)
-			lines.OVERTIME = {
-				amount: r2(hourly * m * sc.time.overtimeHours),
-				base: sc.time.overtimeHours
-			};
+			for (let left = sc.time.overtimeHours; left > 0; left -= 3)
+				premium += r2(hourly * m * Math.min(3, left));
 	}
 	const hw = sc.time.holidayWork;
 	if (hw) {
@@ -368,10 +372,7 @@ export function computePayslip(sc: Scenario): Payslip {
 		// holiday); s.66 removes s.62 only from class (1)
 		const paidForHoliday = e.pay.basis === 'MONTHLY' || hw.kind === 'TRADITIONAL';
 		if (cls !== 'S65_1_AUTHORITY' && hw.hours > 0)
-			lines.HOLIDAY_WORK = {
-				amount: r2(hourly * (paidForHoliday ? 1 : 2) * hw.hours),
-				base: hw.hours
-			};
+			premium += r2(hourly * (paidForHoliday ? 1 : 2) * hw.hours);
 		// s.63 ≥3×; s.65 classes as for s.61; guard: MR 2552 cl.2 1×, MR 2568 cl.3 ≥2.5×
 		const m =
 			cls === 'ORDINARY'
@@ -383,14 +384,11 @@ export function computePayslip(sc: Scenario): Payslip {
 							? 2.5
 							: 1
 						: 0;
-		if (m > 0 && hw.overtimeHours > 0)
-			lines.HOLIDAY_OVERTIME = {
-				amount: r2(hourly * m * hw.overtimeHours),
-				base: hw.overtimeHours
-			};
+		if (m > 0 && hw.overtimeHours > 0) premium += r2(hourly * m * hw.overtimeHours);
 	}
+	if (premium > 0) lines.OVERTIME = { amount: r2(premium) };
 	if (sc.bonus > 0) lines.BONUS = { amount: sc.bonus }; // LPA s.5: no statutory bonus; a paid one is income
-	special = ['OVERTIME', 'HOLIDAY_WORK', 'HOLIDAY_OVERTIME', 'BONUS'].reduce(
+	special = ['OVERTIME', 'BONUS'].reduce(
 		(s, k) => s + (lines[k]?.amount ?? 0),
 		0
 	);
@@ -418,13 +416,20 @@ export function computePayslip(sc: Scenario): Payslip {
 		}
 		if (x.cause === 'EMPLOYER_TERMINATION') {
 			// s.17 para.2: notice at or before a payday takes effect on the next payday; s.17/1 pay to that day.
-			// Payday = the period's last day. DEFAULT (TH-WORK-05): each day at monthly ÷ 30. ≤ 3 months (s.17 para.2).
+			// Payday = the period's last day. ≤ 3 months (s.17 para.2). s.17/1: the wages that would have been paid to
+			// that day — a monthly wage's day is its month's calendar-day share (seed NOTICE_IN_LIEU
+			// `notice_monthly_wages`), so a whole month owed is the month's wage.
 			const given = x.noticeGivenOn ?? x.date;
 			const p1 = monthEnd(given.slice(0, 7));
 			const effective = monthEnd(nextPeriod(p1.slice(0, 7)));
 			const owed = Math.min(90, Math.max(0, span(x.date, effective) - 1));
 			if (owed > 0) {
-				inLieu = r2(owed * perDay);
+				let wages = 0;
+				for (let k = 1; k <= owed; k++) {
+					const d = addDays(x.date, k);
+					wages += e.pay.basis === 'MONTHLY' ? e.pay.monthly / daysIn(d.slice(0, 7)) : e.pay.daily;
+				}
+				inLieu = r2(wages);
 				lines.NOTICE_IN_LIEU = { amount: inLieu, base: owed };
 			}
 		}
@@ -446,6 +451,8 @@ export function computePayslip(sc: Scenario): Payslip {
 			const pro = (6 * span(`${y}-01-01`, x.date)) / span(`${y}-01-01`, `${y}-12-31`);
 			days += Math.max(0, pro - x.annualLeaveTakenThisYear);
 		}
+		// the leave entry records encash_days to three decimals (leave_entries.encash_days scale 3)
+		days = Math.round(days * 1000 + EPS) / 1000;
 		if (days > 0) {
 			encash = r2(days * perDay);
 			lines.LEAVE_ENCASHMENT = { amount: encash, base: days };
@@ -460,7 +467,8 @@ export function computePayslip(sc: Scenario): Payslip {
 	// OT, holiday work, bonus, severance, notice pay and s.67 leave pay are outside (DEFAULT TH-SS-13).
 	const insured = ageOn(e.birthDate, e.hireDate) <= 60 && ageOn(e.birthDate, last) >= 15;
 	let ssoEe = 0;
-	if (insured) {
+	// s.47: the share is deducted from a wage paid; a month with no wage owes none (the floor lifts a wage, not nothing)
+	if (insured && regular > 0) {
 		const { floor: f, ceiling } = ssoBase(period);
 		const base = Math.min(ceiling, Math.max(f, regular));
 		ssoEe = ssoRound(base * ssoRate(period, c.floodReliefArea));
@@ -485,12 +493,14 @@ export function computePayslip(sc: Scenario): Payslip {
 	const A = regular * n;
 	const T = annualTax(A, relief);
 	let pit = t2(T / n);
-	// P96 cl.1(3): the remainder joins the year's last payment
-	if (sc.steadyYear && period.slice(5) === '12') pit = r2(T - (n - 1) * pit);
-	// P96 cl.1(5): the occasional payment × payments per year, added to the annualised regular pay; the whole
-	// tax difference is withheld on that payment (as the order's text reads)
-	const withSpecial = A + special * n;
-	if (special > 0) pit += r2(annualTax(withSpecial, relief) - T);
+	// P96 cl.1(3): the remainder joins the year's last payment (December, whatever the earlier months were)
+	if (period.slice(5) === '12') pit = r2(T - (n - 1) * pit);
+	// P96 cl.1(5): the occasional payment × the times it is to be paid in the year — once, for a one-off bonus,
+	// overtime or s.67 leave pay (READING: the text does not say whose count; the seed's recorded reading, probes
+	// TH-PIT-03-1..3) — added to the annualised regular pay; the whole tax difference is withheld on that payment
+	const occasional = special + encash;
+	const withSpecial = A + occasional;
+	if (occasional > 0) pit += r2(annualTax(withSpecial, relief) - T);
 
 	// exit lump sums: P96 cl.1 excludes them; RC s.50(1) para.3 withholds on the s.48(5) basis when N45 cl.2(ก)
 	// (service ≥ 5 years) holds; MR126 cl.2(51) exempts severance up to the last 400 days' wage and THB600,000,
@@ -500,7 +510,7 @@ export function computePayslip(sc: Scenario): Payslip {
 		const exemptible = x.cause !== 'RETIREMENT' && x.cause !== 'CONTRACT_EXPIRY';
 		const exempt = exemptible ? Math.min(severance, 400 * perDay, 600_000) : 0;
 		const taxableSeverance = severance - exempt; // N45 cl.1(ค)
-		const other = inLieu + encash; // N45 cl.1(ง): other once-only exit payments
+		const other = inLieu; // N45 cl.1(ง): other once-only exit payments (s.67 leave pay is cl.1(5) above)
 		let toPit = taxableSeverance + other;
 		if (svc.years >= 5) {
 			const years = svc.years + (svc.restDays >= 183 ? 1 : 0); // RC s.48(5) para.4

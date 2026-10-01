@@ -229,7 +229,10 @@ c.transform(async (inputs, ctx) => {
 		const employment = employments.find((row) => row.id === slip.employment_id);
 		const range = readRange(employment?.effective_range);
 		const exit = dateKey(range?.end);
-		if (employment != null && exit !== '') {
+		// A fixed-term end is a future exit: only the slip of the period the exit falls in, or a later
+		// one, is a leaver's, so an earlier period's slip owes no departure facts.
+		const slipPeriod = runById.get(slip.payroll_run_id)?.period ?? '';
+		if (employment != null && exit !== '' && exit.slice(0, 7) <= slipPeriod.slice(0, 7)) {
 			const code = companies.find((row) => row.id === employment.company_id)?.settings_code;
 			const version = code == null ? null : settingsInForce(versions, code, exit);
 			if (code != null && version == null)

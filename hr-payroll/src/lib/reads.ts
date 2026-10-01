@@ -29,7 +29,7 @@ const matchesNothing = (where: object): boolean =>
  */
 const WIDE_ROWS: Partial<Record<CollectionName, number>> = {
 	payroll_runs: 1,
-	payslips: 50,
+	payslips: 200,
 	leave_entries: 1000,
 	work_days: 1000
 };

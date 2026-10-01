@@ -48,8 +48,9 @@ export type Scenario = {
 		taxResidency: 'RESIDENT' | 'NON_RESIDENT' | 'UNKNOWN';
 		/** MTD category: 1 single, 2 married with a non-working spouse, 3 married with a working spouse. */
 		pcbCategory: 1 | 2 | 3;
+		/** Qualifying children, shared ones included. */
 		children: number;
-		/** Qualifying children also claimed by another individual (ITA s.48(4): 50% each). */
+		/** Of `children`, those also claimed by another individual (ITA s.48(4): 50% each). */
 		childrenHalf?: number;
 		gender?: 'F' | 'M';
 		/** Form TP3: previous employers' figures earlier in the tax year (∑Y, ∑K, X, Z). */
@@ -768,7 +769,7 @@ export function generateProfiles(): Scenario[] {
 				period: '2026-01',
 				rate: 5000,
 				pcbCategory: cat,
-				children: full,
+				children: full + half,
 				childrenHalf: half,
 				hireDate: '2020-01-01'
 			});
@@ -860,7 +861,9 @@ export function generateProfiles(): Scenario[] {
 			rows: ['MY-HRD-01'],
 			branches: [headcount >= 10 ? 'HRD:Part-I-liable' : 'HRD:below-threshold'],
 			period: '2026-09',
-			hrd: 'COMPULSORY',
+			// P.U.(A)84/2021 First Schedule: ten or more is compulsory; below ten an unregistered employer is not
+			// liable (a compulsory registrant keeps 1% below ten, HRD Corp Circular 5/2018, tracker MY-HRD13).
+			hrd: headcount >= 10 ? 'COMPULSORY' : 'NOT_LIABLE',
 			hrdHeadcount: headcount,
 			rate: 3000,
 			hireDate: '2021-01-01'
@@ -921,6 +924,7 @@ export function generateProfiles(): Scenario[] {
 		branches: ['s60FA:paid-unabated'],
 		period: '2026-09',
 		gender: 'M',
+		pcbCategory: 3, // s.60FA(1): a married male employee (the mapping records MARRIED for categories 2 and 3)
 		rate: 3000,
 		paternityLeave: [
 			'2026-09-21',

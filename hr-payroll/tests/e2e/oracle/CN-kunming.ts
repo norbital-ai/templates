@@ -14,7 +14,7 @@
  * NO_WRITTEN_CONTRACT_WAGE, OPEN_ENDED_CONTRACT_WAGE, PROBATION_EXCESS_DAMAGES, PROBATION_WAGE_SHORTFALL,
  * MATERNITY_ALLOWANCE_OFFSET, MATERNITY_BENEFIT_EMPLOYER, HEAT_ALLOWANCE, EARLY_RETIREMENT_SUBSIDY,
  * INTERNAL_RETIREMENT_SUBSIDY, ONE_CHILD_SUBSIDY, CHILDCARE_SUBSIDY, TRAVEL_ALLOWANCE, MISSED_MEAL_SUBSIDY) and
- * otherwise descriptive (BASIC, UNPAID_LEAVE, LEAVE_ENCASHMENT, and the post-tax LOSS_RECOVERY and
+ * otherwise descriptive (BASIC, UNPAID_LEAVE, ANNUAL_LEAVE_ENCASHMENT, and the post-tax LOSS_RECOVERY and
  * COURT_ORDERED_SUPPORT, which are negative, outside gross and inside total_deductions). `bases` gives each
  * contribution base. Compare gross, net and the statutory keys first; a component split may differ (the engine may
  * put overtime above the art.41 limits on another code — the sum is what the law fixes).
@@ -78,6 +78,9 @@ const isPaidDay = (d: string) => {
 	if (/^2026-(05|10)-/.test(d)) throw new Error(`no day-level 2026 schedule priced for ${d}`);
 	return WEEKEND_WORKDAYS.has(d) || (weekday(d) % 6 !== 0 && !REST_WEEKDAYS.has(d));
 };
+/** Whether [from, to] holds a 调休 day — a span the probe calendar cannot express (CN-N03.adjusted-workdays GAP). */
+export const touchesAdjustedDay = (from: string, to: string) =>
+	[...WEEKEND_WORKDAYS, ...REST_WEEKDAYS].some((d) => d >= from && d <= to);
 export const paidDays = (from: string, to: string) => {
 	let n = 0;
 	for (let d = from; d <= to; d = addDays(d, 1)) if (isPaidDay(d)) n++;
@@ -408,7 +411,20 @@ function month(
 		if (ot !== undefined) {
 			const hour = contractWageOn(s, last) / 21.75 / 8;
 			const addOt = (x: number) => add('OVERTIME', fen(x), true, false);
-			addOt(hour * 1.5 * (ot.weekdayHours ?? 0));
+			// The seed approves at most 3 h a day and 36 h a month and keys the excess as incentive hours, paid at the
+			// same 150% on INCENTIVE (CN-N40.monthly-36-hour-cap golden). Days as the harness writes them: chunks of
+			// `maxDailyWeekdayHours` (default 3).
+			let approved = 0;
+			let incentive = 0;
+			const daily = ot.maxDailyWeekdayHours ?? 3;
+			for (let left = ot.weekdayHours ?? 0; left > 0; left -= daily) {
+				const h = Math.min(daily, left);
+				const ok = Math.max(0, Math.min(h, 3, 36 - approved));
+				approved += ok;
+				incentive += h - ok;
+			}
+			addOt(hour * 1.5 * approved);
+			if (incentive > 0) add('INCENTIVE', fen(hour * 1.5 * incentive), true, false);
 			if (!ot.restDayCompensatoryRest) addOt(hour * 2 * (ot.restDayHours ?? 0));
 			addOt(hour * 3 * (ot.holidayHours ?? 0));
 			// Labour Law art.41 (CN-N40.daily-three-hour-cap, CN-N40.monthly-36-hour-cap): at most 3 a day and 36 a
@@ -576,7 +592,16 @@ function month(
 				s.facts.fundAccount === 'EXISTING'
 					? (s.facts.fundBase ?? s.employment.monthlyWage)
 					: contractWageOn(s, last);
-			const base = clamp(declared, fundBounds(first, s.employment.wageRegion));
+			// CN-KM05.new-account-floor-class-iii-2025/-2026 (SOURCE-BLOCKED): the Mo Han floor is unauthenticated, and the
+			// seed's recorded behaviour is to refuse the charge until the issuer notice is read.
+			if (s.employment.wageRegion === 'III')
+				return refusal('run', 'Mo Han category-III fund floor not authenticated (CN-KM05)');
+			// CN-KM05.existing-account-floor (GAP, law not explicit): the seed records a refusal, not a raise, for a declared
+			// base below the dated floor (CN-KM05.new-account-floor-class-i-2025 golden: "a base under the floor refuses").
+			const bounds = fundBounds(first, s.employment.wageRegion);
+			if (declared < bounds[0])
+				return refusal('run', `declared fund base ${declared} below the floor ${bounds[0]}`);
+			const base = clamp(declared, bounds);
 			bases.HOUSING_FUND = base;
 			const share = yuan(base * rate);
 			lines['HOUSING_FUND.employee'] = share;
@@ -617,7 +642,8 @@ function month(
 					0,
 					Math.floor((days / 365) * full + 1e-9) - (e.leaveTakenThisYear ?? 0)
 				);
-				if (owed > 0) add('LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
+				if (owed > 0)
+					add('ANNUAL_LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
 			}
 		}
 		// Retirement lump sums (CN-N39.early-retirement, CN-N39.internal-retirement): taxed apart below.
@@ -837,7 +863,13 @@ export function computePayslip(s: Scenario): Payslip {
 	);
 	m.lines.gross = gross;
 	m.lines.total_deductions = deductions;
-	m.lines.net = fen(gross - deductions);
+	// Presentation (not law): net pay never goes below zero; the employee shares gross cannot carry stay owed
+	// (the engine's settle guard records them as unfunded). UNPAID_LEAVE is stated as the deduction's magnitude.
+	m.lines.net = Math.max(0, fen(gross - deductions));
+	if (m.lines.UNPAID_LEAVE !== undefined) m.lines.UNPAID_LEAVE = Math.abs(m.lines.UNPAID_LEAVE);
+	// An unpriced statutory charge leaves every total and the IIT it feeds unknown too.
+	if (m.unpriced.some((k) => k.endsWith('.employee')))
+		m.unpriced.push('IIT.employee', 'total_deductions', 'net', 'employer_cost');
 	return {
 		lines: m.lines,
 		bases: m.bases,

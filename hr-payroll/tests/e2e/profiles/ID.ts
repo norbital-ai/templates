@@ -266,9 +266,9 @@ export function generateProfiles(): Scenario[] {
 		'DEC-fullyear',
 		['ID-21', 'ID-122', 'ID-127', ...BPJS],
 		['December reckoning less TER withheld January–November'],
-		'A whole 2025 on one wage: runs January to December',
+		'A whole 2026 on one wage: runs January to December (the lineage begins 1 Dec 2025)',
 		{
-			period: '2025-12',
+			period: '2026-12',
 			employee: { ptkp: 'K/1' },
 			employment: { basic: 15_000_000, hireDate: '2024-03-01' }
 		}
@@ -304,10 +304,10 @@ export function generateProfiles(): Scenario[] {
 		'DEC-joined-oct',
 		['ID-21', 'ID-122', 'ID-106'],
 		['reckoning from a mid-October joiner'],
-		'Joined 16 October 2025: runs October to December',
+		'Joined 16 October 2026: runs October to December (the lineage begins 1 Dec 2025)',
 		{
-			period: '2025-12',
-			employment: { basic: 20_000_000, hireDate: '2025-10-16' }
+			period: '2026-12',
+			employment: { basic: 20_000_000, hireDate: '2026-10-16' }
 		}
 	);
 
@@ -808,6 +808,7 @@ export function generateProfiles(): Scenario[] {
 			[branch],
 			`${hours} h ${kind} overtime`,
 			{
+				period: date.slice(0, 7),
 				company: { workWeek },
 				employment: { basic: 8_650_000, ...employment },
 				inputs: { overtime: [{ date, kind, hours }] }
@@ -821,14 +822,16 @@ export function generateProfiles(): Scenario[] {
 		ot(`hol5-${h}h`, ['ID-120', 'ID-51'], `holiday 17 Feb 2026 ${h} h`, 'HOLIDAY', h, '2026-02-17');
 	for (const h of [7, 8, 11])
 		ot(`rest6-${h}h`, [], `6-day week rest day ${h} h`, 'REST', h, '2026-02-08', 6);
+	// PP 35/2021 art 31(1)(c): the holiday must fall on the week's shortest day — Saturday, the five-hour day of a
+	// six-day 40-hour week (art 21(2)(a)): Idul Fitri, Saturday 21 March 2026 (ID-120).
 	for (const h of [5, 6, 9])
 		ot(
 			`short6-${h}h`,
-			[],
+			['ID-120'],
 			`holiday on the short day ${h} h`,
 			'HOLIDAY_SHORT_DAY',
 			h,
-			'2026-02-17',
+			'2026-03-21',
 			6
 		);
 	ot(
@@ -849,14 +852,15 @@ export function generateProfiles(): Scenario[] {
 		fixedAllowance: 1_730_000
 	});
 
-	// ---- 11. THR (Idul Fitri 21 Mar 2026, ID-120): completed months at the holiday.
+	// ---- 11. THR (Idul Fitri 21 Mar 2026, ID-120): completed months at the H−7 due date (14 Mar). Hires on the 8th
+	// keep the count the same on any request date from 8 to 20 March.
 	for (const [tag, hireDate] of [
-		['20d', '2026-03-01'],
-		['1m', '2026-02-21'],
-		['6m', '2025-09-21'],
-		['11m', '2025-04-21'],
-		['12m', '2025-03-21'],
-		['14m', '2025-01-21']
+		['20d', '2026-02-22'],
+		['1m', '2026-02-08'],
+		['6m', '2025-09-08'],
+		['11m', '2025-04-08'],
+		['12m', '2025-03-08'],
+		['14m', '2025-01-08']
 	] as const)
 		make(
 			`THR-${tag}`,
@@ -875,9 +879,9 @@ export function generateProfiles(): Scenario[] {
 		['Christmas THR in the December reckoning'],
 		'THR at 3 months',
 		{
-			period: '2025-12',
-			employment: { basic: 7_200_000, fixedAllowance: 600_000, hireDate: '2025-09-25' },
-			inputs: { thrHolidayDate: '2025-12-25' }
+			period: '2026-12',
+			employment: { basic: 7_200_000, fixedAllowance: 600_000, hireDate: '2026-09-08' },
+			inputs: { thrHolidayDate: '2026-12-25' }
 		}
 	);
 

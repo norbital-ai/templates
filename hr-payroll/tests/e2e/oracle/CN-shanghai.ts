@@ -254,12 +254,25 @@ function overtimePay(W: bigint, list: Scenario['month']['overtime']) {
 	}
 	// W × hours × pct / (21.75 × 8 × 100), one rounding to the fen (law silent on rounding; the fen is exact).
 	const pay = div(W * halfHourPercent * PAID_DAYS.d, PAID_DAYS.n * HOURS_PER_DAY * 2n * 100n);
+	// The seed approves at most 3 h a day and 36 h a month of extended hours and keys the excess as incentive hours at
+	// the same 150% on INCENTIVE (CN-N40.monthly-36-hour-cap golden); entries are taken in date order.
+	let approved = 0;
+	let excessHalfHours = 0n;
+	for (const [, h] of [...daily].sort(([a], [b]) => a.localeCompare(b))) {
+		const ok = Math.max(0, Math.min(h, 3, 36 - approved));
+		approved += ok;
+		excessHalfHours += BigInt(Math.round((h - ok) * 2));
+	}
+	const incentive = div(
+		W * excessHalfHours * 150n * PAID_DAYS.d,
+		PAID_DAYS.n * HOURS_PER_DAY * 2n * 100n
+	);
 	// Art.41 (CN-N40.daily-three-hour-cap, .monthly-36-hour-cap): at most 3 h a day and 36 h a month of extended hours.
 	// Pay is still owed on every hour (art.44); the cap is reported, not forfeited.
 	const warnings: string[] = [];
 	if ([...daily.values()].some((h) => h > 3)) warnings.push('DAILY_OVERTIME_LIMIT_EXCEEDED');
 	if (weekdayHours > 36) warnings.push('OVERTIME_LIMIT_EXCEEDED');
-	return { pay, warnings };
+	return { pay: pay - incentive, incentive, warnings };
 }
 
 /** Months between two dates that must be whole (the claim scenarios only use whole-month spans). */
@@ -326,7 +339,10 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// refuses to guess elsewhere.
 		if (!plainMonth(ym))
 			throw new Error(`oracle: part month ${ym} has holidays or 调休; not transcribed`);
-		add('BASIC', div(W * BigInt(workdays(from, to)) * PAID_DAYS.d, PAID_DAYS.n));
+		// DEFAULT (seed `work_rules.proration` FIXED_DAYS 21.75, recorded "never above the month"): a part month with
+		// more working days than 21.75 pays the whole monthly wage, no more.
+		const part = div(W * BigInt(workdays(from, to)) * PAID_DAYS.d, PAID_DAYS.n);
+		add('BASIC', part < W ? part : W);
 	}
 	if (isPeriod && s.month.unpaidLeaveDays > 0) {
 		// 劳部发〔1994〕489号 / 人社部发〔2025〕2号 (CN-N02, N04): an unpaid day is monthly ÷ 21.75.
@@ -336,8 +352,9 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	// ── Overtime (CN-N01, SH03, N40) ──
 	const ot = isPeriod ? s.month.overtime : (s.earlier.find((x) => x.ym === ym)?.overtime ?? []);
 	if (ot.length > 0) {
-		const { pay, warnings } = overtimePay(W, ot);
+		const { pay, incentive, warnings } = overtimePay(W, ot);
 		add('OVERTIME', pay);
+		add('INCENTIVE', incentive);
 		if (isPeriod) out.warnings.push(...warnings);
 	}
 	const earlierBonus = isPeriod ? 0 : (s.earlier.find((x) => x.ym === ym)?.bonus ?? 0);
@@ -550,7 +567,7 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 		for (const x of s.earlier) {
 			const bonus = cents(x.bonus ?? 0);
 			window.leave += bonus;
-			window.sev += bonus + (x.overtime ? overtimePay(W, x.overtime).pay : 0n);
+			window.sev += bonus + (x.overtime ? ((o) => o.pay + o.incentive)(overtimePay(W, x.overtime)) : 0n);
 		}
 	}
 	const floorAvg = (sum: bigint): Q =>
@@ -743,7 +760,9 @@ export function computePayslip(s: Scenario): Expected {
 		iit = max0(tableTax(MONTHLY_TABLE, now.wageIncome - BASIC_EXPENSE));
 	}
 
-	for (const [code, c] of Object.entries(now.components)) result.components[code] = yuan(c);
+	// A deduction component (UNPAID_LEAVE) is stated as its magnitude, as the payslip does; gross stays signed.
+	for (const [code, c] of Object.entries(now.components))
+		result.components[code] = yuan(code === 'UNPAID_LEAVE' && c < 0n ? -c : c);
 	for (const [code, c] of Object.entries(now.si))
 		result.statutory[code] = { base: yuan(c.base), employee: yuan(c.ee), employer: yuan(c.er) };
 	if (iit > 0n)
@@ -765,7 +784,8 @@ export function computePayslip(s: Scenario): Expected {
 	Object.assign(result.lines, result.components, {
 		gross: yuan(gross),
 		total_deductions: yuan(ee),
-		net: yuan(gross - ee),
+		// Presentation: net never below zero; shares gross cannot carry stay owed (the engine's unfunded remainder).
+		net: yuan(gross - ee > 0n ? gross - ee : 0n),
 		employer_cost: yuan(gross + er)
 	});
 	return result;

@@ -28,10 +28,14 @@ import {
 } from '../../../lib/expressions/contexts.js';
 import {
 	evaluateBoolean,
+	evaluateExpression,
 	evaluateNumber,
+	programFor,
 	runtimeExpressionEngine,
 	type ExpressionEngine
 } from '../../../lib/expressions/evaluate.js';
+import { evaluationObserver } from '../../../lib/trace/observer.js';
+import * as Predicate from 'effect/Predicate';
 import {
 	catalogueWords,
 	countsToward,
@@ -70,8 +74,142 @@ export function selectRule(
 	context: Record<string, unknown>,
 	engine: ExpressionEngine
 ): ContributionRule | null {
-	for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;
+	// A traced evaluation records every `when` it reads, so a traced ladder reads them all.
+	if (evaluationObserver() != null) {
+		for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;
+		return null;
+	}
+	// A ladder repeats its guards (citizenship, age, registration) on every band, so a rule is read
+	// as its top-level `&&` operands, each asked once per selection. CEL's `&&` is false when any
+	// operand is false (whatever the others, errors included) and true when every one is true; any
+	// other answer (an error, a non-boolean) reads the whole `when`, as an unsplit ladder would.
+	const known = new Map<string, boolean | null>();
+	const valueOf = (conjunct: string) => {
+		let value = known.get(conjunct);
+		if (value === undefined) {
+			try {
+				const result = evaluateExpression(engine, conjunct, context);
+				value = Predicate.isBoolean(result) ? result : null;
+			} catch {
+				value = null;
+			}
+			known.set(conjunct, value);
+		}
+		return value;
+	};
+	for (const rule of rules) {
+		const conjuncts = conjunctTexts(rule.when);
+		let verdict: boolean | null = conjuncts.length > 0 ? true : null;
+		for (const conjunct of conjuncts) {
+			const value = valueOf(conjunct);
+			if (value !== true) {
+				verdict = value;
+				break;
+			}
+		}
+		if (verdict === false) continue;
+		if (verdict === true || evaluateBoolean(engine, rule.when, context)) return rule;
+	}
 	return null;
+}
+
+type CelNode = {
+	readonly op: string;
+	readonly args: unknown;
+	readonly start: number;
+	readonly end: number;
+};
+const isCelNode = (value: unknown): value is CelNode =>
+	Predicate.hasProperty(value, 'op') &&
+	Predicate.hasProperty(value, 'args') &&
+	Predicate.hasProperty(value, 'start');
+
+/** Whether two parsed trees are one expression: the same operators over the same operands. */
+function sameTree(a: unknown, b: unknown): boolean {
+	if (isCelNode(a) || isCelNode(b))
+		return isCelNode(a) && isCelNode(b) && a.op === b.op && sameTree(a.args, b.args);
+	if (Array.isArray(a) || Array.isArray(b))
+		return (
+			Array.isArray(a) &&
+			Array.isArray(b) &&
+			a.length === b.length &&
+			a.every((item, index) => sameTree(item, b[index]))
+		);
+	return Object.is(a, b);
+}
+
+/**
+ * A node's source text. The parser's span starts at the node's first token and ends at its last,
+ * so a parenthesised leading or trailing operand loses its parentheses; the span's own balance
+ * (outside string literals) says how many.
+ */
+function spanText(source: string, node: CelNode): string {
+	const span = source.slice(node.start, node.end);
+	let depth = 0;
+	let unopened = 0;
+	let quote = '';
+	for (let index = 0; index < span.length; index += 1) {
+		const char = span[index]!;
+		if (quote !== '') {
+			if (char === '\\') index += 1;
+			else if (char === quote) quote = '';
+		} else if (char === '"' || char === "'") quote = char;
+		else if (char === '(') depth += 1;
+		else if (char === ')') {
+			if (depth > 0) depth -= 1;
+			else unopened += 1;
+		}
+	}
+	return '('.repeat(unopened) + span + ')'.repeat(depth);
+}
+
+/** The top-level `&&` operands of a `when`, with their text; `[]` for one that is not a conjunction. */
+const conjunctsOfWhen = new Map<
+	string,
+	readonly { readonly text: string; readonly node: CelNode }[]
+>();
+function conjunctsOf(when: string) {
+	let conjuncts = conjunctsOfWhen.get(when);
+	if (conjuncts !== undefined) return conjuncts;
+	const nodes: CelNode[] = [];
+	const walk = (node: CelNode) => {
+		if (node.op === '&&' && Array.isArray(node.args))
+			for (const arg of node.args as CelNode[]) walk(arg);
+		else nodes.push(node);
+	};
+	try {
+		const ast: unknown = programFor(when).ast;
+		if (isCelNode(ast) && ast.op === '&&') walk(ast);
+	} catch {
+		// A malformed `when` is evaluated whole, and refuses there.
+	}
+	conjuncts = nodes.map((node) => ({ text: spanText(when, node), node }));
+	conjunctsOfWhen.set(when, conjuncts);
+	return conjuncts;
+}
+
+/** Whether an operand's text is the operand: parsed back, it is the same tree. */
+function parsesBack(text: string, node: CelNode): boolean {
+	try {
+		return sameTree(programFor(text).ast, node);
+	} catch {
+		return false;
+	}
+}
+
+/** A `when`'s operands as evaluable text, or `[]` where it is no conjunction or one operand's text
+ * does not parse back to that operand. */
+const textsOfWhen = new Map<string, readonly string[]>();
+function conjunctTexts(when: string): readonly string[] {
+	let texts = textsOfWhen.get(when);
+	if (texts === undefined) {
+		const conjuncts = conjunctsOf(when);
+		texts = conjuncts.every(({ text, node }) => parsesBack(text, node))
+			? conjuncts.map(({ text }) => text)
+			: [];
+		textsOfWhen.set(when, texts);
+	}
+	return texts;
 }
 
 export type { StatutoryFactStatus } from '../../../lib/datatypes/statutory_fact_status.js';
@@ -639,6 +777,11 @@ type SchemeMentions = Readonly<{
 	readonly historyCodes: readonly string[];
 	readonly producedCodes: readonly string[];
 	readonly companyFactKeys: readonly string[];
+	/** `year.earned.<code>` codes the `assessed_on` grammar reads (only text naming `earned` is parsed). */
+	readonly yearEarnedCodes: readonly string[];
+	readonly dependentMonths: boolean;
+	readonly trailingShort: boolean;
+	readonly trailingLong: boolean;
 }>;
 const mentionsOfExpressions = new WeakMap<readonly string[], SchemeMentions>();
 /** `assessed_on` alone is passed as a fresh one-element array per accumulation; cache it by value. */
@@ -668,7 +811,17 @@ function schemeMentions(expressions: readonly string[]): SchemeMentions {
 		companyFactKeys: distinct([
 			...expressions.flatMap((expression) => openKeyMentions(expression, 'person.company.facts')),
 			...expressions.flatMap((expression) => openKeyMentions(expression, 'company.facts'))
-		])
+		]),
+		yearEarnedCodes: distinct(
+			expressions.flatMap((expression) =>
+				expression.includes('earned') ? assessedOnMentions(expression).yearEarned : []
+			)
+		),
+		dependentMonths: expressions.some((expression) =>
+			expression.includes('scheme.dependent_months')
+		),
+		trailingShort: expressions.some((expression) => expression.includes('scheme.trailing_short')),
+		trailingLong: expressions.some((expression) => expression.includes('scheme.trailing_long'))
 	};
 	mentionsOfExpressions.set(expressions, mentions);
 	if (expressions.length === 1) mentionsOfOneExpression.set(expressions[0]!, mentions);
@@ -709,10 +862,9 @@ function schemeObject(options: {
 		contribution.row.code,
 		status?.kind !== 'NOT_REGISTERED'
 	);
+	const mentions = schemeMentions(schemeExpressions(contribution));
 	const dependentMonths =
-		schemeExpressions(contribution).some((expression) =>
-			expression.includes('scheme.dependent_months')
-		) &&
+		mentions.dependentMonths &&
 		input.period.lastOfYear &&
 		input.person.employment.exit_date === '' &&
 		input.person.terms.tax_residency === 'RESIDENT' &&
@@ -723,7 +875,6 @@ function schemeObject(options: {
 					`${contribution.row.code}: dated dependant declarations are required for annual finalisation.`
 				))
 			: 0;
-	const mentions = schemeMentions(schemeExpressions(contribution));
 	const childClaims: Record<string, { full: number; half: number }> = Object.fromEntries(
 		mentions.childClaimKeys.map((key) => [key, { full: 0, half: 0 }])
 	);
@@ -778,17 +929,13 @@ function schemeObject(options: {
 		trailing_short:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			!input.person.terms.weather_dependent_piece &&
-			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_short')
-			)
+			mentions.trailingShort
 				? trailingWage('short')
 				: { base: 0, months: 0 },
 		trailing_long:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			input.person.terms.weather_dependent_piece &&
-			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_long')
-			)
+			mentions.trailingLong
 				? trailingWage('long')
 				: { base: 0, months: 0 },
 		projection: {
@@ -872,7 +1019,8 @@ function schemeContext(options: {
 			})()
 		])
 	);
-	const person = structuredClone(input.person) as PersonContext & {
+	// Only `terms` is rewritten below; the rest is read, so it is shared rather than cloned per scheme.
+	const person = { ...input.person, terms: { ...input.person.terms } } as PersonContext & {
 		company: { facts: Record<string, unknown> };
 		terms: { basic_salary: number; fixed_allowances: number; monthly_wage: number };
 	};
@@ -881,9 +1029,7 @@ function schemeContext(options: {
 		person.terms.fixed_allowances = fixed;
 		person.terms.monthly_wage = person.terms.basic_salary + fixed;
 	}
-	for (const expression of expressions)
-		for (const code of assessedOnMentions(expression).yearEarned)
-			if (!(code in yearEarned)) yearEarned[code] = 0;
+	for (const code of mentions.yearEarnedCodes) if (!(code in yearEarned)) yearEarned[code] = 0;
 	// Resolved facts contain every declared key. A missing key is a catalogue defect.
 	for (const key of mentions.companyFactKeys)
 		if (!Object.hasOwn(person.company.facts, key))

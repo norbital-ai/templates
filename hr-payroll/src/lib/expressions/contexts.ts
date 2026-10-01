@@ -2513,6 +2513,7 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 const MENTION_CACHE_CAP = 50_000;
 const mentionPatterns = new Map<string, RegExp>();
 const mentionKeys = new Map<string, readonly string[]>();
+const NO_KEYS: readonly string[] = Object.freeze([]);
 
 /**
  * Every open key an expression names under one prefix, as the compiler and builders fill them.
@@ -2525,7 +2526,9 @@ export function openKeyMentions(
 	expression: string | null | undefined,
 	prefix: string
 ): readonly string[] {
-	if (expression == null) return [];
+	// No `<prefix>.` in the text, no key: most of a ladder names none, and the cache key alone
+	// copies the whole expression.
+	if (expression == null || !expression.includes(`${prefix}.`)) return NO_KEYS;
 	const cacheKey = `${prefix}\u0000${expression}`;
 	const cached = mentionKeys.get(cacheKey);
 	if (cached !== undefined) return cached;

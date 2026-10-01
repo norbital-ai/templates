@@ -56,7 +56,6 @@ const monthEnd = (p: string) => {
 	const [y, m] = p.split('-').map(Number) as [number, number];
 	return iso(new Date(Date.UTC(y, m, 0)));
 };
-const daysBetween = (a: string, b: string) => (day(b).getTime() - day(a).getTime()) / 86_400_000;
 /** Whole calendar months from `a` to `b` (b exclusive). */
 const wholeMonths = (a: string, b: string) => {
 	const [ay, am, ad] = a.split('-').map(Number) as [number, number, number];
@@ -103,8 +102,6 @@ const domesticFloor = (on: string) => (on >= '2026-02-07' ? 7800 : 7000);
 // ---------- rates ----------
 /** [EMR] a 5-day-week monthly wage covers 261 paid days a year: daily = monthly × 12 / 261 (unrounded). */
 const dailyRate = (s: PHScenario) => (s.employment.monthlyBasic * 12) / 261;
-/** DEFAULT: a kasambahay's day is monthly × 12 / 365 ([EMR] factor for workers paid every day of the year). */
-const domesticDaily = (s: PHScenario) => (s.employment.monthlyBasic * 12) / 365;
 const hourly = (s: PHScenario) => dailyRate(s) / s.employment.hoursPerDay;
 
 const isWeekday = (d: string) => dow(d) >= 1 && dow(d) <= 5;
@@ -131,21 +128,21 @@ function window(s: PHScenario, period: string) {
 
 /**
  * Basic paid for a month. [HB] ch.2 §E / tracker PH-PR01: a part month pays the days worked.
- * DEFAULT: a business window covering every weekday of the month pays the full monthly basic; otherwise the
- * employed weekdays × daily rate, capped at the monthly basic. A kasambahay part month is monthly × calendar days / days in month.
+ * DEFAULT (seed `work_rules.proration` FIXED_DAYS 21.75 on the scenario's Mon–Fri roster, kasambahay included —
+ * no scenario contract declares paid rest days): a window covering every weekday of the month pays the full
+ * monthly basic; otherwise the employed weekdays × daily rate, capped at the monthly basic. [HB] ch.2 §B / seed
+ * `payroll.special_holiday_unworked_unpaid`: an unworked special day is "no work, no pay", so it is not among the
+ * part month's paid days; an unworked regular holiday is.
  */
 function basicFor(s: PHScenario, period: string) {
 	const { from, to } = window(s, period);
 	if (from > to) return 0;
-	if (s.employment.type === 'DOMESTIC') {
-		const all = daysBetween(monthStart(period), monthEnd(period)) + 1;
-		const n = daysBetween(from, to) + 1;
-		return n === all ? s.employment.monthlyBasic : r2((s.employment.monthlyBasic * n) / all);
-	}
 	const all = weekdays(monthStart(period), monthEnd(period));
-	const worked = weekdays(from, to);
+	const worked = weekdays(from, to).filter(
+		(d) => !SPECIAL_DAYS.has(d) || s.work.some((w) => w.date === d)
+	);
 	// DEFAULT: never more than the full monthly basic (a month with 23 weekdays would otherwise overpay a joiner).
-	return worked.length === all.length
+	return weekdays(from, to).length === all.length
 		? s.employment.monthlyBasic
 		: Math.min(s.employment.monthlyBasic, r2(dailyRate(s) * worked.length));
 }
@@ -269,12 +266,16 @@ function workedMinutes(e: WorkEntry) {
  *   ordinary day OT 125%; rest day 130%, its OT 130% × 130%; special day worked +30% over the paid day, its OT
  *   130% × 130%; special day on the rest day 150%, OT 150% × 130%; regular holiday worked +100% over the paid day,
  *   its OT 200% × 130%; night differential 10% of the hour's own rate.
+ * DEFAULT (law silent on rounding and line names; the seed's work lines): every hours premium is one OVERTIME
+ * line per work day and premium class, the night differential one NIGHT_PREMIUM line per work day, each rounded
+ * to the centavo before the month sums them.
  */
 function hoursPremiums(s: PHScenario) {
 	const rate = hourly(s);
 	const lines: Record<string, number> = {};
+	let day: Record<string, number> = {};
 	const add = (code: string, minutes: number, mult: number) => {
-		if (minutes > 0) lines[code] = (lines[code] ?? 0) + rate * mult * (minutes / 60);
+		if (minutes > 0) day[code] = (day[code] ?? 0) + rate * mult * (minutes / 60);
 	};
 	for (const e of s.work) {
 		const rest = dow(e.date) === 0;
@@ -298,12 +299,16 @@ function hoursPremiums(s: PHScenario) {
 		const minutes = workedMinutes(e);
 		const normal = minutes.slice(0, s.employment.hoursPerDay * 60);
 		const ot = minutes.slice(s.employment.hoursPerDay * 60);
+		day = {};
 		if (kind !== 'ORD') add(code, normal.length, normalExtra);
 		add(kind === 'ORD' ? 'OVERTIME' : `${code}_OT`, ot.length, otRate);
-		add('NIGHT_DIFFERENTIAL', normal.filter((m) => m.night).length, dayRate * 0.1);
-		add('NIGHT_DIFFERENTIAL', ot.filter((m) => m.night).length, otRate * 0.1);
+		add('NIGHT_PREMIUM', normal.filter((m) => m.night).length, dayRate * 0.1);
+		add('NIGHT_PREMIUM', ot.filter((m) => m.night).length, otRate * 0.1);
+		for (const [k, v] of Object.entries(day)) {
+			const line = k === 'NIGHT_PREMIUM' ? k : 'OVERTIME';
+			lines[line] = r2((lines[line] ?? 0) + r2(v));
+		}
 	}
-	for (const k of Object.keys(lines)) lines[k] = r2(lines[k]!);
 	return lines;
 }
 
@@ -369,9 +374,12 @@ export function computePayslip(s: PHScenario): Payslip {
 		if (Math.abs(amount) >= 0.005)
 			lines[code] = { amount: r2((lines[code]?.amount ?? 0) + amount) };
 	};
+	// DEFAULT (the seed's work lines): BASIC is the part month's salary; unpaid days are a separate ABSENCE
+	// deduction inside gross. The oracle leaves the ABSENCE line unnamed (gross carries it).
 	const unpaid = unpaidDays(s);
-	const basic = r2(basicFor(s, s.period) - dailyRate(s) * unpaid.length);
-	earn('BASIC', basic);
+	const absence = r2(dailyRate(s) * unpaid.length);
+	const basic = r2(basicFor(s, s.period) - absence);
+	earn('BASIC', basicFor(s, s.period));
 	const premiums = hoursPremiums(s);
 	for (const [k, v] of Object.entries(premiums)) earn(k, v);
 	const premiumTotal = Object.values(premiums).reduce((a, b) => a + b, 0);
@@ -422,7 +430,8 @@ export function computePayslip(s: PHScenario): Payslip {
 		exiting && (s.silDaysToEncash ?? 0) > 0 && months >= 12 ? dailyRate(s) * s.silDaysToEncash! : 0;
 	earn('SIL_ENCASHMENT', sil);
 	// [RA10361] s.32: unjust dismissal → 15 days' indemnity; unjustified departure → up to 15 days' unpaid pay forfeited.
-	const fifteenDays = domestic ? 15 * domesticDaily(s) : 0;
+	// DEFAULT (seed `ordinary_divisor_days`): fifteen days at monthly × 12/261 on the scenario's Mon–Fri roster.
+	const fifteenDays = domestic ? 15 * dailyRate(s) : 0;
 	if (domestic && exiting && s.exitCause === 'KASAMBAHAY_UNJUST_DISMISSAL')
 		earn('KASAMBAHAY_INDEMNITY', fifteenDays);
 	const forfeiture =
@@ -452,10 +461,10 @@ export function computePayslip(s: PHScenario): Payslip {
 		// SSS, PhilHealth and Pag-IBIG. DEFAULT: judged at the end of the employed window (month end or exit).
 		if (wholeMonths(emp.hireDate, addDays(to, 1)) < 1)
 			for (const k of ['SSS', 'SSS_EC', 'SSS_MPF', 'PHIC', 'HDMF']) delete charges[k];
-		// [RA10361] s.30: premiums "shall be shouldered by the employer" unless the worker receives P5,000 and above per
-		// month. SSS (CI 2024-007) and Pag-IBIG (Circular 460 1.5) carry their own household branches above; for
-		// PhilHealth, DEFAULT: the same month's compensation decides, and below P5,000 the employer pays the whole premium.
-		else if (sssComp < 5000 && charges.PHIC)
+		// [RA10361] s.30: premiums "shall be shouldered by the employer" unless the worker is "receiving a wage of Five
+		// thousand pesos (P5,000.00) and above per month" — the monthly wage, not a part month's pay. SSS (CI 2024-007)
+		// and Pag-IBIG (Circular 460 1.5) carry their own household branches above.
+		else if (emp.monthlyBasic < 5000 && charges.PHIC)
 			charges.PHIC = {
 				employee: 0,
 				employer: r2(charges.PHIC.employee + charges.PHIC.employer),
@@ -479,24 +488,27 @@ export function computePayslip(s: PHScenario): Payslip {
 
 	for (const [code, c] of Object.entries(charges))
 		lines[code] = { employee: c.employee, employer: c.employer, base: c.base };
-	if (forfeiture > 0) lines.KASAMBAHAY_FORFEITURE = { amount: -forfeiture };
-
+	// DEFAULT (the seed's catalogue destinations): the forfeiture is a deduction line and the 13th month a net
+	// addition (both NET), so neither is in gross; the unpaid days come off gross.
+	if (forfeiture > 0) lines.KASAMBAHAY_FORFEITURE = { amount: forfeiture };
+	const outsideGross = new Set(['KASAMBAHAY_FORFEITURE', 'THIRTEENTH_MONTH_PAY']);
 	const gross = r2(
 		Object.entries(lines).reduce(
-			(a, [k, l]) => (k in charges || l.amount === undefined || l.amount < 0 ? a : a + l.amount),
-			0
+			(a, [k, l]) =>
+				k in charges || l.amount === undefined || outsideGross.has(k) ? a : a + l.amount,
+			-absence
 		)
 	);
 	const total_deductions = r2(
 		Object.values(charges).reduce((a, c) => a + c.employee, 0) + forfeiture
 	);
-	const employer_cost = r2(Object.values(charges).reduce((a, c) => a + c.employer, 0));
+	const employer_cost = r2(gross + Object.values(charges).reduce((a, c) => a + c.employer, 0));
 	return {
 		warnings,
 		lines,
 		gross,
 		total_deductions,
-		net: r2(gross - total_deductions),
+		net: r2(gross + thirteenth - total_deductions),
 		employer_cost
 	};
 }
@@ -545,9 +557,13 @@ function withholding(
 		return { amount: r2(base * 0.25), base };
 	}
 	// [RR11] (B)(12) contributions excluded; (B)(13) an MWE's SMW and holiday/OT/night pay exempt.
-	// DEFAULT: an MWE's contributions come out of the exempt SMW, not the other taxable pay.
+	// NIRC s.32(B)(7)(f): the employee's SSS, PhilHealth and Pag-IBIG contributions are excluded from gross income,
+	// so for an MWE (whose SMW is exempt anyway) they relieve the other taxable pay (RR 11-2018 Illustration 4 is
+	// silent on them; the seed's WTAX base nets them from whatever is taxable).
 	const regular = x.mwe ? 0 : Math.max(0, x.basic - x.eeContrib);
-	const supplementary = (x.mwe ? 0 : x.hoursPay) + x.commission + excessBenefits;
+	const supplementary = x.mwe
+		? Math.max(0, x.commission + excessBenefits - x.eeContrib)
+		: x.hoursPay + x.commission + excessBenefits;
 	const total = regular + supplementary;
 	const priorTaxable = x.history.reduce((a, h) => a + h.taxable, 0);
 	const priorWithheld = x.history.reduce((a, h) => a + h.withheld, 0);
