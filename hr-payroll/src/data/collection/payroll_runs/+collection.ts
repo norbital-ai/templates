@@ -209,7 +209,9 @@ c.transform(async (inputs, ctx) => {
 					: [
 							`EARLY_SETTLEMENT_OVERTIME: ${facts.gathered.bundles
 								.map((bundle) => bundle.employment.employee_number)
-								.join(', ')}: ${run.period} salary is settled early, so overtime worked from ${today} ` +
+								.join(
+									', '
+								)}: ${run.period} salary is settled early, so overtime worked from ${today} ` +
 								`to ${dateKey(facts.window.attendance.end)} is paid in the next period. Check that this meets ` +
 								'the overtime payment deadline.'
 						];
@@ -220,7 +222,9 @@ c.transform(async (inputs, ctx) => {
 			if (early != null) world = withBuiltRun(world, early.facts, early.built, sequence);
 			const own = await row((await price(run.kind))!, early == null ? sequence : sequence + 1);
 			return (
-				early == null ? own : { ...own, early_settlements: { create: [await row(early, sequence)] } }
+				early == null
+					? own
+					: { ...own, early_settlements: { create: [await row(early, sequence)] } }
 			) as never;
 		})
 	);

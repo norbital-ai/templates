@@ -27,9 +27,13 @@ import {
 	adhocCatalogue,
 	claimCatalogue,
 	createStatutoryWorld,
+	leaveCatalogue,
 	settingsIdOn
 } from './fixtures/statutory-world.ts';
 import workDays from '../src/data/collection/work_days/+collection.ts';
+import leaveEntries from '../src/data/collection/leave_entries/+collection.ts';
+import { nextPeriod } from '../src/lib/payroll/run/period.ts';
+import { offsetMinutesFor } from '../src/lib/timezone.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { lockStateForDate, payrollWindows } from '../src/lib/scheduling/lock.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
@@ -90,7 +94,8 @@ const SETUP = {
 				INCOME_TAX_BONUS: { kind: 'REGISTERED', elections: { prior_month_net_pay: wage * 0.75 } }
 			}
 		}),
-		terms: { annual_scheduled_hours: 2040 },
+		// 介護休暇 (育児介護休業法 §16-5) counts the family members cared for.
+		terms: { annual_scheduled_hours: 2040, care_family_members: 1 },
 		// JP's other ad hoc earnings are not ordinary one-offs: 休業手当 prices on three months of wage history
 		// (労基法 §12, §26), 退職手当 is separate retirement income (所得税法 §30); there is no claim catalogue.
 		entries: { bonus: 'BONUS', adhoc: null, claim: null }
@@ -386,9 +391,17 @@ for (const { code, name, period, semi } of CADENCES)
 						`${label}: the month's gross, net, deductions and employer cost`
 					);
 					assert.equal(other.subject.salary, a.subject.salary, `${label}: the salary, once`);
-					assert.deepEqual(other.subject.entryLines, a.subject.entryLines, `${label}: the entry, once`);
+					assert.deepEqual(
+						other.subject.entryLines,
+						a.subject.entryLines,
+						`${label}: the entry, once`
+					);
 					assert.deepEqual(other.other, a.other, `${label}: the colleague's month`);
-					assert.deepEqual(other.company, a.company, `${label}: the company's remittances and charges`);
+					assert.deepEqual(
+						other.company,
+						a.company,
+						`${label}: the company's remittances and charges`
+					);
 				}
 				assert.equal(a.subject.entryLines.length, 1, 'the combined run pays the entry once');
 				if (!COMPUTED.test(SETUP[code].entries[kind]))
@@ -397,7 +410,7 @@ for (const { code, name, period, semi } of CADENCES)
 
 // ── Settled means locked, and the off-cycle entry rules ──
 
-test('an EARLY payslip locks its window for its person before it is paid; a colleague stays open', async () => {
+test('an EARLY settlement keeps its window open: a new record saves unconsumed and settles in the next period', async () => {
 	const tables = workDayTables({
 		runs: [
 			{
@@ -415,42 +428,51 @@ test('an EARLY payslip locks its window for its person before it is paid; a coll
 				attendance_to: '2026-03-20'
 			}
 		],
+		// Paid or not, neither slip closes a day: the EARLY one settles in the next period, the off-cycle prices none.
 		payslips: [
-			{ payroll_run_id: 'early-03', employment_id: 'emp-1', paid_at: null },
-			{ payroll_run_id: 'off-03', employment_id: 'emp-1', paid_at: null }
+			{ payroll_run_id: 'early-03', employment_id: 'emp-1', paid_at: '2026-03-25T00:00:00.000Z' },
+			{ payroll_run_id: 'off-03', employment_id: 'emp-1', paid_at: '2026-03-10T00:00:00.000Z' }
 		]
 	});
 	const windows = payrollWindows(tables.payroll_runs, tables.payslips);
 	assert.deepEqual(lockStateForDate(windows, '2026-03-15', 'emp-1'), {
-		kind: 'SETTLED',
+		kind: 'IN_WINDOW',
 		period: '2026-03',
-		early: true
+		settlesIn: '2026-04'
 	});
 	assert.deepEqual(lockStateForDate(windows, '2026-03-15', 'emp-2'), {
 		kind: 'IN_WINDOW',
 		period: '2026-03'
 	});
-	// The next period's days are open.
 	assert.deepEqual(lockStateForDate(windows, '2026-03-21', 'emp-1'), { kind: 'NONE' });
+	// The kiosk and HR record as usual.
+	await writeDay(
+		workDays,
+		{
+			employment_id: 'emp-1',
+			work_date: '2026-03-15',
+			worked_intervals: [],
+			approved_overtime_hours: 2
+		},
+		undefined,
+		tables
+	);
+	// A record the EARLY slip took into account is still frozen.
 	await assert.rejects(
 		writeDay(
 			workDays,
+			{ worked_intervals: [] },
 			{
+				id: 'day-early',
 				employment_id: 'emp-1',
-				work_date: '2026-03-15',
-				worked_intervals: [],
-				approved_overtime_hours: 2
+				work_date: '2026-03-02',
+				worked_intervals: null,
+				payslip_id: 'slip-early',
+				approval_id: null
 			},
-			undefined,
 			tables
 		),
-		/2026-03 salary was settled early.*Record the change in the next payroll period/
-	);
-	await writeDay(
-		workDays,
-		{ employment_id: 'emp-2', work_date: '2026-03-15', worked_intervals: [] },
-		undefined,
-		tables
+		/already taken this record into account/
 	);
 });
 
@@ -617,5 +639,139 @@ test('PH semi-monthly: ₱200,000 bonus on ₱40,000 withholds the same WTAX in 
 		}
 		return month(tables).subject.schemes.WTAX.employee;
 	};
-	for (const order of ['combined', 'early', 'after']) assert.equal(await wtax(order), 31_784.9, order);
+	for (const order of ['combined', 'early', 'after'])
+		assert.equal(await wtax(order), 31_784.9, order);
 });
+
+// ── Recorded after the early settlement: the next period settles it, once ──
+
+const LEAVE_DAY = '2026-03-16';
+const OVERTIME_DAY = '2026-03-20';
+
+/**
+ * An unpaid leave day and an overtime day for the person, written through their transforms on the day they happen
+ * (Monday 16 and Friday 20 March 2026: the 15th is a Sunday, a rest day no leave charges).
+ */
+async function addRecords(tables, code) {
+	const settingsId = settingsIdOn(code, LEAVE_DAY);
+	const unpaid =
+		tables.leave_catalogue.find(
+			(row) => row.settings_id === settingsId && row.code === 'UNPAID_LEAVE'
+		) ?? tables.leave_catalogue.find((row) => row.settings_id === settingsId && row.is_npl);
+	const [leave] = await runTransform(
+		leaveEntries,
+		[
+			{
+				employment_id: tables.employments[0].id,
+				catalogue_id: unpaid.id,
+				reference: 'ORDERING-NPL',
+				from_date: LEAVE_DAY,
+				to_date: LEAVE_DAY,
+				half_day_start: false,
+				half_day_end: false,
+				no_pay_origin: 'EMPLOYEE_REQUESTED',
+				reason: 'Recorded after the early settlement'
+			}
+		],
+		{ tables, now: `${LEAVE_DAY}T02:00:00.000Z` }
+	);
+	tables.leave_entries.push({ id: 'late-leave', approval_id: null, payslip_id: null, ...leave });
+	const zone = tables.jurisdiction_settings[0].payroll.timezone;
+	const offset = offsetMinutesFor(zone, OVERTIME_DAY);
+	const at = (clock) =>
+		new Date(Date.parse(`${OVERTIME_DAY}T${clock}:00.000Z`) - offset * 60_000).toISOString();
+	const [day] = await runTransform(
+		workDays,
+		[
+			{
+				employment_id: tables.employments[0].id,
+				work_date: OVERTIME_DAY,
+				worked_intervals: [
+					{ start: at('09:00'), end: at('13:00') },
+					{ start: at('14:00'), end: at('20:00') }
+				],
+				approved_overtime_hours: 2,
+				// TH LPA s.24: the worker consents to each overtime occasion.
+				overtime_consented_at: at('08:00')
+			}
+		],
+		{ tables, now: `${OVERTIME_DAY}T02:00:00.000Z` }
+	);
+	tables.work_days.push({ id: 'late-day', approval_id: null, payslip_id: null, ...day });
+}
+
+/** Both months' slips of the person: gross, and every pay line by code, bucket and amount. */
+function twoMonths(tables) {
+	const slips = tables.payslips.filter((slip) => slip.employment_id === tables.employments[0].id);
+	return {
+		gross: cents(slips.reduce((sum, slip) => sum + slip.gross, 0)),
+		lines: slips
+			.flatMap((slip) => [
+				...slip.base.map((line) => `BASE ${line.component_code} ${line.amount}`),
+				...slip.adjustments.map(
+					(line) => `${line.bucket} ${line.component_code} ${line.source_id ?? ''} ${line.amount}`
+				)
+			])
+			.toSorted()
+	};
+}
+
+for (const { code, name, period, semi } of CADENCES)
+	for (const [index, wage] of SETUP[code].wages.entries())
+		test(`${name} × ${['low', 'middle', 'high'][index]} wage ${wage}: leave and overtime recorded after the early settlement settle once, in the next period`, async () => {
+			const next = nextPeriod(period);
+			const start = async () => {
+				const tables = world(code, wage, semi);
+				tables.leave_catalogue = leaveCatalogue(code);
+				if (semi) await run(tables, 'REGULAR', [], '2026-03-1');
+				addEntry(tables, code, 'bonus', wage, period);
+				return tables;
+			};
+			// (a) the records are in before the month's one regular run.
+			const combined = await start();
+			await addRecords(combined, code);
+			await run(combined, 'REGULAR', [], period);
+			const combinedNext = await run(combined, 'REGULAR', [], next);
+
+			// (b) the off-cycle run on the 10th settles the salary early; the records come after it.
+			const early = await start();
+			await run(early, 'OFF_CYCLE', [REQUEST_ID], period);
+			await addRecords(early, code);
+			const regular = await run(early, 'REGULAR', [], period);
+			assert.ok(!employees(regular).includes(early.employments[0].id), 'the month stays settled');
+			const earlyNext = await run(early, 'REGULAR', [], next);
+
+			const slipOf = (payload) =>
+				payload.payslips.create.find((slip) => slip.employment_id === early.employments[0].id);
+			for (const [tables, nextRun, settledIn] of [
+				[combined, combinedNext, 'the month'],
+				[early, earlyNext, 'the next period']
+			]) {
+				// Each record is pinned once, by the slip that settled it.
+				const pins = [
+					tables.leave_entries.find((row) => row.id === 'late-leave').payslip_id,
+					tables.work_days.find((row) => row.id === 'late-day').payslip_id
+				];
+				assert.ok(
+					pins.every((pin) => pin != null),
+					`both records are settled (${settledIn})`
+				);
+				const holder = tables === early ? slipOf(nextRun).id : null;
+				if (holder != null)
+					assert.deepEqual(pins, [holder, holder], 'the next period settles both');
+			}
+			// Nothing of the records is in the early-settled month.
+			const march = early.payslips.filter(
+				(slip) =>
+					slip.employment_id === early.employments[0].id &&
+					early.payroll_runs.find((row) => row.id === slip.payroll_run_id).period === period
+			);
+			assert.ok(
+				march.every((slip) =>
+					slip.adjustments.every((line) => !['late-leave', 'late-day'].includes(line.source_id))
+				)
+			);
+			const [a, b] = [twoMonths(combined), twoMonths(early)];
+			assert.equal(b.gross, a.gross, 'the two months pay the same gross');
+			assert.deepEqual(b.lines, a.lines, 'the two months pay the same lines, each once');
+		});

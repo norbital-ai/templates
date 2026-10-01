@@ -52,8 +52,8 @@
  * Several periods (capability plan H1): `history` runs before the event run, in order. Each step creates its own
  * `inputs`, runs its period (a `kind` and `sources` make it an OFF_CYCLE or CORRECTION run), pays every slip of it
  * (`PAID` at the run's pay date; `paid: false` leaves them unpaid) and may pin its slips with `expected`, and the
- * slips of the EARLY run an OFF_CYCLE run writes beside it with `early`. `absent` names employments the event run
- * must not pay. `event` inputs are created after the history, before the event run. Runs
+ * slips of the EARLY run an OFF_CYCLE run writes beside it with `early`. `absent` (on a step or the case) names
+ * employments that run must not pay. `event` inputs are created after the history, before the event run. Runs
  * are refs: `'@run:<period>'` for a history run, `'@run'` for the event run.
  *
  * Beyond the payslip (owner decision 2026-09-30: a saved refusal, duty instance or generated file counts as the
@@ -116,6 +116,8 @@ export type ProbeHistoryRun = {
 	expected?: readonly ProbeExpectation[];
 	/** The slips of the EARLY run an OFF_CYCLE run wrote beside it (its salary settled early); left unpaid. */
 	early?: readonly ProbeExpectation[];
+	/** Employment refs this run must pay nothing (settled earlier in the period) */
+	absent?: readonly string[];
 };
 /** The saved rows of `collection` matching `where`: exactly `rows`, each compared on the fields it lists. */
 export type SavedExpectation = { collection: string; where: Row; rows: readonly Row[] };
@@ -531,6 +533,15 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			};
 		});
 
+	const absentFrom = (slips: readonly Row[], refs: readonly string[], label = '') =>
+		refs.map((ref) => ({
+			employment: `${label}${ref} (absent)`,
+			actual: slips.map((slip) => slip.employment_id),
+			differences: slips.some((slip) => slip.employment_id === ids.get(ref))
+				? [`the run paid ${ref}, whom an earlier run of the period settled`]
+				: []
+		}));
+
 	await create(
 		'companies',
 		{
@@ -581,6 +592,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 				});
 		}
 		results.push(...judgeSlips(slips, step.expected ?? [], `${step.period} `));
+		results.push(...absentFrom(slips, step.absent ?? [], `${step.period} `));
 		if (step.early !== undefined) {
 			const early = await host.read('payroll_runs', {
 				where: { early_for_id: { eq: runId } },
@@ -655,14 +667,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			select: SLIP_FIELDS
 		});
 		results.push(...judgeSlips(slips, probe.expected));
-		for (const ref of probe.absent ?? [])
-			results.push({
-				employment: `${ref} (absent)`,
-				actual: slips.map((slip) => slip.employment_id),
-				differences: slips.some((slip) => slip.employment_id === ids.get(ref))
-					? [`the event run paid ${ref}, whom an earlier run of the period settled`]
-					: []
-			});
+		results.push(...absentFrom(slips, probe.absent ?? []));
 	}
 
 	if (

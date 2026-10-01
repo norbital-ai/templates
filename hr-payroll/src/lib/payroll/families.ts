@@ -375,6 +375,15 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		);
 		componentAmounts.set(component.code, arrears.amount);
 	}
+	// What was recorded in the previous period after its salary was settled early: priced there, paid here.
+	const late = measureLateRecords(options);
+	for (const line of late?.adjustments ?? []) {
+		adjustments.push(line);
+		componentAmounts.set(
+			line.catalogueComponent.code,
+			(componentAmounts.get(line.catalogueComponent.code) ?? 0) + line.amount
+		);
+	}
 	const salaryBase = () =>
 		base.reduce(
 			(sum, line) => (line.catalogueComponent.output === 'salary' ? sum + line.amount : sum),
@@ -542,12 +551,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		proration,
 		adjustments,
 		captured: {
-			workDays: capturedWorkDayIds,
+			workDays: [...capturedWorkDayIds, ...(late?.workDays ?? [])],
 			payRequests: {
 				CLAIM: periodEntries.filter((entry) => entry.family === 'CLAIM').map((entry) => entry.id),
 				ADHOC: periodEntries.filter((entry) => entry.family === 'ADHOC').map((entry) => entry.id)
 			},
-			leave: measuredLeave.captures,
+			leave: [...measuredLeave.captures, ...(late?.leave ?? [])],
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
 			wagePeriods: [...referenceWageIds]
 		},
@@ -560,7 +569,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		calendarMonthOvertimeHours,
 		calendarMonthAllOvertimeHours,
 		calendarMonthLimitHours,
-		settledOvertimeHours: workAttendance.settledOvertimeHours,
+		settledOvertimeHours: addHours(workAttendance.settledOvertimeHours, late?.overtimeHours),
 		inLieuSlices: workAttendance.inLieuSlices,
 		currency,
 		schedule,
@@ -686,6 +695,102 @@ function measureArrears(
 
 import { cents } from '../../lib/payroll/run/rounding.js';
 import type { GatheredRun } from '../../lib/payroll/run/gather.js';
+
+type OvertimeHours = NonNullable<MeasuredEmployment['settledOvertimeHours']>;
+
+/** Two overtime counts, limit by limit and month by month; `sign` −1 subtracts the second. */
+function addHours(
+	first: OvertimeHours | undefined,
+	second: OvertimeHours | undefined,
+	sign = 1
+): OvertimeHours | undefined {
+	if (second == null) return first;
+	const out = new Map([...(first ?? [])].map(([limit, months]) => [limit, new Map(months)]));
+	for (const [limit, months] of second) {
+		const into = out.get(limit) ?? new Map<string, number>();
+		for (const [month, hours] of months) into.set(month, (into.get(month) ?? 0) + sign * hours);
+		out.set(limit, into);
+	}
+	return out;
+}
+
+/**
+ * The lines of the records dated in the previous period after an EARLY run settled its salary (`bundle.late`).
+ *
+ * The previous period is measured as it stands now, on its own windows, terms and days, and again without the
+ * late records: the late records' own lines are what this period pays, as its own lines, priced on the day they
+ * were worked or taken; their pins move with them. Everything the EARLY slip already settled is left where it is.
+ * A late record that would change any line but its own is refused rather than half-settled.
+ */
+function measureLateRecords(options: MeasureEmploymentOptions): {
+	readonly adjustments: readonly MeasuredAdjustment[];
+	readonly workDays: readonly string[];
+	readonly leave: MeasuredEmployment['captured']['leave'];
+	readonly overtimeHours: OvertimeHours | undefined;
+} | null {
+	const late = options.bundle.late;
+	if (late == null || options.deferredWagesOnly) return null;
+	const pass = (withLate: boolean) =>
+		calculateFamilies({
+			...options,
+			deferredWagesOnly: true,
+			priorOvertimeHours: undefined,
+			period: late.window.period,
+			salary: late.window.salary,
+			bundle: {
+				...options.bundle,
+				window: late.window,
+				workDays: withLate ? late.workDays : late.workDays.filter((row) => !late.ids.has(row.id)),
+				leave: withLate
+					? options.bundle.leave
+					: {
+							...options.bundle.leave,
+							entries: options.bundle.leave.entries.filter((row) => !late.ids.has(row.id))
+						},
+				employedDays: late.employedDays,
+				wageDays: late.wageDays,
+				attendance: late.attendance,
+				arrearsFor: null,
+				deferral: null,
+				late: null,
+				payRequests: [],
+				loanRepayments: []
+			}
+		});
+	const now = pass(true);
+	const then = pass(false);
+	const isLate = (line: MeasuredAdjustment) => late.ids.has(line.input.id);
+	const totals = (
+		lines: readonly {
+			readonly catalogueComponent: { code: string };
+			readonly amount: number;
+			readonly bucket: string;
+		}[]
+	) => {
+		const sums = new Map<string, number>();
+		for (const line of lines) {
+			const key = `${line.bucket}:${line.catalogueComponent.code}`;
+			sums.set(key, cents((sums.get(key) ?? 0) + line.amount, now.currency));
+		}
+		return JSON.stringify([...sums].toSorted(([a], [b]) => a.localeCompare(b)));
+	};
+	if (
+		totals(now.base) !== totals(then.base) ||
+		totals(now.adjustments.filter((line) => !isLate(line))) !== totals(then.adjustments)
+	)
+		refuse(
+			`${options.bundle.employment.employee_number}: a record dated in ${late.window.period}, recorded after that ` +
+				'salary was settled early, changes more of that period than its own line. Correct it with an ad hoc line in this period.'
+		);
+	return {
+		adjustments: now.adjustments
+			.filter(isLate)
+			.map((line) => ({ ...line, label: `${line.label} (${late.window.period})` })),
+		workDays: now.captured.workDays.filter((id) => late.ids.has(id)),
+		leave: now.captured.leave.filter((capture) => late.ids.has(capture.leave_entry_id)),
+		overtimeHours: addHours(now.settledOvertimeHours, then.settledOvertimeHours, -1)
+	};
+}
 import { prepareMoneyConsumption } from './money.js';
 import { prepareAllowanceSteps } from './allowances.js';
 import { contractAllowancesOn } from './contract-allowances.js';

@@ -3374,9 +3374,9 @@ register({
 	id: 'MY-OFFCYCLE-01-1',
 	profile: 'MY',
 	description:
-		'MY-WAGEBASE-01-1 paid in two runs: the RM8,000 bonus off-cycle on 10 January 2026, before the regular run. The off-cycle act first settles the January salary early (an EARLY run at the regular pay date), then charges the bonus bill(salary + bonus) − bill(salary); a later January unpaid-leave day and an overtime day are refused into the next period, and the regular run pays the person nothing. The two slips add up to the combined month to the sen.',
+		'MY-WAGEBASE-01-1 paid in two runs: the RM8,000 bonus off-cycle on 10 January 2026, before the regular run. The off-cycle act first settles the January salary early (an EARLY run at the regular pay date), then charges the bonus bill(salary + bonus) − bill(salary); a January unpaid-leave day and an overtime day recorded after it are accepted and saved unconsumed (they settle in February), and the regular run pays the person nothing. The two slips add up to the combined month to the sen.',
 	citation: [
-		'Owner design 2026-10-01 (off-cycle settles salary first; statutory is a monthly bill; settled means locked).',
+		'Owner design 2026-10-01 (off-cycle settles salary first; statutory is a monthly bill; a record made after the early settlement is recorded as usual and settles in the next period).',
 		`${EPF_A}: salary month "4,100.01 to 4,200.00" employee RM462, employer 13% RM546; the whole month RM12,200 (MY-WAGEBASE-01-1) RM1,342 / RM1,586, so the bonus slip carries 1,342 − 462 = 880 and 1,586 − 546 = 1,040. ${EPF_WAGES}`,
 		`${SOCSO}; Act 4 s.2(24)(e) excludes an annual bonus: row 46 RM72.65 / RM20.75 on the salary slip, nothing on the bonus`,
 		`${EIS}; Act 800 s.2 "wages" (e) excludes any annual bonus: row 46 RM8.30 each on the salary slip`,
@@ -3441,23 +3441,32 @@ register({
 				half_day_start: false,
 				half_day_end: false,
 				reason: 'Unpaid leave recorded after the early settlement'
-			},
-			refused: '2026-01 salary was settled early.*Record the change in the next payroll period'
+			}
 		},
-		{
-			...worked(
-				'bonus_job',
-				'2026-01-14',
-				[
-					['09:00', '13:00'],
-					['14:00', '20:00']
-				],
-				2
-			),
-			refused: '2026-01 salary was settled early.*Record the change in the next payroll period'
-		}
+		worked(
+			'bonus_job',
+			'2026-01-14',
+			[
+				['09:00', '13:00'],
+				['14:00', '20:00']
+			],
+			2
+		)
 	],
 	period: '2026-01',
 	expected: [],
-	absent: ['bonus_job']
+	absent: ['bonus_job'],
+	// The settled month does not take them: they wait, unconsumed, for February's run.
+	saved: [
+		{
+			collection: 'leave_entries',
+			where: { reference: 'PROBE-NPL-2026-01-15' },
+			rows: [{ payslip_id: null }]
+		},
+		{
+			collection: 'work_days',
+			where: { employment_id: '@bonus_job', work_date: '2026-01-14' },
+			rows: [{ payslip_id: null }]
+		}
+	]
 });

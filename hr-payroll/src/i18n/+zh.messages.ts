@@ -168,6 +168,7 @@ export default messages({
 	'app.people.workforce_description': '当前状态由有效任职推导，而非重复的员工标志。',
 	'app.scheduling.board_title': '排班表',
 	'app.scheduling.unresolved_hint': '仅显示仍有下班打卡待处理的人员',
+	'app.scheduling.settles_in_next_period': '{name} 本期薪资已提前结算：现在记录的天数将在 {period} 结算。',
 	'app.scheduling.board_load_failed': '无法加载 {month} 看板。',
 	'app.scheduling.employments_ended_before': '所有任职均已在 {month} 之前结束。',
 	'app.scheduling.employments_outside_month': '{month} 期间没有有效任职。',

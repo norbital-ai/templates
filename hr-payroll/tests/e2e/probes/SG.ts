@@ -3676,13 +3676,16 @@ register({
 	id: 'SG-OFFCYCLE-01-1',
 	profile: 'SG',
 	description:
-		'SG-CPF21-1 paid in two runs: the SGD 10,000 bonus off-cycle on 10 September 2026, before the regular run. The off-cycle act first settles the September salary early (an EARLY run), then charges the bonus as the month less the salary; a later September no-pay day is refused into the next period, and the regular run pays the person nothing. The two slips add up to the combined month.',
+		'SG-CPF21-1 paid in two runs: the SGD 10,000 bonus off-cycle on 10 September 2026, before the regular run. The off-cycle act first settles the September salary early (an EARLY run), then charges the bonus as the month less the salary; the regular September run pays the person nothing. A no-pay day on Tuesday 15 September recorded after the early settlement is accepted and settles in October, as an October line priced on September.',
 	citation: [
-		'Owner design 2026-10-01 (off-cycle settles salary first; statutory is a monthly bill; settled means locked).',
+		'Owner design 2026-10-01 (off-cycle settles salary first; statutory is a monthly bill; a record made after the early settlement settles in the next period).',
 		CPF_WAGES,
 		`${CPF_2026}: the salary month 37% × 5,000 = 1,850, employee 1,000, employer 850; the whole month 37% × 15,000 = 5,550, employee 3,000, employer 2,550 (SG-CPF21-1), so the bonus slip carries 2,000 / 1,700`,
 		`${SHG}: CDAC $1.50 on the 5,000 salary month, $3 on the 15,000 month: the bonus slip carries $1.50`,
-		`${SDL}: $11.25 on the salary month already, the whole month's $11.25 cap: nothing on the bonus slip`
+		`${SDL}: $11.25 on the salary month already, the whole month's $11.25 cap: nothing on the bonus slip`,
+		`${EA_20A}: September 2026 requires 22 working days, so the no-pay day is 5,000 ÷ 22 = 227.27, paid as an October line`,
+		`${CPF_2026}: October total wages 5,000 − 227.27 = 4,772.73: total 37% = 1,765.91 → 1,766; employee 20% = 954.54 → 954; employer 812`,
+		`${SHG}: CDAC $1.50 on 4,772.73. ${SDL}: 0.25% × 4,772.73 = 11.93, capped at $11.25`
 	],
 	company: { facts: { sdl_individual_employer: false } },
 	inputs: [
@@ -3696,23 +3699,36 @@ register({
 			kind: 'OFF_CYCLE',
 			sources: ['@bonus_pay'],
 			expected: [
-				{ employment: 'e_job', lines: { bonus: 10000, ...pay(10000, { CPF: [2000, 1700], CDAC: [1.5, 0] }) } }
+				{
+					employment: 'e_job',
+					lines: { bonus: 10000, ...pay(10000, { CPF: [2000, 1700], CDAC: [1.5, 0] }) }
+				}
 			],
 			early: [
 				{
 					employment: 'e_job',
-					lines: { BASIC: 5000, ...pay(5000, { CPF: [1000, 850], CDAC: [1.5, 0], SDL: [0, 11.25] }) }
+					lines: {
+						BASIC: 5000,
+						...pay(5000, { CPF: [1000, 850], CDAC: [1.5, 0], SDL: [0, 11.25] })
+					}
 				}
 			]
-		}
-	],
-	event: [
+		},
 		{
-			...unpaid('2026-09-15', '2026-09-15'),
-			refused: '2026-09 salary was settled early.*Record the change in the next payroll period'
+			period: '2026-09',
+			inputs: [unpaid('2026-09-15', '2026-09-15')],
+			absent: ['e_job']
 		}
 	],
-	period: '2026-09',
-	expected: [],
-	absent: ['e_job']
+	period: '2026-10',
+	expected: [
+		{
+			employment: 'e_job',
+			lines: {
+				BASIC: 5000,
+				UNPAID_LEAVE: 227.27,
+				...pay(4772.73, { CPF: [954, 812], CDAC: [1.5, 0], SDL: [0, 11.25] })
+			}
+		}
+	]
 });

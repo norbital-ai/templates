@@ -1,6 +1,7 @@
 import { refuse } from '../refuse.js';
 import { dateKey } from '../iso-day.js';
 import * as Predicate from 'effect/Predicate';
+import { nextPeriod } from '../payroll/run/period.js';
 
 /**
  * The lock state of one person's calendar day, derived from the payroll that covers it: untouched,
@@ -8,8 +9,9 @@ import * as Predicate from 'effect/Predicate';
  * adjustment entries in a later run). Nothing is stored, so the board and the transforms agree.
  *
  * The lock is the payslip's, not the run's: a window is settled for an employment when that
- * person's slip is paid, or as soon as an EARLY run has settled their salary ahead of the regular
- * run (the period's pay is fixed from then on; a change is recorded in the next period). A record is governed by the payslip that consumed it (`settledBy`); a day
+ * person's salary slip is paid (an off-cycle or correction slip prices no day, so its payment closes none). A
+ * window whose salary an EARLY run settled stays open: a record dated in it is saved unconsumed and the next
+ * period's run settles it (`IN_WINDOW` with `settlesIn`). A record is governed by the payslip that consumed it (`settledBy`); a day
  * with no record is governed by the window — "may a record appear here?", never "may it change?".
  * `period` is a month (`2026-08`) or a half (`2026-08-1`).
  */
@@ -17,7 +19,7 @@ import * as Predicate from 'effect/Predicate';
 type PayrollRunLike = {
 	readonly id?: string | undefined;
 	readonly period: string;
-	/** `EARLY` settles its window for its people the moment it stands, paid or not. */
+	/** EARLY settles salary ahead of the regular run; OFF_CYCLE and CORRECTION price no day. */
 	readonly kind?: string | null | undefined;
 	readonly attendance_from: string;
 	readonly attendance_to: string;
@@ -37,8 +39,8 @@ export type PayrollWindow = {
 	readonly period: string;
 	/** The employments whose payslip in this run has been paid. Everyone else is still open. */
 	readonly settledFor: ReadonlySet<string>;
-	/** An EARLY run's window: settled for its people before anything is paid. */
-	readonly early?: boolean | undefined;
+	/** The employments an EARLY run settled here: their new records settle in the next period. */
+	readonly earlyFor?: ReadonlySet<string> | undefined;
 };
 
 /** How one calendar day stands, derived from the payroll runs covering it. */
@@ -49,26 +51,34 @@ export type DayLock =
 	| {
 			readonly kind: 'IN_WINDOW';
 			readonly period: string;
+			/** The salary was settled early: a record made now settles in this later period. */
+			readonly settlesIn?: string | undefined;
 	  }
 	| {
 			readonly kind: 'SETTLED';
 			readonly period: string;
-			/** Settled by an EARLY run: the change belongs in the next period. */
-			readonly early?: boolean | undefined;
 	  };
 
 export function payrollWindows(
 	runs: readonly PayrollRunLike[],
 	payslips: readonly PayslipLike[] = []
 ): PayrollWindow[] {
-	const early = new Set(runs.filter((run) => run.kind === 'EARLY').map((run) => run.id ?? ''));
+	const kindOf = new Map(runs.map((run) => [run.id ?? '', run.kind ?? 'REGULAR']));
 	const paidByRun = new Map<string, Set<string>>();
+	const earlyByRun = new Map<string, Set<string>>();
 	for (const slip of payslips) {
 		const runId = slip.payroll_run_id ?? '';
-		if (slip.paid_at == null && !early.has(runId)) continue;
-		const held = paidByRun.get(runId) ?? new Set<string>();
+		const kind = kindOf.get(runId);
+		const into =
+			kind === 'EARLY'
+				? earlyByRun
+				: slip.paid_at == null || kind === 'OFF_CYCLE' || kind === 'CORRECTION'
+					? null
+					: paidByRun;
+		if (into == null) continue;
+		const held = into.get(runId) ?? new Set<string>();
 		held.add(slip.employment_id);
-		paidByRun.set(runId, held);
+		into.set(runId, held);
 	}
 	const windows: PayrollWindow[] = [];
 	for (const run of runs) {
@@ -80,7 +90,7 @@ export function payrollWindows(
 			end,
 			period: run.period,
 			settledFor: paidByRun.get(run.id ?? '') ?? new Set<string>(),
-			...(run.kind === 'EARLY' ? { early: true } : {})
+			...(earlyByRun.has(run.id ?? '') ? { earlyFor: earlyByRun.get(run.id ?? '') } : {})
 		});
 	}
 	return windows;
@@ -94,16 +104,11 @@ export function lockStateForDate(
 ): DayLock {
 	// The runs of one period share a window (REGULAR, EARLY, OFF_CYCLE…): any that settled the person locks it.
 	const covering = windows.filter((window) => date >= window.start && date <= window.end);
-	// An early settlement says where the change goes (the next period), so it answers first.
-	const settled =
-		covering.find((window) => window.early === true && window.settledFor.has(employmentId)) ??
-		covering.find((window) => window.settledFor.has(employmentId));
-	if (settled != null)
-		return {
-			kind: 'SETTLED',
-			period: settled.period,
-			...(settled.early === true ? { early: true } : {})
-		};
+	const settled = covering.find((window) => window.settledFor.has(employmentId));
+	if (settled != null) return { kind: 'SETTLED', period: settled.period };
+	const early = covering.find((window) => window.earlyFor?.has(employmentId) === true);
+	if (early != null)
+		return { kind: 'IN_WINDOW', period: early.period, settlesIn: nextPeriod(early.period) };
 	const window = covering[0];
 	return window == null ? { kind: 'NONE' } : { kind: 'IN_WINDOW', period: window.period };
 }
@@ -133,17 +138,12 @@ export function assertNotSettled(
 ): void {
 	const lock = lockStateForDate(windows, date, employmentId);
 	if (lock.kind === 'SETTLED') {
-		refuse(settledDayMessage(lock.period, date, action, lock.early === true));
+		refuse(settledDayMessage(lock.period, date, action));
 	}
 }
 
 /** The day-shaped refusal: a paid run has priced this day's silence as absence. */
-function settledDayMessage(period: string, date: string, action: string, early = false): string {
-	if (early)
-		return (
-			`${action} on ${date} is refused: this person's ${period} salary was settled early, beside an ` +
-			'off-cycle run, so that period is fixed. Record the change in the next payroll period.'
-		);
+function settledDayMessage(period: string, date: string, action: string): string {
 	// Deliberately neutral about which act is being refused. This is the day-shaped refusal, and the
 	// write it most often stops is a record trying to *appear* on a paid day rather than an existing
 	// one trying to change — "cannot change" named the wrong act.

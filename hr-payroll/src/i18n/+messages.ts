@@ -180,6 +180,8 @@ export default messages({
 		'Current status is derived from effective employments, not a duplicated employee flag.',
 	'app.scheduling.board_title': 'Roster',
 	'app.scheduling.unresolved_hint': 'Only the people with a clock-out still to resolve',
+	'app.scheduling.settles_in_next_period':
+		'{name}’s salary for this period was settled early: what is recorded on their days now settles in {period}.',
 	'app.scheduling.board_load_failed': 'The {month} board could not be loaded.',
 	'app.scheduling.employments_ended_before': 'All employments ended before {month}.',
 	'app.scheduling.employments_outside_month': 'No employment is effective during {month}.',

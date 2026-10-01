@@ -368,14 +368,12 @@ export async function readLeaveContext(
 					published_at: { isNull: false },
 					...settled
 				}),
-		readAll<LeaveContext['payslips'][number]>(reads, 'payslips', {
-			or: [
-				...(includeSettlements && settlingIds.length > 0 ? [{ id: { in: settlingIds } }] : []),
-				// A salary settled early locks the person's period before it is paid (`payrollWindows`).
-				{ employment_id: { in: ids }, payroll_run_id: { is: { kind: { eq: 'EARLY' } } } }
-			],
-			...settled
-		}),
+		!includeSettlements || settlingIds.length === 0
+			? []
+			: readAll<LeaveContext['payslips'][number]>(reads, 'payslips', {
+					id: { in: settlingIds },
+					...settled
+				}),
 		// The people's other employments here, for what a lifetime counts (MY s.60FA(2): five
 		// confinements; SG GPCL: 42 days a child) across a rehire.
 		readAll<{ readonly id: string; readonly employee_id: string }>(reads, 'employments', {

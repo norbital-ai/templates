@@ -187,10 +187,12 @@ function population(options: {
 		bundle.payRequests.some((request) => selected.has(request.id) && outstanding.has(request.id));
 	// A leaver's salary is settled by their FINAL run, which also pays what only a leaver is owed.
 	if (kind === 'EARLY')
-		return bundles.filter((bundle) => unsettled(bundle) && !exitsInWindow(bundle)).map((bundle) => ({
-			...bundle,
-			payRequests: bundle.payRequests.filter((request) => !selected.has(request.id))
-		}));
+		return bundles
+			.filter((bundle) => unsettled(bundle) && !exitsInWindow(bundle))
+			.map((bundle) => ({
+				...bundle,
+				payRequests: bundle.payRequests.filter((request) => !selected.has(request.id))
+			}));
 	if (selected.size === 0) refuse(`A ${kind} run pays only the requests it selects; select one.`);
 	for (const id of selected) {
 		const request = outstanding.get(id);
@@ -817,7 +819,11 @@ export function withBuiltRun(
 	const slips = built.payslip_payroll_run.map(
 		(slip) =>
 			// repository-health:allow R3b -- a built payslip is the row its write stores, less the defaults the write fills
-			({ ...slip, payroll_run_id: runId, approval_id: null }) as unknown as PayrollWorld['payslips'][number]
+			({
+				...slip,
+				payroll_run_id: runId,
+				approval_id: null
+			}) as unknown as PayrollWorld['payslips'][number]
 	);
 	const pinned = (ids: (capture: (typeof built.captures)[number]) => readonly string[]) =>
 		new Map(built.captures.flatMap((capture) => ids(capture).map((id) => [id, capture.payslipId])));

@@ -116,7 +116,6 @@ export function measureLeaveDay(
 			eligible: false as const,
 			reason: 'PAID_PAYROLL' as const,
 			period: paid.period,
-			early: paid.early === true,
 			evidence
 		};
 	if (resolved.has(date) && !throughHoliday && !calendarDay)
@@ -690,11 +689,6 @@ export function planLeaveActivity(
 							);
 						continue;
 					}
-					if (day.reason === 'PAID_PAYROLL' && day.early)
-						refuse(
-							`Leave on ${date} cannot be recorded: this person's ${day.period} salary was settled early, beside an ` +
-								'off-cycle run, so that period is fixed. Record the change in the next payroll period.'
-						);
 					refuse(`Leave on ${date} cannot be approved: ${day.reason}.`);
 				}
 				let halves = 0;

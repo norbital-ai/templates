@@ -599,6 +599,14 @@ export function previousPeriod(period: string): string {
 	return half === 1 ? `${month}-2` : month;
 }
 
+/** The period after `period` in the same grammar: the next month, or the next half. */
+export function nextPeriod(period: string): string {
+	const half = periodHalf(period);
+	if (half === 1) return `${periodMonth(period)}-2`;
+	const month = shiftPeriod(periodMonth(period), 1);
+	return half === 2 ? `${month}-1` : month;
+}
+
 /**
  * Drafts are unwound from the end.
  *
