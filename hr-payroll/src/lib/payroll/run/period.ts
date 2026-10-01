@@ -538,7 +538,7 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
 	return `${taxYearOf(period, taxYearStartMonth)}-${String(start).padStart(2, '0')}`;
 }
 
-export const RUN_KINDS = ['REGULAR', 'OFF_CYCLE', 'FINAL', 'CORRECTION'] as const;
+export const RUN_KINDS = ['REGULAR', 'OFF_CYCLE', 'EARLY', 'FINAL', 'CORRECTION'] as const;
 export type RunKind = (typeof RUN_KINDS)[number];
 
 type RunKey = {
@@ -561,7 +561,7 @@ type RunKey = {
  * while February was never run leaves February's wages, attendance and entries unconsumed with
  * nothing that will ever pick them up.
  *
- * FINAL, OFF_CYCLE and CORRECTION runs stand beside the REGULAR one of their period, any number of
+ * FINAL, EARLY, OFF_CYCLE and CORRECTION runs stand beside the REGULAR one of their period, any number of
  * them, but never behind a later period: a run slotted under a later one would change history the
  * later run already read. That is also why a correction is a new line in a later run, never an edit.
  */

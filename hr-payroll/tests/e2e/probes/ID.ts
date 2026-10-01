@@ -5119,10 +5119,17 @@ const unresolved = (
 	company: company({ region: worksite }),
 	inputs: [
 		...week('2025-06-02'),
-		...worker({ ref: 'place', wage: 10_000_000, worksite, sector: '62019' })
+		// A bare province whose localities all carry their own floor is refused where it is entered:
+		// the worksite dropdown lists wage places only (owner's rule 2026-10-01).
+		...worker({ ref: 'place', wage: 10_000_000, worksite, sector: '62019' }).map((input) =>
+			refused === bare(worksite) && input.collection === 'employment_terms'
+				? { ...input, refused: `worksite ${worksite} is not a wage place` }
+				: input
+		)
 	],
 	period,
-	refused,
+	// with no terms saved, the run itself refuses the uncovered person
+	refused: refused === bare(worksite) ? 'has no employment terms effective on' : refused,
 	expected: []
 });
 const bare = (province: string) =>

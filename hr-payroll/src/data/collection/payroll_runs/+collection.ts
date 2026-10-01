@@ -8,6 +8,7 @@ import {
 	buildPayrollRun,
 	CALCULATION_VERSION,
 	gatherPayrollRun,
+	withBuiltRun,
 	type PreparedRun
 } from '../../../lib/payroll/run/engine.js';
 import { payrollRunPayload } from '../../../lib/payroll/run/graph.js';
@@ -123,6 +124,11 @@ c.transform(async (inputs, ctx) => {
 		if (!RUN_KINDS.includes(kind))
 			return ctx.refuse(`Run kind must be one of ${RUN_KINDS.join(', ')}.`, { field: 'kind' });
 		const sources = [...new Set(input.sources ?? [])];
+		if (kind === 'EARLY')
+			return ctx.refuse(
+				'An EARLY run is written by the off-cycle run that settles salary ahead of the regular one; create that run instead.',
+				{ field: 'kind' }
+			);
 		if (sources.length > 0 && (kind === 'REGULAR' || kind === 'FINAL'))
 			return ctx.refuse(`A ${kind} run pays by its population, not by selected requests.`, {
 				field: 'sources'
@@ -141,49 +147,81 @@ c.transform(async (inputs, ctx) => {
 	const worlds = await readPayrollWorlds(ctx.db, runs);
 	return Promise.all(
 		runs.map(async (run) => {
-			const world = worlds.get(`${run.company_id}:${run.period}`)!;
+			let world = worlds.get(`${run.company_id}:${run.period}`)!;
 			assertPayrollPeriodAvailable(world.payroll_runs, run.period, run.kind);
-			const facts = gatherPayrollRun({
-				world,
-				companyId: run.company_id,
-				period: run.period,
-				payDueDate: run.payDueDate,
-				kind: run.kind,
-				sources: run.sources
-			});
-			await assertBenefitCasePayrollCashSafe(
-				ctx.db,
-				world,
-				facts.gathered.bundles.flatMap((bundle) =>
-					bundle.wageDays == null
-						? []
-						: [{ employment_id: bundle.employment.id, salary: bundle.window.salary }]
-				)
-			);
-			const blocking = payrollRunPrecheck({
-				configuration: facts.configuration,
-				window: facts.window,
-				bundles: facts.gathered.bundles
-			});
-			if (blocking.length > 0) refuse(describeIssues(blocking));
-			const built = buildPayrollRun(facts);
-			console.log(
-				`[payroll-result] ${run.period} ${run.kind} payslips=${built.payslipCount} base=${built.baseCount} ` +
-					`adjustments=${built.adjustmentCount} captured=${built.capturedCount}`
-			);
-			return {
+			/** Gather, guard and build one run of the act on `world`. */
+			const price = async (kind: RunKind) => {
+				const facts = gatherPayrollRun({
+					world,
+					companyId: run.company_id,
+					period: run.period,
+					payDueDate: run.payDueDate,
+					kind,
+					sources: run.sources
+				});
+				if (kind === 'EARLY' && facts.gathered.bundles.length === 0) return null;
+				await assertBenefitCasePayrollCashSafe(
+					ctx.db,
+					world,
+					facts.gathered.bundles.flatMap((bundle) =>
+						bundle.wageDays == null
+							? []
+							: [{ employment_id: bundle.employment.id, salary: bundle.window.salary }]
+					)
+				);
+				const blocking = payrollRunPrecheck({
+					configuration: facts.configuration,
+					window: facts.window,
+					bundles: facts.gathered.bundles
+				});
+				if (blocking.length > 0) refuse(describeIssues(blocking));
+				const built = buildPayrollRun(facts);
+				console.log(
+					`[payroll-result] ${run.period} ${kind} payslips=${built.payslipCount} base=${built.baseCount} ` +
+						`adjustments=${built.adjustmentCount} captured=${built.capturedCount}`
+				);
+				return { facts, built };
+			};
+			const row = async (
+				{ facts, built }: NonNullable<Awaited<ReturnType<typeof price>>>,
+				sequence: number
+			) => ({
 				company_id: run.company_id,
 				period: run.period,
-				kind: run.kind,
-				sequence: nextRunSequence(world.payroll_runs, run.period),
-				...(run.sources.length === 0 ? {} : { sources: run.sources }),
+				kind: facts.kind,
+				sequence,
+				...(run.sources.length === 0 || facts.kind === 'EARLY' ? {} : { sources: run.sources }),
 				...(await derivedColumns(facts)),
 				calculation_trace: built.calculation_trace,
 				company_charges: built.company_charges,
 				company_remittances: built.company_remittances,
-				warnings: built.warnings.join('\n'),
+				warnings: [...built.warnings, ...pushedOvertime(facts)].join('\n'),
 				payslips: { create: payrollRunPayload(built) }
-			} as never;
+			});
+			/**
+			 * A salary settled before its attendance window has closed fixes the period, so overtime still to be
+			 * worked in it is recorded and paid in the next period — possibly after the law's deadline for it.
+			 */
+			const today = dateKey(String(ctx.today));
+			const pushedOvertime = (facts: PreparedRun) =>
+				facts.kind !== 'EARLY' || dateKey(facts.window.attendance.end) < today
+					? []
+					: [
+							`EARLY_SETTLEMENT_OVERTIME: ${facts.gathered.bundles
+								.map((bundle) => bundle.employment.employee_number)
+								.join(', ')}: ${run.period} salary is settled early, so overtime worked from ${today} ` +
+								`to ${dateKey(facts.window.attendance.end)} is paid in the next period. Check that this meets ` +
+								'the overtime payment deadline.'
+						];
+			const sequence = nextRunSequence(world.payroll_runs, run.period);
+			// An off-cycle run settles first, in the same act, the salary of everyone it pays whose period no run
+			// has settled yet (EARLY, at the regular pay date); its own payments are then priced beside that slip.
+			const early = run.kind === 'OFF_CYCLE' ? await price('EARLY') : null;
+			if (early != null) world = withBuiltRun(world, early.facts, early.built, sequence);
+			const own = await row((await price(run.kind))!, early == null ? sequence : sequence + 1);
+			return (
+				early == null ? own : { ...own, early_settlements: { create: [await row(early, sequence)] } }
+			) as never;
 		})
 	);
 });

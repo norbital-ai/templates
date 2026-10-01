@@ -130,14 +130,23 @@ export type PreparedRun = {
 
 type Bundle = GatheredRun['bundles'][number];
 
+/** Whether a REGULAR run would settle wages for this bundle: a salary window, a deferral or arrears. */
+const settlesSalary = (bundle: Bundle): boolean =>
+	bundle.employedDays != null || bundle.deferral != null || bundle.arrearsFor != null;
+
 /**
  * Who a run of `kind` pays, from everyone the gather measured.
  *
- * - REGULAR: everyone, less those a FINAL run of the period has already settled.
+ * - REGULAR: everyone, less those a FINAL or EARLY run of the period has already settled.
  * - FINAL: the employments whose exit falls in their window, not yet settled in the period.
+ * - EARLY: the people an off-cycle run's selected requests pay whose salary for the period no run has
+ *   settled — their REGULAR payslip as recorded so far, without the selected requests, which the
+ *   off-cycle run pays beside it.
  * - OFF_CYCLE and CORRECTION: only the selected outstanding requests (a CORRECTION's are ad hoc
  *   lines), paid now whatever their pay period, with no wages, attendance, leave or recovery beside
- *   them — which is what lets them pay someone who has already left.
+ *   them — which is what lets them pay someone who has already left. An OFF_CYCLE run refuses a person
+ *   whose salary is not settled yet: the transform settles it first (EARLY), so every statutory charge
+ *   is priced on the month's real pay.
  *
  * Headcount stays the gather's: who the company employs does not change with who a run pays.
  */
@@ -165,21 +174,48 @@ function population(options: {
 		return leaving;
 	}
 	const selected = new Set(options.sources);
-	if (selected.size === 0) refuse(`A ${kind} run pays only the requests it selects; select one.`);
 	const outstanding = new Map(
 		bundles.flatMap((bundle) =>
 			bundle.payRequests
 				.filter((request) => request.approval_id == null && !request.captured)
-				.map((request) => [request.id, request] as const)
+				.map((request) => [request.id, { ...request, bundle }] as const)
 		)
 	);
+	const unsettled = (bundle: Bundle) =>
+		settlesSalary(bundle) &&
+		!settledHere.has(bundle.employment.id) &&
+		bundle.payRequests.some((request) => selected.has(request.id) && outstanding.has(request.id));
+	if (kind === 'EARLY')
+		return bundles.filter(unsettled).map((bundle) => ({
+			...bundle,
+			payRequests: bundle.payRequests.filter((request) => !selected.has(request.id))
+		}));
+	if (selected.size === 0) refuse(`A ${kind} run pays only the requests it selects; select one.`);
 	for (const id of selected) {
 		const request = outstanding.get(id);
 		if (request == null)
 			refuse(`Request ${id} is not an outstanding, approved claim or ad hoc request here.`);
 		if (kind === 'CORRECTION' && request.family !== 'ADHOC')
 			refuse(`A correction pays ad hoc lines only; request ${id} is a ${request.family}.`);
+		// A leaver's separation payment is final pay: it settles with the leaver's last salary.
+		const exit = employmentDates(request.bundle.employment).exit;
+		if (
+			'raised_by' in request.catalogueComponent &&
+			request.catalogueComponent.raised_by === 'SEPARATION' &&
+			exit != null &&
+			exit <= request.bundle.window.salary.end
+		)
+			refuse(
+				`${request.bundle.employment.employee_number}: ${request.catalogueComponent.code} is a leaver's ` +
+					'separation payment. Pay it in their FINAL run, or in a regular run once that has settled.'
+			);
 	}
+	if (kind === 'OFF_CYCLE')
+		for (const bundle of bundles.filter(unsettled))
+			refuse(
+				`${bundle.employment.employee_number}: ${options.period} salary is not settled yet. Settle it first ` +
+					'(an EARLY run), so the off-cycle payment is priced on the real month.'
+			);
 	return bundles.flatMap((bundle) => {
 		const payRequests = bundle.payRequests
 			.filter((request) => selected.has(request.id))
@@ -217,6 +253,23 @@ export function gatherPayrollRun(options: {
 	// here, naming the company's frequency, before a window is resolved.
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) refuse(fault);
+	// A weekly month is settled week by week, so no single run settles a person's month early: the
+	// off-cycle payment waits until the month's pay is whole (owner default).
+	if (kind === 'OFF_CYCLE' && company.pay_frequency === 'WEEKLY') {
+		const last = `${period.slice(0, 7)}-${weeklyInstalments(period).length}`;
+		if (
+			!world.payroll_runs.some(
+				(run) =>
+					run.company_id === companyId &&
+					run.period === last &&
+					(run.kind ?? 'REGULAR') === 'REGULAR'
+			)
+		)
+			refuse(
+				`${company.name} pays weekly, so an off-cycle run waits for the month's last weekly run (${last}): ` +
+					'its statutory charges are priced on the whole month already paid.'
+			);
+	}
 	let window = resolveWindow(period, company, options.payDueDate);
 	let configuration = pickConfiguration({ world, companyId, window });
 	// No stated due date: the version's pay calendar dates the wages, and the law is picked again
@@ -244,11 +297,12 @@ export function gatherPayrollRun(options: {
 	const runsHere = world.payroll_runs.filter(
 		(run) => run.company_id === companyId && run.period.slice(0, 7) === month
 	);
-	// The runs that settle a person's period whole: a REGULAR or FINAL slip is not paid twice.
+	// The runs that settle a person's period whole: a REGULAR, FINAL or EARLY slip is not paid twice.
 	const settling = new Set(
 		runsHere
 			.filter(
-				(run) => run.period === period && ['REGULAR', 'FINAL'].includes(run.kind ?? 'REGULAR')
+				(run) =>
+					run.period === period && ['REGULAR', 'FINAL', 'EARLY'].includes(run.kind ?? 'REGULAR')
 			)
 			.map((run) => run.id)
 	);
@@ -525,6 +579,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			charges.every((charge) => charge.employee === 0 && charge.employer === 0)
 		)
 			continue;
+		// An off-cycle payslip pays only what it selected: a deduction there has no earning of the
+		// same run to come out of, so its statutory and net would be priced on a negative payment.
+		const buckets = measured.adjustments.map((line) => line.bucket);
+		if (
+			(prepared.kind === 'OFF_CYCLE' || prepared.kind === 'CORRECTION') &&
+			buckets.some((bucket) => bucket === 'DEDUCTION' || bucket === 'ABSENCE') &&
+			!buckets.some((bucket) => bucket === 'EARNING' || bucket === 'NON_WAGE_PAYMENT')
+		)
+			refuse(
+				`${employment.employee_number}: an off-cycle payslip with only deductions has no earning to take them ` +
+					'from. Select an earning for this person in the same run, or leave the deduction to the next regular run.'
+			);
 		// 7 — SETTLE
 		//
 		// A recovery the guard dropped is not carried anywhere: its repayment row stays unlinked
@@ -713,5 +779,68 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
 			.map((issue) => `${issue.code}: ${issue.message}`)
+	};
+}
+
+/**
+ * The world as it stands once a run built in the same act is written: its run row and payslips are history and
+ * every source it captured carries its pin. The off-cycle transform builds its EARLY run first and prices the
+ * off-cycle run on this world, so `bill(salary + entry) − bill(salary)` reads the salary slip it sits beside.
+ */
+export function withBuiltRun(
+	world: PayrollWorld,
+	prepared: PreparedRun,
+	built: PayrollRunGraph,
+	sequence: number
+): PayrollWorld {
+	const runId = crypto.randomUUID();
+	// repository-health:allow R3b -- the run as its write stores it; the fields the write itself fills are read by no gather
+	const run = {
+		id: runId,
+		company_id: prepared.configuration.company.id,
+		period: prepared.period,
+		kind: prepared.kind,
+		sequence,
+		pay_date: prepared.window.payDate,
+		pay_due_date: prepared.window.payDueDate,
+		attendance_from: prepared.window.attendance.start,
+		attendance_to: prepared.window.attendance.end,
+		company_charges: built.company_charges,
+		company_remittances: built.company_remittances,
+		approval_id: null
+	} as unknown as PayrollWorld['payroll_runs'][number];
+	const slips = built.payslip_payroll_run.map(
+		(slip) =>
+			// repository-health:allow R3b -- a built payslip is the row its write stores, less the defaults the write fills
+			({ ...slip, payroll_run_id: runId, approval_id: null }) as unknown as PayrollWorld['payslips'][number]
+	);
+	const pinned = (ids: (capture: (typeof built.captures)[number]) => readonly string[]) =>
+		new Map(built.captures.flatMap((capture) => ids(capture).map((id) => [id, capture.payslipId])));
+	const pin = <R extends { readonly id: string }>(rows: readonly R[], by: Map<string, string>) =>
+		rows.map((row) => (by.has(row.id) ? { ...row, payslip_id: by.get(row.id)! } : row));
+	return {
+		...world,
+		payroll_runs: [...world.payroll_runs, run],
+		payslips: [...world.payslips, ...slips],
+		work_days: pin(
+			world.work_days,
+			pinned((capture) => capture.workDays)
+		),
+		claim_requests: pin(
+			world.claim_requests,
+			pinned((capture) => capture.claims)
+		),
+		adhoc_requests: pin(
+			world.adhoc_requests,
+			pinned((capture) => capture.adhoc)
+		),
+		leave_entries: pin(
+			world.leave_entries,
+			pinned((capture) => capture.leave)
+		),
+		loan_repayments: pin(
+			world.loan_repayments,
+			pinned((capture) => capture.loanRepayments)
+		)
 	};
 }

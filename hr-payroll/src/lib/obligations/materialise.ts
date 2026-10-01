@@ -99,7 +99,7 @@ export type ObligationContext = {
 		readonly employer_cost: number;
 		/** Payable per scheme code (`payroll_runs.company_remittances`). */
 		readonly remittances: Readonly<Record<string, number>>;
-		/** REGULAR | OFF_CYCLE | FINAL | CORRECTION. */
+		/** REGULAR | OFF_CYCLE | EARLY | FINAL | CORRECTION. */
 		readonly kind: string;
 		/** The run's place among its period's runs, from 1. */
 		readonly sequence: number;

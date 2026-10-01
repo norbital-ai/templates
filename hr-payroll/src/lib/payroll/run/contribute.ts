@@ -1425,8 +1425,21 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		// cut-offs to the employer. The entity says which instalment carries it (`FIRST` on the
 		// mid-month cut-off, `LAST` on the end-month one); `SPLIT` divides the monthly charge.
 		// The SAME rule serves any jurisdiction that states a monthly schedule at a finer cadence.
+		//
+		// The month is one bill whatever the cadence or run kind: a payslip the month already holds
+		// (an earlier instalment, an EARLY or REGULAR salary slip beside an off-cycle one) makes this one
+		// charge `bill(month so far + this payslip) − bill(month so far)` — never an estimate.
+		// At a monthly cadence the pay period is the month, so a PAY_PERIOD scheme is that same one bill;
+		// a per-unit or payment-occasion rule prices each payment by itself and is left alone.
+		const priorInMonth = input.monthPrior != null;
 		const monthlyAssessed =
-			contribution.row.assessment_period !== 'PAY_PERIOD' && input.period.instalments > 1;
+			contribution.row.assessment_period !== 'PAY_PERIOD'
+				? input.period.instalments > 1 || priorInMonth
+				: input.period.instalments === 1 &&
+					priorInMonth &&
+					!contribution.row.rules.some((rule) => rule.per_unit);
+		/** The scheme reads the month's wage: its own MONTH assessment, or a pay period that is the month. */
+		const monthBase = contribution.row.assessment_period !== 'PAY_PERIOD' || monthlyAssessed;
 		const actualMonth = contribution.row.assessment_period === 'MONTH_TO_DATE';
 		const finalEmploymentPeriod =
 			input.person.employment.exit_date !== '' &&
@@ -1440,11 +1453,12 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			!actualMonth &&
 			!finalEmploymentPeriod &&
 			input.period.monthlyOn !== 'LAST' &&
-			input.period.index === 1;
+			input.period.index === 1 &&
+			!priorInMonth;
 		const truingUp =
 			monthlyAssessed &&
 			(actualMonth || input.period.monthlyOn !== 'LAST') &&
-			input.period.index > 1;
+			(input.period.index > 1 || priorInMonth);
 		const pricingMonth =
 			monthlyAssessed &&
 			!actualMonth &&
@@ -1452,7 +1466,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		const deferred =
 			pricingMonth && !finalEmploymentPeriod && input.period.index < input.period.instalments;
 		const schemeInput =
-			contribution.row.assessment_period !== 'PAY_PERIOD' ? monthlyAssessment(input) : input;
+			monthBase ? monthlyAssessment(input) : input;
 		// Actual receipts include premiums charged so far, not the full monthly estimate of a
 		// producer whose employer share is split across cut-offs. Keep its assessed base intact.
 		const schemeProduced =
@@ -1497,7 +1511,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				: sumAccumulations([monthPrior.accumulation, input.accumulation]);
 		const schemeEngine = engineFor(
 			schemeInput,
-			contribution.row.assessment_period !== 'PAY_PERIOD' ? accumulation : input.accumulation,
+			monthBase ? accumulation : input.accumulation,
 			contribution.row.id
 		);
 		const share = deferred
@@ -1914,9 +1928,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 								};
 								const engine = engineFor(
 									standingInput,
-									contribution.row.assessment_period !== 'PAY_PERIOD'
-										? accumulation
-										: input.accumulation,
+									monthBase ? accumulation : input.accumulation,
 									contribution.row.id
 								);
 								const ownBase = assessedBase({

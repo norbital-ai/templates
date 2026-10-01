@@ -8,7 +8,8 @@ import * as Predicate from 'effect/Predicate';
  * adjustment entries in a later run). Nothing is stored, so the board and the transforms agree.
  *
  * The lock is the payslip's, not the run's: a window is settled for an employment when that
- * person's slip is paid. A record is governed by the payslip that consumed it (`settledBy`); a day
+ * person's slip is paid, or as soon as an EARLY run has settled their salary ahead of the regular
+ * run (the period's pay is fixed from then on; a change is recorded in the next period). A record is governed by the payslip that consumed it (`settledBy`); a day
  * with no record is governed by the window — "may a record appear here?", never "may it change?".
  * `period` is a month (`2026-08`) or a half (`2026-08-1`).
  */
@@ -16,6 +17,8 @@ import * as Predicate from 'effect/Predicate';
 type PayrollRunLike = {
 	readonly id?: string | undefined;
 	readonly period: string;
+	/** `EARLY` settles its window for its people the moment it stands, paid or not. */
+	readonly kind?: string | null | undefined;
 	readonly attendance_from: string;
 	readonly attendance_to: string;
 };
@@ -34,6 +37,8 @@ export type PayrollWindow = {
 	readonly period: string;
 	/** The employments whose payslip in this run has been paid. Everyone else is still open. */
 	readonly settledFor: ReadonlySet<string>;
+	/** An EARLY run's window: settled for its people before anything is paid. */
+	readonly early?: boolean | undefined;
 };
 
 /** How one calendar day stands, derived from the payroll runs covering it. */
@@ -48,16 +53,19 @@ export type DayLock =
 	| {
 			readonly kind: 'SETTLED';
 			readonly period: string;
+			/** Settled by an EARLY run: the change belongs in the next period. */
+			readonly early?: boolean | undefined;
 	  };
 
 export function payrollWindows(
 	runs: readonly PayrollRunLike[],
 	payslips: readonly PayslipLike[] = []
 ): PayrollWindow[] {
+	const early = new Set(runs.filter((run) => run.kind === 'EARLY').map((run) => run.id ?? ''));
 	const paidByRun = new Map<string, Set<string>>();
 	for (const slip of payslips) {
-		if (slip.paid_at == null) continue;
 		const runId = slip.payroll_run_id ?? '';
+		if (slip.paid_at == null && !early.has(runId)) continue;
 		const held = paidByRun.get(runId) ?? new Set<string>();
 		held.add(slip.employment_id);
 		paidByRun.set(runId, held);
@@ -71,28 +79,30 @@ export function payrollWindows(
 			start,
 			end,
 			period: run.period,
-			settledFor: paidByRun.get(run.id ?? '') ?? new Set<string>()
+			settledFor: paidByRun.get(run.id ?? '') ?? new Set<string>(),
+			...(run.kind === 'EARLY' ? { early: true } : {})
 		});
 	}
 	return windows;
 }
 
-/** Which window, if any, covers a date. The first match wins; runs never overlap by construction. */
-function windowForDate(windows: readonly PayrollWindow[], date: string): PayrollWindow | null {
-	return windows.find((window) => date >= window.start && date <= window.end) ?? null;
-}
-
-/** The lock of one person's date. */
+/** The lock of one person's date: settled by any run of the period that settled them, else the first covering. */
 export function lockStateForDate(
 	windows: readonly PayrollWindow[],
 	date: string,
 	employmentId: string
 ): DayLock {
-	const window = windowForDate(windows, date);
-	if (window == null) return { kind: 'NONE' };
-	return window.settledFor.has(employmentId)
-		? { kind: 'SETTLED', period: window.period }
-		: { kind: 'IN_WINDOW', period: window.period };
+	// The runs of one period share a window (REGULAR, EARLY, OFF_CYCLE…): any that settled the person locks it.
+	const covering = windows.filter((window) => date >= window.start && date <= window.end);
+	const settled = covering.find((window) => window.settledFor.has(employmentId));
+	if (settled != null)
+		return {
+			kind: 'SETTLED',
+			period: settled.period,
+			...(settled.early === true ? { early: true } : {})
+		};
+	const window = covering[0];
+	return window == null ? { kind: 'NONE' } : { kind: 'IN_WINDOW', period: window.period };
 }
 
 /** The key a person-day lock is filed under, so a board can read one map for every cell. */
@@ -120,12 +130,17 @@ export function assertNotSettled(
 ): void {
 	const lock = lockStateForDate(windows, date, employmentId);
 	if (lock.kind === 'SETTLED') {
-		refuse(settledDayMessage(lock.period, date, action));
+		refuse(settledDayMessage(lock.period, date, action, lock.early === true));
 	}
 }
 
 /** The day-shaped refusal: a paid run has priced this day's silence as absence. */
-function settledDayMessage(period: string, date: string, action: string): string {
+function settledDayMessage(period: string, date: string, action: string, early = false): string {
+	if (early)
+		return (
+			`${action} on ${date} is refused: this person's ${period} salary was settled early, beside an ` +
+			'off-cycle run, so that period is fixed. Record the change in the next payroll period.'
+		);
 	// Deliberately neutral about which act is being refused. This is the day-shaped refusal, and the
 	// write it most often stops is a record trying to *appear* on a paid day rather than an existing
 	// one trying to change — "cannot change" named the wrong act.

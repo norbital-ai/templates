@@ -2,7 +2,8 @@
 	import { t } from '../../../lib/ui/t.js';
 	import { everyField } from '../../../lib/every-field.js';
 	/**
-	 * Creating a payroll run chooses the company, period, and optionally a contractual pay due date.
+	 * Creating a payroll run chooses the company, period, REGULAR or FINAL, and optionally a contractual pay due date;
+	 * off-cycle and correction runs are created inside their cycle on the payroll page.
 	 * The windows, settlement date, configuration hash, and trace are derived by the collection's transform.
 	 * The window shown before submit comes from the engine's own `resolveWindow`, so the operator reads the cutoff
 	 * rule the run will be built with.
@@ -353,9 +354,21 @@
 								/>
 							{/snippet}
 						</Field>
-						<Field name="kind" />
-						<!-- OFF_CYCLE and CORRECTION: the request ids the run pays; refused on REGULAR and FINAL. -->
-						<Field name="sources" />
+						<!-- A cycle's own runs; its off-cycle and correction runs are opened from the cycle (payroll page). -->
+						<Field name="kind" label={t('app.payroll.kind')}>
+							{#snippet editor(field)}
+								<Combobox
+									aria-label={t('app.payroll.kind')}
+									options={(['REGULAR', 'FINAL'] as const).map((value) => ({
+										value,
+										label: t(`models.payroll_runs.fields.kind.${value}`)
+									}))}
+									value={typeof field.value === 'string' ? field.value : 'REGULAR'}
+									disabled={field.disabled}
+									onChange={(next) => field.onChange(next)}
+								/>
+							{/snippet}
+						</Field>
 						<Field name="pay_due_date" label={t('component.pay_due_date')} />
 					</Grid>
 					{#if window}
