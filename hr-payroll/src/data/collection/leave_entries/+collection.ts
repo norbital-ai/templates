@@ -237,7 +237,10 @@ c.transform(async (inputs, ctx) => {
 c.query('leave_balances', async (input, ctx) => {
 	const { employment_id, as_of } = plain(input) as { employment_id: string; as_of: string };
 	return leaveBalanceSummaries(
-		await readLeaveContext(ctx, [employment_id], { start: as_of, end: as_of }),
+		{
+			...(await readLeaveContext(ctx, [employment_id], { start: as_of, end: as_of })),
+			balanceRead: true
+		},
 		employment_id,
 		as_of
 	);

@@ -1,34 +1,14 @@
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { dateKey } from '../../../lib/iso-day.js';
-import { conditionOf } from '../../../lib/holiday-calendar.js';
 import { addDays, monthBounds } from '../../../lib/payroll/run/dates.js';
 import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
 import { ABSENCE_DECISION_FACTS, leaveWindowOf } from '../../../lib/leave/entitlement.js';
-import { isEligible, personContext, scalarFacts } from '../../../lib/payroll/run/eligibility.js';
+import { scalarFacts } from '../../../lib/payroll/run/eligibility.js';
 import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { entityFactsFault } from '../../../lib/entity-facts.js';
-import { selectBreakRule } from '../../../lib/scheduling/rest-break.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../../lib/scheduling/leave-coverage.js';
-import {
-	patternAnchor,
-	patternRosterCodeId,
-	termPatternRow,
-	type ShiftPatternLike
-} from '../../../lib/scheduling/work-pattern.js';
+import { type ShiftPatternLike } from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-import {
-	applicableLimits,
-	assessmentWindow,
-	breachSentence,
-	observedDays,
-	observedPlan,
-	overtimeHeadroom,
-	plannedDay,
-	projectedLimitBreaches,
-	projectionBounds,
-	type RosterCodeFacts,
-	type SchedulePlanDay
-} from '../../../lib/scheduling/work-limits.js';
 import {
 	assertNotCaptured,
 	assertNotSettled,
@@ -36,16 +16,9 @@ import {
 	payrollWindows,
 	planChanges
 } from '../../../lib/scheduling/lock.js';
-import { isRestLimit, type WorkRules } from '../../../lib/datatypes/work_rules.js';
-import type { RosterCodeVariant } from '../../../lib/datatypes/roster_code_variant.js';
 import type { WorkPattern } from '../../../lib/datatypes/work_pattern.js';
 import { assertNoOverlap, overlapDataFrom } from './lib/assignment-overlap.js';
-import {
-	assertMonthConformsToPattern,
-	assertRunHasRestDay,
-	type PlanChange,
-	type StatutoryWeeklyRestRule
-} from './lib/schedule-rules.js';
+import { assertMonthConformsToPattern, type PlanChange } from './lib/schedule-rules.js';
 import { kioskPunch } from './lib/kiosk-punch.js';
 import { importMonth, sameIntervals } from './lib/import-month.js';
 import { decodeNumber } from '../../../lib/wire.js';
@@ -124,7 +97,7 @@ const c = collection('work_days', {
 		},
 		import_month: {
 			description:
-				'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF on every employed day of the month, or the file is refused), the Time entries sheet is the attendance (local punches in the Settings timezone, stored as worked intervals) and the Overtime sheet is each day’s total extra hours, which the import splits at the statutory limits into approved overtime within them and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name.',
+				'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF per day; a blank day writes no plan, follows the work pattern and is returned as a warning), the Time entries sheet is the attendance (local punches in the Settings timezone, one or more intervals per day, stored as worked intervals) and the Overtime sheet is each day’s total extra hours, which the import splits at the statutory limits into approved overtime within them and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory limits the file passes (weekly rest, daily and period hours, spread-over, breaks, overtime ceilings) never refuse it: they are returned as warnings.',
 			input: {
 				legal_entity: row,
 				month: row,
@@ -170,20 +143,14 @@ const c = collection('work_days', {
 					created: { kind: 'number' },
 					updated: { kind: 'number' },
 					removed: { kind: 'number' },
-					overwritten: { kind: 'list', of: { kind: 'text' } }
+					overwritten: { kind: 'list', of: { kind: 'text' } },
+					warnings: { kind: 'list', of: { kind: 'text' } }
 				}
 			}
 		}
 	}
 });
 export default c;
-
-/**
- * How far either side of a touched month the roster is read, so a consecutive-work run that starts
- * in the previous month is seen whole. It is the schema's ceiling on the rest limit's `max_days`
- * (30) plus one, which makes it provably sufficient for every rule the schema can express.
- */
-const REST_RUN_PAD_DAYS = 31;
 
 /** A stored or submitted date as its `YYYY-MM-DD` key. */
 const day = (value: unknown): string => (value == null ? '' : dateKey(String(value)));
@@ -273,10 +240,11 @@ function leaveOwnsDayProblem(
  * payroll run has taken into account; refuses a planned shift that would overlap the person's adjacent-day
  * assignments; refuses a plan change under recorded attendance unless the same write restates the attendance; and —
  * for a month with no roster of record — refuses a plan write that would leave the month's WORK-day count or paid
- * minutes different from what the work pattern projects. A batch that states the plan of every employed day of a month
- * is that month's roster (the import writes the roster of record beside it, in the same act, where this read cannot
- * see it yet). Statutory rest and break rules, and a shift's own hours or spread-over above a limit, refuse any plan;
- * approved overtime above the statutory headroom refuses by name. Two read waves.
+ * minutes different from what the work pattern projects. A batch that plans every employed day of a month, or a week
+ * or more of it, is that month's roster (the import writes the roster of record beside it, in the same act, where this
+ * read cannot see it yet). Statutory limits — weekly rest, daily and period hours, spread-over, breaks, overtime
+ * ceilings — never refuse a work day (owner's rule, 2026-10-01): the import returns them as warnings
+ * (`import-month.ts`) and the day sheet shows the overtime headroom. Two read waves.
  */
 c.transform(async (inputs, ctx) => {
 	const { existing, db } = ctx;
@@ -465,8 +433,6 @@ c.transform(async (inputs, ctx) => {
 	type Coordinate = PlanChange;
 	const coordinates: Coordinate[] = [];
 	const changes: Coordinate[] = [];
-	const ownApprovedByKey = new Map<string, number>();
-	const ownEmergencyByKey = new Map<string, boolean>();
 	for (const [index, input] of inputs.entries()) {
 		const stored = existing[index];
 		const write = input as Write;
@@ -482,12 +448,7 @@ c.transform(async (inputs, ctx) => {
 					: (stored?.shift_definition_id ?? null)
 		};
 		coordinates.push(coordinate);
-		if (write.approved_overtime_hours !== undefined)
-			ownApprovedByKey.set(key(employmentId, workDate), hours(write.approved_overtime_hours));
-		if (write.emergency_cause !== undefined)
-			ownEmergencyByKey.set(key(employmentId, workDate), write.emergency_cause === true);
-		if (write.shift_definition_id !== undefined || write.approved_overtime_hours !== undefined)
-			changes.push(coordinate);
+		if (write.shift_definition_id !== undefined) changes.push(coordinate);
 	}
 	// The days a moved row leaves are judged too, so the neighbourhood covers them.
 	const touchedDates = [
@@ -504,8 +465,8 @@ c.transform(async (inputs, ctx) => {
 	const to = touchedDates.at(-1);
 	if (employmentIds.length === 0 || from == null || to == null) return inputs;
 	const months = [...new Set(touchedDates.map((date) => date.slice(0, 7)))];
-	const spanStart = addDays(`${from.slice(0, 7)}-01`, -REST_RUN_PAD_DAYS);
-	const spanEnd = addDays(monthBounds(to.slice(0, 7)).end, REST_RUN_PAD_DAYS);
+	const spanStart = addDays(`${from.slice(0, 7)}-01`, -1);
+	const spanEnd = addDays(monthBounds(to.slice(0, 7)).end, 1);
 	const ids = employmentIds as never[];
 
 	const employments = await db.read('employments', {
@@ -513,7 +474,6 @@ c.transform(async (inputs, ctx) => {
 		select: {
 			id: true,
 			company_id: true,
-			employee_id: true,
 			employee_number: true,
 			effective_range: true
 		},
@@ -523,20 +483,14 @@ c.transform(async (inputs, ctx) => {
 	const companyKeys = companyIds as never[];
 	const companies = await db.read('companies', { where: { id: { in: companyKeys } }, all: true });
 	const settingsCodes = [...new Set(companies.rows.map((row) => row.settings_code))] as never[];
-	// Wave 1: the people's terms, the months around the write, their leave and payslips, the rosters of record and
+	// Wave 1: the people's terms, the months around the write (and a day either side, for the adjacent-day overlap),
+	// their leave and payslips, the rosters of record and
 	// their companies' settings versions, each with only what the checks read (a whole plant's
 	// payslips with every field did not fit).
 	const [terms, monthRows, requests, slips, rosterRows, versions] = await Promise.all([
 		db.read('employment_terms', {
 			where: { employment_id: { in: ids } },
-			select: {
-				employment_id: true,
-				shift_pattern_id: true,
-				effective_range: true,
-				employment_type: true,
-				work_classification: true,
-				worksite: true
-			},
+			select: { employment_id: true, shift_pattern_id: true, effective_range: true },
 			all: true
 		}),
 		db.read('work_days', {
@@ -546,8 +500,6 @@ c.transform(async (inputs, ctx) => {
 				employment_id: true,
 				work_date: true,
 				shift_definition_id: true,
-				approved_overtime_hours: true,
-				emergency_cause: true,
 				payslip_id: true
 			},
 			all: true
@@ -612,49 +564,11 @@ c.transform(async (inputs, ctx) => {
 		approval_id: version.approval_id == null ? null : version.approval_id,
 		work_rules: version.work_rules
 	}));
-	const allLimits = settingsVersions.flatMap((version) => version.work_rules?.limits ?? []);
-	const projectionWindow = projectionBounds(
-		[...new Set(changes.map((change) => change.work_date))],
-		allLimits
-	);
-	const widen =
-		projectionWindow != null &&
-		(projectionWindow.start < spanStart || projectionWindow.end > spanEnd);
-	const calendarStart =
-		projectionWindow == null || spanStart < projectionWindow.start
-			? spanStart
-			: projectionWindow.start;
-	const calendarEnd =
-		projectionWindow == null || spanEnd > projectionWindow.end ? spanEnd : projectionWindow.end;
-	// Wave 2: the entities, their runs, codes and patterns, and the wider projection and the calendar the hour ceilings
-	// ask for, keyed by what wave 1 named.
-	const [runs, codeRows, patternRows, projectionRows, holidayRows] = await Promise.all([
+	// Wave 2: the entities' runs, codes and patterns, keyed by what wave 1 named.
+	const [runs, codeRows, patternRows] = await Promise.all([
 		db.read('payroll_runs', { where: { company_id: { in: companyKeys } }, all: true }),
 		db.read('shift_definitions', { where: { company_id: { in: companyKeys } }, all: true }),
-		db.read('shift_patterns', { where: { company_id: { in: companyKeys } }, all: true }),
-		widen
-			? db.read('work_days', {
-					where: {
-						employment_id: { in: ids },
-						work_date: { gte: on(projectionWindow.start), lte: on(projectionWindow.end) }
-					},
-					all: true
-				})
-			: { rows: [] },
-		changes.length === 0
-			? { rows: [] }
-			: db.read('jurisdiction_holidays', {
-					where: {
-						company_id: { in: companyKeys },
-						date: {
-							gte: on(addDays(calendarStart, -REST_RUN_PAD_DAYS)),
-							lte: on(addDays(calendarEnd, REST_RUN_PAD_DAYS))
-						},
-						published_at: { isNull: false },
-						approval_id: { isNull: true }
-					},
-					all: true
-				})
+		db.read('shift_patterns', { where: { company_id: { in: companyKeys } }, all: true })
 	]);
 	const companyById = new Map(companies.rows.map((row) => [String(row.id), row]));
 	const companyOf = (employmentId: string) =>
@@ -687,18 +601,13 @@ c.transform(async (inputs, ctx) => {
 	const termRows = terms.rows.map((term) => ({
 		employment_id: String(term.employment_id),
 		shift_pattern_id: term.shift_pattern_id,
-		effective_range: term.effective_range,
-		employment_type: term.employment_type,
-		work_classification: term.work_classification,
-		worksite: term.worksite
+		effective_range: term.effective_range
 	}));
-	const dayRows = [...monthRows.rows, ...projectionRows.rows].map((row) => ({
+	const dayRows = monthRows.rows.map((row) => ({
 		id: String(row.id),
 		employment_id: String(row.employment_id),
 		work_date: day(row.work_date),
 		shift_definition_id: row.shift_definition_id == null ? null : String(row.shift_definition_id),
-		approved_overtime_hours: hours(row.approved_overtime_hours),
-		emergency_cause: row.emergency_cause === true,
 		payslip_id: row.payslip_id == null ? null : String(row.payslip_id)
 	}));
 	const leaveRows = requests.rows.map((request) => ({
@@ -709,27 +618,6 @@ c.transform(async (inputs, ctx) => {
 		half_day_start: request.half_day_start ?? null,
 		half_day_end: request.half_day_end ?? null
 	}));
-	const holidays = holidayRows.rows.map((holiday) => ({
-		...holiday,
-		id: String(holiday.id),
-		company_id: String(holiday.company_id),
-		date: day(holiday.date),
-		replaces: holiday.replaces == null ? null : day(holiday.replaces),
-		published_at: holiday.published_at == null ? null : String(holiday.published_at)
-	}));
-	// A holiday with `applies_when` (a religion's own day) reads the person: only then are they read.
-	const employeeById = new Map(
-		holidays.some((row) => conditionOf(row) != null)
-			? (
-					await db.read('employees', {
-						where: {
-							id: { in: [...new Set(employments.rows.map((row) => row.employee_id))] as never[] }
-						},
-						all: true
-					})
-				).rows.map((row) => [String(row.id), row])
-			: []
-	);
 	const windowsByCompany = new Map(
 		[...Map.groupBy(runs.rows, (run) => String(run.company_id))].map(([companyId, grouped]) => [
 			companyId,
@@ -757,49 +645,24 @@ c.transform(async (inputs, ctx) => {
 	if (changes.length > 0) {
 		const codeKindById = new Map<string, 'WORK' | 'REST' | 'OFF'>();
 		const paidMinutesById = new Map<string, number>();
-		const codeFactsById = new Map<string, RosterCodeFacts>();
 		for (const code of codes) {
 			try {
 				const kind = rosterCodeKind(code.variant);
 				codeKindById.set(code.id, kind);
-				if (kind === 'WORK') {
-					const window = workWindow(code.variant);
-					if (window != null) {
-						paidMinutesById.set(code.id, window.paid_minutes);
-						codeFactsById.set(code.id, {
-							kind: 'WORK',
-							paid_minutes: window.paid_minutes,
-							break_minutes: window.break_minutes,
-							spread_hours: window.elapsed_minutes / 60
-						});
-					}
-				} else
-					codeFactsById.set(code.id, {
-						kind,
-						paid_minutes: 0,
-						break_minutes: 0,
-						spread_hours: 0,
-						statutory_rest: code.variant.kind === 'REST' && code.variant.statutory === true
-					});
+				const window = kind === 'WORK' ? workWindow(code.variant) : null;
+				if (window != null) paidMinutesById.set(code.id, window.paid_minutes);
 			} catch {
 				continue;
 			}
 		}
 		const storedByKey = new Map<string, string | null>();
-		const storedApprovedByKey = new Map<string, number>();
-		const emergencyKeys = new Set<string>();
-		for (const row of dayRows) {
-			const at = key(row.employment_id, row.work_date);
-			storedByKey.set(at, row.shift_definition_id);
-			storedApprovedByKey.set(at, row.approved_overtime_hours);
-			if (row.emergency_cause) emergencyKeys.add(at);
-		}
+		for (const row of dayRows)
+			storedByKey.set(key(row.employment_id, row.work_date), row.shift_definition_id);
 		const changesByGroup = Map.groupBy(
 			changes,
 			(change) => `${change.employment_id}:${change.work_date.slice(0, 7)}`
 		);
-		// A month with a roster of record is not measured against the pattern: the roster is the schedule. The statutory
-		// gates below still judge it.
+		// A month with a roster of record is not measured against the pattern: the roster is the schedule.
 		const rostered = new Set(
 			rosterRows.rows.map((row) => `${String(row.employment_id)}:${row.period}`)
 		);
@@ -824,10 +687,18 @@ c.transform(async (inputs, ctx) => {
 			const month = group.slice(separator + 1);
 			const bounds = monthBounds(month);
 			const employed = employmentById.get(employmentId)?.effective_range;
-			let whole = true;
-			for (let date = bounds.start; whole && date <= bounds.end; date = addDays(date, 1))
-				if (coversDate(employed, date) && !planned.has(key(employmentId, date))) whole = false;
-			if (whole) continue;
+			let employedDays = 0;
+			let plannedDays = 0;
+			for (let date = bounds.start; date <= bounds.end; date = addDays(date, 1))
+				if (coversDate(employed, date)) {
+					employedDays += 1;
+					if (planned.has(key(employmentId, date))) plannedDays += 1;
+				}
+			// A batch planning the whole employed month, or a week or more of it, is the month's roster: the import writes
+			// the roster of record beside it, in the same act, where this read cannot see it yet, and may leave days blank
+			// (leave not yet entered, a leaver's last days). ponytail: a week is the threshold that tells an import from an
+			// in-app edit (one cell, or a two-cell swap); a writer batching a week of single edits skips the pattern check.
+			if (plannedDays === employedDays || plannedDays >= 7) continue;
 			const plannedByDate = new Map<string, string | null>();
 			for (const [storedKey, shiftId] of storedByKey)
 				if (storedKey.startsWith(`${employmentId}:${month}`))
@@ -842,219 +713,6 @@ c.transform(async (inputs, ctx) => {
 				codeKindById,
 				paidMinutesById
 			});
-		}
-		// The rest-day run is keyed by employment alone: a run straddles the first of the month.
-		for (const employmentId of new Set(changes.map((change) => change.employment_id))) {
-			const own = changes.filter((change) => change.employment_id === employmentId);
-			const firstChange = own[0]!;
-			const version = versionOn(employmentId, firstChange.work_date);
-			if (version == null) continue;
-			const subject = employeeNumber(employmentId);
-			const judged = termsByEmployment
-				.get(employmentId)
-				?.find((term) => coversDate(term.effective_range, firstChange.work_date));
-			const entity = companyOf(employmentId);
-			const person = () =>
-				personContext({
-					employee: null,
-					employment: { service_start: '' },
-					terms:
-						judged == null
-							? null
-							: {
-									employment_type: judged.employment_type,
-									work_classification: judged.work_classification
-								},
-					company:
-						entity == null ? null : { region: entity.region ?? null, facts: entity.facts as never },
-					asOf: firstChange.work_date
-				});
-			const applicable = applicableLimits(version.work_rules?.limits ?? [], person());
-			const ownDates = own.map((change) => change.work_date).toSorted();
-			const cutoffDay = entity?.pay_cutoff_day ?? 1;
-			const bounds = projectionBounds(ownDates, applicable);
-			const window = {
-				start: [
-					bounds?.start ?? ownDates[0]!,
-					assessmentWindow(ownDates[0]!, cutoffDay).start
-				].toSorted()[0]!,
-				end: [bounds?.end ?? ownDates.at(-1)!, assessmentWindow(ownDates.at(-1)!, cutoffDay).end]
-					.toSorted()
-					.at(-1)!
-			};
-			// The write under judgement is not stored yet: its own dates read from the change.
-			const ownByDate = new Map(own.map((change) => [change.work_date, change]));
-			const patternOn = (date: string) => {
-				const term = termsByEmployment
-					.get(employmentId)
-					?.find((candidate) => coversDate(candidate.effective_range, date));
-				const found = term == null ? null : termPatternRow(term, patternById);
-				return found == null ? null : { pattern: found.pattern, anchor: patternAnchor(found) };
-			};
-			/** The roster code a date resolves to: this write's, the stored row's, else the pattern's. */
-			const codeIdOn = (date: string): string | null => {
-				const explicitId = ownByDate.has(date)
-					? ownByDate.get(date)?.shift_definition_id
-					: storedByKey.get(key(employmentId, date));
-				if (explicitId != null) return explicitId;
-				const projected = patternOn(date);
-				if (projected == null || !('days' in projected.pattern)) return null;
-				try {
-					return patternRosterCodeId(projected.pattern, date, projected.anchor);
-				} catch {
-					return null;
-				}
-			};
-			const planByDate = new Map<string, SchedulePlanDay>();
-			for (let date = window.start; date <= window.end; date = addDays(date, 1))
-				planByDate.set(
-					date,
-					plannedDay({ date, rosterCodeId: codeIdOn(date), codeById: codeFactsById })
-				);
-			const observed = observedDays({
-				dates: [...planByDate.keys()],
-				cutoffDay,
-				companyId: String(entity?.id ?? ''),
-				holidays: holidays as never,
-				codes: codes as never,
-				work: version.work_rules,
-				plans: [...storedByKey]
-					.filter(([storedKey]) => storedKey.startsWith(`${employmentId}:`))
-					.map(([storedKey, shiftId]) => {
-						const date = storedKey.slice(employmentId.length + 1);
-						return {
-							work_date: date,
-							shift_definition_id: ownByDate.has(date)
-								? (ownByDate.get(date)?.shift_definition_id ?? null)
-								: shiftId
-						};
-					})
-					.concat(
-						own
-							.filter((change) => !storedByKey.has(key(employmentId, change.work_date)))
-							.map((change) => ({
-								work_date: change.work_date,
-								shift_definition_id: change.shift_definition_id
-							}))
-					),
-				rosterPeriods: rosterRows.rows
-					.filter((row) => String(row.employment_id) === employmentId)
-					.map((row) => row.period),
-				patternOn,
-				worksiteOn: (date) =>
-					termsByEmployment
-						.get(employmentId)
-						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite,
-				personOn: (date) =>
-					personContext({
-						employee:
-							employeeById.get(String(employmentById.get(employmentId)?.employee_id)) ?? null,
-						employment: { service_start: '' },
-						terms: null,
-						asOf: date
-					})
-			});
-			const headroomOf = (written: boolean) =>
-				overtimeHeadroom({
-					days: [...planByDate.values()].map((plan) => {
-						const at = key(employmentId, plan.date);
-						return {
-							...observedPlan(plan, observed),
-							approved_overtime_hours:
-								(written ? ownApprovedByKey.get(at) : undefined) ??
-								storedApprovedByKey.get(at) ??
-								0,
-							emergency: (written ? ownEmergencyByKey.get(at) : undefined) ?? emergencyKeys.has(at)
-						};
-					}),
-					limits: applicable,
-					cutoffDay,
-					unitHours: version.work_rules?.overtime_unit_hours
-				}).breaches;
-			// Only what this write puts over a limit refuses it: a day whose approved hours it changes, or a stored day it
-			// pushes over. A day already over before the write, left at the same figure, is not this write's to answer.
-			const before = new Set(headroomOf(false).map((breach) => breach.date));
-			const changed = (date: string) => {
-				const at = key(employmentId, date);
-				return (
-					ownApprovedByKey.has(at) &&
-					ownApprovedByKey.get(at) !== (storedApprovedByKey.get(at) ?? 0)
-				);
-			};
-			const breaches = headroomOf(true).filter(
-				(breach) => !before.has(breach.date) || changed(breach.date)
-			);
-			if (breaches.length > 0)
-				ctx.refuse(
-					`Overtime for ${subject} is refused: ${breaches.map(breachSentence).join('; ')}. ` +
-						'Approved overtime may not exceed the statutory limit: lower it to the hours left and key the rest as incentive hours.'
-				);
-			if (applicable.length > 0) {
-				const breach = projectedLimitBreaches({
-					subject,
-					changedDates: new Set(ownDates),
-					planByDate,
-					limits: applicable,
-					authority: version.work_rules?.authority ?? null
-				})[0];
-				if (breach != null) ctx.refuse(breach.message);
-			}
-			// The weekly rest rule is the version's consecutive-work-days limit, judged per person.
-			const rule: StatutoryWeeklyRestRule | undefined =
-				version.work_rules?.limits.find(isRestLimit);
-			if (rule != null) {
-				const plannedByDate = new Map<string, string | null>();
-				for (const [storedKey, shiftId] of storedByKey)
-					if (storedKey.startsWith(`${employmentId}:`))
-						plannedByDate.set(storedKey.slice(employmentId.length + 1), shiftId);
-				for (const change of own) plannedByDate.set(change.work_date, change.shift_definition_id);
-				// A day under leave the rule names (maternity, sick) is no worked day: it suspends the count.
-				const suspendedDates = new Set<string>();
-				const suspending = new Set(rule.suspended_by_leave ?? []);
-				if (suspending.size > 0)
-					for (const request of leaveByEmployment.get(employmentId) ?? [])
-						if (
-							suspending.has(request.leave_code) &&
-							request.from_date !== '' &&
-							request.to_date !== ''
-						)
-							for (let date = request.from_date; date <= request.to_date; date = addDays(date, 1))
-								if (leaveCoverage(request, date).fullDay) suspendedDates.add(date);
-				const averageWhen = (rule.average?.when ?? '').trim();
-				assertRunHasRestDay({
-					employeeNumber: subject,
-					rule,
-					authority: null,
-					window: { start: spanStart, end: spanEnd },
-					plannedByDate,
-					changedDates: new Set(ownDates),
-					terms: termsByEmployment.get(employmentId) ?? [],
-					patternById,
-					codeKindById,
-					suspendedDates,
-					averaging: averageWhen === '' || isEligible(averageWhen, person())
-				});
-			}
-			// The break obligation is a schedule gate: a shift granting less break than the rules owe is refused here.
-			const breaks = version.work_rules?.breaks ?? [];
-			if (breaks.length > 0)
-				for (const change of own) {
-					if (change.shift_definition_id == null) continue;
-					const code = codes.find((candidate) => candidate.id === change.shift_definition_id);
-					const window = code == null ? null : workWindow(code.variant);
-					if (code == null || window == null) continue;
-					const owed = selectBreakRule(breaks, {
-						consecutiveHours: window.paid_minutes / 60,
-						overtimeHours: 0,
-						continuousAttendance: false
-					});
-					const granted = hours((code.variant as { break_minutes?: unknown }).break_minutes);
-					if (owed?.minimum_minutes != null && owed.minimum_minutes > granted)
-						ctx.refuse(
-							`Roster change for ${subject} on ${change.work_date} is refused: the shift grants ${granted} minutes of ` +
-								`break, but the rules require ${owed.minimum_minutes} for a ${(window.paid_minutes / 60).toFixed(2)}-hour day.`
-						);
-				}
 		}
 	}
 

@@ -189,7 +189,10 @@ function grant(
 		exitDate: null,
 		servedOn: () => true,
 		eligibleOn: () => true,
-		personOn
+		personOn,
+		// a Monday–Friday roster, for a row that measures a part month in normal working days
+		normalWorkingDayOn: (date: string) =>
+			![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay())
 	}).entitlement;
 }
 
@@ -624,9 +627,10 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 		// cohort — each on the art.114 ladder too, so seventy months is fifteen.
 		assert.deepEqual(ladder('VN', version, 'ANNUAL_LEAVE', { age: 17 }), [14, 14, 15]);
 		assert.deepEqual(ladder('VN', version, 'ANNUAL_LEAVE', { disabled: true }), [14, 14, 15]);
-		// Decree 145/2020 art.66(2): a part month with at least half its days worked or paid counts
-		// as a month of annual leave. A joiner on 15 January (17 of 31 days) carries January and
-		// earns the whole twelve; one on 20 January (12 of 31) starts in February — eleven.
+		// Decree 145/2020 art.66(2): a part month with at least half its normal working days worked or
+		// paid counts as a month of annual leave. January 2026 has 22 Monday–Friday days: a joiner on
+		// 15 January (12 of 22) carries January and earns the whole twelve; one on 20 January (9 of
+		// 22) starts in February — eleven.
 		const partYear = (hire: string, born = '1990-01-01') =>
 			computedEntitlement({
 				rule: leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement,
@@ -642,7 +646,9 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 						employment: { service_start: hire },
 						terms: null,
 						asOf: date
-					})
+					}),
+				normalWorkingDayOn: (date: string) =>
+					![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay())
 			}).entitlement;
 		assert.equal(partYear('2026-01-15'), 12);
 		assert.equal(partYear('2026-01-20'), 11);
@@ -1407,7 +1413,10 @@ test('LIT-06 — an hourly grant rounds by the row’s hour_rounding', () => {
 });
 
 test('LIT-06 — a HALF_MONTHS month counts at the row’s month_counts_when share', () => {
-	const annual = leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement;
+	const annual = {
+		...leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement,
+		month_share_basis: 'CALENDAR_DAYS' as const
+	};
 	const partYear = (rule: LeaveEntitlement) =>
 		computedEntitlement({
 			rule,

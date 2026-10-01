@@ -689,6 +689,7 @@ export default messages({
 	'component.workbook_import_failed': '{file} could not be imported.',
 	'component.workbook_imported': 'Imported {count} {label} from {file}.',
 	'component.workbook_layout': 'Payroll workbook layout',
+	'component.workbook_warnings': '{count} warnings',
 	'component.workbook_overwritten':
 		'{count} stored day(s) were changed or removed to match the file, including any edit made in the app since the last import:',
 	'component.workbook_not_spreadsheet': '"{file}" could not be opened as a spreadsheet.',

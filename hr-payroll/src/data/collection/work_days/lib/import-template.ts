@@ -27,31 +27,43 @@ export const XLSX_MEDIA_TYPE = 'application/vnd.openxmlformats-officedocument.sp
 const READ_ME_LINES = [
 	'Scheduling import — one legal entity, one month',
 	'',
-	'A. Roster (the plan): a shift code, REST or OFF for every day.',
+	'Every sheet is a month grid: one person per row (employee_number), one column per',
+	'day of the month (1–31), one cell per person-day. A blank cell states nothing.',
+	'',
+	'A. Roster (the plan): a shift code, REST or OFF in each cell.',
 	'   Never type PH: holidays come from the worksite holiday calendar.',
-	'   A blank cell is unassigned, not a rest day.',
+	'   A blank cell writes no plan: the day follows the work pattern and is paid as',
+	'   present. The import still loads and lists the blank days as a warning — use it',
+	'   for leave not yet entered, or the days after someone leaves.',
 	'',
 	'B. Day type (derived, never typed): working, rest, off, public holiday',
 	'   (observed or substituted) or leave, from the roster, the holiday calendar',
 	'   and approved leave.',
 	'',
-	'C. Overtime (pre-approved hours):',
+	'C. Overtime (pre-approved hours): the day’s total extra hours in each cell.',
 	'   - working day: the hours after the shift;',
 	'   - REST, OFF or a holiday not normally worked: the total hours worked;',
 	'   - hours above the statutory cap become incentive hours at the overtime band rate.',
 	'',
-	'D. Time entries (the clock): clock_in, clock_out as local HH:mm.',
-	'   A blank clock_out is a day still open.',
+	'D. Time entries (the clock): each cell is the day’s clock in and out as local',
+	'   HH:mm-HH:mm, e.g. 08:00-17:00. Several intervals (a split shift) go in one cell,',
+	'   separated by ; or a new line: 08:00-12:00; 13:00-17:00. A last interval with no',
+	'   close (08:00) is a day still open; a close at or before the open is the next day.',
 	'   - proves presence;',
 	'   - a rostered working day with no clock entry is an absence and deducts pay;',
 	'   - clocked time beyond planned overtime is not paid.',
 	'',
 	'Examples (shift D = 09:00–18:00):',
-	'   Working day + 2 h OT: Roster D, Overtime 2, clock 09:00–20:00.',
-	'   Rest day + 6 h: Roster REST, Overtime 6, clock 09:00–15:00.',
+	'   Working day + 2 h OT: Roster D, Overtime 2, Time entries 09:00-20:00.',
+	'   Rest day + 6 h: Roster REST, Overtime 6, Time entries 09:00-15:00.',
 	'   Holiday on a working day: Roster D; the calendar marks the holiday.',
 	'   Holiday on a rest day: Roster REST; the holiday is substituted.',
-	'   Absence: Roster D, no clock entry.',
+	'   Absence: Roster D, Time entries blank.',
+	'',
+	'Statutory limits never refuse the file: more consecutive working days than the',
+	'weekly rest rule allows, hours or spread-over above a ceiling, a shift with less',
+	'break than the rules owe, and overtime above a cap are imported and listed as',
+	'warnings.',
 	'',
 	'Cut-off: an entry is paid in the run whose attendance window holds its date',
 	'(e.g. 21 Dec – 20 Jan), not by calendar month. After the cut-off = next run.',
@@ -61,7 +73,8 @@ const READ_ME_LINES = [
 	'Settings: legal entity, month (YYYY-MM), IANA timezone.',
 	'Where the rules ask for per-occasion consent or declare work-day inputs, Overtime is',
 	'one person-day per row: overtime_hours, the consent instant, one column per input.',
-	'Do not rename sheets or columns. One bad row refuses the whole file.'
+	'Do not rename sheets or columns. A malformed cell (unknown code, bad time or hours)',
+	'refuses the whole file.'
 ];
 
 export function schedulingTemplateWorkbook(options: {
@@ -90,16 +103,14 @@ export function schedulingTemplateWorkbook(options: {
 		'An IANA timezone name, e.g. Asia/Kuala_Lumpur. Required when Time entries carry punches.'
 	]);
 
-	const roster = workbook.addWorksheet(ROSTER_SHEET_NAME);
-	roster.addRow([
+	const grid = [
 		'employee_number',
 		...eachDay(monthOf(`${options.month}-01`)).map((day) =>
 			String(Number.parseInt(day.slice(-2), 10))
 		)
-	]);
-
-	const attendance = workbook.addWorksheet(ATTENDANCE_SHEET_NAME);
-	attendance.addRow(['employee_number', 'work_date', 'clock_in', 'clock_out']);
+	];
+	workbook.addWorksheet(ROSTER_SHEET_NAME).addRow(grid);
+	workbook.addWorksheet(ATTENDANCE_SHEET_NAME).addRow(grid);
 
 	const overtime = workbook.addWorksheet(OVERTIME_SHEET_NAME);
 	overtime.addRow(
@@ -111,12 +122,7 @@ export function schedulingTemplateWorkbook(options: {
 					...(options.overtimeConsent === true ? ['overtime_consented_at'] : []),
 					...(options.factColumns ?? [])
 				]
-			: [
-					'employee_number',
-					...eachDay(monthOf(`${options.month}-01`)).map((day) =>
-						String(Number.parseInt(day.slice(-2), 10))
-					)
-				]
+			: grid
 	);
 
 	return workbook;

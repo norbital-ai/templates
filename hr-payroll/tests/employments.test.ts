@@ -99,7 +99,7 @@ test('a first contract’s nested terms record only the inputs its lineage decla
 	await assert.rejects(hireWith({ typo: true }), /does not declare the entity fact typo/);
 });
 
-test('a referenced contract takes only its departure; a closed one never reopens; neither is deleted', async () => {
+test('a referenced contract takes only its departure; a closed one keeps its start; neither is deleted', async () => {
 	const open = contract('a', '2025-01-01');
 	const tables = world({
 		employments: [open],
@@ -113,9 +113,11 @@ test('a referenced contract takes only its departure; a closed one never reopens
 	});
 	const closed = { ...open, effective_range: { from: '2025-01-01', to: '2026-03-31' } };
 	await one({ comments: 'Left on good terms' }, closed);
+	// A departure is withdrawn until a payslip settles it (tests/exit-truncates-roster.test.ts); the start never moves.
+	await one({ effective_range: { from: '2025-01-01', to: null } }, closed);
 	await assert.rejects(
-		one({ effective_range: { from: '2025-01-01', to: null } }, closed),
-		/cannot be reopened/
+		one({ effective_range: { from: '2025-02-01', to: '2026-03-31' } }, closed),
+		/keeps its start/
 	);
 	await assert.rejects(one({ $delete: true }), /sealed by employment terms/);
 	await transform(employments, [{ $delete: true }], {

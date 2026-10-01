@@ -1,5 +1,5 @@
 import { resolveEmployment } from '../employment-contract.js';
-import { refuse } from '../refuse.js';
+import { getErrorMessage, refuse } from '../refuse.js';
 import { readAll, type Reads } from '../reads.js';
 import type { StoredRange } from '../../lib/payroll/run/effective.js';
 import type { LeaveWindow } from './entitlement.js';
@@ -207,6 +207,8 @@ export type LeaveContext = {
 	 * balance): absence forfeiture stays provisional, since the year's attendance is not all in.
 	 */
 	projected?: boolean;
+	/** A balance read (`leave_balances`): a forfeiture refusal becomes a warning beside the grant. */
+	balanceRead?: boolean;
 	/**
 	 * Rostered days read and found empty — absent without leave — by employment and day, over
 	 * the twelve months before the window; what `employment.absent_days_12m` counts. Absent is
@@ -959,8 +961,10 @@ export function leaveRules(
 	 * working days (`entitlement.forfeit_above_absence_share`), each day's decision read from its
 	 * recorded absence inputs. Days on and before the terms' opening attendance declaration were
 	 * decided outside the workspace: they still count toward the working days, and the declared
-	 * unexcused days stand for their absences. The law is silent on evidence that predates the
-	 * system; an unrecorded day is never read as worked.
+	 * unexcused days stand for their absences. A forfeiture needs proof of the absence: a day with
+	 * no dated evidence (before the workspace's attendance or the person's records) is never read
+	 * as absent, so it forfeits nothing and is named in `warnings` beside the balance. A missing
+	 * record refuses only when recorded absences would forfeit the grant.
 	 */
 	const forfeited = (
 		window: LeaveWindow,
@@ -981,12 +985,15 @@ export function leaveRules(
 		)
 			refuse(`${what} needs one opening attendance declaration.`);
 		// The declared count is the service year holding the opening day; an earlier year has none.
-		if (openedThrough > window.end && window.end >= hire)
-			refuse(
-				`${what} for the service year ending ${window.end} needs its absences recorded; the opening attendance declaration (${openedThrough}) counts only the service year holding it.`
+		if (openedThrough > window.end && window.end >= hire) {
+			warnings.add(
+				`${what} for the service year ending ${window.end} has no recorded absences; the opening attendance declaration (${openedThrough}) counts only the service year holding it, so nothing is forfeited.`
 			);
-		// A coverage gap on a declared day matters only if a denominator is needed.
+			return false;
+		}
+		// A coverage gap matters only if recorded absences would forfeit the grant.
 		const uncounted: string[] = [];
+		const unrecorded: string[] = [];
 		const recorded = new Map(
 			(context.annualAttendance ?? [])
 				.filter((row) => row.employment_id === employmentId)
@@ -1015,10 +1022,7 @@ export function leaveRules(
 		for (const day of daysBetween(window.start, asOf < window.end ? asOf : window.end)) {
 			if (day < hire || (exit != null && day > exit)) continue;
 			const decided = day <= openedThrough;
-			const gap = (message: string) => {
-				if (!decided) refuse(message);
-				uncounted.push(message);
-			};
+			const gap = (message: string) => uncounted.push(message);
 			const term = terms.find((row) => coversDate(row.effective_range, day));
 			if (term == null) {
 				gap(`${what} needs employment terms on ${day}.`);
@@ -1063,10 +1067,10 @@ export function leaveRules(
 				refuse(`${selected.code} absence decision needs dated attendance evidence.`);
 			if (holiday) continue;
 			if (row?.worked_intervals == null) {
-				// Before the accrual year closes this is provisional. A final balance cannot
-				// turn an unrecorded day into an implicit finding that the person worked.
+				// No dated evidence is no proof of an unauthorised absence. Before the accrual year
+				// closes this is provisional; a final balance names the days it could not test.
 				if (context.projected !== true && (asOf >= window.end || (exit != null && asOf >= exit)))
-					refuse(`${what} needs dated attendance or leave evidence on ${day}.`);
+					unrecorded.push(day);
 				continue;
 			}
 			if (row.worked_intervals.length > 0) {
@@ -1100,7 +1104,16 @@ export function leaveRules(
 				unexcused += 1;
 		}
 		if (openedThrough >= window.start) unexcused += openingAbsent;
-		if (unexcused === 0) return false;
+		const unproven = () => {
+			const first = uncounted[0] ?? unrecorded[0];
+			if (first != null)
+				warnings.add(
+					uncounted[0] ??
+						`${what} for ${window.start}–${window.end}: ${unrecorded.length} working day(s) from ${first} have no dated attendance or leave evidence, so nothing is forfeited for them.`
+				);
+			return false;
+		};
+		if (unexcused === 0) return unproven();
 		if (uncounted.length > 0) refuse(uncounted[0]!);
 		if (
 			hire > window.start ||
@@ -1116,8 +1129,11 @@ export function leaveRules(
 		const withResult = unexcused / withHolidays > share;
 		if (withoutResult !== withResult)
 			refuse(`${what} needs its public-holiday denominator assessed.`);
-		return withoutResult;
+		// Recorded absences alone above the share are proof; below it, an untested day proves nothing.
+		return withoutResult || unproven();
 	};
+	/** Non-blocking notes on the balance: forfeiture tests a missing record could not decide. */
+	const warnings = new Set<string>();
 	const entitlementAt = (window: LeaveWindow, date: string) => {
 		if (unknownNoPay != null && unknownNoPay <= window.end)
 			refuse(`${selected.code} needs the no-pay leave request origin recorded.`);
@@ -1149,7 +1165,18 @@ export function leaveRules(
 			hourlyBasisOn,
 			normalWorkingDayOn
 		});
-		const lost = forfeited(window, asOf, rule.forfeit_above_absence_share);
+		// A balance read shows the grant with the refusal beside it; a write refuses.
+		let lost = false;
+		try {
+			lost = forfeited(window, asOf, rule.forfeit_above_absence_share);
+		} catch (error) {
+			if (
+				context.balanceRead !== true ||
+				!(Predicate.hasProperty(error, 'kind') && error.kind === 'refused')
+			)
+				throw error;
+			warnings.add(getErrorMessage(error));
+		}
 		const previousEnd = addDays(window.start, -1);
 		const previousRule = previousEnd < hire ? null : catalogueAt(previousEnd)?.entitlement;
 		const previousWindow =
@@ -1185,6 +1212,7 @@ export function leaveRules(
 			personAt(context, employmentId, date, undefined, index),
 		children: employee.children ?? [],
 		entitlementAt,
+		warnings,
 		/**
 		 * The year a window carries from, from the catalogue alone: `entitlementAt` also prices the
 		 * opening day, and every refusal on that day would land on an unrelated carry read.

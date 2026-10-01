@@ -30,7 +30,7 @@
 		employment: {
 			readonly id: Id<'employments'>;
 			readonly range_start: PlainDate;
-			/** A set end not yet passed (a fixed term): the last day may only move earlier. */
+			/** A set end (a fixed term): the departure falls on or before it. The write deletes the rostered days after the last day. */
 			readonly range_end?: PlainDate | null;
 			readonly company_id: Id<'companies'>;
 			readonly employee_number: unknown;

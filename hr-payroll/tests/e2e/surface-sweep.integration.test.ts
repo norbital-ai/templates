@@ -23,7 +23,7 @@ it('every app page renders for every policy with no console error and no over-bu
 	});
 	const report = await sweep(t, { pages: pages as never });
 	expect(report.visited.map((visit) => visit.path)).toEqual(
-		expect.arrayContaining(['/app/hr_employee/self_service', '/app/hr_controller/events/work/work'])
+		expect.arrayContaining(['/app/hr_employee/self_service', '/app/hr_controller/events/work'])
 	);
 	expect(report.findings).toEqual([]);
 });

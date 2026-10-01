@@ -284,6 +284,9 @@
 									</div>
 								{/each}
 							</Grid>
+							{#each balance.warnings ?? [] as warning (warning)}
+								<p class="text-meta">{warning}</p>
+							{/each}
 						</Stack>
 					{/each}
 				{/if}

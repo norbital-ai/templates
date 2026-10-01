@@ -58,6 +58,8 @@ export async function runWorkbookImport<const A extends string>(options: {
 	importedCount?(payload: ActInput<A>, output: ActOutput<A>): number;
 	/** The stored records a committed import changed or removed, by name. */
 	overwritten?(output: ActOutput<A>): readonly string[];
+	/** Non-blocking findings of a committed import (a statutory limit passed, a blank day), one line each. */
+	warnings?(output: ActOutput<A>): readonly string[];
 	afterImport?(payload: ActInput<A>): void;
 }): Promise<void> {
 	const file = await pickWorkbookFile();
@@ -89,6 +91,13 @@ export async function runWorkbookImport<const A extends string>(options: {
 						duration: FAILURE_TOAST_MS
 					}
 		);
+		const warnings = outcome.kind === 'committed' ? (options.warnings?.(outcome.output) ?? []) : [];
+		if (warnings.length > 0)
+			toast.warning(t('component.workbook_warnings', { count: warnings.length }), {
+				description: warnings.join('\n'),
+				descriptionClass: 'whitespace-pre-line',
+				duration: Number.POSITIVE_INFINITY
+			});
 		options.afterImport?.(payload);
 	} catch (error) {
 		const message = getErrorMessage(error);

@@ -4,19 +4,16 @@
  * the holidays workbook.
  *
  * The sheets mirror exactly what the reader in `src/data/collection/work_days/lib` accepts as the
- * designed layout — one entity × one month. The Roster sheet is the plan as a month grid: a person
- * down the side and a calendar day across the top, cells carrying a company roster code (or the
- * reserved `PH` token). The Time entries sheet is the attendance as one person-day per row, with a
- * `clock_in` and a `clock_out` column, each a local wall time `HH:mm`; a blank `clock_out` is still
- * open. Blank cells are omitted — they are not inferred rest days and not punchless leave. The two
- * clock columns are imported as the one timestamp interval the day worked. The timezone, legal
- * entity and month are declared once on the `Settings` sheet. The Overtime sheet is each day's
- * total extra hours as a month grid, each cell a number of hours in half-hour steps, which the
- * import splits into approved overtime and incentive hours; a blank cell is none.
+ * designed layout — one entity × one month. Every sheet is a month grid: a person down the side
+ * and a calendar day across the top. Roster cells carry a company roster code; a blank one writes
+ * no plan and is reported as a warning. Time entries cells carry the day's clock as local
+ * `HH:mm-HH:mm` intervals, several to a cell separated by `;` or a new line; a last interval with
+ * no close is still open. Overtime cells carry the day's total extra hours, which the import splits
+ * into approved overtime and incentive hours. A blank Time entries or Overtime cell is none. The
+ * timezone, legal entity and month are declared once on the `Settings` sheet.
  *
- * A long-form Roster sheet (`employee_number`, `work_date`, `shift_code`) and a month-grid Time
- * entries sheet (`HH:mm-HH:mm` per day cell) still import, including the files operators already
- * have on disk — but the issued template is the grid roster and the two-column clock table. The
+ * Long-form sheets (`employee_number`, `work_date`, …) still import, including the files operators
+ * already have on disk — but the issued template is the three grids. The
  * `Read me first` sheets state the rules in the same terms the readers enforce them, so what the
  * file promises and what the import accepts cannot drift apart quietly.
  *
@@ -96,13 +93,9 @@ const OVERTIME_SAMPLE_ROWS = [
 	gridRow('PUBEM0023', { 4: 0.5 }, SAMPLE_MONTH)
 ];
 
-const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
 const TIME_ENTRY_SAMPLE_ROWS = [
-	['PUBEM0002', '2026-05-04', '08:16', '17:10'],
-	['PUBEM0002', '2026-05-05', '08:02', '17:05'],
-	['PUBEM0023', '2026-05-04', '20:30', '05:15'],
-	['PUBEM0023', '2026-05-05', '20:28', '05:02'],
-	['PUBEM0023', '2026-05-06', '20:31', '']
+	gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-12:00; 13:00-17:05' }, SAMPLE_MONTH),
+	gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' }, SAMPLE_MONTH)
 ];
 
 const SETTINGS_ROWS = [
@@ -119,25 +112,24 @@ const SETTINGS_ROWS = [
 const SCHEDULING_README = [
 	'Scheduling import — one legal entity, one month, three sheets',
 	'',
-	'"Roster" is the planned assignment: who is scheduled where, one person per row and one',
-	'calendar day per column. "Time entries" is what actually happened on the clock, one person-day',
-	'per row with a clock_in and a clock_out column. "Overtime" is the extra hours, one person per',
-	'row and one calendar day per column, each cell the day’s total. Do not rename the sheets',
-	'or the column headers. Set legal_entity, month and timezone once, on the "Settings" sheet.',
+	'Every sheet is a month grid: one person per row and one calendar day per column. "Roster" is',
+	'the planned assignment, "Time entries" is what actually happened on the clock and "Overtime" is',
+	'the extra hours, each cell the day’s total. Do not rename the sheets or the column headers.',
+	'Set legal_entity, month and timezone once, on the "Settings" sheet.',
 	'',
 	'The file is the state of the month it names, for every employee of the entity. Import it again',
 	'and the month becomes what the file now says; a person the file no longer names loses the month',
 	'and falls back to their work pattern. A file carrying only some of the sheets replaces only',
-	'those halves. Every person on the Roster sheet needs a code on every day they are employed —',
-	'write REST or OFF where they are not working — or the file is refused naming the missing days.',
+	'those halves. A blank Roster cell is allowed — leave not yet entered, the days after someone',
+	'leaves — and writes no plan: the day follows the work pattern, and the import lists it as a warning.',
 	'A day a payslip has already taken into account may be restated as it is; a file that changes or',
 	'omits one is refused naming those days.',
 	'',
 	'Roster — three rules that change what people get paid',
 	'',
 	'• A filled cell is an explicit assignment to that roster code on that day. A blank cell is an',
-	'  absent assignment — it is not inferred as a rest day. REST and OFF must be written when they',
-	'  are meant.',
+	'  absent assignment — it is not inferred as a rest day; the work pattern decides the day, and the',
+	'  import warns. REST and OFF must be written when they are meant.',
 	'',
 	'• A cell must name an existing roster code. The hours a working day earns are measured against',
 	'  the code it names, so a code the company has not defined refuses the file.',
@@ -147,13 +139,14 @@ const SCHEDULING_README = [
 	'',
 	'Time entries — three rules worth knowing',
 	'',
-	'• Each row is one person-day. clock_in and clock_out are local wall times as HH:mm, 24-hour. A',
-	'  row with a clock_in and a blank clock_out is still open; an overnight shift needs no special',
-	'  marker — a clock_out at or before clock_in is treated as the next calendar day. Every clock',
-	'  time is local wall time in the Settings timezone.',
+	'• Each cell is one person-day: the clock in and out as HH:mm-HH:mm, 24-hour, e.g. 08:00-17:00.',
+	'  A split shift is several intervals in one cell, separated by ; or a new line:',
+	'  08:00-12:00; 13:00-17:00. A last interval with no close (20:31) is still open; an overnight',
+	'  shift needs no marker — a close at or before its open is the next calendar day. Every clock',
+	'  time is local wall time in the Settings timezone. A blank cell is no attendance.',
 	'',
-	'• The two clock columns carry punches only — breaks and the open/closed state are derived from',
-	'  them. The break is the shift’s granted break, less any gap already visible between the punches.',
+	'• The cells carry punches only — breaks and the open/closed state are derived from them. The',
+	'  break is the shift’s granted break, less any gap already visible between the intervals.',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',
 	'  do not add punchless cells to stand in for it.',
@@ -167,7 +160,7 @@ const SCHEDULING_README = [
 	'  splits each total at the statutory overtime ceilings, in date order and around the days of',
 	'  the same periods already on file: the hours within all of them are written as approved',
 	'  overtime, the rest as incentive hours, which payroll pays on the INCENTIVE line at the rate',
-	'  and multiple of the band they fall in. The split never refuses the file. The ceilings are the',
+	'  and multiple of the band they fall in. The split never refuses the file; it warns. The ceilings are the',
 	'  daily total (e.g. 12 worked hours, shift included) and daily overtime (e.g. 4 hours on an',
 	'  ordinary day), and the weekly, monthly, quarterly and yearly overtime (e.g. 18 a week, 104 or',
 	'  72 a month, 138 a quarter, 200 a year); overtime on a rest day, off day or holiday counts',
@@ -177,19 +170,24 @@ const SCHEDULING_README = [
 	'• A company holiday worked by someone the overtime rule does not cover is imported, and the',
 	'  import warns: no overtime is paid for it, so grant an off-in-lieu (OIL) leave day.',
 	'',
-	'What is refused — hard requirements',
+	'What is refused — malformed input only',
 	'',
 	'The whole file is refused, not individual rows, and the refusal names the person, the day and',
 	'the rule:',
-	'• an unknown employee or roster code, a day outside the Settings month, a duplicate inside the',
-	'  file, a missing day on a rostered person, a sealed day the file would change, PH in a cell, a',
-	'  clock time or overtime figure that is not valid, attendance or overtime on a full leave day;',
-	'• more consecutive working days than the weekly rest rule allows (e.g. 7 in a row where the',
-	'  rule is a rest day in every 6);',
+	'• an unknown employee or roster code, a day no contract covers, a day outside the Settings',
+	'  month, a duplicate inside the file, a sealed day the file would change, PH in a cell, a clock',
+	'  time or overtime figure that is not valid, attendance or overtime on a full leave day;',
+	'• a shift overlapping the same person’s shift on the neighbouring day.',
+	'',
+	'What is warned — imported, and listed after the import',
+	'',
+	'• a blank roster day on an employed person;',
+	'• more consecutive working days than the weekly rest rule allows (e.g. 9 in a row after a',
+	'  shift change, where the rule is a rest day in every 6);',
 	'• a shift granting less break than the rules owe for its length;',
-	'• a shift overlapping the same person’s shift on the neighbouring day;',
-	'• a shift whose own paid hours exceed the daily total ceiling (e.g. 12), or whose spread-over,',
-	'  break included, exceeds the daily spread-over ceiling (e.g. 10).',
+	'• a plan whose hours exceed a daily or period total ceiling (e.g. 12 a day), or whose',
+	'  spread-over, break included, exceeds the spread-over ceiling (e.g. 10);',
+	'• overtime above a statutory cap, recorded as incentive hours.',
 	'',
 	'Accepted values',
 	'',
@@ -197,12 +195,11 @@ const SCHEDULING_README = [
 	'Roster day columns 1–31 (or YYYY-MM-DD) for the Settings month',
 	'Roster cell       an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
 	'                  PM2030 · PM2230 · REST · OFF',
-	'Time entries row  employee_number, work_date as YYYY-MM-DD, clock_in, and clock_out once the',
-	'                  shift is closed — each clock time HH:mm, 24-hour',
+	'Time entries cell HH:mm-HH:mm, 24-hour; several separated by ; or a new line; blank is none',
 	'Overtime cell     the day’s total extra hours in half-hour steps, 0.5–24; blank is none',
 	'',
-	'A Roster sheet as a long-form table (employee_number, work_date, shift_code) still imports, and',
-	'so does a month-grid Time entries sheet with HH:mm-HH:mm cells and a long-form Overtime sheet',
+	'Long-form sheets still import: Roster (employee_number, work_date, shift_code), Time entries',
+	'(employee_number, work_date, clock_in, clock_out — one row per interval) and Overtime',
 	'(employee_number, work_date, overtime_hours).',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
@@ -287,8 +284,8 @@ addTableSheet(
 addTableSheet(
 	schedulingWorkbook,
 	'Time entries',
-	[18, 14, 12, 12],
-	TIME_ENTRY_HEADERS,
+	[18, ...DAY_HEADERS.map(() => 14)],
+	GRID_HEADERS,
 	TIME_ENTRY_SAMPLE_ROWS
 );
 addTableSheet(
@@ -325,7 +322,7 @@ Effect.runPromise(
 		);
 		assert.deepEqual(headersOf(shipped, 'Roster'), GRID_HEADERS);
 		assert.deepEqual(headersOf(shipped, 'Overtime'), GRID_HEADERS);
-		assert.deepEqual(headersOf(shipped, 'Time entries'), TIME_ENTRY_HEADERS);
+		assert.deepEqual(headersOf(shipped, 'Time entries'), GRID_HEADERS);
 		assert.deepEqual(
 			[...settingMap(shipped)],
 			[
@@ -337,16 +334,14 @@ Effect.runPromise(
 		assert.equal(cellOf(shipped, 'Roster', 2, '1'), '7.5AM');
 		assert.equal(cellOf(shipped, 'Roster', 2, '3'), 'REST');
 		assert.equal(cellOf(shipped, 'Roster', 3, '6'), 'OFF');
-		assert.equal(cellOf(shipped, 'Time entries', 2, 'clock_in'), '08:16');
-		assert.equal(cellOf(shipped, 'Time entries', 2, 'clock_out'), '17:10');
-		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_in'), '20:31');
-		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_out'), '');
+		assert.equal(cellOf(shipped, 'Time entries', 2, '4'), '08:16-17:10');
+		assert.equal(cellOf(shipped, 'Time entries', 2, '5'), '08:02-12:00; 13:00-17:05');
+		assert.equal(cellOf(shipped, 'Time entries', 3, '6'), '20:31');
 		assert.equal(cellOf(shipped, 'Overtime', 2, '4'), '2');
 		assert.equal(cellOf(shipped, 'Overtime', 2, '5'), '1.5');
 
 		console.log(`${SCHEDULING_TEMPLATE_PATH}`);
 		console.log(`  sheets: Read me first, Settings, Roster, Time entries, Overtime`);
 		console.log(`  grid header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
-		console.log(`  Time entries columns: ${TIME_ENTRY_HEADERS.join(', ')}`);
 	})
 );
