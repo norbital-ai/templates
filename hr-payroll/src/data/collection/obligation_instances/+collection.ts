@@ -1,6 +1,6 @@
 import { collection, type Id } from '@norbital-ai/bolt';
 import { factValueFault } from '../../../lib/datatypes/fact_keys.js';
-import { dutyTypesOf, fulfilmentFault } from '../../../lib/obligations/materialise.js';
+import { dutyTypeOf, fulfilmentFault } from '../../../lib/obligations/materialise.js';
 
 /**
  * The obligation ledger. Instances are raised by their triggers (`materialise`), never edited back open: an OPEN
@@ -30,7 +30,15 @@ const c = collection('obligation_instances', {
 	},
 	update: {
 		input: {
-			columns: ['amount_settled', 'state', 'fulfilled_on', 'waive_reason', 'reference', 'facts']
+			columns: [
+				'amount_settled',
+				'state',
+				'fulfilled_on',
+				'waive_reason',
+				'reference',
+				'evidence_file',
+				'facts'
+			]
 		}
 	}
 });
@@ -88,8 +96,10 @@ c.transform(async (inputs, { existing, db, refuse }) => {
 					field: 'state'
 				}
 			);
-		const duty = dutyTypesOf(versions.find((version) => version.id === row.settings_id)).find(
-			(type) => type.code === row.duty_code
+		const duty = dutyTypeOf(
+			versions.find((version) => version.id === row.settings_id),
+			row.duty_code,
+			row.subject_kind
 		);
 		if (duty == null)
 			return refuse(`The settings version declares no duty type ${row.duty_code}.`, {

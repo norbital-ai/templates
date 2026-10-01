@@ -1,43 +1,36 @@
 <script lang="ts">
 	/**
-	 * Payroll for one legal entity: the pay cycles three months back to three ahead in the entity's own grammar (one a
-	 * month, two halves, or its weeks), each with its paid progress and the attendance window the engine stored, and the
-	 * runs grouped by cycle (`payCycles`): the REGULAR run, then its off-cycle, EARLY, FINAL and CORRECTION runs, with
-	 * the cycle's totals. Each run keeps the exports (bank files, payslip PDFs, the payroll workbook, the catalogue
-	 * entries, returns), started as the `payroll_export` automation over the selected runs, and delete of an unpaid
-	 * run; a cycle exports one workbook over all its runs and opens a new off-cycle run.
+	 * Payroll for one legal entity. Runs: the pay cycles newest first (`payCycles`), each its REGULAR run with the
+	 * cycle's other runs beneath and their totals, or, before its first run, the way to start one; a run opens on its
+	 * payslips, and the exports are the cycle's toolbar actions. Obligations: the entity's duty ledger, filings and
+	 * remittances and the FACT_OWED reminders alike, each completed on its own record.
 	 */
 	import { t, type MessageKey } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
-	import { AppShell, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
+	import { Toaster } from 'svelte-sonner';
+	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Badge, Button, EmptyState, RunStatus, Table, Tabs, openRecord } from '@norbital-ai/ui';
-	import { inclusiveDays } from '../../../lib/payroll/run/dates.js';
+	import { Badge, Button, EmptyState, Section, Table, Tabs, openRecord } from '@norbital-ai/ui';
 	import { companyPeriods, payDateFor, periodWindow, todayKey } from '../../../lib/ui/calendar.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
-	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
+	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
+	import { companyScope, employmentNames } from '../../../lib/ui/company-scope.svelte.js';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
 	import { decodeNumber } from '../../../lib/wire.js';
 	import { payCycles } from '../../../lib/pay-cycles.js';
+	import { daysLate, FACT_OWED, obligationStatus } from '../../../lib/obligations/materialise.js';
 	import OffCycleRun from './off-cycle-run.svelte';
 
 	const scope = companyScope();
-	const today = todayKey();
+	const today = String(todayKey());
+	const personName = employmentNames(() => scope.id);
 	const runs = liveRows(() =>
 		scope.id == null
 			? null
 			: bolt.read('payroll_runs', {
 					where: { company_id: { eq: scope.id } },
-					select: {
-						company_id: true,
-						period: true,
-						kind: true,
-						sequence: true,
-						pay_date: true,
-						attendance_from: true,
-						attendance_to: true
-					},
+					select: { company_id: true, period: true, kind: true, sequence: true, pay_date: true },
 					all: true
 				})
 	);
@@ -58,32 +51,34 @@
 					all: true
 				})
 	);
-	const progress = $derived.by(() => {
-		const out = new Map<string, { paid: number; total: number }>();
-		for (const slip of slips.current ?? []) {
-			const p = out.get(slip.payroll_run_id) ?? { paid: 0, total: 0 };
-			out.set(slip.payroll_run_id, {
-				paid: p.paid + (slip.status === 'PAID' ? 1 : 0),
-				total: p.total + 1
-			});
-		}
-		return out;
-	});
-	const progressText = (...ids: readonly unknown[]) => {
-		const p = ids.reduce<{ paid: number; total: number }>(
-			(sum, id) => {
-				const one = progress.get(String(id)) ?? { paid: 0, total: 0 };
-				return { paid: sum.paid + one.paid, total: sum.total + one.total };
-			},
-			{ paid: 0, total: 0 }
-		);
+	const reminders = liveRows(() =>
+		scope.id == null
+			? null
+			: bolt.read('obligation_instances', {
+					where: {
+						company_id: { eq: scope.id },
+						duty_code: { eq: FACT_OWED },
+						state: { eq: 'OPEN' }
+					},
+					select: { due_on: true },
+					all: true
+				})
+	);
+	const paid = $derived(
+		Map.groupBy(slips.current ?? [], (slip) => slip.payroll_run_id) as Map<
+			string,
+			{ status: unknown }[]
+		>
+	);
+	const progressText = (ids: readonly string[]) => {
+		const own = ids.flatMap((id) => paid.get(id) ?? []);
+		const done = own.filter((slip) => slip.status === 'PAID').length;
 		return t('app.payroll.paid_progress', {
-			paid: p.paid,
-			total: p.total,
-			percent: p.total === 0 ? 0 : Math.round((p.paid / p.total) * 100)
+			paid: done,
+			total: own.length,
+			percent: own.length === 0 ? 0 : Math.round((done / own.length) * 100)
 		});
 	};
-	/** The runs grouped by cycle, each payslip's money read once into the cycle's totals. */
 	const runCycles = $derived(
 		payCycles(
 			runs.current ?? [],
@@ -96,14 +91,16 @@
 		)
 	);
 	/**
-	 * The runs tab's cycles: every cycle with a run, and the current one so an off-cycle run can pay ahead of its
-	 * REGULAR run. A period behind the latest run is never offered: the engine refuses it.
+	 * Every cycle with a run, and the current one ahead of its first run. A period behind the latest run is never
+	 * offered: the engine refuses it.
 	 */
-	const runsCycles = $derived.by(() => {
+	const cycles = $derived.by(() => {
 		const company = scope.company;
-		const current = cycles.find((row) => row.status === 'current')?.period;
-		const latest = runCycles[0]?.period ?? '';
-		if (company == null || current == null || current <= latest) return runCycles;
+		if (company == null) return runCycles;
+		const current = companyPeriods(periodWindow(2, 1), company.pay_frequency).find(
+			(period) => payDateFor(period, company.pay_frequency) >= today
+		);
+		if (current == null || current <= (runCycles[0]?.period ?? '')) return runCycles;
 		return [
 			{
 				company_id: company.id,
@@ -116,16 +113,25 @@
 			...runCycles
 		];
 	});
-	let offCyclePeriod = $state<string | null>(null);
-	/** The cycle workbook in flight, per period: one `payroll_export` over every run of the cycle. */
-	let cycleExports = $state<Record<string, string>>({});
-	const exportCycle = (cycle: (typeof runsCycles)[number]) => {
-		const handle = bolt.start('payroll_export', {
-			ids: cycle.runs.map(({ run }) => run.id),
-			kind: 'payroll-report-xlsx'
-		});
-		cycleExports = { ...cycleExports, [cycle.period]: handle.id };
+	type Cycle = (typeof cycles)[number];
+	const payDate = (cycle: Cycle) =>
+		cycle.runs.find(({ run }) => (run.kind ?? 'REGULAR') === 'REGULAR')?.run.pay_date ??
+		payDateFor(cycle.period, scope.company?.pay_frequency);
+	/** The open reminders due by the cycle's pay date, while its REGULAR run is still ahead. */
+	const owedBefore = (cycle: Cycle) =>
+		cycle.regular
+			? 0
+			: (reminders.current ?? []).filter((row) => String(row.due_on) <= payDate(cycle)).length;
+
+	let tab = $state('runs');
+	let remindersOnly = $state(false);
+	const showReminders = () => {
+		remindersOnly = true;
+		tab = 'obligations';
 	};
+	let adhocPeriod = $state<string | null>(null);
+	const runPayroll = () => openRecord('payroll_runs', 'new');
+
 	const KIND: Record<string, MessageKey> = {
 		REGULAR: 'models.payroll_runs.fields.kind.REGULAR',
 		OFF_CYCLE: 'models.payroll_runs.fields.kind.OFF_CYCLE',
@@ -133,69 +139,6 @@
 		FINAL: 'models.payroll_runs.fields.kind.FINAL',
 		CORRECTION: 'models.payroll_runs.fields.kind.CORRECTION'
 	};
-	/** Three months back to three ahead; the attendance window shown is the one the engine stored on the run. */
-	const cycles = $derived.by(() => {
-		const company = scope.company;
-		if (company == null) return [];
-		const byPeriod = new Map(runCycles.map((cycle) => [cycle.period, cycle]));
-		const open = companyPeriods(periodWindow(7, 3), company.pay_frequency)
-			.map((period) => {
-				const own = byPeriod.get(period)?.runs ?? [];
-				const run = (own.find(({ run }) => run.kind === 'REGULAR') ?? own[0])?.run;
-				return {
-					id: period,
-					period,
-					pay_date: payDateFor(period, company.pay_frequency),
-					attendance:
-						run == null
-							? '—'
-							: `${formatCalendarDate(run.attendance_from)} → ${formatCalendarDate(run.attendance_to)}`,
-					run:
-						run == null
-							? t('app.payroll.not_started')
-							: progressText(...own.map(({ run }) => run.id))
-				};
-			})
-			.toSorted((a, b) => a.pay_date.localeCompare(b.pay_date));
-		const current = open.findIndex((row) => row.pay_date >= today);
-		return open.map((row, index) => ({
-			...row,
-			status: row.pay_date < today ? 'late' : index === current ? 'current' : 'next'
-		}));
-	});
-	const late = $derived(cycles.filter((row) => row.status === 'late').length);
-	const unpaid = $derived(
-		(runs.current ?? []).filter((run) => {
-			const p = progress.get(run.id);
-			return p == null || p.paid < p.total;
-		}).length
-	);
-	function timing(status: string, payDate: string): string {
-		const days = inclusiveDays(today, payDate) - 1;
-		if (status === 'late')
-			return days === 0
-				? t('app.payroll.due_today')
-				: t('app.payroll.days_late', { days: Math.abs(days) });
-		if (days <= 0) return t('app.payroll.due_today');
-		return days === 1 ? t('app.payroll.due_tomorrow') : t('app.payroll.in_days', { days });
-	}
-	const STATUS: Record<string, MessageKey> = {
-		late: 'app.payroll.status_late',
-		current: 'app.payroll.status_current',
-		next: 'app.payroll.status_upcoming'
-	};
-	// the header paragraph and the late/unpaid counts, as the toolbar's ⓘ
-	const cyclesDescription = $derived(
-		[
-			t('app.payroll.payroll_cycles_description'),
-			late > 0 ? t('app.payroll.late_count', { count: late }) : null,
-			unpaid === 1
-				? t('app.payroll.unpaid_run_one')
-				: t('app.payroll.unpaid_runs_many', { count: unpaid })
-		]
-			.filter((part) => part != null)
-			.join(' · ')
-	);
 	const EXPORTS = [
 		['bank-files', 'app.payroll.export_bank_files'],
 		['payslip-pdfs', 'app.payroll.export_payslip_pdfs'],
@@ -203,174 +146,163 @@
 		['catalogue-entries-xlsx', 'app.payroll.export_catalogue_entries'],
 		['returns', 'app.payroll.export_returns']
 	] as const;
+	const STATUS: Record<ReturnType<typeof obligationStatus>, MessageKey> = {
+		OPEN: 'app.payroll.obligation_open',
+		LATE: 'app.payroll.obligation_late',
+		FULFILLED: 'app.payroll.obligation_fulfilled',
+		WAIVED: 'app.payroll.obligation_waived'
+	};
+	const BADGE = {
+		OPEN: 'outline',
+		LATE: 'destructive',
+		FULFILLED: 'success',
+		WAIVED: 'default'
+	} as const;
+	type Duty = {
+		readonly state: string;
+		readonly due_on: string;
+		readonly fulfilled_on?: string | null;
+		readonly subject_kind: string;
+		readonly subject_id: string;
+	};
 </script>
 
-{#snippet statusCell({ value }: { value: unknown })}
-	<Badge variant={value === 'late' ? 'destructive' : value === 'current' ? 'default' : 'outline'}>
-		{STATUS[String(value)] == null ? String(value) : t(STATUS[String(value)]!)}
-	</Badge>
-{/snippet}
 {#snippet dayCell({ value }: { value: unknown })}{formatCalendarDate(value)}{/snippet}
-{#snippet timingCell({ row }: { row: { readonly [f: string]: unknown } })}
-	{timing(String(row.status), String(row.pay_date))}
-{/snippet}
-{#snippet paidCell({ row }: { row: { readonly [f: string]: unknown } })}{progressText(
-		row.id
-	)}{/snippet}
-
-{#snippet empty(message: string)}
-	<EmptyState title={scope.unknown ? t('app.hr_controller.loading_scope') : message} />
-{/snippet}
-
-{#snippet overview()}
-	{#if scope.id == null}
-		{@render empty(t('app.payroll.empty_overview'))}
-	{:else}
-		<Cover as="section" gap="md" aria-label={t('app.payroll.payroll_cycles')}>
-			<Table
-				of={cycles}
-				key="cycles"
-				toolbar={{
-					title: t('app.payroll.payroll_cycles'),
-					description: cyclesDescription,
-					search: false,
-					filter: false,
-					new: () => openRecord('payroll_runs', 'new')
-				}}
-				columns={[
-					{ field: 'status', label: t('app.payroll.status'), cell: statusCell },
-					{ field: 'pay_date', label: t('app.payroll.pay_date'), cell: dayCell },
-					{ field: 'period', label: t('app.payroll.period') },
-					{ field: 'attendance', label: t('app.payroll.attendance') },
-					{ field: 'run', label: t('app.payroll.run') },
-					{ field: 'id', label: t('app.payroll.timing'), cell: timingCell }
-				]}
-			/>
-		</Cover>
-	{/if}
-{/snippet}
-
-{#snippet money(label: string, value: number)}
-	<Stack gap="none">
-		<dt class="text-meta">{label}</dt>
-		<dd class="text-sm font-medium tabular-nums">{formatNumeric(value)}</dd>
-	</Stack>
+{#snippet amountCell({ value }: { value: unknown })}
+	<span class="tabular-nums">{formatNumeric(value)}</span>
 {/snippet}
 {#snippet kindCell({ row }: { row: { readonly [f: string]: unknown } })}
 	<span class={row.kind === 'REGULAR' ? 'font-medium' : 'pl-4 text-muted-foreground'}>
 		{KIND[String(row.kind)] == null ? String(row.kind) : t(KIND[String(row.kind)]!)}
 	</span>
 {/snippet}
-{#snippet amountCell({ value }: { value: unknown })}
-	<span class="tabular-nums">{formatNumeric(value)}</span>
+{#snippet paidCell({ row }: { row: { readonly id: string } })}{progressText([row.id])}{/snippet}
+{#snippet total(label: string, value: string | number)}
+	<Stack gap="none">
+		<dt class="text-meta">{label}</dt>
+		<dd class="text-sm font-medium tabular-nums">{value}</dd>
+	</Stack>
+{/snippet}
+{#snippet owed(cycle: Cycle, place: string)}
+	{@const count = owedBefore(cycle)}
+	{#if count > 0}
+		<Button size="sm" variant="link" class="h-auto p-0 {place}" onclick={showReminders}>
+			{count === 1
+				? t('app.payroll.reminders_before_run_one')
+				: t('app.payroll.reminders_before_run_many', { count })}
+		</Button>
+	{/if}
+{/snippet}
+
+{#snippet cycleBody(companyId: Id<'companies'>, cycle: Cycle)}
+	{#if cycle.runs.length === 0}
+		<EmptyState
+			variant="inset"
+			title={t('app.payroll.no_runs_in_cycle')}
+			hint={t('app.payroll.pays_line', { date: formatCalendarDate(payDate(cycle)) })}
+		>
+			<Button onclick={runPayroll}>{t('app.payroll.run_payroll')}</Button>
+			<Button variant="outline" onclick={() => (adhocPeriod = cycle.period)}>
+				{t('app.payroll.new_adhoc_run')}
+			</Button>
+			{@render owed(cycle, 'basis-full')}
+		</EmptyState>
+	{:else}
+		<Stack gap="sm">
+			<Cluster as="dl" gap="lg">
+				{@render total(t('component.gross'), formatNumeric(cycle.totals.gross))}
+				{@render total(t('component.net'), formatNumeric(cycle.totals.net))}
+				{@render total(t('app.payroll.employer_cost'), formatNumeric(cycle.totals.employerCost))}
+				{@render total(t('app.payroll.headcount'), cycle.totals.headcount)}
+			</Cluster>
+			{@render owed(cycle, 'self-start')}
+			<Table
+				of={cycle.runs.map(({ run, totals }) => ({
+					id: run.id,
+					kind: run.kind ?? 'REGULAR',
+					pay_date: run.pay_date,
+					slips: totals.slips,
+					gross: totals.gross,
+					net: totals.net,
+					employer_cost: totals.employerCost
+				}))}
+				key={`runs-${companyId}-${cycle.period}`}
+				toolbar={{
+					title: false,
+					search: false,
+					filter: false,
+					export: false,
+					new: false,
+					actions: [
+						...EXPORTS.map(([kind, label]) => ({
+							start: 'payroll_export' as const,
+							input: (ids: Id<'payroll_runs'>[]) => ({ ids, kind }),
+							label: t(label),
+							requiresSelection: true as const
+						})),
+						{
+							start: 'payroll_export' as const,
+							input: () => ({
+								ids: cycle.runs.map(({ run }) => run.id),
+								kind: 'payroll-report-xlsx' as const
+							}),
+							label: t('app.payroll.export_cycle_workbook')
+						},
+						...(cycle.regular ? [] : [{ run: runPayroll, label: t('app.payroll.run_payroll') }]),
+						{ run: () => (adhocPeriod = cycle.period), label: t('app.payroll.new_adhoc_run') }
+					]
+				}}
+				actions={[
+					{
+						action: 'payroll_runs.delete',
+						label: t('app.payroll.delete_run'),
+						confirm: t('app.payroll.delete_run_confirm')
+					}
+				]}
+				onOpen={(row) => openRecord('payroll_runs', row.id)}
+				columns={[
+					{ field: 'kind', label: t('app.payroll.kind'), cell: kindCell },
+					{ field: 'pay_date', label: t('app.payroll.pay_date'), cell: dayCell },
+					{ field: 'id', label: t('app.payroll.status'), cell: paidCell },
+					{ field: 'slips', label: t('component.payslips') },
+					{ field: 'gross', label: t('component.gross'), cell: amountCell },
+					{ field: 'net', label: t('component.net'), cell: amountCell },
+					{ field: 'employer_cost', label: t('app.payroll.employer_cost'), cell: amountCell }
+				]}
+			/>
+		</Stack>
+	{/if}
 {/snippet}
 
 {#snippet runsTab()}
-	{#if scope.id == null}
-		{@render empty(t('app.payroll.empty_runs'))}
-	{:else if runsCycles.length === 0}
-		{@render empty(t('app.payroll.no_runs'))}
-	{:else}
+	{#if scope.id != null}
 		{@const companyId = scope.id}
-		<Stack gap="xl">
-			{#each runsCycles as cycle (cycle.period)}
-				<Stack as="section" gap="sm" aria-label={cycle.period} data-pay-cycle={cycle.period}>
-					<Cluster justify="between" align="end" gap="sm">
-						<Stack gap="xs">
-							<h2 class="text-heading">{cycle.period}</h2>
-							<Cluster as="dl" gap="lg">
-								{@render money(t('component.gross'), cycle.totals.gross)}
-								{@render money(t('component.net'), cycle.totals.net)}
-								{@render money(t('app.payroll.employer_cost'), cycle.totals.employerCost)}
-								<Stack gap="none">
-									<dt class="text-meta">{t('app.payroll.headcount')}</dt>
-									<dd class="text-sm font-medium tabular-nums" data-cycle-headcount>
-										{cycle.totals.headcount}
-									</dd>
-								</Stack>
-							</Cluster>
-						</Stack>
-						<Cluster gap="xs">
-							{#if !cycle.regular}
-								<Button size="sm" variant="ghost" onclick={() => openRecord('payroll_runs', 'new')}>
-									{t('app.payroll.run_payroll')}
-								</Button>
-							{/if}
-							{#if cycle.runs.length > 0}
-								<Button size="sm" variant="ghost" onclick={() => exportCycle(cycle)}>
-									{t('app.payroll.export_cycle_workbook')}
-								</Button>
-							{/if}
-							<Button size="sm" variant="outline" onclick={() => (offCyclePeriod = cycle.period)}>
-								{t('app.payroll.new_off_cycle_run')}
-							</Button>
-						</Cluster>
-					</Cluster>
-					{#if cycleExports[cycle.period] != null}
-						<RunStatus automation="payroll_export" run={cycleExports[cycle.period]!} />
-					{/if}
-					{#if cycle.runs.length > 0}
-						<Table
-							of={cycle.runs.map(({ run, totals }) => ({
-								id: run.id,
-								kind: run.kind ?? 'REGULAR',
-								sequence: run.sequence ?? 1,
-								pay_date: run.pay_date,
-								slips: totals.slips,
-								gross: totals.gross,
-								net: totals.net,
-								employer_cost: totals.employerCost
-							}))}
-							key={`runs-${companyId}-${cycle.period}`}
-							toolbar={{
-								title: false,
-								search: false,
-								filter: false,
-								export: false,
-								actions: EXPORTS.map(([kind, label]) => ({
-									start: 'payroll_export' as const,
-									input: (ids: Id<'payroll_runs'>[]) => ({ ids, kind }),
-									label: t(label),
-									requiresSelection: true as const
-								}))
-							}}
-							actions={[
-								{
-									action: 'payroll_runs.delete',
-									label: t('app.payroll.delete_run'),
-									confirm: t('app.payroll.delete_run_confirm')
-								}
-							]}
-							onOpen={(row) => openRecord('payroll_runs', row.id)}
-							columns={[
-								{ field: 'kind', label: t('app.payroll.kind'), cell: kindCell },
-								{ field: 'sequence', label: t('app.payroll.sequence') },
-								{ field: 'pay_date', label: t('app.payroll.pay_date'), cell: dayCell },
-								{ field: 'id', label: t('app.payroll.status'), cell: paidCell },
-								{ field: 'slips', label: t('component.payslips') },
-								{ field: 'gross', label: t('component.gross'), cell: amountCell },
-								{ field: 'net', label: t('component.net'), cell: amountCell },
-								{
-									field: 'employer_cost',
-									label: t('app.payroll.employer_cost'),
-									cell: amountCell
-								}
-							]}
-						/>
-					{/if}
-				</Stack>
+		<Stack gap="md">
+			{#each cycles as cycle, index (cycle.period)}
+				<Section
+					name={`cycle-${cycle.period}`}
+					title={cycle.period}
+					first={index === 0}
+					defaultOpen={index === 0}
+					summary={cycle.runs.length === 0
+						? t('app.payroll.not_started')
+						: `${t('component.net')} ${formatNumeric(cycle.totals.net)} · ${progressText(cycle.runs.map(({ run }) => run.id))}`}
+				>
+					{@render cycleBody(companyId, cycle)}
+				</Section>
 			{/each}
 		</Stack>
-		{@const open = runsCycles.find((cycle) => cycle.period === offCyclePeriod)}
+		{@const open = cycles.find((cycle) => cycle.period === adhocPeriod)}
 		{#if open != null}
 			<OffCycleRun
 				bind:open={
 					() => true,
 					(next) => {
-						if (!next) offCyclePeriod = null;
+						if (!next) adhocPeriod = null;
 					}
 				}
 				{companyId}
+				settingsCode={scope.company?.settings_code ?? ''}
 				period={open.period}
 				cycleRuns={open.runs.map(({ run }) => run)}
 				cycleSlips={open.slips}
@@ -379,40 +311,51 @@
 	{/if}
 {/snippet}
 
-{#snippet paymentsTab()}
-	{#if scope.id == null}
-		{@render empty(t('app.payroll.empty_runs'))}
-	{:else}
-		<Stack gap="lg">
-			<Cover as="section" gap="md" aria-label={t('app.payroll.payment_events')}>
-				<Table
-					of="payment_events"
-					toolbar={{ title: t('app.payroll.payment_events'), new: true }}
-					where={{ company_id: { eq: scope.id } }}
-					orderBy={{ paid_on: 'desc' }}
-					columns={[
-						'paid_on',
-						'employee_id',
-						'reference',
-						'currency',
-						'gross_amount',
-						'cash_amount'
-					]}
-				/>
-			</Cover>
-			<Cover as="section" gap="md" aria-label={t('app.payroll.noncontract_obligations')}>
-				<Table
-					of="noncontract_settlements"
-					toolbar={{ title: t('app.payroll.noncontract_obligations'), new: true }}
-					where={{ company_id: { eq: scope.id } }}
-					orderBy={{ created_at: 'desc' }}
-					columns={['employee_id', 'reference', 'currency', 'agreed_gross', 'agreed_due_on']}
-				/>
-			</Cover>
-		</Stack>
+{#snippet subjectCell({ row }: { row: Duty })}
+	{row.subject_kind === 'EMPLOYMENT'
+		? personName(row.subject_id)
+		: row.subject_kind === 'COMPANY'
+			? (scope.company?.name ?? '—')
+			: '—'}
+{/snippet}
+{#snippet statusCell({ row }: { row: Duty })}
+	{@const status = obligationStatus(row, today)}
+	<Badge variant={BADGE[status]}>
+		{t(STATUS[status])}{status === 'LATE'
+			? ` · ${t('app.payroll.days_late', { days: daysLate(row, today) })}`
+			: ''}
+	</Badge>
+{/snippet}
+
+{#snippet obligationsTab()}
+	{#if scope.id != null}
+		{#key `${scope.id}:${remindersOnly}`}
+			<Table
+				of="obligation_instances"
+				key={remindersOnly ? `reminders-${scope.id}` : `obligations-${scope.id}`}
+				toolbar={{ title: t('app.payroll.tab_obligations'), new: false }}
+				where={{ company_id: { eq: scope.id } }}
+				initialFilter={remindersOnly
+					? { duty_code: { eq: FACT_OWED }, state: { eq: 'OPEN' } }
+					: { state: { eq: 'OPEN' } }}
+				orderBy={{ due_on: 'asc' }}
+				onOpen={(row) => openRecord('obligation_instances', row.id)}
+				columns={[
+					'duty_code',
+					{ field: 'subject_id', label: t('app.payroll.subject'), cell: subjectCell },
+					'trigger_ref',
+					'due_on',
+					{ field: 'state', label: t('app.payroll.status'), cell: statusCell },
+					'amount_due',
+					'fulfilled_on',
+					'reference'
+				]}
+			/>
+		{/key}
 	{/if}
 {/snippet}
 
+<Toaster />
 <AppShell
 	icon="lucide:badge-dollar-sign"
 	title={t('app.payroll.title')}
@@ -420,26 +363,28 @@
 	variant="full"
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}
-	<Tabs
-		tabs={[
-			{
-				name: 'overview',
-				title: t('component.tab_overview'),
-				icon: 'lucide:chart-no-axes-combined',
-				body: overview
-			},
-			{
-				name: 'runs',
-				title: t('app.payroll.tab_runs'),
-				icon: 'lucide:badge-dollar-sign',
-				body: runsTab
-			},
-			{
-				name: 'payments',
-				title: t('app.payroll.tab_payments'),
-				icon: 'lucide:banknote',
-				body: paymentsTab
-			}
-		]}
-	/>
+	<ScopeGate {scope} empty={t('app.payroll.empty_runs')}>
+		{#snippet children()}
+			<Tabs
+				bind:value={tab}
+				onValueChange={(next) => {
+					if (next === 'runs') remindersOnly = false;
+				}}
+				tabs={[
+					{
+						name: 'runs',
+						title: t('app.payroll.tab_runs'),
+						icon: 'lucide:badge-dollar-sign',
+						body: runsTab
+					},
+					{
+						name: 'obligations',
+						title: t('app.payroll.tab_obligations'),
+						icon: 'lucide:list-checks',
+						body: obligationsTab
+					}
+				]}
+			/>
+		{/snippet}
+	</ScopeGate>
 </AppShell>

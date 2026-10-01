@@ -7,7 +7,8 @@
 	 */
 	import { t } from './t.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { Table } from '@norbital-ai/ui';
+	import { EmptyState, Table } from '@norbital-ai/ui';
+	import Loading from './Loading.svelte';
 	import { payRequestRecordMetadata } from '../scheduling/lock.js';
 	import CompanyScope from './CompanyScope.svelte';
 	import { companyScope, employmentNames } from './company-scope.svelte.js';
@@ -59,10 +60,10 @@
 		/>
 		<CompanyScope {scope} />
 	{/snippet}
-	{#if scope.id == null}
-		<p class="text-sm text-muted-foreground">
-			{scope.unknown ? t('app.hr_controller.loading_scope') : t('app.events.empty_scope')}
-		</p>
+	{#if scope.unknown}
+		<Loading />
+	{:else if scope.id == null}
+		<EmptyState title={t('app.events.empty_scope')} />
 	{:else if pay.window != null}
 		{#key `${scope.id}:${pay.period}`}
 			{@const where = {

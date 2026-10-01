@@ -71,7 +71,7 @@ export function payrollRunPrecheck(options: {
 	readonly openDuties?: readonly string[] | undefined;
 	/**
 	 * The run's world: every declared fact the build would refuse on (`facts-owed.ts`) refuses the run here, all at
-	 * once, the list the facts-owed page shows.
+	 * once, the list the obligation reminders hold.
 	 */
 	readonly world?: PayrollWorld | undefined;
 }): RunIssue[] {

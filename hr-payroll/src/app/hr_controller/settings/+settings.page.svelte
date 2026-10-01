@@ -8,9 +8,10 @@
 	 */
 	import { t } from '../../../lib/ui/t.js';
 	import { Toaster } from 'svelte-sonner';
-	import { AppShell, Inline } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Combobox, EmptyState, RecordShell, Spinner, Table, Tabs } from '@norbital-ai/ui';
+	import { Combobox, EmptyState, RecordShell, Table, Tabs } from '@norbital-ai/ui';
+	import Loading from '../../../lib/ui/Loading.svelte';
 	import { newestFirst } from '../../../lib/jurisdiction_settings.js';
 	import {
 		jurisdictionOptions,
@@ -151,9 +152,7 @@
 		/>
 	{/snippet}
 	{#if all.current === undefined}
-		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
-			<Spinner class="size-4" /><span>{t('component.loading')}</span>
-		</Inline>
+		<Loading />
 	{:else if scope == null}
 		<EmptyState title={t('app.settings.choose_jurisdiction_empty')} />
 	{:else}

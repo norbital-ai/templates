@@ -17,17 +17,24 @@ import { getErrorMessage } from '../lib/refuse.js';
 import { decodeNumber, plainRows } from '../lib/wire.js';
 import { thirdPartyWithheld } from '../lib/payroll/loan.js';
 import { caseDutyEvents } from '../lib/benefit-cases/duties.js';
-import { readAll } from '../lib/reads.js';
+import { readAll, type Reads } from '../lib/reads.js';
+import { entityFactsOwed, type OwedInput } from '../lib/facts-owed.js';
+import { factReminders, nextRegularRun } from '../lib/obligations/reminders.js';
+import { FACT_OWED } from '../lib/obligations/materialise.js';
+import { referenceCodes } from '../lib/expressions/functions/tables.js';
+import { PlainDate } from '@norbital-ai/std/date';
 
 /**
  * The obligation ledger's daily sweep. Every event a duty type can listen for that the records already hold — a
  * calendar occurrence, a hire, an exit, a finalised run, an entity fact revision — raises its instances under the
  * settings version in force on the event's day. Raising is idempotent, so the sweep is also the catch-up for any
- * writer that raises inline (the run graph, the contract write): a duty already recorded is skipped.
+ * writer that raises inline (the run graph, the contract write): a duty already recorded is skipped. It also keeps
+ * the FACT_OWED reminders (`reminders.ts`) of every entity: one per fact its next regular run would refuse on, closed
+ * once recorded.
  */
 const obligation_calendar = automation({
 	description:
-		'Daily: raises the employer duties the settings versions declare for calendar occurrences, hires, exits, finalised payroll runs, benefit case events and entity fact revisions, with their due days and amounts. Duties already raised are skipped; nothing is fulfilled, waived or deleted.',
+		'Daily: raises the employer duties the settings versions declare for calendar occurrences, hires, exits, finalised payroll runs, benefit case events and entity fact revisions, with their due days and amounts, and a reminder for each declared fact the next regular run would refuse on. Duties already raised are skipped; a reminder closes once its fact is recorded; nothing else is fulfilled, waived or deleted.',
 	on: { cron: '30 1 * * *' },
 	output: {
 		kind: 'object',
@@ -54,12 +61,14 @@ type Version = {
 	readonly effective_range: unknown;
 	readonly duty_types?: unknown;
 	readonly payroll?: { readonly currency?: string } | null;
-};
+} & NonNullable<ReturnType<OwedInput['versionOn']>>;
 
 obligation_calendar.run(async (_input, ctx) => {
 	const today = dateKey(String(ctx.today));
 	const companies = plainRows<{
 		id: string;
+		name: string;
+		risk_class?: string | null;
 		settings_code: string;
 		region?: string | null;
 		pay_frequency: string;
@@ -69,6 +78,8 @@ obligation_calendar.run(async (_input, ctx) => {
 		await ctx.read('companies', {
 			where: { approval_id: { isNull: true } },
 			select: {
+				name: true,
+				risk_class: true,
 				settings_code: true,
 				region: true,
 				pay_frequency: true,
@@ -96,16 +107,36 @@ obligation_calendar.run(async (_input, ctx) => {
 							voided_at: true,
 							effective_range: true,
 							duty_types: true,
-							payroll: true
+							payroll: true,
+							facts: true,
+							terms_facts: true,
+							person_facts: true,
+							tables: true,
+							work_rules: true
 						},
 						all: true
 					})
 				);
+	const reminders = await factReminderSweep(ctx, companies, versions, today);
+	const settle = async (inputs: readonly ObligationInput[], failures: readonly string[]) => {
+		const raised = [...inputs, ...reminders.raise];
+		if (raised.length > 0) await ctx.act('obligation_instances.create', raised as never);
+		for (const id of reminders.close)
+			await ctx.act('obligation_instances.update', {
+				target: id,
+				set: { state: 'FULFILLED', fulfilled_on: PlainDate(today) }
+			} as never);
+		await ctx.progress({
+			ratio: 1,
+			text: `Duties raised: ${raised.length}. Reminders closed: ${reminders.close.length}. Failures: ${failures.length + reminders.failures.length}.`
+		});
+		return { raised: raised.length, failures: [...failures, ...reminders.failures] };
+	};
 	const declaring = new Set(
 		versions.filter((version) => dutyTypesOf(version).length > 0).map((version) => version.code)
 	);
 	const active = companies.filter((company) => declaring.has(company.settings_code));
-	if (active.length === 0) return { raised: 0, failures: [] };
+	if (active.length === 0) return settle([], []);
 	// The active companies by their lineage, not an id list: a list is capped at 1000 items.
 	const onActive = {
 		is: { settings_code: { in: [...declaring] }, approval_id: { isNull: true } }
@@ -438,10 +469,152 @@ obligation_calendar.run(async (_input, ctx) => {
 			);
 		}
 	}
-	if (inputs.length > 0) await ctx.act('obligation_instances.create', inputs as never);
-	await ctx.progress({
-		ratio: 1,
-		text: `Duties raised: ${inputs.length}. Failures: ${failures.length}.`
-	});
-	return { raised: inputs.length, failures };
+	return settle(inputs, failures);
 });
+
+/**
+ * The FACT_OWED reminders of every entity (`reminders.ts`): the facts its next regular run would refuse on, judged as
+ * the run's precheck judges them, against the reminders already recorded.
+ */
+async function factReminderSweep(
+	ctx: Reads,
+	companies: readonly {
+		readonly id: string;
+		readonly name: string;
+		readonly settings_code: string;
+		readonly region?: string | null;
+		readonly risk_class?: string | null;
+		readonly pay_frequency: string;
+		readonly facts?: Facts | null;
+		readonly effective_range: unknown;
+	}[],
+	versions: readonly Version[],
+	today: string
+) {
+	const settled = { approval_id: { isNull: true } };
+	const ofCompany = { company_id: { is: settled } };
+	const [
+		runs,
+		revisions,
+		employments,
+		employees,
+		terms,
+		personFacts,
+		evidence,
+		references,
+		recorded
+	] = await Promise.all([
+		readAll<{ company_id: string; period: string; kind?: string | null }>(
+			ctx,
+			'payroll_runs',
+			{ ...settled, ...ofCompany },
+			undefined,
+			{ company_id: true, period: true, kind: true }
+		),
+		readAll<OwedInput['companyFactRevisions'][number] & { company_id: string }>(
+			ctx,
+			'company_facts',
+			{ ...settled, ...ofCompany },
+			undefined,
+			{ company_id: true, facts: true, effective_range: true }
+		),
+		readAll<OwedInput['employments'][number] & { company_id: string }>(
+			ctx,
+			'employments',
+			{ ...settled, ...ofCompany },
+			undefined,
+			{
+				company_id: true,
+				employee_id: true,
+				employee_number: true,
+				effective_range: true,
+				exit_ground: true
+			}
+		),
+		readAll<OwedInput['employees'][number]>(ctx, 'employees', settled),
+		readAll<OwedInput['terms'][number]>(ctx, 'employment_terms', {
+			...settled,
+			employment_id: { is: ofCompany }
+		}),
+		readAll<OwedInput['personFacts'][number]>(ctx, 'person_facts', settled),
+		readAll<{ fact_key: string; subject: { collection: string; id: string } }>(
+			ctx,
+			'fact_evidence',
+			{},
+			undefined,
+			{ fact_key: true, subject: true }
+		),
+		readAll<Parameters<typeof referenceCodes>[0][number] & { settings_id: string }>(
+			ctx,
+			'reference_rows',
+			{ ...settled, settings_id: { in: versions.map((version) => version.id) } },
+			undefined,
+			{ settings_id: true, table: true, code: true, parent_code: true, effective_range: true }
+		),
+		readAll<Parameters<typeof factReminders>[0]['reminders'][number] & { company_id: string }>(
+			ctx,
+			'obligation_instances',
+			{ duty_code: { eq: FACT_OWED } },
+			undefined,
+			{
+				company_id: true,
+				state: true,
+				duty_code: true,
+				subject_kind: true,
+				subject_id: true,
+				trigger_ref: true
+			}
+		)
+	]);
+	const evidenced = new Set(
+		evidence.map((row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`)
+	);
+	const byVersion = Map.groupBy(references, (row) => row.settings_id);
+	const raise: ObligationInput[] = [];
+	const close: string[] = [];
+	const failures: string[] = [];
+	for (const company of companies) {
+		const days = governed(company.effective_range);
+		if (days == null || (days.to != null && days.to < today)) continue;
+		try {
+			const lineage = versions.filter((version) => version.code === company.settings_code);
+			const versionOn = (day: string) => settingsInForce(lineage, company.settings_code, day);
+			const next = nextRegularRun(
+				runs
+					.filter((run) => run.company_id === company.id && (run.kind ?? 'REGULAR') === 'REGULAR')
+					.map((run) => run.period),
+				company.pay_frequency,
+				today
+			);
+			const governing = versionOn(next.window.end);
+			if (governing == null) continue;
+			const staff = employments.filter((row) => row.company_id === company.id);
+			const owed = entityFactsOwed({
+				asOf: next.window.end,
+				window: next.window,
+				versionOn,
+				company: { ...company, region: company.region ?? null },
+				companyFactRevisions: revisions.filter((row) => row.company_id === company.id),
+				employments: staff,
+				employees,
+				terms: terms.filter((row) => staff.some((one) => one.id === row.employment_id)),
+				personFacts,
+				evidence: evidenced,
+				codesOn: (day) => referenceCodes(byVersion.get(versionOn(day)?.id ?? '') ?? [], day)
+			});
+			const own = factReminders({
+				companyId: company.id,
+				settingsId: governing.id,
+				dueOn: next.payDate,
+				today,
+				owed,
+				reminders: recorded.filter((row) => row.company_id === company.id)
+			});
+			raise.push(...own.raise);
+			close.push(...own.close);
+		} catch (error) {
+			failures.push(`${company.id} ${FACT_OWED}: ${getErrorMessage(error)}`);
+		}
+	}
+	return { raise, close, failures };
+}
