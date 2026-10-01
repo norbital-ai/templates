@@ -3368,3 +3368,105 @@ register(
 		]
 	}
 );
+
+// ── An off-cycle bonus before the regular run: the salary is settled early beside it ─────────────────────
+register({
+	id: 'MY-OFFCYCLE-01-1',
+	profile: 'MY',
+	description:
+		'MY-WAGEBASE-01-1 paid in two runs: the RM8,000 bonus off-cycle on 10 January 2026, before the regular run. The off-cycle act first settles the January salary early (an EARLY run at the regular pay date), then charges the bonus bill(salary + bonus) − bill(salary); a January unpaid-leave day and an overtime day recorded after it are accepted and saved unconsumed (they settle in February), and the regular run pays the person nothing. The two slips add up to the combined month to the sen.',
+	citation: [
+		'Owner design 2026-10-01 (off-cycle settles salary first; statutory is a monthly bill; a record made after the early settlement is recorded as usual and settles in the next period).',
+		`${EPF_A}: salary month "4,100.01 to 4,200.00" employee RM462, employer 13% RM546; the whole month RM12,200 (MY-WAGEBASE-01-1) RM1,342 / RM1,586, so the bonus slip carries 1,342 − 462 = 880 and 1,586 − 546 = 1,040. ${EPF_WAGES}`,
+		`${SOCSO}; Act 4 s.2(24)(e) excludes an annual bonus: row 46 RM72.65 / RM20.75 on the salary slip, nothing on the bonus`,
+		`${EIS}; Act 800 s.2 "wages" (e) excludes any annual bonus: row 46 RM8.30 each on the salary slip`,
+		`${PCB}, D(b)(1)–(2): the salary month is Step 1 of MY-WAGEBASE-01-1, 62.00; the bonus slip is the month's 542.00 less 62.00 = 480.00 (Steps 2–4: 1,224.00 − 744.00)`,
+		'Salary slip net 4,200 − 462 − 20.75 − 8.30 − 62 = 3,646.95, employer cost 546 + 72.65 + 8.30 = 626.95; bonus slip net 8,000 − 880 − 480 = 6,640, employer cost 1,040; together 10,286.95 and 1,666.95, the combined month'
+	],
+	company: NO_HRD,
+	inputs: [
+		...officeWeek('2024-01-01'),
+		...citizen('bonus', 'Hafiz Bonus', 4200),
+		{ ...adhoc('bonus_job', 'BONUS', 8000, '2026-01-10', '2026-01'), ref: 'bonus_pay' }
+	],
+	history: [
+		{
+			period: '2026-01',
+			kind: 'OFF_CYCLE',
+			sources: ['@bonus_pay'],
+			expected: [
+				{
+					employment: 'bonus_job',
+					lines: {
+						gross: 8000,
+						net: 6640,
+						total_deductions: 1360,
+						employer_cost: 1040,
+						BONUS: 8000,
+						'EPF.employee': 880,
+						'EPF.employer': 1040,
+						'PCB.employee': 480
+					}
+				}
+			],
+			early: [
+				{
+					employment: 'bonus_job',
+					lines: {
+						gross: 4200,
+						net: 3646.95,
+						employer_cost: 626.95,
+						BASIC: 4200,
+						'EPF.employee': 462,
+						'EPF.employer': 546,
+						'SOCSO.employee': 20.75,
+						'SOCSO.employer': 72.65,
+						'EIS.employee': 8.3,
+						'EIS.employer': 8.3,
+						'PCB.employee': 62
+					}
+				}
+			]
+		}
+	],
+	event: [
+		{
+			collection: 'leave_entries',
+			values: {
+				employment_id: '@bonus_job',
+				catalogue_id: '@law:leave_catalogue:UNPAID_LEAVE',
+				reference: 'PROBE-NPL-2026-01-15',
+				from_date: '2026-01-15',
+				to_date: '2026-01-15',
+				half_day_start: false,
+				half_day_end: false,
+				reason: 'Unpaid leave recorded after the early settlement'
+			}
+		},
+		worked(
+			'bonus_job',
+			'2026-01-14',
+			[
+				['09:00', '13:00'],
+				['14:00', '20:00']
+			],
+			2
+		)
+	],
+	period: '2026-01',
+	expected: [],
+	absent: ['bonus_job'],
+	// The settled month does not take them: they wait, unconsumed, for February's run.
+	saved: [
+		{
+			collection: 'leave_entries',
+			where: { reference: 'PROBE-NPL-2026-01-15' },
+			rows: [{ payslip_id: null }]
+		},
+		{
+			collection: 'work_days',
+			where: { employment_id: '@bonus_job', work_date: '2026-01-14' },
+			rows: [{ payslip_id: null }]
+		}
+	]
+});

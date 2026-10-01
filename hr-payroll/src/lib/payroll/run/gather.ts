@@ -51,6 +51,7 @@ import {
 	cadenceWindow,
 	employmentPayFrequency,
 	paysOn,
+	previousPeriod,
 	taxYearBounds,
 	taxYearFirstPeriod,
 	taxYearOf,
@@ -147,6 +148,23 @@ export type EmploymentBundle = {
 	readonly deferral: EmploymentSettlement['deferral'];
 	/** The person's saved past (`history.*`), built on first read. */
 	readonly history?: HistoryAccess | undefined;
+	/**
+	 * Records dated in the previous period after an EARLY run settled its salary: that period is fixed, so this
+	 * run settles them, priced on their own days and windows, as lines of this period.
+	 */
+	readonly late?: LateRecords | null | undefined;
+};
+
+/** The previous period's window and the records recorded in it after its salary was settled early. */
+export type LateRecords = {
+	readonly window: PayrollWindow;
+	readonly employedDays: EmploymentSettlement['employedDays'];
+	readonly wageDays: EmploymentSettlement['wageDays'];
+	readonly attendance: EmploymentSettlement['attendance'];
+	/** Every work day of that attendance window, settled and late. */
+	readonly workDays: readonly WorkDay[];
+	/** The late work days and leave entries: no payslip has taken them into account. */
+	readonly ids: ReadonlySet<string>;
 };
 
 export type GatheredRun = {
@@ -346,6 +364,55 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			];
 		})
 	};
+	// The previous period's EARLY runs: what was recorded in their windows after they settled is settled here.
+	const previous = previousPeriod(period);
+	const earlyRuns = new Map(
+		world.payroll_runs
+			.filter(
+				(run) => run.company_id === companyId && run.kind === 'EARLY' && run.period === previous
+			)
+			.map((run) => [run.id, run])
+	);
+	const lateRecords = (employment: Employment, payFrequency: PayFrequency): LateRecords | null => {
+		if (earlyRuns.size === 0) return null;
+		const slip = live(world.payslips).find(
+			(row) => row.employment_id === employment.id && earlyRuns.has(row.payroll_run_id)
+		);
+		if (slip == null || !paysOn(company, payFrequency)) return null;
+		const lateWindow = cadenceWindow(previous, company, payFrequency);
+		if (lateWindow == null) return null;
+		const settled = resolveEmploymentSettlement({
+			dates: employmentDates(employment),
+			window: lateWindow
+		});
+		const within = (date: string) =>
+			date >= settled.attendance.start && date <= settled.attendance.end;
+		const workDays = live(world.work_days).filter(
+			(row) => row.employment_id === employment.id && within(dateKey(row.work_date))
+		);
+		const leave = gatheredLeave.get(employment.id)?.entries ?? [];
+		const ids = new Set([
+			...workDays.filter((row) => row.payslip_id == null).map((row) => row.id),
+			...leave
+				.filter(
+					(row) =>
+						row.payslip_id == null &&
+						row.approval_id == null &&
+						(row.charges ?? []).some((charge) => within(charge.date))
+				)
+				.map((row) => row.id)
+		]);
+		return ids.size === 0
+			? null
+			: {
+					window: lateWindow,
+					employedDays: settled.employedDays,
+					wageDays: settled.wageDays,
+					attendance: settled.attendance,
+					workDays,
+					ids
+				};
+	};
 	const employmentIds = employments.map((row) => row.id);
 	if (employmentIds.length === 0)
 		return {
@@ -517,7 +584,8 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			wageDays: settlement.wageDays,
 			attendance: settlement.attendance,
 			arrearsFor: settlement.arrearsFor,
-			deferral: settlement.deferral
+			deferral: settlement.deferral,
+			late: lateRecords(employment, cadence.payFrequency)
 		});
 	}
 	return { company: companyAccess, bundles, headcount, headcountCitizens, ...prior };

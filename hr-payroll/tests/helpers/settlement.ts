@@ -30,7 +30,10 @@ const PIN_FAMILIES = [
  * pinned source stamped with its slip.
  */
 export function storeRun(world, payload, runId = crypto.randomUUID()) {
-	const { payslips: nested, ...run } = payload;
+	const { payslips: nested, early_settlements: early, ...run } = payload;
+	// An off-cycle run's EARLY salary settlement is written in the same act, nested under it.
+	for (const settlement of early?.create ?? [])
+		storeRun(world, { ...settlement, early_for_id: runId });
 	const stored = { id: runId, ...run };
 	world.payroll_runs.push(stored);
 	for (const entry of nested?.create ?? []) {

@@ -21,7 +21,7 @@ export const NORBITAL_SG = '0cc7cdd4-848b-598e-8e4c-b8769c97f12b';
 export const NIHON_MY = 'e7b313fc-e947-5b78-8066-97bea6644915';
 export const OPS_PH = 'c09a2dc4-94bd-5d1c-adb7-e46a4f7cbe3f';
 export const KDIT_ID = '5032dab9-8010-538a-ac4c-ce2219b84767';
-/** Norbital Pte. Ltd.'s employment NHPADM03 (SGD 7,500 a month) and the SG version in force January–March 2026. */
+/** Norbital Pte. Ltd.'s employment NHPADM03 (SGD 7,500 a month) and the SG version in force January–June 2026. */
 export const SG_EMPLOYMENT = 'b1e00003-0000-4000-8000-000000000003';
 export const SG_2026_Q1 = '91aec78c-9674-563c-8a1c-5390d670520b';
 export const SG_2026_H2 = '04f345bd-7068-587d-888d-b0c073163300';

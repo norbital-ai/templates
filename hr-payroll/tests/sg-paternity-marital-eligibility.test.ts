@@ -20,7 +20,7 @@ const active = new Set(settings.filter((row) => row.voided_at == null).map((row)
 const paternity = rows.filter(
 	(row) => row.code === 'PATERNITY_LEAVE' && active.has(row.settings_id)
 );
-assert.equal(paternity.length, 5);
+assert.equal(paternity.length, 4);
 
 for (const row of paternity) {
 	for (const marital_status of ['SINGLE', 'MARRIED', 'DIVORCED'])

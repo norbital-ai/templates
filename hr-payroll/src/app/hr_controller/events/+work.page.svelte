@@ -34,6 +34,7 @@
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
 	import { dateKey, isSettledId } from '../../../lib/iso-day.js';
 	import {
+		dayLockKey,
 		lockMap,
 		payrollWindows,
 		sourceLockReason,
@@ -94,7 +95,7 @@
 			? null
 			: bolt.read('payroll_runs', {
 					where: { ...approved, company_id: { eq: scope.id } },
-					select: { period: true, attendance_from: true, attendance_to: true },
+					select: { period: true, kind: true, attendance_from: true, attendance_to: true },
 					all: true
 				})
 	);
@@ -161,6 +162,17 @@
 		}))
 	);
 	const locks = $derived(lockMap(windows, monthDateKeys, ids));
+	/** People whose salary an EARLY run settled: what is recorded on their days now settles in a later period. */
+	const settlesLater = $derived.by(() => {
+		const later = new Map<string, string>();
+		for (const person of people)
+			for (const date of monthDateKeys) {
+				const lock = locks.get(dayLockKey(person.id, date));
+				if (lock?.kind === 'IN_WINDOW' && lock.settlesIn != null)
+					later.set(person.name, lock.settlesIn);
+			}
+		return [...later];
+	});
 
 	/* ── the plan's sources, the month's person-days, time off and calendar: the reads an employee's month shares ── */
 	const reads = monthSources({
@@ -603,6 +615,16 @@
 										: t('app.scheduling.employments_outside_month', { month: period })}
 						/>
 					{:else}
+						{#each settlesLater as [name, next] (name)}
+							<Alert.Root>
+								<Alert.Description
+									>{t('app.scheduling.settles_in_next_period', {
+										name,
+										period: next
+									})}</Alert.Description
+								>
+							</Alert.Root>
+						{/each}
 						<RosterMonthBoard
 							month={period}
 							people={boardPeople}
