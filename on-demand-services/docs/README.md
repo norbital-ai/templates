@@ -44,7 +44,9 @@ day at the top right.
   refused with the reason ("…has another visit too close to this one, counting the drive between
   them").
 - Each card shows the shift check and ETA status.
-- Open a visit for its record and its **Free helpers** tab: every helper who could take it instead,
+- Open a visit for its record — when, where, who and what; **Dispatch checks** (shift check, ETA,
+  proposals) opens itself while the visit needs attention, **Completion** while it is under way — and
+  its **Free helpers** tab: every helper who could take it instead,
   best match first, with the drive it would add to their day and their hours that week.
 
 **List** shows the same day as a table. Each row has **Reassign to best match** and **Cancel
@@ -73,7 +75,7 @@ visits under way or starting in the next four hours.
 
 - **All bookings** lists every booking. Cancelling a booking cancels its visits still to come.
 - **New** on its toolbar takes a booking. Pick the customer and the service, the date and time,
-  and how often.
+  and how often. **Repeat** starts closed, showing **Once**; open it for a recurring booking.
   - With **Any helper**, the best match is chosen; a recurring customer keeps that helper while
     they stay free.
   - With **Preferred helpers**, name them in the customer's order. There is a tab per helper with
@@ -85,7 +87,8 @@ visits under way or starting in the next four hours.
 
 ![Helper profiles](images/06-helper-profiles.png)
 
-Skills, phone, home area and address, working days and hours, time off and warnings. **Offboard
+Skills, phone, home area, working days and hours, time off and warnings; the sign-in account and
+map locations fold into **Sign-in and location** ("Last seen …"). **Offboard
 today** marks a helper as leaving today. Each of their later visits gets a proposal: the helper with the closest
 skills at the same time, or the nearest time anyone is free. The customer is emailed the proposal,
 and the desk accepts it from the visit.
@@ -94,7 +97,8 @@ and the desk accepts it from the visit.
 
 ![Customer profiles](images/07-customer-profiles.png)
 
-Contact details, address and area, their bookings, and every notice sent to them.
+Contact details, address and area, their bookings, and every notice sent to them. **Notes** and the
+**Map location** pin fold away behind a one-line summary.
 
 ### Configurations
 
@@ -121,8 +125,9 @@ Only active services are offered on the portal.
 
 1. **Details.** The customer types their mobile number and presses **Send code**. The six-digit code
    box appears beside **Verify**; the sixth digit verifies. The first verification signs them up.
-   They then pick the service, address and area, how often, and their name. A returning customer
-   finds these filled in.
+   They then pick the service, address and area, how often, and their name. **How often** and the
+   optional notes start closed, showing **Once** and **No notes**; a tap opens them. A returning
+   customer finds these filled in.
 2. **Time.** The service's open start times over the next two weeks, day by day. Only times a
    qualified helper can take are offered.
 3. **Confirmed.** The visit is matched and confirmed on the spot, with a reference. If the time was

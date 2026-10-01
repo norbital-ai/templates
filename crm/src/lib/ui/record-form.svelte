@@ -5,12 +5,23 @@
 	import type { CollectionName } from '@norbital-ai/bolt';
 	import type { RecordTab } from '@norbital-ai/ui';
 
+	/** One titled group of fields. */
+	export type FormSection = {
+		/** The stable key the viewer's open state is remembered under. */
+		name: string;
+		title: string;
+		/** In form order, each labelled from the catalog. */
+		fields: readonly string[];
+		/** A secondary section: closed until opened, showing this line ("No notes", "Not set"). */
+		closed?: string;
+	};
+
 	export type RecordFormProps = {
 		view: RecordView<CollectionName>;
 		/** The fields under the record's label, each shown by its kind. */
 		subtitle?: readonly string[];
-		/** In form order, each labelled from the catalog; a field the caller may not write in this mode renders nothing. */
-		fields: readonly string[];
+		/** The form's sections in order; a field the caller may not write in this mode renders nothing. */
+		sections: readonly FormSection[];
 		/** A field's own editor (a picker filtered by another field, say). */
 		editors?: { readonly [field: string]: Snippet<[FormState]> };
 		actions?: Snippet;
@@ -21,15 +32,15 @@
 
 <script lang="ts">
 	/**
-	 * A collection's record view: the record frame with its subtitle, and the form over the fields in order; `status`
+	 * A collection's record view: the record frame with its subtitle, and the form in its sections; `status`
 	 * offers the moves out of the stored state (the kit's form never edits a state). A record in a final state (no moves
 	 * out, nothing editable) is shown readonly.
 	 */
-	import { Combobox, Field, Form } from '@norbital-ai/ui';
+	import { Combobox, Field, Form, Section } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { openRecord, RecordShell, useEnumText, useKinds } from '@norbital-ai/ui';
 
-	let { view, subtitle, fields, editors = {}, actions, tabs }: RecordFormProps = $props();
+	let { view, subtitle, sections, editors = {}, actions, tabs }: RecordFormProps = $props();
 	const kinds = useKinds();
 	const words = useEnumText();
 	const record = $derived(view.mode === 'update' ? view.record : null);
@@ -49,6 +60,35 @@
 		return at !== undefined && (at.to ?? []).length === 0 && at.edit === 'none';
 	});
 </script>
+
+{#snippet field(name: string, form: FormState)}
+	{#if Object.hasOwn(values, name)}
+		<!-- the parent scoping this create: fixed, not asked -->
+	{:else if editors[name]}
+		<Field {name}>
+			{#snippet editor()}{@render editors[name]!(form)}{/snippet}
+		</Field>
+	{:else if name === 'status' && cells}
+		<!-- a state moves along its edges: the stored state and the moves out of it -->
+		<Field {name}>
+			{#snippet editor(field)}
+				{@const from = String(cells.status)}
+				<Combobox
+					size="sm"
+					options={[
+						from,
+						...(field.kind.kind === 'state' ? (field.kind.states[from]?.to ?? []) : [])
+					].map((s) => ({ value: s, label: words(s, name) }))}
+					value={String(field.value)}
+					disabled={field.disabled}
+					onChange={(s) => s !== null && field.onChange(s)}
+				/>
+			{/snippet}
+		</Field>
+	{:else}
+		<Field {name} />
+	{/if}
+{/snippet}
 
 <RecordShell
 	of={view.collection}
@@ -75,36 +115,18 @@
 			}}
 		>
 			{#snippet children(form)}
-				<Grid gap="md" minimum="compact">
-					{#each fields as name (name)}
-						{#if Object.hasOwn(values, name)}
-							<!-- the parent scoping this create: fixed, not asked -->
-						{:else if editors[name]}
-							<Field {name}>
-								{#snippet editor()}{@render editors[name]!(form)}{/snippet}
-							</Field>
-						{:else if name === 'status' && cells}
-							<!-- a state moves along its edges: the stored state and the moves out of it -->
-							<Field {name}>
-								{#snippet editor(field)}
-									{@const from = String(cells.status)}
-									<Combobox
-										size="sm"
-										options={[
-											from,
-											...(field.kind.kind === 'state' ? (field.kind.states[from]?.to ?? []) : [])
-										].map((s) => ({ value: s, label: words(s, name) }))}
-										value={String(field.value)}
-										disabled={field.disabled}
-										onChange={(s) => s !== null && field.onChange(s)}
-									/>
-								{/snippet}
-							</Field>
-						{:else}
-							<Field {name} />
-						{/if}
-					{/each}
-				</Grid>
+				{#each sections as section, i (section.name)}
+					<Section
+						first={i === 0}
+						name={section.name}
+						title={section.title}
+						{...section.closed === undefined ? {} : { defaultOpen: false, summary: section.closed }}
+					>
+						<Grid gap="md" minimum="compact">
+							{#each section.fields as name (name)}{@render field(name, form)}{/each}
+						</Grid>
+					</Section>
+				{/each}
 			{/snippet}
 		</Form>{/key}
 </RecordShell>

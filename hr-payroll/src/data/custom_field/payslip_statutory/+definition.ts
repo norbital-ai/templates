@@ -27,7 +27,17 @@ const f = customField({
 				/** The amount was assessed from dated, single-payment facts. */
 				payment_occasion: { kind: 'bool', optional: true },
 				/** How this charge's employer amount is remitted, on a scheme with remittance rounding. */
-				remittance_rounding: { kind: 'enum', values: ['NONE', 'FLOOR_MAJOR_UNIT'], optional: true }
+				remittance_rounding: { kind: 'enum', values: ['NONE', 'FLOOR_MAJOR_UNIT'], optional: true },
+				/**
+				 * The part of this charge that tops up an earlier period's bill for this slip's late lines
+				 * (`late_line_month: 'EARNED'`): that period, and the base and amounts it holds. Included in the totals above.
+				 */
+				earned_period: { kind: 'text', optional: true },
+				earned_base_amount: { kind: 'number', optional: true },
+				earned_ordinary_amount: { kind: 'number', optional: true },
+				earned_employee_amount: { kind: 'number', optional: true },
+				earned_employer_amount: { kind: 'number', optional: true },
+				earned_rebate_amount: { kind: 'number', optional: true }
 			}
 		}
 	}

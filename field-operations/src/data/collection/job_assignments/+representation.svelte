@@ -12,6 +12,7 @@
 		Form,
 		format,
 		RecordShell,
+		Section,
 		Show,
 		useKinds
 	} from '@norbital-ai/ui';
@@ -156,16 +157,18 @@
 				submit={t('component.create_assignment')}
 			>
 				{#snippet children()}
-					<Grid minimum="panel">
-						<Field name="site_id" label={t('component.site')} />
-						<Field name="title" label={t('component.job_title')} />
-						<Field name="nature" label={t('component.job_nature')} />
-						<Field name="scheduled_for" label={t('component.scheduled_date')} />
-						<Field name="assignee_user_id" label={t('component.contractor')} />
-						<Column span="all"
-							><Field name="description" label={t('component.job_description_scope')} /></Column
-						>
-					</Grid>
+					<Section first name="job" title={t('section.job')}>
+						<Grid minimum="panel">
+							<Field name="site_id" label={t('component.site')} />
+							<Field name="title" label={t('component.job_title')} />
+							<Field name="nature" label={t('component.job_nature')} />
+							<Field name="scheduled_for" label={t('component.scheduled_date')} />
+							<Field name="assignee_user_id" label={t('component.contractor')} />
+						</Grid>
+					</Section>
+					<Section name="scope" title={t('component.job_scope')}>
+						<Field name="description" label={t('component.job_description_scope')} />
+					</Section>
 				{/snippet}
 			</Form>
 		</RecordShell>
@@ -191,23 +194,34 @@
 	>
 		<Form of="job_assignments" mode="update" id={record.id} {record}>
 			{#snippet children()}
-				<Grid minimum="panel">
-					<Field name="status" />
-					<Field name="assignee_user_id" label={t('component.contractor')} />
-					<Field name="dispatched_at" label={t('component.dispatched_at')} />
-					<Field name="completed_at" label={t('component.completed_at')} />
-					<Field name="amount_charged" label={t('component.value_charged')} />
-					<Column span="all"
-						><Field name="summary" label={t('component.completion_summary')} /></Column
-					>
-					<Column span="all"
-						><Field
-							name="location"
-							address="location_address"
-							label={t('component.reported_location')}
-						/></Column
-					>
-				</Grid>
+				<Section first name="progress" title={t('section.progress')}>
+					<Grid minimum="panel">
+						<Field name="status" />
+						<Field name="assignee_user_id" label={t('component.contractor')} />
+						<Field name="dispatched_at" label={t('component.dispatched_at')} />
+						<Field name="completed_at" label={t('component.completed_at')} />
+					</Grid>
+				</Section>
+				<Section name="completion" title={t('section.completion')}>
+					<Grid minimum="panel">
+						<Field name="amount_charged" label={t('component.value_charged')} />
+						<Column span="all"
+							><Field name="summary" label={t('component.completion_summary')} /></Column
+						>
+					</Grid>
+				</Section>
+				<Section
+					name="reported_location"
+					title={t('component.reported_location')}
+					defaultOpen={false}
+					summary={record.location_address || t('component.not_recorded')}
+				>
+					<Field
+						name="location"
+						address="location_address"
+						label={t('component.reported_location')}
+					/>
+				</Section>
 			{/snippet}
 		</Form>
 	</RecordShell>

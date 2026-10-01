@@ -1,6 +1,10 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'component.section_map': '地图位置',
+	'component.section_basis': '依据与模型',
+	'component.summary_pinned': '已标注',
+	'component.summary_not_set': '未设置',
 	'models.communication_logs.label': '消息',
 	'models.communication_logs.singular': '消息',
 	'models.job_assignments.label': '任务',
@@ -138,5 +142,9 @@ export default messages({
 	'component.similar_photos_other_assignments_description':
 		'提供给审查代理的跨任务照片精确比对。距离越小，图像越相似。',
 	'component.similar_photos_other_assignments_empty': '未向审查代理提供跨任务照片比对。',
-	'channels.field_ops_whatsapp.label': '现场运营 WhatsApp'
+	'channels.field_ops_whatsapp.label': '现场运营 WhatsApp',
+	'section.job': '工作',
+	'section.progress': '进度',
+	'section.completion': '完工',
+	'section.finding': '发现'
 });

@@ -3,6 +3,8 @@
  * One CN lineage, two cities: the worksite each terms row records is the contract performance place
  * (劳动合同法实施条例 art.14), and its locality (MINIMUM_WAGE.locality) selects the city law that prices
  * the day. An unrecorded worksite refuses by name; a worksite no city covers cannot be priced.
+ * Social insurance and the housing fund follow where the employer is registered
+ * (`si_registration_locality`, else the company region; owner-delegated rule 2026-10-01).
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -17,14 +19,20 @@ const REGISTERED = {
 	HOUSING_FUND: { kind: 'REGISTERED', elections: { contribution_base: 10_000 } }
 };
 
-function world(people) {
+function world(people, company = {}) {
 	return createStatutoryWorld({
 		code: SH,
 		period: '2025-12',
-		companyFacts: { injury_rate: 0.2, housing_fund_rate: 7, housing_fund_supplementary_rate: 0 },
-		people: people.map(([key, worksite]) => ({
+		region: company.region,
+		companyFacts: {
+			injury_rate: 0.2,
+			housing_fund_rate: 7,
+			housing_fund_supplementary_rate: 0,
+			...company.facts
+		},
+		people: people.map(([key, worksite, wage = 10_000]) => ({
 			key,
-			wage: 10_000,
+			wage,
 			worksite,
 			registrations: REGISTERED
 		}))
@@ -50,26 +58,52 @@ test('saved CN payroll refuses an unrecorded or uncovered worksite before writin
 	);
 });
 
-test('one CN company prices each worker by the locality of the worksite their terms record', async () => {
-	// December 2025 on a declared 10,000: medical 9% employer at a Shanghai worksite (沪医保规〔2025〕2号),
-	// 7% and maternity 0.9% at a Kunming one (CN-KM04, KM32); pension 16% / 8% in both.
-	for (const [key, worksite, medical, maternity] of [
-		['CN-SH', 'SHANGHAI', [200, 900], null],
-		['CN-KM', WUHUA, [200, 700], [0, 90]]
+test('social insurance follows the registration city, the minimum wage the worksite', async () => {
+	// December 2025 on a declared 10,000: pension 16% / 8% in both cities; medical 9% employer in
+	// Shanghai (沪医保规〔2025〕2号), 7% and maternity 0.9% in Kunming (CN-KM04, KM32); fund 7% each side.
+	for (const [label, company, worksite, medical, maternity] of [
+		['Shanghai unit, Shanghai site', {}, 'SHANGHAI', [200, 900], null],
+		['Shanghai unit, Kunming site', {}, WUHUA, [200, 900], null],
+		[
+			'Kunming-registered unit, Kunming site',
+			{ facts: { si_registration_locality: 'KUNMING' } },
+			WUHUA,
+			[200, 700],
+			[0, 90]
+		]
 	]) {
-		const [run] = await create(world([[key, worksite]]));
+		const [run] = await create(world([['CN-W', worksite]], company));
 		assert.equal(run.settings_id, settingsIdOn(SH, '2025-12-20'));
-		assert.deepEqual(charge(run, key, 'PENSION'), [800, 1600], key);
-		assert.deepEqual(charge(run, key, 'MEDICAL'), medical, key);
-		const maternityLine = charge(run, key, 'MATERNITY');
+		assert.deepEqual(charge(run, 'CN-W', 'PENSION'), [800, 1600], label);
+		assert.deepEqual(charge(run, 'CN-W', 'MEDICAL'), medical, label);
+		assert.deepEqual(charge(run, 'CN-W', 'HOUSING_FUND'), [700, 700], label);
+		const maternityLine = charge(run, 'CN-W', 'MATERNITY');
 		assert.deepEqual(
 			maternityLine == null || (maternityLine[0] === 0 && maternityLine[1] === 0)
 				? null
 				: maternityLine,
 			maternity,
-			key
+			label
 		);
 	}
+	// The Shanghai-insured worker posted to Wuhua is held to Kunming's 2,170 gross, not Shanghai's 2,740.
+	const [posted] = await create(world([['CN-W', WUHUA, 2_200]]));
+	assert.deepEqual(charge(posted, 'CN-W', 'PENSION'), [800, 1600]);
+	await assert.rejects(create(world([['CN-W', WUHUA, 2_100]])), /MINIMUM_WAGE_BELOW.*2170/);
+});
+
+test('a company region naming no locality refuses until the registration city is recorded', async () => {
+	await assert.rejects(
+		create(world([['CN-W', WUHUA]], { region: 'CATEGORY_I' })),
+		/CN-W: PENSION: .*si_registration_locality/
+	);
+	const [run] = await create(
+		world([['CN-W', WUHUA]], {
+			region: 'CATEGORY_I',
+			facts: { si_registration_locality: 'KUNMING' }
+		})
+	);
+	assert.deepEqual(charge(run, 'CN-W', 'MEDICAL'), [200, 700]);
 });
 
 test('saved CN payroll refuses a move between cities inside one pay window', async () => {

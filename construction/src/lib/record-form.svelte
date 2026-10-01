@@ -1,12 +1,11 @@
 <script lang="ts">
 	/**
-	 * A record view that is one form: the record frame, and the collection's form laid out by the page's `Field`s. A
+	 * A record view that is one form: the record frame, and the collection's form laid out by the page's `Section`s. A
 	 * create opens the new record, as the generated view does.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { CollectionName } from '@norbital-ai/bolt';
 	import { Form } from '@norbital-ai/ui';
-	import { Grid } from '@norbital-ai/ui/layout';
 	import { RecordShell, openRecord, type RecordView } from '@norbital-ai/ui';
 
 	let {
@@ -40,6 +39,6 @@
 			if (view.mode === 'create' && created !== undefined) openRecord(of, created.id);
 		}}
 	>
-		<Grid minimum="compact">{@render children()}</Grid>
+		{@render children()}
 	</Form>
 </RecordShell>

@@ -13,7 +13,7 @@
 		Button,
 		Icon,
 		Input,
-		Label,
+		Section,
 		PhoneVerify,
 		Spinner,
 		Textarea
@@ -226,20 +226,18 @@
 
 			{#if step === 'details'}
 				<Stack gap="lg">
-					{#if me === null}
-						<PhoneVerify session={bolt.session} />
-					{:else}
-						<Stack gap="xs">
-							<Label>{t('app.portal.phone')}</Label>
+					<Section first name="phone" title={t('app.portal.phone')}>
+						{#if me === null}
+							<PhoneVerify session={bolt.session} />
+						{:else}
 							<Cluster gap="xs">
 								<p class="text-sm">{me.phone}</p>
 								<Badge variant="success">{t('app.portal.verified')}</Badge>
 							</Cluster>
-						</Stack>
-					{/if}
+						{/if}
+					</Section>
 					{#if me !== null}
-						<Stack gap="sm">
-							<Label>{t('app.portal.service')}</Label>
+						<Section name="service" title={t('app.portal.service')}>
 							{#if services.current === undefined}
 								<Spinner class="h-4 w-4" />
 							{:else}
@@ -257,32 +255,53 @@
 									{/each}
 								</Stack>
 							{/if}
-						</Stack>
-						<Stack gap="sm">
-							<Label for="portal-address">{t('app.portal.address')}</Label>
-							<Input id="portal-address" autocomplete="street-address" bind:value={address} />
+						</Section>
+						<Section name="address" title={t('app.portal.address')}>
+							<Input
+								id="portal-address"
+								aria-label={t('app.portal.address')}
+								autocomplete="street-address"
+								bind:value={address}
+							/>
 							<Cluster gap="xs">
 								{#each AREAS as a (a)}
 									{@render chip(area === a, t(`component.area_${a}`), () => (area = a))}
 								{/each}
 							</Cluster>
-						</Stack>
-						<Stack gap="sm">
-							<Label>{t('app.portal.repeat')}</Label>
+						</Section>
+						<Section
+							name="repeat"
+							title={t('app.portal.repeat')}
+							defaultOpen={false}
+							summary={t(`component.repeat_${repeat}`)}
+						>
 							<Cluster gap="xs">
 								{#each REPEATS as r (r)}
 									{@render chip(repeat === r, t(`component.repeat_${r}`), () => (repeat = r))}
 								{/each}
 							</Cluster>
-						</Stack>
-						<Stack gap="sm">
-							<Label for="portal-name">{t('app.portal.name')}</Label>
-							<Input id="portal-name" autocomplete="name" bind:value={name} />
-						</Stack>
-						<Stack gap="sm">
-							<Label for="portal-notes">{t('app.portal.notes')}</Label>
-							<Textarea id="portal-notes" rows={2} bind:value={notes} />
-						</Stack>
+						</Section>
+						<Section name="name" title={t('app.portal.name')}>
+							<Input
+								id="portal-name"
+								aria-label={t('app.portal.name')}
+								autocomplete="name"
+								bind:value={name}
+							/>
+						</Section>
+						<Section
+							name="notes"
+							title={t('app.portal.notes')}
+							defaultOpen={false}
+							summary={notes.trim() || t('app.portal.no_notes')}
+						>
+							<Textarea
+								id="portal-notes"
+								aria-label={t('app.portal.notes')}
+								rows={2}
+								bind:value={notes}
+							/>
+						</Section>
 						<Button class="w-full" disabled={!ready} onclick={() => (step = 'time')}>
 							{t('app.portal.choose_time')}
 						</Button>

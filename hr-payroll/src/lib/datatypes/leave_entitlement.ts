@@ -14,6 +14,14 @@ const stepRounding = Schema.Struct({
 	mode: Schema.Literals(['UP', 'DOWN', 'HALF_UP'])
 });
 
+/** One row of an entitlement matrix: who, and how many days. */
+const entitlementBand = Schema.Struct({
+	/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
+	eligibility: Schema.String,
+	/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + round(employment.service_months / 60.0, 1, 'DOWN')`). */
+	days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
+});
+
 export const leaveEntitlementValueSchema = Schema.Struct({
 	/**
 	 * `PER_EVENT` is a grant per occurrence rather than per year: every entry is its own pool of
@@ -42,6 +50,13 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 			Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
 		)
 	),
+	/**
+	 * The statute's own grant matrix, read and prorated as `bands` are: that many of the source
+	 * year's unused days carry in full, and `carry_max_days` caps only the days above them (MY EA
+	 * s.60E(2): each year's statutory leave may be taken in the twelve months after it). Absent is
+	 * none: `carry_max_days` caps every day.
+	 */
+	carry_statutory_bands: Schema.optionalKey(Schema.NullOr(Schema.Array(entitlementBand))),
 	/**
 	 * `HALF_MONTHS`: a calendar month counts as one once at least half its days are eligible (VN
 	 * Decree 145/2020 art.66(2): a part month worked or paid for half its working days is a month).
@@ -238,14 +253,7 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	forfeit_above_absence_share: Schema.optionalKey(
 		Schema.NullOr(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
 	),
-	bands: Schema.Array(
-		Schema.Struct({
-			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
-			eligibility: Schema.String,
-			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + round(employment.service_months / 60.0, 1, 'DOWN')`). */
-			days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
-		})
-	)
+	bands: Schema.Array(entitlementBand)
 });
 export type LeaveEntitlement = Schema.Schema.Type<typeof leaveEntitlementValueSchema>;
 export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlementValueSchema, {

@@ -1,6 +1,23 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'section.availability': '可服务时间',
+	'section.account_location': '登录与位置',
+	'section.map': '地图位置',
+	'section.notes': '备注',
+	'section.checks': '调度检查',
+	'section.completion': '完工',
+	'section.delivery': '投递',
+	'summary.no_notes': '无备注',
+	'summary.pinned': '已标注',
+	'summary.not_set': '未设置',
+	'summary.last_seen': '最后定位 {at}',
+	'summary.no_location': '暂无位置',
+	'summary.completed': '完成于 {at}',
+	'summary.started': '开始于 {at}',
+	'summary.not_started': '未开始',
+	'summary.sent': '发送于 {at}',
+	'summary.not_sent': '未发送',
 	'app.helper.location_gate_title': '开启定位',
 	'app.helper.location_gate_body':
 		'调度会根据您的位置向客户更新您的到达时间。开启定位后即可查看今日工作。',
@@ -150,6 +167,7 @@ export default messages({
 	'app.portal.verified': '已验证',
 	'app.portal.verify_to_see': '验证手机号码后即可查看您的预约。',
 	'app.portal.notes': '备注（可选）',
+	'app.portal.no_notes': '无备注',
 	'app.portal.choose_time': '选择时间',
 	'app.portal.no_times': '未来两周此服务没有可预约时间。请致电我们安排。',
 	'app.portal.back': '返回',

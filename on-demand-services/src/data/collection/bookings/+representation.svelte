@@ -14,18 +14,53 @@
 		Label,
 		Picker,
 		RecordShell,
+		Section,
 		Tabs,
 		openRecord,
+		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { untrack } from 'svelte';
 	import { live } from '../../../lib/live.svelte.js';
+	import { excerpt } from '../../../lib/summary.js';
 
 	let { view }: { view: RecordView<'bookings'> } = $props();
 
 	const t = bolt.t;
 	const today = new Intl.DateTimeFormat('en-CA').format(new Date());
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
+	// a stored booking: who, what, how often and where stay open; notes and the map pin fold away
+	const sections: RecordSection[] = [
+		{
+			name: 'booking',
+			title: t('models.bookings.singular'),
+			fields: [
+				'number',
+				'customer',
+				'service',
+				'status',
+				'preference',
+				'repeat',
+				'visit_count',
+				'address',
+				'area'
+			]
+		},
+		{
+			name: 'notes',
+			title: t('section.notes'),
+			fields: ['notes'],
+			defaultOpen: false,
+			summary: (r) => excerpt(r.notes) || t('summary.no_notes')
+		},
+		{
+			name: 'map',
+			title: t('section.map'),
+			fields: ['location'],
+			defaultOpen: false,
+			summary: (r) => (r.location == null ? t('summary.not_set') : t('summary.pinned'))
+		}
+	];
 
 	// opened from a customer, the customer is filled in
 	let customer = $state<Id<'customers'> | null>(
@@ -141,29 +176,30 @@
 {#if view.mode === 'create'}
 	<RecordShell of="bookings" mode="create">
 		<Stack gap="lg">
-			<Grid minimum="card">
-				<Stack gap="xs">
-					<Label for="booking-customer">{t('component.customer')}</Label>
-					<Picker
-						id="booking-customer"
-						of="customers"
-						value={customer}
-						onChange={(id) => (customer = id)}
-					/>
-				</Stack>
-				<Stack gap="xs">
-					<Label for="booking-service">{t('component.service')}</Label>
-					<Picker
-						id="booking-service"
-						of="services"
-						where={{ active: { eq: true } }}
-						value={service}
-						onChange={(id) => (service = id)}
-					/>
-				</Stack>
-			</Grid>
-			<Stack gap="sm">
-				<Label>{t('app.schedule.step_preference')}</Label>
+			<Section first name="where" title={t('app.schedule.step_where')}>
+				<Grid minimum="card">
+					<Stack gap="xs">
+						<Label for="booking-customer">{t('component.customer')}</Label>
+						<Picker
+							id="booking-customer"
+							of="customers"
+							value={customer}
+							onChange={(id) => (customer = id)}
+						/>
+					</Stack>
+					<Stack gap="xs">
+						<Label for="booking-service">{t('component.service')}</Label>
+						<Picker
+							id="booking-service"
+							of="services"
+							where={{ active: { eq: true } }}
+							value={service}
+							onChange={(id) => (service = id)}
+						/>
+					</Stack>
+				</Grid>
+			</Section>
+			<Section name="preference" title={t('app.schedule.step_preference')}>
 				<Cluster gap="xs">
 					<Button
 						variant={preference === 'any' ? 'default' : 'outline'}
@@ -177,10 +213,9 @@
 						}}>{t('app.schedule.has_preference')}</Button
 					>
 				</Cluster>
-			</Stack>
+			</Section>
 			{#if preference === 'preferred'}
-				<Stack gap="sm">
-					<Label>{t('app.schedule.preferred_helpers')}</Label>
+				<Section name="helpers" title={t('app.schedule.preferred_helpers')}>
 					<Cluster gap="xs" align="center">
 						{#each helpers as h, i (h)}
 							<Button
@@ -204,9 +239,8 @@
 							/>
 						{/key}
 					{/if}
-				</Stack>
-				<Stack gap="sm">
-					<Label>{t('app.schedule.step_schedule')}</Label>
+				</Section>
+				<Section name="schedule" title={t('app.schedule.step_schedule')}>
 					<div class="w-48">
 						<DateInput value={from} onChange={(next) => (from = next ?? today)} />
 					</div>
@@ -217,17 +251,21 @@
 							tabs={open.current.map((h) => ({ name: h.helper, title: h.name, body: slots }))}
 						/>
 					{/if}
-				</Stack>
+				</Section>
 			{:else}
-				<Stack gap="sm">
-					<Label>{t('app.schedule.step_when')}</Label>
+				<Section name="when" title={t('app.schedule.step_when')}>
 					<div class="w-64">
 						<DateInput of="instant" value={start} onChange={(next) => (start = next)} />
 					</div>
-				</Stack>
+				</Section>
 			{/if}
-			<Stack gap="sm">
-				<Label>{t('app.schedule.step_repeat')}</Label>
+			<!-- defaults to once: a rarely changed choice, its current value shown while closed -->
+			<Section
+				name="repeat"
+				title={t('app.schedule.step_repeat')}
+				defaultOpen={false}
+				summary={t(`component.repeat_${repeat}`)}
+			>
 				<Cluster gap="xs">
 					{#each REPEATS as r (r)}
 						<Button variant={repeat === r ? 'default' : 'outline'} onclick={() => (repeat = r)}
@@ -235,7 +273,7 @@
 						>
 					{/each}
 				</Cluster>
-			</Stack>
+			</Section>
 			<Cluster gap="sm" align="center">
 				<Button disabled={!ready || booking} onclick={book}>{t('app.schedule.book')}</Button>
 				{#if message}<p class="text-sm">{message}</p>{/if}
@@ -243,5 +281,5 @@
 		</Stack>
 	</RecordShell>
 {:else}
-	<RecordShell of="bookings" id={view.record.id} />
+	<RecordShell of="bookings" id={view.record.id} {sections} />
 {/if}

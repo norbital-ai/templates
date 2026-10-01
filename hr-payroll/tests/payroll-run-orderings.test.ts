@@ -174,7 +174,7 @@ const CADENCES = [
 	{ code: 'PH', name: 'PH semi-monthly', period: '2026-03-2', semi: true }
 ];
 
-function world(code, wage, semi = false) {
+function world(code, wage, semi = false, subject = {}) {
 	const setup = SETUP[code];
 	const cadence = semi ? { pay_frequency: 'SEMI_MONTHLY' } : {};
 	const tables = createStatutoryWorld({
@@ -183,7 +183,7 @@ function world(code, wage, semi = false) {
 		...setup.world,
 		...(semi ? { payFrequency: 'SEMI_MONTHLY' } : {}),
 		people: [
-			{ key: 'P', wage, ...cadence, ...setup.person?.(wage) },
+			{ key: 'P', wage, ...cadence, ...setup.person?.(wage), ...subject },
 			{ key: 'OTHER', wage: setup.wages[1], ...cadence, ...setup.person?.(setup.wages[1]) }
 		]
 	});
@@ -716,62 +716,298 @@ function twoMonths(tables) {
 	};
 }
 
-for (const { code, name, period, semi } of CADENCES)
-	for (const [index, wage] of SETUP[code].wages.entries())
-		test(`${name} × ${['low', 'middle', 'high'][index]} wage ${wage}: leave and overtime recorded after the early settlement settle once, in the next period`, async () => {
-			const next = nextPeriod(period);
-			const start = async () => {
-				const tables = world(code, wage, semi);
-				tables.leave_catalogue = leaveCatalogue(code);
-				if (semi) await run(tables, 'REGULAR', [], '2026-03-1');
-				addEntry(tables, code, 'bonus', wage, period);
-				return tables;
-			};
-			// (a) the records are in before the month's one regular run.
-			const combined = await start();
-			await addRecords(combined, code);
-			await run(combined, 'REGULAR', [], period);
-			const combinedNext = await run(combined, 'REGULAR', [], next);
+const LATER_ID = 'd0000000-0000-4000-8000-0000000ff002';
 
-			// (b) the off-cycle run on the 10th settles the salary early; the records come after it.
-			const early = await start();
-			await run(early, 'OFF_CYCLE', [REQUEST_ID], period);
-			await addRecords(early, code);
-			const regular = await run(early, 'REGULAR', [], period);
-			assert.ok(!employees(regular).includes(early.employments[0].id), 'the month stays settled');
-			const earlyNext = await run(early, 'REGULAR', [], next);
+/** A second bonus, paid by an off-cycle run in `period` after its regular slip. */
+function addLaterBonus(tables, code, amount, period) {
+	const row = adhocCatalogue(code).find(
+		(entry) =>
+			entry.settings_id === settingsIdOn(code, '2026-04-10') &&
+			entry.code === SETUP[code].entries.bonus
+	);
+	tables.adhoc_requests.push({
+		id: LATER_ID,
+		employment_id: tables.employments[0].id,
+		catalogue_id: row.id,
+		amount,
+		event_date: '2026-04-10',
+		pay_period: period,
+		payslip_id: null,
+		evidence_file: null,
+		as_adjustment_entry: false,
+		approval_id: null,
+		reason: 'later off-cycle bonus'
+	});
+}
 
-			const slipOf = (payload) =>
-				payload.payslips.create.find((slip) => slip.employment_id === early.employments[0].id);
-			for (const [tables, nextRun, settledIn] of [
-				[combined, combinedNext, 'the month'],
-				[early, earlyNext, 'the next period']
-			]) {
-				// Each record is pinned once, by the slip that settled it.
-				const pins = [
-					tables.leave_entries.find((row) => row.id === 'late-leave').payslip_id,
-					tables.work_days.find((row) => row.id === 'late-day').payslip_id
-				];
-				assert.ok(
-					pins.every((pin) => pin != null),
-					`both records are settled (${settledIn})`
-				);
-				const holder = tables === early ? slipOf(nextRun).id : null;
-				if (holder != null)
-					assert.deepEqual(pins, [holder, holder], 'the next period settles both');
+/** Every scheme's employee and employer figure on the subject's slips of the periods `keep` selects. */
+function schemesOf(tables, keep = () => true) {
+	const runPeriod = new Map(tables.payroll_runs.map((row) => [row.id, row.period]));
+	const out = {};
+	for (const slip of tables.payslips)
+		if (slip.employment_id === tables.employments[0].id && keep(runPeriod.get(slip.payroll_run_id)))
+			for (const charge of slip.statutory) {
+				const sum = (out[charge.scheme_code] ??= { employee: 0, employer: 0 });
+				sum.employee = cents(sum.employee + charge.employee_amount);
+				sum.employer = cents(sum.employer + charge.employer_amount);
 			}
-			// Nothing of the records is in the early-settled month.
-			const march = early.payslips.filter(
-				(slip) =>
-					slip.employment_id === early.employments[0].id &&
-					early.payroll_runs.find((row) => row.id === slip.payroll_run_id).period === period
+	return out;
+}
+
+/**
+ * One month settled early on the 10th, an unpaid leave day and an overtime day recorded after it, the next period's
+ * regular run, and optionally an off-cycle bonus later in that next period — paid three ways: (a) the records in
+ * before the month's regular run, (b) recorded after the early settlement, (c) as (b) without the records.
+ *
+ * Each record settles once, in the next period. Each scheme bills the late lines by its declared `late_line_month`:
+ * EARNED as a top-up of the earned month, so every scheme figure and the year to date equal (a) to the cent; PAID with
+ * the next period, bill(next incl. the late lines) − bill(next without them). With `discriminates`, the case is built
+ * so that billing those EARNED schemes PAID instead moves their figures: the gate fails if the top-up is lost.
+ */
+async function lateRecordsCase({
+	code,
+	period,
+	semi = false,
+	wage,
+	subject = {},
+	bonus,
+	laterBonus,
+	discriminates = []
+}) {
+	const next = nextPeriod(period);
+	const start = async (rules = {}) => {
+		const tables = world(code, wage, semi, subject);
+		for (const row of tables.statutory_contributions)
+			if (rules[row.code] != null) row.late_line_month = rules[row.code];
+		tables.leave_catalogue = leaveCatalogue(code);
+		if (semi) await run(tables, 'REGULAR', [], '2026-03-1');
+		addEntry(tables, code, 'bonus', wage, period);
+		if (bonus != null) tables.adhoc_requests.at(-1).amount = bonus;
+		return tables;
+	};
+	/** The next period: its regular run, then the later off-cycle bonus. */
+	const nextRuns = async (tables) => {
+		const regular = await run(tables, 'REGULAR', [], next);
+		if (laterBonus != null) {
+			pay(tables, regular);
+			addLaterBonus(tables, code, laterBonus, next);
+			await run(tables, 'OFF_CYCLE', [LATER_ID], next, '2026-04-28T02:00:00.000Z');
+		}
+		return regular;
+	};
+	/** (b) the off-cycle run on the 10th settles the salary early; the records, if any, come after it. */
+	const earlyPath = async (records, rules) => {
+		const tables = await start(rules);
+		await run(tables, 'OFF_CYCLE', [REQUEST_ID], period);
+		if (records) await addRecords(tables, code);
+		const regular = await run(tables, 'REGULAR', [], period);
+		assert.ok(!employees(regular).includes(tables.employments[0].id), 'the month stays settled');
+		return [tables, await nextRuns(tables)];
+	};
+	// (a) the records are in before the month's one regular run.
+	const combined = await start();
+	await addRecords(combined, code);
+	await run(combined, 'REGULAR', [], period);
+	await nextRuns(combined);
+	const [early, earlyNext] = await earlyPath(true);
+	const [none] = await earlyPath(false);
+
+	const slipOf = (payload) =>
+		payload.payslips.create.find((slip) => slip.employment_id === early.employments[0].id);
+	for (const [tables, settledIn] of [
+		[combined, 'the month'],
+		[early, 'the next period']
+	]) {
+		// Each record is pinned once, by the slip that settled it.
+		const pins = [
+			tables.leave_entries.find((row) => row.id === 'late-leave').payslip_id,
+			tables.work_days.find((row) => row.id === 'late-day').payslip_id
+		];
+		assert.ok(
+			pins.every((pin) => pin != null),
+			`both records are settled (${settledIn})`
+		);
+		if (tables === early)
+			assert.deepEqual(
+				pins,
+				[slipOf(earlyNext).id, slipOf(earlyNext).id],
+				'the next period settles both'
 			);
-			assert.ok(
-				march.every((slip) =>
-					slip.adjustments.every((line) => !['late-leave', 'late-day'].includes(line.source_id))
-				)
+	}
+	// Nothing of the records is in the early-settled month, and each record's lines are paid once.
+	const lateLines = (tables) =>
+		tables.payslips
+			.filter((slip) => slip.employment_id === tables.employments[0].id)
+			.flatMap((slip) => slip.adjustments)
+			.filter((line) => ['late-leave', 'late-day'].includes(line.source_id))
+			.map((line) => `${line.source_id} ${line.component_code} ${line.amount}`)
+			.toSorted();
+	const march = early.payslips.filter(
+		(slip) =>
+			slip.employment_id === early.employments[0].id &&
+			early.payroll_runs.find((row) => row.id === slip.payroll_run_id).period === period
+	);
+	assert.ok(
+		march.every((slip) =>
+			slip.adjustments.every((line) => !['late-leave', 'late-day'].includes(line.source_id))
+		)
+	);
+	assert.deepEqual(lateLines(early), lateLines(combined), 'each late line is paid once');
+	const [a, b] = [twoMonths(combined), twoMonths(early)];
+	assert.equal(b.gross, a.gross, 'the two months pay the same gross');
+	assert.deepEqual(b.lines, a.lines, 'the two months pay the same lines, each once');
+
+	// Each scheme bills the late lines by its declared rule.
+	const rule = new Map(
+		early.statutory_contributions
+			.filter((row) => row.settings_id === settingsIdOn(code, `${next.slice(0, 7)}-15`))
+			.map((row) => [row.code, row.late_line_month ?? 'PAID'])
+	);
+	const inNext = (at) => at === next;
+	const [all, settled, without] = [combined, early, none].map((tables) => schemesOf(tables));
+	const [nextSettled, nextWithout] = [schemesOf(early, inNext), schemesOf(none, inNext)];
+	const zero = { employee: 0, employer: 0 };
+	for (const scheme of new Set([...Object.keys(all), ...Object.keys(settled)])) {
+		const declared = rule.get(scheme) ?? 'PAID';
+		for (const share of ['employee', 'employer'])
+			assert.equal(
+				(settled[scheme] ?? zero)[share],
+				declared === 'EARNED'
+					? (all[scheme] ?? zero)[share]
+					: cents(
+							(without[scheme] ?? zero)[share] +
+								(nextSettled[scheme] ?? zero)[share] -
+								(nextWithout[scheme] ?? zero)[share]
+						),
+				`${scheme}.${share} (${declared})`
 			);
-			const [a, b] = [twoMonths(combined), twoMonths(early)];
-			assert.equal(b.gross, a.gross, 'the two months pay the same gross');
-			assert.deepEqual(b.lines, a.lines, 'the two months pay the same lines, each once');
-		});
+	}
+	// The year to date a later run reads counts each late line and its top-up once: an EARNED scheme's equals (a).
+	const yearToDate = (tables) =>
+		gatherPayrollRun({
+			world: payrollWorld(tables),
+			companyId: COMPANY_ID,
+			period: nextPeriod(next)
+		}).gathered.yearToDate;
+	const [ytdAll, ytdSettled] = [yearToDate(combined), yearToDate(early)];
+	const person = early.employments[0].employee_id;
+	for (const [scheme, declared] of rule) {
+		const key = `${person}:${scheme}`;
+		const got = ytdSettled.get(key);
+		if (declared === 'EARNED')
+			for (const field of ['employee', 'employer', 'base', 'ordinary'])
+				assert.equal(
+					cents(got?.[field] ?? 0),
+					cents(ytdAll.get(key)?.[field] ?? 0),
+					`${scheme} year to date ${field}`
+				);
+		else
+			for (const share of ['employee', 'employer'])
+				assert.equal(
+					cents(got?.[share] ?? 0),
+					(settled[scheme] ?? zero)[share],
+					`${scheme} year to date ${share}, each slip once`
+				);
+	}
+	// The case discriminates: billed PAID, each named EARNED scheme would come out differently.
+	if (discriminates.length > 0) {
+		const [paid] = await earlyPath(
+			true,
+			Object.fromEntries(discriminates.map((scheme) => [scheme, 'PAID']))
+		);
+		const asPaid = schemesOf(paid);
+		for (const scheme of discriminates) {
+			assert.equal(rule.get(scheme), 'EARNED', `${scheme} is declared EARNED`);
+			assert.notDeepEqual(
+				asPaid[scheme] ?? zero,
+				settled[scheme] ?? zero,
+				`${scheme} discriminates: billed PAID ${JSON.stringify(asPaid[scheme])}, EARNED ${JSON.stringify(settled[scheme])}`
+			);
+		}
+	}
+}
+
+for (const { code, name, period, semi } of CADENCES)
+	for (const [index, wage] of SETUP[code].wages.entries()) {
+		const at = `${name} × ${['low', 'middle', 'high'][index]} wage ${wage}`;
+		test(`${at}: leave and overtime recorded after the early settlement settle once, in the next period`, () =>
+			lateRecordsCase({ code, period, semi, wage }));
+		test(`${at}: an off-cycle bonus after the next period's late lines bills them once`, () =>
+			lateRecordsCase({ code, period, semi, wage, laterBonus: Math.round(wage * 0.5) }));
+	}
+
+// ── Late lines that cross a band edge, ceiling or bracket: EARNED and PAID would bill them differently ──
+
+test('SG CPF: late lines bill at the earned month’s age band (55 in March 2026, April’s is the 55–60 band), a later April bonus included', () =>
+	lateRecordsCase({
+		code: 'SG',
+		period: PERIOD,
+		wage: 6_000,
+		subject: { birth_date: '1971-03-05' },
+		laterBonus: 1_000,
+		discriminates: ['CPF']
+	}));
+
+test('SG CDAC: late lines take the paid month below $2,000 but not the earned month, bonus included', () =>
+	lateRecordsCase({
+		code: 'SG',
+		period: PERIOD,
+		wage: 2_050,
+		subject: { race: 'CHINESE' },
+		discriminates: ['CDAC']
+	}));
+
+test('SG ECF: late lines take the paid month below $2,500 but not the earned month, bonus included', () =>
+	lateRecordsCase({
+		code: 'SG',
+		period: PERIOD,
+		wage: 2_550,
+		subject: { race: 'EURASIAN' },
+		discriminates: ['ECF']
+	}));
+
+test('SG SINDA: late lines take the paid month below $2,500 but not the earned month, bonus included', () =>
+	lateRecordsCase({
+		code: 'SG',
+		period: PERIOD,
+		wage: 2_550,
+		subject: { race: 'INDIAN' },
+		discriminates: ['SINDA']
+	}));
+
+test('SG MBMF: late lines take the paid month below $3,000 but not the earned month, bonus included', () =>
+	lateRecordsCase({
+		code: 'SG',
+		period: PERIOD,
+		wage: 3_050,
+		subject: { race: 'MALAY', religion: 'ISLAM' },
+		discriminates: ['MBMF']
+	}));
+
+test('MY EPF, SOCSO, EIS: late lines cross table rows of the earned month, before the person turns 60 in the paid month, a later bonus included', () =>
+	lateRecordsCase({
+		code: 'MY',
+		period: PERIOD,
+		wage: 3_030,
+		subject: { birth_date: '1966-04-15' },
+		laterBonus: 1_000,
+		discriminates: ['EPF', 'SOCSO', 'EIS']
+	}));
+
+test('MY PCB near the RM35,000 bracket bills late lines with the paid month, EPF across RM100 rows with the earned month’s bonus', () =>
+	lateRecordsCase({
+		code: 'MY',
+		period: PERIOD,
+		wage: 4_030,
+		discriminates: ['EPF']
+	}));
+
+test('ID JP: late unpaid leave bills JP in the earned month, though the person reaches pension age 59 in the paid month, a later bonus included', () =>
+	lateRecordsCase({
+		code: 'ID',
+		period: PERIOD,
+		wage: 6_000_000,
+		subject: { birth_date: '1967-04-15' },
+		laterBonus: 1_000_000,
+		discriminates: ['JP']
+	}));

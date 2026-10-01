@@ -10,6 +10,7 @@
 
 	let { view }: { view: RecordView<'sales_invoices'> } = $props();
 	const t = bolt.t;
+	const record = $derived(view.mode === 'update' ? view.record : null);
 </script>
 
 {#snippet lines()}
@@ -46,5 +47,17 @@
 	editors={{ quote_id: parent }}
 	subtitle={['quote_id', 'status']}
 	tabs={[{ name: 'lines', title: t('component.lines'), body: lines }]}
-	fields={['quote_id', 'status', 'owner_id', 'cancel_reason']}
+	sections={[
+		{ name: 'invoice', title: t('section.invoice'), fields: ['quote_id', 'status', 'owner_id'] },
+		...(record
+			? [
+					{
+						name: 'cancellation',
+						title: t('section.cancellation'),
+						fields: ['cancel_reason'],
+						closed: record?.['cancel_reason'] || t('section.not_cancelled')
+					}
+				]
+			: [])
+	]}
 />

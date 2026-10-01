@@ -11,7 +11,10 @@ import { isRestLimit } from '../../../lib/datatypes/work_rules.js';
 import { refuse } from '../../../lib/refuse.js';
 import type { WorkspaceRow } from '../../../lib/rows.js';
 import type { PayrollWorld } from '../world.js';
-import type { Configuration } from './configuration.js';
+import { pickConfiguration, type Configuration } from './configuration.js';
+import { realignStatutoryFacts } from './statutory-facts.js';
+import { cents } from './rounding.js';
+import type { Id } from '@norbital-ai/bolt';
 import {
 	accumulateSettledPayslip,
 	sumAccumulations,
@@ -165,6 +168,10 @@ export type LateRecords = {
 	readonly workDays: readonly WorkDay[];
 	/** The late work days and leave entries: no payslip has taken them into account. */
 	readonly ids: ReadonlySet<string>;
+	/** That period's version, the registrations aligned to it, and its history: a `late_line_month: 'EARNED'` top-up bills there. */
+	readonly configuration: Configuration;
+	readonly statutoryFacts: readonly StatutoryFact[];
+	readonly prior: PriorSettlement;
 };
 
 export type GatheredRun = {
@@ -210,6 +217,8 @@ export type GatheredRun = {
 	/** `employee id:YYYY-MM` → what the month's earlier instalments settled and charged. */
 	readonly monthPrior: ReadonlyMap<string, MonthPrior>;
 	readonly companyMonthPrior?: CompanyMonthPrior | undefined;
+	/** The history a `late_line_month: 'EARNED'` scheme reads, where any slip holds a late line (`EarnedHistory`). */
+	readonly earned?: EarnedHistory | undefined;
 	/**
 	 * pay request id → what earlier runs took from it.
 	 *
@@ -373,7 +382,11 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			)
 			.map((run) => [run.id, run])
 	);
-	const lateRecords = (employment: Employment, payFrequency: PayFrequency): LateRecords | null => {
+	const lateRecords = (
+		employment: Employment,
+		payFrequency: PayFrequency,
+		statutoryFacts: readonly StatutoryFact[]
+	): LateRecords | null => {
 		if (earlyRuns.size === 0) return null;
 		const slip = live(world.payslips).find(
 			(row) => row.employment_id === employment.id && earlyRuns.has(row.payroll_run_id)
@@ -402,16 +415,25 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 				)
 				.map((row) => row.id)
 		]);
-		return ids.size === 0
-			? null
-			: {
-					window: lateWindow,
-					employedDays: settled.employedDays,
-					wageDays: settled.wageDays,
-					attendance: settled.attendance,
-					workDays,
-					ids
-				};
+		if (ids.size === 0) return null;
+		const lateConfiguration = pickConfiguration({ world, companyId, window: lateWindow });
+		return {
+			window: lateWindow,
+			employedDays: settled.employedDays,
+			wageDays: settled.wageDays,
+			attendance: settled.attendance,
+			workDays,
+			ids,
+			configuration: lateConfiguration,
+			statutoryFacts: realignStatutoryFacts(world, statutoryFacts, lateConfiguration),
+			prior: gatherPriorSettlement({
+				world,
+				configuration: lateConfiguration,
+				period: previous,
+				employeeIds: [employment.employee_id],
+				companyId
+			})
+		};
 	};
 	const employmentIds = employments.map((row) => row.id);
 	if (employmentIds.length === 0)
@@ -585,7 +607,7 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			attendance: settlement.attendance,
 			arrearsFor: settlement.arrearsFor,
 			deferral: settlement.deferral,
-			late: lateRecords(employment, cadence.payFrequency)
+			late: lateRecords(employment, cadence.payFrequency, statutoryFacts)
 		});
 	}
 	return { company: companyAccess, bundles, headcount, headcountCitizens, ...prior };
@@ -605,7 +627,81 @@ type GatherPriorSettlementOptions = {
 	readonly employeeIds: readonly string[];
 };
 
-type PriorSettlement = {
+/**
+ * Earlier payslips with every late line (`earned_period`) and the top-up charged for it in the period it was earned,
+ * not the period that paid it: what a `late_line_month: 'EARNED'` scheme's month, period and year read.
+ */
+export type EarnedHistory = {
+	readonly monthPrior: ReadonlyMap<string, MonthPrior>;
+	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
+	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
+};
+
+type StoredPayslip = PayrollWorld['payslips'][number];
+
+/**
+ * One payslip split by the period each part belongs to: the late lines and the EARNED top-ups charged for them go to
+ * their `earned_period`, the rest to the run's period. A slip with no late line is one part.
+ */
+function earnedParts(
+	slip: StoredPayslip,
+	period: string
+): { readonly slip: StoredPayslip; readonly period: string }[] {
+	const earned = new Set([
+		...slip.adjustments.flatMap((line) => (line.earned_period == null ? [] : [line.earned_period])),
+		...slip.statutory.flatMap((row) => (row.earned_period == null ? [] : [row.earned_period]))
+	]);
+	if (earned.size === 0) return [{ slip, period }];
+	const own: StoredPayslip = {
+		...slip,
+		adjustments: slip.adjustments.filter((line) => line.earned_period == null),
+		statutory: slip.statutory.map((row) =>
+			row.earned_period == null
+				? row
+				: {
+						...row,
+						base_amount: cents(row.base_amount - (row.earned_base_amount ?? 0)),
+						...(row.ordinary_amount == null
+							? {}
+							: {
+									ordinary_amount: cents(row.ordinary_amount - (row.earned_ordinary_amount ?? 0))
+								}),
+						employee_amount: cents(row.employee_amount - (row.earned_employee_amount ?? 0)),
+						employer_amount: cents(row.employer_amount - (row.earned_employer_amount ?? 0)),
+						rebate_amount: cents((row.rebate_amount ?? 0) - (row.earned_rebate_amount ?? 0))
+					}
+		)
+	};
+	return [
+		{ slip: own, period },
+		...[...earned].map((at) => ({
+			period: at,
+			slip: {
+				...slip,
+				// A part's own keys, so the readers keyed by run file it under its period.
+				id: `${slip.id}#${at}` as Id<'payslips'>,
+				payroll_run_id: `${slip.payroll_run_id}#${at}` as Id<'payroll_runs'>,
+				base: [],
+				proration: [],
+				adjustments: slip.adjustments.filter((line) => line.earned_period === at),
+				statutory: slip.statutory
+					.filter((row) => row.earned_period === at)
+					.map((row) => ({
+						scheme_code: row.scheme_code,
+						base_amount: row.earned_base_amount ?? 0,
+						...(row.earned_ordinary_amount == null
+							? {}
+							: { ordinary_amount: row.earned_ordinary_amount }),
+						employee_amount: row.earned_employee_amount ?? 0,
+						employer_amount: row.earned_employer_amount ?? 0,
+						rebate_amount: row.earned_rebate_amount ?? 0
+					}))
+			}
+		}))
+	];
+}
+
+export type PriorSettlement = {
 	readonly yearToDate: Map<
 		string,
 		{ employee: number; employer: number; base: number; ordinary: number; rebate?: number }
@@ -624,6 +720,7 @@ type PriorSettlement = {
 	readonly payslipWageMonths: Map<string, PayslipWageMonth[]>;
 	readonly monthPrior: Map<string, MonthPrior>;
 	readonly companyMonthPrior?: CompanyMonthPrior | undefined;
+	readonly earned?: EarnedHistory | undefined;
 	readonly consumedEntries: Map<string, number>;
 	readonly statutoryHistory: ReadonlyMap<string, readonly StatutoryPeriodHistory[]>;
 };
@@ -782,22 +879,67 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 		}
 	}
 
+	const history = prepareFamilyHistory({
+		world,
+		payslips: priorPayslips,
+		inTaxYear,
+		employmentToEmployee,
+		periodByRun,
+		traceByRun: new Map(priorRuns.map((run) => [run.id, run.calculation_trace])),
+		catalogueComponents: options.configuration.catalogueComponents
+	});
+	const lastYear = contributionYearToDate({
+		payslips: priorPayslips,
+		inTaxYear: inLastTaxYear,
+		employmentToEmployee
+	});
+	// A late line and its EARNED top-up belong to the period they were earned in: a later run's slip can hold a part
+	// of this period or an earlier one, and this period's slip an earlier period's. The year to date counts each
+	// part in its own tax year; the EARNED schemes read the month and the year so split.
+	const companyRuns = new Map(
+		world.payroll_runs
+			.filter((run) => run.company_id === options.companyId)
+			.map((run) => [run.id, run.period])
+	);
+	const parts = world.payslips
+		.filter(
+			(slip) => companyRuns.has(slip.payroll_run_id) && employmentToEmployee.has(slip.employment_id)
+		)
+		.flatMap((slip) => earnedParts(slip, companyRuns.get(slip.payroll_run_id)!))
+		.filter((part) => part.period <= options.period);
+	if (parts.every((part) => !part.slip.id.includes('#')))
+		return { companyMonthPrior, ...history, lastYear, firstYear };
+	const split = parts.map((part) => part.slip);
+	const splitPeriod = new Map(parts.map((part) => [part.slip.payroll_run_id, part.period]));
+	const inYear = (year: string) =>
+		new Set(
+			parts
+				.filter((part) => taxYearOf(part.period, startMonth) === year)
+				.map((part) => part.slip.payroll_run_id)
+		);
+	const earnedHistory = prepareFamilyHistory({
+		world,
+		payslips: split,
+		inTaxYear: inYear(taxYearOf(options.period, startMonth)),
+		employmentToEmployee,
+		periodByRun: splitPeriod,
+		traceByRun: new Map(),
+		catalogueComponents: options.configuration.catalogueComponents
+	});
 	return {
 		companyMonthPrior,
-		...prepareFamilyHistory({
-			world,
-			payslips: priorPayslips,
-			inTaxYear,
-			employmentToEmployee,
-			periodByRun,
-			traceByRun: new Map(priorRuns.map((run) => [run.id, run.calculation_trace])),
-			catalogueComponents: options.configuration.catalogueComponents
-		}),
+		...history,
+		yearToDate: earnedHistory.yearToDate,
 		lastYear: contributionYearToDate({
-			payslips: priorPayslips,
-			inTaxYear: inLastTaxYear,
+			payslips: split,
+			inTaxYear: inYear(lastTaxYear),
 			employmentToEmployee
 		}),
-		firstYear
+		firstYear,
+		earned: {
+			monthPrior: earnedHistory.monthPrior,
+			earnedByMonth: earnedHistory.earnedByMonth,
+			yearEarned: earnedHistory.yearEarned
+		}
 	};
 }

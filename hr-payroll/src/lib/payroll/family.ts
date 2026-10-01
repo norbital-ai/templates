@@ -197,6 +197,8 @@ export type MeasuredAdjustment = PricedItem & {
 	readonly input: MeasuredInput;
 	/** The stable key of the statutory rule that priced a work-day input. Null on every other row. */
 	readonly statutoryRuleKey: string | null;
+	/** A late line's own period (`bundle.late`): recorded after that period was settled early. */
+	readonly earnedPeriod?: string | undefined;
 	readonly quantity: number | null;
 	readonly rate: number | null;
 };
@@ -214,6 +216,8 @@ type CapturedInputs = {
 
 export type MeasuredEmployment = {
 	readonly bundle: EmploymentBundle;
+	/** The previous period measured with its late records (`bundle.late`), where this slip pays them. */
+	readonly lateMonth?: MeasuredEmployment | undefined;
 	/** The contracted amounts. One entry per component, never one per terms row. */
 	readonly base: readonly MeasuredBase[];
 	/**
