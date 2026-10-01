@@ -1408,9 +1408,9 @@ register(
 	{
 		...jan21750(
 			'CN-N40-1',
-			'Labour Law art.41 on the production path, January 2026: approving 4 extended hours on one day is refused (3 a day); twelve weekdays of 3 approved hours reach the 36-hour month, and a thirteenth approval is refused. The 36 approved hours are paid at 150%.',
+			'Labour Law art.41 on the production path, January 2026: twelve weekdays of 3 approved hours (3 a day) reach the 36-hour month. The 36 approved hours are paid at 150%.',
 			[
-				'Labour Law art.41 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): 延长工作时间一般每日不得超过一小时；因特殊原因…每日不得超过三小时，但是每月不得超过三十六小时 (seeded `daily_ot` 3, `monthly_ot` 36; CN-N40). The work-day write refuses approved overtime above the headroom (the schedule gate).',
+				'Labour Law art.41 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): 延长工作时间一般每日不得超过一小时；因特殊原因…每日不得超过三小时，但是每月不得超过三十六小时 (seeded `daily_ot` 3, `monthly_ot` 36; CN-N40).',
 				'Labour Law art.44(1): 150% of the 21.75-day hour 21,750 ÷ 21.75 ÷ 8 = 125 (CN-N02): 36 × 187.50 = 6,750.',
 				'IIT: 28,500 − 4,850.25 − 5,000 = 18,649.75 × 3% = 559.4925 → 559.49. Net 28,500 − 5,409.74 = 23,090.26.'
 			],
@@ -1427,19 +1427,6 @@ register(
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'w', name: 'Worker CN-N40-1', wage: 21750 }),
-			{
-				...punch(
-					'w',
-					'2026-01-05',
-					[
-						['09:00', '13:00'],
-						['14:00', '22:00']
-					],
-					4
-				),
-				refused:
-					'is refused: 2026-01-05 would hold 4 h of approved overtime, above the 3 h left within the 3-hour limit "daily_ot"'
-			},
 			...['05', '06', '07', '08', '09', '12', '13', '14', '15', '16', '19', '20'].map((day) =>
 				punch(
 					'w',
@@ -1450,20 +1437,7 @@ register(
 					],
 					3
 				)
-			),
-			{
-				...punch(
-					'w',
-					'2026-01-21',
-					[
-						['09:00', '13:00'],
-						['14:00', '21:00']
-					],
-					3
-				),
-				refused:
-					'is refused: 2026-01-21 would hold 3 h of approved overtime, above the 0 h left within the 36-hour limit "monthly_ot"'
-			}
+			)
 		]
 	},
 	{

@@ -2812,7 +2812,7 @@ register(
 	th({
 		id: 'TH-WORK-07-6',
 		description:
-			'Four company holidays 5–8 January 2026 each worked nine hours (36 hours of holiday work and holiday overtime) fill the week’s 36-hour ceiling, so three overtime hours on Friday 9 January are refused at entry; the four holidays are paid: 4 × (800 + 300) = 4,400.',
+			'Four company holidays 5–8 January 2026 each worked nine hours (36 hours of holiday work and holiday overtime) fill the week’s 36-hour ceiling; the four holidays are paid: 4 × (800 + 300) = 4,400.',
 		citation: [
 			`LPA s.26 and Ministerial Regulation No.3 B.E.2541 cl.3 (${LPA}): overtime, holiday work and holiday overtime together at most 36 hours a week.`,
 			`LPA ss.62(1), 63, 68: 8 × 100 + 1 × 300 a holiday on THB24,000.`,
@@ -2826,12 +2826,7 @@ register(
 			...person({ ref: 'capot', wage: 24_000 }),
 			...['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08'].map((date) =>
 				workDay('capot', date, NINE_HOURS, 9)
-			),
-			{
-				...workDay('capot', '2026-01-09', LONG_DAY, 3),
-				refused:
-					'2026-01-09 would hold 3 h of approved overtime, above the .* h left within the 36-hour limit "combined_overtime_holiday_week"'
-			}
+			)
 		],
 		period: '2026-01',
 		expected: [
@@ -3749,7 +3744,7 @@ register(
 	th({
 		id: 'TH-WORK-03-4',
 		description:
-			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, so the run is refused.',
+			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, which the run pays and reports as a warning (owner’s rule 2026-10-01: a statutory limit never refuses).',
 		citation: [
 			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a normal day above eight hours only within 48 normal hours a week.',
 			`LPA s.23 (${LPA}): normal hours at most 48 a week.`
@@ -3766,9 +3761,16 @@ register(
 			...guardWeek('g60', ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'])
 		],
 		period: '2026-10',
-		refused:
-			'P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"',
-		expected: []
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"'
+		],
+		// GAP (TH-WORK-03): the 12 hours beyond the 48-hour week are not yet priced as overtime (LPA s.61).
+		expected: [
+			{
+				employment: 'g60_job',
+				lines: { gross: 24_000, BASIC: 24_000, 'SSO.employee': 875, 'SSO.employer': 875 }
+			}
+		]
 	})
 );
 
