@@ -6,6 +6,19 @@ This is an empty Norbital workspace: one starter collection (`notes`, read-only)
 automations. It is the starting point for building a workspace from scratch with the workspace
 agent.
 
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Blank
+
+![Blank: Blank](docs/images/current-home.png)
+
+[All application screens](docs/README.md#current-screenshots).
+<!-- current-screenshots:end -->
+
 ## What "blank" means
 
 - `src/` holds the workspace declaration (`src/+workspace.ts`), the agent brief
