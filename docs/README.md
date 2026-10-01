@@ -40,9 +40,10 @@ types** and the **BIM reference matrix** sit beside the projects and feed them.
 
 ![Projects](images/01-projects.png)
 
-Every project with its number, client, status and programme. **New** opens a project form: name,
-number, client, main contractor, status, programme, currency and contract value, type, address,
-project manager and description. Open a row for the project record.
+Every project with its number, client, status and programme. **New** opens a project form: the
+**Project** section (name, number, client, main contractor, status, type, project manager) and
+**Schedule and value** (programme, currency, contract value) are open; **Address** and
+**Description** start collapsed. Open a row for the project record.
 
 ### Project record
 
@@ -99,8 +100,9 @@ The worker roster: name, number, trade, status (**Active**, **Inactive**, **Susp
 
 ![A worker's record](images/08-worker-record.png)
 
-A worker's record also keeps date of birth, nationality, work permit expiry, medical check date,
-and safety induction date.
+A worker's record opens on the worker and their **Compliance** dates (work permit expiry, medical
+check, safety induction). **Contact** (phone, email) and **Personal details** (date of birth,
+nationality) start collapsed, each showing its first value.
 
 ### Certifications
 

@@ -5,7 +5,7 @@
 	 * one form.
 	 */
 	import { bolt } from '$bolt';
-	import { Field } from '@norbital-ai/ui';
+	import { Field, Section } from '@norbital-ai/ui';
 	import { Show } from '@norbital-ai/ui';
 	import { Bound, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import type { Q } from '@norbital-ai/bolt';
@@ -371,8 +371,35 @@
 	</RecordShell>
 {:else}
 	<RecordForm {view}>
-		{#each ['project_name', 'project_number', 'client', 'main_contractor', 'status', 'schedule_range', 'currency', 'contract_value', 'project_type', 'address', 'project_manager', 'description'] as name (name)}
-			<Field {name} />
-		{/each}
+		<Section first name="project" title={t('section.project')}>
+			<Grid minimum="compact">
+				{#each ['project_name', 'project_number', 'client', 'main_contractor', 'status', 'project_type', 'project_manager'] as name (name)}
+					<Field {name} />
+				{/each}
+			</Grid>
+		</Section>
+		<Section name="schedule_and_value" title={t('section.schedule_and_value')}>
+			<Grid minimum="compact">
+				<Field name="schedule_range" />
+				<Field name="currency" />
+				<Field name="contract_value" />
+			</Grid>
+		</Section>
+		<Section
+			name="address"
+			title={t('section.address')}
+			defaultOpen={false}
+			summary={t('component.not_set')}
+		>
+			<Field name="address" />
+		</Section>
+		<Section
+			name="description"
+			title={t('section.description')}
+			defaultOpen={false}
+			summary={t('section.no_description')}
+		>
+			<Field name="description" />
+		</Section>
 	</RecordForm>
 {/if}
