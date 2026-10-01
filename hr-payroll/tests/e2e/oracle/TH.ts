@@ -388,10 +388,7 @@ export function computePayslip(sc: Scenario): Payslip {
 	}
 	if (premium > 0) lines.OVERTIME = { amount: r2(premium) };
 	if (sc.bonus > 0) lines.BONUS = { amount: sc.bonus }; // LPA s.5: no statutory bonus; a paid one is income
-	special = ['OVERTIME', 'BONUS'].reduce(
-		(s, k) => s + (lines[k]?.amount ?? 0),
-		0
-	);
+	special = ['OVERTIME', 'BONUS'].reduce((s, k) => s + (lines[k]?.amount ?? 0), 0);
 
 	// ---- exit (LPA ss.17, 17/1, 67, 118–122) ----
 	let severance = 0;

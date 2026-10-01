@@ -422,7 +422,8 @@ export function computePayslip(sc: Scenario): Payslip {
 		// fraction is kept to the thousandth of a day a leave entry stores (`encash_days` scale 3), never rounded up.
 		const untaken = Math.max(
 			0,
-			Math.floor(((12 + Math.floor(fullYears / 5)) * months * 1000) / 12 + EPS) / 1000 - x.leaveTaken
+			Math.floor(((12 + Math.floor(fullYears / 5)) * months * 1000) / 12 + EPS) / 1000 -
+				x.leaveTaken
 		);
 		if (untaken > 0) {
 			// D145 art.67(3): the contract wage of the month before the exit month; DEFAULT (VN-LC113-03) ÷ its normal

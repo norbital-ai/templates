@@ -567,7 +567,8 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 		for (const x of s.earlier) {
 			const bonus = cents(x.bonus ?? 0);
 			window.leave += bonus;
-			window.sev += bonus + (x.overtime ? ((o) => o.pay + o.incentive)(overtimePay(W, x.overtime)) : 0n);
+			window.sev +=
+				bonus + (x.overtime ? ((o) => o.pay + o.incentive)(overtimePay(W, x.overtime)) : 0n);
 		}
 	}
 	const floorAvg = (sum: bigint): Q =>

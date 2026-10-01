@@ -642,8 +642,7 @@ function month(
 					0,
 					Math.floor((days / 365) * full + 1e-9) - (e.leaveTakenThisYear ?? 0)
 				);
-				if (owed > 0)
-					add('ANNUAL_LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
+				if (owed > 0) add('ANNUAL_LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
 			}
 		}
 		// Retirement lump sums (CN-N39.early-retirement, CN-N39.internal-retirement): taxed apart below.

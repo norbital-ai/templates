@@ -357,7 +357,9 @@ async function wave2(
 			{ company_id: { eq: companyId } },
 			undefined,
 			Object.fromEntries(
-				Object.entries(everyField('payroll_runs')).filter(([field]) => field !== 'calculation_trace')
+				Object.entries(everyField('payroll_runs')).filter(
+					([field]) => field !== 'calculation_trace'
+				)
 			)
 		)
 	]);

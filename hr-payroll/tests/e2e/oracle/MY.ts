@@ -459,7 +459,10 @@ export function computePayslip(s: Scenario): Expected {
 			if (unpaid)
 				earn(
 					'UNPAID_LEAVE',
-					r2((e.rate * eligible) / dim) + r2((e.fixedAllowance * eligible) / dim) - basic - allowance
+					r2((e.rate * eligible) / dim) +
+						r2((e.fixedAllowance * eligible) / dim) -
+						basic -
+						allowance
 				);
 			out.branches.push(
 				`s18A:${from > first ? 'a-joiner' : ''}${to < last ? 'b-leaver' : ''}${unpaid ? 'c-unpaid' : ''}`
