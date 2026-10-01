@@ -15,6 +15,19 @@ server-enforced document lifecycles, revision-safe quoting, snapshot line items,
 that holds up to reconciliation, a cost-secrecy boundary drawn by policy omission, and idempotent
 master-data imports keyed on the external system's own codes.
 
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Sales
+
+![CRM: Sales](docs/images/current-crm-desk.png)
+
+[All application screens](docs/README.md#current-screenshots).
+<!-- current-screenshots:end -->
+
 ## The mental model
 
 ```
