@@ -1,12 +1,35 @@
 <script lang="ts">
 	/** A customer's profile, with their bookings and the notices sent to them. */
 	import { bolt } from '$bolt';
-	import type { RecordView } from '@norbital-ai/ui';
+	import type { RecordSection, RecordView } from '@norbital-ai/ui';
 	import { RecordShell, Table } from '@norbital-ai/ui';
+	import { excerpt } from '../../../lib/summary.js';
 
 	let { view }: { view: RecordView<'customers'> } = $props();
 	const t = bolt.t;
 	const record = $derived(view.mode === 'update' ? view.record : null);
+	// who they are and where the work is stay open; notes and the map pin fold away
+	const sections: RecordSection[] = [
+		{
+			name: 'customer',
+			title: t('models.customers.singular'),
+			fields: ['name', 'phone', 'email', 'address', 'area']
+		},
+		{
+			name: 'notes',
+			title: t('section.notes'),
+			fields: ['notes'],
+			defaultOpen: false,
+			summary: (r) => excerpt(r.notes) || t('summary.no_notes')
+		},
+		{
+			name: 'map',
+			title: t('section.map'),
+			fields: ['location'],
+			defaultOpen: false,
+			summary: (r) => (r.location == null ? t('summary.not_set') : t('summary.pinned'))
+		}
+	];
 </script>
 
 {#snippet bookings()}
@@ -31,12 +54,18 @@
 {/snippet}
 
 {#if record === null}
-	<RecordShell of="customers" mode="create" values={view.mode === 'create' ? view.values : {}} />
+	<RecordShell
+		of="customers"
+		mode="create"
+		values={view.mode === 'create' ? view.values : {}}
+		{sections}
+	/>
 {:else}
 	<RecordShell
 		of="customers"
 		id={record.id}
 		title={record.name}
+		{sections}
 		tabs={[
 			{
 				name: 'bookings',
