@@ -251,6 +251,17 @@ export type ContributionCharge = {
 		readonly ordinary?: number | undefined;
 		readonly inputs: readonly ContributionLine[];
 	}[];
+	/** The part of this charge that tops up the late lines' earned period (`late_line_month: 'EARNED'`). */
+	readonly lateTopUp?:
+		| {
+				readonly period: string;
+				readonly base: number;
+				readonly ordinary?: number | undefined;
+				readonly employee: number;
+				readonly employer: number;
+				readonly rebate?: number | undefined;
+		  }
+		| undefined;
 };
 
 /** Everything a scheme's expressions read about the person, the period and the year. */
@@ -389,6 +400,25 @@ type ContributeInput = SchemeAssessment & {
 	readonly contributions: readonly ContributionConfig[];
 	/** Each contract's own accumulation, where several are charged together. */
 	readonly parts?: readonly AccumulatedPayslip[] | undefined;
+	/**
+	 * What a `late_line_month: 'EARNED'` scheme reads instead: the history with every late line and its top-up in the
+	 * period it was earned (`earned_period`), and this slip less its own late lines. Absent, it reads the rest.
+	 */
+	readonly earnedView?:
+		| (Partial<
+				Pick<
+					SchemeAssessment,
+					'monthPrior' | 'periodPrior' | 'earnedByMonth' | 'yearEarned' | 'yearToDate'
+				>
+		  > & { readonly accumulation?: AccumulatedPayslip })
+		| undefined;
+	/**
+	 * This slip's late lines billed in their earned period, by scheme code: bill(that period + the lines) −
+	 * bill(that period). An EARNED scheme adds its top-up to this slip's charge and records it (`lateTopUp`).
+	 */
+	readonly lateTopUps?:
+		| { readonly period: string; readonly charges: ReadonlyMap<string, ContributionCharge> }
+		| undefined;
 };
 
 /** Everything one scheme produced, so the schemes that read it can find it. */
@@ -1416,22 +1446,27 @@ export function closesWindow(
 		: into % 3 === 2;
 }
 
-export function contribute(input: ContributeInput): ContributionCharge[] {
+export function contribute(given: ContributeInput): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
 	const assessmentFrequency: AssessmentFrequency =
-		input.period.instalments >= 4
+		given.period.instalments >= 4
 			? 'WEEKLY'
-			: input.period.instalments === 2
+			: given.period.instalments === 2
 				? 'SEMI_MONTHLY'
 				: 'MONTHLY';
 	const produced = new Map<string, Produced>();
 	const monthlyProduced = new Map<string, Produced>();
 	const byCode = new Map(
-		input.contributions.map((contribution) => [contribution.row.code, contribution])
+		given.contributions.map((contribution) => [contribution.row.code, contribution])
 	);
+	const earnedInput: ContributeInput | undefined =
+		given.earnedView == null ? undefined : { ...given, ...given.earnedView };
 
-	for (const contribution of input.contributions) {
+	for (const contribution of given.contributions) {
 		const code = contribution.row.code;
+		const earned = contribution.row.late_line_month === 'EARNED';
+		const topUp = earned ? given.lateTopUps?.charges.get(code) : undefined;
+		const input = earned ? (earnedInput ?? given) : given;
 		// A COMPANY-scope scheme is charged once on the run, after every employment scheme; it is
 		// nobody's payslip.
 		if (
@@ -1626,6 +1661,13 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			lines: readonly ContributionLine[] = evaluated.selected,
 			rebate = 0
 		) => {
+			if (topUp != null) {
+				employee = cents(employee + topUp.employee, input.currency);
+				employer = cents(employer + topUp.employer, input.currency);
+				chargeBase = cents(chargeBase + topUp.base, input.currency);
+				rebate = cents(rebate + (topUp.rebate ?? 0), input.currency);
+				lines = [...lines, ...topUp.inputs];
+			}
 			produced.set(code, {
 				base,
 				employee,
@@ -1648,12 +1690,29 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				base: chargeBase,
 				...(ordinary == null
 					? {}
-					: { ordinary: cents(ordinary * share - (already?.ordinary ?? 0), input.currency) }),
+					: {
+							ordinary: cents(
+								ordinary * share - (already?.ordinary ?? 0) + (topUp?.ordinary ?? 0),
+								input.currency
+							)
+						}),
 				employee,
 				employer,
 				rebate,
 				ruleReference,
 				...(remittanceRounding == null ? {} : { remittanceRounding }),
+				...(topUp == null || given.lateTopUps == null
+					? {}
+					: {
+							lateTopUp: {
+								period: given.lateTopUps.period,
+								base: topUp.base,
+								...(topUp.ordinary == null ? {} : { ordinary: topUp.ordinary }),
+								employee: topUp.employee,
+								employer: topUp.employer,
+								rebate: topUp.rebate ?? 0
+							}
+						}),
 				...(warnings.size === 0 ? {} : { warnings: [...warnings] }),
 				...(status?.kind === 'REGISTERED' && status.first_contribution_due_on != null
 					? { firstContributionDueOn: status.first_contribution_due_on }
@@ -1792,15 +1851,15 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				: residency.rule;
 		if (rule == null) {
 			if (ordinary != null) ordinary = 0;
-			if (already != null)
+			if (already != null || topUp != null)
 				charge(
-					-already.employee,
-					-already.employer,
+					-(already?.employee ?? 0),
+					-(already?.employer ?? 0),
 					null,
-					-already.base,
+					-(already?.base ?? 0),
 					[],
 					evaluated.selected,
-					-(already.rebate ?? 0)
+					-(already?.rebate ?? 0)
 				);
 			// No rule matches: the scheme charges nothing and appears on no payslip, but a consumer
 			// that names it reads zero rather than a missing row.

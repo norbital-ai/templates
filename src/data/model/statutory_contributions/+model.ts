@@ -35,6 +35,12 @@ export default model({
 		 * submitted with CPF are floored, foreign employees' levy is paid as it is).
 		 */
 		remittance_rounding_when: { kind: 'text', default: '' },
+		/**
+		 * The month a late line is billed in: a record dated in a month already settled early, paid as a `(YYYY-MM)`
+		 * line of the next period. EARNED: a top-up of its earned month's bill — bill(that month + the line) −
+		 * bill(that month), under that month's version — charged on the new slip. PAID: with the month it is paid in.
+		 */
+		late_line_month: { kind: 'enum', values: ['EARNED', 'PAID'], default: 'PAID' },
 		/** How an explicit NOT_REGISTERED fact affects liability when its legal meaning is known. */
 		unregistered_action: { kind: 'enum', values: ['SKIP', 'ASSESS', 'REFUSE'], default: 'REFUSE' },
 		/** COMPANY: this scheme reads employer facts and ignores per-employment registration rows. */

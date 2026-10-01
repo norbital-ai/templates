@@ -3763,10 +3763,13 @@ register(
 	th({
 		id: 'TH-WORK-03-4',
 		description:
-			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, which the run pays and reports as a warning (owner’s rule 2026-10-01: a statutory limit never refuses).',
+			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, so the 12 beyond are overtime, taken from the latest day (Friday 30 October), and the run reports the breach as a warning (owner’s rule 2026-10-01: a statutory limit never refuses).',
 		citation: [
-			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a normal day above eight hours only within 48 normal hours a week.',
-			`LPA s.23 (${LPA}): normal hours at most 48 a week.`
+			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a normal day above eight hours only within 48 normal hours a week; a guard’s workday overtime at 1.25× the hourly rate.',
+			`LPA ss.23, 61, 68 (${LPA}): normal hours at most 48 a week; work beyond the normal hours is overtime; hourly rate 24,000 ÷ (30 × 8) = 100.`,
+			'60 − 48 = 12 overtime hours × 100 × 1.25 = 1,500; gross 25,500.',
+			`${SSA}: overtime is outside the wage, 875 each side. ${P96}: 289,500 − 100,000 − 60,000 − 10,500 = 119,000 → nil.`,
+			'Net 25,500 − 875 = 24,625.'
 		],
 		inputs: [
 			guardTwelve,
@@ -3783,11 +3786,16 @@ register(
 		warnings: [
 			'STATUTORY_LIMIT_EXCEEDED: P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"'
 		],
-		// GAP (TH-WORK-03): the 12 hours beyond the 48-hour week are not yet priced as overtime (LPA s.61).
 		expected: [
 			{
 				employment: 'g60_job',
-				lines: { gross: 24_000, BASIC: 24_000, 'SSO.employee': 875, 'SSO.employer': 875 }
+				lines: {
+					gross: 25_500,
+					net: 24_625,
+					BASIC: 24_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
 			}
 		]
 	})

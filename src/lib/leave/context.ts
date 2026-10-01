@@ -923,7 +923,7 @@ export function leaveRules(
 			readonly earned: number | null;
 			readonly available: number | null;
 			readonly automaticCarryFrom: LeaveWindow | null;
-			/** The most of this year's unused days that carry into the next (`carry_max_days`). */
+			/** The most of this year's unused days that carry into the next: `carry_max_days`, plus the year's `carry_statutory_bands` days. */
 			readonly carryMax: number | null;
 		}
 	>();
@@ -1189,18 +1189,36 @@ export function leaveRules(
 				: null;
 		if (previousWindow != null && previousWindow.end !== previousEnd)
 			refuse('A changed leave-year anchor needs prior credit reconciled before carry.');
+		const cap =
+			rule.carry_max_days == null
+				? null
+				: Predicate.isString(rule.carry_max_days)
+					? Math.max(0, evaluatePersonNumber(rule.carry_max_days, personOn(asOf)))
+					: rule.carry_max_days;
+		// The statute's own days of the year carry in full beside the cap (`carry_statutory_bands`).
+		const statutoryCarry =
+			cap == null || rule.carry_statutory_bands == null
+				? 0
+				: (computedEntitlement({
+						rule: { ...rule, bands: rule.carry_statutory_bands },
+						window,
+						asOf,
+						hireDate: hire,
+						exitDate: exit,
+						servedOn,
+						eligibleOn: grantedOn,
+						personOn: (day) => servicePersonOn(day, false),
+						serviceExcludedOn: netService ? (day) => noPayDays.get(day) ?? 0 : undefined,
+						hourlyBasisOn,
+						normalWorkingDayOn
+					}).earned ?? 0);
 		const result = {
 			...entitlement,
 			entitlement: lost ? 0 : entitlement.entitlement,
 			earned: lost ? 0 : entitlement.earned,
 			available: lost ? 0 : entitlement.available,
 			automaticCarryFrom: previousWindow,
-			carryMax:
-				rule.carry_max_days == null
-					? null
-					: Predicate.isString(rule.carry_max_days)
-						? Math.max(0, evaluatePersonNumber(rule.carry_max_days, personOn(asOf)))
-						: rule.carry_max_days
+			carryMax: cap == null ? null : cap + statutoryCarry
 		};
 		amounts.set(key, result);
 		return result;
