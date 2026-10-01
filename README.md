@@ -16,6 +16,19 @@ This is an executable Bolt template, not a production-operations manual. Start w
 [apps](#apps-and-policies), [automations](#daily-operational-watches), and
 [verification](#changing-the-template) sections when changing it.
 
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Projects
+
+![Construction Operations: Projects](docs/images/current-construction_project_workspace-projects.png)
+
+[All application screens](docs/README.md#current-screenshots).
+<!-- current-screenshots:end -->
+
 ## Operating model
 
 1. Establish a **project**, its **site locations** (work fronts), and BIM reference context.

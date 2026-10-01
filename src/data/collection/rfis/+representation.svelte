@@ -14,7 +14,9 @@
 		<Grid minimum="compact">
 			<Field name="rfi_number" />
 			<Field name="title" />
-			<RefField name="project_id" ref="project" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
 			<Field name="status" />
 			<Field name="priority" />
 			<Field name="asked_by" />

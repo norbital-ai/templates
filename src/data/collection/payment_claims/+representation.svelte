@@ -14,8 +14,12 @@
 	<Section first name="claim" title={t('section.claim')}>
 		<Grid minimum="compact">
 			<Field name="claim_number" />
-			<RefField name="project_id" ref="project" />
-			<RefField name="job_id" ref="job" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.job_id == null}
+				<RefField name="job_id" ref="job" />
+			{/if}
 			<Field name="claim_type" />
 			<Field name="status" />
 		</Grid>

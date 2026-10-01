@@ -16,8 +16,12 @@
 		<Grid minimum="compact">
 			<Field name="title" />
 			<Field name="document_number" />
-			<RefField name="project_id" ref="project" />
-			<RefField name="site_location_id" ref="site" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.site_location_id == null}
+				<RefField name="site_location_id" ref="site" />
+			{/if}
 			<Field name="document_type" />
 			<Field name="status" />
 			<Field name="version" />
