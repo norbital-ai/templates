@@ -2249,6 +2249,8 @@ function contributionAssessment(options: {
 	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
 	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
 	readonly monthPrior?: MonthPrior | undefined;
+	/** At a semi-monthly or weekly cadence, what this pay period's earlier payslips settled and charged. */
+	readonly periodPrior?: MonthPrior | undefined;
 	/** The person's saved past, for `history.*` in a scheme's expressions; absent refuses a read. */
 	readonly history?: HistoryAccess | undefined;
 	/** The entity's employments over the tax year, for `company.*` aggregates; absent refuses a read. */
@@ -2347,7 +2349,8 @@ function contributionAssessment(options: {
 	let cumulativeHistory: ReadonlyMap<string, StatutoryHistorySummary> | null = null;
 	const historyFor = (code: string): StatutoryHistorySummary | undefined => {
 		cumulativeHistory ??= summarizeHistory({
-			periods: options.statutoryHistory,
+			// This period's earlier payslips are not history: a true-up prices them with this one.
+			periods: options.statutoryHistory.filter((entry) => entry.period !== bundle.window.period),
 			openings: new Map(
 				configuration.contributions.flatMap((scheme) => {
 					const opening = openingFor(scheme.row.code);
@@ -2591,6 +2594,7 @@ function contributionAssessment(options: {
 				long: configuration.jurisdiction.payroll.trailing_wage_long_months ?? null
 			},
 			monthPrior: options.monthPrior,
+			periodPrior: options.periodPrior,
 			monthlyContributionDays: measured.monthlyContributionDays,
 			componentsByCode: new Map(
 				configuration.catalogueComponents.map((component) => [

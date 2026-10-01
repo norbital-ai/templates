@@ -2067,7 +2067,7 @@ const OBLIGATION_CONTEXT: ExpressionContext = {
 		{ path: 'run.employer_cost', description: 'RUN_FINALISED: the run’s employer cost' },
 		{
 			path: 'run.kind',
-			description: 'RUN_FINALISED: REGULAR | OFF_CYCLE | FINAL | CORRECTION'
+			description: 'RUN_FINALISED: REGULAR | OFF_CYCLE | EARLY | FINAL | CORRECTION'
 		},
 		{
 			path: 'run.sequence',

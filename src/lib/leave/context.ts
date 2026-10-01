@@ -220,6 +220,7 @@ export type LeaveContext = {
 		readonly id: string;
 		readonly company_id: string;
 		readonly period: string;
+		readonly kind?: string | null;
 		readonly attendance_from: string;
 		readonly attendance_to: string;
 	}[];

@@ -73,7 +73,13 @@ export function matches(tables, model, row, where) {
 			const parent = (tables[target] ?? []).find((candidate) => candidate.id === row[key]);
 			return parent != null && matches(tables, target, parent, clause.is);
 		}
-		return matchOps(row[key], clause);
+		// A reference field (`{ collection, id }`) is filtered by its target collection: `{ employment_terms: { in } }`.
+		const value = row[key];
+		if (value?.collection != null && 'id' in value && clause && typeof clause === 'object')
+			return Object.entries(clause).every(
+				([collection, ops]) => value.collection === collection && matchOps(value.id, ops)
+			);
+		return matchOps(value, clause);
 	});
 }
 

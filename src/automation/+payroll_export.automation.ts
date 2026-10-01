@@ -28,6 +28,7 @@ import { refuse } from '../lib/refuse.js';
 import { dateKey } from '../lib/iso-day.js';
 import { resolveWindow } from '../lib/payroll/run/period.js';
 import type { WorkspaceRow } from '../lib/rows.js';
+import { combineCycleSheets } from '../lib/pay-cycles.js';
 
 /** The artefacts, in the order the payroll page offers them. */
 const KINDS = [
@@ -319,7 +320,11 @@ payroll_export.run(async ({ ids, kind, codes, authorised_person, submission, sub
 		});
 	}
 
-	const sheets = exports.filter((run) => run.payslips.length > 0);
+	// A pay cycle's runs share one sheet per period: each payslip listed once, no sheet name asked for twice.
+	const sheets = combineCycleSheets(
+		exports.filter((run) => run.payslips.length > 0),
+		(runId) => runs.find((row) => row.id === runId)!.company_id
+	);
 	const label = sheets.length === 1 ? sheets[0]!.period : `${sheets.length}_runs`;
 	const periods = sheets.map((run) => run.period);
 	const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

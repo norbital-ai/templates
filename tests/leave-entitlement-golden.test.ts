@@ -386,13 +386,13 @@ test('Philippines — service incentive leave and the special statutory leaves',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// Singapore — Employment Act 1968 ss.43 and 89; the Child Development Co-Savings Act. Three
-// sealed versions, and the 1 April 2026 one exists for exactly one change: shared parental leave.
+// Singapore — Employment Act 1968 ss.43 and 89; the Child Development Co-Savings Act. Four
+// sealed versions; shared parental leave is keyed to the child's birth date, so 1 April 2026 is none.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('Singapore — the service ladders and the family schemes, on all five sealed versions', () => {
-	// 1 July 2026 moves the retirement ages alone; its leave rows are clones of 1 April's.
-	for (const version of [0, 1, 2, 3, 4]) {
+test('Singapore — the service ladders and the family schemes, on all four sealed versions', () => {
+	// 1 July 2026 moves the retirement ages alone; its leave rows are clones of 1 January's.
+	for (const version of [0, 1, 2, 3]) {
 		// s.43(1): seven days in the first year, one more a year to fourteen — after three months.
 		// Seventy months is the "sixty or more" rung, twelve days, not the seventy-two-month thirteen.
 		assert.deepEqual(ladder('SG', version, 'ANNUAL_LEAVE'), [7, 9, 12]);
@@ -506,13 +506,13 @@ test('Singapore — the service ladders and the family schemes, on all five seal
 			null
 		]);
 	}
-	// The whole point of the 1 April 2026 version: shared parental leave goes from six weeks to ten.
+	// Shared parental leave goes from six weeks to ten for a child born from 1 April 2026.
 	// A married father qualifies; a mother qualifies whatever her marital status (MSF); an
 	// unmarried father does not.
 	// The weeks are the couple's pool: this parent's grant is the share recorded on the child
 	// (`event.child_shared_weeks`, × 7 days) or the default share — three of six, five of ten —
 	// and never more than the pool. They are keyed to the child's date of birth, not the day the
-	// leave is taken: on the April version a child born before 1 April 2026 still shares six.
+	// leave is taken: a child born before 1 April 2026 still shares six.
 	const born = (date: string) => ({ kind: 'BIRTH', child_index: 1, date }) as const;
 	const FATHER = { ...MARRIED_MALE, childAges: [0], childCitizenship: ['CITIZEN'] } as const;
 	const UNMARRIED_MOTHER = { ...FEMALE, childAges: [0], childCitizenship: ['CITIZEN'] } as const;
@@ -525,24 +525,24 @@ test('Singapore — the service ladders and the family schemes, on all five seal
 		[21, 21, 21]
 	);
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-04-01') }),
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-04-01') }),
 		[35, 35, 35]
 	);
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-03-31') }),
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2026-03-31') }),
 		[21, 21, 21]
 	);
 	assert.deepEqual(
-		ladder('SG', 3, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2027-01-05') }),
+		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...FATHER, event: born('2027-01-05') }),
 		[35, 35, 35]
 	);
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...UNMARRIED_MOTHER, event: born('2026-05-01') }),
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...UNMARRIED_MOTHER, event: born('2026-05-01') }),
 		[35, 35, 35]
 	);
 	// The couple agreed eight of the ten weeks to this parent; a share past the pool is the pool.
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', {
 			...FATHER,
 			childSharedWeeks: [8],
 			event: born('2026-05-01')
@@ -550,7 +550,7 @@ test('Singapore — the service ladders and the family schemes, on all five seal
 		[56, 56, 56]
 	);
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', {
 			...FATHER,
 			childSharedWeeks: [12],
 			event: born('2026-05-01')
@@ -566,7 +566,7 @@ test('Singapore — the service ladders and the family schemes, on all five seal
 		[14, 14, 14]
 	);
 	assert.deepEqual(
-		ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', {
+		ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', {
 			...MALE,
 			childAges: [0],
 			childCitizenship: ['CITIZEN'],

@@ -206,6 +206,16 @@ export default relationship({
 	'payroll_runs.company_id': { to: 'companies', inverse: 'payroll_runs' },
 	/** The sealed version the run was calculated under; a version a run used is history. */
 	'payroll_runs.settings_id': { to: 'jurisdiction_settings', inverse: 'payroll_runs' },
+	/**
+	 * An EARLY run's off-cycle run: the transform writes both in one act, the EARLY one nested under it. Deleting the
+	 * off-cycle run (newest first) leaves the salary it settled early standing on its own.
+	 */
+	'payroll_runs.early_for_id': {
+		to: 'payroll_runs',
+		inverse: 'early_settlements',
+		optional: true,
+		onDelete: 'setNull'
+	},
 	'payslips.payroll_run_id': { to: 'payroll_runs', inverse: 'payslips', owned: true },
 	'payslips.employment_id': { to: 'employments', inverse: 'payslips' },
 	/** The event which completed the last frozen obligation on this payslip. */

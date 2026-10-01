@@ -12,7 +12,7 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The corrected base under PP 6/2025: JHT 2%/3.7%; JP 1%/2% with the 10,547,400 ceiling; JKK I–V 0.10–1.60% and JKM 0.30%; JKP 0.14% employer; Kesehatan 1%/4% with the Perpres 59/2024 art.32(2)–(3) ordinary-PPU minimum-wage floor and art.32(4)–(5) micro/small exception; PPh 21 TER; PP 35/2021 working time and the statutory leave heads.",
+		"change_summary": "The law in force on 1 December 2025: JHT 2%/3.7% and JKP 0.14% under PP 6/2025; JP 1%/2% with the 10,547,400 ceiling; JKK I–V 0.10–1.60% and JKM 0.30%; Kesehatan 1%/4% with the Perpres 59/2024 art.32(2)–(3) ordinary-PPU minimum-wage floor and the art.32(4)–(5) micro/small exception; PPh 21 TER; PP 35/2021 working time and the statutory leave heads.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -305,14 +305,6 @@
 				"sector_edition": "2020",
 				"sector_edition_from": "2025-12-18",
 				"sector_edition_map": {
-					"01262": "01262",
-					"07221": "07301",
-					"07293": "07293",
-					"08101": "08101",
-					"08104": "08104",
-					"08105": "08105",
-					"08109": "08109",
-					"09900": "09900",
 					"10120": "10130",
 					"10411": "10411",
 					"10412": "10412",
@@ -537,7 +529,15 @@
 					"86991": "86901",
 					"86993": "86903",
 					"87303": "55900",
-					"93122": "93122"
+					"93122": "93122",
+					"01262": "01262",
+					"07221": "07301",
+					"07293": "07293",
+					"08101": "08101",
+					"08104": "08104",
+					"08105": "08105",
+					"08109": "08109",
+					"09900": "09900"
 				},
 				"strict_sector_places": [
 					"Provinsi DKI Jakarta",
@@ -1562,7 +1562,7 @@
 			"end": "2026-03-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The 2026 UMP under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) lifts the ordinary-PPU BPJS Kesehatan floor on 1 January 2026. Nothing else moves.",
+		"change_summary": "The 2026 provincial and city minimum wages under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) from 1 January 2026, which lift the ordinary-PPU BPJS Kesehatan floor.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -1865,14 +1865,6 @@
 				"sector_edition": "2020",
 				"sector_edition_from": "2025-12-18",
 				"sector_edition_map": {
-					"01262": "01262",
-					"07221": "07301",
-					"07293": "07293",
-					"08101": "08101",
-					"08104": "08104",
-					"08105": "08105",
-					"08109": "08109",
-					"09900": "09900",
 					"10120": "10130",
 					"10411": "10411",
 					"10412": "10412",
@@ -2097,7 +2089,15 @@
 					"86991": "86901",
 					"86993": "86903",
 					"87303": "55900",
-					"93122": "93122"
+					"93122": "93122",
+					"01262": "01262",
+					"07221": "07301",
+					"07293": "07293",
+					"08101": "08101",
+					"08104": "08104",
+					"08105": "08105",
+					"08109": "08109",
+					"09900": "09900"
 				},
 				"strict_sector_places": [
 					"Provinsi DKI Jakarta",
@@ -3834,7 +3834,7 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The Jaminan Pensiun wage ceiling rises to 11,086,300 on 1 March 2026 (SE BPJS Ketenagakerjaan B/1226/022026, 25 February 2026), so the capped charge becomes 110,863 / 221,726.",
+		"change_summary": "SE BPJS Ketenagakerjaan B/1226/022026 (25 February 2026): the Jaminan Pensiun wage ceiling rises to 11,086,300 from 1 March 2026, so the capped charge becomes 110,863 / 221,726.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -4137,14 +4137,6 @@
 				"sector_edition": "2020",
 				"sector_edition_from": "2025-12-18",
 				"sector_edition_map": {
-					"01262": "01262",
-					"07221": "07301",
-					"07293": "07293",
-					"08101": "08101",
-					"08104": "08104",
-					"08105": "08105",
-					"08109": "08109",
-					"09900": "09900",
 					"10120": "10130",
 					"10411": "10411",
 					"10412": "10412",
@@ -4369,7 +4361,15 @@
 					"86991": "86901",
 					"86993": "86903",
 					"87303": "55900",
-					"93122": "93122"
+					"93122": "93122",
+					"01262": "01262",
+					"07221": "07301",
+					"07293": "07293",
+					"08101": "08101",
+					"08104": "08104",
+					"08105": "08105",
+					"08109": "08109",
+					"09900": "09900"
 				},
 				"strict_sector_places": [
 					"Provinsi DKI Jakarta",

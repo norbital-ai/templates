@@ -635,6 +635,7 @@ c.transform(async (inputs, ctx) => {
 				grouped.map((run) => ({
 					id: String(run.id),
 					period: run.period,
+					kind: run.kind,
 					attendance_from: day(run.attendance_from),
 					attendance_to: day(run.attendance_to)
 				})),

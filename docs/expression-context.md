@@ -2012,7 +2012,7 @@ Open prefixes: `company.facts.<key>`, `employment.exit_facts.<key>`, `worksite.f
 | `run.gross` | RUN_FINALISED: the run’s gross pay |
 | `run.net` | RUN_FINALISED: the run’s net pay |
 | `run.employer_cost` | RUN_FINALISED: the run’s employer cost |
-| `run.kind` | RUN_FINALISED: REGULAR \| OFF_CYCLE \| FINAL \| CORRECTION |
+| `run.kind` | RUN_FINALISED: REGULAR \| OFF_CYCLE \| EARLY \| FINAL \| CORRECTION |
 | `run.sequence` | RUN_FINALISED: the run’s place among its period’s runs, from 1 |
 | `run.pay_due_date` | RUN_FINALISED: the day the run’s wages fall due `YYYY-MM-DD`; empty where none |
 | `run.withheld.<code>` | RUN_FINALISED: what the run withheld for third parties under that loan catalogue code |

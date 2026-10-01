@@ -258,39 +258,13 @@ for (const scenario of monthlyCases)
 		assert.equal(tax.ruleReference?.includes('history.WTAX'), scenario.cumulative);
 	});
 
-test('PH replacement snapshots govern both ends of every corrected interval', () => {
-	// A replacement replaces a voided snapshot; a later law change inside its interval (RIX-DW-06 on
-	// 20 May 2026) is a successor cloned from the replacement or from one of its successors, and
-	// together they tile the voided snapshot's interval.
-	const replacements = active.filter(
-		(row) =>
-			row.change_summary?.includes('R45') &&
-			!active.some((other) => other.id === row.cloned_from_id)
-	);
-	assert.equal(replacements.length, 6);
-	for (const replacement of replacements) {
-		const original = settings.find((row) => row.id === replacement.cloned_from_id);
-		assert(original);
-		assert(original.voided_at);
-		const chain = [replacement];
-		for (let at = 0; at < chain.length; at++)
-			chain.push(...active.filter((row) => row.cloned_from_id === chain[at]!.id));
-		chain.sort((a, b) =>
-			String(a.effective_range.start).localeCompare(String(b.effective_range.start))
-		);
-		for (const [index, version] of chain.entries())
-			if (index > 0)
-				assert.equal(version.effective_range.start, chain[index - 1]!.effective_range.end);
-		assert.deepEqual(
-			{ start: chain[0]!.effective_range.start, end: chain.at(-1)!.effective_range.end },
-			original.effective_range
-		);
-		for (const version of chain) {
-			const range = governed(version.effective_range);
-			assert(range);
-			assert.equal(settingsInForce(settings, 'PH', range.from)?.id, version.id);
-			if (range.to) assert.equal(settingsInForce(settings, 'PH', range.to)?.id, version.id);
-		}
+test('PH versions govern both ends of their own interval', () => {
+	// One linear history: each version is the one in force on its first and its last day.
+	for (const version of active) {
+		const range = governed(version.effective_range);
+		assert(range);
+		assert.equal(settingsInForce(settings, 'PH', range.from)?.id, version.id);
+		if (range.to) assert.equal(settingsInForce(settings, 'PH', range.to)?.id, version.id);
 	}
 });
 

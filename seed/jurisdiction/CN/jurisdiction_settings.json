@@ -40,7 +40,7 @@
 				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
-		"change_summary": "First sealed China version, one lineage for both cities: national law (Labour Law, Labour Contract Law, IIT, national leave and holidays) once; the city law each worksite’s locality (MINIMUM_WAGE.locality: SHANGHAI, KUNMING) selects. Shanghai: First sealed Shanghai version: SI base 7,460–37,302, pension 16/8, medical 9/2, unemployment 0.5/0.5 to 31 December 2025, housing fund 2,690–37,302, minimum wage 2,740. Kunming: First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020. Mo Han category III minimum wage is 1,870 / 19.",
+		"change_summary": "The law in force on 1 December 2025, one lineage for both cities: national law (Labour Law, Labour Contract Law, IIT, national leave and holidays) once, and the city law each worksite’s locality (MINIMUM_WAGE.locality: SHANGHAI, KUNMING) selects. Shanghai: SI base 7,460–37,302, pension 16/8, medical 9/2, unemployment 0.5/0.5 to 31 December 2025, housing fund 2,690–37,302, minimum wage 2,740. Kunming: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020; Mo Han category III 1,870 / 19.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -714,7 +714,7 @@
 				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
-		"change_summary": "Shanghai: The 2025 unemployment reduction ends 31 December 2025 with no located successor: rates become required entity facts. Work-injury classes under 沪人社规〔2026〕2号. Kunming: Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026. Mo Han category III minimum wage is 1,870 / 19.",
+		"change_summary": "1 January 2026: the 2025 unemployment-insurance reductions of both cities expire. Shanghai: with no located successor the rates become required entity facts; work-injury classes under 沪人社规〔2026〕2号; the 2026 social-insurance base declaration falls due. Kunming: pension, unemployment and injury on the 2026 Yunnan bounds 4,403–22,017 (2026年度 is the calendar year, owner rule 2026-09-28; medical keeps 2025’s to 31 August) and the housing-fund ceiling 32,543.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -1432,7 +1432,7 @@
 				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
-		"change_summary": "Shanghai: The medical rates are re-issued by 沪医保规〔2026〕2号 at the same 9% / 2%. Kunming unchanged.",
+		"change_summary": "沪医保规〔2026〕2号 re-issues the Shanghai employee medical-insurance rates at the same 9% employer / 2% worker from 1 March 2026; no rate or base moves, and the 2026 social-insurance base declaration is no longer raised.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -2124,7 +2124,7 @@
 				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
-		"change_summary": "Shanghai: SI base 7,546–37,731 and housing fund 2,740–37,731 from 1 July 2026 (published August, retroactive). Kunming unchanged.",
+		"change_summary": "Shanghai HRSS announcement of 18 August 2026: the social-insurance base becomes 7,546–37,731 and the housing-fund base 2,740–37,731 from 1 July 2026 (retroactive).",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -2816,7 +2816,7 @@
 				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
-		"change_summary": "Kunming: Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120. Mo Han category III minimum wage is 1,970 / 20 from September 2026. Shanghai unchanged.",
+		"change_summary": "Yunnan HRSS minimum-wage notice of 29 August 2026, from 1 September 2026: Kunming CNY2,270 / 2,120 a month (CNY22 / 21 an hour) and Mo Han category III CNY1,970 / 20; the Kunming new-account housing-fund floor follows at 2,270 / 2,120, and medical joins the 2026 base 4,403–22,017 (the other funds confirmed in use by the 7 September county notice).",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",

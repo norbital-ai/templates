@@ -12,7 +12,7 @@
 			"end": "2025-12-07T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "First sealed Thailand version (register docs/inventory/thailand.csv). SSO s.33 5% each side on a THB1,650–15,000 monthly base, the southern flood-relief 3% for a registered employer in the nine listed provinces (Gazette notice published 8 January 2026, wage months December 2025–May 2026); Revenue Code s.50(1) withholding on the Order P.96/2543 annualised method; Labour Protection Act ss.61–63, 68 overtime and holiday-work pay; leave before Labour Protection Act No.9 (98 days’ maternity leave, 45 paid).",
+		"change_summary": "The law in force on 1 December 2025: SSO s.33 5% each side on a THB1,650–15,000 monthly base, the southern flood-relief 3% for a registered employer in the nine listed provinces (Gazette notice published 8 January 2026, wage months December 2025–May 2026); Revenue Code s.50(1) withholding on the Order P.96/2543 annualised method; Labour Protection Act ss.61–63, 68 overtime and holiday-work pay; leave before Labour Protection Act No.9 (98 days’ maternity leave, 45 paid).",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -897,7 +897,7 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Labour Protection Act No.9 B.E.2568 in force 7 December 2025 (s.2): maternity leave 120 days with 60 paid by the employer, up to 15 days’ child-care leave at 50% and 15 days’ paid leave for the birth of the employee’s child. Contributions and withholding unchanged.",
+		"change_summary": "Labour Protection Act No.9 B.E.2568 in force 7 December 2025 (s.2): maternity leave 120 days with 60 paid by the employer, up to 15 days’ child-care leave at 50% and 15 days’ paid leave for the birth of the employee’s child.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -1810,7 +1810,7 @@
 			"end": "2026-06-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Ministerial regulation on the s.33 contribution wage base: the monthly ceiling rises from THB15,000 to THB17,500 from 1 January 2026; the THB1,650 floor and the 5% rate (2565 rate regulation, Schedule B) are unchanged. The flood-relief 3% continues through wage month May 2026.",
+		"change_summary": "Ministerial Regulation on the s.33 contribution wage base B.E.2568 cl.3(1): the monthly ceiling rises from THB15,000 to THB17,500 from 1 January 2026; the THB1,650 floor and the 5% rate are unchanged.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -3665,7 +3665,7 @@
 			"end": "2029-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Employee Welfare Fund (Labour Protection Act ch.11, ss.130–131): the commencement decree and the rate regulation start contributions of 0.25% of wages from the employee and 0.25% matched by the employer on 1 October 2026, for an employer of ten or more employees; a member of the employer’s provident fund is outside it. The rate regulation’s 0.50% step from 1 October 2031 (cl.3(2)) is its own version.",
+		"change_summary": "Employee Welfare Fund (Labour Protection Act ch.11, ss.130–131): the commencement decree and the rate regulation B.E.2568 cl.3(1) start contributions of 0.25% of wages from the employee and 0.25% matched by the employer on 1 October 2026, for an employer of ten or more employees; a member of the employer’s provident fund is outside it.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -4640,7 +4640,7 @@
 			"end": "2031-10-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025; SSO copy https://www.sso.go.th/wpr/download/download_by_pool_file/47755) cl.3(2): the s.33 contribution wage base is THB1,650 to THB20,000 a month 1 January 2029 to 31 December 2031; the 5% rate (2565 rate regulation, Schedule B) is unchanged, so each share is at most THB1,000. Every other row is carried unchanged; the Employee Welfare Fund stays at 0.25% until its 0.50% step on 1 October 2031, a version of its own (EWF rate regulation B.E.2568 cl.3).",
+		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025) cl.3(2): the s.33 contribution wage base is THB1,650 to THB20,000 a month from 1 January 2029; the 5% rate is unchanged, so each share is at most THB1,000.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -5615,7 +5615,7 @@
 			"end": "2032-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Ministerial Regulation on Employee Welfare Fund contribution rates B.E.2568 (Gazette vol.142 part 60 Kor pp.3–4, 15 September 2025; Gazette facsimile served by the Council of State, https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8) cl.3(2): from 1 October 2031 the employee’s contribution and the employer’s matching contribution are each 0.50% of the member’s wages (0.25% each 1 October 2026–30 September 2031, cl.3(1)). Every other row is carried unchanged from the 1 January 2029 version (s.33 base THB1,650–20,000, cl.3(2) of the base regulation).",
+		"change_summary": "Ministerial Regulation on Employee Welfare Fund contribution rates B.E.2568 (Gazette vol.142 part 60 Kor, 15 September 2025) cl.3(2): from 1 October 2031 the employee’s contribution and the employer’s matching contribution are each 0.50% of the member’s wages.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -6584,13 +6584,13 @@
 		"sealed_at": "2026-09-28T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
-		"cloned_from_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"cloned_from_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
 		"effective_range": {
 			"start": "2032-01-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TH",
-		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025; SSO copy https://www.sso.go.th/wpr/download/download_by_pool_file/47755) cl.3(3): the s.33 contribution wage base is THB1,650 to THB23,000 a month from 1 January 2032; the 5% rate (2565 rate regulation, Schedule B) is unchanged, so each share is at most THB1,150. Every other row is carried unchanged; the Employee Welfare Fund is 0.50% each side (EWF rate regulation B.E.2568 cl.3(2), from 1 October 2031).",
+		"change_summary": "Ministerial Regulation on the minimum and maximum wages for s.33 contributions B.E.2568 (Gazette vol.142 part 81 Kor, 12 December 2025) cl.3(3): the s.33 contribution wage base is THB1,650 to THB23,000 a month from 1 January 2032; the 5% rate is unchanged, so each share is at most THB1,150.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
