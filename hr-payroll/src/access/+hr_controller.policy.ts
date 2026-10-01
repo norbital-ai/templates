@@ -92,8 +92,12 @@ export default policy({
 			create: { approval: [HR_LEAVE_TIME_OFF, HR_LEAVE_MANUAL] },
 			queries: ['leave_balances', 'leave_balance_report', 'preview_leave']
 		},
-		payroll_runs: { read: true, create: { approval: CONTROLLER_RUN_APPROVAL } },
-		payslips: { read: true },
+		payroll_runs: {
+			read: true,
+			create: { approval: CONTROLLER_RUN_APPROVAL },
+			update: { approval: CONTROLLER_RUN_APPROVAL }
+		},
+		payslips: { queries: ['payslip_pdf'], read: true },
 		payable_tranches: { read: true },
 		payment_events: { read: true },
 		payment_allocations: { read: true },

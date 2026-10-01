@@ -50,6 +50,7 @@ type LeaveCapture = {
 	 * days after it, without moving the pin. Absent is settled whole.
 	 */
 	readonly through?: string | undefined;
+	readonly exact_charges?: boolean | undefined;
 	/** This slip priced the days of an entry an earlier slip pinned: it does not pin it again. */
 	readonly continued?: boolean | undefined;
 };
@@ -60,6 +61,9 @@ export type PreparedLeavePayroll = {
 	readonly catalogues: readonly LeaveCatalogue[];
 	readonly captures: readonly (SettledLeaveCapture & { readonly paid: boolean })[];
 	readonly deductionEligibility: Readonly<Record<string, boolean>>;
+	readonly targetContexts?: Readonly<
+		Record<string, ReturnType<typeof personContext> & Record<string, unknown>>
+	>;
 	/** Dated catalogue flags for outpatient sick-pay allowance exclusions. */
 	readonly outpatientSickExclusion?: Readonly<Record<string, boolean>> | undefined;
 	/**
@@ -170,8 +174,32 @@ export function prepareLeavePayroll(options: {
 			)
 		)
 	];
-	const settling = new Set(settlingIds);
-	const payslipRows = live(world.payslips).filter((row) => settling.has(row.id));
+	const targetEntryIds = new Set(
+		entries
+			.filter((entry) =>
+				catalogues.some(
+					(row) => row.id === entry.catalogue_id && (row.time_off_amount ?? '').trim()
+				)
+			)
+			.map((entry) => entry.id)
+	);
+	const targetSlipIds = new Set(
+		entries
+			.filter((entry) => targetEntryIds.has(entry.id) && entry.payslip_id != null)
+			.map((entry) => entry.payslip_id!)
+	);
+	const settling = new Set([...settlingIds, ...targetSlipIds]);
+	const payslipRows = live(world.payslips).filter(
+		(row) =>
+			settling.has(row.id) ||
+			(row.leave_settlements ?? []).some((capture) =>
+				entries.some((entry) => entry.id === capture.leave_entry_id)
+			) ||
+			row.adjustments.some(
+				(line) =>
+					line.family === 'LEAVE' && line.source_id != null && targetEntryIds.has(line.source_id)
+			)
+	);
 	const schemes = entries.some((entry) => entry.charges.length > 0)
 		? live(world.statutory_contributions).filter((row) => versionIds.has(row.settings_id))
 		: [];
@@ -186,6 +214,13 @@ export function prepareLeavePayroll(options: {
 	const runThrough = new Map<string, string>(
 		world.payroll_runs.map((row) => [row.id, dateKey(row.attendance_to)])
 	);
+	const targetThrough = (payslip: (typeof payslipRows)[number] | undefined): string => {
+		if (payslip == null || !dateKey(payslip.salary_from) || !dateKey(payslip.salary_to))
+			refuse(
+				'Legacy cash-target Leave requires its frozen payslip wage window; a mutable company calendar cannot prove settlement.'
+			);
+		return dateKey(payslip.salary_to);
+	};
 	const entriesByEmployment = Map.groupBy(entries, (row) => row.employment_id);
 	const result = new Map<string, GatheredLeave>();
 	for (const employment of options.employments) {
@@ -196,6 +231,18 @@ export function prepareLeavePayroll(options: {
 			const payslip = payslipById.get(entry.payslip_id);
 			if (payslip == null && reversedIds.has(entry.id))
 				refuse('A settled Leave entry has no owning payslip.');
+			const frozen = payslipRows.flatMap((source) =>
+				(source.leave_settlements ?? [])
+					.filter((capture) => capture.leave_entry_id === entry.id)
+					.map((capture) => ({
+						...capture,
+						exact_charges: true,
+						gross_amount: leaveCaptureAmount(capture.pay_items, source.currency),
+						paid: source.paid_at != null
+					}))
+			);
+			if ((payslip?.leave_settlements ?? []).some((capture) => capture.leave_entry_id === entry.id))
+				return frozen;
 			const pay_items = payslip == null ? [] : settledPayItems(entry, payslip, catalogues);
 			return [
 				{
@@ -203,10 +250,12 @@ export function prepareLeavePayroll(options: {
 					charges: entry.charges,
 					pay_items,
 					gross_amount: leaveCaptureAmount(pay_items, payslip?.currency ?? options.currency),
-					through: runThrough.get(runOfSlip.get(entry.payslip_id) ?? '') || undefined,
-					// Paid is this person's own slip, read only where a reversal negates it.
+					through: targetEntryIds.has(entry.id)
+						? targetThrough(payslip)
+						: runThrough.get(runOfSlip.get(entry.payslip_id) ?? '') || undefined,
 					paid: payslip?.paid_at != null
-				}
+				},
+				...frozen
 			];
 		});
 		result.set(employment.id, { entries, catalogues, captures, schemes });
@@ -244,6 +293,8 @@ export function withLeaveDeductionEligibility(
 	}
 ): PreparedLeavePayroll {
 	const deductionEligibility: Record<string, boolean> = {};
+	const targetContexts: Record<string, ReturnType<typeof personContext> & Record<string, unknown>> =
+		{};
 	const deductionShare: Record<string, number> = {};
 	const outpatientSickExclusion: Record<string, boolean> = {};
 	const { configuration } = options;
@@ -467,7 +518,8 @@ export function withLeaveDeductionEligibility(
 			}
 			const excludesShift =
 				datedCatalogue?.entitlement.outpatient_sick_excludes_shift_allowance === true;
-			if (!deductsWage(catalogue) && !excludesShift) continue;
+			if (!deductsWage(catalogue) && !excludesShift && !(catalogue.time_off_amount ?? '').trim())
+				continue;
 			const term = options.terms.find((row) => row.id === charge.employment_term_id);
 			if (!term || !coversDate(term.effective_range, charge.date))
 				refuse('Approved leave has no effective captured employment terms.');
@@ -503,6 +555,36 @@ export function withLeaveDeductionEligibility(
 			});
 			const key = `${entry.id}/${charge.date}`;
 			let eligible = isEligible(catalogue.eligibility, person);
+			if (eligible && (catalogue.time_off_amount ?? '').trim()) {
+				const yearStart = leaveWindowOf(
+					charge.date,
+					catalogue.entitlement,
+					serviceStart(options.employment)
+				).start;
+				const yearTaken: Record<string, number> = {};
+				for (const row of charged)
+					if (row.date >= yearStart && row.date < charge.date)
+						yearTaken[row.code] = (yearTaken[row.code] ?? 0) + row.days;
+				targetContexts[key] = {
+					...person,
+					leave: {
+						month_index: wholeMonthsBetween(opening, charge.date) + 1,
+						day_index: inclusiveDays(opening, charge.date),
+						days: chargedDays,
+						event_day: eventCharges
+							.filter((row) => row.date <= charge.date)
+							.reduce((sum, row) => sum + row.days, 0),
+						year_taken: yearTaken,
+						facts: resolveFactValues(
+							(catalogue.event_facts ?? []) as readonly FactKey[],
+							scalarFacts(entry.facts),
+							`${catalogue.code} on ${charge.date}`,
+							false
+						),
+						episode_id: String(entry.episode_id ?? entry.id)
+					}
+				};
+			}
 			if (excludesShift) {
 				if (deductsWage(catalogue))
 					refuse('Outpatient sick-pay exclusion cannot also deduct the whole leave wage.');
@@ -550,14 +632,21 @@ export function withLeaveDeductionEligibility(
 						episode_id: String(entry.episode_id ?? entry.id)
 					}
 				});
-				share = 1 - Math.min(1, Math.max(0, paid));
+				const fundedShare = 1 - (charge.unpaid_days ?? 0) / charge.days;
+				share = 1 - Math.min(1, Math.max(0, paid)) * fundedShare;
 				if (share <= 0) eligible = false;
 			}
 			deductionEligibility[key] = eligible;
 			deductionShare[key] = share;
 		}
 	}
-	return { ...gathered, deductionEligibility, deductionShare, outpatientSickExclusion };
+	return {
+		...gathered,
+		deductionEligibility,
+		deductionShare,
+		outpatientSickExclusion,
+		targetContexts
+	};
 }
 
 /** The Leave family selects its own approved sources; payroll receives date slices and encashed days. */
@@ -570,10 +659,13 @@ export function leavePayrollInputs(options: {
 		readonly leave_entry_id: string;
 		/** Whether the payslip that froze this capture had been paid. */
 		readonly paid?: boolean | undefined;
+		readonly exact_charges?: boolean | undefined;
+		readonly charges?: readonly LeaveCharge[] | undefined;
 		readonly through?: string | undefined;
 	}[];
 	/** Money-only callers (hasLeavePayment) do not judge whether a time-off entry straddles. */
 	readonly monetaryOnly?: boolean | undefined;
+	readonly timeOffWindow?: ((entry: LeaveActivity) => LeaveWindow) | undefined;
 }) {
 	const approved = options.entries.filter((row) => row.approval_id == null);
 	const reversed = new Set(
@@ -582,7 +674,16 @@ export function leavePayrollInputs(options: {
 		)
 	);
 	const settled = new Set(options.captures.map((row) => row.leave_entry_id));
-	const through = new Map(options.captures.map((row) => [row.leave_entry_id, row.through]));
+	const through = new Map(
+		options.captures
+			.filter((row) => row.exact_charges !== true)
+			.map((row) => [row.leave_entry_id, row.through])
+	);
+	const exactDates = new Set(
+		options.captures
+			.filter((row) => row.exact_charges === true)
+			.flatMap((row) => (row.charges ?? []).map((charge) => `${row.leave_entry_id}/${charge.date}`))
+	);
 	// A time-off entry is charged and priced for the days inside each window. The first slip to
 	// price any of its days pins it, so it is locked from then on; a later window prices its own
 	// days of the pinned entry and leaves the pin where it is.
@@ -592,12 +693,14 @@ export function leavePayrollInputs(options: {
 		? []
 		: activeTimeOff(approved).flatMap((entry) => {
 				const after = through.get(entry.id);
-				if (settled.has(entry.id) && after == null) return [];
+				if (through.has(entry.id) && after == null) return [];
+				const window = options.timeOffWindow?.(entry) ?? options.salaryWindow;
 				const charges = entry.charges.filter(
 					(row) =>
-						row.date >= options.salaryWindow.start &&
-						row.date <= options.salaryWindow.end &&
-						(after == null || row.date > after)
+						row.date >= window.start &&
+						row.date <= window.end &&
+						(after == null || row.date > after) &&
+						!exactDates.has(`${entry.id}/${row.date}`)
 				);
 				if (charges.length === 0) return [];
 				if (new Set(charges.map((row) => row.date)).size !== charges.length)
@@ -750,9 +853,12 @@ function leaveCaptureAmount(items: readonly LeavePayItem[], currency: string): M
 export function calculateLeavePayroll(options: {
 	readonly prepared: PreparedLeavePayroll;
 	readonly window: LeaveWindow;
+	readonly targetWindow?: LeaveWindow | undefined;
 	readonly dueThrough: string;
 	readonly currency: string;
 	readonly absenceRate: (charge: LeaveCharge) => number;
+	readonly ordinaryDayRate?: ((charge: LeaveCharge) => number) | undefined;
+	readonly retainedCash?: ((charge: LeaveCharge) => number) | undefined;
 	/** The most a term's month of unpaid charges may deduct (its monthly salary); absent is no ceiling. */
 	readonly absenceCeiling?: ((charge: LeaveCharge) => number) | undefined;
 	readonly absenceHourlyRate?: ((charge: LeaveCharge) => number) | undefined;
@@ -769,6 +875,13 @@ export function calculateLeavePayroll(options: {
 		entries: prepared.entries,
 		captures: prepared.captures,
 		salaryWindow: options.window,
+		timeOffWindow: (entry) =>
+			options.targetWindow != null &&
+			prepared.catalogues.some(
+				(row) => row.id === entry.catalogue_id && (row.time_off_amount ?? '').trim()
+			)
+				? options.targetWindow
+				: options.window,
 		dueThrough: options.dueThrough
 	});
 	const captures: SettledLeaveCapture[] = [];
@@ -803,6 +916,41 @@ export function calculateLeavePayroll(options: {
 				prepared.outpatientSickExclusion?.[key] === true ||
 				(prepared.outpatientSickExclusion == null &&
 					catalogue.entitlement.outpatient_sick_excludes_shift_allowance === true);
+			const targetContext = prepared.targetContexts?.[key];
+			if (
+				targetContext != null &&
+				options.retainedCash != null &&
+				options.ordinaryDayRate != null
+			) {
+				const rate = evaluateNumberOver(catalogue.time_off_amount ?? '', {
+					...targetContext,
+					ordinary_day: options.ordinaryDayRate(charge)
+				});
+				if (!Number.isFinite(rate) || rate < 0)
+					refuse('Leave cash targets require a nonnegative finite daily rate.');
+				if (rate > 0) {
+					if (catalogue.entitlement.calendar_days === true && charge.days !== 1)
+						refuse('Calendar-day Leave cash targets require whole calendar-day charges.');
+					const retained = options.retainedCash(charge);
+					if (!Number.isFinite(rate) || rate < 0 || !Number.isFinite(retained) || retained < 0)
+						refuse('Leave cash targets require nonnegative finite daily rates and retained pay.');
+					if (charge.hours != null)
+						refuse('Daily Leave cash targets require calendar-day charges.');
+					const amount = cents(Math.max(0, rate * charge.days - retained), currency);
+					if (amount > 0)
+						items.push({
+							catalogue_id: catalogue.id,
+							settings_id: catalogue.settings_id,
+							code: catalogue.code,
+							bucket: 'EARNING',
+							date: charge.date,
+							amount,
+							quantity: charge.days,
+							rate
+						});
+				}
+			}
+
 			if (!deductsWage(catalogue) && !excludesShift) continue;
 			const eligible = prepared.deductionEligibility[key];
 			if (eligible == null) refuse('The Leave deduction eligibility was not prepared.');
@@ -904,7 +1052,13 @@ export function calculateLeavePayroll(options: {
 				direction: item.bucket === 'ABSENCE' ? 'SUBTRACT' : 'ADD',
 				bands: [],
 				eligibility: catalogue.eligibility,
-				family: 'LEAVE'
+				family: item.reserved_line === 'BASE' ? 'WORK' : 'LEAVE',
+				...(item.reserved_line === 'BASE'
+					? {
+							output: `derived:${item.code}`,
+							definition: { source: 'DERIVED_NORMAL' as const, unit: 'MONEY' as const }
+						}
+					: {})
 			};
 			return {
 				catalogueComponent,

@@ -89,6 +89,7 @@
 	>
 		<Stack gap="lg">
 			<FormSection
+				name="scheme_section_identity"
 				first
 				title={t('component.scheme_section_identity')}
 				hint={t('component.scheme_section_identity_hint')}
@@ -115,6 +116,7 @@
 			</FormSection>
 
 			<FormSection
+				name="scheme_section_assessed_on"
 				title={t('component.scheme_section_assessed_on')}
 				hint={t('component.scheme_section_assessed_on_hint')}
 			>
@@ -175,6 +177,7 @@
 			</FormSection>
 
 			<FormSection
+				name="scheme_section_assessment"
 				title={t('component.scheme_section_assessment')}
 				hint={t('component.scheme_section_assessment_hint')}
 			>
@@ -194,6 +197,7 @@
 			</FormSection>
 
 			<FormSection
+				name="scheme_section_listing"
 				title={t('component.scheme_section_listing')}
 				hint={t('component.scheme_section_listing_hint')}
 			>
@@ -205,6 +209,7 @@
 			</FormSection>
 
 			<FormSection
+				name="scheme_section_rules"
 				title={t('component.scheme_section_rules')}
 				hint={t('component.scheme_section_rules_hint')}
 			>

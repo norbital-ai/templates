@@ -152,7 +152,10 @@
 	{:else if orphanFacts.length > 0}
 		<!-- No lineage in context: show what the person has, so a fact never disappears from view. -->
 		{#each orphanFacts as fact (fact.id)}
-			<FormSection title={fact.summary || t('component.statutory_facts')}>
+			<FormSection
+				name={`statutory-fact-${fact.id}`}
+				title={fact.summary || t('component.statutory_facts')}
+			>
 				<Form
 					of="employment_statutory_facts"
 					mode="update"

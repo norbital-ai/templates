@@ -6,6 +6,7 @@
 	 * the last scheme it reads); an edge is one `produced.<code>` read. A node opens the scheme's
 	 * base formula and its rules in a popover — nothing on the canvas wraps.
 	 */
+	import InfoTip from './InfoTip.svelte';
 	import { t } from './t.js';
 	import { bolt } from '$bolt';
 	import { Cluster, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
@@ -162,7 +163,12 @@
 								{node.row.code} <span class="text-muted-foreground">· {node.row.name}</span>
 							</p>
 							<div>
-								<p class="text-meta">{t('component.flow_inputs')}</p>
+								<Inline gap="xs" align="center"
+									><p class="text-meta">{t('component.flow_inputs')}</p>
+									<InfoTip label={t('component.flow_inputs')}
+										>{t('component.flow_inputs_help')}</InfoTip
+									></Inline
+								>
 								<pre class="whitespace-pre-wrap break-words font-mono text-xs">{(
 										node.row.assessed_on ?? ''
 									).trim() || '—'}</pre>
@@ -184,11 +190,20 @@
 								<Stack as="ol" gap="xs" class="m-0 list-decimal pl-4 font-mono">
 									{#each node.row.rules.slice(0, 40) as rule, ruleIndex (ruleIndex)}
 										<li class="break-words">
-											<span class="text-muted-foreground">{t('component.flow_rule_when')}</span>
+											<span class="text-muted-foreground">{t('component.flow_rule_when')}</span
+											><InfoTip label={t('component.flow_rule_when')}
+												>{t('component.flow_rule_when_help')}</InfoTip
+											>
 											{rule.when || 'true'}<br />
-											<span class="text-muted-foreground">{t('component.flow_rule_employee')}</span>
+											<span class="text-muted-foreground">{t('component.flow_rule_employee')}</span
+											><InfoTip label={t('component.flow_rule_employee')}
+												>{t('component.flow_rule_employee_help')}</InfoTip
+											>
 											{rule.employee}<br />
-											<span class="text-muted-foreground">{t('component.flow_rule_employer')}</span>
+											<span class="text-muted-foreground">{t('component.flow_rule_employer')}</span
+											><InfoTip label={t('component.flow_rule_employer')}
+												>{t('component.flow_rule_employer_help')}</InfoTip
+											>
 											{rule.employer}
 										</li>
 									{/each}

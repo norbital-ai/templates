@@ -17,6 +17,7 @@ import {
 	type MonthPrior
 } from '../../lib/payroll/run/accumulate.js';
 import {
+	daysBetween,
 	inclusiveDays,
 	completedMonths,
 	addDays,
@@ -294,17 +295,18 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				.reduce((total, day) => total + day.days, 0)
 		);
 	};
-	const measuredLeave = calculateLeavePayroll({
+	const leaveOptions = {
 		prepared: bundle.leave,
 		includeMonetary: !options.deferredWagesOnly,
 		window: attendance,
+		targetWindow: options.salary,
 		dueThrough: options.salary.end,
 		currency,
 		absenceRate: work.absenceRate,
 		absenceCeiling: work.absenceCeiling,
 		absenceHourlyRate: work.absenceHourlyRate,
 		outpatientSickExcludedRate: work.outpatientSickExcludedRate,
-		encashmentRate: (entry) =>
+		encashmentRate: (entry: Parameters<typeof leaveEncashmentRate>[0]['entry']) =>
 			leaveEncashmentRate({
 				bundle,
 				configuration,
@@ -312,7 +314,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				referenceWageIds,
 				earnedByMonth: options.earnedByMonth
 			})
-	});
+	};
+	let measuredLeave = calculateLeavePayroll(leaveOptions);
 
 	const componentAmounts = new Map<string, number>();
 	// ── what a deferred earlier period owes, measured the same way it would have been paid ──────
@@ -419,6 +422,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		earnedByMonth: options.earnedByMonth,
 		period: options.period,
 		workingDaysIn,
+		holidayPayEligible: work.holidayPayEligible,
 		unpaidDaysIn,
 		instalments: rateTerms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
 		rates: { ordinaryDay: dayWage, ordinaryHour: hourlyRate },
@@ -437,10 +441,20 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		subject,
 		note: (issue: RunIssue) => notes.push(issue)
 	};
+	const retainedByDate = new Map<string, number>();
+	const unattributedRetained: string[] = [];
 	const steps = [
 		...prepareWorkSteps(stepOptions),
 		...prepareAllowanceSteps({
 			...stepOptions,
+			unpaidCharges: daysBetween(attendance.start, attendance.end).flatMap((date) => {
+				const days =
+					unpaidLeaveDays(bundle.leave, { start: date, end: date }, true) +
+					workAttendance.absentDays
+						.filter((day) => day.date === date)
+						.reduce((sum, day) => sum + day.days, 0);
+				return days > 0 ? [{ date, days }] : [];
+			}),
 			unpaidDaysIn: (window) => {
 				const span =
 					window.start <= options.salary.start && window.end >= options.salary.end
@@ -453,20 +467,62 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 						.reduce((total, day) => total + day.days, 0)
 				);
 			}
-		}),
-		// The requests arrive in query order; their code is the inferred, deterministic order.
-		...prepareMoneySteps({ ...stepOptions, requests: periodEntries }).toSorted((a, b) =>
-			a.item.code === b.item.code
-				? a.item.id.localeCompare(b.item.id)
-				: a.item.code.localeCompare(b.item.code)
-		)
+		})
 	];
 	for (const step of steps) {
 		const measured = step.calculate();
 		if (measured == null) continue;
 		const component = step.item;
+		if (
+			(component.family === 'WORK' || component.family === 'ALLOWANCE') &&
+			component.destination === 'PAY' &&
+			component.direction === 'ADD' &&
+			!(configuration.work.wage_excluded_allowances ?? []).includes(component.code)
+		) {
+			if (component.family === 'ALLOWANCE' && measured.amount !== 0 && measured.datedCash == null)
+				unattributedRetained.push(component.code);
+			for (const cash of measured.datedCash ?? [])
+				retainedByDate.set(cash.date, (retainedByDate.get(cash.date) ?? 0) + cash.amount);
+		}
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
+		base.push(...measured.base);
+		proration.push(...measured.proration);
+		adjustments.push(...measured.adjustments);
+	}
+
+	if (Object.keys(bundle.leave.targetContexts ?? {}).length > 0) {
+		const earlier = measuredLeave;
+		measuredLeave = calculateLeavePayroll({
+			...leaveOptions,
+			ordinaryDayRate: (charge) => work.ratesOn(charge.date).dayWage,
+			retainedCash: (charge) => {
+				if (unattributedRetained.length > 0)
+					refuse(
+						`Leave cash target cannot attribute retained wage allowances: ${unattributedRetained.join(', ')}.`
+					);
+				const withheld = earlier.captures
+					.flatMap((capture) => capture.pay_items)
+					.filter((item) => item.date === charge.date && item.bucket === 'ABSENCE')
+					.reduce((sum, item) => sum + item.amount, 0);
+				return Math.max(0, (retainedByDate.get(charge.date) ?? 0) * charge.days - withheld);
+			}
+		});
+		adjustments.splice(0, earlier.adjustments.length, ...measuredLeave.adjustments);
+	}
+	// Money reads the salary and Leave targets measured above.
+	for (const step of prepareMoneySteps({ ...stepOptions, requests: periodEntries }).toSorted(
+		(a, b) =>
+			a.item.code === b.item.code
+				? a.item.id.localeCompare(b.item.id)
+				: a.item.code.localeCompare(b.item.code)
+	)) {
+		const measured = step.calculate();
+		if (measured == null) continue;
+		componentAmounts.set(
+			step.item.code,
+			(componentAmounts.get(step.item.code) ?? 0) + measured.amount
+		);
 		base.push(...measured.base);
 		proration.push(...measured.proration);
 		adjustments.push(...measured.adjustments);
@@ -1059,7 +1115,7 @@ function earnedByMonth(options: {
 				// Every priced work-day line — overtime, night, the funnelled hours — is also filed
 				// under the reserved name, so `earned_average(["BASIC", "OVERTIME"], …)` reads a
 				// month's 工資 whole (TW 施行細則 §27).
-				if (line.family === 'WORK_DAY')
+				if (line.family === 'WORK_DAY' && line.component_code !== 'OVERTIME')
 					byCode.set('OVERTIME', (byCode.get('OVERTIME') ?? 0) + line.amount);
 			}
 		// The month's wages as the person reads them (`employment.earned_monthly_average`): the

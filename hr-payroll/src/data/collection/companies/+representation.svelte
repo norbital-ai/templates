@@ -47,17 +47,18 @@
 	>
 		{#snippet children(form)}
 			<FormSection
+				name="legal_entity"
 				first
 				title={t('component.legal_entity')}
 				hint={t('component.legal_entity_description')}
 			>
-				<Grid gap="md" minimum="panel">
+				<Grid gap="md" minimum="card">
 					<Field name="name" label={t('component.legal_name')} />
 					<Field name="registration_number" label={t('component.registration_number')} />
 					<Field name="settings_code" label={t('component.settings_lineage')}>
 						{#snippet editor(field)}
 							<Combobox
-								class="w-64 max-w-full"
+								class="w-full"
 								size="sm"
 								clearable
 								options={lineageCodes.map((code) => ({ value: code, label: code }))}

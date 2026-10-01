@@ -27,6 +27,7 @@ const employments = collection('employments', {
 				'employee_number',
 				'bank',
 				'effective_range',
+				'signed_contract_end',
 				'prior_service_months',
 				'exit_ground',
 				'exit_facts',
@@ -75,6 +76,7 @@ const employments = collection('employments', {
 				'employee_number',
 				'bank',
 				'effective_range',
+				'signed_contract_end',
 				'prior_service_months',
 				'exit_ground',
 				'exit_facts',
@@ -113,6 +115,7 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 		employee_id?: string | null;
 		company_id?: string | null;
 		effective_range?: unknown;
+		signed_contract_end?: string | null;
 		exit_ground?: string | null;
 		exit_facts?: Readonly<Record<string, unknown>> | null;
 	};
@@ -120,6 +123,15 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 		...existing[index],
 		...('$delete' in input ? {} : input)
 	}));
+	for (const candidate of candidates) {
+		const signedEnd = dateKey(candidate.signed_contract_end);
+		if (signedEnd === '') continue;
+		const range = readRange(candidate.effective_range);
+		if (range != null && signedEnd < dateKey(range.start))
+			refuse('The signed contract end cannot precede the first day of service.');
+		if (range?.end != null && dateKey(range.end) > signedEnd)
+			refuse('The last day of service cannot exceed the recorded signed contract end.');
+	}
 	const changedKeys = (index: number): string[] => {
 		const input = inputs[index]!;
 		const stored = existing[index];

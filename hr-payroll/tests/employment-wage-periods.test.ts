@@ -54,3 +54,58 @@ test('a wage period a payslip used is immutable', async () => {
 		/used by a payslip is immutable/
 	);
 });
+
+test('opening wage evidence before the settings timeline keeps its recorded currency and amount', async () => {
+	const opening = period({
+		period: { from: '2024-12-01', to: '2024-12-31' },
+		reference: 'Imported payroll December'
+	});
+	assert.deepEqual(await transform(wagePeriods, [opening], { tables }), [opening]);
+	await assert.rejects(
+		transform(wagePeriods, [{ ...opening, currency: 'SGD' }], { tables }),
+		/currency must match/
+	);
+	await assert.rejects(
+		transform(wagePeriods, [{ ...opening, normal_wages: '3000.005' }], { tables }),
+		/currency precision/
+	);
+});
+
+test('opening wage evidence does not extend settings across a gap or beyond their end', async () => {
+	const limited = {
+		...tables,
+		jurisdiction_settings: [
+			{
+				...tables.jurisdiction_settings[0],
+				effective_range: { from: '2025-01-01', to: '2025-12-31' }
+			}
+		]
+	};
+	await assert.rejects(
+		transform(wagePeriods, [period()], { tables: limited }),
+		/sealed jurisdiction settings/
+	);
+});
+
+test('opening wage evidence cannot fill an internal settings gap', async () => {
+	const gapped = {
+		...tables,
+		jurisdiction_settings: [
+			{
+				...tables.jurisdiction_settings[0],
+				effective_range: { from: '2025-01-01', to: '2025-06-30' }
+			},
+			{
+				...tables.jurisdiction_settings[0],
+				id: 'v2',
+				effective_range: { from: '2026-01-01', to: null }
+			}
+		]
+	};
+	await assert.rejects(
+		transform(wagePeriods, [period({ period: { from: '2025-12-01', to: '2025-12-31' } })], {
+			tables: gapped
+		}),
+		/sealed jurisdiction settings/
+	);
+});

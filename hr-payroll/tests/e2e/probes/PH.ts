@@ -100,6 +100,28 @@ const hire = (h: Hire): ProbeInput[] => [
 			effective_range: { from: h.from, to: h.to ?? null },
 			...h.terms
 		}
+	},
+	{
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: `@${h.ref}`,
+			employment_id: `@${h.ref}_job`,
+			statutory_contribution_id: '@law:statutory_contributions:HDMF',
+			effective_range: { from: h.from, to: null },
+			status: {
+				kind: 'NOT_REGISTERED',
+				reason: 'Synthetic probe: employer registration has not yet been recorded.',
+				declaration_reference: `PROBE-HDMF-${h.ref}`,
+				elections: {
+					coverage_class: h.type === 'DOMESTIC' ? 'KASAMBAHAY' : 'PRIVATE',
+					membership_status: 'MANDATORY',
+					membership_evidence_reference: `PROBE-HDMF-${h.ref}`,
+					first_membership_on: h.from,
+					initial_coverage_class: h.type === 'DOMESTIC' ? 'KASAMBAHAY' : 'PRIVATE',
+					last_termination_reason: 'NONE'
+				}
+			}
+		}
 	}
 ];
 
@@ -3424,7 +3446,7 @@ const EBET =
 	'RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026): s.4 classifies an enterprise-based trainee by registered program (general training, apprenticeship, upskilling; tracker PH-WG03); s.13(b) the 75% floor is an apprenticeship’s; s.4(f) general training lasts at most six months, and training beyond it makes the trainee a regular employee (s.22; PH-EBET04, PH-EBET08)';
 const PROBATION =
 	'Omnibus Rules Implementing the Labor Code Book VI Rule I s.6(a), (d) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): probationary employment shall not exceed six months from the day the employee actually started working, and an employee allowed to work after it is regular (tracker PH-HR43)';
-const [traineeEmployee, traineeJob, traineeTerms] = hire({
+const [traineeEmployee, traineeJob, traineeTerms, traineeCoverage] = hire({
 	ref: 't',
 	name: 'Jose Rizal Santos',
 	born: '2003-03-03',
@@ -3464,7 +3486,8 @@ register({
 		traineeJob!,
 		{ ...trainee(), refused: 'without a registered EBET program' },
 		{ ...trainee('APPRENTICESHIP'), refused: 'does not match the EBET program' },
-		trainee('GENERAL')
+		trainee('GENERAL'),
+		traineeCoverage!
 	],
 	period: '2026-09',
 	refused:

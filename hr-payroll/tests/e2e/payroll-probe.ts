@@ -103,6 +103,8 @@ export type ProbeInput = {
 	refused?: string;
 	/** `'@<ref>'`: update that row with `values` instead of creating one */
 	target?: string;
+	/** Saved rows that this action must leave byte-for-byte unchanged; optional explicit projection. */
+	preserve?: readonly { collection: string; where: Row; select?: Row }[];
 };
 export type ProbeHistoryRun = {
 	period: string;
@@ -120,7 +122,12 @@ export type ProbeHistoryRun = {
 	absent?: readonly string[];
 };
 /** The saved rows of `collection` matching `where`: exactly `rows`, each compared on the fields it lists. */
-export type SavedExpectation = { collection: string; where: Row; rows: readonly Row[] };
+export type SavedExpectation = {
+	collection: string;
+	where: Row;
+	select?: Row;
+	rows: readonly Row[];
+};
 export type FileExpectation = {
 	from: { automation: string; input: Row } | { collection: string; where: Row; field: string };
 	/** RegExp source matched against the file's name */
@@ -334,6 +341,20 @@ export async function boot(root = process.cwd()) {
 			throw new Error(`read ${collection} failed: ${JSON.stringify(body)}`);
 		return answer.rows.map(plain) as Row[];
 	};
+	/** One named collection query through the production `/q` path. */
+	const query = async (callable: string, input: Row) => {
+		const [collection, name] = callable.split('.');
+		const { body } = await post('/__bolt/q', {
+			reads: [{ m: 'query', a: [collection, name, input] }]
+		});
+		const answer = (body as { answers?: Json[] }).answers?.[0];
+		if (
+			answer === undefined ||
+			(typeof answer === 'object' && answer !== null && 'error' in answer)
+		)
+			throw new Error(`query ${callable} failed: ${JSON.stringify(body)}`);
+		return plain(answer);
+	};
 	/** A stored file's bytes, as `GET /__bolt/files/<id>` serves them. */
 	const download = async (id: string) => {
 		const response = await fetch(`${server.url}/__bolt/files/${encodeURIComponent(id)}`, {
@@ -366,7 +387,7 @@ export async function boot(root = process.cwd()) {
 		await server.close();
 		rmSync(scratch, { recursive: true, force: true });
 	};
-	return { act, attempt, upload, read, download, run, close };
+	return { act, attempt, upload, read, query, download, run, close };
 }
 type Outcome = { kind: string; code?: string; rule?: string; message?: string; records?: Row[] };
 /** A refusal as the text a case's pattern reads: `<code> <rule> <message>`. */
@@ -488,8 +509,34 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			const values: Record<string, Json> = { ...input.values };
 			for (const [field, name] of Object.entries(input.files ?? {}))
 				values[field] = await host.upload(input.collection, field, name);
+			const preserved = await Promise.all(
+				(input.preserve ?? []).map(async (want) => {
+					const query = {
+						where: (await resolve(want.where)) as Row,
+						...(want.select == null ? {} : { select: want.select })
+					};
+					return { want, query, before: await host.read(want.collection, query) };
+				})
+			);
+			const checkPreserved = async () => {
+				for (const snapshot of preserved) {
+					const after = await host.read(snapshot.want.collection, snapshot.query);
+					results.push({
+						employment: `${label} input ${n} preserved ${snapshot.want.collection}`,
+						actual: after,
+						differences:
+							JSON.stringify(
+								snapshot.before.toSorted((a, b) => String(a.id).localeCompare(String(b.id)))
+							) ===
+							JSON.stringify(after.toSorted((a, b) => String(a.id).localeCompare(String(b.id))))
+								? []
+								: ['Saved rows changed across the action.']
+					});
+				}
+			};
 			if (input.refused === undefined) {
 				const records = await host.act(callable(input), await payload(input, values));
+				await checkPreserved();
 				const row = records.find((r) => r.collection === input.collection);
 				if (input.ref !== undefined && input.target === undefined)
 					ids.set(input.ref, row!.id as string);
@@ -505,6 +552,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 						? []
 						: [`expected a refusal matching /${input.refused}/, got ${text ?? 'a commit'}`]
 			});
+			await checkPreserved();
 		}
 	};
 	const SLIP_FIELDS = Object.fromEntries(
@@ -579,6 +627,10 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			where: { payroll_run_id: { eq: runId } },
 			select: { id: true, ...SLIP_FIELDS }
 		});
+		for (const [ref, id] of [...ids]) {
+			const slip = slips.find((row) => row.employment_id === id);
+			if (slip != null) ids.set(`slip:${step.period}:${ref}`, String(slip.id));
+		}
 		if (step.paid !== false) {
 			const [run] = await host.read('payroll_runs', {
 				where: { id: { eq: runId } },
@@ -693,7 +745,10 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			)
 		) as Row;
 	for (const want of probe.saved ?? []) {
-		const actual = await host.read(want.collection, { where: await filter(want.where) });
+		const actual = await host.read(want.collection, {
+			where: await filter(want.where),
+			...(want.select == null ? {} : { select: want.select })
+		});
 		results.push({
 			employment: `saved ${want.collection}`,
 			actual,

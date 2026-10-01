@@ -75,6 +75,13 @@ newline (`""` escapes a quote). The first line is the header, exactly these colu
 
 ## Runtime-schema rule
 
+Trackers are local authoring evidence. Do not import these CSVs or their parser into `src`,
+bundle them into the tenant UI, or copy tracker statuses, test titles, probe IDs or verification
+notes into jurisdiction snapshots or their downstream collections. The snapshot holds input
+schemas and descriptions, behaviours, calculation/eligibility catalogues, employer obligation
+notes and primary sources. Runtime explanations use those published definitions and saved
+calculation traces. `tests/tracker-boundary.test.ts` enforces this separation.
+
 Jurisdiction-specific behaviour and captured data are **configuration**: settings versions,
 catalogues, rule expressions and declared FactKey schemas. They are never `src` code branches on a
 jurisdiction and never jurisdiction-named collections. Adding a jurisdiction is seed/config only —

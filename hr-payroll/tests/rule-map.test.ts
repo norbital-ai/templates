@@ -2,8 +2,7 @@
  * Rule map (package MAP), hand-computed over a jurisdiction-free version: the dependency graph is read off the stored
  * expressions alone — declared facts, site members and tables feed the rules and catalogue lines, lines enter a
  * scheme's base through `counts_toward` (a part only where the base names that part), a `produced.<code>` read
- * orders one scheme after another, and every line and scheme reaches the payslip. Tracker rows attach to a node by
- * `config_path`.
+ * orders one scheme after another, and every line and scheme reaches the payslip. Local tracker parsing is tested separately from runtime data.
  */
 
 import assert from 'node:assert/strict';
@@ -16,7 +15,7 @@ import {
 	rowsForNode,
 	trackerRows,
 	trackerRowsOf
-} from '../src/lib/rule-map/tracker.ts';
+} from './fixtures/tracker.ts';
 
 const MAP = ruleMap({
 	version: {
@@ -186,5 +185,38 @@ test('rule map: tracker config paths name nodes', () => {
 	assert.deepEqual(
 		rowsForNode(rows, grade.config).map((row) => row.id),
 		['XA-2']
+	);
+});
+
+test('rule map: published input descriptions and catalogue authorities survive graph construction', () => {
+	const map = ruleMap({
+		version: {
+			terms_facts: [
+				{
+					key: 'grade',
+					label: 'Employee grade',
+					description: 'The grade used to choose the employee rate.'
+				}
+			]
+		},
+		schemes: [
+			{
+				code: 'FUND',
+				name: 'Employee fund',
+				authority: 'Fund Act section 1',
+				assessed_on: 'BASE',
+				rules: []
+			}
+		],
+		catalogues: {}
+	});
+	assert.equal(
+		map.nodes.find((node) => node.id === 'fact:terms_facts:grade')?.description,
+		'The grade used to choose the employee rate.'
+	);
+	assert.equal(map.nodes.find((node) => node.id === 'scheme:FUND')?.label, 'Employee fund');
+	assert.equal(
+		map.nodes.find((node) => node.id === 'scheme:FUND')?.authority,
+		'Fund Act section 1'
 	);
 });

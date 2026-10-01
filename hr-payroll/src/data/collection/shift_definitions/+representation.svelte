@@ -16,6 +16,7 @@
 <RecordShell of="shift_definitions" mode={view.mode} {...record == null ? {} : { id: record.id }}>
 	<Form of="shift_definitions" mode={view.mode} {record} {values}>
 		<FormSection
+			name="shift"
 			first
 			title={bolt.t('component.shift')}
 			hint={bolt.t('component.shift_section_hint')}

@@ -17,7 +17,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { toast, Toaster } from 'svelte-sonner';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Alert, CustomView, EmptyState, Sheet, type ToolbarItem } from '@norbital-ai/ui';
 	import { openRecord, RecordShell } from '@norbital-ai/ui';
 	import { addDays, monthBounds, periodMonth } from '../../../lib/payroll/run/dates.js';
@@ -37,8 +37,7 @@
 		dayLockKey,
 		lockMap,
 		payrollWindows,
-		sourceLockReason,
-		type SettlementClaim
+		sourceLockReason
 	} from '../../../lib/scheduling/lock.js';
 	import {
 		observedDays,
@@ -55,6 +54,7 @@
 	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
 	import { saveBlob } from '../../../lib/ui/export-download.js';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import { captureClaims } from '../../../lib/ui/roster/capture-claims.js';
 	import { monthSources } from '../../../lib/ui/roster/month-sources.svelte.js';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
 	import RosterMonthBoard, {
@@ -74,6 +74,7 @@
 		termCovers
 	} from '../../../lib/ui/roster/roster-month.js';
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
+	import WorkbookImportDetails from '../../../lib/ui/workbook-import-details.svelte';
 
 	const scope = companyScope();
 	const company = $derived(scope.company);
@@ -104,7 +105,14 @@
 			? null
 			: bolt.read('payslips', {
 					where: { payroll_run_id: { is: { company_id: { eq: scope.id } } } },
-					select: { payroll_run_id: true, employment_id: true, paid_at: true },
+					select: {
+						payroll_run_id: true,
+						employment_id: true,
+						paid_at: true,
+						funding_received: true,
+						funding_received_on: true,
+						funding_reference: true
+					},
 					all: true
 				})
 	);
@@ -213,11 +221,40 @@
 	const workDayByKey = $derived(
 		new Map(workDays.map((row) => [personDayKey(row.employment_id, dateKey(row.work_date)), row]))
 	);
-	/** A person-day a payroll run took: its own `payslip_id` names the payslip. */
-	const settlementClaims = $derived(
-		new Map<string, SettlementClaim>(
-			workDays.filter((row) => row.payslip_id != null).map((row) => [row.id, { period: '' }])
+	const capturedSlipIds = $derived([
+		...new Set(workDays.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))
+	]);
+	const captureTranches = liveRows(() =>
+		capturedSlipIds.length === 0
+			? null
+			: bolt.read('payable_tranches', {
+					where: { settlement: { payslips: { in: capturedSlipIds } } },
+					select: { settlement: true },
+					all: true
+				})
+	);
+	const captureTrancheIds = $derived((captureTranches.current ?? []).map((row) => row.id));
+	const captureAllocations = liveRows(() =>
+		captureTrancheIds.length === 0
+			? null
+			: bolt.read('payment_allocations', {
+					where: { payable_tranche_id: { in: captureTrancheIds } },
+					select: { payable_tranche_id: true },
+					all: true
+				})
+	);
+	const allocatedTrancheIds = $derived(
+		new Set((captureAllocations.current ?? []).map((row) => row.payable_tranche_id))
+	);
+	const allocatedSlipIds = $derived(
+		new Set(
+			(captureTranches.current ?? [])
+				.filter((row) => allocatedTrancheIds.has(row.id))
+				.map((row) => String(row.settlement.id))
 		)
+	);
+	const settlementClaims = $derived(
+		captureClaims(workDays, payslips.current ?? [], allocatedSlipIds)
 	);
 	const calendar = $derived(reads.calendar);
 	const versionInForce = $derived(reads.versionInForce);
@@ -283,6 +320,8 @@
 	/* ── state of the board ── */
 	const sources = $derived([
 		['person-days', reads.workDays],
+		['capture tranches', captureTranches],
+		['capture allocations', captureAllocations],
 		['leave', reads.leave],
 		['holiday calendar settings', reads.settings],
 		['holidays', reads.holidays],
@@ -308,7 +347,24 @@
 				employmentRows.current === undefined ||
 				(ids.length > 0 && reads.workDays.current === undefined))
 	);
-	const editable = $derived(reads.workDays.current !== undefined && reads.workDays.error == null);
+	const editable = $derived(
+		reads.workDays.current !== undefined &&
+			reads.workDays.error == null &&
+			payslips.current !== undefined &&
+			!payslips.loading &&
+			payslips.error == null &&
+			runs.current !== undefined &&
+			!runs.loading &&
+			runs.error == null &&
+			(capturedSlipIds.length === 0 ||
+				(captureTranches.current !== undefined &&
+					!captureTranches.loading &&
+					captureTranches.error == null)) &&
+			(captureTrancheIds.length === 0 ||
+				(captureAllocations.current !== undefined &&
+					!captureAllocations.loading &&
+					captureAllocations.error == null))
+	);
 	/** The eye filter: only people with an unresolved clock-out, read from the facts the cells render. */
 	let unresolvedOnly = $state(false);
 	const unresolved = $derived(
@@ -473,20 +529,27 @@
 			}
 		);
 		if (rows.length === 0) return;
-		toast.warning(t('app.scheduling.import_holiday_without_overtime', { count: rows.length }), {
-			description: rows
-				.map((row) =>
-					t('roster.day_sheet_holiday_without_overtime', {
-						person: [row.employee_number, byNumber.get(row.employee_number)?.name]
-							.filter(Boolean)
-							.join(' '),
-						date: row.work_date
-					})
-				)
-				.join('\n'),
-			descriptionClass: 'whitespace-pre-line',
-			duration: Number.POSITIVE_INFINITY
-		});
+		toast.warning<typeof WorkbookImportDetails>(
+			t('app.scheduling.import_holiday_without_overtime', { count: rows.length }),
+			{
+				closeButton: true,
+				description: WorkbookImportDetails,
+				componentProps: {
+					label: t('component.work_days'),
+					details: rows
+						.map((row) =>
+							t('roster.day_sheet_holiday_without_overtime', {
+								person: [row.employee_number, byNumber.get(row.employee_number)?.name]
+									.filter(Boolean)
+									.join(' '),
+								date: row.work_date
+							})
+						)
+						.join('\n')
+				},
+				duration: Number.POSITIVE_INFINITY
+			}
+		);
 	}
 	let importing = $state(false);
 	async function importWorkbook(): Promise<void> {
@@ -568,7 +631,12 @@
 	title={t('app.work.title')}
 	description={t('app.work.description')}
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}
+		<Cluster gap="sm">
+			{@render periodPicker()}
+			<CompanyScope {scope} />
+		</Cluster>
+	{/snippet}
 	<ScopeGate {scope} empty={t('app.scheduling.empty_board')}>
 		{#snippet children(id)}
 			<CustomView
@@ -580,8 +648,6 @@
 				]}
 				toolbar={{
 					title: t('app.scheduling.board_title'),
-					description: t('app.scheduling.help_published'),
-					controls: periodPicker,
 					actions: boardActions
 				}}
 			>
@@ -615,6 +681,7 @@
 										: t('app.scheduling.employments_outside_month', { month: period })}
 						/>
 					{:else}
+						<p class="text-sm text-muted-foreground">{t('roster.board_layers_legend')}</p>
 						{#each settlesLater as [name, next] (name)}
 							<Alert.Root>
 								<Alert.Description

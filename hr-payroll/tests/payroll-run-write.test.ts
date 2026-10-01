@@ -109,7 +109,7 @@ test('runs are deleted newest first; deleting them together is newest first too'
 	await runDelete(payrollRuns, [jan, feb], { tables: world });
 });
 
-test('a controller’s run is held for the HR Manager; a manager’s commits; neither edits a run', async () => {
+test('a controller’s run is held for the HR Manager; a manager’s commits; recalculation keeps the same approval route and accepts no financial edits', async () => {
 	const { default: controller } = await import('../src/access/+hr_controller.policy.ts');
 	const { default: manager } = await import('../src/access/+hr_manager.policy.ts');
 	assert.deepEqual(controller.grants.payroll_runs.create.approval, {
@@ -122,5 +122,7 @@ test('a controller’s run is held for the HR Manager; a manager’s commits; ne
 		'a controller never unwinds a run'
 	);
 	assert.equal(manager.grants.payroll_runs.create, true);
-	assert.equal(payrollRuns.spec.update, undefined);
+	assert.deepEqual(payrollRuns.spec.update, { input: { columns: [] } });
+	assert.deepEqual(controller.grants.payroll_runs.update, controller.grants.payroll_runs.create);
+	assert.equal(manager.grants.payroll_runs.update, true);
 });

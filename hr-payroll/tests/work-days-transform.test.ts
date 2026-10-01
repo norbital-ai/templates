@@ -255,14 +255,17 @@ test('payroll locks: a paid window refuses new days, a captured day refuses any 
 		]
 	});
 	await assert.rejects(clock([], tables), /inside paid payroll 2026-07/);
-	// the unpaid colleague's day is open; an unconsumed stored day stays editable (arrears)
+	// The unpaid colleague stays open; an existing row in the paid person's regular window is locked.
 	await writeDay(
 		workDays,
 		{ employment_id: 'emp-2', work_date: '2026-07-01', worked_intervals: [] },
 		undefined,
 		tables
 	);
-	await writeDay(workDays, { worked_intervals: [] }, stored({ work_date: '2026-07-01' }), tables);
+	await assert.rejects(
+		writeDay(workDays, { worked_intervals: [] }, stored({ work_date: '2026-07-01' }), tables),
+		/inside paid payroll 2026-07/
+	);
 	await assert.rejects(
 		writeDay(workDays, { worked_intervals: [] }, stored({ payslip_id: 'slip-1' }), tables),
 		/already taken this record into account/

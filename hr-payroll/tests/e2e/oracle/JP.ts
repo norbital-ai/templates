@@ -84,6 +84,8 @@ export type Scenario = {
 		/** 居住者 (resident) for income tax */
 		taxResident: boolean;
 		monthlySalary: number;
+		/** LSA art.41(2): hours/holiday premiums excluded; art.37(4) night premium remains. */
+		supervisoryManager?: boolean;
 		/** scheduled hours on each Monday–Friday (Saturday 所定休日, Sunday 法定休日) */
 		dailyHours: number;
 		/** terms fact: annual scheduled hours (最低賃金法施行規則 art.2 / 労基則 art.19 divisor ÷ 12) */
@@ -1288,12 +1290,13 @@ function core(s: Scenario, withTax: boolean): Core {
 	const hourly = yen(effective(end) / monthlyHours); // DEFAULT: the period-end effective wage; hourly rounded to the yen
 	const t = classify(s, employed);
 	const band = (mins: number, mult: number) => yen((mins / 60) * hourly * mult);
-	const overtime =
-		band(t.INLAW, 1) +
-		band(t.REST, 1.25) +
-		band(t.OT, 1.25) +
-		band(t.OT60, 1.5) +
-		band(t.HOL, 1.35);
+	const overtime = e.supervisoryManager
+		? 0
+		: band(t.INLAW, 1) +
+			band(t.REST, 1.25) +
+			band(t.OT, 1.25) +
+			band(t.OT60, 1.5) +
+			band(t.HOL, 1.35);
 	const night = band(t.NIGHT, 0.25);
 	set('OVERTIME', { amount: overtime });
 	set('NIGHT_PREMIUM', { amount: night });

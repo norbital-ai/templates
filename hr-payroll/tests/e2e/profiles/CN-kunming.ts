@@ -986,9 +986,9 @@ function build() {
 	add(
 		'bonus-separate-nonresident',
 		['CN-N10.separate-election', 'CN-KM-A1.six-month-spread'],
-		['separate method is resident-only'],
-		'Non-resident cannot elect the resident method',
-		[SRC.bonus],
+		['non-resident annual bonus uses six-month spread'],
+		'Non-resident annual bonus: the shared class selects the six-month method',
+		[SRC.nonres],
 		{
 			employee: nonres,
 			facts: { fundRate: null },

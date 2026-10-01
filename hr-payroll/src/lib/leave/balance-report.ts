@@ -6,6 +6,7 @@
 
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ExcelJS from 'exceljs';
+import type { Id } from '@norbital-ai/bolt';
 import type { LeaveBalanceSummaries } from './summary.js';
 
 export type LeaveBalanceReportRow = {
@@ -14,7 +15,15 @@ export type LeaveBalanceReportRow = {
 	/** The service start the entitlement counts from. */
 	readonly service_start: string;
 	readonly balances: LeaveBalanceSummaries;
+	/** A refused calculation leaves all this person's balance cells unknown. */
+	readonly issue?: string;
 };
+/** Bounded query response; callers continue until next_cursor is null. */
+export type LeaveBalanceReportPage = {
+	readonly rows: readonly LeaveBalanceReportRow[];
+	readonly next_cursor: Id<'employments'> | null;
+};
+
 type Balance = LeaveBalanceSummaries[number];
 
 const NAVY = 'FF17365D';
@@ -67,7 +76,8 @@ export function leaveBalanceWorkbook(options: {
 			a.code.localeCompare(b.code)
 	);
 	const band = 1 + FIGURES.length;
-	const width = IDENTITY.length + types.length * band;
+	const notesColumn = IDENTITY.length + types.length * band + 1;
+	const width = notesColumn;
 	const workbook = new ExcelJSBrowser.Workbook();
 	const sheet = workbook.addWorksheet('Leave balances', {
 		views: [{ state: 'frozen', xSplit: IDENTITY.length, ySplit: HEADER_ROW, showGridLines: false }],
@@ -75,7 +85,8 @@ export function leaveBalanceWorkbook(options: {
 	});
 	sheet.columns = [
 		...IDENTITY.map((column) => ({ width: column.width })),
-		...types.flatMap(() => [{ width: 7 }, ...FIGURES.map(() => ({ width: 9 }))])
+		...types.flatMap(() => [{ width: 7 }, ...FIGURES.map(() => ({ width: 9 }))]),
+		{ width: 64 }
 	];
 	const masthead = (row: number, text: string, font: Partial<ExcelJS.Font>) => {
 		sheet.mergeCells(row, 1, row, width);
@@ -94,10 +105,11 @@ export function leaveBalanceWorkbook(options: {
 			title: type.unit === 'HOUR' ? `${type.name} (hours)` : type.name,
 			from: IDENTITY.length + index * band + 1,
 			to: IDENTITY.length + (index + 1) * band
-		}))
+		})),
+		{ title: 'Report notes', from: notesColumn, to: notesColumn }
 	];
 	for (const { title, from, to } of bands) {
-		sheet.mergeCells(FIRST_BAND_ROW, from, FIRST_BAND_ROW, to);
+		if (from !== to) sheet.mergeCells(FIRST_BAND_ROW, from, FIRST_BAND_ROW, to);
 		sheet.getCell(FIRST_BAND_ROW, from).value = title;
 		for (let column = from; column <= to; column += 1) {
 			const cell = sheet.getCell(FIRST_BAND_ROW, column);
@@ -111,7 +123,8 @@ export function leaveBalanceWorkbook(options: {
 	header.height = 32;
 	header.values = [
 		...IDENTITY.map((column) => column.header),
-		...types.flatMap(() => ['Year', ...FIGURES.map(([label]) => label)])
+		...types.flatMap(() => ['Year', ...FIGURES.map(([label]) => label)]),
+		'Report notes'
 	];
 	header.eachCell((cell, column) => {
 		cell.fill = fill(NAVY);
@@ -137,12 +150,21 @@ export function leaveBalanceWorkbook(options: {
 							new Date(`${balance.window.start.slice(0, 10)}T00:00:00Z`).getUTCFullYear(),
 							...FIGURES.map(([, value]) => round(value(balance)))
 						];
-			})
+			}),
+			[
+				person.issue,
+				...person.balances.flatMap((balance) =>
+					(balance.warnings ?? []).map((warning) => `${balance.name}: ${warning}`)
+				)
+			]
+				.filter(Boolean)
+				.join('\n') || null
 		]);
 		for (let column = 1; column <= width; column += 1) {
 			const cell = row.getCell(column);
 			cell.border = { bottom: THIN, right: THIN };
-			if (column === IDENTITY.length) cell.numFmt = DAY;
+			if (column === notesColumn) cell.alignment = { vertical: 'top', wrapText: true };
+			else if (column === IDENTITY.length) cell.numFmt = DAY;
 			else if (column > IDENTITY.length && (column - IDENTITY.length - 1) % band !== 0)
 				cell.numFmt = '0.00';
 		}

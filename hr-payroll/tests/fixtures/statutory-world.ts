@@ -633,6 +633,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			const declared = person.registrations?.[scheme.code];
 			const insuredAmount = taiwanInsuredAmount(person, scheme.code);
 			const employmentScoped =
+				(code === 'PH' && scheme.code === 'HDMF') ||
 				(code === 'SG' && scheme.code === 'SDL') ||
 				(code === 'VN' && scheme.code === 'PIT') ||
 				declared?.scope === 'EMPLOYMENT' ||
@@ -714,6 +715,31 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 							? {
 									enrolled_dependants:
 										(person.children ?? 0) + (person.spouse_status === 'WITHOUT_INCOME' ? 1 : 0)
+								}
+							: {}),
+						// Synthetic HDMF members first joined at 18, independently of SSS or this employer.
+						...(code === 'PH' && scheme.code === 'HDMF'
+							? {
+									coverage_class: person.employment_type === 'DOMESTIC' ? 'KASAMBAHAY' : 'PRIVATE',
+
+									membership_status:
+										Number(period.slice(0, 4)) -
+											birthYear! -
+											(employees[index]!.date_of_birth.slice(5) > monthEnd(period).slice(5)
+												? 1
+												: 0) >=
+										65
+											? 'COMPULSORILY_RETIRED'
+											: 'MANDATORY',
+									...(declared?.elections?.membership_status === 'NEVER_COVERED'
+										? {}
+										: {
+												initial_coverage_class:
+													person.employment_type === 'DOMESTIC' ? 'KASAMBAHAY' : 'PRIVATE',
+												first_membership_on: adult
+											}),
+									last_termination_reason: 'NONE',
+									membership_evidence_reference: 'SYNTHETIC-HDMF-MEMBERSHIP'
 								}
 							: {}),
 						...declared?.elections

@@ -151,6 +151,7 @@ const settings = collection('jurisdiction_settings', {
 							'can_encash',
 							'encash_on_exit',
 							'pay_fraction',
+							'time_off_amount',
 							'paid_by',
 							'consumes_code',
 							'unit',

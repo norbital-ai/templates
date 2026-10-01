@@ -159,8 +159,8 @@
 				"ordinary_add": "day_type == \"ORDINARY\" ? 30.0 : 50.0",
 				"overtime_add": "day_type == \"ORDINARY\" && overtime_hours > night_hours ? 60.0 : 50.0"
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0",
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) art.105 the normal day is at most eight hours under a daily arrangement or ten under a notified weekly arrangement (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day. Labour Code 2019 art.105(2): the recorded weekly arrangement permits ten normal hours a day; an unrecorded arrangement uses the daily eight-hour rule. Both arrangements remain limited to 48 normal hours a week. Source: https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"normal_hours": "has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\" ? 10.0 : 8.0",
 			"wages": {
 				"by_region": {
 					"I": 4960000,
@@ -362,6 +362,20 @@
 				"minimum": 0,
 				"label": "Wage of the job on probation",
 				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
+			},
+			{
+				"key": "normal_hours_arrangement",
+				"type": "string",
+				"label": "Normal working-time arrangement",
+				"options": ["DAILY", "WEEKLY"],
+				"description": "Labour Code 45/2019/QH14 art.105(1)–(2): daily arrangement allows at most eight normal hours a day; weekly arrangement allows at most ten, both at most 48 a week. Unrecorded arrangement defaults to DAILY."
+			},
+			{
+				"key": "normal_hours_notified_on",
+				"type": "date",
+				"label": "Working-time arrangement notified on",
+				"description": "Labour Code 45/2019/QH14 art.105(2): record when the worker was notified of the selected daily or weekly arrangement. A date records the notification; retain delivery evidence separately.",
+				"required_when": "has(terms.facts.normal_hours_arrangement)"
 			}
 		],
 		"payment_facts": [
@@ -513,8 +527,7 @@
 				"trigger": "An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more.",
 				"timing": "Within 30 days of the day the employee becomes a compulsory participant.",
 				"owner": "HR / VSS declaration and acknowledgement",
-				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 38/2013/QH13 art.44 (UI registered with SI)",
-				"status": "EXTERNAL"
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 38/2013/QH13 art.44 (UI registered with SI)"
 			},
 			{
 				"code": "SI_HI_UI_CHANGE_DECLARATION",
@@ -522,8 +535,7 @@
 				"trigger": "A change in the registered information or in the contribution status.",
 				"timing": "When the change occurs, before the month's contribution is settled.",
 				"owner": "HR / adjustment declaration to VSS",
-				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
@@ -531,8 +543,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month following the contribution month.",
 				"owner": "Finance / VSS payment receipt",
-				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 38/2013/QH13 art.57",
-				"status": "PARTIAL"
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 38/2013/QH13 art.57"
 			},
 			{
 				"code": "SI_BENEFIT_CLAIMS",
@@ -540,8 +551,7 @@
 				"trigger": "An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days).",
 				"timing": "Within 7 working days of receiving the complete file from the employee.",
 				"owner": "HR / claim list and VSS decision",
-				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "INSURANCE_EQUIVALENT_PAYMENT",
@@ -549,8 +559,7 @@
 				"trigger": "An employee who is not a compulsory participant.",
 				"timing": "With each wage payment.",
 				"owner": "Payroll",
-				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_CONTRACT",
@@ -558,8 +567,7 @@
 				"trigger": "Hiring for work of one month or more.",
 				"timing": "Before the employee starts work.",
 				"owner": "HR / signed contract",
-				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_MANAGEMENT_BOOK",
@@ -567,8 +575,7 @@
 				"trigger": "Each employee from the day work starts.",
 				"timing": "From the first day of work, updated on every change.",
 				"owner": "HR / labour register",
-				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "LABOUR_USE_REPORT",
@@ -576,8 +583,7 @@
 				"trigger": "Start of operations; each half-year and year.",
 				"timing": "Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
 				"owner": "HR / portal submission",
-				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "INTERNAL_LABOUR_RULES",
@@ -585,8 +591,7 @@
 				"trigger": "An employer using 10 or more employees.",
 				"timing": "File the registration within 10 days of issuing the rules.",
 				"owner": "HR / registration dossier",
-				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_SCALE_AND_NORMS",
@@ -594,8 +599,7 @@
 				"trigger": "Before applying a salary scale or a change to it.",
 				"timing": "Published at the workplace before implementation.",
 				"owner": "HR / published pay table",
-				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "MINIMUM_WAGE",
@@ -603,8 +607,7 @@
 				"trigger": "Each wage agreement and payment.",
 				"timing": "Continuously; the version's regional table.",
 				"owner": "HR / contract terms",
-				"authority": "Labour Code 2019 art.91; Decree 74/2024/NĐ-CP (Region I–IV 4,960,000 / 4,410,000 / 3,860,000 / 3,450,000 a month; 23,800 / 21,200 / 18,600 / 16,600 an hour) https://vanban.chinhphu.vn/?pageid=27160&docid=210536",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.91; Decree 74/2024/NĐ-CP (Region I–IV 4,960,000 / 4,410,000 / 3,860,000 / 3,450,000 a month; 23,800 / 21,200 / 18,600 / 16,600 an hour) https://vanban.chinhphu.vn/?pageid=27160&docid=210536"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -612,8 +615,7 @@
 				"trigger": "Each pay period.",
 				"timing": "On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
 				"owner": "Finance / payment record",
-				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_STATEMENT",
@@ -621,8 +623,7 @@
 				"trigger": "Each wage payment.",
 				"timing": "At each payment.",
 				"owner": "Payroll / payslip",
-				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMIT",
@@ -630,8 +631,7 @@
 				"trigger": "A damage-compensation deduction.",
 				"timing": "Each month the deduction runs.",
 				"owner": "HR / deduction decision",
-				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "OVERTIME_CONSENT_AND_LIMITS",
@@ -639,8 +639,7 @@
 				"trigger": "Any overtime; overtime above 200 hours a year.",
 				"timing": "Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
 				"owner": "HR / consent and notice",
-				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "NIGHT_OVERTIME_STATEMENT",
@@ -648,8 +647,7 @@
 				"trigger": "Night work or overtime paid.",
 				"timing": "Kept with the payroll records for each period.",
 				"owner": "Payroll / statement or timesheets",
-				"authority": "Circular 111/2013/TT-BTC art.3(1)(i): the income payer keeps a statement (bảng kê) of night and overtime hours and the pay for them",
-				"status": "PARTIAL"
+				"authority": "Circular 111/2013/TT-BTC art.3(1)(i): the income payer keeps a statement (bảng kê) of night and overtime hours and the pay for them"
 			},
 			{
 				"code": "ANNUAL_LEAVE_SCHEDULE",
@@ -657,8 +655,7 @@
 				"trigger": "Each leave year; termination with untaken leave.",
 				"timing": "Schedule notified before the leave; untaken leave paid with the final settlement.",
 				"owner": "HR / leave schedule",
-				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "WORKPLACE_DIALOGUE",
@@ -666,8 +663,7 @@
 				"trigger": "Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules).",
 				"timing": "At least once a year, and when an art.63(2)(b)–(c) event arises.",
 				"owner": "HR / minutes",
-				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "TERMINATION_NOTICE",
@@ -675,8 +671,7 @@
 				"trigger": "The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g).",
 				"timing": "Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness).",
 				"owner": "HR / written notice",
-				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "RESTRUCTURING_LABOUR_PLAN",
@@ -684,8 +679,7 @@
 				"trigger": "Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43).",
 				"timing": "30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
 				"owner": "HR / plan, consultation minutes, notices",
-				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "FINAL_SETTLEMENT",
@@ -693,8 +687,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
 				"owner": "Payroll / final payslip",
-				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "SI_CONFIRMATION_ON_TERMINATION",
@@ -702,8 +695,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within the art.48(1) settlement period.",
 				"owner": "HR / VSS confirmation",
-				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "PIT_TAX_REGISTRATION",
@@ -711,8 +703,7 @@
 				"trigger": "First salary payment to an employee without a tax code; a dependant declaration.",
 				"timing": "Within 10 working days of the tax obligation arising.",
 				"owner": "Finance / tax registration",
-				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025",
-				"status": "EXTERNAL"
+				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
 			},
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
@@ -720,8 +711,7 @@
 				"trigger": "Each month (or quarter) in which PIT was withheld.",
 				"timing": "Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
 				"owner": "Finance / declaration and payment receipt",
-				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)",
-				"status": "PARTIAL"
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
 			},
 			{
 				"code": "PIT_SHORT_CONTRACT_COMMITMENT",
@@ -729,8 +719,7 @@
 				"trigger": "A resident on no contract or a contract under three months who expects income below the taxable threshold.",
 				"timing": "Before the payment that is not withheld.",
 				"owner": "Finance / signed commitment",
-				"authority": "Circular 111/2013/TT-BTC art.25(1)(i)",
-				"status": "PARTIAL"
+				"authority": "Circular 111/2013/TT-BTC art.25(1)(i)"
 			},
 			{
 				"code": "PIT_ANNUAL_FINALISATION",
@@ -738,8 +727,7 @@
 				"trigger": "End of the tax year.",
 				"timing": "By the last day of the third month after the tax year (31 March).",
 				"owner": "Finance / finalisation receipt",
-				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
-				"status": "PARTIAL"
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
 			},
 			{
 				"code": "PIT_WITHHOLDING_CERTIFICATE",
@@ -747,8 +735,7 @@
 				"trigger": "The employee requests it; an employee who has not authorised the employer to finalise.",
 				"timing": "On request.",
 				"owner": "Finance / e-certificate",
-				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)",
-				"status": "EXTERNAL"
+				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
 			},
 			{
 				"code": "UNION_FEE_REMITTANCE",
@@ -756,8 +743,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "Monthly, at the same time as compulsory SI (Decree 191/2013/NĐ-CP art.6)",
 				"owner": "Finance / union fee receipt",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6"
 			},
 			{
 				"code": "UNION_DUES_TRANSFER",
@@ -765,8 +751,7 @@
 				"trigger": "A union member on payroll.",
 				"timing": "Each month.",
 				"owner": "Payroll / grassroots union",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
 			},
 			{
 				"code": "FOREIGN_WORK_PERMIT",
@@ -774,8 +759,7 @@
 				"trigger": "Hiring or extending a foreign employee.",
 				"timing": "Before the employee starts work; renewal before the permit expires.",
 				"owner": "HR / work permit",
-				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
 			},
 			{
 				"code": "OCCUPATIONAL_HEALTH_CHECK",
@@ -783,8 +767,7 @@
 				"trigger": "Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly.",
 				"timing": "At least once a year (twice for the listed groups).",
 				"owner": "HR / health-check records",
-				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)",
-				"status": "EXTERNAL"
+				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)"
 			},
 			{
 				"code": "RECORD_RETENTION",
@@ -792,8 +775,7 @@
 				"trigger": "Each payroll period.",
 				"timing": "Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
 				"owner": "Finance / archive",
-				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Decree 13/2023/NĐ-CP on personal data protection",
-				"status": "EXTERNAL"
+				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Decree 13/2023/NĐ-CP on personal data protection"
 			},
 			{
 				"code": "DPD_CONSENT_AND_NOTICE",
@@ -801,8 +783,7 @@
 				"trigger": "Collection or processing of a candidate’s or employee’s personal data",
 				"timing": "Before processing",
 				"owner": "HR / consent and notice record",
-				"authority": "Decree 13/2023/NĐ-CP on personal data protection arts.9, 11, 13, 17 (in force 1 July 2023, art.43) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
-				"status": "EXTERNAL"
+				"authority": "Decree 13/2023/NĐ-CP on personal data protection arts.9, 11, 13, 17 (in force 1 July 2023, art.43) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)"
 			},
 			{
 				"code": "DPD_DELETION_ON_REQUEST",
@@ -810,8 +791,7 @@
 				"trigger": "A data subject’s deletion request",
 				"timing": "Within 72 hours of a valid request",
 				"owner": "HR / request log and deletion record",
-				"authority": "Decree 13/2023/NĐ-CP art.16 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
-				"status": "EXTERNAL"
+				"authority": "Decree 13/2023/NĐ-CP art.16 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)"
 			},
 			{
 				"code": "DPD_IMPACT_ASSESSMENT",
@@ -819,8 +799,7 @@
 				"trigger": "Start of personal data processing, or of a cross-border transfer",
 				"timing": "Within 60 days from the start of processing",
 				"owner": "DPO / assessment dossier and filing receipt",
-				"authority": "Decree 13/2023/NĐ-CP arts.24, 25 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
-				"status": "EXTERNAL"
+				"authority": "Decree 13/2023/NĐ-CP arts.24, 25 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)"
 			},
 			{
 				"code": "DPD_BREACH_NOTIFICATION",
@@ -828,8 +807,7 @@
 				"trigger": "Discovery of a personal data protection violation",
 				"timing": "No later than 72 hours after the violation",
 				"owner": "DPO / violation minutes and notification",
-				"authority": "Decree 13/2023/NĐ-CP art.23 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
-				"status": "EXTERNAL"
+				"authority": "Decree 13/2023/NĐ-CP art.23 (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)"
 			},
 			{
 				"code": "DPD_SENSITIVE_DATA_PERSONNEL",
@@ -837,8 +815,7 @@
 				"trigger": "The employer processes sensitive personal data",
 				"timing": "Continuous",
 				"owner": "Management / designation decision",
-				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
-				"status": "EXTERNAL"
+				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)"
 			}
 		],
 		"tables": [
@@ -1049,6 +1026,22 @@
 				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
 				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "NORMAL_WEEK_OVER_48_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "terms.ordinary_hours_per_week > 48",
+				"message": "normal working time exceeds 48 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 art.105(1)–(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"code": "NORMAL_HOURS_NOTIFICATION_REQUIRED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "has(terms.facts.normal_hours_arrangement) && (!has(terms.facts.normal_hours_notified_on) || terms.facts.normal_hours_notified_on > check.date)",
+				"message": "notify the worker of the working-time arrangement on or before its effective date.",
+				"authority": "Labour Code 45/2019/QH14 art.105(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		]
 	},
@@ -1212,8 +1205,8 @@
 				"ordinary_add": "day_type == \"ORDINARY\" ? 30.0 : 50.0",
 				"overtime_add": "day_type == \"ORDINARY\" && overtime_hours > night_hours ? 60.0 : 50.0"
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0",
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) art.105 the normal day is at most eight hours under a daily arrangement or ten under a notified weekly arrangement (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day. Labour Code 2019 art.105(2): the recorded weekly arrangement permits ten normal hours a day; an unrecorded arrangement uses the daily eight-hour rule. Both arrangements remain limited to 48 normal hours a week. Source: https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"normal_hours": "has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\" ? 10.0 : 8.0",
 			"wages": {
 				"by_region": {
 					"I": 5310000,
@@ -1420,6 +1413,20 @@
 				"minimum": 0,
 				"label": "Wage of the job on probation",
 				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
+			},
+			{
+				"key": "normal_hours_arrangement",
+				"type": "string",
+				"label": "Normal working-time arrangement",
+				"options": ["DAILY", "WEEKLY"],
+				"description": "Labour Code 45/2019/QH14 art.105(1)–(2): daily arrangement allows at most eight normal hours a day; weekly arrangement allows at most ten, both at most 48 a week. Unrecorded arrangement defaults to DAILY."
+			},
+			{
+				"key": "normal_hours_notified_on",
+				"type": "date",
+				"label": "Working-time arrangement notified on",
+				"description": "Labour Code 45/2019/QH14 art.105(2): record when the worker was notified of the selected daily or weekly arrangement. A date records the notification; retain delivery evidence separately.",
+				"required_when": "has(terms.facts.normal_hours_arrangement)"
 			}
 		],
 		"payment_facts": [
@@ -1571,8 +1578,7 @@
 				"trigger": "An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more.",
 				"timing": "Within 30 days of the day the employee becomes a compulsory participant.",
 				"owner": "HR / VSS declaration and acknowledgement",
-				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "EXTERNAL"
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_HI_UI_CHANGE_DECLARATION",
@@ -1580,8 +1586,7 @@
 				"trigger": "A change in the registered information or in the contribution status.",
 				"timing": "When the change occurs, before the month's contribution is settled.",
 				"owner": "HR / adjustment declaration to VSS",
-				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
@@ -1589,8 +1594,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month following the contribution month.",
 				"owner": "Finance / VSS payment receipt",
-				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "PARTIAL"
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_BENEFIT_CLAIMS",
@@ -1598,8 +1602,7 @@
 				"trigger": "An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days).",
 				"timing": "Within 7 working days of receiving the complete file from the employee.",
 				"owner": "HR / claim list and VSS decision",
-				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "INSURANCE_EQUIVALENT_PAYMENT",
@@ -1607,8 +1610,7 @@
 				"trigger": "An employee who is not a compulsory participant.",
 				"timing": "With each wage payment.",
 				"owner": "Payroll",
-				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_CONTRACT",
@@ -1616,8 +1618,7 @@
 				"trigger": "Hiring for work of one month or more.",
 				"timing": "Before the employee starts work.",
 				"owner": "HR / signed contract",
-				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_MANAGEMENT_BOOK",
@@ -1625,8 +1626,7 @@
 				"trigger": "Each employee from the day work starts.",
 				"timing": "From the first day of work, updated on every change.",
 				"owner": "HR / labour register",
-				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "LABOUR_USE_REPORT",
@@ -1634,8 +1634,7 @@
 				"trigger": "Start of operations; each half-year and year.",
 				"timing": "Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
 				"owner": "HR / portal submission",
-				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "INTERNAL_LABOUR_RULES",
@@ -1643,8 +1642,7 @@
 				"trigger": "An employer using 10 or more employees.",
 				"timing": "File the registration within 10 days of issuing the rules.",
 				"owner": "HR / registration dossier",
-				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_SCALE_AND_NORMS",
@@ -1652,8 +1650,7 @@
 				"trigger": "Before applying a salary scale or a change to it.",
 				"timing": "Published at the workplace before implementation.",
 				"owner": "HR / published pay table",
-				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "MINIMUM_WAGE",
@@ -1661,8 +1658,7 @@
 				"trigger": "Each wage agreement and payment.",
 				"timing": "Continuously; the version's regional table.",
 				"owner": "HR / contract terms",
-				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -1670,8 +1666,7 @@
 				"trigger": "Each pay period.",
 				"timing": "On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
 				"owner": "Finance / payment record",
-				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_STATEMENT",
@@ -1679,8 +1674,7 @@
 				"trigger": "Each wage payment.",
 				"timing": "At each payment.",
 				"owner": "Payroll / payslip",
-				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMIT",
@@ -1688,8 +1682,7 @@
 				"trigger": "A damage-compensation deduction.",
 				"timing": "Each month the deduction runs.",
 				"owner": "HR / deduction decision",
-				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "OVERTIME_CONSENT_AND_LIMITS",
@@ -1697,8 +1690,7 @@
 				"trigger": "Any overtime; overtime above 200 hours a year.",
 				"timing": "Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
 				"owner": "HR / consent and notice",
-				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "NIGHT_OVERTIME_STATEMENT",
@@ -1706,8 +1698,7 @@
 				"trigger": "Night work or overtime paid.",
 				"timing": "Kept with the payroll records for each period.",
 				"owner": "Payroll / statement or timesheets",
-				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "ANNUAL_LEAVE_SCHEDULE",
@@ -1715,8 +1706,7 @@
 				"trigger": "Each leave year; termination with untaken leave.",
 				"timing": "Schedule notified before the leave; untaken leave paid with the final settlement.",
 				"owner": "HR / leave schedule",
-				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "WORKPLACE_DIALOGUE",
@@ -1724,8 +1714,7 @@
 				"trigger": "Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules).",
 				"timing": "At least once a year, and when an art.63(2)(b)–(c) event arises.",
 				"owner": "HR / minutes",
-				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "TERMINATION_NOTICE",
@@ -1733,8 +1722,7 @@
 				"trigger": "The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g).",
 				"timing": "Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness).",
 				"owner": "HR / written notice",
-				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "RESTRUCTURING_LABOUR_PLAN",
@@ -1742,8 +1730,7 @@
 				"trigger": "Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43).",
 				"timing": "30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
 				"owner": "HR / plan, consultation minutes, notices",
-				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "FINAL_SETTLEMENT",
@@ -1751,8 +1738,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
 				"owner": "Payroll / final payslip",
-				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "SI_CONFIRMATION_ON_TERMINATION",
@@ -1760,8 +1746,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within the art.48(1) settlement period.",
 				"owner": "HR / VSS confirmation",
-				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "PIT_TAX_REGISTRATION",
@@ -1769,8 +1754,7 @@
 				"trigger": "First salary payment to an employee without a tax code; a dependant declaration.",
 				"timing": "Within 10 working days of the tax obligation arising.",
 				"owner": "Finance / tax registration",
-				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025",
-				"status": "EXTERNAL"
+				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
 			},
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
@@ -1778,8 +1762,7 @@
 				"trigger": "Each month (or quarter) in which PIT was withheld.",
 				"timing": "Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
 				"owner": "Finance / declaration and payment receipt",
-				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)",
-				"status": "PARTIAL"
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
 			},
 			{
 				"code": "PIT_SHORT_CONTRACT_COMMITMENT",
@@ -1787,8 +1770,7 @@
 				"trigger": "A resident on no contract or a contract under three months who expects income below the taxable threshold.",
 				"timing": "Before the payment that is not withheld.",
 				"owner": "Finance / signed commitment",
-				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "PIT_ANNUAL_FINALISATION",
@@ -1796,8 +1778,7 @@
 				"trigger": "End of the tax year.",
 				"timing": "By the last day of the third month after the tax year (31 March).",
 				"owner": "Finance / finalisation receipt",
-				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
-				"status": "PARTIAL"
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
 			},
 			{
 				"code": "PIT_WITHHOLDING_CERTIFICATE",
@@ -1805,8 +1786,7 @@
 				"trigger": "The employee requests it; an employee who has not authorised the employer to finalise.",
 				"timing": "On request.",
 				"owner": "Finance / e-certificate",
-				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)",
-				"status": "EXTERNAL"
+				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
 			},
 			{
 				"code": "UNION_FEE_REMITTANCE",
@@ -1814,8 +1794,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "Monthly, at the same time as compulsory SI (Decree 191/2013/NĐ-CP art.6)",
 				"owner": "Finance / union fee receipt",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6"
 			},
 			{
 				"code": "UNION_DUES_TRANSFER",
@@ -1823,8 +1802,7 @@
 				"trigger": "A union member on payroll.",
 				"timing": "Each month.",
 				"owner": "Payroll / grassroots union",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
 			},
 			{
 				"code": "FOREIGN_WORK_PERMIT",
@@ -1832,8 +1810,7 @@
 				"trigger": "Hiring or extending a foreign employee.",
 				"timing": "Before the employee starts work; renewal before the permit expires.",
 				"owner": "HR / work permit",
-				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
 			},
 			{
 				"code": "OCCUPATIONAL_HEALTH_CHECK",
@@ -1841,8 +1818,7 @@
 				"trigger": "Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly.",
 				"timing": "At least once a year (twice for the listed groups).",
 				"owner": "HR / health-check records",
-				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)",
-				"status": "EXTERNAL"
+				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)"
 			},
 			{
 				"code": "RECORD_RETENTION",
@@ -1850,8 +1826,7 @@
 				"trigger": "Each payroll period.",
 				"timing": "Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
 				"owner": "Finance / archive",
-				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026",
-				"status": "EXTERNAL"
+				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026"
 			},
 			{
 				"code": "PDPL_CONSENT",
@@ -1859,8 +1834,7 @@
 				"trigger": "Collection or processing of a candidate's or employee's personal data",
 				"timing": "Before processing",
 				"owner": "HR / consent record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))"
 			},
 			{
 				"code": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
@@ -1868,8 +1842,7 @@
 				"trigger": "Recruitment, employment, contract termination, or technical monitoring of employees",
 				"timing": "Candidate data: on the recruitment decision; employee data: on termination, subject to statutory retention",
 				"owner": "HR / retention and deletion record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			},
 			{
 				"code": "PDPL_IMPACT_ASSESSMENT",
@@ -1877,8 +1850,7 @@
 				"trigger": "Start of personal data processing (and any cross-border transfer)",
 				"timing": "Within 60 days from the start of processing; updates as stated",
 				"owner": "DPO / DPIA dossier and filing receipt",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_BREACH_NOTIFICATION",
@@ -1886,8 +1858,7 @@
 				"trigger": "Discovery of a personal data protection violation",
 				"timing": "No later than 72 hours from discovery",
 				"owner": "DPO / violation minutes and notification",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_DATA_PROTECTION_PERSONNEL",
@@ -1895,8 +1866,7 @@
 				"trigger": "The employer processes personal data",
 				"timing": "Continuous",
 				"owner": "Management / designation decision or service contract",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			}
 		],
 		"tables": [
@@ -2107,6 +2077,22 @@
 				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
 				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "NORMAL_WEEK_OVER_48_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "terms.ordinary_hours_per_week > 48",
+				"message": "normal working time exceeds 48 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 art.105(1)–(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"code": "NORMAL_HOURS_NOTIFICATION_REQUIRED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "has(terms.facts.normal_hours_arrangement) && (!has(terms.facts.normal_hours_notified_on) || terms.facts.normal_hours_notified_on > check.date)",
+				"message": "notify the worker of the working-time arrangement on or before its effective date.",
+				"authority": "Labour Code 45/2019/QH14 art.105(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		]
 	},
@@ -2270,8 +2256,8 @@
 				"ordinary_add": "day_type == \"ORDINARY\" ? 30.0 : 50.0",
 				"overtime_add": "day_type == \"ORDINARY\" && overtime_hours > night_hours ? 60.0 : 50.0"
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0",
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) art.105 the normal day is at most eight hours under a daily arrangement or ten under a notified weekly arrangement (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day. Labour Code 2019 art.105(2): the recorded weekly arrangement permits ten normal hours a day; an unrecorded arrangement uses the daily eight-hour rule. Both arrangements remain limited to 48 normal hours a week. Source: https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"normal_hours": "has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\" ? 10.0 : 8.0",
 			"wages": {
 				"by_region": {
 					"I": 5310000,
@@ -2495,6 +2481,20 @@
 				"minimum": 0,
 				"label": "Wage of the job on probation",
 				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
+			},
+			{
+				"key": "normal_hours_arrangement",
+				"type": "string",
+				"label": "Normal working-time arrangement",
+				"options": ["DAILY", "WEEKLY"],
+				"description": "Labour Code 45/2019/QH14 art.105(1)–(2): daily arrangement allows at most eight normal hours a day; weekly arrangement allows at most ten, both at most 48 a week. Unrecorded arrangement defaults to DAILY."
+			},
+			{
+				"key": "normal_hours_notified_on",
+				"type": "date",
+				"label": "Working-time arrangement notified on",
+				"description": "Labour Code 45/2019/QH14 art.105(2): record when the worker was notified of the selected daily or weekly arrangement. A date records the notification; retain delivery evidence separately.",
+				"required_when": "has(terms.facts.normal_hours_arrangement)"
 			}
 		],
 		"payment_facts": [
@@ -2646,8 +2646,7 @@
 				"trigger": "An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more.",
 				"timing": "Within 30 days of the day the employee becomes a compulsory participant.",
 				"owner": "HR / VSS declaration and acknowledgement",
-				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "EXTERNAL"
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_HI_UI_CHANGE_DECLARATION",
@@ -2655,8 +2654,7 @@
 				"trigger": "A change in the registered information or in the contribution status.",
 				"timing": "When the change occurs, before the month's contribution is settled.",
 				"owner": "HR / adjustment declaration to VSS",
-				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
@@ -2664,8 +2662,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month following the contribution month.",
 				"owner": "Finance / VSS payment receipt",
-				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "PARTIAL"
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_BENEFIT_CLAIMS",
@@ -2673,8 +2670,7 @@
 				"trigger": "An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days).",
 				"timing": "Within 7 working days of receiving the complete file from the employee.",
 				"owner": "HR / claim list and VSS decision",
-				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "INSURANCE_EQUIVALENT_PAYMENT",
@@ -2682,8 +2678,7 @@
 				"trigger": "An employee who is not a compulsory participant.",
 				"timing": "With each wage payment.",
 				"owner": "Payroll",
-				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_CONTRACT",
@@ -2691,8 +2686,7 @@
 				"trigger": "Hiring for work of one month or more.",
 				"timing": "Before the employee starts work.",
 				"owner": "HR / signed contract",
-				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_MANAGEMENT_BOOK",
@@ -2700,8 +2694,7 @@
 				"trigger": "Each employee from the day work starts.",
 				"timing": "From the first day of work, updated on every change.",
 				"owner": "HR / labour register",
-				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "LABOUR_USE_REPORT",
@@ -2709,8 +2702,7 @@
 				"trigger": "Start of operations; each half-year and year.",
 				"timing": "Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
 				"owner": "HR / portal submission",
-				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "INTERNAL_LABOUR_RULES",
@@ -2718,8 +2710,7 @@
 				"trigger": "An employer using 10 or more employees.",
 				"timing": "File the registration within 10 days of issuing the rules.",
 				"owner": "HR / registration dossier",
-				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_SCALE_AND_NORMS",
@@ -2727,8 +2718,7 @@
 				"trigger": "Before applying a salary scale or a change to it.",
 				"timing": "Published at the workplace before implementation.",
 				"owner": "HR / published pay table",
-				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "MINIMUM_WAGE",
@@ -2736,8 +2726,7 @@
 				"trigger": "Each wage agreement and payment.",
 				"timing": "Continuously; the version's regional table.",
 				"owner": "HR / contract terms",
-				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -2745,8 +2734,7 @@
 				"trigger": "Each pay period.",
 				"timing": "On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
 				"owner": "Finance / payment record",
-				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_STATEMENT",
@@ -2754,8 +2742,7 @@
 				"trigger": "Each wage payment.",
 				"timing": "At each payment.",
 				"owner": "Payroll / payslip",
-				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMIT",
@@ -2763,8 +2750,7 @@
 				"trigger": "A damage-compensation deduction.",
 				"timing": "Each month the deduction runs.",
 				"owner": "HR / deduction decision",
-				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "OVERTIME_CONSENT_AND_LIMITS",
@@ -2772,8 +2758,7 @@
 				"trigger": "Any overtime; overtime above 200 hours a year.",
 				"timing": "Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
 				"owner": "HR / consent and notice",
-				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "NIGHT_OVERTIME_STATEMENT",
@@ -2781,8 +2766,7 @@
 				"trigger": "Night work or overtime paid.",
 				"timing": "Kept with the payroll records for each period.",
 				"owner": "Payroll / statement or timesheets",
-				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "ANNUAL_LEAVE_SCHEDULE",
@@ -2790,8 +2774,7 @@
 				"trigger": "Each leave year; termination with untaken leave.",
 				"timing": "Schedule notified before the leave; untaken leave paid with the final settlement.",
 				"owner": "HR / leave schedule",
-				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "WORKPLACE_DIALOGUE",
@@ -2799,8 +2782,7 @@
 				"trigger": "Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules).",
 				"timing": "At least once a year, and when an art.63(2)(b)–(c) event arises.",
 				"owner": "HR / minutes",
-				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "TERMINATION_NOTICE",
@@ -2808,8 +2790,7 @@
 				"trigger": "The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g).",
 				"timing": "Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness).",
 				"owner": "HR / written notice",
-				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "RESTRUCTURING_LABOUR_PLAN",
@@ -2817,8 +2798,7 @@
 				"trigger": "Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43).",
 				"timing": "30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
 				"owner": "HR / plan, consultation minutes, notices",
-				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "FINAL_SETTLEMENT",
@@ -2826,8 +2806,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
 				"owner": "Payroll / final payslip",
-				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "SI_CONFIRMATION_ON_TERMINATION",
@@ -2835,8 +2814,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within the art.48(1) settlement period.",
 				"owner": "HR / VSS confirmation",
-				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "PIT_TAX_REGISTRATION",
@@ -2844,8 +2822,7 @@
 				"trigger": "First salary payment to an employee without a tax code; a dependant declaration.",
 				"timing": "Within 10 working days of the tax obligation arising.",
 				"owner": "Finance / tax registration",
-				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025",
-				"status": "EXTERNAL"
+				"authority": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
 			},
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
@@ -2853,8 +2830,7 @@
 				"trigger": "Each month (or quarter) in which PIT was withheld.",
 				"timing": "Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
 				"owner": "Finance / declaration and payment receipt",
-				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)",
-				"status": "PARTIAL"
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
 			},
 			{
 				"code": "PIT_SHORT_CONTRACT_COMMITMENT",
@@ -2862,8 +2838,7 @@
 				"trigger": "A resident on no contract or a contract under three months who expects income below the taxable threshold.",
 				"timing": "Before the payment that is not withheld.",
 				"owner": "Finance / signed commitment",
-				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "PIT_ANNUAL_FINALISATION",
@@ -2871,8 +2846,7 @@
 				"trigger": "End of the tax year.",
 				"timing": "By the last day of the third month after the tax year (31 March).",
 				"owner": "Finance / finalisation receipt",
-				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
-				"status": "PARTIAL"
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
 			},
 			{
 				"code": "PIT_WITHHOLDING_CERTIFICATE",
@@ -2880,8 +2854,7 @@
 				"trigger": "The employee requests it; an employee who has not authorised the employer to finalise.",
 				"timing": "On request.",
 				"owner": "Finance / e-certificate",
-				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)",
-				"status": "EXTERNAL"
+				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
 			},
 			{
 				"code": "UNION_FEE_REMITTANCE",
@@ -2889,8 +2862,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month after the month (Decree 105/2026/NĐ-CP art.4, in force 16 May 2026)",
 				"owner": "Finance / union fee receipt",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160"
 			},
 			{
 				"code": "UNION_DUES_TRANSFER",
@@ -2898,8 +2870,7 @@
 				"trigger": "A union member on payroll.",
 				"timing": "Each month.",
 				"owner": "Payroll / grassroots union",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
 			},
 			{
 				"code": "FOREIGN_WORK_PERMIT",
@@ -2907,8 +2878,7 @@
 				"trigger": "Hiring or extending a foreign employee.",
 				"timing": "Before the employee starts work; renewal before the permit expires.",
 				"owner": "HR / work permit",
-				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
 			},
 			{
 				"code": "OCCUPATIONAL_HEALTH_CHECK",
@@ -2916,8 +2886,7 @@
 				"trigger": "Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly.",
 				"timing": "At least once a year (twice for the listed groups).",
 				"owner": "HR / health-check records",
-				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)",
-				"status": "EXTERNAL"
+				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)"
 			},
 			{
 				"code": "RECORD_RETENTION",
@@ -2925,8 +2894,7 @@
 				"trigger": "Each payroll period.",
 				"timing": "Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
 				"owner": "Finance / archive",
-				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026",
-				"status": "EXTERNAL"
+				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026"
 			},
 			{
 				"code": "PDPL_CONSENT",
@@ -2934,8 +2902,7 @@
 				"trigger": "Collection or processing of a candidate's or employee's personal data",
 				"timing": "Before processing",
 				"owner": "HR / consent record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))"
 			},
 			{
 				"code": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
@@ -2943,8 +2910,7 @@
 				"trigger": "Recruitment, employment, contract termination, or technical monitoring of employees",
 				"timing": "Candidate data: on the recruitment decision; employee data: on termination, subject to statutory retention",
 				"owner": "HR / retention and deletion record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			},
 			{
 				"code": "PDPL_IMPACT_ASSESSMENT",
@@ -2952,8 +2918,7 @@
 				"trigger": "Start of personal data processing (and any cross-border transfer)",
 				"timing": "Within 60 days from the start of processing; updates as stated",
 				"owner": "DPO / DPIA dossier and filing receipt",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_BREACH_NOTIFICATION",
@@ -2961,8 +2926,7 @@
 				"trigger": "Discovery of a personal data protection violation",
 				"timing": "No later than 72 hours from discovery",
 				"owner": "DPO / violation minutes and notification",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_DATA_PROTECTION_PERSONNEL",
@@ -2970,8 +2934,7 @@
 				"trigger": "The employer processes personal data",
 				"timing": "Continuous",
 				"owner": "Management / designation decision or service contract",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			}
 		],
 		"tables": [
@@ -3182,6 +3145,22 @@
 				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
 				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "NORMAL_WEEK_OVER_48_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "terms.ordinary_hours_per_week > 48",
+				"message": "normal working time exceeds 48 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 art.105(1)–(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"code": "NORMAL_HOURS_NOTIFICATION_REQUIRED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "has(terms.facts.normal_hours_arrangement) && (!has(terms.facts.normal_hours_notified_on) || terms.facts.normal_hours_notified_on > check.date)",
+				"message": "notify the worker of the working-time arrangement on or before its effective date.",
+				"authority": "Labour Code 45/2019/QH14 art.105(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		]
 	},
@@ -3345,8 +3324,8 @@
 				"ordinary_add": "day_type == \"ORDINARY\" ? 30.0 : 50.0",
 				"overtime_add": "day_type == \"ORDINARY\" && overtime_hours > night_hours ? 60.0 : 50.0"
 			},
-			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) Applied 2026-09-18: art.105 the normal day is eight hours (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). Applied 2026-09-19 (2): art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day.",
-			"normal_hours": "8.0",
+			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1)) art.105 the normal day is at most eight hours under a daily arrangement or ten under a notified weekly arrangement (`normal_hours`); art.98(3) a night overtime hour adds 20% of the day-type wage on top of the 30% night premium — 20% on a rest day, 60% (two thirds of it beyond the 50% the night premium carries) on a holiday — read as the day’s night hours inside the slice; art.98(1)(c) work on the statutory holiday itself, where the rest day keeps the date under SUBSTITUTE, is 300% (`holiday.kind`); art.107(3) 300 overtime hours a year in the listed sectors (`limits[].when` over the entity fact `overtime_300h_sector`); art.109(1) a 45-minute break on a night shift of six hours or more (`night_hours`); art.111(2) at least four rest days a month where the work cannot rest weekly (`weekly_rest_rule.average` on the entity fact `rest_averaged_monthly`). art.98(3): a night hour of overtime is paid the overtime wage, plus 30% for the night, plus 20% of the daytime wage of that day type. The bands price the 20% of the day-type increment (0.2 × the hour on a rest day, 0.4 on a holiday, over the night hours of the slice), so the add over the line is 30 + 20 = 50 on every overtime hour (`overtime_add`), and on a rest day or holiday every hour is overtime (art.98(1)(b),(c)) — the first eight carry the same 50 (`ordinary_add` over the day type), 30 on an ordinary day. Labour Code 2019 art.105(2): the recorded weekly arrangement permits ten normal hours a day; an unrecorded arrangement uses the daily eight-hour rule. Both arrangements remain limited to 48 normal hours a week. Source: https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"normal_hours": "has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\" ? 10.0 : 8.0",
 			"wages": {
 				"by_region": {
 					"I": 5310000,
@@ -3580,6 +3559,20 @@
 				"minimum": 0,
 				"label": "Wage of the job on probation",
 				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
+			},
+			{
+				"key": "normal_hours_arrangement",
+				"type": "string",
+				"label": "Normal working-time arrangement",
+				"options": ["DAILY", "WEEKLY"],
+				"description": "Labour Code 45/2019/QH14 art.105(1)–(2): daily arrangement allows at most eight normal hours a day; weekly arrangement allows at most ten, both at most 48 a week. Unrecorded arrangement defaults to DAILY."
+			},
+			{
+				"key": "normal_hours_notified_on",
+				"type": "date",
+				"label": "Working-time arrangement notified on",
+				"description": "Labour Code 45/2019/QH14 art.105(2): record when the worker was notified of the selected daily or weekly arrangement. A date records the notification; retain delivery evidence separately.",
+				"required_when": "has(terms.facts.normal_hours_arrangement)"
 			}
 		],
 		"payment_facts": [
@@ -3731,8 +3724,7 @@
 				"trigger": "An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more.",
 				"timing": "Within 30 days of the day the employee becomes a compulsory participant.",
 				"owner": "HR / VSS declaration and acknowledgement",
-				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "EXTERNAL"
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_HI_UI_CHANGE_DECLARATION",
@@ -3740,8 +3732,7 @@
 				"trigger": "A change in the registered information or in the contribution status.",
 				"timing": "When the change occurs, before the month's contribution is settled.",
 				"owner": "HR / adjustment declaration to VSS",
-				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.29(1), 33(5), 34(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
@@ -3749,8 +3740,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month following the contribution month.",
 				"owner": "Finance / VSS payment receipt",
-				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"status": "PARTIAL"
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
 			},
 			{
 				"code": "SI_BENEFIT_CLAIMS",
@@ -3758,8 +3748,7 @@
 				"trigger": "An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days).",
 				"timing": "Within 7 working days of receiving the complete file from the employee.",
 				"owner": "HR / claim list and VSS decision",
-				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Law 41/2024/QH15 arts.13(2), 48(1)–(2), 62(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "INSURANCE_EQUIVALENT_PAYMENT",
@@ -3767,8 +3756,7 @@
 				"trigger": "An employee who is not a compulsory participant.",
 				"timing": "With each wage payment.",
 				"owner": "Payroll",
-				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.168(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_CONTRACT",
@@ -3776,8 +3764,7 @@
 				"trigger": "Hiring for work of one month or more.",
 				"timing": "Before the employee starts work.",
 				"owner": "HR / signed contract",
-				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.13(2), 14(1), 21(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "LABOUR_MANAGEMENT_BOOK",
@@ -3785,8 +3772,7 @@
 				"trigger": "Each employee from the day work starts.",
 				"timing": "From the first day of work, updated on every change.",
 				"owner": "HR / labour register",
-				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(1); Decree 145/2020/NĐ-CP art.3 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "LABOUR_USE_REPORT",
@@ -3794,8 +3780,7 @@
 				"trigger": "Start of operations; each half-year and year.",
 				"timing": "Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
 				"owner": "HR / portal submission",
-				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "INTERNAL_LABOUR_RULES",
@@ -3803,8 +3788,7 @@
 				"trigger": "An employer using 10 or more employees.",
 				"timing": "File the registration within 10 days of issuing the rules.",
 				"owner": "HR / registration dossier",
-				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.118, 119(1)–(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_SCALE_AND_NORMS",
@@ -3812,8 +3796,7 @@
 				"trigger": "Before applying a salary scale or a change to it.",
 				"timing": "Published at the workplace before implementation.",
 				"owner": "HR / published pay table",
-				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.93 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "MINIMUM_WAGE",
@@ -3821,8 +3804,7 @@
 				"trigger": "Each wage agreement and payment.",
 				"timing": "Continuously; the version's regional table.",
 				"owner": "HR / contract terms",
-				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -3830,8 +3812,7 @@
 				"trigger": "Each pay period.",
 				"timing": "On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
 				"owner": "Finance / payment record",
-				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.94(1), 97 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_STATEMENT",
@@ -3839,8 +3820,7 @@
 				"trigger": "Each wage payment.",
 				"timing": "At each payment.",
 				"owner": "Payroll / payslip",
-				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.95(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMIT",
@@ -3848,8 +3828,7 @@
 				"trigger": "A damage-compensation deduction.",
 				"timing": "Each month the deduction runs.",
 				"owner": "HR / deduction decision",
-				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.102, 129 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "OVERTIME_CONSENT_AND_LIMITS",
@@ -3857,8 +3836,7 @@
 				"trigger": "Any overtime; overtime above 200 hours a year.",
 				"timing": "Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
 				"owner": "HR / consent and notice",
-				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.107(2)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP arts.59–62 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "NIGHT_OVERTIME_STATEMENT",
@@ -3866,8 +3844,7 @@
 				"trigger": "Night work or overtime paid.",
 				"timing": "Kept with the payroll records for each period.",
 				"owner": "Payroll / statement or timesheets",
-				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "ANNUAL_LEAVE_SCHEDULE",
@@ -3875,8 +3852,7 @@
 				"trigger": "Each leave year; termination with untaken leave.",
 				"timing": "Schedule notified before the leave; untaken leave paid with the final settlement.",
 				"owner": "HR / leave schedule",
-				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 art.113(3)–(4) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.67 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "WORKPLACE_DIALOGUE",
@@ -3884,8 +3860,7 @@
 				"trigger": "Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules).",
 				"timing": "At least once a year, and when an art.63(2)(b)–(c) event arises.",
 				"owner": "HR / minutes",
-				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.63(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "TERMINATION_NOTICE",
@@ -3893,8 +3868,7 @@
 				"trigger": "The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g).",
 				"timing": "Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness).",
 				"owner": "HR / written notice",
-				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "RESTRUCTURING_LABOUR_PLAN",
@@ -3902,8 +3876,7 @@
 				"trigger": "Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43).",
 				"timing": "30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
 				"owner": "HR / plan, consultation minutes, notices",
-				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.42(3)–(6), 44 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
 			{
 				"code": "FINAL_SETTLEMENT",
@@ -3911,8 +3884,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
 				"owner": "Payroll / final payslip",
-				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Labour Code 2019 arts.46, 47, 48(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.8 https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			},
 			{
 				"code": "SI_CONFIRMATION_ON_TERMINATION",
@@ -3920,8 +3892,7 @@
 				"trigger": "Termination of the labour contract.",
 				"timing": "Within the art.48(1) settlement period.",
 				"owner": "HR / VSS confirmation",
-				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 art.48(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Law 41/2024/QH15 art.13(3) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 			},
 			{
 				"code": "PIT_TAX_REGISTRATION",
@@ -3929,8 +3900,7 @@
 				"trigger": "First salary payment to an employee without a tax code; a dependant declaration.",
 				"timing": "Within 10 working days of the tax obligation arising.",
 				"owner": "Finance / tax registration",
-				"authority": "Law 108/2025/QH15 art.10(3)-(4) (from 1 July 2026: individuals register directly or through the income payer; time limits and the income payer's responsibilities follow the Government's regulations) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1; Circular 86/2024/TT-BTC on registration by the income payer under the employee's authorisation, with the personal identification number as the tax code.",
-				"status": "EXTERNAL"
+				"authority": "Law 108/2025/QH15 art.10(3)-(4) (from 1 July 2026: individuals register directly or through the income payer; time limits and the income payer's responsibilities follow the Government's regulations) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1; Circular 86/2024/TT-BTC on registration by the income payer under the employee's authorisation, with the personal identification number as the tax code."
 			},
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
@@ -3938,8 +3908,7 @@
 				"trigger": "Each quarter in which PIT was withheld from salary; a tax period before 1 July 2026 (June or the second quarter of 2026) is declared under the version then in force.",
 				"timing": "Quarterly, by the last day of the first month of the following quarter (the third quarter of 2026 by 31 October 2026); payment by the same day.",
 				"owner": "Finance / declaration and payment receipt",
-				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. Corrected 2026-09-28: this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns.",
-				"status": "PARTIAL"
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns."
 			},
 			{
 				"code": "PIT_SHORT_CONTRACT_COMMITMENT",
@@ -3947,8 +3916,7 @@
 				"trigger": "A resident on no contract or a contract under three months who expects income below the taxable threshold.",
 				"timing": "Before the payment that is not withheld.",
 				"owner": "Finance / signed commitment",
-				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Decree 253/2026/NĐ-CP art.50(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "PIT_ANNUAL_FINALISATION",
@@ -3956,8 +3924,7 @@
 				"trigger": "End of the tax year.",
 				"timing": "By the last day of the third month after the tax year (31 March).",
 				"owner": "Finance / finalisation receipt",
-				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.2) (the salary payer finalises for itself and for each individual who authorises it, whether or not tax was withheld) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(5)(a): a finalisation return is due by the last day of the third month after the tax period ends https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Decree 253/2026/NĐ-CP arts.51, 68 (finalisation on behalf of authorising employees) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"status": "PARTIAL"
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.2) (the salary payer finalises for itself and for each individual who authorises it, whether or not tax was withheld) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(5)(a): a finalisation return is due by the last day of the third month after the tax period ends https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Decree 253/2026/NĐ-CP arts.51, 68 (finalisation on behalf of authorising employees) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
 			},
 			{
 				"code": "PIT_WITHHOLDING_CERTIFICATE",
@@ -3965,8 +3932,7 @@
 				"trigger": "The employee requests it; an employee who has not authorised the employer to finalise.",
 				"timing": "On request.",
 				"owner": "Finance / e-certificate",
-				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)",
-				"status": "EXTERNAL"
+				"authority": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
 			},
 			{
 				"code": "UNION_FEE_REMITTANCE",
@@ -3974,8 +3940,7 @@
 				"trigger": "Each contribution month.",
 				"timing": "By the last day of the month after the month (Decree 105/2026/NĐ-CP art.4, in force 16 May 2026)",
 				"owner": "Finance / union fee receipt",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160"
 			},
 			{
 				"code": "UNION_DUES_TRANSFER",
@@ -3983,8 +3948,7 @@
 				"trigger": "A union member on payroll.",
 				"timing": "Each month.",
 				"owner": "Payroll / grassroots union",
-				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan",
-				"status": "PARTIAL"
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(a) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Quyết định 61/QĐ-TLĐ, in force 1 July 2025 https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
 			},
 			{
 				"code": "FOREIGN_WORK_PERMIT",
@@ -3992,8 +3956,7 @@
 				"trigger": "Hiring or extending a foreign employee.",
 				"timing": "Before the employee starts work; renewal before the permit expires.",
 				"owner": "HR / work permit",
-				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840",
-				"status": "EXTERNAL"
+				"authority": "Labour Code 2019 arts.151–155 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 219/2025/NĐ-CP (in force 7 August 2025) https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
 			},
 			{
 				"code": "OCCUPATIONAL_HEALTH_CHECK",
@@ -4001,8 +3964,7 @@
 				"trigger": "Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly.",
 				"timing": "At least once a year (twice for the listed groups).",
 				"owner": "HR / health-check records",
-				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)",
-				"status": "EXTERNAL"
+				"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)"
 			},
 			{
 				"code": "RECORD_RETENTION",
@@ -4010,8 +3972,7 @@
 				"trigger": "Each payroll period.",
 				"timing": "Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
 				"owner": "Finance / archive",
-				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026",
-				"status": "EXTERNAL"
+				"authority": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026"
 			},
 			{
 				"code": "PDPL_CONSENT",
@@ -4019,8 +3980,7 @@
 				"trigger": "Collection or processing of a candidate's or employee's personal data",
 				"timing": "Before processing",
 				"owner": "HR / consent record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))"
 			},
 			{
 				"code": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
@@ -4028,8 +3988,7 @@
 				"trigger": "Recruitment, employment, contract termination, or technical monitoring of employees",
 				"timing": "Candidate data: on the recruitment decision; employee data: on termination, subject to statutory retention",
 				"owner": "HR / retention and deletion record",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.25 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			},
 			{
 				"code": "PDPL_IMPACT_ASSESSMENT",
@@ -4037,8 +3996,7 @@
 				"trigger": "Start of personal data processing (and any cross-border transfer)",
 				"timing": "Within 60 days from the start of processing; updates as stated",
 				"owner": "DPO / DPIA dossier and filing receipt",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.20, 21, 22, 38(2)–(3), 39(2) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_BREACH_NOTIFICATION",
@@ -4046,8 +4004,7 @@
 				"trigger": "Discovery of a personal data protection violation",
 				"timing": "No later than 72 hours from discovery",
 				"owner": "DPO / violation minutes and notification",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)"
 			},
 			{
 				"code": "PDPL_DATA_PROTECTION_PERSONNEL",
@@ -4055,8 +4012,7 @@
 				"trigger": "The employer processes personal data",
 				"timing": "Continuous",
 				"owner": "Management / designation decision or service contract",
-				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
-				"status": "EXTERNAL"
+				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)"
 			}
 		],
 		"tables": [
@@ -4171,7 +4127,7 @@
 			{
 				"code": "PIT_WITHHOLDING_DECLARATION",
 				"label": "Quarterly salary PIT return (05/KK-TNCN, Circular 89/2026 form)",
-				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. Corrected 2026-09-28: this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns.",
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns.",
 				"subject": "COMPANY",
 				"trigger": {
 					"on": "CALENDAR",
@@ -4245,6 +4201,22 @@
 				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
 				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "NORMAL_WEEK_OVER_48_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "terms.ordinary_hours_per_week > 48",
+				"message": "normal working time exceeds 48 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 art.105(1)–(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"code": "NORMAL_HOURS_NOTIFICATION_REQUIRED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "has(terms.facts.normal_hours_arrangement) && (!has(terms.facts.normal_hours_notified_on) || terms.facts.normal_hours_notified_on > check.date)",
+				"message": "notify the worker of the working-time arrangement on or before its effective date.",
+				"authority": "Labour Code 45/2019/QH14 art.105(2); https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		]
 	}

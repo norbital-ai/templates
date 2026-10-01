@@ -11,8 +11,8 @@
 	paid. Every state also says itself in the accessible name, so nothing here depends on colour
 	alone.
 
-	`dense` is the board: two lines in a 36px cell — the code, then the planned overtime or, when
-	none is planned, the presence cue. Otherwise the calendar tile, with room for the date, the punch
+	`dense` is the board: the code, its projected or recorded plan source, planned extras, and
+	recorded attendance. Unrecorded attendance stays a dash. Otherwise the calendar tile, with room for the date, the punch
 	window and the presence.
 -->
 <script lang="ts">
@@ -22,7 +22,6 @@
 	import {
 		halfHoursLabel,
 		plannedExtraLabel,
-		punchTimeCue,
 		slotCode,
 		slotFill,
 		slotState,
@@ -37,6 +36,28 @@
 	const code = $derived(slotCode(day, dense));
 	/** The overtime and incentive hours planned on the day, `+2h OT · +1h inc`, or null when none. */
 	const plannedOvertime = $derived(plannedExtraLabel(day));
+	const planSource = $derived(
+		day?.employmentState !== 'ACTIVE'
+			? null
+			: day.overrideCode != null
+				? t('roster.plan_recorded')
+				: day.baseCode != null
+					? t('roster.plan_projected')
+					: t('roster.plan_missing')
+	);
+	const actualCue = $derived(
+		day?.employmentState !== 'ACTIVE'
+			? ''
+			: fill.kind === 'AWOL'
+				? t('roster.absent')
+				: fill.kind === 'OPEN'
+					? t('roster.open_punch')
+					: day.attendanceState === 'CLOSED' && day.workedMinutes != null
+						? t('roster.actual_hours', {
+								hours: `${Math.round((day.workedMinutes / 60) * 100) / 100}h`
+							})
+						: '—'
+	);
 
 	/**
 	 * The state's tint. Work is the plain card; everything that is not work is quieter, and a
@@ -81,21 +102,6 @@
 						: t('roster.attended')
 					: null
 	);
-	/**
-	 * The dense cell's presence cue: `✓`, the shortfall to the half hour, or the open punch. A plan
-	 * alone prints nothing under its code.
-	 */
-	const cue = $derived(
-		fill.kind === 'AWOL'
-			? t('roster.absent')
-			: fill.kind === 'CLOCKED'
-				? fill.short
-					? `−${halfHoursLabel(fill.shortMinutes)}`
-					: '✓'
-				: fill.kind === 'OPEN'
-					? (punchTimeCue(day) ?? '')
-					: ''
-	);
 </script>
 
 <Bound
@@ -108,13 +114,16 @@
 	)}
 	data-slot-state={state}
 	data-slot-fill={fill.kind}
-	aria-label={[t(stateLabelKey[state]), plannedOvertime, presence]
+	aria-label={[t(stateLabelKey[state]), planSource, plannedOvertime, presence]
 		.filter((part) => part != null)
 		.join(' · ')}
 >
 	<Stack gap="none" justify="center" fill class={dense ? 'px-0.5' : 'px-2 py-1.5 text-left'}>
 		{#if dense}
 			<span class="block truncate text-xs leading-4">{code}</span>
+			<span class="block truncate text-micro leading-3 text-muted-foreground" data-slot-plan-source>
+				{planSource ?? ''}
+			</span>
 			<span
 				class={cn(
 					'block truncate text-[0.625rem] leading-3',
@@ -127,8 +136,15 @@
 				)}
 				data-slot-planned-ot={plannedOvertime}
 			>
-				{plannedOvertime ?? cue}
+				{plannedOvertime ?? ''}
 			</span>
+			<span
+				class={cn(
+					'block truncate text-micro leading-3',
+					fill.kind === 'AWOL' ? 'text-destructive' : 'text-muted-foreground'
+				)}
+				data-slot-actual>{actualCue}</span
+			>
 		{:else}
 			<span class="block truncate text-xs leading-4 font-medium">
 				{code}{plannedOvertime == null ? '' : ` ${plannedOvertime}`}

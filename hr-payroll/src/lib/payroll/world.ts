@@ -170,13 +170,21 @@ async function wave2(
 	const schemeIds = [
 		...new Set(first.employment_statutory_facts.map((row) => String(row.statutory_contribution_id)))
 	];
+	const governing = settingsInForce(
+		first.jurisdiction_settings.filter((row) => row.code === settingsCode),
+		settingsCode,
+		window.salary.end
+	);
 	// The attendance span, one month either side: a deferred joining period reads the previous period's
 	// window, and a leaver's tail runs to the exit inside the salary window.
 	const months = [
 		...new Set([
 			shiftPeriod(monthKey(window.attendance.start), -1),
 			monthKey(window.attendance.start),
-			monthKey(window.salary.end)
+			monthKey(window.salary.end),
+			...(governing?.payroll.holiday_adjacent_absence_unpaid === true
+				? [shiftPeriod(monthKey(window.salary.end), 1)]
+				: [])
 		])
 	].toSorted();
 	const spanFrom = monthBounds(months[0]!).start;
@@ -187,11 +195,7 @@ async function wave2(
 	// megabytes (the EPF schedule alone 0.7 MB), so they page at 4 rows a crossing. Every other scheme of the
 	// lineage, and every scheme a registration names, is read once without its rules: realignment reads its
 	// code and version, Leave its elections.
-	const governing = settingsInForce(
-		first.jurisdiction_settings.filter((row) => row.code === settingsCode),
-		settingsCode,
-		window.salary.end
-	);
+
 	const [whole, thin] = await Promise.all([
 		readAll<WorkspaceRow<'statutory_contributions'>>(
 			db,

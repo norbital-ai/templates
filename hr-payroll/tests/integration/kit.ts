@@ -134,6 +134,14 @@ function seedFile(now: string) {
 /** Explicit valid SDL inputs for the three Singapore sample employments used by saved-write probes. */
 export async function declareSgSdl(t: Awaited<ReturnType<typeof workspace>>, settingsId: string) {
 	const admin = t.as(t.admin);
+	// Test-only corporate-employer declaration; the bank does not establish this SDL input.
+	const company = await admin.get('companies', NORBITAL_SG);
+	committed(
+		await admin.act('companies.update', {
+			target: NORBITAL_SG,
+			set: { facts: { ...(company?.facts ?? {}), sdl_individual_employer: false } }
+		})
+	);
 	const scheme = (
 		await admin.read('statutory_contributions', {
 			where: { settings_id: { eq: settingsId }, code: { eq: 'SDL' } },
@@ -143,26 +151,52 @@ export async function declareSgSdl(t: Awaited<ReturnType<typeof workspace>>, set
 	const employments = (
 		await admin.read('employments', { where: { company_id: { eq: NORBITAL_SG } }, all: true })
 	).rows;
-	for (const employment of employments)
-		committed(
-			await admin.act('employment_statutory_facts.create', {
-				employee_id: employment.employee_id,
-				employment_id: employment.id,
-				statutory_contribution_id: scheme.id,
-				effective_range: { from: '2025-12-01', to: null },
-				status: {
-					kind: 'REGISTERED',
-					reference_number: 'SG-SDL-TEST',
-					elections: {
-						sdl_service_scope: 'SINGAPORE_SERVICE',
-						sdl_household_role: 'NONE',
-						sdl_wholly_exclusive: false,
-						sdl_nonbusiness: false,
-						sdl_student_class: 'NONE'
-					}
+	const sdlVersions = (
+		await admin.read('statutory_contributions', { where: { code: { eq: 'SDL' } }, all: true })
+	).rows;
+	const facts = (
+		await admin.read('employment_statutory_facts', {
+			where: {
+				employment_id: { in: employments.map((row) => row.id) },
+				statutory_contribution_id: { in: sdlVersions.map((row) => row.id) }
+			},
+			all: true
+		})
+	).rows;
+	for (const employment of employments) {
+		const declarations = facts.filter((row) => row.employment_id === employment.id);
+		// A standing follows the scheme code across immutable law revisions, not only today's row ID.
+		// Keep each existing dated declaration and its original law link; do not add overlapping history.
+		for (const stored of declarations.length === 0 ? [undefined] : declarations) {
+			const standing = stored?.status as
+				{ kind: string; elections?: Record<string, unknown> } | undefined;
+			const status = {
+				...(standing ?? { kind: 'REGISTERED', reference_number: 'SG-SDL-TEST' }),
+				elections: {
+					...(standing?.elections ?? {}),
+					sdl_service_scope: 'SINGAPORE_SERVICE',
+					sdl_household_role: 'NONE',
+					sdl_wholly_exclusive: false,
+					sdl_nonbusiness: false,
+					sdl_student_class: 'NONE'
 				}
-			})
-		);
+			};
+			committed(
+				stored == null
+					? await admin.act('employment_statutory_facts.create', {
+							employee_id: employment.employee_id,
+							employment_id: employment.id,
+							statutory_contribution_id: scheme.id,
+							effective_range: { from: '2025-12-01', to: null },
+							status
+						})
+					: await admin.act('employment_statutory_facts.update', {
+							target: stored.id,
+							set: { status }
+						})
+			);
+		}
+	}
 }
 
 /**
@@ -193,6 +227,67 @@ export async function recordPhBirthDates(
 			}
 		})
 	);
+	// Explicit synthetic Pag-IBIG private mandatory membership: RA9679 ss.6–7, Circular460
+	// C.1–2 and Circular274 B/H.2–4 distinguish initial coverage from continuing membership.
+	// These isolated working-age test people joined privately at18; no real bank-person history is inferred.
+	const firstMembership = `${parseInt(born.slice(0, 4), 10) + 18}${born.slice(4)}`;
+	await t.db.write({
+		text: `UPDATE employment_statutory_facts SET status = jsonb_set(status, '{elections}',
+		         $1::jsonb || coalesce(status->'elections','{}'::jsonb))
+		       WHERE employment_id IN (SELECT id FROM employments WHERE company_id=$2)
+		         AND statutory_contribution_id IN (SELECT id FROM statutory_contributions WHERE code='HDMF')`,
+		params: [
+			JSON.stringify({
+				coverage_class: 'PRIVATE',
+				membership_status: 'MANDATORY',
+				initial_coverage_class: 'PRIVATE',
+				first_membership_on: firstMembership,
+				last_termination_reason: 'NONE',
+				membership_evidence_reference: 'SYNTHETIC-INTEGRATION-HDMF-MEMBERSHIP'
+			}),
+			OPS_PH
+		]
+	});
+	const schemes = (
+		await admin.read('statutory_contributions', { where: { code: { eq: 'HDMF' } }, all: true })
+	).rows;
+	const memberships = (
+		await admin.read('employment_statutory_facts', {
+			where: {
+				employee_id: { in: employments.map((row) => row.employee_id) },
+				statutory_contribution_id: { in: schemes.map((row) => row.id) }
+			},
+			all: true
+		})
+	).rows;
+	// Scheme revisions share one membership identity. Preserve existing code-standing history.
+	const missing = employments
+		.filter(
+			(employment) =>
+				!memberships.some(
+					(row) => row.employee_id === employment.employee_id && row.employment_id === employment.id
+				)
+		)
+		.map((employment) => ({
+			employee_id: employment.employee_id,
+			employment_id: employment.id,
+			statutory_contribution_id: schemes[0]!.id,
+			effective_range: { from: '2025-12-01', to: null },
+			status: {
+				kind: 'REGISTERED',
+				reference_number: 'SYNTHETIC-INTEGRATION-HDMF',
+				elections: {
+					coverage_class: 'PRIVATE',
+					membership_status: 'MANDATORY',
+					initial_coverage_class: 'PRIVATE',
+					first_membership_on: firstMembership,
+					last_termination_reason: 'NONE',
+					membership_evidence_reference: 'SYNTHETIC-INTEGRATION-HDMF-MEMBERSHIP'
+				}
+			}
+		}));
+
+	if (missing.length > 0) committed(await admin.act('employment_statutory_facts.create', missing));
 	// The bank's earlier terms are consumed by saved sample slips. Supply this probe's site facts
 	// in its isolated database fixture; the product correctly forbids rewriting consumed terms.
 	await t.db.write({

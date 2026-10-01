@@ -4,7 +4,7 @@
 		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
 		"code": "HEAT_ALLOWANCE",
 		"name": "Summer heat allowance (夏季高温津贴)",
-		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`). Added 29 Sep 2026 in every version (register CN-SH19).",
+		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`).",
 		"eligibility": "terms.worksite == \"SHANGHAI\"",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -22,25 +22,7 @@
 		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
 		"code": "HEAT_ALLOWANCE",
 		"name": "Summer heat allowance (夏季高温津贴)",
-		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`). Added 29 Sep 2026 in every version (register CN-SH19).",
-		"eligibility": "terms.worksite == \"SHANGHAI\"",
-		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "",
-				"amount": "period.month >= 6 && period.month <= 9 ? (entry.amount > 300.0 ? entry.amount : 300.0) : 0.0",
-				"limit": null
-			}
-		],
-		"counts_toward": ["IIT", "IIT_INTERNAL_RETIREMENT"]
-	},
-	{
-		"id": "3806dc72-dc9c-585b-808a-d0f46431c8ad",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"code": "HEAT_ALLOWANCE",
-		"name": "Summer heat allowance (夏季高温津贴)",
-		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`). Added 29 Sep 2026 in every version (register CN-SH19).",
+		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`).",
 		"eligibility": "terms.worksite == \"SHANGHAI\"",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -58,7 +40,7 @@
 		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
 		"code": "HEAT_ALLOWANCE",
 		"name": "Summer heat allowance (夏季高温津贴)",
-		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`). Added 29 Sep 2026 in every version (register CN-SH19).",
+		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`).",
 		"eligibility": "terms.worksite == \"SHANGHAI\"",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -76,7 +58,7 @@
 		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
 		"code": "HEAT_ALLOWANCE",
 		"name": "Summer heat allowance (夏季高温津贴)",
-		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`). Added 29 Sep 2026 in every version (register CN-SH19).",
+		"authority": "沪人社规〔2019〕19号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501) items 1–3, in force to 31 December 2028 by 沪人社规〔2023〕29号 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=231114173331zoDKOF1kRDp0lxO9dqb): from June to September an enterprise that has a worker work in the open air, or cannot bring the workplace below 33℃, pays CNY300 a month; the allowance is in 工资总额. Assign the class only to a worker so exposed (the assignment is the exposure record); the figure keyed on the contract is paid if higher, never less than 300, and nothing from October to May. Wage income: it counts toward IIT and IIT_INTERNAL_RETIREMENT, and as a contract line it is in WAGES (the art.47 average, the annual-leave day wage); outside the minimum-wage comparison (沪人社规〔2025〕10号 item 1(2)). Law silent on a part month: owner rule 2026-09-28 default, prorated like basic (`payroll.allowance_npl_prorates`).",
 		"eligibility": "terms.worksite == \"SHANGHAI\"",
 		"destination": "PAY",
 		"direction": "ADD",

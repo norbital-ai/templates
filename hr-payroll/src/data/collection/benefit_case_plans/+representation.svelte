@@ -20,6 +20,7 @@
 			onOutcome={openCreated(view)}
 		>
 			<FormSection
+				name="benefit_plan"
 				first
 				title={bolt.t('component.benefit_plan')}
 				hint={bolt.t('component.benefit_plan_hint')}

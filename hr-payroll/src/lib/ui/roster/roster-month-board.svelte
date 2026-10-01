@@ -480,12 +480,13 @@
 											<button
 												type="button"
 												aria-label={describeDay(day, `${person.name} · ${date}`, t)}
+												title={describeDay(day, `${person.name} · ${date}`, t)}
 												aria-haspopup={cellOpenable ? 'dialog' : undefined}
 												tabindex={activeCellKey === personDayKey(person.id, date) ? 0 : -1}
 												data-roster-cell={`${personIndex}:${dayIndex}`}
 												draggable={swappable && cellEditable}
 												class={cn(
-													'relative block h-9 w-full min-w-12 rounded-sm p-0 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+													'relative block h-14 w-full min-w-12 rounded-sm p-0 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 													day == null && 'bg-muted/20',
 													// The lock rail: a channel of its own, drawn as an inset left border so it
 													// composes with the status fill and the holiday tint instead of replacing

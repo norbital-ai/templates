@@ -23,6 +23,7 @@
 		>
 			{#snippet children(form)}
 				<FormSection
+					name="benefit_cutoff"
 					first
 					title={bolt.t('component.benefit_cutoff')}
 					hint={bolt.t('component.benefit_cutoff_hint')}

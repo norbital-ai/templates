@@ -23,6 +23,7 @@ export default model({
 		requires_no_pay_origin: { kind: 'bool', default: false },
 		/** The share of the day wage the employer pays (`0.5`, or an expression); empty is the whole wage. */
 		pay_fraction: { kind: 'text', default: '' },
+		time_off_amount: { kind: 'text', default: '' },
 		/** EMPLOYER through payroll, or a social-insurance FUND outside it. */
 		paid_by: { kind: 'enum', values: ['EMPLOYER', 'FUND'], default: 'EMPLOYER' },
 		/** The leave code whose pool a day of this leave also draws from. */

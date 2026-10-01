@@ -30,6 +30,7 @@ const f = customField({
 				kind: 'enum',
 				values: ['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS']
 			},
+			calendar_days_divisor: { kind: 'int', min: 1, optional: true },
 			calendar_days: { kind: 'bool', optional: true },
 			calendar_months: { kind: 'bool', optional: true },
 			lifetime_events: { kind: 'int', min: 1, optional: true },

@@ -107,7 +107,12 @@
 		{#snippet children(form)}
 			{@const employmentId = scopedEmploymentId ?? employmentOf(form.get('employment_id'))}
 			<Stack gap="lg">
-				<FormSection first title={t(spec.keys.section)} hint={t(spec.keys.sectionHint)}>
+				<FormSection
+					name={family}
+					first
+					title={t(spec.keys.section)}
+					hint={t(spec.keys.sectionHint)}
+				>
 					<Grid gap="sm" minimum="compact">
 						{#if scopedEmploymentId == null}
 							<EmploymentField label={t('component.person')} companyId={scope?.companyId()} />
@@ -162,7 +167,15 @@
 					</Grid>
 				</FormSection>
 
-				<FormSection title={t('component.section_proof')} hint={t(spec.keys.proofHint)}>
+				<FormSection
+					name="section_proof"
+					defaultOpen={false}
+					summary={form.get('evidence_file') == null
+						? t('representation.not_set')
+						: t('representation.file_attached')}
+					title={t('component.section_proof')}
+					hint={t(spec.keys.proofHint)}
+				>
 					<Grid gap="sm" minimum="compact">
 						<Field name="evidence_file" label={t('component.evidence_file')} />
 						<Column span="all">
@@ -172,6 +185,9 @@
 				</FormSection>
 
 				<FormSection
+					name="section_settlement"
+					defaultOpen={false}
+					summary={String(form.get('pay_period') ?? t('representation.automatic'))}
 					title={t('component.section_settlement')}
 					hint={t('component.section_settlement_hint')}
 				>

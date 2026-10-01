@@ -9,6 +9,8 @@
 	 * writer needs is part of the field's description tooltip (`descriptionExtra`), not a link
 	 * under the input, so the control keeps one shape everywhere.
 	 */
+	import InfoTip from './InfoTip.svelte';
+	import { Inline } from '@norbital-ai/ui/layout';
 	import { t } from './t.js';
 	import { CodeEditor } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
@@ -59,7 +61,10 @@
 
 <Stack gap="xs" class={className}>
 	{#if mode === 'display'}
-		<span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span>
+		<Inline gap="xs" align="center"
+			><span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span
+			><InfoTip label={t('component.rule_calculation')}>{contract}</InfoTip></Inline
+		>
 	{:else}
 		<CodeEditor
 			language="javascript"
@@ -69,7 +74,7 @@
 			aria-label={placeholder ?? contract}
 			onChange={(next) => onValueChange?.(next)}
 		/>
-		<p class="text-meta">{contract}</p>
+		<InfoTip label={t('component.rule_calculation')}>{contract}</InfoTip>
 		{#if fault != null}
 			<p class="text-xs text-destructive" role="alert">{fault}</p>
 		{/if}

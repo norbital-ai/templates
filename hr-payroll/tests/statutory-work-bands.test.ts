@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
-import { nightAddsFor, priceWorkDay } from '../src/lib/payroll/work-bands.ts';
+import { nightAddsFor, priceWorkDay, withPriorWorkHours } from '../src/lib/payroll/work-bands.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
 
@@ -27,10 +27,9 @@ const person = personContext({
 const rates = { ordinaryHour: 100, ordinaryDay: 800, dayWage: 800 };
 
 /** A day priced on the lineage's latest sealed version. */
-function price(code, day, who = person) {
-	const version = settingsVersions(code).at(-1);
+function price(code, day, who = person, work = settingsVersions(code).at(-1).work_rules) {
 	const rows = priceWorkDay({
-		work: version.work_rules,
+		work,
 		person: who,
 		day: {
 			workDayId: 'd',
@@ -65,6 +64,187 @@ const holiday = (worked, normalHours = 8) => ({
 	workedHours: worked,
 	overtimeHours: worked,
 	normalHours
+});
+
+test('Japan — a day crossing 60 monthly overtime hours prices only the excess at 150%', () => {
+	for (const version of settingsVersions('JP')) {
+		for (const prior of [59, 60, 61]) {
+			const rows = price(
+				'JP',
+				{
+					...ordinary(10),
+					priorHours: { statutory_overtime_month: prior }
+				},
+				person,
+				version.work_rules
+			);
+			const total = rows.reduce((sum, row) => sum + row[2], 0);
+			// Ordinary hourly wage 100: at 59 previous hours, one at 125 and one at 150.
+			assert.equal(total, prior === 59 ? 275 : 300);
+		}
+		assert.deepEqual(
+			price(
+				'JP',
+				{
+					...restDay(2),
+					statutoryRest: true,
+					priorHours: { statutory_overtime_month: 70 }
+				},
+				person,
+				version.work_rules
+			),
+			[['HOLIDAY-1.35X', 2, 270]]
+		);
+	}
+});
+
+test('Japan — counters sort evidence, exclude statutory rest and in-law hours, and reset each month', () => {
+	for (const version of settingsVersions('JP')) {
+		const day = (date, extra) => ({
+			workDayId: date,
+			date,
+			breakMinutes: 60,
+			holidayKind: '',
+			holidayName: '',
+			continuousAttendance: false,
+			consecutiveHours: 4,
+			normalHours: 8,
+			nightHours: 0,
+			restDay: false,
+			...extra
+		});
+		const counted = withPriorWorkHours({
+			days: [
+				day('2026-07-01', ordinary(9)),
+				day('2026-06-28', { ...restDay(8), statutoryRest: true }),
+				day('2026-06-26', ordinary(10)),
+				day('2026-06-27', { ...restDay(3), statutoryRest: false }),
+				day('2026-06-29', { ...ordinary(9), normalHours: 6, overtimeHours: 3 }),
+				day('2026-06-30', ordinary(9))
+			],
+			workOn: () => version.work_rules,
+			personOn: () => person,
+			ratesOn: () => rates
+		});
+		assert.deepEqual(
+			counted.map((row) => [row.date, row.priorHours.statutory_overtime_month]),
+			[
+				['2026-06-26', 0],
+				['2026-06-27', 2],
+				['2026-06-28', 2],
+				['2026-06-29', 2],
+				['2026-06-30', 3],
+				['2026-07-01', 0]
+			]
+		);
+	}
+});
+
+test('Japan — Saturday inside a short statutory week does not advance the monthly overtime counter', () => {
+	for (const version of settingsVersions('JP')) {
+		const days = [
+			{ ...ordinary(10), date: '2026-06-26', workDayId: 'friday' },
+			{ ...restDay(3), date: '2026-06-27', workDayId: 'saturday', statutoryRest: false },
+			{ ...ordinary(9), date: '2026-06-29', workDayId: 'monday' }
+		].map((day) => ({
+			breakMinutes: 60,
+			holidayKind: '',
+			holidayName: '',
+			continuousAttendance: false,
+			consecutiveHours: 4,
+			normalHours: 8,
+			nightHours: 0,
+			restDay: false,
+			...day
+		}));
+		const counted = withPriorWorkHours({
+			days,
+			workOn: () => version.work_rules,
+			personOn: () => person,
+			ratesOn: () => rates
+		});
+		assert.equal(counted[2].priorHours.statutory_overtime_month, 2);
+	}
+});
+
+test('Japan — ordinary attendance fills the weekly counter without paying additional overtime', () => {
+	for (const version of settingsVersions('JP')) {
+		for (const absent of [false, true]) {
+			const days = [
+				'2026-06-22',
+				'2026-06-23',
+				'2026-06-24',
+				'2026-06-25',
+				'2026-06-26',
+				'2026-06-27',
+				'2026-06-29'
+			].map((date, i) => ({
+				workDayId: date,
+				date,
+				breakMinutes: 60,
+				holidayKind: '',
+				holidayName: '',
+				continuousAttendance: false,
+				consecutiveHours: 4,
+				normalHours: 8,
+				nightHours: 0,
+				restDay: false,
+				...(i === 5 ? { ...restDay(3), statutoryRest: false } : ordinary(i === 4 ? 10 : 8)),
+				...(i < 4
+					? { workedHours: 0, overtimeHours: 0, actualWorkedHours: absent && i === 2 ? 0 : 8 }
+					: {})
+			}));
+			const counted = withPriorWorkHours({
+				days,
+				workOn: () => version.work_rules,
+				personOn: () => person,
+				ratesOn: () => rates
+			});
+			assert.equal(counted[5].priorHours.statutory_normal_week, absent ? 32 : 40);
+			assert.equal(counted[5].priorHours.statutory_overtime_month, 2);
+			assert.equal(counted[6].priorHours.statutory_overtime_month, absent ? 2 : 5);
+			assert.equal(counted[6].priorHours.statutory_normal_week, 0);
+		}
+	}
+});
+
+test('Japan — a non-statutory rest day crossing 60 counts only hours beyond eight or forty', () => {
+	for (const version of settingsVersions('JP')) {
+		for (const [normal, worked, expected] of [
+			[32, 10, 1275],
+			[40, 2, 275]
+		]) {
+			const rows = price(
+				'JP',
+				{
+					...restDay(worked),
+					statutoryRest: false,
+					priorHours: { statutory_normal_week: normal, statutory_overtime_month: 59 }
+				},
+				person,
+				version.work_rules
+			);
+			assert.equal(
+				rows.reduce((sum, row) => sum + row[2], 0),
+				expected
+			);
+		}
+		const rows = price(
+			'JP',
+			{
+				...ordinary(8),
+				normalHours: 4,
+				overtimeHours: 4,
+				priorHours: { statutory_normal_week: 36, statutory_overtime_month: 59 }
+			},
+			person,
+			version.work_rules
+		);
+		assert.equal(
+			rows.reduce((sum, row) => sum + row[2], 0),
+			575
+		);
+	}
 });
 
 test('Malaysia and Singapore — a rest day worked for exactly half the normal hours is the half-day limb', () => {
@@ -167,17 +347,26 @@ test('Indonesia — PP 35/2021 Pasal 31 prices the first overtime hour at 1.5× 
 		['OT-4.0X', 2, 800]
 	]);
 	// Pasal 31(2)(a), six-day week of seven-hour days: 1–7 at 2×, the eighth at 3×, 9–11 at 4×.
-	assert.deepEqual(price('ID', restDay(10, 7)), [
-		['OT-2.0X', 7, 1400],
-		['OT-3.0X', 1, 300],
-		['OT-4.0X', 2, 800]
-	]);
+	assert.deepEqual(
+		price('ID', restDay(10, 7), {
+			...person,
+			terms: { ...person.terms, working_days_per_week: 6 }
+		}),
+		[
+			['OT-2.0X', 7, 1400],
+			['OT-3.0X', 1, 300],
+			['OT-4.0X', 2, 800]
+		]
+	);
 	// Pasal 31(2)(b), a holiday on the shortest working day of five hours: 1–5, 6, 7–9.
-	assert.deepEqual(price('ID', holiday(8, 5)), [
-		['OT-2.0X', 5, 1000],
-		['OT-3.0X', 1, 300],
-		['OT-4.0X', 2, 800]
-	]);
+	assert.deepEqual(
+		price('ID', holiday(8, 5), { ...person, terms: { ...person.terms, working_days_per_week: 6 } }),
+		[
+			['OT-2.0X', 5, 1000],
+			['OT-3.0X', 1, 300],
+			['OT-4.0X', 2, 800]
+		]
+	);
 });
 
 test('Vietnam — a night overtime hour carries the 30% night premium and 20% of the day-type wage', () => {

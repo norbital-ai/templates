@@ -21,6 +21,7 @@
 	import { dateKey } from '../../../lib/iso-day.js';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { live, liveRows } from '../../../lib/ui/live.svelte.js';
+	import InfoTip from '../../../lib/ui/InfoTip.svelte';
 	import LineExplanation from '../../../lib/trace/LineExplanation.svelte';
 	import type { TracedLine } from '../../../lib/trace/record.js';
 
@@ -137,7 +138,7 @@
 				? codeName(adjustment.component_code)
 				: `${codeName(adjustment.component_code)} ${adjustment.label}`;
 
-	/** The tracker paths that cite a line: its catalogue row, or the work rules that price a work day. */
+	/** The published configuration paths that price a line: its catalogue row, or the work rules that price a work day. */
 	const CATALOGUE_OF: Readonly<Record<Adjustment['family'], readonly string[]>> = {
 		CLAIM: ['claim_catalogue'],
 		ADHOC: ['adhoc_catalogue'],
@@ -373,9 +374,9 @@
 		<td class="w-7 py-0 text-right">
 			{#if row.why && record}
 				<LineExplanation
+					config={row.why.config}
 					payslipId={record.id}
 					line={row.why.line}
-					config={row.why.config}
 					title={row.label}
 				/>
 			{/if}
@@ -397,6 +398,37 @@
 					</Stack>
 				{/each}
 			</Grid>
+			<Stack as="section" gap="sm" aria-label={t('app.payroll.payslip_payment')}>
+				<h2 class="text-heading">{t('app.payroll.payslip_payment')}</h2>
+				{#if record.status === 'PAID'}
+					<Grid as="dl" gap="sm" minimum="compact" class="text-sm">
+						<Stack gap="none">
+							<dt class="text-meta">{t('component.status')}</dt>
+							<dd>{t('app.payroll.paid')}</dd>
+						</Stack>
+						<Stack gap="none">
+							<dt class="text-meta">{t('app.payroll.actual_payment_date')}</dt>
+							<dd class="tabular-nums">{formatCalendarDate(record.paid_at)}</dd>
+						</Stack>
+					</Grid>
+				{:else if record.payment_mode === 'EVENT_LEDGER'}
+					<p class="text-sm text-muted-foreground">{t('component.payment_use_events')}</p>
+				{:else}
+					<p class="text-sm text-muted-foreground">{t('app.payroll.payslip_payment_help')}</p>
+					<Form
+						of="payslips"
+						mode="update"
+						id={record.id}
+						record={view.mode === 'update' ? view.record : null}
+						submit={t('app.payroll.save_payment')}
+					>
+						<Grid gap="sm" minimum="compact">
+							<Field name="status" label={t('component.status')} />
+							<Field name="paid_at" label={t('app.payroll.actual_payment_date')} />
+						</Grid>
+					</Form>
+				{/if}
+			</Stack>
 
 			{#if record.payment_mode === 'EVENT_LEDGER' && paymentProgress.hasTranches}
 				<p class="text-meta tabular-nums">
@@ -409,9 +441,27 @@
 			<table class="w-full text-sm tabular-nums" aria-label={t('component.payslip_statement')}>
 				<thead>
 					<tr class="text-meta border-b border-border text-left">
-						<th class="py-1 font-normal"></th>
-						<th class="py-1 pr-3 text-right font-normal"></th>
-						<th class="py-1 pr-1 text-right font-normal">{record.currency}</th>
+						<th class="py-1 font-normal"
+							><Inline gap="xs" align="center"
+								>{t('component.breakdown_item')}<InfoTip label={t('component.breakdown_item')}
+									>{t('component.breakdown_item_help')}</InfoTip
+								></Inline
+							></th
+						>
+						<th class="py-1 pr-3 text-right font-normal"
+							><Inline gap="xs" align="center"
+								>{t('component.breakdown_basis')}<InfoTip label={t('component.breakdown_basis')}
+									>{t('component.breakdown_basis_help')}</InfoTip
+								></Inline
+							></th
+						>
+						<th class="py-1 pr-1 text-right font-normal"
+							><Inline gap="xs" align="center"
+								>{record.currency}<InfoTip label={record.currency}
+									>{t('component.breakdown_amount_help')}</InfoTip
+								></Inline
+							></th
+						>
 						<th class="w-7"></th>
 					</tr>
 				</thead>

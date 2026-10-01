@@ -1,3 +1,4 @@
+import * as Predicate from 'effect/Predicate';
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { readLeaveContext } from '../../../lib/leave/context.js';
 import { leaveActivityOf } from '../../../lib/leave/activity-fields.js';
@@ -55,8 +56,12 @@ const c = collection('leave_entries', {
 		},
 		leave_balance_report: {
 			description:
-				'Computes every in-force employment of one company its leave_balances, as the calling user, for the balance export.',
-			input: { company_id: { kind: 'id', of: 'companies' }, as_of: { kind: 'date' } },
+				'Computes a bounded page of company leave balances as the calling user; next_cursor continues the report.',
+			input: {
+				company_id: { kind: 'id', of: 'companies' },
+				as_of: { kind: 'date' },
+				after: { kind: 'id', of: 'employments', optional: true }
+			},
 			output: { kind: 'json' }
 		},
 		preview_leave: {
@@ -254,16 +259,29 @@ c.query('leave_balances', async (input, ctx) => {
 	);
 });
 
-/** `leave_balances` for a company's people in force on the date, from one read; a refusal names whose. */
+/** Company balances: unresolved person-level inputs are reported beside that person's identity. */
 c.query('leave_balance_report', async (input, ctx) => {
-	const { company_id, as_of } = plain(input) as { company_id: string; as_of: string };
-	const employments = await readAll<{ id: string; employee_id: string; employee_number: string }>(
+	const { company_id, as_of, after } = plain(input) as {
+		company_id: string;
+		as_of: string;
+		after?: string;
+	};
+	const allEmployments = await readAll<{
+		id: string;
+		employee_id: string;
+		employee_number: string;
+	}>(
 		ctx,
 		'employments',
 		{ company_id: { eq: company_id }, approval_id: { isNull: true } },
 		undefined,
 		{ id: true, employee_id: true, employee_number: true }
 	);
+	const remaining = allEmployments
+		.toSorted((a, b) => a.id.localeCompare(b.id))
+		.filter((row) => after == null || row.id > after);
+	const employments = remaining.slice(0, 5);
+	const next_cursor = remaining.length > employments.length ? employments.at(-1)!.id : null;
 	const [context, employees] = await Promise.all([
 		readLeaveContext(
 			ctx,
@@ -278,7 +296,7 @@ c.query('leave_balance_report', async (input, ctx) => {
 			{ id: true, name: true }
 		)
 	]);
-	return context.employments
+	const rows = context.employments
 		.filter(
 			({ effective_range: range }) =>
 				range != null &&
@@ -287,18 +305,23 @@ c.query('leave_balance_report', async (input, ctx) => {
 		)
 		.map((employment) => {
 			const number = employments.find((row) => row.id === employment.id)?.employee_number ?? '';
+			const identity = {
+				employee_number: number,
+				name: employees.find((row) => row.id === employment.employee_id)?.name ?? '',
+				service_start: dateKey(employment.effective_range!.start)
+			};
 			try {
 				return {
-					employee_number: number,
-					name: employees.find((row) => row.id === employment.employee_id)?.name ?? '',
-					service_start: dateKey(employment.effective_range!.start),
+					...identity,
 					balances: leaveBalanceSummaries({ ...context, balanceRead: true }, employment.id, as_of)
 				};
 			} catch (error) {
-				return ctx.refuse(`${number}: ${getErrorMessage(error)}`);
+				if (!(Predicate.hasProperty(error, 'kind') && error.kind === 'refused')) throw error;
+				return { ...identity, balances: [], issue: getErrorMessage(error) };
 			}
 		})
 		.toSorted((a, b) => a.employee_number.localeCompare(b.employee_number));
+	return { rows, next_cursor };
 });
 
 c.query('preview_leave', async (input, ctx) =>

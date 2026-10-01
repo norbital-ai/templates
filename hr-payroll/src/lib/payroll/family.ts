@@ -332,6 +332,7 @@ export type MeasureEmploymentOptions = {
 };
 
 export type Measurement = {
+	readonly datedCash?: readonly { readonly date: string; readonly amount: number }[];
 	readonly amount: number;
 	readonly base: readonly MeasuredBase[];
 	readonly proration: readonly PayslipProration[];
@@ -368,8 +369,12 @@ export type MeasureComponentOptions = {
 	readonly consumedEntries: ReadonlyMap<string, number>;
 	readonly period: string;
 	readonly workingDaysIn: (window: PayRange) => number;
+	/** Dated eligibility for the holiday entitlement, independently of actual holiday work. */
+	readonly holidayPayEligible?: ((date: string) => boolean) | undefined;
 	/** Eligible unpaid-leave days inside a window, for the jurisdictions that prorate on them. */
 	readonly unpaidDaysIn: (window: PayRange) => number;
+	/** Actual attendance-window withheld day fractions, independently of salary segmentation. */
+	readonly unpaidCharges?: readonly { readonly date: string; readonly days: number }[] | undefined;
 	/** How many instalments of the month this period is one of: 2 on semi-monthly terms, else 1. */
 	readonly instalments: number;
 	/** The day and hour rates the entry context exposes to a catalogue band. */

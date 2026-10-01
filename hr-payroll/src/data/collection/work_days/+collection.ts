@@ -1,3 +1,4 @@
+import { workDayCaptureLocks } from './lib/capture-locks.js';
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { dateKey } from '../../../lib/iso-day.js';
 import { addDays, monthBounds } from '../../../lib/payroll/run/dates.js';
@@ -98,7 +99,7 @@ const c = collection('work_days', {
 		},
 		import_month: {
 			description:
-				'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF per day; a blank day writes no plan, follows the work pattern and is returned as a warning), the Time entries sheet is the attendance (local punches in the Settings timezone, one or more intervals per day, stored as worked intervals) and the Overtime sheet is each day’s total extra hours, which the import splits at the statutory limits into approved overtime within them and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. A day a payslip has taken into account may be restated unchanged; one the file changes or omits refuses the whole file by name. Statutory limits the file passes (weekly rest, daily and period hours, spread-over, breaks, overtime ceilings) never refuse it: they are returned as warnings.',
+				'Loads one calendar month of person-days for one legal entity from the scheduling workbook, as a set: the Roster sheet is the roster of record (a shift, REST or OFF per day; a blank day writes no plan, follows the work pattern and is returned as a warning), the Time entries sheet is the attendance (local punches in the Settings timezone, one or more intervals per day, stored as worked intervals) and the Overtime sheet is each day’s total extra hours, which the import splits at the statutory limits into approved overtime within them and incentive hours beyond them. Every stored day of the month is replaced for every employee of the entity; a person the file names gets a roster of record for the month, a person it omits loses the month and falls back to the shift pattern. A sheet the file does not carry leaves that half of every day alone. An entry captured by a paid, funded or actually allocated individual payslip may be restated unchanged; changing or omitting it refuses the whole file by name. Unpaid draft captures remain editable and the next recalculation rebuilds their payslips. Statutory limits the file passes (weekly rest, daily and period hours, spread-over, breaks, overtime ceilings) never refuse it: they are returned as warnings.',
 			input: {
 				legal_entity: row,
 				month: row,
@@ -237,8 +238,8 @@ function leaveOwnsDayProblem(
  * (`worked_intervals`).
  *
  * The transform requires ordered, non-overlapping worked intervals with only the final one open; refuses attendance
- * on a day approved leave owns or inside a paid run's window that run already settled; refuses any change to a row a
- * payroll run has taken into account; refuses a planned shift that would overlap the person's adjacent-day
+ * on a day approved leave owns or inside a paid run's window that run already settled; refuses changes to a row a
+ * paid, funded or actually allocated individual payslip has taken into account; refuses a planned shift that would overlap the person's adjacent-day
  * assignments; refuses a plan change under recorded attendance unless the same write restates the attendance; and —
  * for a month with no roster of record — refuses a plan write that would leave the month's WORK-day count or paid
  * minutes different from what the work pattern projects. A batch that plans every employed day of a month, or a week
@@ -430,7 +431,88 @@ c.transform(async (inputs, ctx) => {
 			}
 		}
 	}
-	if (inputs.every((input) => '$delete' in input)) return inputs;
+	if (inputs.every((input) => '$delete' in input)) {
+		const ids = [...new Set(existing.flatMap((row) => (row == null ? [] : [row.employment_id])))];
+		const [employments, slips] = await Promise.all([
+			db.read('employments', { where: { id: { in: ids } }, all: true }),
+			db.read('payslips', {
+				where: { employment_id: { in: ids } },
+				select: {
+					id: true,
+					employment_id: true,
+					payroll_run_id: true,
+					paid_at: true,
+					funding_received: true,
+					funding_received_on: true,
+					funding_reference: true
+				},
+				all: true
+			})
+		]);
+		const captureLocks = await workDayCaptureLocks(
+			{
+				tranches: async (ids) =>
+					(
+						await db.read('payable_tranches', {
+							where: { settlement: { payslips: { in: ids } } },
+							select: { id: true, settlement: true },
+							all: true
+						})
+					).rows,
+				allocations: async (ids) =>
+					(
+						await db.read('payment_allocations', {
+							where: { payable_tranche_id: { in: ids } },
+							select: { payable_tranche_id: true },
+							all: true
+						})
+					).rows
+			},
+			slips.rows
+		);
+		const runs = await db.read('payroll_runs', {
+			where: { company_id: { in: [...new Set(employments.rows.map((row) => row.company_id))] } },
+			all: true
+		});
+		const windows = payrollWindows(
+			runs.rows.map((row) => ({
+				...row,
+				id: String(row.id),
+				attendance_from: day(row.attendance_from),
+				attendance_to: day(row.attendance_to)
+			})),
+			slips.rows.map((slip) => ({
+				payroll_run_id: String(slip.payroll_run_id),
+				employment_id: String(slip.employment_id),
+				paid_at: slip.paid_at
+			}))
+		);
+		for (const stored of existing) {
+			if (stored == null) continue;
+			assertNotCaptured(
+				{
+					approval_id: stored.approval_id,
+					payslip_id:
+						stored.payslip_id == null ||
+						slips.rows.some(
+							(slip) =>
+								String(slip.id) === String(stored.payslip_id) && !captureLocks.has(String(slip.id))
+						)
+							? null
+							: String(stored.payslip_id)
+				},
+				'Deleting this work day'
+			);
+			assertNotSettled(
+				windows,
+				day(stored.work_date),
+				'Deleting this work day',
+				String(stored.employment_id)
+			);
+		}
+		return inputs;
+	}
+
 	type Coordinate = PlanChange;
 	const coordinates: Coordinate[] = [];
 	const changes: Coordinate[] = [];
@@ -459,7 +541,7 @@ c.transform(async (inputs, ctx) => {
 	const employmentIds = [
 		...new Set([
 			...coordinates.map((row) => row.employment_id),
-			...existing.flatMap((row) => (row == null ? [] : [String(row.employment_id)]))
+			...existing.flatMap((row) => (row == null ? [] : [row.employment_id]))
 		])
 	];
 	const from = touchedDates[0];
@@ -527,7 +609,15 @@ c.transform(async (inputs, ctx) => {
 		// a colleague's held slip keep it open.
 		db.read('payslips', {
 			where: { employment_id: { in: ids } },
-			select: { payroll_run_id: true, employment_id: true, paid_at: true },
+			select: {
+				id: true,
+				payroll_run_id: true,
+				employment_id: true,
+				paid_at: true,
+				funding_received: true,
+				funding_received_on: true,
+				funding_reference: true
+			},
 			all: true
 		}),
 		db.read('rosters', {
@@ -566,6 +656,27 @@ c.transform(async (inputs, ctx) => {
 		work_rules: version.work_rules
 	}));
 	// Wave 2: the entities' runs, codes and patterns, keyed by what wave 1 named.
+	const captureLocks = await workDayCaptureLocks(
+		{
+			tranches: async (ids) =>
+				(
+					await db.read('payable_tranches', {
+						where: { settlement: { payslips: { in: ids } } },
+						select: { id: true, settlement: true },
+						all: true
+					})
+				).rows,
+			allocations: async (ids) =>
+				(
+					await db.read('payment_allocations', {
+						where: { payable_tranche_id: { in: ids } },
+						select: { payable_tranche_id: true },
+						all: true
+					})
+				).rows
+		},
+		slips.rows
+	);
 	const [runs, codeRows, patternRows] = await Promise.all([
 		db.read('payroll_runs', { where: { company_id: { in: companyKeys } }, all: true }),
 		db.read('shift_definitions', { where: { company_id: { in: companyKeys } }, all: true }),
@@ -885,14 +996,30 @@ c.transform(async (inputs, ctx) => {
 			? leaveOwnsDayProblem(leaveByEmployment.get(employmentId) ?? [], workDate)
 			: null;
 		if (stored != null) {
-			// An edit is the only write that can disturb something already settled.
-			assertNotCaptured(
-				{
-					payslip_id: stored.payslip_id == null ? null : String(stored.payslip_id),
-					approval_id: stored.approval_id == null ? null : stored.approval_id
-				},
-				'Changing this work day'
+			const changed = Object.entries(input).some(([field, value]) =>
+				field === 'worked_intervals'
+					? !sameIntervals(value, stored.worked_intervals)
+					: stableJson(value) !== stableJson(stored[field as keyof typeof stored])
 			);
+			// An edit is the only write that can disturb something already settled.
+			if (changed)
+				assertNotCaptured(
+					{
+						payslip_id:
+							stored.payslip_id == null ||
+							slips.rows.some(
+								(slip) =>
+									String(slip.id) === String(stored.payslip_id) &&
+									!captureLocks.has(String(slip.id))
+							)
+								? null
+								: String(stored.payslip_id),
+						approval_id: stored.approval_id == null ? null : stored.approval_id
+					},
+					'Changing this work day'
+				);
+			if (changed)
+				assertNotSettled(windows, day(stored.work_date), 'Changing this work day', employmentId);
 			// Moving a row lands it on a person-day it was not on before, governed by the rule a create is governed by.
 			if (workDate !== day(stored.work_date))
 				assertNotSettled(windows, workDate, 'Moving this work day', employmentId);

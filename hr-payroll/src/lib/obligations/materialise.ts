@@ -366,3 +366,25 @@ export function fulfilmentFault(
 /** The duty types a stored version declares; `[]` where it declares none. */
 export const dutyTypesOf = (version: { readonly duty_types?: unknown } | null | undefined) =>
 	(Array.isArray(version?.duty_types) ? version.duty_types : []) as readonly DutyType[];
+
+/**
+ * The built-in reminder duty no settings version declares: a declared fact the next regular run would refuse on,
+ * owed by the company or an employment (`reminders.ts`). It carries no evidence and no amount.
+ */
+export const FACT_OWED = 'FACT_OWED';
+
+/** The duty type an instance answers to: the built-in reminder, or the one its settings version declares. */
+export const dutyTypeOf = (
+	version: { readonly duty_types?: unknown } | null | undefined,
+	code: string | null | undefined,
+	subject: string | null | undefined
+): DutyType | undefined =>
+	code === FACT_OWED
+		? {
+				code: FACT_OWED,
+				authority: '',
+				subject: subject as DutySubject,
+				trigger: { on: 'FACT_CHANGE' },
+				due: ''
+			}
+		: dutyTypesOf(version).find((type) => type.code === code);

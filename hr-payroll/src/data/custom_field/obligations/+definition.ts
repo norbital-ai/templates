@@ -13,8 +13,7 @@ const f = customField({
 				trigger: { kind: 'text' },
 				timing: { kind: 'text' },
 				owner: { kind: 'text' },
-				authority: { kind: 'text' },
-				status: { kind: 'enum', values: ['EXTERNAL', 'PARTIAL', 'UNVERIFIED'] }
+				authority: { kind: 'text' }
 			}
 		}
 	}

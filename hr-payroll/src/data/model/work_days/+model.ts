@@ -20,7 +20,7 @@ export default model({
 			optional: true
 		},
 		/** Planned overtime within the statutory limits, in half-hour steps; the transform refuses more than the headroom. */
-		approved_overtime_hours: { kind: 'decimal', scale: 2, min: 0, optional: true },
+		approved_overtime_hours: { kind: 'decimal', scale: 12, min: 0, optional: true },
 		/** The worker's consent to this particular overtime or holiday-work occasion (`work_rules.overtime_consent`). */
 		overtime_consented_at: { kind: 'instant', optional: true },
 		/** Similar full-time employee's normal hours on this day, overriding the terms' usual day. */

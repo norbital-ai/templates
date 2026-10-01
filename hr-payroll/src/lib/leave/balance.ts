@@ -401,6 +401,8 @@ export function allocateLeaveDays(options: {
 	readonly basis?: 'available' | 'earned' | undefined;
 	/** The pool drawn from where it is another row's; the allocations carry it. */
 	readonly pool?: string | undefined;
+	/** Return only funded allocations when the caller grants the residue unpaid. */
+	readonly allow_partial?: boolean;
 	readonly carryFrom?: CarryFrom | undefined;
 }): LeaveAllocation[] {
 	const { entries, window, date, days, entitlementAt } = options;
@@ -455,6 +457,7 @@ export function allocateLeaveDays(options: {
 		// encashed leaves a residue of a few quadrillionths and refuses.
 		if (remaining <= 1e-9) return result;
 	}
+	if (options.allow_partial === true) return result;
 	refuse(
 		`Insufficient leave in ${window.start}–${window.end}: ${remaining} more days are needed after existing commitments.`
 	);

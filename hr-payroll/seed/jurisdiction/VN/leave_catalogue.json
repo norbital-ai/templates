@@ -4,7 +4,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (Nghỉ hằng năm)",
-		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. Applied 2026-09-18: art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -41,7 +41,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -85,7 +85,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -147,7 +147,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -227,7 +227,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"SELF\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -287,7 +287,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "CHILD_MARRIAGE_LEAVE",
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"CHILD\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -347,7 +347,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
-		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -407,7 +407,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
-		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"GRANDPARENT\", \"SIBLING\"] || event.kind == \"MARRIAGE\" && event.relationship in [\"PARENT\", \"SIBLING\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -547,7 +547,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "STOPPAGE_EMPLOYER_FAULT",
 		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
-		"authority": "Labour Code 2019 art.99(1): the full contract wage. Applied 2026-09-28: a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -564,7 +564,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "STOPPAGE_WORKER_FAULT",
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
-		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. Applied 2026-09-28: an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -581,7 +581,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "STOPPAGE_COWORKER",
 		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
-		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. Applied 2026-09-28: the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -644,7 +644,7 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "STOPPAGE_OBJECTIVE",
 		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
-		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. Applied 2026-09-28: the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -707,7 +707,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (Nghỉ hằng năm)",
-		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. Applied 2026-09-18: art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -744,7 +744,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -788,7 +788,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -850,7 +850,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -930,7 +930,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"SELF\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -990,7 +990,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "CHILD_MARRIAGE_LEAVE",
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"CHILD\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1050,7 +1050,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
-		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1110,7 +1110,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
-		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"GRANDPARENT\", \"SIBLING\"] || event.kind == \"MARRIAGE\" && event.relationship in [\"PARENT\", \"SIBLING\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1250,7 +1250,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "STOPPAGE_EMPLOYER_FAULT",
 		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
-		"authority": "Labour Code 2019 art.99(1): the full contract wage. Applied 2026-09-28: a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1267,7 +1267,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "STOPPAGE_WORKER_FAULT",
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
-		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. Applied 2026-09-28: an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1284,7 +1284,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "STOPPAGE_COWORKER",
 		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
-		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. Applied 2026-09-28: the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1347,7 +1347,7 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "STOPPAGE_OBJECTIVE",
 		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
-		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. Applied 2026-09-28: the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1410,7 +1410,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (Nghỉ hằng năm)",
-		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. Applied 2026-09-18: art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1447,7 +1447,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1491,7 +1491,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1557,7 +1557,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`). From 1 July 2026, Decree 168/2026/NĐ-CP art.2(1)(b) grants ten working days for a second child where the wife had exactly one prior living biological child; the wife’s event-specific count is required for single births, while multiple-birth grants remain higher. Official Gazette https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-168-2026-nd-cp-469560/65154.htm.",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`). From 1 July 2026, Decree 168/2026/NĐ-CP art.2(1)(b) grants ten working days for a second child where the wife had exactly one prior living biological child; the wife’s event-specific count is required for single births, while multiple-birth grants remain higher. Official Gazette https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-168-2026-nd-cp-469560/65154.htm.",
 		"eligibility": "employee.gender == \"MALE\" && event.relationship == \"WIFE\" && (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] || (event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\"] && event.wife_prior_living_biological_children >= 0))",
 		"entitlement": {
 			"requires_wife_prior_living_biological_children": true,
@@ -1642,7 +1642,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"SELF\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1702,7 +1702,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "CHILD_MARRIAGE_LEAVE",
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"CHILD\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1762,7 +1762,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
-		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1822,7 +1822,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
-		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"GRANDPARENT\", \"SIBLING\"] || event.kind == \"MARRIAGE\" && event.relationship in [\"PARENT\", \"SIBLING\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1962,7 +1962,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "STOPPAGE_EMPLOYER_FAULT",
 		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
-		"authority": "Labour Code 2019 art.99(1): the full contract wage. Applied 2026-09-28: a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1979,7 +1979,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "STOPPAGE_WORKER_FAULT",
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
-		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. Applied 2026-09-28: an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1996,7 +1996,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "STOPPAGE_COWORKER",
 		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
-		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. Applied 2026-09-28: the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2059,7 +2059,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "STOPPAGE_OBJECTIVE",
 		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
-		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. Applied 2026-09-28: the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2122,7 +2122,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (Nghỉ hằng năm)",
-		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. Applied 2026-09-18: art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2159,7 +2159,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. Applied 2026-09-18: the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`).",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2203,7 +2203,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2265,7 +2265,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2345,7 +2345,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"SELF\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2405,7 +2405,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "CHILD_MARRIAGE_LEAVE",
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
-		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"MARRIAGE\" && event.relationship == \"CHILD\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2465,7 +2465,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
-		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"PARENT_IN_LAW\", \"SPOUSE\", \"CHILD\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2525,7 +2525,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
-		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. Applied 2026-09-18: a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`).",
 		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"GRANDPARENT\", \"SIBLING\"] || event.kind == \"MARRIAGE\" && event.relationship in [\"PARENT\", \"SIBLING\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2665,7 +2665,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "STOPPAGE_EMPLOYER_FAULT",
 		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
-		"authority": "Labour Code 2019 art.99(1): the full contract wage. Applied 2026-09-28: a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2682,7 +2682,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "STOPPAGE_WORKER_FAULT",
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
-		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. Applied 2026-09-28: an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2699,7 +2699,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "STOPPAGE_COWORKER",
 		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
-		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. Applied 2026-09-28: the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2762,7 +2762,7 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "STOPPAGE_OBJECTIVE",
 		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
-		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. Applied 2026-09-28: the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
+		"authority": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",

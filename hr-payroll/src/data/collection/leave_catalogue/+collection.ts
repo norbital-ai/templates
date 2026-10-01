@@ -17,7 +17,9 @@ type Row = {
 	readonly code?: string;
 	readonly eligibility?: string;
 	readonly pay_fraction?: string;
+	readonly time_off_amount?: string;
 	readonly consumes_code?: string | null;
+	readonly unit?: 'DAY' | 'HOUR';
 	readonly entitlement?: LeaveEntitlement;
 	readonly event_facts?: readonly FactKey[];
 };
@@ -38,6 +40,7 @@ const c = collection('leave_catalogue', {
 				'can_encash',
 				'encash_on_exit',
 				'pay_fraction',
+				'time_off_amount',
 				'paid_by',
 				'consumes_code',
 				'unit',
@@ -61,6 +64,7 @@ const c = collection('leave_catalogue', {
 				'can_encash',
 				'encash_on_exit',
 				'pay_fraction',
+				'time_off_amount',
 				'paid_by',
 				'consumes_code',
 				'unit',
@@ -99,6 +103,13 @@ c.transform(async (inputs, ctx) => {
 		const version = versions.get(row.settings_id ?? '') as
 			(SealedVersion & { readonly payroll?: PayrollSettings | null }) | undefined;
 		const rule = row.entitlement;
+		if (
+			rule?.consumes_overflow_unpaid === true &&
+			(row.consumes_code == null || (row.unit ?? 'DAY') !== 'DAY' || rule.rolling_months != null)
+		)
+			ctx.refuse(
+				'Unpaid shared-pool overflow requires a day-denominated leave with a named pool and a fixed entitlement window.'
+			);
 		for (const constraint of version?.payroll?.leave_constraints ?? []) {
 			if (constraint.code !== row.code) continue;
 			const cite = ` (${constraint.authority})`;
@@ -160,6 +171,12 @@ c.transform(async (inputs, ctx) => {
 				'Lifetime days: '
 			);
 		const eventFacts = (row.event_facts ?? []) as readonly FactKey[];
+		const target = row.time_off_amount ?? '';
+		if (target.trim() !== '')
+			fault(
+				compileExpression({ expression: target, site: 'leave_day', type: 'number', eventFacts }),
+				'Time-off daily amount: '
+			);
 		const fraction = row.pay_fraction ?? '';
 		if (fraction.trim() !== '')
 			fault(

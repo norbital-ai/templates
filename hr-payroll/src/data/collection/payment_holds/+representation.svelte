@@ -26,7 +26,12 @@
 		submit={record ? t('component.save_payment_hold') : t('component.record_payment_hold')}
 		onOutcome={openCreated(view)}
 	>
-		<FormSection first title={t('component.payment_hold')} hint={t('component.payment_hold_hint')}>
+		<FormSection
+			name="payment_hold"
+			first
+			title={t('component.payment_hold')}
+			hint={t('component.payment_hold_hint')}
+		>
 			<Grid gap="sm" minimum="compact">
 				{#if scopedEmploymentId == null}
 					<EmploymentField label={t('component.person')} companyId={scope?.companyId?.()} />

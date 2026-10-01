@@ -60,7 +60,8 @@ test('the export heads one band per leave type and prints the profile balance', 
 		'Earn',
 		'Total',
 		'Taken',
-		'Bal.'
+		'Bal.',
+		'Report notes'
 	]);
 	assert.deepEqual(sheet.views[0], {
 		...sheet.views[0],
@@ -102,4 +103,55 @@ test('a carried credit is brought forward and its unused days forfeit', async ()
 	// The source year: the carry out is a signed credit, so Total less Taken is still its balance.
 	const source = await read(report(context, '2026-12-31'));
 	assert.deepEqual(figures(source, 6), [2026, 12, 0, 0, -3, 0, 9, 8, 1]);
+});
+
+test('an unresolved person remains identified with blank balance cells and an explicit report note', async () => {
+	const context = leaveContext();
+	const sheet = await read(
+		leaveBalanceWorkbook({
+			company: 'Example',
+			asOf: '2026-06-01',
+			rows: [
+				{
+					employee_number: 'GOOD',
+					name: 'Calculated person',
+					service_start: '2025-01-01',
+					balances: leaveBalanceSummaries(context, id(1), '2026-06-01')
+				},
+				{
+					employee_number: 'ISSUE',
+					name: 'Unresolved person',
+					service_start: '2025-01-01',
+					balances: [],
+					issue: 'Prior-year leave is overdrawn before automatic carry.'
+				}
+			]
+		})
+	);
+	assert.equal(sheet.getCell('A7').value, 'ISSUE');
+	assert.equal(sheet.getCell('B7').value, 'Unresolved person');
+	for (let column = 4; column <= 12; column++) assert.equal(sheet.getCell(7, column).value, null);
+	assert.equal(sheet.getCell('M7').value, 'Prior-year leave is overdrawn before automatic carry.');
+	assert.equal(sheet.getCell('L6').value, 12);
+});
+
+test('an entirely unresolved report still exports every identity and its issue', async () => {
+	const sheet = await read(
+		leaveBalanceWorkbook({
+			company: 'Example',
+			asOf: '2026-06-01',
+			rows: [
+				{
+					employee_number: 'ISSUE',
+					name: 'Unresolved person',
+					service_start: '2025-01-01',
+					balances: [],
+					issue: 'Missing opening input.'
+				}
+			]
+		})
+	);
+	assert.equal(sheet.getCell('A6').value, 'ISSUE');
+	assert.equal(sheet.getCell('D5').value, 'Report notes');
+	assert.equal(sheet.getCell('D6').value, 'Missing opening input.');
 });

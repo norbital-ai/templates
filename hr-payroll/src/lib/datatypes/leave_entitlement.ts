@@ -35,6 +35,8 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * zero in every window.
 	 */
 	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED']),
+	/** Make the full upfront grant available once eligible; earning remains prorated for cash-out. */
+	upfront_full_grant: Schema.optionalKey(Schema.Boolean),
 	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
 	/** A statutory service year starts on each anniversary of the employment hire date. */
 	year_anchor: Schema.optionalKey(Schema.Literals(['CALENDAR', 'SERVICE_ANNIVERSARY'])),
@@ -68,6 +70,8 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		'HALF_MONTHS',
 		'CALENDAR_DAYS'
 	]),
+	/** Fixed statutory divisor for CALENDAR_DAYS proration; absent uses the window length. */
+	calendar_days_divisor: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
 	/** The entitlement counts every calendar day, including rest days and holidays. */
 	calendar_days: Schema.optionalKey(Schema.Boolean),
 	/**
@@ -98,6 +102,8 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	consumes_after_days: Schema.optionalKey(
 		Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	),
+	/** Grant days beyond the funded shared pool as unpaid time off. */
+	consumes_overflow_unpaid: Schema.optionalKey(Schema.Boolean),
 	lifetime_days: Schema.optionalKey(
 		Schema.NullOr(Schema.Union([Schema.Finite.check(Schema.isGreaterThan(0)), Schema.String]))
 	),

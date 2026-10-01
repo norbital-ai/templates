@@ -1,5 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
+import { Effect, Encoding, Result } from 'effect';
 import { loadRunExports } from '../lib/payroll/run/export-data.js';
 import {
 	bankFileDeclaration,
@@ -16,7 +16,6 @@ import {
 	catalogueEntriesXlsx,
 	hasCatalogueEntries,
 	payrollReportXlsx,
-	payslipPdf,
 	tableXlsx
 } from '../lib/payroll/run/export.js';
 import { PlainDate } from '@norbital-ai/std/date';
@@ -26,7 +25,6 @@ import * as Predicate from 'effect/Predicate';
 import { loadIncomeReturns } from '../lib/payroll/run/income-return.js';
 import { refuse } from '../lib/refuse.js';
 import { dateKey } from '../lib/iso-day.js';
-import { resolveWindow } from '../lib/payroll/run/period.js';
 import type { WorkspaceRow } from '../lib/rows.js';
 import { combineCycleSheets } from '../lib/pay-cycles.js';
 
@@ -66,9 +64,11 @@ const artefact = {
  */
 const payroll_export = automation({
 	description:
-		"Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file (the version's declared layout for the payer's bank, else a generic listing), one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals); asked for by kind, the version's declared statutory returns of each run, month, quarter or year (attached as evidence to the duty each one fulfils), or the employment-income returns of each selected year.",
+		"Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file (the version's declared layout for the payer's bank, else a generic listing), at most five PDF payslips per invocation (repeat payslip_offset with returned next_payslip_offset until null), the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals); asked for by kind, the version's declared statutory returns of each run, month, quarter or year (attached as evidence to the duty each one fulfils), or the employment-income returns of each selected year.",
 	input: {
 		ids: { kind: 'list', of: { kind: 'id', of: 'payroll_runs' }, min: 1 },
+		/** PDF pages contain at most five files; repeat with next_payslip_offset until null. */
+		payslip_offset: { kind: 'int', min: 0, optional: true },
 		kind: { kind: 'enum', values: KINDS, optional: true },
 		/** `returns`: only these declared return codes; every declared return of the runs' cadences without. */
 		codes: { kind: 'list', of: { kind: 'text' }, optional: true },
@@ -95,7 +95,13 @@ const payroll_export = automation({
 			}
 		}
 	},
-	output: { kind: 'object', fields: { artefacts: { kind: 'list', of: artefact } } },
+	output: {
+		kind: 'object',
+		fields: {
+			artefacts: { kind: 'list', of: artefact },
+			next_payslip_offset: { kind: 'int', optional: true }
+		}
+	},
 	runAs: 'trigger'
 });
 export default payroll_export;
@@ -131,261 +137,296 @@ const recordsCsv = (records: readonly object[]) => {
 	]);
 };
 
-payroll_export.run(async ({ ids, kind, codes, authorised_person, submission, submitted }, ctx) => {
-	const wants = (artefact: (typeof KINDS)[number]) => kind == null || kind === artefact;
-	const put = (bytes: Uint8Array, name: string, mime: string) =>
-		ctx.files.put(bytes, { name, mime, for: 'payroll_export' });
-	const runs = await readAll<Parameters<typeof loadRunExports>[1][number]>(ctx, 'payroll_runs', {
-		id: { in: ids }
-	});
-	const exports = await loadRunExports(ctx, runs);
-	const artefacts = [];
-	const companies = await readAll<WorkspaceRow<'companies'>>(ctx, 'companies', {
-		id: { in: [...new Set(runs.map((run) => run.company_id))] }
-	});
-	const saveFile = async (file: GeneratedFile) =>
-		put(
-			file.text == null
-				? Uint8Array.from(await Effect.runPromise(tableXlsx(file.name, file.table)))
-				: encode(file.text),
-			file.name,
-			file.mime
-		);
-	/**
-	 * The file is the evidence of the duty its declaration names: every OPEN instance of that duty on the entity or
-	 * the covered runs for the same period records the file under its completion fact. Fulfilment stays the
-	 * controller's: the authority's acknowledgement is recorded by hand.
-	 */
-	const evidence = async (
-		declaration: ReturnDeclaration,
-		scope: { companyId: string; period: string; runIds: readonly string[] },
-		file: Awaited<ReturnType<typeof put>>,
-		name: string
-	) => {
-		const target = declaration.evidence;
-		if (target == null) return [];
-		const open = plainRows<{ id: string; facts?: Record<string, unknown> | null }>(
-			await ctx.read('obligation_instances', {
-				where: {
-					duty_code: { eq: target.duty },
-					trigger_ref: { eq: scope.period },
-					subject_id: { in: [scope.companyId, ...scope.runIds] },
-					state: { eq: 'OPEN' }
-				},
-				select: { facts: true },
-				all: true
-			} as never)
-		);
-		for (const instance of open) {
-			await ctx.act('obligation_instances.update', {
-				target: instance.id,
-				set: { facts: { ...instance.facts, [target.fact_key]: name } }
-			} as never);
-			await ctx.act('fact_evidence.create', {
-				subject: { collection: 'obligation_instances', id: instance.id },
-				fact_key: target.fact_key,
-				reference: name,
-				file,
-				received_on: PlainDate(dateKey(String(ctx.today)))
-			} as never);
-		}
-		return open.map((instance) => instance.id);
-	};
-
-	const bankRuns = wants('bank-files')
-		? exports.filter((run) => run.bank.length > 0 || run.skippedEmploymentIds.length > 0)
-		: [];
-	const versions = await returnVersions(
-		ctx,
-		bankRuns.map((run) => runs.find((row) => row.id === run.runId)!.settings_id)
-	);
-	for (const run of bankRuns) {
-		const row = runs.find((candidate) => candidate.id === run.runId)!;
-		const company = companies.find((candidate) => candidate.id === row.company_id);
-		const version = versions.get(row.settings_id);
-		// The entity's own bank governs the layout: the file is uploaded to the payer's bank. A payer whose bank the
-		// version declares no layout for keeps the generic listing rather than a wrong fixed-width file.
-		const declaration =
-			run.payer === null ? null : bankFileDeclaration(returnsOf(version), run.payer.bank_code);
-		const generated =
-			declaration == null
-				? null
-				: generateReturn({
-						declaration,
-						filing: {
-							code: declaration.code,
-							period: run.period,
-							year: decodeNumber(run.period.slice(0, 4)),
-							pay_date: run.payDate
-						},
-						company: {
-							settings_code: company?.settings_code ?? '',
-							name: company?.name ?? '',
-							facts: (company?.facts as Record<string, unknown> | null | undefined) ?? {}
-						},
-						payer: filingPayer(run.payer),
-						groups: filingGroups([run], true),
-						currency: version?.payroll?.currency
-					});
-		const file =
-			generated == null
-				? await put(
-						encode(
-							csv(
-								bankFileRows(
-									run.bank.map((payment) => ({
-										...payment,
-										period: run.period,
-										paymentDate: run.payDate
-									}))
-								)
-							)
-						),
-						`bank_payments_${run.period}.csv`,
-						'text/csv'
-					)
-				: await saveFile(generated);
-		artefacts.push({
-			label: `Bank file ${run.period}`,
-			kind: 'bank-files' as const,
-			periods: [run.period],
-			files: [file],
-			bank_format: declaration?.code ?? 'generic',
-			included_payslips: run.bank.length,
-			skipped_employment_ids: [...run.skippedEmploymentIds],
-			...(declaration == null
-				? {}
-				: {
-						return_code: declaration.code,
-						evidenced_obligation_ids: await evidence(
-							declaration,
-							{ companyId: row.company_id, period: run.period, runIds: [run.runId] },
-							file,
-							generated!.name
-						)
-					})
+payroll_export.run(
+	async ({ ids, kind, codes, authorised_person, submission, submitted, payslip_offset }, ctx) => {
+		const offset = payslip_offset ?? 0;
+		const wants = (artefact: (typeof KINDS)[number]) => kind == null || kind === artefact;
+		const put = (bytes: Uint8Array, name: string, mime: string) =>
+			ctx.files.put(bytes, { name, mime, for: 'payroll_export' });
+		const runs = await readAll<Parameters<typeof loadRunExports>[1][number]>(ctx, 'payroll_runs', {
+			id: { in: ids }
 		});
-	}
+		const exports = await loadRunExports(ctx, runs);
+		const artefacts = [];
+		const companies = await readAll<WorkspaceRow<'companies'>>(ctx, 'companies', {
+			id: { in: [...new Set(runs.map((run) => run.company_id))] }
+		});
+		const saveFile = async (file: GeneratedFile) =>
+			put(
+				file.text == null
+					? Uint8Array.from(await Effect.runPromise(tableXlsx(file.name, file.table)))
+					: encode(file.text),
+				file.name,
+				file.mime
+			);
+		/**
+		 * The file is the evidence of the duty its declaration names: every OPEN instance of that duty on the entity or
+		 * the covered runs for the same period records the file under its completion fact. Fulfilment stays the
+		 * controller's: the authority's acknowledgement is recorded by hand.
+		 */
+		const evidence = async (
+			declaration: ReturnDeclaration,
+			scope: { companyId: string; period: string; runIds: readonly string[] },
+			file: Awaited<ReturnType<typeof put>>,
+			name: string
+		) => {
+			const target = declaration.evidence;
+			if (target == null) return [];
+			const open = plainRows<{ id: string; facts?: Record<string, unknown> | null }>(
+				await ctx.read('obligation_instances', {
+					where: {
+						duty_code: { eq: target.duty },
+						trigger_ref: { eq: scope.period },
+						subject_id: { in: [scope.companyId, ...scope.runIds] },
+						state: { eq: 'OPEN' }
+					},
+					select: { facts: true },
+					all: true
+				} as never)
+			);
+			for (const instance of open) {
+				await ctx.act('obligation_instances.update', {
+					target: instance.id,
+					set: { facts: { ...instance.facts, [target.fact_key]: name } }
+				} as never);
+				await ctx.act('fact_evidence.create', {
+					subject: { collection: 'obligation_instances', id: instance.id },
+					fact_key: target.fact_key,
+					reference: name,
+					file,
+					received_on: PlainDate(dateKey(String(ctx.today)))
+				} as never);
+			}
+			return open.map((instance) => instance.id);
+		};
 
-	if (kind === 'returns')
-		for (const filing of await loadReturns(ctx, runs, codes ?? undefined)) {
-			await ctx.progress({ text: `${filing.declaration.code} ${filing.period}` });
-			const file = await saveFile(filing.file);
+		const bankRuns = wants('bank-files')
+			? exports.filter((run) => run.bank.length > 0 || run.skippedEmploymentIds.length > 0)
+			: [];
+		const versions = await returnVersions(
+			ctx,
+			bankRuns.map((run) => runs.find((row) => row.id === run.runId)!.settings_id)
+		);
+		for (const run of bankRuns) {
+			const row = runs.find((candidate) => candidate.id === run.runId)!;
+			const company = companies.find((candidate) => candidate.id === row.company_id);
+			const version = versions.get(row.settings_id);
+			// The entity's own bank governs the layout: the file is uploaded to the payer's bank. A payer whose bank the
+			// version declares no layout for keeps the generic listing rather than a wrong fixed-width file.
+			const declaration =
+				run.payer === null ? null : bankFileDeclaration(returnsOf(version), run.payer.bank_code);
+			const generated =
+				declaration == null
+					? null
+					: generateReturn({
+							declaration,
+							filing: {
+								code: declaration.code,
+								period: run.period,
+								year: decodeNumber(run.period.slice(0, 4)),
+								pay_date: run.payDate
+							},
+							company: {
+								settings_code: company?.settings_code ?? '',
+								name: company?.name ?? '',
+								facts: (company?.facts as Record<string, unknown> | null | undefined) ?? {}
+							},
+							payer: filingPayer(run.payer),
+							groups: filingGroups([run], true),
+							currency: version?.payroll?.currency
+						});
+			const file =
+				generated == null
+					? await put(
+							encode(
+								csv(
+									bankFileRows(
+										run.bank.map((payment) => ({
+											...payment,
+											period: run.period,
+											paymentDate: run.payDate
+										}))
+									)
+								)
+							),
+							`bank_payments_${run.period}.csv`,
+							'text/csv'
+						)
+					: await saveFile(generated);
 			artefacts.push({
-				label: `${filing.declaration.label ?? filing.declaration.code} ${filing.period}`,
-				kind: 'returns' as const,
-				periods: [filing.period],
+				label: `Bank file ${run.period}`,
+				kind: 'bank-files' as const,
+				periods: [run.period],
 				files: [file],
-				included_payslips: filing.file.rows,
-				return_code: filing.declaration.code,
-				evidenced_obligation_ids: await evidence(filing.declaration, filing, file, filing.file.name)
+				bank_format: declaration?.code ?? 'generic',
+				included_payslips: run.bank.length,
+				skipped_employment_ids: [...run.skippedEmploymentIds],
+				...(declaration == null
+					? {}
+					: {
+							return_code: declaration.code,
+							evidenced_obligation_ids: await evidence(
+								declaration,
+								{ companyId: row.company_id, period: run.period, runIds: [run.runId] },
+								file,
+								generated!.name
+							)
+						})
 			});
 		}
 
-	const slipRuns = wants('payslip-pdfs') ? exports.filter((run) => run.payslips.length > 0) : [];
-	for (const run of slipRuns) {
-		await ctx.progress({ text: `Payslips ${run.period}` });
-		const row = runs.find((candidate) => candidate.id === run.runId)!;
-		const company = companies.find((candidate) => candidate.id === row.company_id);
-		if (company == null)
-			refuse(`Payroll run ${run.period} names a company this export cannot read.`);
-		// ponytail: the salary period is the run's envelope on the company's calendar; a semi-monthly
-		// second half prints the month for a monthly-cadence employee too. Per-employment cadence
-		// windows when a mixed-cadence entity needs each slip's own.
-		const salaryPeriod = resolveWindow(run.period, company).salary;
-		const overtimePeriod = { start: dateKey(row.attendance_from), end: dateKey(row.attendance_to) };
-		const files = [];
-		for (const payslip of run.payslips)
-			files.push(
-				await put(
-					encode(
-						payslipPdf({
-							employer: company.name,
-							period: run.period,
-							salaryPeriod,
-							overtimePeriod,
-							payDate: run.payDate,
-							payslip
-						})
-					),
-					`payslip_${run.period}_${payslip.employeeNumber}.pdf`,
-					'application/pdf'
-				)
-			);
-		artefacts.push({
-			label: `Payslips ${run.period}`,
-			kind: 'payslip-pdfs' as const,
-			periods: [run.period],
-			files
-		});
-	}
+		if (kind === 'returns')
+			for (const filing of await loadReturns(ctx, runs, codes ?? undefined)) {
+				await ctx.progress({ text: `${filing.declaration.code} ${filing.period}` });
+				const file = await saveFile(filing.file);
+				artefacts.push({
+					label: `${filing.declaration.label ?? filing.declaration.code} ${filing.period}`,
+					kind: 'returns' as const,
+					periods: [filing.period],
+					files: [file],
+					included_payslips: filing.file.rows,
+					return_code: filing.declaration.code,
+					evidenced_obligation_ids: await evidence(
+						filing.declaration,
+						filing,
+						file,
+						filing.file.name
+					)
+				});
+			}
 
-	// A pay cycle's runs share one sheet per period: each payslip listed once, no sheet name asked for twice.
-	const sheets = combineCycleSheets(
-		exports.filter((run) => run.payslips.length > 0),
-		(runId) => runs.find((row) => row.id === runId)!.company_id
-	);
-	const label = sheets.length === 1 ? sheets[0]!.period : `${sheets.length}_runs`;
-	const periods = sheets.map((run) => run.period);
-	const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-	if (wants('payroll-report-xlsx') && sheets.length > 0)
-		artefacts.push({
-			label: 'Payroll workbook',
-			kind: 'payroll-report-xlsx' as const,
-			periods,
-			files: [
-				await put(
-					Uint8Array.from(await Effect.runPromise(payrollReportXlsx(sheets))),
-					`payroll_report_${label}.xlsx`,
-					XLSX
-				)
-			]
-		});
-	if (wants('catalogue-entries-xlsx') && hasCatalogueEntries(sheets))
-		artefacts.push({
-			label: 'Catalogue entries',
-			kind: 'catalogue-entries-xlsx' as const,
-			periods,
-			files: [
-				await put(
-					Uint8Array.from(await Effect.runPromise(catalogueEntriesXlsx(sheets))),
-					`catalogue_entries_${label}.xlsx`,
-					XLSX
-				)
-			]
-		});
-	if (kind === 'income-tax-returns') {
-		if (authorised_person == null)
-			refuse('An income return names the authorised person, their designation, contact and date.');
-		const returns = await loadIncomeReturns(ctx, runs, {
-			authorised: { ...authorised_person, date: dateKey(authorised_person.date) },
-			submission: submission ?? 'ORIGINAL',
-			submitted: new Map(
-				[...Map.groupBy(submitted ?? [], (row) => row.id_number)].map(([id, rows]) => [
-					id,
-					Object.fromEntries(rows.map((row) => [row.item, row.amount]))
-				])
-			)
-		});
-		for (const filing of returns) {
+		const slipRuns = wants('payslip-pdfs')
+			? [...exports]
+					.sort((a, b) => a.runId.localeCompare(b.runId))
+					.filter((run) => run.payslips.length > 0)
+			: [];
+		const ordered = slipRuns.flatMap((run) =>
+			[...run.payslips]
+				.sort((a, b) => a.employmentId.localeCompare(b.employmentId))
+				.map((payslip) => ({ runId: run.runId, payslip }))
+		);
+		const page = ordered.slice(offset, offset + 5);
+		const savedPdfSlips =
+			page.length === 0
+				? []
+				: (
+						await ctx.read('payslips', {
+							where: { payroll_run_id: { in: ids } },
+							select: { employment_id: true, payroll_run_id: true },
+							all: true
+						})
+					).rows;
+		const next_payslip_offset = offset + page.length < ordered.length ? offset + page.length : null;
+		for (const run of slipRuns) {
+			await ctx.progress({ text: `Payslips ${run.period}` });
+			const row = runs.find((candidate) => candidate.id === run.runId)!;
+			const company = companies.find((candidate) => candidate.id === row.company_id);
+			if (company == null)
+				refuse(`Payroll run ${run.period} names a company this export cannot read.`);
 			const files = [];
-			for (const records of [filing.annual, filing.cessation])
-				if (records.length > 0)
-					files.push(
-						await put(
-							encode(recordsCsv(records)),
-							`${records[0]!.form.toLowerCase()}_${filing.year}_${filing.label.replaceAll(/\W+/g, '_')}.csv`,
-							'text/csv'
-						)
-					);
+			for (const { payslip } of page.filter((item) => item.runId === run.runId)) {
+				const saved = savedPdfSlips.find(
+					(slip) => slip.payroll_run_id === row.id && slip.employment_id === payslip.employmentId
+				);
+				if (
+					saved == null ||
+					!Predicate.isString(saved.payroll_run_id) ||
+					!Predicate.isString(saved.employment_id)
+				)
+					return refuse('The saved payslip identifiers are not readable.');
+				files.push(
+					await put(
+						Result.getOrThrow(
+							Encoding.decodeBase64(
+								await ctx.query('payslips', 'payslip_pdf', {
+									run_id: saved.payroll_run_id,
+									employment_id: saved.employment_id
+								})
+							)
+						),
+						`payslip_${run.period}_${payslip.employeeNumber}.pdf`,
+						'application/pdf'
+					)
+				);
+			}
 			if (files.length > 0)
 				artefacts.push({
-					label: `Income tax returns ${filing.label}`,
-					kind: 'income-tax-returns' as const,
-					periods: [String(filing.year)],
+					label: `Payslips ${run.period}`,
+					kind: 'payslip-pdfs' as const,
+					periods: [run.period],
 					files
 				});
 		}
+
+		// A pay cycle's runs share one sheet per period: each payslip listed once, no sheet name asked for twice.
+		const sheets = combineCycleSheets(
+			exports.filter((run) => run.payslips.length > 0),
+			(runId) => runs.find((row) => row.id === runId)!.company_id
+		);
+		const label = sheets.length === 1 ? sheets[0]!.period : `${sheets.length}_runs`;
+		const periods = sheets.map((run) => run.period);
+		const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+		if (wants('payroll-report-xlsx') && sheets.length > 0)
+			artefacts.push({
+				label: 'Payroll workbook',
+				kind: 'payroll-report-xlsx' as const,
+				periods,
+				files: [
+					await put(
+						Uint8Array.from(await Effect.runPromise(payrollReportXlsx(sheets))),
+						`payroll_report_${label}.xlsx`,
+						XLSX
+					)
+				]
+			});
+		if (wants('catalogue-entries-xlsx') && hasCatalogueEntries(sheets))
+			artefacts.push({
+				label: 'Catalogue entries',
+				kind: 'catalogue-entries-xlsx' as const,
+				periods,
+				files: [
+					await put(
+						Uint8Array.from(await Effect.runPromise(catalogueEntriesXlsx(sheets))),
+						`catalogue_entries_${label}.xlsx`,
+						XLSX
+					)
+				]
+			});
+		if (kind === 'income-tax-returns') {
+			if (authorised_person == null)
+				refuse(
+					'An income return names the authorised person, their designation, contact and date.'
+				);
+			const returns = await loadIncomeReturns(ctx, runs, {
+				authorised: { ...authorised_person, date: dateKey(authorised_person.date) },
+				submission: submission ?? 'ORIGINAL',
+				submitted: new Map(
+					[...Map.groupBy(submitted ?? [], (row) => row.id_number)].map(([id, rows]) => [
+						id,
+						Object.fromEntries(rows.map((row) => [row.item, row.amount]))
+					])
+				)
+			});
+			for (const filing of returns) {
+				const files = [];
+				for (const records of [filing.annual, filing.cessation])
+					if (records.length > 0)
+						files.push(
+							await put(
+								encode(recordsCsv(records)),
+								`${records[0]!.form.toLowerCase()}_${filing.year}_${filing.label.replaceAll(/\W+/g, '_')}.csv`,
+								'text/csv'
+							)
+						);
+				if (files.length > 0)
+					artefacts.push({
+						label: `Income tax returns ${filing.label}`,
+						kind: 'income-tax-returns' as const,
+						periods: [String(filing.year)],
+						files
+					});
+			}
+		}
+		return { artefacts, next_payslip_offset };
 	}
-	return { artefacts };
-});
+);

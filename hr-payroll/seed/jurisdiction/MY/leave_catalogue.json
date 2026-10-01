@@ -38,7 +38,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -55,7 +55,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -93,7 +93,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "bb05174f-24e4-4b40-a015-ecfd06e5afe0",
@@ -123,7 +124,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -183,7 +184,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -272,7 +273,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -400,7 +401,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -417,7 +418,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -455,7 +456,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "95dfb550-2ef4-4ade-8d21-a856d4afa1fc",
@@ -485,7 +487,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -545,7 +547,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -634,7 +636,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -762,7 +764,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -779,7 +781,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -817,7 +819,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "867de58e-9e8b-4c18-a9d4-ebaccc03d659",
@@ -847,7 +850,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -907,7 +910,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -996,7 +999,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1124,7 +1127,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1141,7 +1144,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -1179,7 +1182,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "488e21ce-4713-49b9-92e2-6ab01237fd4c",
@@ -1209,7 +1213,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1269,7 +1273,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1358,7 +1362,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1486,7 +1490,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1503,7 +1507,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -1541,7 +1545,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "8df2f3ac-31b4-4527-98bc-0fa747c14b9e",
@@ -1571,7 +1576,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1631,7 +1636,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1720,7 +1725,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1848,7 +1853,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. R36 replacement uses dated same-employer service in the nine- and four-month windows before the confinement event; child limit and allowance settlement remain under review.",
+		"authority": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employee.gender == \"FEMALE\" && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -1865,7 +1870,7 @@
 		"evidence_after_days": 1,
 		"is_npl": false,
 		"can_encash": true,
-		"pay_fraction": "children.count >= 6 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
+		"pay_fraction": "children.natural_surviving_on(event.date) >= 5 ? 0.0 : (employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? 1.0 : 0.0)",
 		"encash_on_exit": false,
 		"event_facts": [
 			{
@@ -1903,7 +1908,8 @@
 				"label": "Event date",
 				"description": "The day of the event; entries naming the same day are one event"
 			}
-		]
+		],
+		"time_off_amount": "(terms.pay_frequency == \"DAILY\" || terms.pay_frequency == \"HOURLY\") && children.natural_surviving_on(event.date) < 5 && employment.service_days_before(event.date, 9) >= 90 && employment.service_days_before(event.date, 4) > 0 ? max(ordinary_day, 6.0) : 0.0"
 	},
 	{
 		"id": "c5b37fb8-abc2-46e9-8dee-06ce03752595",
@@ -1933,7 +1939,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "MEDICAL_LEAVE",
 		"name": "Medical leave",
-		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated. Employment (Part-Time Employees) Regulations 2010 reg.8(1): a part-time employee’s sick leave is 10 days under two years’ service, 13 from two to under five, 15 from five; none on a non-working day (reg.8(2)).",
 		"eligibility": "employment.type != \"DOMESTIC\"",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1993,7 +1999,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. Applied 2026-10-01 (owner-delegated rule): EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2082,7 +2088,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. Applied 2026-09-18: seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. Not modelled: the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape. seven days per confinement (`event.kind == \"BIRTH\"`), up to five confinements in a lifetime irrespective of the number of spouses (s.60FA(1), (2); `lifetime_events`).",
 		"eligibility": "employment.type != \"DOMESTIC\" && (employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12) && event.kind == \"BIRTH\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -2170,5 +2176,209 @@
 		"is_npl": true,
 		"can_encash": false,
 		"encash_on_exit": false
+	},
+	{
+		"id": "56acc31b-fa59-58fc-a602-94c201ea19b6",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
+	},
+	{
+		"id": "5190d24a-05ee-5492-b230-7b29626b9001",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
+	},
+	{
+		"id": "d0a5aba3-c8e7-57a8-b48a-fcd01160ec52",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
+	},
+	{
+		"id": "100cd794-7249-572e-b95b-42a3d3b0f57c",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
+	},
+	{
+		"id": "2d9e0d00-6daa-575c-81b9-3a95679b676e",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
+	},
+	{
+		"id": "811cfa36-62c4-55f3-a0fb-d9ecba1b404b",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "COURT_CUSTODY_ABSENCE",
+		"name": "Court or custody absence",
+		"authority": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false,
+		"pay_fraction": "leave.facts.absence_ground == \"EMPLOYER_WITNESS\" ? 1.0 : 0.0",
+		"event_facts": [
+			{
+				"key": "absence_ground",
+				"type": "string",
+				"label": "Court or custody ground",
+				"description": "The actual reason for absence, including travel to and from court, prison or custody. Employer witness means acting on the employer’s behalf.",
+				"options": [
+					"IMPRISONMENT",
+					"CUSTODY",
+					"CUSTODY_TRAVEL",
+					"COURT_ATTENDANCE_OR_TRAVEL",
+					"EMPLOYER_WITNESS"
+				],
+				"required": true
+			}
+		]
 	}
 ]

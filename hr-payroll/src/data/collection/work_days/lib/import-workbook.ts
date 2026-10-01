@@ -95,14 +95,11 @@ function readSheet<TRow>(
 	const settings = readWorkbookSettings(grids);
 	// A sheet with its header row and nothing under it is a statement, not a mistake: nothing is
 	// planned, or nothing was worked, for the month.
-	const cells = grids.get(sheetName) ?? [];
-	const filled = cells.filter((row) =>
-		row.some((cell) => cell != null && String(cell).trim() !== '')
-	);
-	if (filled.length === 1) return [];
-	const table = readSheetTable(grids, sheetName, ['employee_number']);
+	const table = readSheetTable(grids, sheetName, ['employee_number'], { allowEmptyRows: true });
 	if (isLongFormImportHeaders(table.headers)) {
-		return options.longForm(readSheetTable(grids, sheetName, options.longFormColumns));
+		return options.longForm(
+			readSheetTable(grids, sheetName, options.longFormColumns, { allowEmptyRows: true })
+		);
 	}
 	if (isMonthGridImportHeaders(table.headers)) {
 		return options.monthGrid(table, settings.month);
@@ -309,14 +306,6 @@ export function schedulingImportPayload(grids: WorkbookGrids): SchedulingImportP
 				monthGrid: expandOvertimeMonthGrid
 			})
 		: undefined;
-	if (
-		(roster?.length ?? 0) === 0 &&
-		(attendance?.length ?? 0) === 0 &&
-		(overtime?.length ?? 0) === 0
-	)
-		throw new WorkbookImportError('This file has nothing to import.', [
-			'Fill the Roster sheet, the Time entries sheet, the Overtime sheet, or any of them.'
-		]);
 	return {
 		legal_entity: settings.legal_entity,
 		month: settings.month,

@@ -11,6 +11,7 @@ import {
 } from '../workbook-rows.js';
 import { getErrorMessage } from '../refuse.js';
 import { formatNamedList } from '../period.js';
+import WorkbookImportDetails from './workbook-import-details.svelte';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
 const FAILURE_TOAST_MS = 20_000;
@@ -74,7 +75,7 @@ export async function runWorkbookImport<const A extends string>(options: {
 			throw new Error(t('component.workbook_import_failed', { file: file.name }));
 		const overwritten =
 			outcome.kind === 'committed' ? (options.overwritten?.(outcome.output) ?? []) : [];
-		toast.success(
+		toast.success<typeof WorkbookImportDetails>(
 			t('component.workbook_imported', {
 				count:
 					(outcome.kind === 'committed'
@@ -84,29 +85,45 @@ export async function runWorkbookImport<const A extends string>(options: {
 				file: file.name
 			}),
 			overwritten.length === 0
-				? {}
+				? { closeButton: true }
 				: {
-						description: `${t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`,
-						descriptionClass: 'whitespace-pre-line',
+						closeButton: true,
+						description: WorkbookImportDetails,
+						componentProps: {
+							label: options.recordLabel,
+							details: `${t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`
+						},
 						duration: FAILURE_TOAST_MS
 					}
 		);
 		const warnings = outcome.kind === 'committed' ? (options.warnings?.(outcome.output) ?? []) : [];
 		if (warnings.length > 0)
-			toast.warning(t('component.workbook_warnings', { count: warnings.length }), {
-				description: warnings.join('\n'),
-				descriptionClass: 'whitespace-pre-line',
-				duration: Number.POSITIVE_INFINITY
-			});
+			toast.warning<typeof WorkbookImportDetails>(
+				t('component.workbook_warnings', { count: warnings.length }),
+				{
+					closeButton: true,
+					description: WorkbookImportDetails,
+					componentProps: { label: options.recordLabel, details: warnings.join('\n') },
+					duration: Number.POSITIVE_INFINITY
+				}
+			);
 		options.afterImport?.(payload);
 	} catch (error) {
 		const message = getErrorMessage(error);
 		const [headline = '', ...detail] = message.split('\n');
 		const description = detail.join('\n').trim();
-		toast.error(headline.trim() || t('component.workbook_import_failed', { file: file.name }), {
-			...(description === '' ? {} : { description }),
-			descriptionClass: 'whitespace-pre-line',
-			duration: FAILURE_TOAST_MS
-		});
+		toast.error<typeof WorkbookImportDetails>(
+			headline.trim() || t('component.workbook_import_failed', { file: file.name }),
+			{
+				closeButton: true,
+				...(description === ''
+					? {}
+					: {
+							description: WorkbookImportDetails,
+							componentProps: { label: options.recordLabel, details: description }
+						}),
+				duration: FAILURE_TOAST_MS
+			}
+		);
 	}
 }

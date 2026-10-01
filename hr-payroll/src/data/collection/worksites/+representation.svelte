@@ -36,7 +36,7 @@
 			: t('component.record_entity_fact_revision')}
 	>
 		{#snippet children(form)}
-			<FormSection first title={t('component.worksite_revision')}>
+			<FormSection name="worksite_revision" first title={t('component.worksite_revision')}>
 				<Grid gap="sm" minimum="compact">
 					{#if record == null && scopedCompanyId == null}
 						<Field name="company_id" label={t('component.company')} />

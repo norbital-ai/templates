@@ -378,6 +378,8 @@ export type PersonInput = {
 		readonly service_start: string;
 		readonly prior_service_months?: number | null | undefined;
 		readonly exit_date?: string | null | undefined;
+		/** Signed fixed-term end, independently of the actual last day of service. */
+		readonly signed_contract_end?: string | null | undefined;
 		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		/** The departure inputs actually recorded, where `exit_facts` carries declared defaults (`stint`). */
@@ -645,15 +647,18 @@ export function personContext(input: PersonInput): PersonContext {
 	const day = input.asOf.slice(0, 10);
 	const served = exit !== '' && exit < day ? exit : day;
 	const through = exit !== '' && exit <= served ? addDays(exit, 1) : day;
-	// The recorded end is the contract's stated term only while nothing cut the stint short: a
-	// resignation, dismissal or other early exit ends an indefinite contract without giving it a
-	// term (Labour Code 2019 art.20(1)(a)), and the model records no other term.
+	// VN Labour Code arts.20(1)(b),21(1)(d), SI Law41/2024 art.2(2): insurance coverage reads
+	// the signed duration, which an early departure does not shorten. Legacy rows without that
+	// evidence use the stint end only for expiry or an uncut explicitly fixed contract.
 	const reason = input.employment.exit_ground ?? '';
+	const signedEnd = dateKey(input.employment.signed_contract_end);
 	const fixedTerm =
-		exit !== '' &&
-		start !== '' &&
-		(reason === 'END_OF_CONTRACT' ||
-			(input.terms?.employment_type === 'CONTRACT' && reason === ''));
+		signedEnd !== '' ||
+		(exit !== '' &&
+			start !== '' &&
+			(reason === 'END_OF_CONTRACT' ||
+				(input.terms?.employment_type === 'CONTRACT' && reason === '')));
+	const contractEnd = signedEnd === '' ? exit : signedEnd;
 	const children = (input.children ?? []).filter((child) => {
 		const birth = dateKey(child.child_birthdate);
 		return (
@@ -725,8 +730,9 @@ export function personContext(input: PersonInput): PersonContext {
 			days_to_exit: exit === '' || exit <= day ? 0 : inclusiveDays(day, exit) - 1,
 			exit_date: exit,
 			open_ended: !fixedTerm,
-			contract_months: !fixedTerm || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
-			contract_days: !fixedTerm || exit < start ? 0 : inclusiveDays(start, exit),
+			contract_months:
+				!fixedTerm || contractEnd < start ? 0 : completedMonths(start, addDays(contractEnd, 1)),
+			contract_days: !fixedTerm || contractEnd < start ? 0 : inclusiveDays(start, contractEnd),
 			exit_ground: input.employment.exit_ground ?? '',
 			exit_facts: scalarFacts(input.employment.exit_facts),
 			exit_fact_keys:

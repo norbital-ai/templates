@@ -40,7 +40,7 @@ import {
 } from '../../../lib/scheduling/work-pattern.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import { decodeNumber } from '../../wire.js';
-import { dateKey } from '../../iso-day.js';
+import { dateKey, calendarDateInTimeZone } from '../../iso-day.js';
 import * as Predicate from 'effect/Predicate';
 
 const trimmed = Schema.Trimmed.check(Schema.isMinLength(1));
@@ -145,14 +145,21 @@ function timestampHours(row: Omit<WorkDayLike, 'break_minutes'>): number {
  * the starter (the automation's `runAs: 'trigger'`), in three waves: the runs' payslips and entities, then the
  * people, catalogues, terms and days they name, then the patterns and shifts those name.
  */
-export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Promise<RunExport[]> {
+export async function loadRunExports(
+	reads: Reads,
+	runs: readonly RunRow[],
+	employmentId?: string
+): Promise<RunExport[]> {
 	const runIds = runs.map((run) => run.id);
 	if (runIds.length === 0) return [];
 	const [companies, readPayslips] = await Promise.all([
 		readAll<WorkspaceRow<'companies'>>(reads, 'companies', {
 			id: { in: [...new Set(runs.map((run) => run.company_id))] }
 		}),
-		readAll<WorkspaceRow<'payslips'>>(reads, 'payslips', { payroll_run_id: { in: runIds } })
+		readAll<WorkspaceRow<'payslips'>>(reads, 'payslips', {
+			payroll_run_id: { in: runIds },
+			...(employmentId == null ? {} : { employment_id: { eq: employmentId } })
+		})
 	]);
 	const companyOf = (run: RunRow): string =>
 		companies.find((row) => row.id === run.company_id)?.name ?? '';
@@ -209,12 +216,12 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 		}),
 		// The runs' catalogues: a settled payslip line names a component by code, and the code may
 		// come from any family. Only the named settings versions can define those lines.
-		readAll<Pick<WorkspaceRow<'jurisdiction_settings'>, 'id' | 'work_rules'>>(
+		readAll<Pick<WorkspaceRow<'jurisdiction_settings'>, 'id' | 'work_rules' | 'payroll'>>(
 			reads,
 			'jurisdiction_settings',
 			{ id: { in: settingsIds } },
 			undefined,
-			{ id: true, work_rules: true }
+			{ id: true, work_rules: true, payroll: true }
 		),
 		readAll<WorkspaceRow<'leave_catalogue'>>(reads, 'leave_catalogue', {
 			settings_id: { in: settingsIds }
@@ -291,8 +298,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 					family: item.family
 				});
 		for (const row of leaves.filter((row) => row.settings_id === run.settings_id)) {
-			// Leave carries no pricing and no landing: the engine prices both lines at the
-			// ordinary day wage, so the export states the landing each line's bucket means.
+			// Resolve names and families for derived Leave lines; saved items retain their actual bucket.
 			componentByCode.set(encashmentCode(row.code), {
 				name: `${row.name} encashment`,
 				calculationSource: 'DERIVED',
@@ -300,6 +306,14 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				destination: 'PAY',
 				family: 'LEAVE'
 			});
+			if ((row.time_off_amount ?? '').trim() !== '')
+				componentByCode.set(row.code, {
+					name: row.name,
+					calculationSource: 'DERIVED',
+					bucket: 'EARNING',
+					destination: 'PAY',
+					family: 'LEAVE'
+				});
 			if (row.is_npl || row.paid_by === 'FUND' || row.pay_fraction.trim() !== '')
 				componentByCode.set(row.code, {
 					name: row.name,
@@ -510,7 +524,21 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 					employer: charge.employer_amount
 				});
 			}
+			const paidDate =
+				payslip.status !== 'PAID' || payslip.paid_at == null
+					? null
+					: /^\d{4}-\d{2}-\d{2}$/.test(payslip.paid_at)
+						? payslip.paid_at
+						: version?.payroll?.timezone == null
+							? refuse('The captured payroll timezone is required to show the actual payment date.')
+							: calendarDateInTimeZone(new Date(payslip.paid_at), version.payroll.timezone);
 			return {
+				...(payslip.salary_from != null && payslip.salary_to != null
+					? {
+							salaryPeriod: { start: dateKey(payslip.salary_from), end: dateKey(payslip.salary_to) }
+						}
+					: {}),
+				paidDate,
 				employmentId: payslip.employment_id,
 				employeeNumber,
 				currency: payslip.currency,

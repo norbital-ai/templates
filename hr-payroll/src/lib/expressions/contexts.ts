@@ -1303,6 +1303,7 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 	description: 'One charged day of leave: the person that day, and where in the leave it falls.',
 	fields: [
 		...PERSON_ROOT_FIELDS,
+		{ path: 'ordinary_day', description: 'Historical ordinary daily wage for the charged date' },
 		{ path: 'leave.month_index', description: 'Which month of the leave the day is in, from 1' },
 		{ path: 'leave.day_index', description: 'Which calendar day of the leave, from 1' },
 		{ path: 'leave.days', description: 'The days the whole entry charges' },
@@ -1327,7 +1328,7 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 				'The entry that opened this leave’s episode (`leave_entries.episode_id`), the entry itself when it opens one'
 		}
 	],
-	bare: ['wage_floor'],
+	bare: ['wage_floor', 'ordinary_day'],
 	open: [
 		'company.facts',
 		'facts',
@@ -1343,6 +1344,7 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 	functions: functionsFor('person'),
 	blank: {
 		...personBlank(),
+		ordinary_day: 0,
 		leave: {
 			month_index: 1,
 			day_index: 1,
@@ -1468,6 +1470,10 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 			description: 'ORDINARY | REST_DAY | PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | OFF_DAY'
 		},
 		{ path: 'worked_hours', description: 'Net worked hours' },
+		{
+			path: 'actual_worked_hours',
+			description: 'Net actual attendance, including hours outside the approved pay units'
+		},
 		{ path: 'normal_hours', description: 'The scheduled normal hours' },
 		{
 			path: 'comparable_full_time_daily_hours',
@@ -1511,6 +1517,10 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'hours', description: 'The hours this band consumed, for its price' },
 		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
 		{
+			path: 'prior_hours.<key>',
+			description: 'Counter hours before this day in its calendar period'
+		},
+		{
 			path: 'holiday.kind',
 			description:
 				'The published row on the date, in the day-type words: PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | SUBSTITUTE | DOUBLE_HOLIDAY (two regular holidays on one date), or empty; unlike `day_type` it does not move with the precedence rule'
@@ -1520,6 +1530,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 			path: 'holiday.prior_day_present',
 			description:
 				'Present, or on leave with pay, on the workday immediately preceding the holiday — a rest or non-work day, or an unworked holiday, looks further back (PH Handbook ch.2 §D–E); true on a day with no holiday'
+		},
+		{
+			path: 'holiday.pay_eligible',
+			description:
+				'Holiday salary entitlement after evidenced adjacent absence decisions; actual holiday work pay is independent'
 		},
 		{
 			path: 'day_facts.<key>',
@@ -1585,6 +1600,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'date',
 		'day_type',
 		'worked_hours',
+		'actual_worked_hours',
 		'normal_hours',
 		'comparable_full_time_daily_hours',
 		'hours_beyond_normal',
@@ -1604,6 +1620,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'hours'
 	],
 	open: [
+		'prior_hours',
 		'limits',
 		'day_facts',
 		'person.company.facts',
@@ -1622,6 +1639,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		date: '',
 		day_type: 'ORDINARY',
 		worked_hours: 13,
+		actual_worked_hours: 13,
 		normal_hours: 9,
 		comparable_full_time_daily_hours: 8,
 		hours_beyond_normal: 4,
@@ -1640,7 +1658,8 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		day_wage: 204,
 		hours: 4,
 		limits: {},
-		holiday: { kind: '', name: '', prior_day_present: true },
+		prior_hours: {},
+		holiday: { kind: '', name: '', prior_day_present: true, pay_eligible: true },
 		day_facts: {},
 		day_fact_keys: [],
 		age_years: 40,
@@ -2109,7 +2128,8 @@ const OBLIGATION_CONTEXT: ExpressionContext = {
 	functions: functionsFor('obligation'),
 	blank: {
 		trigger: { on: '', date: '', ref: '' },
-		period: { start: '', end: '' },
+		// Compile-time calendar dates let lawful year extraction type-check; runtime absent roots stay blank.
+		period: { start: '2000-01-01', end: '2000-12-31' },
 		company: { settings_code: '', region: '', pay_frequency: '', headcount: 0, facts: {} },
 		employment: { service_start: '', exit_date: '', exit_ground: '', exit_facts: {} },
 		worksite: { code: '', region: '', facts: {} },
@@ -2228,7 +2248,8 @@ const FILING_CONTEXT: ExpressionContext = {
 	open: ['company.facts', ...SLIP_OPEN.map((key) => `totals.${key}`), ...PERSON_OPEN_UNDER],
 	functions: functionsFor('filing'),
 	blank: {
-		filing: { code: '', period: '', year: 2026, pay_date: '', rows: 0 },
+		// The compiler checks fixed-width date formatting against a real ISO date, not an absent runtime root.
+		filing: { code: '', period: '', year: 2026, pay_date: '2026-01-01', rows: 0 },
 		payee: {
 			employee_id: '',
 			employment_id: '',

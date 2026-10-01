@@ -29,6 +29,8 @@ export default model({
 		waive_reason: { kind: 'text', optional: true },
 		/** The authority's acknowledgement or filing reference. */
 		reference: { kind: 'text', optional: true },
+		/** The filing, receipt or acknowledgement itself. */
+		evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
 		/** The completion facts the duty type's `evidence` declares; `{}` until recorded. */
 		facts: { kind: 'custom', of: 'entity_facts', default: {} },
 		/** The record is kept until this day (the duty's `retain_years` from the due day). */

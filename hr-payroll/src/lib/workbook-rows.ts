@@ -261,7 +261,8 @@ export type SheetTable = {
 export function readSheetTable(
 	grids: WorkbookGrids,
 	sheetName: string,
-	requiredHeaders: readonly string[]
+	requiredHeaders: readonly string[],
+	options: { readonly allowEmptyRows?: boolean } = {}
 ): SheetTable {
 	const grid = requireSheet(grids, sheetName);
 	const headerIndex = grid.findIndex((row) => row.some((cell) => !isBlank(cell)));
@@ -291,7 +292,7 @@ export function readSheetTable(
 			cells: new Map(headers.map((header, column) => [header, cells[column] ?? null]))
 		});
 	}
-	if (rows.length === 0) {
+	if (rows.length === 0 && options.allowEmptyRows !== true) {
 		throw new WorkbookImportError(
 			`The "${sheetName}" sheet has column headers but no rows to import.`
 		);

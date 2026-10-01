@@ -473,7 +473,11 @@ export function computePayslip(sc: Scenario): Payslip {
 		const counted = sc.leave.menstrualDays - apart;
 		const left = Math.max(
 			0,
-			30 - sc.leave.sickPriorDays - sc.leave.sickDays - sc.leave.hospitalisedDays
+			30 -
+				sc.leave.sickPriorDays -
+				sc.leave.sickDays -
+				sc.leave.hospitalisedDays -
+				Math.max(0, sc.leave.menstrualPriorDays - 3)
 		);
 		const halfCounted = Math.min(counted, left);
 		earn('MENSTRUAL_LEAVE', -(day / 2) * (apart + halfCounted) - day * (counted - halfCounted));
@@ -569,7 +573,7 @@ export function computePayslip(sc: Scenario): Payslip {
 	// LI Act art. 6: 15–65 compulsory; a registration continuing after 65 stays (TW-EI-01 golden)
 	const liOn = covered && sc.company.liUnit && (age(start) < 65 || e.liAfter65);
 	// EI Act art. 5: ROC nationals, foreign spouses and PR holders (Foreign Professionals Act art. 25), 15 to 65
-	const eiFrom =
+	const nationalityFrom =
 		e.citizenship === 'ROC' || e.citizenship === 'FOREIGN_SPOUSE' || e.citizenship === 'FOREIGN_PR'
 			? start
 			: e.prGrantedOn !== null && e.prGrantedOn <= end
@@ -577,6 +581,9 @@ export function computePayslip(sc: Scenario): Payslip {
 					? e.prGrantedOn
 					: start
 				: null;
+	const turns15 = addYears(e.birthDate, 15);
+	const eiFrom =
+		nationalityFrom == null ? null : nationalityFrom > turns15 ? nationalityFrom : turns15;
 	const eiTo = turns65 <= end ? addDays(turns65, -1) : end; // EI65: out from the 65th birthday
 	// LPA art. 7: nationals, foreign spouses, PR holders; Foreign Professionals Act art. 24 (2026): professionals
 	const pensionOn = covered && e.pension.system === 'NEW' && !migrant;
@@ -604,7 +611,7 @@ export function computePayslip(sc: Scenario): Payslip {
 		const u = (liGrade * LI_RATE * liDays) / 30;
 		charge('LI', share(u * 0.2), r0(u * 0.7), liGrade);
 	}
-	if (covered && eiDays > 0 && age(start) >= 15) {
+	if (covered && eiDays > 0) {
 		const u = (liGrade * EI_RATE * eiDays) / 30;
 		charge('EI', share(u * 0.2), r0(u * 0.7), liGrade);
 	}

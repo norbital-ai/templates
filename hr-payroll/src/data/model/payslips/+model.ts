@@ -12,6 +12,9 @@ export default model({
 	fields: {
 		/** The latest contract date this settlement consumed; terms through it are frozen. */
 		terms_through: { kind: 'date' },
+		salary_from: { kind: 'date', optional: true },
+		salary_to: { kind: 'date', optional: true },
+		leave_settlements: { kind: 'custom', of: 'leave_settlements', optional: true },
 		base: { kind: 'custom', of: 'payslip_base' },
 		proration: { kind: 'custom', of: 'payslip_proration' },
 		statutory: { kind: 'custom', of: 'payslip_statutory' },

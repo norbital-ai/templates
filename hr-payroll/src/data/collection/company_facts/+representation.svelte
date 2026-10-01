@@ -34,6 +34,7 @@
 	>
 		{#snippet children(form)}
 			<FormSection
+				name="entity_fact_revision"
 				first
 				title={t('component.entity_fact_revision')}
 				hint={t('component.entity_fact_revision_hint')}

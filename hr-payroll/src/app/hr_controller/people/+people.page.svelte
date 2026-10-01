@@ -9,6 +9,7 @@
 	import { Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	import { todayKey } from '../../../lib/ui/calendar.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
+	import Loading from '../../../lib/ui/Loading.svelte';
 	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
 	import { decodeNumber } from '../../../lib/wire.js';
@@ -70,7 +71,7 @@
 </script>
 
 {#snippet empty(message: string)}
-	<EmptyState title={scope.unknown ? t('app.hr_controller.loading_scope') : message} />
+	{#if scope.unknown}<Loading />{:else}<EmptyState title={message} />{/if}
 {/snippet}
 
 {#snippet summary()}

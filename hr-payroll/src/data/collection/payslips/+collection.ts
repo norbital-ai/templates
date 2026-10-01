@@ -1,3 +1,7 @@
+import { loadRunExports } from '../../../lib/payroll/run/export-data.js';
+import { payslipPdf } from '../../../lib/payroll/run/export.js';
+import { resolveWindow } from '../../../lib/payroll/run/period.js';
+import { Encoding } from 'effect';
 import { collection } from '@norbital-ai/bolt';
 import { decodeNumber } from '../../../lib/wire.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -24,6 +28,17 @@ import * as Predicate from 'effect/Predicate';
  */
 const c = collection('payslips', {
 	read: { fields: 'all' },
+	queries: {
+		payslip_pdf: {
+			description:
+				'Renders one caller-readable saved payslip with captured financial amounts and Unicode identity.',
+			input: {
+				run_id: { kind: 'id', of: 'payroll_runs' },
+				employment_id: { kind: 'id', of: 'employments' }
+			},
+			output: { kind: 'text' }
+		}
+	},
 	update: {
 		input: {
 			columns: ['status', 'paid_at', 'funding_received', 'funding_received_on', 'funding_reference']
@@ -294,3 +309,31 @@ c.transform(async (inputs, ctx) => {
 });
 
 export default c;
+
+// Each PDF is a separate guest invocation; a payroll-sized export does not spend one CPU budget on every employee.
+c.query('payslip_pdf', async ({ run_id, employment_id }, ctx) => {
+	const runs = await readAll<WorkspaceRow<'payroll_runs'>>(ctx, 'payroll_runs', {
+		id: { eq: run_id }
+	});
+	const run = runs[0];
+	if (run == null) return ctx.refuse('The payroll run is not readable.');
+	const exports = await loadRunExports(ctx, [run], employment_id);
+	const report = exports[0];
+	if (report == null) return ctx.refuse('The saved payroll export is not readable.');
+	const payslip = report.payslips[0];
+	if (payslip == null) return ctx.refuse('The saved payslip is not readable or is on hold.');
+	const companies = await readAll<WorkspaceRow<'companies'>>(ctx, 'companies', {
+		id: { eq: run.company_id }
+	});
+	const company = companies[0];
+	if (company == null) return ctx.refuse('The payroll company is not readable.');
+	const bytes = await payslipPdf({
+		employer: company.name,
+		period: report.period,
+		payDate: report.payDate,
+		salaryPeriod: payslip.salaryPeriod ?? resolveWindow(report.period, company).salary,
+		overtimePeriod: { start: dateKey(run.attendance_from), end: dateKey(run.attendance_to) },
+		payslip
+	});
+	return Encoding.encodeBase64(bytes);
+});

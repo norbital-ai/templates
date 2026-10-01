@@ -4,8 +4,9 @@
 	 * version's currency. A company names its region and a scheme's floor or cap reads the wage
 	 * through `minimum_wage(region)`, so a region with no row refuses the run rather than guessing.
 	 */
+	import InfoTip from '../../../lib/ui/InfoTip.svelte';
 	import { t } from '../../../lib/ui/t.js';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 
 	import MatrixRenderer, { type MatrixColumn } from '../../../lib/ui/grid.svelte';
 	import type { CollectionField } from '../../../lib/ui/grid.svelte';
@@ -39,6 +40,7 @@
 		{
 			key: 'region',
 			label: t('component.region'),
+			description: t('renderer.minimum_wage.region_hint'),
 			field: { name: 'region', kind: 'text', nullable: false } satisfies CollectionField,
 			placeholder: t('renderer.minimum_wage.region_placeholder'),
 			width: 220
@@ -46,6 +48,7 @@
 		{
 			key: 'amount',
 			label: t('renderer.minimum_wage.amount'),
+			description: t('renderer.minimum_wage.amount_hint'),
 			field: { name: 'amount', kind: 'number', nullable: false } satisfies CollectionField,
 			width: 180
 		}
@@ -86,8 +89,12 @@
 		<p class="text-meta">{t('renderer.minimum_wage.empty')}</p>
 	{/if}
 	<Stack gap="xs">
-		<span class="text-sm font-semibold">{t('renderer.minimum_wage.applies_when')}</span>
-		<p class="text-meta">{t('renderer.minimum_wage.applies_when_hint')}</p>
+		<Inline gap="xs" align="center">
+			<span class="text-sm font-semibold">{t('renderer.minimum_wage.applies_when')}</span>
+			<InfoTip label={t('renderer.minimum_wage.applies_when')}
+				>{t('renderer.minimum_wage.applies_when_hint')}</InfoTip
+			>
+		</Inline>
 		<ExpressionField
 			site="person"
 			type="boolean"

@@ -838,6 +838,28 @@ export function generateProfiles(): Scenario[] {
 	ot('8h1', [], '8.1h day: 6 minutes at 125%', [day('2026-06-10', '09:00', '18:06')]);
 	ot('1h', [], 'one hour past 8h at 125%', [day('2026-06-10', '09:00', '19:00')]);
 	ot('night', ['JP-OT-04'], '22:00–23:00 overtime at 150%', [day('2026-06-10', '09:00', '23:00')]);
+	// LSA arts.37(4), 41(2); MHLW https://www.mhlw.go.jp/content/11201250/001288488.pdf.
+	ot(
+		'manager-night',
+		['JP-OT-04'],
+		'manager: 22:00–23:00 night premium only',
+		[day('2026-06-10', '09:00', '23:00')],
+		{ employee: { supervisoryManager: true } }
+	);
+	ot(
+		'manager-rest-night',
+		['JP-OT-04'],
+		'manager statutory rest: night premium only',
+		[day('2026-06-14', '21:59', '22:01', 0)],
+		{ employee: { supervisoryManager: true } }
+	);
+	ot(
+		'manager-night-end',
+		['JP-OT-04'],
+		'manager statutory rest: 04:59–05:01 one night minute only',
+		[day('2026-06-14', '04:59', '05:01', 0)],
+		{ employee: { supervisoryManager: true } }
+	);
 	ot('night-2159', ['JP-OT-04'], 'ends 21:59: no night minute', [
 		day('2026-06-10', '09:00', '21:59')
 	]);

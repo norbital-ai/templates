@@ -28,6 +28,7 @@
 		submit={record ? t('component.save_wage_period') : t('component.record_wage_period')}
 	>
 		<FormSection
+			name="wage_period_history"
 			first
 			title={t('component.wage_period_history')}
 			hint={t('component.wage_period_history_hint')}

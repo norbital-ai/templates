@@ -1344,7 +1344,6 @@ test('Kunming — Mo Han uses category III wage floors and refuses uncertified h
 			[1870, 19],
 			[1870, 19],
 			[1870, 19],
-			[1870, 19],
 			[1970, 20]
 		]
 	);
@@ -2233,7 +2232,6 @@ test('both cities — the default published average is the prior calendar year�
 	});
 	assert.deepEqual(defaults, [
 		[null, 12_434, 10_531.92],
-		[null, 12_577, 10_847.83],
 		[null, 12_577, 10_847.83],
 		[null, 12_577, 10_847.83],
 		[null, 12_577, 10_847.83]

@@ -754,7 +754,32 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 		...holidays
 			.filter((d) => weekday(d) === 6 && d >= job.start && (end === null || d <= end))
 			.map((d) => workDay('job', d, [], tz)),
-		...(m.absent ?? []).map((d) => workDay('job', d, [], tz)),
+		// The SG oracle defines these as absences without consent or reasonable excuse.
+		...(m.absent ?? []).flatMap((date): ProbeInput[] => {
+			const ref = `absence-${date}`;
+			const reference = `Synthetic unauthorized absence ${date}`;
+			return [
+				{
+					...workDay('job', date, [], tz, {
+						facts: {
+							absence_permission: 'NO',
+							absence_reasonable_excuse: 'NO',
+							absence_decision: reference
+						}
+					}),
+					ref
+				},
+				{
+					collection: 'fact_evidence',
+					values: {
+						subject: { collection: 'work_days', id: `@${ref}` },
+						fact_key: 'absence_decision',
+						reference,
+						received_on: date
+					}
+				}
+			];
+		}),
 		...(m.overtime ?? []).map((o) =>
 			workDay('job', o.date, clock(8 + o.hours), tz, { approved_overtime_hours: o.hours })
 		),
@@ -1883,6 +1908,7 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 					company_id: '@company',
 					employee_number: 'VN',
 					effective_range: range,
+					...(k.fixedEnd === null ? {} : { signed_contract_end: k.fixedEnd }),
 					...(x === null
 						? {}
 						: { exit_ground: x.cause, exit_facts: { pension_eligible: x.pensionEligible } })
@@ -1976,12 +2002,12 @@ function myMap(s: MyScenario): Mapped {
 	const end = x !== null && x.date < last ? x.date : last;
 	const foreign = e.citizenship === 'FOREIGNER';
 	const range = { from: j.hireDate, to: x?.date ?? j.contractEnd };
-	const fact = (code: string, extra: Row = {}, from = j.hireDate): ProbeInput => ({
+	const fact = (code: string, extra: Row = {}, from = j.hireDate, lawOn?: string): ProbeInput => ({
 		collection: 'employment_statutory_facts',
 		values: {
 			employee_id: '@person',
 			employment_id: '@job',
-			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			statutory_contribution_id: `@law:statutory_contributions:${code}${lawOn ? `@${lawOn}` : ''}`,
 			effective_range: { from, to: range.to },
 			status: { kind: 'REGISTERED', reference_number: `DIFF-${code}`, ...extra }
 		}
@@ -2051,6 +2077,7 @@ function myMap(s: MyScenario): Mapped {
 						'SKBBK',
 						{ elections: { skbbk_liability_released: true } },
 						// a release exists only from the 8 July 2026 version (LINDUNG FAQ; MY-SKBBK-04)
+						[`${s.period}-01`, j.hireDate, '2026-07-08'].sort().at(-1)!,
 						[`${s.period}-01`, j.hireDate, '2026-07-08'].sort().at(-1)!
 					)
 				]
@@ -2394,33 +2421,32 @@ function phMap(s: PHScenario): Mapped {
 	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
 	const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
 	const time: ProbeInput[] = s.work.map((w) => {
-		// a shift that ends at or before its start ends on the next calendar day
-		const overnight = minutes(w.end) <= minutes(w.start);
-		const worked =
-			(minutes(w.end) + (overnight ? 24 * 60 : 0) - minutes(w.start) - w.breakMinutes) / 60;
+		const start = minutes(w.start);
+		const finish = minutes(w.end) + (minutes(w.end) <= start ? 24 * 60 : 0);
+		// The synthetic oracle places its unpaid break after four hours. Preserve that gap,
+		// including its date across midnight, so night pay reads the same actual attendance.
+		const breakStart = Math.min(finish, start + 4 * 60);
+		const breakEnd = Math.min(finish, breakStart + w.breakMinutes);
+		const spans =
+			breakEnd > breakStart
+				? [
+						[start, breakStart],
+						[breakEnd, finish]
+					].filter(([from, to]) => to! > from!)
+				: [[start, finish]];
+		const stamp = (minute: number) =>
+			`${addDays(w.date, Math.floor(minute / (24 * 60)))}T${String(Math.floor(minute / 60) % 24).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}:00${PH_TZ}`;
+		const worked = (finish - start - (breakEnd - breakStart)) / 60;
 		const off =
 			weekday(w.date) === 0 ||
 			weekday(w.date) === 6 ||
 			PH_REGULAR.includes(w.date) ||
 			PH_SPECIAL.includes(w.date);
-		const row = workDay('job', w.date, [[w.start, w.end]], PH_TZ, {
+		return workDay('job', w.date, [], PH_TZ, {
 			...(weekday(w.date) >= 1 && weekday(w.date) <= 5 ? { shift_definition_id: '@office' } : {}),
-			approved_overtime_hours: off ? worked : Math.max(0, worked - 8)
+			approved_overtime_hours: off ? worked : Math.max(0, worked - 8),
+			worked_intervals: spans.map(([from, to]) => ({ start: stamp(from!), end: stamp(to!) }))
 		});
-		return overnight
-			? {
-					...row,
-					values: {
-						...row.values,
-						worked_intervals: [
-							{
-								start: `${w.date}T${w.start}:00${PH_TZ}`,
-								end: `${addDays(w.date, 1)}T${w.end}:00${PH_TZ}`
-							}
-						]
-					}
-				}
-			: row;
 	});
 	for (const [from, to] of ranges(s.unpaidLeave))
 		time.push(
@@ -2672,7 +2698,8 @@ function jpMap(s: jpOracle.Scenario): Mapped {
 					employment_id: '@job',
 					work_date: w.date,
 					worked_intervals: spans.map(([f, t]) => ({ start: at(f!), end: at(t!) })),
-					approved_overtime_hours: off ? hours : Math.max(0, hours - e.dailyHours)
+					approved_overtime_hours:
+						Math.round((off ? hours : Math.max(0, hours - e.dailyHours)) * 1e12) / 1e12
 				}
 			} satisfies ProbeInput;
 		})
@@ -2762,7 +2789,7 @@ function jpMap(s: jpOracle.Scenario): Mapped {
 					currency: 'JPY',
 					base_salary: e.monthlySalary,
 					pay_frequency: 'MONTHLY',
-					work_classification: 'LSA_COVERED',
+					work_classification: e.supervisoryManager ? 'SUPERVISORY_MANAGER' : 'LSA_COVERED',
 					employment_type: e.dailyHours < 8 ? 'PART_TIME' : 'PERMANENT',
 					worksite: s.company.prefecture,
 					shift_pattern_id: '@rweek',
@@ -3516,9 +3543,15 @@ function kmMap(s: KmScenario): Mapped {
 		);
 	for (const sub of p.subsidies ?? [])
 		inputs.push(
-			adhocRow('job', sub.code, sub.amount, mid, sub.code, {
-				files: { evidence_file: `${sub.code.toLowerCase()}.pdf` }
-			})
+			// The untaxed catalogue accepts only qualifying expense subsidies; a non-qualifying payment is wage income.
+			adhocRow(
+				'job',
+				sub.qualifying ? sub.code : 'BONUS',
+				sub.amount,
+				mid,
+				sub.code,
+				sub.qualifying ? { files: { evidence_file: `${sub.code.toLowerCase()}.pdf` } } : {}
+			)
 		);
 	let exit: Row = {};
 	if (x !== undefined && em.exitDate !== null) {
@@ -3636,7 +3669,8 @@ function kmMap(s: KmScenario): Mapped {
 			reference_number: 'DIFF-IIT',
 			elections: {
 				first_wage_income_this_year: s.tax.firstIncomeThisYear ?? false,
-				annual_60000_from_january: s.tax.basic60kElection ?? false
+				annual_60000_from_january: s.tax.basic60kElection ?? false,
+				elderly_support_only_child: d?.elderlyOnlyChild ?? false
 			},
 			...(claims.length > 0 ? { deduction_claims: claims } : {})
 		})

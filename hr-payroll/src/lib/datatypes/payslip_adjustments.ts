@@ -16,6 +16,7 @@ export type PayslipAdjustment = {
 	readonly family: (typeof ADJUSTMENT_FAMILIES)[number];
 	readonly source_id: string;
 	readonly component_code: string;
+	readonly reserved_line?: 'BASE' | null;
 	readonly label: string;
 	readonly bucket:
 		'EARNING' | 'ABSENCE' | 'DEDUCTION' | 'NON_WAGE_PAYMENT' | 'EMPLOYER_COST' | 'INFORMATION';

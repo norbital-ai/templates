@@ -53,7 +53,13 @@ import {
 	nightWindowHours,
 	type DailyOvertime
 } from '../../lib/payroll/run/overtime.js';
-import { nightAddsFor, priceWorkDay, workDayHolds, type WorkBandDay } from './work-bands.js';
+import {
+	nightAddsFor,
+	priceWorkDay,
+	workDayHolds,
+	withPriorWorkHours,
+	type WorkBandDay
+} from './work-bands.js';
 import {
 	absenceDayRate,
 	contractClasses,
@@ -470,7 +476,9 @@ function workContext(
 
 	// ── schedule across the full calendar months touched by the settlement cutoff ───────────────
 	const complianceWindow: PayRange = {
-		start: monthBounds(monthKey(attendance.start)).start,
+		start: (configuration.work.counters ?? []).some((counter) => counter.period === 'WEEK')
+			? weekStart(monthBounds(monthKey(attendance.start)).start)
+			: monthBounds(monthKey(attendance.start)).start,
 		end: monthBounds(monthKey(attendance.end)).end
 	};
 	const attendanceDays = daysBetween(complianceWindow.start, complianceWindow.end);
@@ -638,6 +646,7 @@ function workContext(
 			string,
 			{
 				hours: number;
+				worked: number;
 				redistributed: number;
 				shorter: number;
 				limits: Map<string, (typeof weeklyNormalLimits)[number]>;
@@ -650,13 +659,13 @@ function workContext(
 			const week = weekStart(date);
 			const totals = weeks.get(week) ?? {
 				hours: 0,
+				worked: 0,
 				redistributed: 0,
 				shorter: 0,
 				limits: new Map<string, (typeof weeklyNormalLimits)[number]>(),
 				days: []
 			};
 			totals.hours += day.normalHours;
-			totals.days.push([date, day.normalHours]);
 			const person = personContext({
 				employee: bundle.employee,
 				employment: employmentForPerson(),
@@ -669,6 +678,29 @@ function workContext(
 				company: configuration.company,
 				asOf: date
 			});
+			const recorded = workDayByDate.get(date);
+			const rules = configuration.onDay?.(date) ?? configuration;
+			const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date);
+			const worked =
+				recorded?.worked_intervals == null
+					? 0
+					: dailyWorkedHours(
+							{
+								...recorded,
+								break_minutes: providedBreakMinutes({
+									intervals: recorded.worked_intervals,
+									shiftMinutes: day.shift.break_minutes ?? 0,
+									breaks: rules.breaks,
+									person,
+									nightHours: nightHoursFor(recorded, day, rules.nightPremium, offset)
+								})
+							},
+							day,
+							offset
+						);
+			const ordinary = Math.min(day.normalHours, worked);
+			totals.worked += ordinary;
+			totals.days.push([date, ordinary]);
 			for (const limit of applicableLimits(weeklyNormalLimits, person))
 				totals.limits.set(limit.key, limit);
 			// The hours this day moves within its week (`work_rules.redistributed_hours`): above the
@@ -703,7 +735,7 @@ function workContext(
 					limitWarning(
 						`${bundle.employment.employee_number} has ${totals.hours.toFixed(2)} normal hours in the week of ${week}, above the ${limit.max_hours}-hour limit "${limit.key}".`
 					);
-			let excess = sorted.length === 0 ? 0 : totals.hours - sorted[0]!.max_hours;
+			let excess = sorted.length === 0 ? 0 : totals.worked - sorted[0]!.max_hours;
 			for (const [date, hours] of totals.days.toSorted(([left], [right]) =>
 				left < right ? 1 : -1
 			)) {
@@ -1365,24 +1397,62 @@ function workContext(
 		const day = prorationScheduleIn(monthBounds(monthKey(date))).get(date);
 		return day?.shift != null && (day.dayType === 'ORDINARY' || day.dayType === 'PUBLIC_HOLIDAY');
 	};
-	/**
-	 * The unworked public holidays on a working day whose working day immediately before or after
-	 * is `date` (SG EA s.88(3)); a substituted day is a holiday row like any other.
-	 */
-	const adjacentHolidays = (date: string): string[] =>
-		[-1, 1].flatMap((step) => {
-			// ponytail: a month's walk; no roster rests longer than that between two working days.
-			for (let offset = 1; offset <= 31; offset += 1) {
-				const candidate = addDays(date, step * offset);
-				if (!workingDayOn(candidate)) continue;
-				if (!configuration.holidays.has(candidate)) return [];
-				if (!workedOn.has(candidate)) return [candidate];
-				return [];
-			}
-			return [];
-		});
 	const holidayAdjacentAbsence =
 		configuration.jurisdiction.payroll.holiday_adjacent_absence_unpaid === true;
+	// A holiday's entitlement belongs to its date, including an absence in another month.
+	const holidayAbsence = new Map<string, { id: string; date: string }>();
+	const authorizedLeaveDays = new Set(
+		activeTimeOff(bundle.leave.entries).flatMap((entry) =>
+			entry.charges.map((charge) => charge.date)
+		)
+	);
+	if (holidayAdjacentAbsence) {
+		for (const holiday of configuration.holidays.keys()) {
+			if (!bundle.termsHistory.some((term) => coversDate(term.effective_range, holiday))) continue;
+			if (
+				!isEligible(
+					configuration.jurisdiction.payroll.holiday_adjacent_absence_when ?? '',
+					ratesOn(holiday).person
+				)
+			)
+				continue;
+			for (const step of [-1, 1]) {
+				for (let offset = 1; offset <= 31; offset += 1) {
+					const date = addDays(holiday, step * offset);
+					if (!workingDayOn(date) || configuration.holidays.has(date)) continue;
+					const day = bundle.workDays.find((row) => dateKey(row.work_date) === date);
+					if (
+						day == null ||
+						workedOn.has(date) ||
+						(coverage.days[date] ?? 0) > 0 ||
+						authorizedLeaveDays.has(date)
+					)
+						break;
+					const facts = scalarFacts(day.facts);
+					if (facts.absence_permission === 'YES' || facts.absence_reasonable_excuse === 'YES')
+						break;
+					if (
+						facts.absence_permission === 'NO' &&
+						facts.absence_reasonable_excuse === 'NO' &&
+						Predicate.isString(facts.absence_decision) &&
+						facts.absence_decision.trim() !== ''
+					) {
+						holidayAbsence.set(holiday, { id: day.id, date });
+					} else {
+						limitNotes.push({
+							code: 'MISSING_HOLIDAY_ABSENCE_DECISION',
+							severity: 'WARNING',
+							message: `${holiday}: adjacent absence ${date} needs permission, reasonable-excuse and decision evidence before holiday pay can be forfeited.`,
+							collection: 'work_days',
+							recordId: day.id
+						});
+					}
+					break;
+				}
+			}
+		}
+	}
+	const holidayPayEligible = (date: string) => !holidayAbsence.has(date);
 	const absentDaysIn = (window: PayRange) => {
 		const forfeited = new Set<string>();
 		const absent: { id: string; date: string; days: number; family?: 'WORK_DAY' | 'LEAVE' }[] =
@@ -1401,17 +1471,13 @@ function workContext(
 				if (uncovered <= 0) return [];
 				const scheduled = schedule.get(date);
 				if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
-				// An absence recorded as neither leave nor work had no prior consent (owner default,
-				// register SG): the holiday beside it loses its pay, once, charged to the absent day.
-				const holidays = holidayAdjacentAbsence
-					? adjacentHolidays(date).filter((holiday) => !forfeited.has(holiday))
-					: [];
-				for (const holiday of holidays) forfeited.add(holiday);
-				return [
-					{ id: day.id, date, days: uncovered },
-					...holidays.map((holiday) => ({ id: day.id, date: holiday, days: 1 }))
-				];
+				return [{ id: day.id, date, days: uncovered }];
 			});
+		for (const [holiday, cause] of holidayAbsence) {
+			if (holiday < window.start || holiday > window.end || !workingDayOn(holiday)) continue;
+			forfeited.add(holiday);
+			absent.push({ id: cause.id, date: holiday, days: 1 });
+		}
 		// An unworked regular holiday the salary pays is lost to an absence on the workday before it
 		// (`payroll.regular_holiday_prior_workday`), charged to the leave or work day that recorded it.
 		const unpaidHolidays =
@@ -1431,6 +1497,7 @@ function workContext(
 		limitNotes,
 		attendance,
 		absentDaysIn,
+		holidayPayEligible,
 		wageDays,
 		closingTerms,
 		rateTerms,
@@ -1665,6 +1732,7 @@ function workAttendance(
 	/** Clocked dates with overtime or night-window hours: a meal allowance's de minimis days (PH RR 11-2018 (j)). */
 	const overtimeOrNightDates = new Set<IsoDate>();
 	const bandDays: WorkBandDay[] = [];
+	const counterOnlyDays: WorkBandDay[] = [];
 	/** Observed company holidays the clock shows worked, in this run's overtime window. */
 	const holidaysWorked: IsoDate[] = [];
 	const clockedDays = attendedDays
@@ -1788,12 +1856,35 @@ function workAttendance(
 						return night.ordinary + night.overtime;
 					})();
 		if ((derived?.hours ?? 0) > 0 || nightHours > 0) overtimeOrNightDates.add(workDate);
+		if (!derived && (rulesOn.work.counters?.length ?? 0) > 0)
+			counterOnlyDays.push({
+				workDayId: entry.id,
+				date: workDate,
+				dayType: day.dayType,
+				workedHours: 0,
+				actualWorkedHours: worked,
+				normalHours: ordinary,
+				overtimeHours: 0,
+				breakMinutes: clocked.break_minutes,
+				holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
+				holidayName: configuration.holidays.get(workDate)?.name ?? '',
+				consecutiveHours: 0,
+				continuousAttendance: false,
+				restDay: day.restDay,
+				statutoryRest: day.statutoryRest,
+				offDay: day.offDay,
+				nightHours,
+				requestedBy: entry.requested_by ?? 'EMPLOYER',
+				facts: scalarFacts(entry.facts),
+				factKeys: (entry as { readonly fact_keys?: readonly string[] }).fact_keys
+			});
 		if (!derived) continue;
 		// A zero-hour holiday day is a band day, never an overtime day. Hours an emergency forced are
 		// outside every hours ceiling (TW 勞基法 §32(2) caps only the §32(1) extension, §32(4) stands
 		// apart), so they reach neither the ceiling counters nor the daily limit reports.
 		if (derived.hours > 0 && entry.emergency_cause !== true) overtimeDays.push(derived);
 		bandDays.push({
+			actualWorkedHours: worked,
 			workDayId: derived.workDayId,
 			date: derived.date,
 			dayType: derived.dayType,
@@ -1813,6 +1904,7 @@ function workAttendance(
 			breakMinutes: clocked.break_minutes,
 			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
+			holidayPayEligible: options.work.holidayPayEligible(workDate),
 			holidayPriorPresent:
 				!configuration.holidays.has(workDate) ||
 				absenceBeforeHoliday(bundle, configuration, workDate) == null,
@@ -1895,8 +1987,16 @@ function workAttendance(
 			}
 		}
 	}
-	const pricedBandDays = bandDays.filter(
+	const countedBandDays = withPriorWorkHours({
+		days: [...bandDays, ...counterOnlyDays],
+		workOn,
+		personOn: (date) => ratesOn(date).person,
+		ratesOn
+	});
+	const pricedDayIds = new Set(bandDays.map((day) => day.workDayId));
+	const pricedBandDays = countedBandDays.filter(
 		(day) =>
+			pricedDayIds.has(day.workDayId) &&
 			day.date >= overtimeAttendance.start &&
 			day.date <= overtimeAttendance.end &&
 			paymentEligibleOn(day.date)
@@ -2391,10 +2491,11 @@ export function measureContractSegments(options: {
 	readonly contracted: PayRange;
 	readonly workingDaysIn: (window: PayRange) => number;
 	/** The full-period figure the terms row states; 0 where the row states none. */
-	readonly contractOf: (terms: EmploymentBundle['terms'][number]) => number;
+	readonly contractOf: (terms: EmploymentBundle['terms'][number], date: IsoDate) => number;
 	/** Standing allowances are monthly even when the basic salary is weekly. */
 	readonly contractPeriod?: 'MONTH' | undefined;
 	readonly unpaidDaysIn?: ((window: PayRange) => number) | undefined;
+	readonly unpaidCharges?: readonly { readonly date: string; readonly days: number }[] | undefined;
 }): Measurement | null {
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
 	const currency = options.configuration.jurisdiction.payroll.currency;
@@ -2404,16 +2505,16 @@ export function measureContractSegments(options: {
 			: termsAt(options.bundle, date);
 	const measured: {
 		readonly segment: NonNullable<ReturnType<typeof prorationSegment>>;
-		readonly unpaid: number;
+		unpaid: number;
 		readonly termKey: string;
 		readonly contract: number;
-		readonly exact: number;
+		exact: number;
 	}[] = [];
 	const record = (
 		terms: EmploymentBundle['terms'][number],
-		covered: { readonly start: IsoDate; readonly end: IsoDate } | null
+		covered: { readonly start: IsoDate; readonly end: IsoDate },
+		contract: number
 	): void => {
-		const contract = options.contractOf(terms);
 		// A terms row that states no figure for this line covers no segment of it: the line is
 		// what the contract lists, and a row that lists nothing is not a zero-amount segment.
 		if (contract === 0) return;
@@ -2435,11 +2536,7 @@ export function measureContractSegments(options: {
 					options.bundle.employment,
 					options.configuration.jurisdiction.exit_facts ?? []
 				),
-				fixedAllowances: contractAllowancesOn(
-					options.bundle,
-					options.configuration,
-					options.salary.end
-				),
+				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, covered.start),
 				terms,
 				week: {
 					ordinary_hours_per_week:
@@ -2450,7 +2547,7 @@ export function measureContractSegments(options: {
 				},
 				children: options.bundle.children,
 				company: options.configuration.company,
-				asOf: options.salary.end
+				asOf: covered.start
 			}),
 			period:
 				options.contractPeriod === 'MONTH' && covered != null
@@ -2464,7 +2561,7 @@ export function measureContractSegments(options: {
 		});
 		if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
 		const unpaid =
-			options.unpaidDaysIn == null
+			options.unpaidCharges != null || options.unpaidDaysIn == null
 				? 0
 				: options.unpaidDaysIn({ start: segment.from, end: segment.to });
 		const days = Math.max(0, segment.days - unpaid);
@@ -2485,21 +2582,96 @@ export function measureContractSegments(options: {
 	if (wageDates.length > 0) {
 		let runStart = wageDates[0]!;
 		let runTerms = termsOn(runStart);
+		let runContract = options.contractOf(runTerms, runStart);
 		for (let index = 1; index <= wageDates.length; index += 1) {
 			const date = wageDates[index];
 			const nextTerms = date == null ? null : termsOn(date);
+			const nextContract = nextTerms == null ? null : options.contractOf(nextTerms, date!);
 			if (
 				nextTerms != null &&
 				// The same row object, not the same id: a floor raised mid-period splits one row into
 				// dated pieces that share its id.
 				nextTerms === runTerms &&
+				nextContract === runContract &&
 				(options.contractPeriod !== 'MONTH' || monthKey(date!) === monthKey(runStart))
 			)
 				continue;
-			record(runTerms, { start: runStart, end: wageDates[index - 1]! });
+			record(runTerms, { start: runStart, end: wageDates[index - 1]! }, runContract);
 			if (date == null || nextTerms == null) break;
 			runStart = date;
 			runTerms = nextTerms;
+			runContract = nextContract!;
+		}
+	}
+	const withholding = new Map<string, number>();
+	let outsideWithholding = false;
+	if (options.unpaidCharges != null) {
+		for (const charge of options.unpaidCharges) {
+			const terms = termsAt(options.bundle, charge.date);
+			const contract = options.contractOf(terms, charge.date);
+			if (contract === 0) continue;
+			const month = monthBounds(monthKey(charge.date));
+			const workload = termsWorkload({
+				terms,
+				configuration: options.configuration,
+				workDays: options.bundle.workDays,
+				window: month
+			});
+			const basis = prorationBasisFor(
+				options.configuration.work,
+				personContext({
+					employee: options.bundle.employee,
+					employment: stint(
+						options.bundle.employment,
+						options.configuration.jurisdiction.exit_facts ?? []
+					),
+					terms,
+					fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, charge.date),
+					week: {
+						ordinary_hours_per_week:
+							workload.work_days > 0
+								? workload.average_weekly_paid_minutes / 60
+								: (terms.ordinary_hours_per_week ?? 0),
+						working_days_per_week: termsDaysPerWeek(terms, options.configuration)
+					},
+					children: options.bundle.children,
+					company: options.configuration.company,
+					asOf: charge.date
+				})
+			);
+			if (
+				basis.by !== 'CALENDAR_DAYS' &&
+				options.workingDaysIn({ start: charge.date, end: charge.date }) === 0
+			)
+				continue;
+			const denominator =
+				basis.by === 'WORKING_DAYS'
+					? options.workingDaysIn(month)
+					: basis.by === 'FIXED_DAYS'
+						? basis.days
+						: (basis.days ?? inclusiveDays(month.start, month.end));
+			if (!(denominator > 0)) refuse('Allowance withholding needs a positive dated divisor.');
+			const exact = (contract * charge.days) / denominator;
+			const entry = measured.find(
+				(row) =>
+					charge.date >= row.segment.from && charge.date <= row.segment.to && row.contract > 0
+			);
+			if (entry != null) {
+				// Preserve the existing allowance ceiling: unpaid time cannot take more than the earned segment.
+				const withheld = Math.min(exact, entry.exact);
+				entry.exact -= withheld;
+				entry.unpaid += charge.days;
+				withholding.set(charge.date, (withholding.get(charge.date) ?? 0) + withheld);
+			} else {
+				outsideWithholding = true;
+				measured.push({
+					segment: { from: charge.date, to: charge.date, basis, days: charge.days, denominator },
+					unpaid: charge.days,
+					termKey: termsSnapshotKey(terms),
+					contract: -contract,
+					exact: -exact
+				});
+			}
 		}
 	}
 	if (measured.length === 0) return null;
@@ -2517,20 +2689,49 @@ export function measureContractSegments(options: {
 		measured.reduce((total, entry) => total + entry.exact, 0),
 		currency
 	);
+	const datedCash: { date: string; amount: number }[] = [];
 	let allocated = 0;
+	let unattributedWithholding = outsideWithholding;
 	const segments: PayslipProration[] = measured.map((entry, index) => {
 		const prorated =
 			index === measured.length - 1
 				? cents(amount - allocated, currency)
 				: cents(entry.exact, currency);
 		allocated = cents(allocated + prorated, currency);
+		// Allocate the paid segment using the same calendar/working-day basis as its proration.
+		// Attendance-window unpaid deductions need their own dated settlement attribution.
+		if (!outsideWithholding && (entry.unpaid === 0 || options.unpaidCharges != null)) {
+			const dates = daysBetween(entry.segment.from, entry.segment.to);
+			const weights = dates.map((date) =>
+				entry.segment.basis.by === 'CALENDAR_DAYS'
+					? 1
+					: options.workingDaysIn({ start: date, end: date })
+			);
+			const total = weights.reduce((sum, weight) => sum + weight, 0);
+			const gross =
+				entry.exact + dates.reduce((sum, date) => sum + (withholding.get(date) ?? 0), 0);
+			let cumulative = 0;
+			let previous = 0;
+			for (const [dateIndex, date] of dates.entries()) {
+				const exactDate =
+					total > 0 ? (gross * weights[dateIndex]!) / total - (withholding.get(date) ?? 0) : 0;
+				if (exactDate < -0.0000001) unattributedWithholding = true;
+				cumulative += exactDate;
+				const paid = dateIndex === dates.length - 1 ? prorated : cents(cumulative, currency);
+				datedCash.push({ date, amount: cents(paid - previous, currency) });
+				previous = paid;
+			}
+		}
 		return {
 			component_code: options.component.code,
 			term_key: entry.termKey,
 			from: entry.segment.from,
 			to: entry.segment.to,
 			basis: entry.segment.basis,
-			days: entry.segment.days,
+			days:
+				options.unpaidCharges != null && entry.unpaid > 0 && entry.contract > 0
+					? (entry.exact * entry.segment.denominator) / entry.contract
+					: entry.segment.days,
 			denominator: entry.segment.denominator,
 			unpaid_days: entry.unpaid,
 			contract_amount: entry.contract,
@@ -2539,6 +2740,7 @@ export function measureContractSegments(options: {
 	});
 	return {
 		amount,
+		...(unattributedWithholding ? {} : { datedCash }),
 		base: [baseLine(options.component, bucket, amount)],
 		// A period one terms row covers whole is still one segment, and it is still recorded:
 		// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
@@ -2559,6 +2761,7 @@ function measureWorkComponent(
 		| 'contracted'
 		| 'period'
 		| 'workingDaysIn'
+		| 'holidayPayEligible'
 		| 'rates'
 		| 'subject'
 		| 'note'
@@ -2893,6 +3096,12 @@ function measureWorkComponent(
 			actualByDate.set(date, day);
 		}
 		let exact = 0;
+		const datedCash: { date: string; amount: number }[] = [];
+		const addEarned = (date: string, earned: number): void => {
+			const previous = cents(exact, currency);
+			exact += earned;
+			datedCash.push({ date, amount: cents(cents(exact, currency) - previous, currency) });
+		};
 		for (const date of dates) {
 			const dayTerms = termsOn(date);
 			const frequency = payFrequency(dayTerms.pay_frequency);
@@ -2953,7 +3162,7 @@ function measureWorkComponent(
 									})
 								)
 					);
-					exact += ordinaryDayWage(rateTerms, 1);
+					addEarned(date, ordinaryDayWage(rateTerms, 1));
 				}
 				continue;
 			}
@@ -2972,6 +3181,7 @@ function measureWorkComponent(
 			)
 				continue;
 			const regularHoliday = holidayKind === 'PUBLIC_HOLIDAY' || holidayKind === 'DOUBLE_HOLIDAY';
+			if (regularHoliday && options.holidayPayEligible?.(date) === false) continue;
 			// PH Handbook ch.2 §D: an unworked regular holiday is paid only to someone present, or on
 			// paid leave, on the workday before it, where the version says so.
 			if (
@@ -3009,11 +3219,12 @@ function measureWorkComponent(
 						)
 					: scheduledHours;
 			const rate = dayTerms.base_salary;
-			exact += frequency === 'DAILY' ? rate * (hours / scheduledHours) : hours * rate;
+			addEarned(date, frequency === 'DAILY' ? rate * (hours / scheduledHours) : hours * rate);
 		}
 		const amount = cents(exact, currency);
 		return {
 			amount,
+			datedCash,
 			base: [baseLine(options.component, bucket, amount)],
 			proration: [],
 			adjustments: []

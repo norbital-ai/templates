@@ -776,7 +776,8 @@ export function probeLines(x: Expected): Record<string, number> {
 	const out: Record<string, number> = {};
 	for (const [code, l] of Object.entries(x.lines)) {
 		if (skip.has(code) || (code.startsWith('EPF') && skip.has('EPF'))) continue;
-		if (l.amount !== undefined) out[code] = l.amount;
+		// The oracle sums unpaid leave as a negative earning; saved adjustments store a positive deduction.
+		if (l.amount !== undefined) out[code] = code === 'UNPAID_LEAVE' ? -l.amount : l.amount;
 		else {
 			out[`${code}.employee`] = l.employee ?? 0;
 			out[`${code}.employer`] = l.employer ?? 0;

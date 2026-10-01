@@ -1,9 +1,9 @@
 import { model } from '@norbital-ai/bolt';
 
-/** A frozen calculation: written once by its transform with its payslips, never updated (no `update` exposure). */
+/** A run retains its identity: recalculation replaces unpaid payslips, while paid payslips stay immutable. */
 export default model({
 	description:
-		'A frozen payroll calculation for a company and period: a month (YYYY-MM) at a monthly company, a half (YYYY-MM-1 for the 1st to the 15th, YYYY-MM-2 for the 16th to the month end) at a semi-monthly one. A period holds one REGULAR run and any number of FINAL (leavers exiting in the period), EARLY (salary an off-cycle run settled ahead of the REGULAR one, created with it), OFF_CYCLE (selected one-off requests) and CORRECTION (selected manual ad hoc lines) runs, numbered by sequence. No run rewrites a committed payslip: a correction is a new line in a later run. Payment lives on the payslips; the run carries no state of its own and only an unpaid run can be deleted. The run names the jurisdiction settings version that governed it and the calculation version that produced its outputs.',
+		'A frozen payroll calculation for a company and period: a month (YYYY-MM) at a monthly company, a half (YYYY-MM-1 for the 1st to the 15th, YYYY-MM-2 for the 16th to the month end) at a semi-monthly one. A period holds one REGULAR run and any number of FINAL (leavers exiting in the period), EARLY (salary an off-cycle run settled ahead of the REGULAR one, created with it), OFF_CYCLE (selected one-off requests) and CORRECTION (selected manual ad hoc lines) runs, numbered by sequence. Recalculation updates unpaid payslips in place and recaptures current inputs; paid payslips stay immutable and are corrected by a new line in a later run. Payment lives on the payslips; the run carries no state of its own and only an unpaid run can be deleted. The run names the jurisdiction settings version that governed it and the calculation version that produced its outputs.',
 	icon: 'lucide:play-circle',
 	label: 'period',
 	fields: {

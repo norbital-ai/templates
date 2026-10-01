@@ -11,7 +11,7 @@
  * are all left exactly as they were.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +30,15 @@ const sourceSibling = (specifier, parentURL) => {
 };
 
 registerHooks({
+	load(url, context, nextLoad) {
+		if (!url.endsWith('?bytes')) return nextLoad(url, context);
+		const bytes = readFileSync(new URL(url.slice(0, -6)));
+		return {
+			format: 'module',
+			shortCircuit: true,
+			source: `export default Uint8Array.fromBase64(${JSON.stringify(bytes.toString('base64'))});`
+		};
+	},
 	resolve(specifier, context, nextResolve) {
 		return nextResolve(sourceSibling(specifier, context.parentURL) ?? specifier, context);
 	}

@@ -1442,7 +1442,35 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 		const [segment] = allowances.get(key)!;
 		return [segment!.days, segment!.denominator, segment!.unpaid_days, segment!.prorated_amount];
 	};
-	assert.deepEqual(facts('PH-LWOP'), [17.75, 21.75, 4, 1775]);
+	const lwopSegments = allowances.get('PH-LWOP')!;
+	assert.equal(
+		slips.get('PH-LWOP')!.base.find((row) => row.component_code === 'allowance')!.amount,
+		1775
+	);
+	assert.equal(
+		lwopSegments.reduce((sum, row) => sum + row.prorated_amount, 0),
+		1775
+	);
+	assert.deepEqual(facts('PH-LWOP'), [21.75, 21.75, 0, 2175]);
+	assert.deepEqual(
+		lwopSegments
+			.slice(1)
+			.map((row) => [
+				row.from,
+				row.to,
+				row.days,
+				row.denominator,
+				row.unpaid_days,
+				row.contract_amount,
+				row.prorated_amount
+			]),
+		[
+			['2025-12-22', '2025-12-22', 1, 21.75, 1, -2175, -100],
+			['2025-12-23', '2025-12-23', 1, 21.75, 1, -2175, -100],
+			['2025-12-24', '2025-12-24', 1, 21.75, 1, -2175, -100],
+			['2025-12-25', '2025-12-25', 1, 21.75, 1, -2175, -100]
+		]
+	);
 	assert.deepEqual(facts('PH-ABSENT'), [20.75, 21.75, 1, 2075]);
 	assert.deepEqual(facts('PH-FULL'), [21.75, 21.75, 0, 2175]);
 	// The days themselves come off the salary at the factor's day rate, 15,650 ÷ 21.75 = 719.54

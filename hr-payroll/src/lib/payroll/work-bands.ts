@@ -20,6 +20,7 @@ import {
 } from '../expressions/evaluate.js';
 import { evaluatedLimits } from '../scheduling/work-limits.js';
 import * as Predicate from 'effect/Predicate';
+import { weekStart } from './run/dates.js';
 
 /** The two lines a band can emit: planned overtime settles as OVERTIME, incentive hours as INCENTIVE. */
 export const OVERTIME_LINE = 'OVERTIME';
@@ -38,6 +39,9 @@ export type WorkBandRow = {
 
 /** One priced person-day, as the bands read it. */
 export type WorkBandDay = {
+	readonly priorHours?: Readonly<Record<string, number>> | undefined;
+	/** Actual attendance, distinct from the approved units a band may pay. */
+	readonly actualWorkedHours?: number | undefined;
 	readonly workDayId: string;
 	readonly date: string;
 	readonly dayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'SPECIAL_HOLIDAY' | 'OFF_DAY';
@@ -57,6 +61,8 @@ export type WorkBandDay = {
 	readonly holidayName: string;
 	/** Present or on paid leave on the workday before the holiday (`presentBeforeHoliday`); true on other days. */
 	readonly holidayPriorPresent?: boolean | undefined;
+	/** Evidence-based entitlement to holiday salary, distinct from wages for actual work. */
+	readonly holidayPayEligible?: boolean | undefined;
 	readonly consecutiveHours: number;
 	readonly continuousAttendance: boolean;
 	/** The roster's weekly rest day, whatever holiday precedence called the day. */
@@ -105,6 +111,7 @@ function contextOf(options: {
 		date: day.date,
 		day_type: ordinary ? 'ORDINARY' : day.dayType,
 		worked_hours: day.workedHours,
+		actual_worked_hours: day.actualWorkedHours ?? day.workedHours,
 		normal_hours: day.normalHours,
 		comparable_full_time_daily_hours:
 			day.comparableFullTimeDailyHours ?? person.terms.comparable_full_time_daily_hours,
@@ -131,14 +138,61 @@ function contextOf(options: {
 		// The slice a band consumed, for `price_amount`; zero until a band has one.
 		hours: 0,
 		limits,
+		prior_hours: day.priorHours ?? {},
 		holiday: {
 			kind: day.holidayKind,
 			name: day.holidayName,
-			prior_day_present: day.holidayPriorPresent ?? true
+			prior_day_present: day.holidayPriorPresent ?? true,
+			pay_eligible: day.holidayPayEligible ?? true
 		},
 		day_facts: day.facts ?? {},
 		day_fact_keys: day.factKeys ?? Object.keys(day.facts ?? {})
 	};
+}
+
+/** Calendar totals before each day, measured before the payable-window filter. */
+export function withPriorWorkHours(options: {
+	readonly days: readonly WorkBandDay[];
+	readonly workOn: (date: string) => WorkRules;
+	readonly personOn: (date: string) => PersonContext;
+	readonly ratesOn: (date: string) => WorkBandRates;
+}): WorkBandDay[] {
+	const totals = new Map<string, number>();
+	return options.days
+		.toSorted((a, b) => a.date.localeCompare(b.date))
+		.map((day) => {
+			const work = options.workOn(day.date);
+			const priorHours: Record<string, number> = {};
+			const counters = (work.counters ?? []).map((counter) => {
+				const period =
+					counter.period === 'DAY'
+						? day.date
+						: counter.period === 'WEEK'
+							? weekStart(day.date)
+							: counter.period === 'MONTH'
+								? day.date.slice(0, 7)
+								: counter.period === 'QUARTER'
+									? `${day.date.slice(0, 4)}-${Math.ceil(Number.parseInt(day.date.slice(5, 7), 10) / 3)}`
+									: day.date.slice(0, 4);
+				const key = `${counter.key}:${counter.period}:${period}`;
+				priorHours[counter.key] = totals.get(key) ?? 0;
+				return { counter, key };
+			});
+			const counted = { ...day, priorHours };
+			const context = contextOf({
+				person: options.personOn(day.date),
+				day: counted,
+				rates: options.ratesOn(day.date),
+				limits: evaluatedLimits(work.limits, day.breakMinutes)
+			});
+			for (const { counter, key } of counters) {
+				const hours = evaluateNumber(expressionEngine, counter.count_hours, context);
+				if (!Number.isFinite(hours) || hours < 0)
+					throw new Error(`Work counter ${counter.key} requires non-negative finite hours.`);
+				totals.set(key, priorHours[counter.key]! + hours);
+			}
+			return counted;
+		});
 }
 
 /** Whether a day-level predicate holds over the same context the bands read (a limit's `counts_day_when`). */

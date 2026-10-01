@@ -745,7 +745,8 @@ export function computePayslip(s: Scenario): Payslip {
 
 	// Overtime [EA s.38(4) Part 4 only, s.35]: 1.5 × the Fourth Schedule hourly basic for each hour beyond the normal day.
 	// DEFAULT (law silent, SG-EA22 owner rule): overtime starts after the contract's normal day. Hourly rate unrounded,
-	// amount half-up to the cent (SG-EA46-R01 owner rule).
+	// each dated payment band half-up to the cent, then sum settled cents
+	// (SG-EA46-R01 owner-delegated clarification, 2026-10-02; no period-wide repricing).
 	let overtime = 0;
 	const otHours = (s.month.overtime ?? []).reduce((a, o) => a + o.hours, 0);
 	const scopeRow = e.managerial
@@ -762,12 +763,19 @@ export function computePayslip(s: Scenario): Payslip {
 			for (const o of s.month.overtime!) {
 				const single = Math.ceil(Math.min(o.hours, room) - EPS);
 				const premium = Math.ceil(Math.max(0, o.hours - room) - EPS);
-				overtime += e.part_time.hourly_basic * (single + 1.5 * premium);
+				overtime +=
+					cents(e.part_time.hourly_basic * single) +
+					cents(e.part_time.hourly_basic * 1.5 * premium);
 			}
 			overtime = cents(overtime);
 			hit('SG-PT06', 'SG-PT02', 'SG-EA27', 'SG-SL11');
 		} else {
-			overtime = cents(1.5 * hourlyBasic(B) * otHours);
+			overtime = cents(
+				(s.month.overtime ?? []).reduce(
+					(sum, dated) => sum + cents(1.5 * hourlyBasic(B) * dated.hours),
+					0
+				)
+			);
 			hit('SG-EA46.monthly', 'SG-EA22');
 			if (!e.workman) hit('SG-EA46-R01');
 		}

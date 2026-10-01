@@ -1452,6 +1452,51 @@ register(
 		}
 	}),
 	tw({
+		id: 'TW-LEAVE-05-3',
+		description:
+			'After three exempt menstrual days and thirty ordinary sick days, the next monthly menstrual day is granted unpaid.',
+		citation: [
+			...EVERY,
+			'MOL clarification 12 March 2021 (https://www.mol.gov.tw/1607/1632/1640/32923/post, read 2026-10-01): after the annual paid sick pool and three exempt menstrual days, one menstrual day per month must still be granted; the employer may leave it unpaid. Owner-delegated rule 2026-10-01: unpaid overflow.',
+			'April 1 through May 12 contains 30 Monday-Friday workdays. June monthly wage 36,000 minus one unpaid day at 36,000 / 30 = 1,200 gives gross 34,800. The declared 36,300 grades remain: employee 835 + 73 + 563 = 1,471; net 33,329; employer 2,922 + 254 + 1,757 + 2,178 + 44 = 7,155.'
+		],
+		period: '2026-06',
+		people: [
+			citizen('overflow', 'Synthetic menstrual overflow worker', 36_000, all(36_300), {
+				gender: 'FEMALE'
+			})
+		],
+		extra: (job) => [
+			leave(job('overflow'), 'MENSTRUAL_LEAVE', 'MENS-EXEMPT-JAN', '2026-01-05', '2026-01-05'),
+			leave(job('overflow'), 'MENSTRUAL_LEAVE', 'MENS-EXEMPT-FEB', '2026-02-02', '2026-02-02'),
+			leave(job('overflow'), 'MENSTRUAL_LEAVE', 'MENS-EXEMPT-MAR', '2026-03-02', '2026-03-02'),
+			leave(job('overflow'), 'SICK_LEAVE', 'SICK-POOL-EXHAUSTED', '2026-04-01', '2026-05-12'),
+			leave(job('overflow'), 'MENSTRUAL_LEAVE', 'MENS-UNPAID-JUNE', '2026-06-04', '2026-06-04')
+		],
+		expected: {
+			overflow: {
+				gross: 34_800,
+				net: 33_329,
+				employer_cost: 7155,
+				'LI.employee': 835,
+				'LI.employer': 2922,
+				'EI.employee': 73,
+				'EI.employer': 254,
+				'NHI.employee': 563,
+				'NHI.employer': 1757,
+				'LABOR_PENSION.employer': 2178,
+				'OCC_INJURY.employer': 44
+			}
+		},
+		saved: [
+			{
+				collection: 'leave_entries',
+				where: { employment_id: '@overflow_job', reference: 'MENS-UNPAID-JUNE' },
+				rows: [{ days: 1 }]
+			}
+		]
+	}),
+	tw({
 		id: 'TW-LEAVE-06-1',
 		description:
 			'A whole March on 育嬰留職停薪: no wage, 勞保/就保/健保 continued with the employer share waived and the worker billed by the insurers, 災保 and 勞退 stopped — nothing on the payslip.',
@@ -4656,5 +4701,47 @@ register(
 				]
 			}
 		]
+	})
+);
+
+register(
+	tw({
+		id: 'TW-EI-01-2',
+		description:
+			'Synthetic fifteenth birthdays on March1,15,31: EI starts on the birthday, with30,16,1 insured days.',
+		citation: [
+			SRC.liRate,
+			SRC.liShare,
+			'就業保險法 §5: age15 eligibility; BLI https://www.bli.gov.tw/0011588.htm. Grade36300 ×1% ×20%/70% ×16/30 =38.72/135.52 =>39/136; one day =>2/8.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('ei_first', 'Synthetic first-day birthday', 36000, all(36300), {
+				born: '2011-03-01'
+			}),
+			citizen('ei_middle', 'Synthetic middle-day birthday', 36000, all(36300), {
+				born: '2011-03-15'
+			}),
+			citizen('ei_last', 'Synthetic last-day birthday', 36000, all(36300), { born: '2011-03-31' })
+		],
+		expected: {
+			ei_first: PLAIN_36,
+			ei_middle: {
+				...PLAIN_36,
+				'EI.employee': 39,
+				'EI.employer': 136,
+				net: 34563,
+				total_deductions: 1437,
+				employer_cost: 7037
+			},
+			ei_last: {
+				...PLAIN_36,
+				'EI.employee': 2,
+				'EI.employer': 8,
+				net: 34600,
+				total_deductions: 1400,
+				employer_cost: 6909
+			}
+		}
 	})
 );

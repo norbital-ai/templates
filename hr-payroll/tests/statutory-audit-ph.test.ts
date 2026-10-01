@@ -83,6 +83,8 @@ test('PH audit — all six mandatory schemes assess liability despite missing re
 							if (selected.has(fact.statutory_contribution_id)) {
 								fact.status = {
 									kind: 'NOT_REGISTERED',
+									elections: fact.status.elections,
+									declaration_reference: 'SYNTHETIC-MEMBERSHIP-DECLARATION',
 									reason: 'Employee registration remains incomplete'
 								};
 								assert.equal(statutoryFactStatusFault(fact.status), undefined);

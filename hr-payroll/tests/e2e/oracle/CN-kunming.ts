@@ -476,11 +476,6 @@ function month(
 			// CN-N10.once-per-year, CN-KM-A1.once-per-year
 			if (bonus.usedThisYear)
 				return refusal('run', `${bonus.kind} already used this calendar year`);
-			if (bonus.kind === 'ANNUAL_BONUS_SEPARATE' && !s.employee.taxResident)
-				return refusal(
-					'run',
-					'the separate annual-bonus method is a resident election (MOF/STA 2023 No.30)'
-				);
 			if (bonus.kind === 'MULTI_MONTH_NONRESIDENT' && s.employee.taxResident)
 				return refusal(
 					'run',
@@ -804,12 +799,16 @@ export function computePayslip(s: Scenario): Payslip {
 	// Separate bonus taxes: resident ÷ 12 (MOF/STA 2023 No.30; CN-N10.separate-election); non-resident multi-month
 	// [(bonus ÷ 6) × rate − QD] × 6 (MOF/STA 2019 No.35 item 3(2); CN-KM-A1.six-month-spread).
 	const bonus = s.pay.bonus;
-	if (bonus?.kind === 'ANNUAL_BONUS_SEPARATE') {
+	if (bonus?.kind === 'ANNUAL_BONUS_SEPARATE' && s.employee.taxResident) {
 		const [, rate, qd] = band(MONTHLY, bonus.amount / 12);
 		const tax = fen(Math.max(0, bonus.amount * rate - qd));
 		if (tax > 0) m.lines['IIT_BONUS.employee'] = tax;
 	}
-	if (bonus?.kind === 'MULTI_MONTH_NONRESIDENT') {
+	// 2019 No.35 I(2) includes annual pay rises in multi-month bonuses; the shared class selects by residency.
+	if (
+		bonus?.kind === 'MULTI_MONTH_NONRESIDENT' ||
+		(bonus?.kind === 'ANNUAL_BONUS_SEPARATE' && !s.employee.taxResident)
+	) {
 		const tax = fen(onTable(MONTHLY, bonus.amount / 6) * 6);
 		if (tax > 0) m.lines['IIT_BONUS.employee'] = tax;
 	}

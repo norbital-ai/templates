@@ -11,6 +11,7 @@ const f = customField({
 			fields: {
 				date: { kind: 'text' },
 				days: { kind: 'number' },
+				unpaid_days: { kind: 'number', optional: true },
 				hours: { kind: 'number', optional: true },
 				catalogue_id: { kind: 'text' },
 				employment_term_id: { kind: 'text' },
@@ -29,6 +30,8 @@ f.validate((rows) => {
 			(row.hours == null ? !Number.isInteger(row.days * 8) : !(row.hours > 0))
 		)
 			return 'A charge is a whole or half day, or an eighth of one for a row taken by the hour.';
+		if (row.unpaid_days != null && !(row.unpaid_days >= 0 && row.unpaid_days <= row.days))
+			return 'Unpaid time must fit within its approved leave charge.';
 		const ids = [row.catalogue_id, row.employment_term_id];
 		if (row.shift_definition_id != null) ids.push(row.shift_definition_id);
 		if (row.holiday_id != null) ids.push(row.holiday_id);

@@ -15,7 +15,12 @@
 
 <RecordShell of="rosters" mode={view.mode} {...record == null ? {} : { id: record.id }}>
 	<Form of="rosters" mode={view.mode} {record} values={view.mode === 'create' ? view.values : {}}>
-		<FormSection first title={bolt.t('component.roster')} hint={bolt.t('component.roster_hint')}>
+		<FormSection
+			name="roster"
+			first
+			title={bolt.t('component.roster')}
+			hint={bolt.t('component.roster_hint')}
+		>
 			<Grid gap="sm" minimum="compact">
 				<EmploymentField label={bolt.t('component.employment')} companyId={scope?.companyId()} />
 				<Field name="period" label={bolt.t('component.month')} />

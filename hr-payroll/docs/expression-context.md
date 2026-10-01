@@ -499,9 +499,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 
 Used by: work bands, breaks, limits and the night premium — one priced person-day.
 
-Bare names: `age_years`, `attendance_recorded`, `first_work_at`, `night_worked`, `first_night_at`, `holiday_work`, `overtime_work`, `rest_minutes_total`, `longest_rest_minutes`, `longest_run_hours`, `rest_before_overtime_minutes`, `shift_hours`, `shift_start_at`, `stated_day_hours`, `day_fact_keys`, `date`, `day_type`, `worked_hours`, `normal_hours`, `comparable_full_time_daily_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
+Bare names: `age_years`, `attendance_recorded`, `first_work_at`, `night_worked`, `first_night_at`, `holiday_work`, `overtime_work`, `rest_minutes_total`, `longest_rest_minutes`, `longest_run_hours`, `rest_before_overtime_minutes`, `shift_hours`, `shift_start_at`, `stated_day_hours`, `day_fact_keys`, `date`, `day_type`, `worked_hours`, `actual_worked_hours`, `normal_hours`, `comparable_full_time_daily_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
 
-Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`, `person.employee.facts.<key>`, `person.worksite.facts.<key>`, `person.terms.facts.<key>`.
+Open prefixes: `prior_hours.<key>`, `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`, `person.employee.facts.<key>`, `person.worksite.facts.<key>`, `person.terms.facts.<key>`.
 
 | Member | Meaning |
 | --- | --- |
@@ -651,6 +651,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `date` | The day |
 | `day_type` | ORDINARY \| REST_DAY \| PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| OFF_DAY |
 | `worked_hours` | Net worked hours |
+| `actual_worked_hours` | Net actual attendance, including hours outside the approved pay units |
 | `normal_hours` | The scheduled normal hours |
 | `comparable_full_time_daily_hours` | Similar full-time employee’s normal hours for this date, or the terms’ usual day |
 | `hours_beyond_normal` | Worked hours past the normal day |
@@ -669,9 +670,11 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `day_wage` | Ordinary day wage |
 | `hours` | The hours this band consumed, for its price |
 | `limits.<key>` | Evaluated work limit, net worked hours |
+| `prior_hours.<key>` | Counter hours before this day in its calendar period |
 | `holiday.kind` | The published row on the date, in the day-type words: PUBLIC_HOLIDAY \| SPECIAL_HOLIDAY \| SUBSTITUTE \| DOUBLE_HOLIDAY (two regular holidays on one date), or empty; unlike `day_type` it does not move with the precedence rule |
 | `holiday.name` | Published holiday name, or empty |
 | `holiday.prior_day_present` | Present, or on leave with pay, on the workday immediately preceding the holiday — a rest or non-work day, or an unworked holiday, looks further back (PH Handbook ch.2 §D–E); true on a day with no holiday |
+| `holiday.pay_eligible` | Holiday salary entitlement after evidenced adjacent absence decisions; actual holiday work pay is independent |
 | `day_facts.<key>` | Jurisdiction inputs the version declares in `work_day_facts`, recorded on this person-day (`work_days.facts`); a declared default where unrecorded |
 | `day_fact_keys` | Work-day input keys explicitly recorded on this person-day, before defaults |
 | `age_years` | Completed years on the day; 0 without a birth date — read by `day_rules` and `overtime_consent`, not by bands |
@@ -1316,9 +1319,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 
 ## `leave_day` — One charged day of leave: the person that day, and where in the leave it falls.
 
-Used by: `leave_catalogue.pay_fraction` — one charged leave day.
+Used by: `leave_catalogue.pay_fraction` / `time_off_amount` — one charged leave day.
 
-Bare names: `wage_floor`.
+Bare names: `wage_floor`, `ordinary_day`.
 
 Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<key>`, `period.leave_days.<key>`, `period.leave_pay.<key>`, `employment.exit_facts.<key>`, `employee.facts.<key>`, `worksite.facts.<key>`, `terms.facts.<key>`, `leave.facts.<key>`.
 
@@ -1467,6 +1470,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `period.unpaid_days` | Working days of the pay month the employment covered but did not pay: no-pay leave charged and rostered days with no punch |
 | `period.overtime_days` | Dates in the assessment window with overtime hours or hours inside the night window, counted once per date |
 | `period.arrears` | The wage of a deferred earlier period (a joiner after the cut-off) this payslip pays as back pay, already inside BASE; 0 otherwise. A law that prices each contribution month on its own wage caps it separately (ID PP 45/2015 art.29(1)) |
+| `ordinary_day` | Historical ordinary daily wage for the charged date |
 | `leave.month_index` | Which month of the leave the day is in, from 1 |
 | `leave.day_index` | Which calendar day of the leave, from 1 |
 | `leave.days` | The days the whole entry charges |

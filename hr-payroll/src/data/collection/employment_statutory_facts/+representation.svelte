@@ -51,6 +51,7 @@
 		{#snippet children(form)}
 			<Stack gap="lg">
 				<FormSection
+					name="fact_section_scheme"
 					first
 					title={t('component.fact_section_scheme')}
 					hint={t('component.fact_section_scheme_hint')}
@@ -111,6 +112,7 @@
 				</FormSection>
 
 				<FormSection
+					name="registration"
 					title={t('component.registration')}
 					hint={t('component.fact_section_registration_hint')}
 				>
@@ -133,6 +135,7 @@
 				</FormSection>
 
 				<FormSection
+					name="section_period"
 					title={t('component.section_period')}
 					hint={t('component.section_period_hint')}
 				>

@@ -245,7 +245,8 @@ export function computedEntitlement(options: {
 				return 1;
 			case 'CALENDAR_DAYS':
 				return (
-					counted.filter((date) => date <= to).length / inclusiveDays(window.start, window.end)
+					counted.filter((date) => date <= to).length /
+					(rule.calendar_days_divisor ?? inclusiveDays(window.start, window.end))
 				);
 			case 'CALENDAR_MONTHS':
 				return (
@@ -338,8 +339,10 @@ export function computedEntitlement(options: {
 				? through
 				: addDays(monthBounds(through.slice(0, 7)).start, -1);
 	const available =
-		rule.availability === 'UPFRONT' || rule.proration === 'NONE'
-			? entitlement
-			: round(target * fraction(releasedThrough));
+		rule.availability === 'UPFRONT' && rule.upfront_full_grant === true
+			? round(target)
+			: rule.availability === 'UPFRONT' || rule.proration === 'NONE'
+				? entitlement
+				: round(target * fraction(releasedThrough));
 	return { window, opening, unit, unlimited: false, entitlement, earned, available };
 }

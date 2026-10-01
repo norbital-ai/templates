@@ -13,8 +13,8 @@
 	 * the transform accepts, less the periods already run.
 	 *
 	 * A record opens on the run itself: the window it was built against and the payslips it produced, whose
-	 * payment state moves here (hold, release, paid on the run's pay date). A run is never edited: a refused or
-	 * wrong draft is deleted, newest first, and created again.
+	 * payment state moves here (hold, release, paid on the run's pay date). Recalculation refreshes unpaid
+	 * payslips on the same run while paid payslips retain their frozen results.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
@@ -26,6 +26,7 @@
 		Picker,
 		Popover,
 		RecordShell,
+		Section,
 		Table,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -259,6 +260,12 @@
 					select: true,
 					actions: [
 						{
+							action: 'payroll_runs.update',
+							label: t('app.payroll.recalculate_unpaid'),
+							description: t('app.payroll.recalculate_unpaid_help'),
+							input: () => ({ target: run.id, set: {} })
+						},
+						{
 							action: 'payslips.update',
 							label: t('component.hold'),
 							input: move('ON_HOLD'),
@@ -275,7 +282,8 @@
 							: [
 									{
 										action: 'payslips.update' as const,
-										label: t('payroll.mark_paid'),
+										label: t('app.payroll.mark_selected_paid'),
+										description: t('component.mark_paid_selected_description'),
 										input: move('PAID'),
 										requiresSelection: true as const
 									}
@@ -288,6 +296,7 @@
 					{ field: 'employment_id', label: t('component.employee') },
 					'currency',
 					'status',
+					{ field: 'paid_at', label: t('app.payroll.actual_payment_date') },
 					'gross',
 					{ field: 'total_deductions', label: t('component.deductions') },
 					'net',
@@ -311,7 +320,7 @@
 				{@const payDueDate = typeof statedDueDate === 'string' ? dateKey(statedDueDate) : undefined}
 				{@const window =
 					chosen != null && period != null ? windowFor(period, chosen, payDueDate) : null}
-				<Stack gap="lg">
+				<Section first name="run" title={t('component.payroll_run_summary')}>
 					<Grid gap="md" minimum="compact">
 						{#if scopedCompanyId != null}
 							<Stack gap="xs">
@@ -399,7 +408,7 @@
 							</Stack>
 						</Grid>
 					{/if}
-				</Stack>
+				</Section>
 			{/snippet}
 		</Form>
 	{/if}

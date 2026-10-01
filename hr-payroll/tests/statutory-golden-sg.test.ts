@@ -1039,6 +1039,22 @@ test('Singapore — s.88(3): an absence on the working day before or after a pub
 			emptyDay(world, 'SG-PH-BOTH', '2026-08-07');
 			emptyDay(world, 'SG-PH-BOTH', '2026-08-11');
 			emptyDay(world, 'SG-PH-APART', '2026-08-06');
+			for (const day of world.work_days) {
+				const reference = `Synthetic unauthorized absence ${day.id}`;
+				day.facts = {
+					absence_permission: 'NO',
+					absence_reasonable_excuse: 'NO',
+					absence_decision: reference
+				};
+				world.fact_evidence!.push({
+					id: `evidence-${day.id}`,
+					subject: { collection: 'work_days', id: day.id },
+					fact_key: 'absence_decision',
+					reference,
+					received_on: String(day.work_date).slice(0, 10),
+					approval_id: null
+				});
+			}
 		}
 	);
 	const absences = (key: string) =>
@@ -2881,11 +2897,11 @@ test('Singapore — a retrenched employee is paid no statutory retrenchment bene
 	assert.match(late, /by 2026-09-15/);
 	// No catalogue in any sealed version offers a statutory severance or retrenchment component.
 	for (const version of settingsVersions('SG'))
-		assert.equal(
+		assert.ok(
 			[...(version.obligations ?? [])].find(
 				(row: { code: string }) => row.code === 'RETRENCHMENT_NOTIFICATION_AND_BENEFIT'
-			)?.status,
-			'EXTERNAL'
+			)?.authority,
+			'Employer duty remains documented with its legal authority'
 		);
 });
 
@@ -2936,11 +2952,11 @@ test('Singapore — the foreign worker levy is billed to the employer by MOM, ne
 		assert.equal(slip.net, wage, key);
 	}
 	for (const version of settingsVersions('SG'))
-		assert.equal(
+		assert.ok(
 			[...(version.obligations ?? [])].find(
 				(row: { code: string }) => row.code === 'FOREIGN_WORKER_LEVY'
-			)?.status,
-			'EXTERNAL'
+			)?.authority,
+			'Employer duty remains documented with its legal authority'
 		);
 });
 
@@ -2953,9 +2969,9 @@ test('Singapore — IR8A, IR21 and CPF late interest are dated external obligati
 	// 14 days of the Board's demand — the Board computes and bills it, the payroll does not.
 	for (const version of settingsVersions('SG')) {
 		const obligation = (code: string) =>
-			(
-				version.obligations as { code: string; timing: string; authority: string; status: string }[]
-			).find((row) => row.code === code)!;
+			(version.obligations as { code: string; timing: string; authority: string }[]).find(
+				(row) => row.code === code
+			)!;
 		assert.match(obligation('ANNUAL_EMPLOYMENT_INCOME_RETURN').timing, /By 1 March/);
 		assert.match(obligation('ANNUAL_EMPLOYMENT_INCOME_RETURN').authority, /s\.68\(2\)/);
 		assert.match(obligation('TAX_CLEARANCE_AND_WITHHOLDING').timing, /one month before/);

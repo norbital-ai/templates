@@ -75,6 +75,7 @@
 
 <Stack gap="lg">
 	<FormSection
+		name="terms_section_pay"
 		first
 		title={t('component.terms_section_pay')}
 		hint={t('component.terms_section_pay_hint')}
@@ -106,7 +107,11 @@
 		</Grid>
 	</FormSection>
 
-	<FormSection title={t('component.shift_assignment')} hint={t('component.shift_assignment_hint')}>
+	<FormSection
+		name="shift_assignment"
+		title={t('component.shift_assignment')}
+		hint={t('component.shift_assignment_hint')}
+	>
 		<Grid gap="sm" minimum="compact">
 			<Field
 				name="ordinary_hours_per_week"
@@ -148,7 +153,11 @@
 		</Grid>
 	</FormSection>
 
-	<FormSection title={t('component.standing')} hint={t('component.terms_section_standing_hint')}>
+	<FormSection
+		name="standing"
+		title={t('component.standing')}
+		hint={t('component.terms_section_standing_hint')}
+	>
 		<Grid gap="sm" minimum="compact">
 			<Field name="employment_type" label={t('component.employment_type')} />
 			<Field name="residency_status" label={t('component.residency_status')} />
@@ -207,6 +216,7 @@
 	</FormSection>
 
 	<FormSection
+		name="terms_section_organisation"
 		title={t('component.terms_section_organisation')}
 		hint={t('component.terms_section_organisation_hint')}
 	>
@@ -217,7 +227,11 @@
 		</Grid>
 	</FormSection>
 
-	<FormSection title={t('component.section_period')} hint={t('component.section_period_hint')}>
+	<FormSection
+		name="section_period"
+		title={t('component.section_period')}
+		hint={t('component.section_period_hint')}
+	>
 		<Grid gap="sm" minimum="compact">
 			<Column span="all">
 				<Field name="effective_range" label={t('component.effective_period')} />

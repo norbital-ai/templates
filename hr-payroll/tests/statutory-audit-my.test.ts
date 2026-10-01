@@ -156,7 +156,7 @@ test('MY audit — Third Schedule Part A note: a bonus that lifts a ≤RM5,000 w
 	// shall be calculated at the rate of 13% of the amount of wages for the month. The total
 	// contribution which includes cents shall be rounded to the next ringgit."
 	//
-	// RM4,000 salary + RM2,000 bonus (ADJ, counts toward EPF.ADDITIONAL) = RM6,000 for the month.
+	// RM4,000 salary + RM2,000 bonus (BONUS, counts toward EPF.ADDITIONAL) = RM6,000 for the month.
 	// Employee: the table row "5,900.01 – 6,000.00" → 11% × 6,000 = 660.
 	// Employer: 13% × 6,000 = 780.00 (the table's 12% row would give 720).
 	// RM4,000 salary + RM2,050.50 bonus = RM6,050.50: employee row "6,000.01 – 6,100.00" → 11% × 6,100
@@ -180,9 +180,9 @@ test('MY audit — Third Schedule Part A note: a bonus that lifts a ≤RM5,000 w
 			]
 		},
 		(world) => {
-			adhoc(world, 'BONUS-6000', 'ADJ', 2000, '2026-01-10');
-			adhoc(world, 'BONUS-6050.50', 'ADJ', 2050.5, '2026-01-10');
-			adhoc(world, 'PR61-BONUS-6000', 'ADJ', 2000, '2026-01-10');
+			adhoc(world, 'BONUS-6000', 'BONUS', 2000, '2026-01-10');
+			adhoc(world, 'BONUS-6050.50', 'BONUS', 2050.5, '2026-01-10');
+			adhoc(world, 'PR61-BONUS-6000', 'BONUS', 2000, '2026-01-10');
 		}
 	);
 	const epf = (key: string) => {
@@ -1364,7 +1364,7 @@ test('MY audit — each version carries the obligation register, SKBBK rows only
 	const versions = settingsVersions('MY');
 	const obligations = (start: string) =>
 		versions.find((version) => String(version.effective_range.start).startsWith(start))!
-			.obligations as { code: string; status: string; authority: string }[];
+			.obligations as { code: string; authority: string }[];
 	const base = obligations('2025-12');
 	const june = obligations('2026-06');
 	const july = obligations('2026-07');
@@ -1373,7 +1373,7 @@ test('MY audit — each version carries the obligation register, SKBBK rows only
 		assert.equal(new Set(codes).size, codes.length, 'codes unique');
 		for (const row of register) {
 			assert.match(row.code, /^[A-Z0-9_]+$/);
-			assert.ok(['EXTERNAL', 'PARTIAL', 'UNVERIFIED'].includes(row.status), row.code);
+			assert.equal('status' in row, false, `${row.code}: local tracking is not an obligation`);
 			assert.ok(row.authority.length > 0, row.code);
 		}
 		for (const code of [

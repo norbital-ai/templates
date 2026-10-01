@@ -6,8 +6,8 @@
  * exit rows). Each is tagged with the tracker rows (docs/inventory/taiwan.csv) and branch names it exercises.
  * No Math.random: the only variation comes from a seeded mulberry32.
  */
-import type { Citizenship, ExitCause, Scenario } from '../oracle/TW';
-import { addDays, addMonths, addYears } from '../oracle/TW';
+import type { Citizenship, ExitCause, Scenario } from '../oracle/TW.ts';
+import { addDays, addMonths, addYears } from '../oracle/TW.ts';
 
 type Patch = {
 	period?: string;

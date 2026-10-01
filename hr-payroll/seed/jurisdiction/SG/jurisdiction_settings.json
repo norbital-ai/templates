@@ -61,7 +61,7 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && holiday.pay_eligible && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
 					"take_hours": "0.0",
 					"price_amount": "person.terms.gross_monthly * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
@@ -179,7 +179,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. Applied 2026-09-26: a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day; the old five-day-only selector wrongly capped its normal day at 8. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. Applied 2026-09-18 (4): EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). Applied 2026-09-19 (2): EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. Applied 2026-09-23 (SG audit): s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. Applied 2026-09-23 (round 2): the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
 			"normal_hours": "terms.working_days_per_week <= 5.0 || (terms.ordinary_hours_per_week > 0.0 && terms.ordinary_hours_per_week < 8.0 * terms.working_days_per_week) ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {},
@@ -193,7 +193,7 @@
 				"day_amount": "terms.fixed_allowances * 12.0 / (52.0 * terms.working_days_per_week) + (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week : terms.basic_salary * 12.0 / (52.0 * terms.working_days_per_week))",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. Applied 2026-09-23 (round 5): WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
+				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
 			},
 			"gross_excluded_allowances": [],
 			"part_time_week_hours_below": 35,
@@ -260,6 +260,7 @@
 			},
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
+			"holiday_adjacent_absence_when": "employment.classification != \"NON_EA\"",
 			"short_day_half_hours": 5,
 			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
@@ -658,8 +659,7 @@
 				"trigger": "Wages payable for a calendar month to a Citizen or SPR employee",
 				"timing": "By the 14th of the following month (the next working day if the 14th is a Saturday, Sunday or public holiday); late payment interest under CPF Act 1953 s.9(1) and CPF Regulations 1987 reg.3(3)–(5): 1.5% a month on the month’s unpaid contributions from the first day of the following month, or $5 for the unpaid period if higher, billed by the Board and payable within 14 days of its demand (reg.3(1)).",
 				"owner": "Finance / CPF submission advice and payment receipt",
-				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
-				"status": "PARTIAL"
+				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
 			},
 			{
 				"code": "SDL_REMITTANCE",
@@ -667,8 +667,7 @@
 				"trigger": "Remuneration payable for a calendar month to any employee",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Finance / CPF submission advice (SDL line) or SWDA receipt",
-				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
-				"status": "PARTIAL"
+				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external."
 			},
 			{
 				"code": "SHG_DEDUCTION_REMITTANCE",
@@ -676,8 +675,7 @@
 				"trigger": "Wages payable for a calendar month to an employee within a fund",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Payroll / fund instruction on file and CPF submission advice",
-				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
-				"status": "PARTIAL"
+				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it."
 			},
 			{
 				"code": "FOREIGN_WORKER_LEVY",
@@ -685,8 +683,7 @@
 				"trigger": "A Work Permit or S Pass is in force during the month",
 				"timing": "By the 17th of the following month (the next working day if it falls on a Saturday, Sunday or public holiday), normally by GIRO; a late payment penalty accrues, and missing two consecutive months revokes the employer's existing Work Permits and S Passes the following month.",
 				"owner": "Finance / MOM levy statement and GIRO receipt",
-				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy)."
 			},
 			{
 				"code": "WORK_PASS_AND_LOCAL_QUALIFYING_SALARY",
@@ -694,8 +691,7 @@
 				"trigger": "Hiring, pass renewal or cessation of a foreign employee; each quota computation",
 				"timing": "Before the foreign employee starts work; cancellation when the employment ends; the LQS on every month counted for quota.",
 				"owner": "HR / work-pass records and quota computation",
-				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary)."
 			},
 			{
 				"code": "KEY_EMPLOYMENT_TERMS",
@@ -703,8 +699,7 @@
 				"trigger": "An employee who entered a contract on or after 1 April 2016 and is employed for 14 days or more",
 				"timing": "Not later than 14 days after the day the employee starts employment.",
 				"owner": "HR / issued KET record",
-				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "ITEMISED_PAYSLIP",
@@ -712,8 +707,7 @@
 				"trigger": "Every salary payment, and every payment under EA s.22 or s.23",
 				"timing": "Together with the payment, or within 3 working days after it.",
 				"owner": "Payroll / issued pay slips (hard copy or electronic)",
-				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
 			},
 			{
 				"code": "EMPLOYEE_AND_SALARY_RECORDS",
@@ -721,8 +715,7 @@
 				"trigger": "Every employee and former employee covered by the Employment Act",
 				"timing": "Current employees: the latest two years; former employees: the last two years, kept for one year after the employee leaves.",
 				"owner": "HR and Payroll / record store",
-				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records)."
 			},
 			{
 				"code": "SALARY_PAYMENT_DEADLINE",
@@ -730,8 +723,7 @@
 				"trigger": "The close of each salary period",
 				"timing": "Salary before the expiry of the 7th day after the last day of the salary period; additional payments for overtime not later than 14 days after the last day of the salary period in which the work was done.",
 				"owner": "Payroll / payment records",
-				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "FINAL_SALARY_PAYMENT",
@@ -739,8 +731,7 @@
 				"trigger": "Employment ends",
 				"timing": "Contract completed or employee terminates with due notice or under s.11: on the last day (s.21(3), s.23(1)); dismissal: on the day of dismissal or, if not possible, within 3 days thereafter, not being a rest day or public holiday (s.22); employee leaves without notice or before notice expires: before the expiry of the 7th day after termination (s.23(2)). Subject to income-tax clearance under s.24.",
 				"owner": "Payroll / payment receipt and termination record",
-				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without."
 			},
 			{
 				"code": "SALARY_DEDUCTION_LIMITS",
@@ -748,8 +739,7 @@
 				"trigger": "Any deduction from salary",
 				"timing": "Each salary period; the 50% limit does not apply to the last salary on termination.",
 				"owner": "Payroll / deduction authorities and consents",
-				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism."
 			},
 			{
 				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
@@ -757,8 +747,7 @@
 				"trigger": "Notice of cessation, overseas posting or departure of a non-Citizen employee",
 				"timing": "At least one month before the cessation, posting or departure; monies withheld from the day the employer is aware; tax under a Directive to Pay Tax paid within 10 days; the final salary not delayed more than 30 days after notice to the Comptroller (EA s.24(2)). Late or no filing: fine up to $5,000.",
 				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
-				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it.",
-				"status": "PARTIAL"
+				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it."
 			},
 			{
 				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
@@ -766,8 +755,7 @@
 				"trigger": "Employment income paid in a calendar year",
 				"timing": "By 1 March of the following year.",
 				"owner": "Finance / AIS acknowledgement or forms given to employees",
-				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
-				"status": "EXTERNAL"
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)."
 			},
 			{
 				"code": "WORK_INJURY_COMPENSATION_INSURANCE",
@@ -775,8 +763,7 @@
 				"trigger": "Employing a covered employee",
 				"timing": "In force for the whole period of employment.",
 				"owner": "HR / insurance policy",
-				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
-				"status": "EXTERNAL"
+				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance)."
 			},
 			{
 				"code": "HOURS_REST_DAY_AND_OVERTIME_LIMITS",
@@ -784,8 +771,7 @@
 				"trigger": "Scheduling or approving work for a Part 4 employee",
 				"timing": "Before the month (rest-day roster, s.36(4)); continuously (s.38(5), s.38(8)); an exemption order under s.41A displayed while it applies.",
 				"owner": "Operations / rosters, time records and any exemption order",
-				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it."
 			},
 			{
 				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
@@ -793,8 +779,7 @@
 				"trigger": "Dismissal alleged to justify forfeiture",
 				"timing": "Before the dismissal (s.14); the leave pay with the final salary.",
 				"owner": "HR / inquiry finding and applicable statutory basis",
-				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)."
 			},
 			{
 				"code": "RETRENCHMENT_NOTIFICATION_AND_BENEFIT",
@@ -802,8 +787,7 @@
 				"trigger": "An employer registered in Singapore with at least 10 employees notifies any employee of retrenchment",
 				"timing": "Within 5 working days after the affected employees are notified.",
 				"owner": "HR / MOM notification acknowledgement and retrenchment package record",
-				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
 			},
 			{
 				"code": "GOVERNMENT_PAID_LEAVE_AND_NS_CLAIMS",
@@ -811,8 +795,7 @@
 				"trigger": "Government-paid leave taken, or an NS call-up",
 				"timing": "GPML and GPPL claims within 3 months after the last day of the leave; GPCL and extended childcare leave within 3 months after the end of the 12-month period; later claims only with MSF approval. NS make-up pay per the MINDEF/MHA claim rules.",
 				"owner": "HR / claim submissions and reimbursement receipts",
-				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08).",
-				"status": "EXTERNAL"
+				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08)."
 			},
 			{
 				"code": "RETIREMENT_AND_RE_EMPLOYMENT",
@@ -820,8 +803,7 @@
 				"trigger": "An employee approaches the applicable retirement age or a re-employment contract expiry",
 				"timing": "Minimum retirement age 63, re-employment up to 68 through 30 June 2026; the transitional birth cohort 1 July 1955–30 June 1960 started re-employment at 62. Discuss re-employment at least six months and offer the contract at least three months before the applicable retirement or renewal point. If an eligible employee cannot be re-employed after reasonable attempts and no accepted alternate-employer offer, pay EAP by the last employment day or under a mutually agreed arrangement. From 1 July 2022 the archived MOM guideline advises regular EAP of 3.5 months gross rate of pay ($6,250–$14,750) below age 65.5 for those born from 1 July 1960, or below age 65 for the 1955–1960 transitional cohort; stepped-down EAP of 2 months ($4,000–$8,500) applies from those ages to before 68. It advises EAP not exceed salary remaining to 68 and permits part-time minimum/maximum pro-ration by comparable weekly hours. Record the cohort, eligibility, offer or transfer decision, gross rate, amount and payment agreement.",
 				"owner": "HR / re-employment offer or EAP record",
-				"authority": "Retirement and Re-employment Act 1993 s.7C (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); archived MOM Tripartite Guidelines on Re-employment of Older Employees, captured 15 February 2026 (https://web.archive.org/web/20260215200115id_/https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en).",
-				"status": "PARTIAL"
+				"authority": "Retirement and Re-employment Act 1993 s.7C (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); archived MOM Tripartite Guidelines on Re-employment of Older Employees, captured 15 February 2026 (https://web.archive.org/web/20260215200115id_/https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en)."
 			},
 			{
 				"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
@@ -829,8 +811,7 @@
 				"trigger": "Collection, use or disclosure of an applicant's or employee's personal data (onboarding, payroll, CPF/IRAS filing, benefits, termination)",
 				"timing": "On or before collection, use or disclosure; a new purpose needs fresh notification and consent unless an exception applies",
 				"owner": "HR / privacy notice in the offer letter or employment contract",
-				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
 			},
 			{
 				"code": "PDPA_ACCESS_CORRECTION_ACCURACY",
@@ -838,8 +819,7 @@
 				"trigger": "An access or correction request, or any use of personal data to make a decision affecting the employee",
 				"timing": "As soon as reasonably possible (access, s.21(1)) or practicable (correction, s.22(2)); an organisation unable to respond within 30 days after receiving the request must within that time inform the applicant in writing of the time by which it will respond (Personal Data Protection Regulations 2021 reg.5)",
 				"owner": "HR / request log",
-				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)"
 			},
 			{
 				"code": "PDPA_PROTECTION",
@@ -847,8 +827,7 @@
 				"trigger": "Holding employee personal data, including in a payroll system or a data intermediary",
 				"timing": "Continuous",
 				"owner": "HR / IT security; data-intermediary contract with the payroll vendor",
-				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_RETENTION_LIMITATION",
@@ -856,8 +835,7 @@
 				"trigger": "End of employment, a rejected application, or expiry of the record's legal retention period",
 				"timing": "As soon as it is reasonable to assume that retention no longer serves the purpose",
 				"owner": "HR / retention schedule and disposal record",
-				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_DATA_BREACH_NOTIFICATION",
@@ -865,8 +843,7 @@
 				"trigger": "Credible grounds to believe a data breach affecting personal data in the organisation's possession or control has occurred",
 				"timing": "Assess reasonably and expeditiously (PDPC: within 30 calendar days); notify the PDPC as soon as practicable and no later than 3 calendar days after determining the breach is notifiable; notify affected individuals as soon as practicable, at the same time as or after the PDPC",
 				"owner": "DPO / breach assessment record and PDPC notification",
-				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)"
 			},
 			{
 				"code": "PDPA_DPO_AND_POLICIES",
@@ -874,8 +851,7 @@
 				"trigger": "The organisation collects, uses or discloses personal data (every employer)",
 				"timing": "Continuous; keep the DPO contact current",
 				"owner": "Management / DPO appointment record",
-				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			}
 		],
 		"facts": [
@@ -1361,7 +1337,7 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && holiday.pay_eligible && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
 					"take_hours": "0.0",
 					"price_amount": "person.terms.gross_monthly * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
@@ -1479,7 +1455,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. Applied 2026-09-26: a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day; the old five-day-only selector wrongly capped its normal day at 8. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. Applied 2026-09-18 (4): EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). Applied 2026-09-19 (2): EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. Applied 2026-09-23 (SG audit): s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. Applied 2026-09-23 (round 2): the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
 			"normal_hours": "terms.working_days_per_week <= 5.0 || (terms.ordinary_hours_per_week > 0.0 && terms.ordinary_hours_per_week < 8.0 * terms.working_days_per_week) ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {},
@@ -1493,7 +1469,7 @@
 				"day_amount": "terms.fixed_allowances * 12.0 / (52.0 * terms.working_days_per_week) + (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week : terms.basic_salary * 12.0 / (52.0 * terms.working_days_per_week))",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. Applied 2026-09-23 (round 5): WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
+				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
 			},
 			"gross_excluded_allowances": [],
 			"part_time_week_hours_below": 35,
@@ -1560,6 +1536,7 @@
 			},
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
+			"holiday_adjacent_absence_when": "employment.classification != \"NON_EA\"",
 			"short_day_half_hours": 5,
 			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
@@ -1958,8 +1935,7 @@
 				"trigger": "Wages payable for a calendar month to a Citizen or SPR employee",
 				"timing": "By the 14th of the following month (the next working day if the 14th is a Saturday, Sunday or public holiday); late payment interest under CPF Act 1953 s.9(1) and CPF Regulations 1987 reg.3(3)–(5): 1.5% a month on the month’s unpaid contributions from the first day of the following month, or $5 for the unpaid period if higher, billed by the Board and payable within 14 days of its demand (reg.3(1)).",
 				"owner": "Finance / CPF submission advice and payment receipt",
-				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
-				"status": "PARTIAL"
+				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
 			},
 			{
 				"code": "SDL_REMITTANCE",
@@ -1967,8 +1943,7 @@
 				"trigger": "Remuneration payable for a calendar month to any employee",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Finance / CPF submission advice (SDL line) or SWDA receipt",
-				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
-				"status": "PARTIAL"
+				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external."
 			},
 			{
 				"code": "SHG_DEDUCTION_REMITTANCE",
@@ -1976,8 +1951,7 @@
 				"trigger": "Wages payable for a calendar month to an employee within a fund",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Payroll / fund instruction on file and CPF submission advice",
-				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
-				"status": "PARTIAL"
+				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it."
 			},
 			{
 				"code": "FOREIGN_WORKER_LEVY",
@@ -1985,8 +1959,7 @@
 				"trigger": "A Work Permit or S Pass is in force during the month",
 				"timing": "By the 17th of the following month (the next working day if it falls on a Saturday, Sunday or public holiday), normally by GIRO; a late payment penalty accrues, and missing two consecutive months revokes the employer's existing Work Permits and S Passes the following month.",
 				"owner": "Finance / MOM levy statement and GIRO receipt",
-				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy)."
 			},
 			{
 				"code": "WORK_PASS_AND_LOCAL_QUALIFYING_SALARY",
@@ -1994,8 +1967,7 @@
 				"trigger": "Hiring, pass renewal or cessation of a foreign employee; each quota computation",
 				"timing": "Before the foreign employee starts work; cancellation when the employment ends; the LQS on every month counted for quota.",
 				"owner": "HR / work-pass records and quota computation",
-				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary)."
 			},
 			{
 				"code": "KEY_EMPLOYMENT_TERMS",
@@ -2003,8 +1975,7 @@
 				"trigger": "An employee who entered a contract on or after 1 April 2016 and is employed for 14 days or more",
 				"timing": "Not later than 14 days after the day the employee starts employment.",
 				"owner": "HR / issued KET record",
-				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "ITEMISED_PAYSLIP",
@@ -2012,8 +1983,7 @@
 				"trigger": "Every salary payment, and every payment under EA s.22 or s.23",
 				"timing": "Together with the payment, or within 3 working days after it.",
 				"owner": "Payroll / issued pay slips (hard copy or electronic)",
-				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
 			},
 			{
 				"code": "EMPLOYEE_AND_SALARY_RECORDS",
@@ -2021,8 +1991,7 @@
 				"trigger": "Every employee and former employee covered by the Employment Act",
 				"timing": "Current employees: the latest two years; former employees: the last two years, kept for one year after the employee leaves.",
 				"owner": "HR and Payroll / record store",
-				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records)."
 			},
 			{
 				"code": "SALARY_PAYMENT_DEADLINE",
@@ -2030,8 +1999,7 @@
 				"trigger": "The close of each salary period",
 				"timing": "Salary before the expiry of the 7th day after the last day of the salary period; additional payments for overtime not later than 14 days after the last day of the salary period in which the work was done.",
 				"owner": "Payroll / payment records",
-				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "FINAL_SALARY_PAYMENT",
@@ -2039,8 +2007,7 @@
 				"trigger": "Employment ends",
 				"timing": "Contract completed or employee terminates with due notice or under s.11: on the last day (s.21(3), s.23(1)); dismissal: on the day of dismissal or, if not possible, within 3 days thereafter, not being a rest day or public holiday (s.22); employee leaves without notice or before notice expires: before the expiry of the 7th day after termination (s.23(2)). Subject to income-tax clearance under s.24.",
 				"owner": "Payroll / payment receipt and termination record",
-				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without."
 			},
 			{
 				"code": "SALARY_DEDUCTION_LIMITS",
@@ -2048,8 +2015,7 @@
 				"trigger": "Any deduction from salary",
 				"timing": "Each salary period; the 50% limit does not apply to the last salary on termination.",
 				"owner": "Payroll / deduction authorities and consents",
-				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism."
 			},
 			{
 				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
@@ -2057,8 +2023,7 @@
 				"trigger": "Notice of cessation, overseas posting or departure of a non-Citizen employee",
 				"timing": "At least one month before the cessation, posting or departure; monies withheld from the day the employer is aware; tax under a Directive to Pay Tax paid within 10 days; the final salary not delayed more than 30 days after notice to the Comptroller (EA s.24(2)). Late or no filing: fine up to $5,000.",
 				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
-				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it.",
-				"status": "PARTIAL"
+				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it."
 			},
 			{
 				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
@@ -2066,8 +2031,7 @@
 				"trigger": "Employment income paid in a calendar year",
 				"timing": "By 1 March of the following year.",
 				"owner": "Finance / AIS acknowledgement or forms given to employees",
-				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
-				"status": "EXTERNAL"
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)."
 			},
 			{
 				"code": "WORK_INJURY_COMPENSATION_INSURANCE",
@@ -2075,8 +2039,7 @@
 				"trigger": "Employing a covered employee",
 				"timing": "In force for the whole period of employment.",
 				"owner": "HR / insurance policy",
-				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
-				"status": "EXTERNAL"
+				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance)."
 			},
 			{
 				"code": "HOURS_REST_DAY_AND_OVERTIME_LIMITS",
@@ -2084,8 +2047,7 @@
 				"trigger": "Scheduling or approving work for a Part 4 employee",
 				"timing": "Before the month (rest-day roster, s.36(4)); continuously (s.38(5), s.38(8)); an exemption order under s.41A displayed while it applies.",
 				"owner": "Operations / rosters, time records and any exemption order",
-				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it."
 			},
 			{
 				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
@@ -2093,8 +2055,7 @@
 				"trigger": "Dismissal alleged to justify forfeiture",
 				"timing": "Before the dismissal (s.14); the leave pay with the final salary.",
 				"owner": "HR / inquiry finding and applicable statutory basis",
-				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)."
 			},
 			{
 				"code": "RETRENCHMENT_NOTIFICATION_AND_BENEFIT",
@@ -2102,8 +2063,7 @@
 				"trigger": "An employer registered in Singapore with at least 10 employees notifies any employee of retrenchment",
 				"timing": "Within 5 working days after the affected employees are notified.",
 				"owner": "HR / MOM notification acknowledgement and retrenchment package record",
-				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
 			},
 			{
 				"code": "GOVERNMENT_PAID_LEAVE_AND_NS_CLAIMS",
@@ -2111,8 +2071,7 @@
 				"trigger": "Government-paid leave taken, or an NS call-up",
 				"timing": "GPML and GPPL claims within 3 months after the last day of the leave; GPCL and extended childcare leave within 3 months after the end of the 12-month period; later claims only with MSF approval. NS make-up pay per the MINDEF/MHA claim rules.",
 				"owner": "HR / claim submissions and reimbursement receipts",
-				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08).",
-				"status": "EXTERNAL"
+				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08)."
 			},
 			{
 				"code": "RETIREMENT_AND_RE_EMPLOYMENT",
@@ -2120,8 +2079,7 @@
 				"trigger": "An employee approaches the applicable retirement age or a re-employment contract expiry",
 				"timing": "Minimum retirement age 63, re-employment up to 68 through 30 June 2026; the transitional birth cohort 1 July 1955–30 June 1960 started re-employment at 62. Discuss re-employment at least six months and offer the contract at least three months before the applicable retirement or renewal point. If an eligible employee cannot be re-employed after reasonable attempts and no accepted alternate-employer offer, pay EAP by the last employment day or under a mutually agreed arrangement. From 1 July 2022 the archived MOM guideline advises regular EAP of 3.5 months gross rate of pay ($6,250–$14,750) below age 65.5 for those born from 1 July 1960, or below age 65 for the 1955–1960 transitional cohort; stepped-down EAP of 2 months ($4,000–$8,500) applies from those ages to before 68. It advises EAP not exceed salary remaining to 68 and permits part-time minimum/maximum pro-ration by comparable weekly hours. Record the cohort, eligibility, offer or transfer decision, gross rate, amount and payment agreement.",
 				"owner": "HR / re-employment offer or EAP record",
-				"authority": "Retirement and Re-employment Act 1993 s.7C (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); archived MOM Tripartite Guidelines on Re-employment of Older Employees, captured 15 February 2026 (https://web.archive.org/web/20260215200115id_/https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en).",
-				"status": "PARTIAL"
+				"authority": "Retirement and Re-employment Act 1993 s.7C (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); archived MOM Tripartite Guidelines on Re-employment of Older Employees, captured 15 February 2026 (https://web.archive.org/web/20260215200115id_/https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en)."
 			},
 			{
 				"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
@@ -2129,8 +2087,7 @@
 				"trigger": "Collection, use or disclosure of an applicant's or employee's personal data (onboarding, payroll, CPF/IRAS filing, benefits, termination)",
 				"timing": "On or before collection, use or disclosure; a new purpose needs fresh notification and consent unless an exception applies",
 				"owner": "HR / privacy notice in the offer letter or employment contract",
-				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
 			},
 			{
 				"code": "PDPA_ACCESS_CORRECTION_ACCURACY",
@@ -2138,8 +2095,7 @@
 				"trigger": "An access or correction request, or any use of personal data to make a decision affecting the employee",
 				"timing": "As soon as reasonably possible (access, s.21(1)) or practicable (correction, s.22(2)); an organisation unable to respond within 30 days after receiving the request must within that time inform the applicant in writing of the time by which it will respond (Personal Data Protection Regulations 2021 reg.5)",
 				"owner": "HR / request log",
-				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)"
 			},
 			{
 				"code": "PDPA_PROTECTION",
@@ -2147,8 +2103,7 @@
 				"trigger": "Holding employee personal data, including in a payroll system or a data intermediary",
 				"timing": "Continuous",
 				"owner": "HR / IT security; data-intermediary contract with the payroll vendor",
-				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_RETENTION_LIMITATION",
@@ -2156,8 +2111,7 @@
 				"trigger": "End of employment, a rejected application, or expiry of the record's legal retention period",
 				"timing": "As soon as it is reasonable to assume that retention no longer serves the purpose",
 				"owner": "HR / retention schedule and disposal record",
-				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_DATA_BREACH_NOTIFICATION",
@@ -2165,8 +2119,7 @@
 				"trigger": "Credible grounds to believe a data breach affecting personal data in the organisation's possession or control has occurred",
 				"timing": "Assess reasonably and expeditiously (PDPC: within 30 calendar days); notify the PDPC as soon as practicable and no later than 3 calendar days after determining the breach is notifiable; notify affected individuals as soon as practicable, at the same time as or after the PDPC",
 				"owner": "DPO / breach assessment record and PDPC notification",
-				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)"
 			},
 			{
 				"code": "PDPA_DPO_AND_POLICIES",
@@ -2174,8 +2127,7 @@
 				"trigger": "The organisation collects, uses or discloses personal data (every employer)",
 				"timing": "Continuous; keep the DPO contact current",
 				"owner": "Management / DPO appointment record",
-				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			}
 		],
 		"facts": [
@@ -2661,7 +2613,7 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && holiday.pay_eligible && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
 					"take_hours": "0.0",
 					"price_amount": "person.terms.gross_monthly * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
@@ -2779,7 +2731,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. Applied 2026-09-26: a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day; the old five-day-only selector wrongly capped its normal day at 8. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. Applied 2026-09-18 (4): EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). Applied 2026-09-19 (2): EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. Applied 2026-09-23 (SG audit): s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. Applied 2026-09-23 (round 2): the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
 			"normal_hours": "terms.working_days_per_week <= 5.0 || (terms.ordinary_hours_per_week > 0.0 && terms.ordinary_hours_per_week < 8.0 * terms.working_days_per_week) ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {},
@@ -2793,7 +2745,7 @@
 				"day_amount": "terms.fixed_allowances * 12.0 / (52.0 * terms.working_days_per_week) + (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week : terms.basic_salary * 12.0 / (52.0 * terms.working_days_per_week))",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. Applied 2026-09-23 (round 5): WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
+				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
 			},
 			"gross_excluded_allowances": [],
 			"part_time_week_hours_below": 35,
@@ -2860,6 +2812,7 @@
 			},
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
+			"holiday_adjacent_absence_when": "employment.classification != \"NON_EA\"",
 			"short_day_half_hours": 5,
 			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
@@ -3258,8 +3211,7 @@
 				"trigger": "Wages payable for a calendar month to a Citizen or SPR employee",
 				"timing": "By the 14th of the following month (the next working day if the 14th is a Saturday, Sunday or public holiday); late payment interest under CPF Act 1953 s.9(1) and CPF Regulations 1987 reg.3(3)–(5): 1.5% a month on the month’s unpaid contributions from the first day of the following month, or $5 for the unpaid period if higher, billed by the Board and payable within 14 days of its demand (reg.3(1)).",
 				"owner": "Finance / CPF submission advice and payment receipt",
-				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
-				"status": "PARTIAL"
+				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
 			},
 			{
 				"code": "SDL_REMITTANCE",
@@ -3267,8 +3219,7 @@
 				"trigger": "Remuneration payable for a calendar month to any employee",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Finance / CPF submission advice (SDL line) or SWDA receipt",
-				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
-				"status": "PARTIAL"
+				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external."
 			},
 			{
 				"code": "SHG_DEDUCTION_REMITTANCE",
@@ -3276,8 +3227,7 @@
 				"trigger": "Wages payable for a calendar month to an employee within a fund",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Payroll / fund instruction on file and CPF submission advice",
-				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
-				"status": "PARTIAL"
+				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it."
 			},
 			{
 				"code": "FOREIGN_WORKER_LEVY",
@@ -3285,8 +3235,7 @@
 				"trigger": "A Work Permit or S Pass is in force during the month",
 				"timing": "By the 17th of the following month (the next working day if it falls on a Saturday, Sunday or public holiday), normally by GIRO; a late payment penalty accrues, and missing two consecutive months revokes the employer's existing Work Permits and S Passes the following month.",
 				"owner": "Finance / MOM levy statement and GIRO receipt",
-				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy)."
 			},
 			{
 				"code": "WORK_PASS_AND_LOCAL_QUALIFYING_SALARY",
@@ -3294,8 +3243,7 @@
 				"trigger": "Hiring, pass renewal or cessation of a foreign employee; each quota computation",
 				"timing": "Before the foreign employee starts work; cancellation when the employment ends; the LQS on every month counted for quota.",
 				"owner": "HR / work-pass records and quota computation",
-				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary)."
 			},
 			{
 				"code": "KEY_EMPLOYMENT_TERMS",
@@ -3303,8 +3251,7 @@
 				"trigger": "An employee who entered a contract on or after 1 April 2016 and is employed for 14 days or more",
 				"timing": "Not later than 14 days after the day the employee starts employment.",
 				"owner": "HR / issued KET record",
-				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "ITEMISED_PAYSLIP",
@@ -3312,8 +3259,7 @@
 				"trigger": "Every salary payment, and every payment under EA s.22 or s.23",
 				"timing": "Together with the payment, or within 3 working days after it.",
 				"owner": "Payroll / issued pay slips (hard copy or electronic)",
-				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
 			},
 			{
 				"code": "EMPLOYEE_AND_SALARY_RECORDS",
@@ -3321,8 +3267,7 @@
 				"trigger": "Every employee and former employee covered by the Employment Act",
 				"timing": "Current employees: the latest two years; former employees: the last two years, kept for one year after the employee leaves.",
 				"owner": "HR and Payroll / record store",
-				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records)."
 			},
 			{
 				"code": "SALARY_PAYMENT_DEADLINE",
@@ -3330,8 +3275,7 @@
 				"trigger": "The close of each salary period",
 				"timing": "Salary before the expiry of the 7th day after the last day of the salary period; additional payments for overtime not later than 14 days after the last day of the salary period in which the work was done.",
 				"owner": "Payroll / payment records",
-				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "FINAL_SALARY_PAYMENT",
@@ -3339,8 +3283,7 @@
 				"trigger": "Employment ends",
 				"timing": "Contract completed or employee terminates with due notice or under s.11: on the last day (s.21(3), s.23(1)); dismissal: on the day of dismissal or, if not possible, within 3 days thereafter, not being a rest day or public holiday (s.22); employee leaves without notice or before notice expires: before the expiry of the 7th day after termination (s.23(2)). Subject to income-tax clearance under s.24.",
 				"owner": "Payroll / payment receipt and termination record",
-				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without."
 			},
 			{
 				"code": "SALARY_DEDUCTION_LIMITS",
@@ -3348,8 +3291,7 @@
 				"trigger": "Any deduction from salary",
 				"timing": "Each salary period; the 50% limit does not apply to the last salary on termination.",
 				"owner": "Payroll / deduction authorities and consents",
-				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism."
 			},
 			{
 				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
@@ -3357,8 +3299,7 @@
 				"trigger": "Notice of cessation, overseas posting or departure of a non-Citizen employee",
 				"timing": "At least one month before the cessation, posting or departure; monies withheld from the day the employer is aware; tax under a Directive to Pay Tax paid within 10 days; the final salary not delayed more than 30 days after notice to the Comptroller (EA s.24(2)). Late or no filing: fine up to $5,000.",
 				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
-				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it.",
-				"status": "PARTIAL"
+				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it."
 			},
 			{
 				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
@@ -3366,8 +3307,7 @@
 				"trigger": "Employment income paid in a calendar year",
 				"timing": "By 1 March of the following year.",
 				"owner": "Finance / AIS acknowledgement or forms given to employees",
-				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
-				"status": "EXTERNAL"
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)."
 			},
 			{
 				"code": "WORK_INJURY_COMPENSATION_INSURANCE",
@@ -3375,8 +3315,7 @@
 				"trigger": "Employing a covered employee",
 				"timing": "In force for the whole period of employment.",
 				"owner": "HR / insurance policy",
-				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
-				"status": "EXTERNAL"
+				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance)."
 			},
 			{
 				"code": "HOURS_REST_DAY_AND_OVERTIME_LIMITS",
@@ -3384,8 +3323,7 @@
 				"trigger": "Scheduling or approving work for a Part 4 employee",
 				"timing": "Before the month (rest-day roster, s.36(4)); continuously (s.38(5), s.38(8)); an exemption order under s.41A displayed while it applies.",
 				"owner": "Operations / rosters, time records and any exemption order",
-				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it."
 			},
 			{
 				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
@@ -3393,8 +3331,7 @@
 				"trigger": "Dismissal alleged to justify forfeiture",
 				"timing": "Before the dismissal (s.14); the leave pay with the final salary.",
 				"owner": "HR / inquiry finding and applicable statutory basis",
-				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)."
 			},
 			{
 				"code": "RETRENCHMENT_NOTIFICATION_AND_BENEFIT",
@@ -3402,8 +3339,7 @@
 				"trigger": "An employer registered in Singapore with at least 10 employees notifies any employee of retrenchment",
 				"timing": "Within 5 working days after the affected employees are notified.",
 				"owner": "HR / MOM notification acknowledgement and retrenchment package record",
-				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
 			},
 			{
 				"code": "GOVERNMENT_PAID_LEAVE_AND_NS_CLAIMS",
@@ -3411,8 +3347,7 @@
 				"trigger": "Government-paid leave taken, or an NS call-up",
 				"timing": "GPML and GPPL claims within 3 months after the last day of the leave; GPCL and extended childcare leave within 3 months after the end of the 12-month period; later claims only with MSF approval. NS make-up pay per the MINDEF/MHA claim rules.",
 				"owner": "HR / claim submissions and reimbursement receipts",
-				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08).",
-				"status": "EXTERNAL"
+				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08)."
 			},
 			{
 				"code": "RETIREMENT_AND_RE_EMPLOYMENT",
@@ -3420,8 +3355,7 @@
 				"trigger": "An employee approaches the applicable retirement age or a re-employment contract expiry",
 				"timing": "Minimum retirement age 64, re-employment up to 69 (in force from 1 July 2026; transitional cohorts started re-employment at 62 or 63). Engage at least six months and offer a contract at least three months before the applicable retirement or renewal point. If an eligible employee cannot be re-employed after reasonable attempts and no accepted alternate-employer offer, pay EAP as a lump sum by the last employment day or under a mutually agreed arrangement, including instalments. Take the 1 July 2026 Tripartite Guidelines into account: regular EAP guide is 3.5 months of gross pay ($6,250–$14,750); stepped-down guide is 2 months ($4,000–$8,500) from age 65.5 for birth 1 July 1958–30 June 1960, age 66 for birth 1 July 1960–30 June 1963, and age 66.5 for birth from 1 July 1963. The guidelines advise that EAP should not exceed salary remaining to age 69 and allow part-time minimum/maximum pro-ration by comparable weekly hours. Record the eligibility, offer or transfer decision, amount and payment agreement.",
 				"owner": "HR / re-employment offer or EAP record",
-				"authority": "Retirement and Re-employment Act 1993 s.7C(1), (4)–(5) (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); MOM, Tripartite Guidelines on the Re-employment of Older Employees, updated 1 July 2026, paras.30–43 (https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en).",
-				"status": "PARTIAL"
+				"authority": "Retirement and Re-employment Act 1993 s.7C(1), (4)–(5) (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); MOM, Tripartite Guidelines on the Re-employment of Older Employees, updated 1 July 2026, paras.30–43 (https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en)."
 			},
 			{
 				"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
@@ -3429,8 +3363,7 @@
 				"trigger": "Collection, use or disclosure of an applicant's or employee's personal data (onboarding, payroll, CPF/IRAS filing, benefits, termination)",
 				"timing": "On or before collection, use or disclosure; a new purpose needs fresh notification and consent unless an exception applies",
 				"owner": "HR / privacy notice in the offer letter or employment contract",
-				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
 			},
 			{
 				"code": "PDPA_ACCESS_CORRECTION_ACCURACY",
@@ -3438,8 +3371,7 @@
 				"trigger": "An access or correction request, or any use of personal data to make a decision affecting the employee",
 				"timing": "As soon as reasonably possible (access, s.21(1)) or practicable (correction, s.22(2)); an organisation unable to respond within 30 days after receiving the request must within that time inform the applicant in writing of the time by which it will respond (Personal Data Protection Regulations 2021 reg.5)",
 				"owner": "HR / request log",
-				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)"
 			},
 			{
 				"code": "PDPA_PROTECTION",
@@ -3447,8 +3379,7 @@
 				"trigger": "Holding employee personal data, including in a payroll system or a data intermediary",
 				"timing": "Continuous",
 				"owner": "HR / IT security; data-intermediary contract with the payroll vendor",
-				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_RETENTION_LIMITATION",
@@ -3456,8 +3387,7 @@
 				"trigger": "End of employment, a rejected application, or expiry of the record's legal retention period",
 				"timing": "As soon as it is reasonable to assume that retention no longer serves the purpose",
 				"owner": "HR / retention schedule and disposal record",
-				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_DATA_BREACH_NOTIFICATION",
@@ -3465,8 +3395,7 @@
 				"trigger": "Credible grounds to believe a data breach affecting personal data in the organisation's possession or control has occurred",
 				"timing": "Assess reasonably and expeditiously (PDPC: within 30 calendar days); notify the PDPC as soon as practicable and no later than 3 calendar days after determining the breach is notifiable; notify affected individuals as soon as practicable, at the same time as or after the PDPC",
 				"owner": "DPO / breach assessment record and PDPC notification",
-				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)"
 			},
 			{
 				"code": "PDPA_DPO_AND_POLICIES",
@@ -3474,8 +3403,7 @@
 				"trigger": "The organisation collects, uses or discloses personal data (every employer)",
 				"timing": "Continuous; keep the DPO contact current",
 				"owner": "Management / DPO appointment record",
-				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			}
 		],
 		"facts": [
@@ -3961,7 +3889,7 @@
 			"bands": [
 				{
 					"label": "PH-NON-WORKING-DAY",
-					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
+					"when": "person.employment.classification != \"NON_EA\" && day_type == \"PUBLIC_HOLIDAY\" && holiday.pay_eligible && off_day && worked_hours == 0.0 && person.company.facts.public_holiday_compensation != \"TIME_OFF\"",
 					"take_hours": "0.0",
 					"price_amount": "person.terms.gross_monthly * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
@@ -4079,7 +4007,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. Applied 2026-09-26: a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day; the old five-day-only selector wrongly capped its normal day at 8. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. Applied 2026-09-18 (4): EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). Applied 2026-09-19 (2): EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. Applied 2026-09-23 (SG audit): s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. Applied 2026-09-23 (round 2): the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(1) not more than 44 hours in one week, carried by the `weekly_normal` limit payroll reads: normal-day hours past the 44th in a Monday-to-Sunday week are overtime of the day they fall on. s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request; s.37(3)(c)(ii) pays the hours beyond the normal day \"for each hour or part thereof\", so the rest-day OT-1.5X band rounds its slice up to the hour. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `rate_week_hours` (44 for every full-time monthly-rated employee, whatever the contract's week) over `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours. s.38(1)(d) and (e): the normal-day ceiling is 9 hours for an agreed week of five days or fewer, or where the agreed weekly hours establish a shorter-than-eight-hour day; otherwise 8. The scheduled day remains bounded by its own normal hours. a six-day 44-hour contract can have five 8.5-hour days and one 1.5-hour day. Multi-week averaging, shift and exemption branches remain incomplete. s.37(2): rest-day work at the employee’s request pays half a day up to half the normal hours and one day beyond (`requested_by`), against s.37(3)’s one and two at the employer’s. s.88(4A)/MOM: a public holiday that falls on a non-working day (neither a working day nor the rest day) is a day off in lieu or an extra day’s salary; the `PH-NON-WORKING-DAY` band prices the day’s salary on such a day read and found empty (a `work_days` row with no work), taking no hours. EA Third Schedule: the basic rate for a day is the daily rate for a daily-rated employee, the hourly rate × the hours of the normal day for an hourly-rated one, and 12 × monthly ÷ (52 × days a week) for a monthly-rated one (`person.terms.pay_frequency` in the day-wage bands). EA s.38(1)(a): work that must be carried on continuously may run eight consecutive hours with a break of at least 45 minutes for a meal — the break is owed at eight (`>= 8.0`), not only beyond it. s.35 measures \"a salary not exceeding $2,600 [$4,500] a month\", so the Part 4 bands turn a daily, hourly or weekly rate into its month (daily × 52 × days a week ÷ 12; hourly × weekly hours × 52 ÷ 12; weekly × 52 ÷ 12) before comparing it; the raw rate put every daily- or hourly-rated employee inside Part 4. s.88 is Part 10 of the Employment Act and reaches no employee outside it: the two public-holiday bands exclude `NON_EA`. s.88(1)(c) pays a holiday on a non-working day at the gross rate of pay (s.2: allowances included, other than travelling, food or housing): the `PH-NON-WORKING-DAY` band prices a monthly-rated employee on `person.terms.monthly_wage` — basic plus the contract's fixed allowances, which can only exceed the s.2 gross rate where a travelling, food or housing allowance is fixed on the contract. the Part 4 salary test reads `person.terms.monthly_basic` (a daily, hourly or weekly rate taken to its month on the ordinary divisor, 52 × days ÷ 12), and the Third Schedule day reads `person.terms.ordinary_day` (12 × monthly ÷ (52 × days); a weekly wage is now its week over the days, not read as a month). s.2 “gross rate of pay” excludes travelling, food and housing allowances: `PH-NON-WORKING-DAY` prices `person.terms.gross_monthly`, net of the allowance codes in `gross_excluded_allowances` (the company’s own codes; none are seeded). s.88(1)(c) and s.88(4A): the entity fact `public_holiday_compensation` = TIME_OFF records the employer’s election of a day off instead of pay — the non-working-day band stops, and the extra day’s salary for holiday work stops for an employee outside Part 4 who is not a workman (non-workman above $2,600 or a manager); the Part 4 hours beyond the normal day stay paid. SG Part-Time Employees Regulations reg. 5 and MOM part-time overtime guidance: hours beyond the worker’s own day up to the similar full-time employee’s normal day use the basic hourly rate; hours beyond that comparator use 1.5×. Regulation 2(2) deems the comparator to work 8 hours a day and 44 hours a week only where no similar full-time employee exists; an unknown presence is not that statutory fact.",
 			"normal_hours": "terms.working_days_per_week <= 5.0 || (terms.ordinary_hours_per_week > 0.0 && terms.ordinary_hours_per_week < 8.0 * terms.working_days_per_week) ? 9.0 : 8.0",
 			"wages": {
 				"by_region": {},
@@ -4093,7 +4021,7 @@
 				"day_amount": "terms.fixed_allowances * 12.0 / (52.0 * terms.working_days_per_week) + (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.working_days_per_week : terms.basic_salary * 12.0 / (52.0 * terms.working_days_per_week))",
 				"include_allowances": [],
 				"exclude_allowances": [],
-				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. Applied 2026-09-23 (round 5): WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
+				"authority": "Employment Act s.2 gross rate; MOM Monthly and daily salary; MOM Termination with notice: last drawn gross salary. Excludes overtime, bonuses, reimbursements, productivity incentives, travel, food and housing allowances. WEEKLY, DAILY and HOURLY. EmA 1968 s.2: “gross rate of pay” is the money including allowances an employee is entitled to “for working for a period of time, that is, for one hour, one day, one week, one month”, less overtime, bonus/AWS, reimbursements, productivity incentives and travelling, food or housing allowances. Third Schedule item 2 (s.107A) prices a monthly-rated day at 12 × monthly gross ÷ (52 × days required a week); a daily rate is the day itself, an hourly rate is the day’s contractual normal hours (weekly hours ÷ days a week), a weekly rate is the week over the days required in it (item 2 on 12 months = 52 weeks), and a monthly contract allowance adds its item 2 day share. Piece rates (item 1: the 14 days before, over the days actually worked) have no pay frequency here."
 			},
 			"gross_excluded_allowances": [],
 			"part_time_week_hours_below": 35,
@@ -4160,6 +4088,7 @@
 			},
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
+			"holiday_adjacent_absence_when": "employment.classification != \"NON_EA\"",
 			"short_day_half_hours": 5,
 			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
@@ -4558,8 +4487,7 @@
 				"trigger": "Wages payable for a calendar month to a Citizen or SPR employee",
 				"timing": "By the 14th of the following month (the next working day if the 14th is a Saturday, Sunday or public holiday); late payment interest under CPF Act 1953 s.9(1) and CPF Regulations 1987 reg.3(3)–(5): 1.5% a month on the month’s unpaid contributions from the first day of the following month, or $5 for the unpaid period if higher, billed by the Board and payable within 14 days of its demand (reg.3(1)).",
 				"owner": "Finance / CPF submission advice and payment receipt",
-				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
-				"status": "PARTIAL"
+				"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
 			},
 			{
 				"code": "SDL_REMITTANCE",
@@ -4567,8 +4495,7 @@
 				"trigger": "Remuneration payable for a calendar month to any employee",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Finance / CPF submission advice (SDL line) or SWDA receipt",
-				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
-				"status": "PARTIAL"
+				"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external."
 			},
 			{
 				"code": "SHG_DEDUCTION_REMITTANCE",
@@ -4576,8 +4503,7 @@
 				"trigger": "Wages payable for a calendar month to an employee within a fund",
 				"timing": "With the month's CPF contributions, by the 14th of the following month.",
 				"owner": "Payroll / fund instruction on file and CPF submission advice",
-				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
-				"status": "PARTIAL"
+				"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it."
 			},
 			{
 				"code": "FOREIGN_WORKER_LEVY",
@@ -4585,8 +4511,7 @@
 				"trigger": "A Work Permit or S Pass is in force during the month",
 				"timing": "By the 17th of the following month (the next working day if it falls on a Saturday, Sunday or public holiday), normally by GIRO; a late payment penalty accrues, and missing two consecutive months revokes the employer's existing Work Permits and S Passes the following month.",
 				"owner": "Finance / MOM levy statement and GIRO receipt",
-				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy)."
 			},
 			{
 				"code": "WORK_PASS_AND_LOCAL_QUALIFYING_SALARY",
@@ -4594,8 +4519,7 @@
 				"trigger": "Hiring, pass renewal or cessation of a foreign employee; each quota computation",
 				"timing": "Before the foreign employee starts work; cancellation when the employment ends; the LQS on every month counted for quota.",
 				"owner": "HR / work-pass records and quota computation",
-				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary).",
-				"status": "EXTERNAL"
+				"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary)."
 			},
 			{
 				"code": "KEY_EMPLOYMENT_TERMS",
@@ -4603,8 +4527,7 @@
 				"trigger": "An employee who entered a contract on or after 1 April 2016 and is employed for 14 days or more",
 				"timing": "Not later than 14 days after the day the employee starts employment.",
 				"owner": "HR / issued KET record",
-				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "ITEMISED_PAYSLIP",
@@ -4612,8 +4535,7 @@
 				"trigger": "Every salary payment, and every payment under EA s.22 or s.23",
 				"timing": "Together with the payment, or within 3 working days after it.",
 				"owner": "Payroll / issued pay slips (hard copy or electronic)",
-				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
 			},
 			{
 				"code": "EMPLOYEE_AND_SALARY_RECORDS",
@@ -4621,8 +4543,7 @@
 				"trigger": "Every employee and former employee covered by the Employment Act",
 				"timing": "Current employees: the latest two years; former employees: the last two years, kept for one year after the employee leaves.",
 				"owner": "HR and Payroll / record store",
-				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.95 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Employment records (https://www.mom.gov.sg/employment-practices/employment-records)."
 			},
 			{
 				"code": "SALARY_PAYMENT_DEADLINE",
@@ -4630,8 +4551,7 @@
 				"trigger": "The close of each salary period",
 				"timing": "Salary before the expiry of the 7th day after the last day of the salary period; additional payments for overtime not later than 14 days after the last day of the salary period in which the work was done.",
 				"owner": "Payroll / payment records",
-				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.20, 21(1)–(2) (https://sso.agc.gov.sg/Act/EmA1968)."
 			},
 			{
 				"code": "FINAL_SALARY_PAYMENT",
@@ -4639,8 +4559,7 @@
 				"trigger": "Employment ends",
 				"timing": "Contract completed or employee terminates with due notice or under s.11: on the last day (s.21(3), s.23(1)); dismissal: on the day of dismissal or, if not possible, within 3 days thereafter, not being a rest day or public holiday (s.22); employee leaves without notice or before notice expires: before the expiry of the 7th day after termination (s.23(2)). Subject to income-tax clearance under s.24.",
 				"owner": "Payroll / payment receipt and termination record",
-				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.21(3), 22, 23 (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when a run's pay date passes the version's `payroll.final_pay_deadlines`; those rows cannot yet tell a resignation or retrenchment with notice served (due on the last day) from one without."
 			},
 			{
 				"code": "SALARY_DEDUCTION_LIMITS",
@@ -4648,8 +4567,7 @@
 				"trigger": "Any deduction from salary",
 				"timing": "Each salary period; the 50% limit does not apply to the last salary on termination.",
 				"owner": "Payroll / deduction authorities and consents",
-				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 ss.26, 27, 32 (https://sso.agc.gov.sg/Act/EmA1968). The engine has no deduction-cap mechanism."
 			},
 			{
 				"code": "TAX_CLEARANCE_AND_WITHHOLDING",
@@ -4657,8 +4575,7 @@
 				"trigger": "Notice of cessation, overseas posting or departure of a non-Citizen employee",
 				"timing": "At least one month before the cessation, posting or departure; monies withheld from the day the employer is aware; tax under a Directive to Pay Tax paid within 10 days; the final salary not delayed more than 30 days after notice to the Comptroller (EA s.24(2)). Late or no filing: fine up to $5,000.",
 				"owner": "Finance / IR21 submission, withheld balance and clearance directive",
-				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it.",
-				"status": "PARTIAL"
+				"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide). The engine raises a disbursement hold for a non-Citizen leaver (`payroll.tax_clearance`); filing and the release are outside it."
 			},
 			{
 				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
@@ -4666,8 +4583,7 @@
 				"trigger": "Employment income paid in a calendar year",
 				"timing": "By 1 March of the following year.",
 				"owner": "Finance / AIS acknowledgement or forms given to employees",
-				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
-				"status": "EXTERNAL"
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)."
 			},
 			{
 				"code": "WORK_INJURY_COMPENSATION_INSURANCE",
@@ -4675,8 +4591,7 @@
 				"trigger": "Employing a covered employee",
 				"timing": "In force for the whole period of employment.",
 				"owner": "HR / insurance policy",
-				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
-				"status": "EXTERNAL"
+				"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance)."
 			},
 			{
 				"code": "HOURS_REST_DAY_AND_OVERTIME_LIMITS",
@@ -4684,8 +4599,7 @@
 				"trigger": "Scheduling or approving work for a Part 4 employee",
 				"timing": "Before the month (rest-day roster, s.36(4)); continuously (s.38(5), s.38(8)); an exemption order under s.41A displayed while it applies.",
 				"owner": "Operations / rosters, time records and any exemption order",
-				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it.",
-				"status": "PARTIAL"
+				"authority": "Employment Act 1968 ss.36, 38(5), 38(8), 41A (https://sso.agc.gov.sg/Act/EmA1968). The engine warns when the month's overtime or a day's hours pass the version's limits; rosters and exemptions are outside it."
 			},
 			{
 				"code": "MISCONDUCT_INQUIRY_AND_LEAVE",
@@ -4693,8 +4607,7 @@
 				"trigger": "Dismissal alleged to justify forfeiture",
 				"timing": "Before the dismissal (s.14); the leave pay with the final salary.",
 				"owner": "HR / inquiry finding and applicable statutory basis",
-				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice).",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.14 and s.88A(8) (https://sso.agc.gov.sg/Act/EmA1968); MOM, Termination with notice (https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice)."
 			},
 			{
 				"code": "RETRENCHMENT_NOTIFICATION_AND_BENEFIT",
@@ -4702,8 +4615,7 @@
 				"trigger": "An employer registered in Singapore with at least 10 employees notifies any employee of retrenchment",
 				"timing": "Within 5 working days after the affected employees are notified.",
 				"owner": "HR / MOM notification acknowledgement and retrenchment package record",
-				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
-				"status": "EXTERNAL"
+				"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
 			},
 			{
 				"code": "GOVERNMENT_PAID_LEAVE_AND_NS_CLAIMS",
@@ -4711,8 +4623,7 @@
 				"trigger": "Government-paid leave taken, or an NS call-up",
 				"timing": "GPML and GPPL claims within 3 months after the last day of the leave; GPCL and extended childcare leave within 3 months after the end of the 12-month period; later claims only with MSF approval. NS make-up pay per the MINDEF/MHA claim rules.",
 				"owner": "HR / claim submissions and reimbursement receipts",
-				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08).",
-				"status": "EXTERNAL"
+				"authority": "Child Development Co-Savings Act 2001; Enlistment Act 1970; Government-Paid Leave portal (https://www.profamilyleave.msf.gov.sg/); MSF, When is the submission deadline for GPL claims (https://ask.gov.sg/msf/questions/cls1lenm302b1jzsgpnu9hn08)."
 			},
 			{
 				"code": "RETIREMENT_AND_RE_EMPLOYMENT",
@@ -4720,8 +4631,7 @@
 				"trigger": "An employee approaches the applicable retirement age or a re-employment contract expiry",
 				"timing": "Minimum retirement age 64, re-employment up to 69 (in force from 1 July 2026; transitional cohorts started re-employment at 62 or 63). Engage at least six months and offer a contract at least three months before the applicable retirement or renewal point. If an eligible employee cannot be re-employed after reasonable attempts and no accepted alternate-employer offer, pay EAP as a lump sum by the last employment day or under a mutually agreed arrangement, including instalments. Take the 1 July 2026 Tripartite Guidelines into account: regular EAP guide is 3.5 months of gross pay ($6,250–$14,750); stepped-down guide is 2 months ($4,000–$8,500) from age 65.5 for birth 1 July 1958–30 June 1960, age 66 for birth 1 July 1960–30 June 1963, and age 66.5 for birth from 1 July 1963. The guidelines advise that EAP should not exceed salary remaining to age 69 and allow part-time minimum/maximum pro-ration by comparable weekly hours. Record the eligibility, offer or transfer decision, amount and payment agreement.",
 				"owner": "HR / re-employment offer or EAP record",
-				"authority": "Retirement and Re-employment Act 1993 s.7C(1), (4)–(5) (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); MOM, Tripartite Guidelines on the Re-employment of Older Employees, updated 1 July 2026, paras.30–43 (https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en).",
-				"status": "PARTIAL"
+				"authority": "Retirement and Re-employment Act 1993 s.7C(1), (4)–(5) (https://sso.agc.gov.sg/Act/RRA1993?ProvIds=pr7C-); MOM, Tripartite Guidelines on the Re-employment of Older Employees, updated 1 July 2026, paras.30–43 (https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en)."
 			},
 			{
 				"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
@@ -4729,8 +4639,7 @@
 				"trigger": "Collection, use or disclosure of an applicant's or employee's personal data (onboarding, payroll, CPF/IRAS filing, benefits, termination)",
 				"timing": "On or before collection, use or disclosure; a new purpose needs fresh notification and consent unless an exception applies",
 				"owner": "HR / privacy notice in the offer letter or employment contract",
-				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
 			},
 			{
 				"code": "PDPA_ACCESS_CORRECTION_ACCURACY",
@@ -4738,8 +4647,7 @@
 				"trigger": "An access or correction request, or any use of personal data to make a decision affecting the employee",
 				"timing": "As soon as reasonably possible (access, s.21(1)) or practicable (correction, s.22(2)); an organisation unable to respond within 30 days after receiving the request must within that time inform the applicant in writing of the time by which it will respond (Personal Data Protection Regulations 2021 reg.5)",
 				"owner": "HR / request log",
-				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.21, 22, 22A, 23 (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection Regulations 2021 regs.4–5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=pr4-,pr5-, read 2026-09-23)"
 			},
 			{
 				"code": "PDPA_PROTECTION",
@@ -4747,8 +4655,7 @@
 				"trigger": "Holding employee personal data, including in a payroll system or a data intermediary",
 				"timing": "Continuous",
 				"owner": "HR / IT security; data-intermediary contract with the payroll vendor",
-				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.24 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_RETENTION_LIMITATION",
@@ -4756,8 +4663,7 @@
 				"trigger": "End of employment, a rejected application, or expiry of the record's legal retention period",
 				"timing": "As soon as it is reasonable to assume that retention no longer serves the purpose",
 				"owner": "HR / retention schedule and disposal record",
-				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			},
 			{
 				"code": "PDPA_DATA_BREACH_NOTIFICATION",
@@ -4765,8 +4671,7 @@
 				"trigger": "Credible grounds to believe a data breach affecting personal data in the organisation's possession or control has occurred",
 				"timing": "Assess reasonably and expeditiously (PDPC: within 30 calendar days); notify the PDPC as soon as practicable and no later than 3 calendar days after determining the breach is notifiable; notify affected individuals as soon as practicable, at the same time as or after the PDPC",
 				"owner": "DPO / breach assessment record and PDPC notification",
-				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 Part 6A ss.26A–26E, including s.26B (notifiable breaches), s.26C (duty to assess), s.26D (duty to notify) (https://sso.agc.gov.sg/Act/PDPA2012); Personal Data Protection (Notification of Data Breaches) Regulations 2021 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021); PDPC Guide on Managing and Notifying Data Breaches (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf)"
 			},
 			{
 				"code": "PDPA_DPO_AND_POLICIES",
@@ -4774,8 +4679,7 @@
 				"trigger": "The organisation collects, uses or discloses personal data (every employer)",
 				"timing": "Continuous; keep the DPO contact current",
 				"owner": "Management / DPO appointment record",
-				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)",
-				"status": "EXTERNAL"
+				"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012)"
 			}
 		],
 		"facts": [

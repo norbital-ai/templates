@@ -6,8 +6,7 @@
  * (`scripts/generate-import-templates.mjs`) writes the same layout to the desktop for review; this
  * is the copy the app hands an operator, prefilled with the entity and the month the board is on.
  *
- * A header row and nothing else: the reader refuses a file with nothing to import, which is the
- * correct answer for a template nobody has filled in yet.
+ * Empty sheets are an explicit replacement: their editable recorded values in the selected entity/month are cleared.
  */
 
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
@@ -28,7 +27,10 @@ const READ_ME_LINES = [
 	'Scheduling import — one legal entity, one month',
 	'',
 	'Every sheet is a month grid: one person per row (employee_number), one column per',
-	'day of the month (1–31), one cell per person-day. A blank cell states nothing.',
+	'day of the month (1–31), one cell per person-day.',
+	'Upload SET replaces every recorded entry for the selected legal entity and month.',
+	'Blank cells and omitted people clear editable entries on each supplied sheet.',
+	'A sheet omitted from the workbook leaves its entries unchanged.',
 	'',
 	'A. Roster (the plan): a shift code, REST or OFF in each cell.',
 	'   Never type PH: holidays come from the worksite holiday calendar.',
@@ -67,8 +69,10 @@ const READ_ME_LINES = [
 	'',
 	'Cut-off: an entry is paid in the run whose attendance window holds its date',
 	'(e.g. 21 Dec – 20 Jan), not by calendar month. After the cut-off = next run.',
-	'Lock: a day or entry a run consumed is sealed; correct it with an adjustment',
-	'entry in the next cycle.',
+	'Lock: an entry consumed by a paid individual payslip is sealed, for any run kind.',
+	'Changing or omitting a locked entry refuses the whole upload; identical entries pass.',
+	'Correct paid entries with an adjustment entry in the next cycle.',
+	'Unpaid draft entries remain editable; recalculate payroll after replacing them.',
 	'',
 	'Settings: legal entity, month (YYYY-MM), IANA timezone.',
 	'Where the rules ask for per-occasion consent or declare work-day inputs, Overtime is',
