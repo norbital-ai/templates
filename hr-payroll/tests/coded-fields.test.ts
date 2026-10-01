@@ -232,10 +232,8 @@ test('terms record a worksite and sector their wage order prices; an empty vocab
 		write({ worksite: 'Hill/Lower' }),
 		/worksite Hill\/Lower is not a wage place/
 	);
-	await assert.rejects(
-		write({ worksite_sector: 'MINING' }),
-		/worksite_sector MINING is not a wage sector/
-	);
+	// An open sector table (`daily_by_sector`): any other sector owes the place's own floor.
+	await write({ worksite_sector: 'MINING' });
 	// `vocabularies` declares no statutory_work_category: the model default passes, nothing else
 	await write({ statutory_work_category: 'NON_MANUAL' });
 	await assert.rejects(
@@ -275,7 +273,9 @@ test('a holiday’s worksite and religions are the lineage’s', async () => {
 			tables: { ...tables(), companies: [{ id: 'c1', settings_code: 'AAA' }] }
 		});
 	await holiday({ worksite: 'Coast/Port', religion: 'FAITH_A,FAITH_B' });
-	await assert.rejects(holiday({ worksite: 'Port' }), /worksite Port is not a wage place/);
+	// A bare locality resolves to its one keyed place, as payroll does (`canonicalPlace`).
+	await holiday({ worksite: 'Port' });
+	await assert.rejects(holiday({ worksite: 'Nowhere' }), /worksite Nowhere is not a wage place/);
 	await assert.rejects(holiday({ religion: 'FAITH_C' }), /religion FAITH_C is not a RELIGION code/);
 });
 

@@ -2615,6 +2615,45 @@ test('Shanghai — 育儿假: 5 days for each child under three, in each year fr
 	}
 });
 
+test('Shanghai — 育儿假: a child-year opened before the hire grants its 5 days to the new hire (CN-SH13-3)', () => {
+	// Born 1 Jun 2024, hired 1 Jan 2026: the child's year 1 Jun 2025 – 31 May 2026 opened before the
+	// contract, and its days are still owed in January (沪府规〔2022〕18号 art.3).
+	const row = leaveCatalogue(SH).find((item) => item.code === 'CHILDCARE_LEAVE')!;
+	const plan = (from: string, to: string) => {
+		const context = leaveContext();
+		const hired = { start: '2026-01-01', end: null };
+		context.employments[0]!.effective_range = hired;
+		context.terms[0]!.effective_range = hired;
+		context.terms[0]!.worksite = 'SHANGHAI';
+		context.employees[0]!.marital_status = 'MARRIED';
+		context.employees[0]!.children = [
+			{ child_birthdate: '2024-06-01', relationship: 'CHILD', effective_range: null }
+		];
+		context.catalogues.push({
+			id: id(90),
+			settings_id: id(6),
+			code: 'CHILDCARE_LEAVE',
+			name: row.name as string,
+			is_npl: false,
+			can_encash: false,
+			evidence_after_days: null,
+			eligibility: row.eligibility as string,
+			entitlement: row.entitlement as never
+		});
+		try {
+			return `${planLeaveActivity(context, { ...submission(timeOff(from, to)), catalogue_id: id(90) }, id(91)).days}`;
+		} catch (error) {
+			return refusalMessage(error).includes('year from a child')
+				? 'refused'
+				: refusalMessage(error);
+		}
+	};
+	assert.deepEqual(
+		[plan('2026-01-06', '2026-01-07'), plan('2026-01-05', '2026-01-10')],
+		['2', 'refused']
+	);
+});
+
 // ─────────────────────────────────── Both cities: the employer's own maternity share (round 6) ─────
 
 const employerShareOf = (slip: BuiltPayslip | undefined) =>

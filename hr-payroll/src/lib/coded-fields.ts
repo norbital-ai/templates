@@ -115,11 +115,23 @@ const wageAdmits = (
 	wages: WageKeySource | null | undefined,
 	kind: WageKeys,
 	value: string
-): boolean =>
-	wageKeys(wages, kind).includes(value) ||
-	(kind === 'sectors' &&
-		wages?.sector_code_pattern != null &&
-		new RegExp(wages.sector_code_pattern).test(value));
+): boolean => {
+	if (kind === 'sectors')
+		return (
+			wageSectors(wages).includes(value) ||
+			(wages?.sector_code_pattern != null && new RegExp(wages.sector_code_pattern).test(value)) ||
+			// an open sector table (TH `daily_by_sector`): any other sector owes the place's own floor
+			Object.keys(wages?.daily_by_sector ?? {}).length > 0
+		);
+	// A place resolves as payroll does (`placeWage`): itself, a locality the keys end in, or the
+	// province above it — `Chiang Mai/Mae Rim` owes `Chiang Mai`'s floor.
+	const keys = new Set([...wagePlaces(wages), ...wageRegions(wages)]);
+	const parts = value.split('/');
+	return (
+		parts.some((_, index) => keys.has(parts.slice(0, index + 1).join('/'))) ||
+		[...keys].some((key) => key.endsWith(`/${value}`))
+	);
+};
 
 /**
  * One wage-keyed value against some of `orders`: empty is no key; orders that name no key of

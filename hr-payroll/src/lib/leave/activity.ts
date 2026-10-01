@@ -600,7 +600,10 @@ export function planLeaveActivity(
 					const start =
 						monthDay(y, m - 1, d) <= date ? monthDay(y, m - 1, d) : monthDay(y - 1, m - 1, d);
 					const key = `${child}/${start}`;
-					if (!room.has(key)) room.set(key, grantedDays(rule, rules.childPersonOn(start, child)));
+					// Read from the hire when the child's year opened before it: the terms (the worksite a
+					// band names) begin there, and the child's age is the same on every day of its year.
+					const read = start < rules.hire ? rules.hire : start;
+					if (!room.has(key)) room.set(key, grantedDays(rule, rules.childPersonOn(read, child)));
 					return [key];
 				});
 			const reach = [...earlier, ...charged].map((row) => yearsOf(row.date));

@@ -1027,6 +1027,7 @@
 				"label": "PTKP tax status",
 				"change_effect": "YEAR_START",
 				"options": ["KI"],
+				"default_value": "",
 				"description": "PMK 168/2023 art.9(3): `KI` where a married woman employee shows the local government’s written statement that her husband has no income, so her PTKP includes the spouse and dependants. Unrecorded is no such statement: a married woman’s PTKP is her own."
 			},
 			{
@@ -2119,6 +2120,7 @@
 				"label": "PTKP tax status",
 				"change_effect": "YEAR_START",
 				"options": ["KI"],
+				"default_value": "",
 				"description": "PMK 168/2023 art.9(3): `KI` where a married woman employee shows the local government’s written statement that her husband has no income, so her PTKP includes the spouse and dependants. Unrecorded is no such statement: a married woman’s PTKP is her own."
 			},
 			{
@@ -3186,6 +3188,7 @@
 				"label": "PTKP tax status",
 				"change_effect": "YEAR_START",
 				"options": ["KI"],
+				"default_value": "",
 				"description": "PMK 168/2023 art.9(3): `KI` where a married woman employee shows the local government’s written statement that her husband has no income, so her PTKP includes the spouse and dependants. Unrecorded is no such statement: a married woman’s PTKP is her own."
 			},
 			{
