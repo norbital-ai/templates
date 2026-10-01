@@ -24,16 +24,16 @@ const fake = (total) => {
 	};
 };
 
-test('a whole-row payslip read of 84 slips takes two crossings of at most 50', async () => {
-	const reads = fake(84);
+test('a whole-row payslip read of 284 slips takes two crossings of at most 200', async () => {
+	const reads = fake(284);
 	const rows = await readAll(reads, 'payslips', { employment_id: { in: ['e'] } });
-	assert.equal(rows.length, 84);
-	assert.deepEqual(rows.at(-1), { id: 'r83' });
+	assert.equal(rows.length, 284);
+	assert.deepEqual(rows.at(-1), { id: 'r283' });
 	assert.deepEqual(
 		reads.calls.map((call) => [call.limit, call.after]),
 		[
-			[50, undefined],
-			[50, 50]
+			[200, undefined],
+			[200, 200]
 		]
 	);
 });

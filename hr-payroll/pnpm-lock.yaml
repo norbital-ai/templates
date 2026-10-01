@@ -55,8 +55,8 @@ importers:
         specifier: 0.0.149
         version: 0.0.149(@types/node@26.4.1)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.4.1))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       '@norbital-ai/doctor':
-        specifier: 0.0.132
-        version: 0.0.132
+        specifier: 0.0.149
+        version: 0.0.149
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.1
         version: 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.4.1)(jiti@2.7.0)(yaml@2.9.0))
@@ -531,9 +531,6 @@ packages:
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
-
-  '@norbital-ai/doctor@0.0.132':
-    resolution: {integrity: sha512-NrZpd1611G3YoVFiuYZYuA6osxUyiR7KamgrUezq/bbGzwHWIiVMtQMJiWcjW7JIgPvnQ3JZlefWD1dbM9uVQA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.132/f1403e669194feae9062ed144ef24110b91e603f}
 
   '@norbital-ai/doctor@0.0.149':
     resolution: {integrity: sha512-Gi3S5gA5I2jMvWDGkqBXpp3ADsN7WOjTyoZY2KvMRqCWxkNr6HVk3tmsyhf3QjGCOuKOC5lEKW6dZtZZUuLAmg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.149/0cb4ce65c971aa580ddf53d946280f787e12e231}
@@ -3173,12 +3170,6 @@ snapshots:
       - tsx
       - yaml
       - zod
-
-  '@norbital-ai/doctor@0.0.132':
-    dependencies:
-      effect: 4.0.0-rc.112
-      typescript: 6.0.3
-      yaml: 2.9.0
 
   '@norbital-ai/doctor@0.0.149':
     dependencies:

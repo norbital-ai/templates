@@ -240,10 +240,6 @@ function monthsSpanned(span: PayRange): string[] {
 	return months;
 }
 
-function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
-	return Predicate.isString(terms.id) && terms.id !== '' ? terms.id : termsSnapshotKey(terms);
-}
-
 export function termsAt(
 	bundle: EmploymentBundle,
 	date: IsoDate
@@ -2440,7 +2436,9 @@ export function measureContractSegments(options: {
 			const nextTerms = date == null ? null : termsOn(date);
 			if (
 				nextTerms != null &&
-				termsIdentity(nextTerms) === termsIdentity(runTerms) &&
+				// The same row object, not the same id: a floor raised mid-period splits one row into
+				// dated pieces that share its id.
+				nextTerms === runTerms &&
 				(options.contractPeriod !== 'MONTH' || monthKey(date!) === monthKey(runStart))
 			)
 				continue;

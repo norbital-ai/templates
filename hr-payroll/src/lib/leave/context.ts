@@ -10,7 +10,7 @@ import { completedLeaveServiceMonths, computedEntitlement, leaveWindowOf } from 
 import { dateKey } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import type { CompanyFactRevision } from '../declared-facts.js';
-import { coversDate } from '../../lib/payroll/run/effective.js';
+import { coversDate, readRange } from '../../lib/payroll/run/effective.js';
 import { addDays, daysBetween, inclusiveDays, monthDay } from '../../lib/payroll/run/dates.js';
 import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
 import { resolveHolidays } from '../holiday-calendar.js';
@@ -933,6 +933,28 @@ export function leaveRules(
 		);
 	};
 	/**
+	 * A normal working day of the roster: the pattern of the terms in force, or of the nearest terms
+	 * for a day outside them (a part first or last month counts the whole month's working days).
+	 */
+	const patternRows = new Map(context.patterns.map((row) => [row.id, row]));
+	const datedTerms = terms.toSorted((a, b) =>
+		dateKey(readRange(a.effective_range)?.start).localeCompare(
+			dateKey(readRange(b.effective_range)?.start)
+		)
+	);
+	const normalWorkingDayOn = (day: string): boolean => {
+		const term =
+			datedTerms.find((row) => coversDate(row.effective_range, day)) ??
+			(day < hire ? datedTerms[0] : datedTerms.at(-1));
+		const pattern = term == null ? null : termPatternRow(term, patternRows);
+		if (pattern == null) refuse(`${selected.code} needs a work pattern to count working days.`);
+		const shift = rosterCodes.get(
+			patternRosterCodeId(pattern.pattern, day, patternAnchor(pattern)) ?? ''
+		);
+		if (shift == null) refuse(`${selected.code} needs a dated roster code on ${day}.`);
+		return rosterCodeKind(shift.variant) === 'WORK';
+	};
+	/**
 	 * Whether the window's grant is forfeited: unexcused whole-day absences above `share` of its
 	 * working days (`entitlement.forfeit_above_absence_share`), each day's decision read from its
 	 * recorded absence inputs. Days on and before the terms' opening attendance declaration were
@@ -1124,7 +1146,8 @@ export function leaveRules(
 			eligibleOn: grantedOn,
 			personOn: (day) => servicePersonOn(day, false),
 			serviceExcludedOn: netService ? (day) => noPayDays.get(day) ?? 0 : undefined,
-			hourlyBasisOn
+			hourlyBasisOn,
+			normalWorkingDayOn
 		});
 		const lost = forfeited(window, asOf, rule.forfeit_above_absence_share);
 		const previousEnd = addDays(window.start, -1);

@@ -54,7 +54,7 @@ import {
 } from '../expressions/person-functions.js';
 import type { PayslipProration } from '../datatypes/payslip_proration.js';
 import type { InLieuSlice, PayrollTrace } from '../datatypes/payroll_trace.js';
-import type { PayslipWageMonth } from './history.js';
+import { openingsOf, type PayslipWageMonth } from './history.js';
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
@@ -782,7 +782,7 @@ export function prepareFamilyHistory(
 		statutoryHistory: buildStatutoryHistory(options),
 		yearEarned: earnedYearToDate(options),
 		yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
-		earnedByMonth: earnedByMonth(options),
+		earnedByMonth: earnedByMonth({ ...options, openings: options.world.employment_wage_periods }),
 		paidWagesByMonth: new Map(
 			[
 				...earnedByMonth({
@@ -887,6 +887,8 @@ function absenceOf(adjustments: readonly MeasuredAdjustment[]): number {
  */
 function earnedByMonth(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	/** Opening pay recorded before this workspace; a month no payslip settles reads its normal wages. */
+	readonly openings?: readonly WorkspaceRow<'employment_wage_periods'>[];
 	readonly employmentToEmployee: ReadonlyMap<string, string>;
 	readonly periodByRun: ReadonlyMap<string, string>;
 	readonly traceByRun: ReadonlyMap<string, PayrollTrace>;
@@ -956,6 +958,21 @@ function earnedByMonth(options: {
 		add(byCode, OVERTIME_FLOOR_DAYS, (traced?.overtime_days ?? 0) * (traced?.minimum_wage ?? 0));
 		byMonth.set(month, byCode);
 		earned.set(employeeId, byMonth);
+	}
+	const settled = new Map(
+		[...earned].map(([employeeId, months]) => [employeeId, new Set(months.keys())])
+	);
+	for (const row of options.openings ?? []) {
+		const employeeId = options.employmentToEmployee.get(row.employment_id);
+		if (employeeId == null) continue;
+		for (const slip of openingsOf([row])) {
+			if (settled.get(employeeId)?.has(slip.wage_month)) continue;
+			const byMonth = earned.get(employeeId) ?? new Map<string, Map<string, number>>();
+			const byCode = byMonth.get(slip.wage_month) ?? new Map<string, number>();
+			add(byCode, WAGES, slip.recorded.normal_wages);
+			byMonth.set(slip.wage_month, byCode);
+			earned.set(employeeId, byMonth);
+		}
 	}
 	return earned;
 }

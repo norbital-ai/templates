@@ -627,7 +627,7 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 		// Decree 145/2020 art.66(2): a part month with at least half its days worked or paid counts
 		// as a month of annual leave. A joiner on 15 January (17 of 31 days) carries January and
 		// earns the whole twelve; one on 20 January (12 of 31) starts in February — eleven.
-		const partYear = (hire: string) =>
+		const partYear = (hire: string, born = '1990-01-01') =>
 			computedEntitlement({
 				rule: leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement,
 				window: { start: '2026-01-01', end: '2026-12-31' },
@@ -638,7 +638,7 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 				eligibleOn: () => true,
 				personOn: (date) =>
 					personContext({
-						employee: { date_of_birth: '1990-01-01' },
+						employee: { date_of_birth: born },
 						employment: { service_start: hire },
 						terms: null,
 						asOf: date
@@ -646,6 +646,9 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			}).entitlement;
 		assert.equal(partYear('2026-01-15'), 12);
 		assert.equal(partYear('2026-01-20'), 11);
+		// art.66 states no rounding (VN-LC113-02: none may be invented): a minor's fourteen days over
+		// June–December is 14 × 7 / 12 = 8.1667, not the half day 8.0.
+		assert.ok(Math.abs(partYear('2026-06-01', '2010-01-01') - (14 * 7) / 12) < 1e-9);
 		// art.114 has no top: thirty-five years of service is nineteen days.
 		assert.equal(
 			grantedDays(
@@ -1430,6 +1433,38 @@ test('LIT-06 — a HALF_MONTHS month counts at the row’s month_counts_when sha
 		() => partYear({ ...annual, month_counts_when: null }),
 		/share of days a month counts at/
 	);
+});
+
+test('LIT-06 — a HALF_MONTHS month share on NORMAL_WORKING_DAYS counts the roster’s working days', () => {
+	const annual = {
+		...leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement,
+		month_share_basis: 'NORMAL_WORKING_DAYS' as const
+	};
+	const weekday = (date: string) => ![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+	const leaver = (hireDate: string, rule: LeaveEntitlement = annual) =>
+		computedEntitlement({
+			rule,
+			window: { start: '2026-01-01', end: '2026-12-31' },
+			asOf: '2026-06-30',
+			hireDate,
+			exitDate: '2026-06-30',
+			servedOn: () => true,
+			eligibleOn: () => true,
+			personOn: (date) =>
+				personContext({
+					employee: { date_of_birth: '1990-01-01' },
+					employment: { service_start: hireDate },
+					terms: null,
+					asOf: date
+				}),
+			normalWorkingDayOn: weekday
+		}).entitlement;
+	// February 2026 has 20 Monday–Friday days. A 16 February hire works 10 of them: 10 ≥ 0.5 × 20,
+	// so February through June count, 12 × 5/12 = 5 days. A 17 February hire works 9 < 10: 4 days.
+	assert.equal(leaver('2026-02-16'), 5);
+	assert.equal(leaver('2026-02-17'), 4);
+	// On calendar days the 16 February hire holds 13 of 28 < 14: February does not count.
+	assert.equal(leaver('2026-02-16', { ...annual, month_share_basis: 'CALENDAR_DAYS' }), 4);
 });
 
 test('LIT-06 — leave by the hour charges the share of the shift to the row’s hour_share_step', () => {

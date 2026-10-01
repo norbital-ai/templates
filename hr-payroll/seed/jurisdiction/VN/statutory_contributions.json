@@ -557,7 +557,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -900,7 +900,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -1243,7 +1243,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -1905,7 +1905,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -2248,7 +2248,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -2591,7 +2591,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -3253,7 +3253,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -3596,7 +3596,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -3939,7 +3939,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -4282,7 +4282,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -4625,7 +4625,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -4968,7 +4968,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -5630,7 +5630,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -5973,7 +5973,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -6316,7 +6316,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -7029,7 +7029,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -7419,7 +7419,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",
@@ -7822,7 +7822,7 @@
 				"type": "boolean",
 				"label": "Qualifies for a retirement pension",
 				"description": "The employee meets the age and contribution years for a monthly retirement pension (Law 41/2024 art.64). Law 74/2025 art.31(2) places such an employee outside unemployment insurance even before the pension is drawn.",
-				"required": true
+				"required_when": "person.employee.citizenship != \"FOREIGNER\""
 			},
 			{
 				"key": "disabled_new_hire_relief",

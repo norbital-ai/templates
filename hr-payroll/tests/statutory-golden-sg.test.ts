@@ -59,7 +59,11 @@ test('Singapore — an unrelated employer does not consume this employer’s CPF
 		readonly terms_unchanged?: boolean;
 		readonly transferred_employee?: boolean;
 	};
-	const charge = (period: '2025-12' | '2026-12', opening?: readonly Opening[]) => {
+	const charge = (
+		period: '2025-12' | '2026-12',
+		opening?: readonly Opening[],
+		bonusAmount = 20_000
+	) => {
 		const wage = period === '2025-12' ? 7400 : 8000;
 		const { slips } = buildStatutory(
 			{
@@ -84,7 +88,7 @@ test('Singapore — an unrelated employer does not consume this employer’s CPF
 					id: 'd0000000-0000-4000-8000-0000000000d1',
 					employment_id: world.employments[0]!.id,
 					catalogue_id: bonus.id,
-					amount: 20_000,
+					amount: bonusAmount,
 					event_date: `${period}-15`,
 					pay_period: null,
 					payslip_id: null,
@@ -154,6 +158,27 @@ test('Singapore — an unrelated employer does not consume this employer’s CPF
 			/Board approval and transfer conditions/
 		);
 	}
+	// First Schedule para 2: the year's AW ceiling counts an opening AW too. December 2026, OW 8,000;
+	// opening 88,000 OW + 4,000 AW: ceiling 102,000 − (88,000 + 8,000) = 6,000, 4,000 of it used, so
+	// 2,000 of a 5,000 bonus is chargeable — base 10,000, 20% / 17% = 2,000 / 1,700.
+	assert.deepEqual(
+		charge(
+			'2026-12',
+			[
+				{
+					year: '2026',
+					base: 92_000,
+					ordinary: 88_000,
+					employee: 18_400,
+					employer: 15_640,
+					reference: 'Employer CPF statement',
+					origin: 'CURRENT_EMPLOYER'
+				}
+			],
+			5_000
+		),
+		[10_000, 2000, 1700]
+	);
 });
 
 test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', () => {
@@ -752,6 +777,29 @@ test('Singapore — the normal day is nine hours on a five-day week (s.38(1)), a
 	// The rostered week is fifty hours, over s.38(1)(b)'s 44: 12 × 2,288 ÷ (52 × 44) = 12.00 an
 	// hour (s.2); one hour beyond nine at 1.5× = 18.00.
 	assert.deepEqual(workLines(slips.get('SG-LONG')!), [['2026-01-05', 'OT-1.5X', 1, 18]]);
+});
+
+test('Singapore — the 12-hour day is twelve hours of work, meal intervals excluded (EA s.38 with s.2 “hours of work”)', () => {
+	// EA s.2 (MOM, “Hours of work, overtime and rest days”): hours of work do not include “any
+	// intervals allowed for rest and meals”; s.38: no more than 12 hours a day. With the 13:00–14:00
+	// meal taken, 09:00–22:00 is 13 clock hours but 12 of work — within the day; 09:00–23:00 is 13.
+	const { warnings } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [
+				{ key: 'SG-12', wage: 2288, citizenship: 'CITIZEN' },
+				{ key: 'SG-13', wage: 2288, citizenship: 'CITIZEN' }
+			]
+		},
+		(world) => {
+			punchWithBreak(world, 'SG-12', '2026-01-05', '09:00', '22:00');
+			punchWithBreak(world, 'SG-13', '2026-01-05', '09:00', '23:00');
+		}
+	);
+	const daily = warnings.filter((line) => line.startsWith('DAILY_WORK_LIMIT_EXCEEDED'));
+	assert.equal(daily.length, 1, daily.join('\n'));
+	assert.match(daily[0]!, /SG-13 worked 13\.00 hours/);
 });
 
 test('Singapore — a bonus is an Additional Wage under the 102,000 ceiling, and Employment Pass and Work Permit holders are inside SINDA', () => {

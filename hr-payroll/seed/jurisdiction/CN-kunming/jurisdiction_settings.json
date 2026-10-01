@@ -31,6 +31,13 @@
 				"type": "date",
 				"label": "Open-ended contract due",
 				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			},
+			{
+				"key": "under_16_exception_reference",
+				"type": "string",
+				"label": "Under-sixteen hiring exception reference",
+				"min_length": 1,
+				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
 		"change_summary": "First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020. Mo Han category III minimum wage is 1,870 / 19.",
@@ -444,6 +451,14 @@
 				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			},
+			{
+				"code": "CHILD_LABOUR_UNDER_16",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 16.0 && !(\"under_16_exception_reference\" in terms.fact_keys)",
+				"message": "No one under sixteen at hire may be recruited (child labour); an arts or sports unit's art.13 hire with the guardian's consent records its reference in the terms input under_16_exception_reference.",
+				"authority": "禁止使用童工规定 arts.2, 4, 13 (https://xzfg.moj.gov.cn/front/law/detail?LawID=604; register CN-N29.under-16-ban, CN-N29.narrow-exceptions): 不得招用不满16周岁的未成年人; 文艺、体育单位经未成年人的父母或者其他监护人的同意，可以招用不满16周岁的专业文艺工作者、运动员"
 			}
 		],
 		"person_facts": [
@@ -566,6 +581,13 @@
 				"type": "date",
 				"label": "Open-ended contract due",
 				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			},
+			{
+				"key": "under_16_exception_reference",
+				"type": "string",
+				"label": "Under-sixteen hiring exception reference",
+				"min_length": 1,
+				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
 		"change_summary": "Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026. Mo Han category III minimum wage is 1,870 / 19.",
@@ -997,6 +1019,14 @@
 				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			},
+			{
+				"code": "CHILD_LABOUR_UNDER_16",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 16.0 && !(\"under_16_exception_reference\" in terms.fact_keys)",
+				"message": "No one under sixteen at hire may be recruited (child labour); an arts or sports unit's art.13 hire with the guardian's consent records its reference in the terms input under_16_exception_reference.",
+				"authority": "禁止使用童工规定 arts.2, 4, 13 (https://xzfg.moj.gov.cn/front/law/detail?LawID=604; register CN-N29.under-16-ban, CN-N29.narrow-exceptions): 不得招用不满16周岁的未成年人; 文艺、体育单位经未成年人的父母或者其他监护人的同意，可以招用不满16周岁的专业文艺工作者、运动员"
 			}
 		],
 		"person_facts": [
@@ -1119,6 +1149,13 @@
 				"type": "date",
 				"label": "Open-ended contract due",
 				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			},
+			{
+				"key": "under_16_exception_reference",
+				"type": "string",
+				"label": "Under-sixteen hiring exception reference",
+				"min_length": 1,
+				"description": "禁止使用童工规定 art.13: the guardian's consent kept by an arts or sports unit that hires a professional performer or athlete under sixteen."
 			}
 		],
 		"change_summary": "Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120. Mo Han category III minimum wage is 1,970 / 20 from September 2026.",
@@ -1550,6 +1587,14 @@
 				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
+			},
+			{
+				"code": "CHILD_LABOUR_UNDER_16",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "check.date == employment.service_start && employee.birth_date != \"\" && employee.age_on(employment.service_start) < 16.0 && !(\"under_16_exception_reference\" in terms.fact_keys)",
+				"message": "No one under sixteen at hire may be recruited (child labour); an arts or sports unit's art.13 hire with the guardian's consent records its reference in the terms input under_16_exception_reference.",
+				"authority": "禁止使用童工规定 arts.2, 4, 13 (https://xzfg.moj.gov.cn/front/law/detail?LawID=604; register CN-N29.under-16-ban, CN-N29.narrow-exceptions): 不得招用不满16周岁的未成年人; 文艺、体育单位经未成年人的父母或者其他监护人的同意，可以招用不满16周岁的专业文艺工作者、运动员"
 			}
 		],
 		"person_facts": [

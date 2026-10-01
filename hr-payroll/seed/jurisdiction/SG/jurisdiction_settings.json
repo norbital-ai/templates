@@ -59734,7 +59734,8 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS",
+					"authority": "Employment Act 1968 s.38 with s.2 \"hours of work\" (exclusive of intervals allowed for rest and meals); MOM https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (read 2026-10-01)"
 				},
 				{
 					"key": "weekly_normal",
@@ -61021,7 +61022,8 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS",
+					"authority": "Employment Act 1968 s.38 with s.2 \"hours of work\" (exclusive of intervals allowed for rest and meals); MOM https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (read 2026-10-01)"
 				},
 				{
 					"key": "weekly_normal",
@@ -62308,7 +62310,8 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS",
+					"authority": "Employment Act 1968 s.38 with s.2 \"hours of work\" (exclusive of intervals allowed for rest and meals); MOM https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (read 2026-10-01)"
 				},
 				{
 					"key": "weekly_normal",
@@ -63595,7 +63598,8 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS",
+					"authority": "Employment Act 1968 s.38 with s.2 \"hours of work\" (exclusive of intervals allowed for rest and meals); MOM https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (read 2026-10-01)"
 				},
 				{
 					"key": "weekly_normal",
@@ -64882,7 +64886,8 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS",
+					"authority": "Employment Act 1968 s.38 with s.2 \"hours of work\" (exclusive of intervals allowed for rest and meals); MOM https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (read 2026-10-01)"
 				},
 				{
 					"key": "weekly_normal",

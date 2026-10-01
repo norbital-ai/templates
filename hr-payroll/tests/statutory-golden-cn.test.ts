@@ -52,6 +52,8 @@ import { computedEntitlement, grantedDays, leaveWindowOf } from '../src/lib/leav
 import { isEligible, personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { planLeaveActivity } from '../src/lib/leave/activity.ts';
 import { refusalMessage } from './fixtures/memory-payroll-api.ts';
+import { checkContext, checkIssues } from '../src/lib/checks.ts';
+import { checksOf } from '../src/lib/datatypes/checks.ts';
 import { id, leaveContext, submission, timeOff } from './helpers/manual-leave-context.ts';
 
 const SH = 'CN-shanghai';
@@ -3168,6 +3170,119 @@ test('Kunming — housing rent and housing-loan interest in one year refuse (国
 			}),
 		/cannot both be deducted/
 	);
+});
+
+test('Kunming — a foreign worker without a fund agreement is outside the fund: no base is demanded (CN-KM18.optional-participants)', () => {
+	const book = assessStatutory({
+		code: KM,
+		period: '2026-01',
+		region: 'CATEGORY_I',
+		companyFacts: KM_2026_FACTS,
+		people: [
+			person('KM-FOREIGN', 10_000, {
+				citizenship: 'FOREIGNER',
+				registrations: { HOUSING_FUND: { kind: 'REGISTERED', elections: {} } }
+			})
+		]
+	});
+	// Insured like anyone else (CN-N25): pension 8% / 16% of 10,000 = 800 / 1,600; no fund line.
+	expectStatutory(book, 'KM-FOREIGN', 'PENSION', 800, 1600);
+	expectStatutorySkipped(book, 'KM-FOREIGN', 'HOUSING_FUND');
+	// Control: a citizen with no declared base still refuses.
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: KM,
+				period: '2026-01',
+				region: 'CATEGORY_I',
+				companyFacts: KM_2026_FACTS,
+				people: [
+					person('KM-NOBASE', 10_000, {
+						registrations: { HOUSING_FUND: { kind: 'REGISTERED', elections: {} } }
+					})
+				]
+			}),
+		/contribution base/
+	);
+});
+
+test('Kunming — elderly support: CNY3,000 a month for an only child, a sibling’s share at most CNY1,500 (国发〔2018〕41号; 2023 No.14; CN-N16)', () => {
+	const elderly = (amount: number, onlyChild?: boolean) => ({
+		iit: {
+			...(onlyChild == null ? {} : { elections: { elderly_support_only_child: onlyChild } }),
+			deduction_claims: [
+				{
+					period: '2026-01',
+					category: 'ELDERLY_SUPPORT',
+					amount,
+					source: 'EMPLOYEE',
+					reference: 'ELDER-1'
+				}
+			]
+		}
+	});
+	const book = assessStatutory({
+		code: KM,
+		period: '2026-01',
+		region: 'CATEGORY_I',
+		companyFacts: KM_2026_FACTS,
+		people: [
+			person('KM-ONLY', 20_000, elderly(3_000, true)),
+			person('KM-SIBLING', 20_000, elderly(1_500))
+		]
+	});
+	// Insurance 1,600 + 400 + 60 + fund 2,400 = 4,460.
+	// Only child: 20,000 − 4,460 − 5,000 − 3,000 = 7,540 × 3% = 226.20.
+	expectStatutory(book, 'KM-ONLY', 'IIT', 226.2, 0);
+	// Sibling: 20,000 − 4,460 − 5,000 − 1,500 = 9,040 × 3% = 271.20.
+	expectStatutory(book, 'KM-SIBLING', 'IIT', 271.2, 0);
+	// A sibling's 1,600 is above the 1,500 share: refused, not deducted.
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: KM,
+				period: '2026-01',
+				region: 'CATEGORY_I',
+				companyFacts: KM_2026_FACTS,
+				people: [person('KM-SIBLING-1600', 20_000, elderly(1_600))]
+			}),
+		/Elderly support above the cap/
+	);
+});
+
+test('Shanghai and Kunming — no one under sixteen is recruited without the art.13 exception (禁止使用童工规定 arts.2, 13; CN-N29)', () => {
+	for (const code of [SH, KM])
+		for (const version of settingsVersions(code)) {
+			const at = 'TERMS_CHANGE' as const;
+			const day = String(version.effective_range.start).slice(0, 10);
+			const judge = (born: string, facts: Record<string, string> = {}) =>
+				checkIssues({
+					checks: checksOf(version).filter((check) => check.code === 'CHILD_LABOUR_UNDER_16'),
+					at,
+					context: checkContext({
+						at,
+						date: day,
+						person: personContext({
+							employee: { date_of_birth: born },
+							employment: { service_start: day },
+							terms: { base_salary: 3_000, currency: 'CNY', pay_frequency: 'MONTHLY', facts },
+							asOf: day
+						})
+					}),
+					subject: 'E001'
+				}).map((issue) => issue.code);
+			const year = Number(day.slice(0, 4));
+			// Sixteen on the day of hire: recruited. Fifteen: refused.
+			assert.deepEqual(judge(`${year - 16}${day.slice(4)}`), [], `${code} ${day} sixteen`);
+			const under = `${year - 15}${day.slice(4)}`;
+			assert.deepEqual(judge(under), ['CHILD_LABOUR_UNDER_16'], `${code} ${day} fifteen`);
+			// Art.13: an arts or sports unit's hire with the guardian's consent on file.
+			assert.deepEqual(
+				judge(under, { under_16_exception_reference: 'ART13-CONSENT' }),
+				[],
+				`${code} ${day} art.13`
+			);
+		}
 });
 
 test('every sealed version of `CN-shanghai` and `CN-kunming` is priced by a golden here', () => {

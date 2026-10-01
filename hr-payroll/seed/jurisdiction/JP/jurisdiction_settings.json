@@ -75,6 +75,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -84,6 +85,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -220,7 +222,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -412,6 +414,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -1153,6 +1162,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -1162,6 +1172,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -1298,7 +1309,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -1490,6 +1501,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -2231,6 +2249,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -2240,6 +2259,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -2376,7 +2396,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -2568,6 +2588,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -3309,6 +3336,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -3318,6 +3346,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -3454,7 +3483,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -3646,6 +3675,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -4387,6 +4423,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -4396,6 +4433,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -4532,7 +4570,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -4724,6 +4762,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -5465,6 +5510,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -5474,6 +5520,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -5610,7 +5657,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -5802,6 +5849,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -6543,6 +6597,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -6552,6 +6607,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -6688,7 +6744,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -6880,6 +6936,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -7621,6 +7684,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -7630,6 +7694,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -7766,7 +7831,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -7958,6 +8023,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -8699,6 +8771,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -8708,6 +8781,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -8844,7 +8918,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -9036,6 +9110,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -9777,6 +9858,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -9786,6 +9868,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -9922,7 +10005,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -10114,6 +10197,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -10855,6 +10945,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -10864,6 +10955,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -11000,7 +11092,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -11192,6 +11284,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -11933,6 +12032,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -11942,6 +12042,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -12078,7 +12179,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -12270,6 +12371,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -13011,6 +13119,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -13020,6 +13129,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -13156,7 +13266,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -13348,6 +13458,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -14089,6 +14206,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -14098,6 +14216,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -14234,7 +14353,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -14426,6 +14545,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -15167,6 +15293,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -15176,6 +15303,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -15312,7 +15440,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -15504,6 +15632,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -16245,6 +16380,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -16254,6 +16390,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -16390,7 +16527,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -16582,6 +16719,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -17323,6 +17467,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -17332,6 +17477,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -17468,7 +17614,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -17660,6 +17806,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -18401,6 +18554,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -18410,6 +18564,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -18546,7 +18701,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -18738,6 +18893,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -19479,6 +19641,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -19488,6 +19651,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -19624,7 +19788,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -19816,6 +19980,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -20557,6 +20728,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -20566,6 +20738,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -20702,7 +20875,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -20894,6 +21067,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -21635,6 +21815,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -21644,6 +21825,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -21780,7 +21962,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -21972,6 +22154,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -22713,6 +22902,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -22722,6 +22912,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -22858,7 +23049,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -23050,6 +23241,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -23791,6 +23989,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -23800,6 +23999,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -23936,7 +24136,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -24128,6 +24328,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -24869,6 +25076,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -24878,6 +25086,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -25014,7 +25223,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -25206,6 +25415,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -25947,6 +26163,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -25956,6 +26173,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -26092,7 +26310,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -26284,6 +26502,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -27025,6 +27250,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -27034,6 +27260,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -27170,7 +27397,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -27362,6 +27589,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -28103,6 +28337,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -28112,6 +28347,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -28248,7 +28484,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -28440,6 +28676,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -29181,6 +29424,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -29190,6 +29434,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -29326,7 +29571,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -29518,6 +29763,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -30259,6 +30511,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -30268,6 +30521,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -30404,7 +30658,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -30596,6 +30850,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -31337,6 +31598,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -31346,6 +31608,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -31482,7 +31745,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -31674,6 +31937,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -32415,6 +32685,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -32424,6 +32695,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -32560,7 +32832,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -32752,6 +33024,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -33493,6 +33772,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -33502,6 +33782,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -33638,7 +33919,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -33830,6 +34111,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -34571,6 +34859,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -34580,6 +34869,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -34716,7 +35006,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -34908,6 +35198,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
@@ -35649,6 +35946,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 45,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(3)–(4): the 36協定 限度時間 of 45 hours a month (a reported ceiling; a special clause may exceed it in up to six months)"
 				},
@@ -35658,6 +35956,7 @@
 					"measure": "OVERTIME_HOURS",
 					"max_hours": 360,
 					"unit": "WORKED_HOURS",
+					"when": "!(has(company.facts.overtime_special_clause) && company.facts.overtime_special_clause)",
 					"counts_day_when": "day_type != \"ORDINARY\" && !statutory_rest",
 					"authority": "労働基準法 §36(4): 限度時間 of 360 hours a year (a reported ceiling)"
 				},
@@ -35794,7 +36093,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
-			"overtime_unit_hours": 0.5,
+			"overtime_unit_hours": 0.016666666666666666,
 			"holiday_rest_precedence": "REST_DAY",
 			"ordinary_rate": {
 				"hour": "(terms.monthly_basic + contract.classes.PREMIUM_BASE) / (double(terms.facts.annual_scheduled_hours) / 12.0)",
@@ -35986,6 +36285,13 @@
 				"label": "電算機計算の特例 (月額表甲欄)",
 				"default_value": false,
 				"description": "平成24年財務省告示第116号 (https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf; 令和7年分 https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2024/data/18.pdf): true where the payer computes monthly 甲欄 withholding by the 電子計算機等 method instead of reading the 月額表; the difference is settled at the 年末調整."
+			},
+			{
+				"key": "overtime_special_clause",
+				"type": "boolean",
+				"label": "36協定 特別条項",
+				"default_value": false,
+				"description": "労働基準法 §36(5): a 36協定 with a special clause may exceed the 45-hour month and 360-hour year 限度時間 in up to six months a year, within 720 hours a year and under 100 hours a month with statutory-holiday work (§36(6)). Unrecorded is no special clause."
 			}
 		],
 		"terms_facts": [
