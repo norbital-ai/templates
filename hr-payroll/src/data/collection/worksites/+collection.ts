@@ -2,6 +2,7 @@ import { collection } from '@norbital-ai/bolt';
 import { readRange } from '../../../lib/payroll/run/effective.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
+import { factTables, lineageCodes, wageKeyFault } from '../../../lib/coded-fields.js';
 
 const worksites = collection('worksites', {
 	read: { fields: 'all' },
@@ -36,9 +37,14 @@ worksites.transform(async (inputs, { existing, db, refuse }) => {
 			: (
 					await db.read('jurisdiction_settings', {
 						...sealedLineages(codes),
-						select: { code: true, worksite_facts: true }
+						select: { id: true, code: true, worksite_facts: true, work_rules: true }
 					})
 				).rows;
+	const codesOf = await lineageCodes(
+		db,
+		versions,
+		factTables(versions.flatMap((version) => version.worksite_facts ?? []))
+	);
 	return inputs.map((input, index) => {
 		const stored = existing[index];
 		const companyId = input.company_id ?? stored?.company_id;
@@ -55,14 +61,25 @@ worksites.transform(async (inputs, { existing, db, refuse }) => {
 				field: 'effective_range'
 			});
 		const facts = input.facts ?? stored?.facts ?? {};
+		const own = versions.filter((version) => version.code === lineage);
+		const region = input.region ?? stored?.region;
+		// A worksite fact's parent may be the worksite's own region (an industry under its prefecture).
 		const fault = entityFactsFault(
 			lineage,
 			facts,
-			versions
-				.filter((version) => version.code === lineage)
-				.flatMap((version) => version.worksite_facts ?? [])
+			own.flatMap((version) => version.worksite_facts ?? []),
+			codesOf(lineage),
+			{ region: region ?? '' }
 		);
 		if (fault != null) refuse(fault, { field: 'facts' });
+		const site = wageKeyFault(
+			lineage,
+			'region',
+			'sites',
+			input.region,
+			own.map((version) => version.work_rules?.wages)
+		);
+		if (site != null) refuse(site, { field: 'region' });
 		return stored == null ? { ...input, code, name, facts } : { ...input, name };
 	});
 });

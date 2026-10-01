@@ -3,6 +3,7 @@ import {
 	readSnapshotMonthIds,
 	validateContributionMonth
 } from '../../../lib/benefit-cases/benefit.js';
+import { personLineages } from '../../../lib/person-facts.js';
 
 const months = collection('contribution_statement_months', {
 	read: { fields: 'all' },
@@ -33,6 +34,39 @@ months.transform(async (inputs, ctx) => {
 		ctx.refuse(message, at as never);
 	for (const [index, input] of inputs.entries())
 		validateContributionMonth({ ...existing[index], ...input });
+	// A new month names a scheme some lineage of the member's contracts states.
+	const created = inputs.filter((_, index) => existing[index] == null);
+	if (created.length > 0) {
+		const lineages = await personLineages(db as never, [
+			...new Set(created.map((input) => String(input.employee_id)))
+		]);
+		const schemes =
+			lineages.versions.length === 0
+				? []
+				: (
+						await db.read('statutory_contributions', {
+							where: { settings_id: { in: lineages.versions.map((row) => row.id) as never } },
+							select: { settings_id: true, code: true },
+							all: true
+						})
+					).rows;
+		const lineageOf = new Map(lineages.versions.map((row) => [String(row.id), row.code]));
+		for (const input of created) {
+			const codes = lineages.codesByEmployee.get(String(input.employee_id)) ?? [];
+			// No contract yet: nothing judges the scheme.
+			if (
+				codes.length > 0 &&
+				!schemes.some(
+					(row) =>
+						row.code === input.scheme_code &&
+						codes.includes(lineageOf.get(String(row.settings_id)) ?? '')
+				)
+			)
+				refuse(`${input.scheme_code} is not a statutory contribution of ${codes.join(', ')}.`, {
+					field: 'scheme_code'
+				});
+		}
+	}
 	const edited = existing.filter((row) => row != null);
 	if (edited.length === 0) return inputs;
 	const cases = await db.read('benefit_cases', {

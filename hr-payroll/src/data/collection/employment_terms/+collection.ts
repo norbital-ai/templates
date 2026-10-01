@@ -5,9 +5,15 @@ import { termsSummary } from '../../../lib/derived-titles.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { governed, periodsOverlap, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
-import { VOCABULARY_FIELDS } from '../../../lib/datatypes/payroll_settings.js';
+import { VOCABULARY_FIELDS, vocabularyAdmits } from '../../../lib/datatypes/payroll_settings.js';
+import { factTables, lineageCodes, wageKeyFault } from '../../../lib/coded-fields.js';
 import { worksiteFault } from '../worksites/lib/in-force.js';
 import { employmentCheckIssues, refuseChecks } from '../../../lib/checks.js';
+
+const SITE_FIELDS = [
+	['worksite', 'places'],
+	['worksite_sector', 'sectors']
+] as const;
 
 /** Terms that supplied consumed contract history are retained (the delete guard). */
 const terms = collection('employment_terms', {
@@ -123,7 +129,8 @@ async function lineageOf(
  * within the same contract (the `noOverlap` holds non-overlap on every write). Terms that supplied consumed history are
  * not deleted either. Every allowance the row lists names an allowance class, once per code. Each classification code
  * is one every sealed version of the lineage the terms' period reaches declares in `payroll.vocabularies` (a period
- * before the lineage's first version is judged by all of them). The title is derived.
+ * before the lineage's first version is judged by all of them); so is the worksite and its sector, as keys of each
+ * version's wage order. The title is derived.
  */
 terms.transform(async (inputs, { existing, db, refuse }) => {
 	const employmentIds = inputs.flatMap((input, index) => {
@@ -141,12 +148,18 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 	// Recorded inputs and classification codes are judged against the sealed versions of the entity's lineage.
 	const coded = (input: (typeof inputs)[number]) =>
 		'$delete' in input ? [] : VOCABULARY_FIELDS.filter((field) => (input[field] ?? '') !== '');
+	// The worksite and its sector are keys of the wage order (`wageKeyFault`).
+	const sited = (input: (typeof inputs)[number]) =>
+		'$delete' in input ? [] : SITE_FIELDS.filter(([field]) => (input[field] ?? '').trim() !== '');
 	const factEmployments = [
 		...new Set(
 			inputs.flatMap((input, index) => {
 				if ('$delete' in input) return [];
 				const id = input.employment_id ?? existing[index]?.employment_id;
-				const judged = Object.keys(input.facts ?? {}).length > 0 || coded(input).length > 0;
+				const judged =
+					Object.keys(input.facts ?? {}).length > 0 ||
+					coded(input).length > 0 ||
+					sited(input).length > 0;
 				return id == null || !judged ? [] : [id];
 			})
 		)
@@ -170,9 +183,21 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			: (
 					await db.read('jurisdiction_settings', {
 						...sealedLineages(factCodes),
-						select: { code: true, effective_range: true, terms_facts: true, payroll: true }
+						select: {
+							id: true,
+							code: true,
+							effective_range: true,
+							terms_facts: true,
+							payroll: true,
+							work_rules: true
+						}
 					})
 				).rows;
+	const codesOf = await lineageCodes(
+		db,
+		versions,
+		factTables(versions.flatMap((version) => version.terms_facts ?? []))
+	);
 	// A named worksite belongs to the contract's company and is in force when the terms start.
 	const siteIds = [
 		...new Set(
@@ -278,7 +303,8 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 				input.facts,
 				versions
 					.filter((version) => version.code === code)
-					.flatMap((version) => version.terms_facts)
+					.flatMap((version) => version.terms_facts),
+				codesOf(code)
 			);
 			if (fault != null) refuse(fault, { field: 'facts' });
 		}
@@ -309,7 +335,8 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			if (fault != null) refuse(fault, { field: 'worksite_id' });
 		}
 		const fields = coded(input);
-		if (fields.length > 0) {
+		const wageFields = sited(input);
+		if (fields.length > 0 || wageFields.length > 0) {
 			const code = codeByEmployment.get(employmentId) ?? '';
 			const period = governed(row.effective_range)!;
 			const lineage = versions.filter((version) => version.code === code);
@@ -320,15 +347,20 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			const governing = reached.length > 0 ? reached : lineage;
 			if (governing.length === 0)
 				refuse(`${code || 'This contract'} has no sealed settings version declaring its codes.`, {
-					field: fields[0]!
+					field: fields[0] ?? wageFields[0]![0]
 				});
 			for (const field of fields) {
 				const value = String(input[field]);
 				const undeclared = governing.some(
-					(version) => !(version.payroll.vocabularies?.[field] ?? []).includes(value)
+					(version) => !vocabularyAdmits(version.payroll.vocabularies, field, value)
 				);
 				if (undeclared) refuse(`${code} does not declare ${value} as a ${field}.`, { field });
 			}
+			for (const [field, kind] of wageFields)
+				for (const version of governing) {
+					const fault = wageKeyFault(code, field, kind, input[field], [version.work_rules?.wages]);
+					if (fault != null) refuse(fault, { field });
+				}
 		}
 		const through = consumed.get(employmentId);
 		if (through == null) return derived;

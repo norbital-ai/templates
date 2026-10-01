@@ -17,6 +17,15 @@
 	import { bolt } from '$bolt';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
+	import { toast, Toaster } from 'svelte-sonner';
+	import { todayKey } from '../../../lib/ui/calendar.js';
+	import { saveBlob } from '../../../lib/ui/export-download.js';
+	import { getErrorMessage } from '../../../lib/refuse.js';
+	import { XLSX_MEDIA_TYPE } from '../../../data/collection/work_days/lib/import-template.js';
+	import {
+		leaveBalanceWorkbook,
+		type LeaveBalanceReportRow
+	} from '../../../lib/leave/balance-report.js';
 
 	const scope = companyScope();
 	const pay = createPayPeriodScope(() => scope.company);
@@ -36,6 +45,32 @@
 	const declaresCases = $derived(
 		(lineage.current ?? []).some((row) => (row.payroll?.benefit_cases ?? []).length > 0)
 	);
+	let exporting = $state(false);
+	/** Every balance as of today, or the selected period's end where that is earlier. */
+	async function exportBalances(): Promise<void> {
+		const company = scope.company;
+		if (company == null) return;
+		const today = todayKey();
+		const end = pay.window?.end;
+		const asOf = end != null && end < today ? end : today;
+		exporting = true;
+		try {
+			// The query answers `json`: its shape is `LeaveBalanceReportRow[]`, asserted where it enters.
+			const answer = await bolt.query('leave_entries.leave_balance_report', {
+				company_id: company.id,
+				as_of: asOf
+			});
+			const rows = answer as LeaveBalanceReportRow[];
+			const workbook = leaveBalanceWorkbook({ company: company.name, asOf, rows });
+			saveBlob(
+				new Blob([await workbook.xlsx.writeBuffer()], { type: XLSX_MEDIA_TYPE }),
+				`leave-balances-${asOf}.xlsx`
+			);
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		}
+		exporting = false;
+	}
 </script>
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
@@ -46,6 +81,7 @@
 	row: { readonly id: Id<'benefit_case_plans'> };
 })}<BenefitCaseAdvanceStatus planId={row.id} />{/snippet}
 
+<Toaster />
 <AppShell
 	icon="lucide:calendar-check-2"
 	title={t('app.leave.title')}
@@ -69,7 +105,19 @@
 						<Table
 							of="leave_entries"
 							key={`leave-${id}-${pay.period}`}
-							toolbar={{ title: t('app.leave.requests_title'), description: t('leave.immutable') }}
+							toolbar={{
+								title: t('app.leave.requests_title'),
+								description: t('leave.immutable'),
+								actions: [
+									{
+										run: exportBalances,
+										group: 'import',
+										icon: 'lucide:file-down',
+										label: t('app.leave.export_balances'),
+										disabled: () => (exporting ? t('component.loading') : null)
+									}
+								]
+							}}
 							where={{
 								employment_id: { is: { company_id: { eq: id } } },
 								...leavePeriodWhere(pay.window)

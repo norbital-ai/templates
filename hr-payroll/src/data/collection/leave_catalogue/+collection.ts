@@ -146,6 +146,7 @@ c.transform(async (inputs, ctx) => {
 			compileEligibility(row.entitlement?.encash_on_exit_when ?? ''),
 			'Exit pay-out condition: '
 		);
+		fault(compileEligibility(row.entitlement?.child_years_when ?? ''), 'Child-year condition: ');
 		fault(
 			compileEligibility(
 				row.entitlement?.encash_carry_on_exit_when ?? row.entitlement?.encash_on_exit_when ?? ''

@@ -4,7 +4,7 @@
 	 * (a company's `facts`, terms' `terms_facts`, a day's `work_day_facts`, a payment's `payment_facts`, a settlement's
 	 * `settlement_facts`, a worksite's `worksite_facts`, a person's `person_facts`), or `declarations` the caller holds
 	 * (a leave row's `event_facts`, a history kind's `facts`). A `code` input picks from its table's rows in force on the
-	 * day, under its parent's code. Each input shows the run's own verdict live (`factValuesFault`): missing, invalid,
+	 * day, under its parent's code (another input, or the subject's own column in `parents`). Each input shows the run's own verdict live (`factValuesFault`): missing, invalid,
 	 * outside its table, conditionally required (`when`), or unevidenced on `subject`. Only the declared schemas are
 	 * read: whole version rows run to megabytes.
 	 */
@@ -12,15 +12,12 @@
 	import { t } from './t.js';
 	import { Button, Combobox, Input, type CustomFieldView } from '@norbital-ai/ui';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { factScalar, type FactKey } from '../datatypes/fact_keys.js';
+	import { factScalar, parentOf, type FactKey } from '../datatypes/fact_keys.js';
 	import { factValuesFault } from '../declared-facts.js';
 	import { referenceCodes } from '../expressions/functions/tables.js';
-	import { coversDate } from '../payroll/run/effective.js';
-	import type { IsoDate } from '../payroll/run/dates.js';
-	import { settingsInForce } from '../jurisdiction_settings.js';
 	import { todayKey } from './calendar.js';
+	import { codeRows, versionInForce } from './code-rows.svelte.js';
 	import { liveRows } from './live.svelte.js';
-	import { inForceSettings } from './settings-scope.js';
 
 	type Schema =
 		| 'facts'
@@ -38,7 +35,8 @@
 		declarations: given,
 		day,
 		subject,
-		when
+		when,
+		parents
 	}: {
 		view: CustomFieldView<{ readonly [key: string]: Scalar }>;
 		settingsCode: string | null | undefined;
@@ -52,66 +50,33 @@
 		subject?: { readonly collection: string; readonly id: string } | null | undefined;
 		/** The subject's site, for a live `required_when` / `valid_when` / `evidence.when`. */
 		when?: ((expression: string) => boolean) | undefined;
+		/** The subject record's own columns a `parent_fact` may name (a worksite's `region`). */
+		parents?: Readonly<Record<string, unknown>> | undefined;
 	} = $props();
 	const on = $derived(String(day || todayKey()).slice(0, 10));
-	const versions = liveRows<
-		Parameters<typeof settingsInForce>[0][number] & { readonly id: string } & {
-			readonly [S in Schema]?: readonly FactKey[];
-		}
-	>(() =>
-		settingsCode
-			? bolt.read('jurisdiction_settings', {
-					where: inForceSettings(settingsCode, on),
-					select: {
-						id: true,
-						code: true,
-						name: true,
-						sealed_at: true,
-						voided_at: true,
-						approval_id: true,
-						effective_range: true,
-						facts: true,
-						terms_facts: true,
-						work_day_facts: true,
-						payment_facts: true,
-						settlement_facts: true,
-						worksite_facts: true,
-						person_facts: true
-					},
-					all: true
-				})
-			: null
+	const version = versionInForce<{ readonly [S in Schema]?: readonly FactKey[] }>(
+		() => settingsCode,
+		() => on,
+		() => ({
+			facts: true,
+			terms_facts: true,
+			work_day_facts: true,
+			payment_facts: true,
+			settlement_facts: true,
+			worksite_facts: true,
+			person_facts: true
+		})
 	);
-	const version = $derived(settingsInForce(versions.current ?? [], settingsCode ?? '', on));
-	const fields = $derived(given ?? (schema == null ? [] : (version?.[schema] ?? [])));
+	const fields = $derived(given ?? (schema == null ? [] : (version.current?.[schema] ?? [])));
 	const tables = $derived([
 		...new Set(
 			fields.flatMap((field) => (field.type === 'code' && field.table ? [field.table] : []))
 		)
 	]);
-	const rows = liveRows<{
-		table: string;
-		code: string;
-		parent_code: string | null;
-		label: string | null;
-		effective_range: unknown;
-	}>(() =>
-		version == null || tables.length === 0
-			? null
-			: bolt.read('reference_rows', {
-					where: { settings_id: { eq: version.id }, table: { in: tables } } as never,
-					select: {
-						table: true,
-						code: true,
-						parent_code: true,
-						label: true,
-						effective_range: true
-					},
-					all: true
-				})
-	);
-	const inForce = $derived(
-		(rows.current ?? []).filter((row) => coversDate(row.effective_range, on as IsoDate))
+	const rows = codeRows(
+		() => version.current,
+		() => tables,
+		() => on
 	);
 	const codes = $derived(rows.current == null ? undefined : referenceCodes(rows.current, on));
 	const evidence = liveRows<{ fact_key: string }>(() =>
@@ -137,17 +102,15 @@
 			true,
 			when,
 			subject == null ? () => true : (key) => evidenced.has(key),
-			codes
+			codes,
+			parents
 		);
 	const choices = (field: FactKey) =>
-		inForce
-			.filter(
-				(row) =>
-					row.table === field.table &&
-					(field.parent_fact == null ||
-						current[field.parent_fact] === undefined ||
-						row.parent_code === current[field.parent_fact])
-			)
+		rows.inForce
+			.filter((row) => {
+				const parent = parentOf(field, current, parents);
+				return row.table === field.table && (parent === undefined || row.parent_code === parent);
+			})
 			.map((row) => ({
 				value: row.code,
 				label: row.label ? `${row.code} · ${row.label}` : row.code

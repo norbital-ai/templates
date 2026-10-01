@@ -3,7 +3,8 @@
  * `docs/inventory/china.csv` (CN and CN-kunming rows, branch-level ids), each tagged with the tracker row ids and branch
  * names it exercises. Expected payslips come from `tests/e2e/oracle/CN-kunming.ts`, which reads the law, not the engine.
  *
- * Shape → probe harness (`tests/e2e/payroll-probe.ts` `ProbeCase`): `id`, `profile` (the company's `settings_code`),
+ * Shape → probe harness (`tests/e2e/payroll-probe.ts` `ProbeCase`): `id`, `profile` (the Kunming applicability
+ * profile of the CN lineage: the company records `settings_code: 'CN'`, region KUNMING, each worker a Kunming worksite),
  * `description`, `citation` and `period` carry over; `employee`/`employment`/`facts`/`contract`/`tax`/`time`/`pay`/`exit`
  * are the rows to create through `/act` (employees, employments with terms and fact rows, leave / overtime / ad hoc
  * rows, exit facts); `computePayslip(s).lines` is `expected[0].lines`, `warnings` the run's warnings, and a

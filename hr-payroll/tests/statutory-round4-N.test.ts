@@ -72,10 +72,8 @@ test('PH — the 365 factor is the contract’s paid_rest_days, never the payrol
 	}
 });
 
-// A payroll group is an employer's own label, so no statute is read from it. The one reading
-// allowed is MY's `ordinary_divisor_days`: company terms, not law — the customer's hourly
-// rate is basic × 12 ÷ (52 × 45) for payroll group 6D and ÷ (52 × 42.5) for 5D (owner-approved
-// customer pricing, 2026-09-23; the lineage's authority). Anywhere else in any lineage it fails.
+// A payroll group is an employer's own label, so no lineage reads it. MY's customer hour (basic ×
+// 12 ÷ (52 × 45) for 6D, ÷ (52 × 42.5) for 5D) reads the terms' declared `contract_hours_per_week`.
 test('no lineage reads payroll_group for statutory meaning', () => {
 	const root = fileURLToPath(new URL('../seed/jurisdiction/', import.meta.url));
 	const offenders: string[] = [];
@@ -86,16 +84,7 @@ test('no lineage reads payroll_group for statutory meaning', () => {
 			const text = file.endsWith('.gz')
 				? gunzipSync(readFileSync(path)).toString('utf8')
 				: readFileSync(path, 'utf8');
-			const read =
-				lineage === 'MY' && file === 'jurisdiction_settings.json'
-					? JSON.stringify(
-							JSON.parse(text).map((version: { work_rules: Record<string, unknown> }) => ({
-								...version,
-								work_rules: { ...version.work_rules, ordinary_divisor_days: null }
-							}))
-						)
-					: text;
-			if (read.includes('payroll_group')) offenders.push(`${lineage}/${file}`);
+			if (text.includes('payroll_group')) offenders.push(`${lineage}/${file}`);
 		}
 	assert.deepEqual(offenders, []);
 });

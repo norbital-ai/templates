@@ -3274,7 +3274,10 @@ function shMap(s: ShScenario): Mapped {
 	const c = s.contributions;
 	const pct = (r: number) => Math.round(r * 1e6) / 1e4;
 	return {
+		// The Shanghai profile of the CN lineage: a Shanghai-registered entity, SHANGHAI worksites.
 		company: {
+			settings_code: 'CN',
+			region: 'SHANGHAI',
 			facts: {
 				injury_rate: pct(c.injuryRate),
 				unemployment_employer_rate: pct(c.unemploymentEmployerRate2026),
@@ -3363,7 +3366,9 @@ function shMap(s: ShScenario): Mapped {
 			reg('IIT', {
 				elections: {
 					first_wage_income_this_year: s.tax.firstWageIncomeThisYear,
-					annual_60000_from_january: s.tax.annual60kElection
+					annual_60000_from_january: s.tax.annual60kElection,
+					// The national cap reads it: above a sibling's 1,500 share, the declarant is an only child.
+					...(sd.elderSupport > 1500 ? { elderly_support_only_child: true } : {})
 				},
 				...(claims.length > 0 ? { deduction_claims: claims } : {})
 			}),
@@ -3646,7 +3651,10 @@ function kmMap(s: KmScenario): Mapped {
 	const u = f.unemploymentRates ?? { employer: 0.007, employee: 0.003 };
 	const pct = (r: number) => Math.round(r * 1e6) / 1e4;
 	return {
+		// The Kunming profile of the CN lineage: a Kunming-registered entity, Kunming worksites.
 		company: {
+			settings_code: 'CN',
+			region: 'KUNMING',
 			facts: {
 				injury_rate: pct(f.injuryRate),
 				housing_fund_rate: pct(f.fundRate ?? 0.12),

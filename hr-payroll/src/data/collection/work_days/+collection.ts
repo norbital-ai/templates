@@ -32,6 +32,7 @@ import { resolveFactValues } from '../../../lib/declared-facts.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 import * as Predicate from 'effect/Predicate';
 import { worksiteFault } from '../worksites/lib/in-force.js';
+import { factTables, lineageCodes, wageKeyFault } from '../../../lib/coded-fields.js';
 
 const columns = [
 	'employment_id',
@@ -579,6 +580,15 @@ c.transform(async (inputs, ctx) => {
 		const code = companyOf(employmentId)?.settings_code;
 		return code == null ? null : settingsInForce(settingsVersions, code, date);
 	};
+	const sealed = settingsVersions.filter(
+		(version) =>
+			version.sealed_at != null && version.voided_at == null && version.approval_id == null
+	);
+	const codesOf = await lineageCodes(
+		db,
+		sealed,
+		factTables(sealed.flatMap((version) => version.work_day_facts ?? []))
+	);
 	// Every touched day has a governing jurisdiction, or the write is refused up front.
 	for (const coordinate of coordinates)
 		if (versionOn(coordinate.employment_id, coordinate.work_date) == null)
@@ -778,18 +788,22 @@ c.transform(async (inputs, ctx) => {
 			const fault = entityFactsFault(
 				code,
 				input.facts,
-				settingsVersions
-					.filter(
-						(version) =>
-							version.code === code &&
-							version.sealed_at != null &&
-							version.voided_at == null &&
-							version.approval_id == null
-					)
-					.flatMap((version) => version.work_day_facts ?? [])
+				sealed
+					.filter((version) => version.code === code)
+					.flatMap((version) => version.work_day_facts ?? []),
+				codesOf(code)
 			);
 			if (fault != null) refuse(fault, { field: 'facts' });
 		}
+		// The day's worksite is a place its governing wage order prices.
+		const site = wageKeyFault(
+			companyOf(employmentId)?.settings_code ?? '',
+			'worksite',
+			'places',
+			input.worksite,
+			[versionOn(employmentId, workDate)?.work_rules?.wages]
+		);
+		if (site != null) refuse(site, { field: 'worksite' });
 		const worksiteId = input.worksite_id !== undefined ? input.worksite_id : stored?.worksite_id;
 		if (worksiteId != null) {
 			const fault = worksiteFault(sites, worksiteId, companyOf(employmentId)?.id, workDate);

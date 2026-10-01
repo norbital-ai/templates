@@ -1334,7 +1334,10 @@ test('Kunming — Mo Han uses category III wage floors and refuses uncertified h
 			version.work_rules.wages.by_region[KM_MOHAN],
 			version.work_rules.wages.hourly_by_region[KM_MOHAN]
 		]),
+		// One CN version per date either city's law moved: Mo Han keeps 1,870 / 19 until September 2026.
 		[
+			[1870, 19],
+			[1870, 19],
 			[1870, 19],
 			[1870, 19],
 			[1970, 20]
@@ -1386,7 +1389,7 @@ test('Kunming — one company selects each worker’s district wage and fund flo
 	assert.throws(() => run(2_050, KM_WUHUA, 2_170), /MINIMUM_WAGE_BELOW.*2170/);
 	assert.throws(() => run(10_000, KM_FUMIN, 2_000), /declared housing-fund base is below/);
 	assert.throws(() => run(10_000, '云南省/昆明市/不存在区', 10_000), /cannot price.*不存在区/);
-	assert.throws(() => run(10_000, '', 10_000, KM_WUHUA), /unrecorded worksite/);
+	assert.throws(() => run(10_000, '', 10_000, KM_WUHUA), /record the worksite/);
 });
 
 test('Kunming — 2,170 in a category I district passes in August and is blocked in September 2026 (CN-KM01, KM02)', () => {
@@ -2210,15 +2213,26 @@ test('both cities — the default published average is the prior calendar year�
 	]);
 	assert.equal(severancePaid(kunming.slips.get('KM-SEV-DEF')), 379_149.12);
 	assert.deepEqual(charge(kunming.slips.get('KM-SEV-DEF')!, 'IIT_SEVERANCE'), [379_149.12, 0, 0]);
-	const defaults = (code: typeof SH | typeof KM) =>
-		settingsVersions(code).map(
-			(version) =>
-				(version.exit_facts as { key: string; default_value?: number }[]).find(
-					(fact) => fact.key === 'lcl47_average_monthly_wage'
-				)!.default_value
-		);
-	assert.deepEqual(defaults(SH), [12_434, 12_577, 12_577, 12_577]);
-	assert.deepEqual(defaults(KM), [10_531.92, 10_847.83, 10_847.83]);
+	// One CN lineage: the exit fact has no single default; each rule reading it falls back to the
+	// worksite city's published figure in force on the version.
+	const defaults = settingsVersions(SH).map((version) => {
+		const fact = (version.exit_facts as { key: string; default_value?: number }[]).find(
+			(row) => row.key === 'lcl47_average_monthly_wage'
+		)!;
+		const amount = String(seeded(adhocCatalogue(SH), version.id, 'SEVERANCE_PAY').bands[0].amount);
+		const [, shanghai, kunming] =
+			/exit_facts\.lcl47_average_monthly_wage : \(person\.terms\.worksite == "SHANGHAI" \? ([\d.]+) : \(person\.terms\.worksite in \[[^\]]*\] \? ([\d.]+)/.exec(
+				amount
+			)!;
+		return [fact.default_value ?? null, Number(shanghai), Number(kunming)];
+	});
+	assert.deepEqual(defaults, [
+		[null, 12_434, 10_531.92],
+		[null, 12_577, 10_847.83],
+		[null, 12_577, 10_847.83],
+		[null, 12_577, 10_847.83],
+		[null, 12_577, 10_847.83]
+	]);
 });
 
 // ─────────────────────────────────── Both cities: maternity allowance against the wage ────────────
@@ -2438,7 +2452,8 @@ function leaveGrant(
 		personContext({
 			employee: { gender: options.gender, marital_status: 'MARRIED' },
 			employment: { service_start: '2020-01-01' },
-			terms: {},
+			// The worksite's locality selects the city's leave rows.
+			terms: { worksite: code === SH ? 'SHANGHAI' : KM_WUHUA },
 			children: options.births.map((birth) => ({ child_birthdate: birth })),
 			event: options.event ?? null,
 			asOf: date
@@ -2529,6 +2544,7 @@ test('Shanghai — 育儿假: 5 days for each child under three, in each year fr
 		)!;
 		const world = (births: readonly string[]) => {
 			const context = leaveContext();
+			context.terms[0]!.worksite = 'SHANGHAI';
 			context.employees[0]!.children = births.map((child_birthdate) => ({
 				child_birthdate,
 				relationship: 'CHILD',
@@ -3137,12 +3153,17 @@ test('Kunming — 停工留薪期: paid work-injury leave, at most 24 months (73
 			version.name
 		);
 	}
+	// A Shanghai worksite is never granted the row.
 	for (const version of settingsVersions(SH))
 		assert.equal(
-			leaveCatalogue(SH).some(
-				(row) => row.settings_id === version.id && row.code === 'WORK_INJURY_LEAVE'
-			),
-			false
+			leaveGrant(SH, version.id, 'WORK_INJURY_LEAVE', {
+				gender: 'FEMALE',
+				births: [],
+				asOf: day,
+				event: { kind: 'WORK_INJURY', date: day }
+			}),
+			null,
+			version.name
 		);
 });
 

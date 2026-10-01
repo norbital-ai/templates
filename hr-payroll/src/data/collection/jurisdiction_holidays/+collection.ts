@@ -3,6 +3,13 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { dedupeHolidayRows, type HolidayImportRow } from '../../../lib/holiday-rows.js';
 import { formatNamedList } from '../../../lib/period.js';
 import { compileEligibility } from '../../../lib/payroll/run/eligibility.js';
+import { sealedLineages } from '../../../lib/entity-facts.js';
+import {
+	CODED_FIELDS,
+	codedFieldFault,
+	lineageCodes,
+	wageKeyFault
+} from '../../../lib/coded-fields.js';
 
 /** Holidays. A holiday a payroll run captured is history (the delete guard). */
 const holidays = collection('jurisdiction_holidays', {
@@ -89,7 +96,8 @@ const IDENTITY = ['company_id', 'date', 'worksite'] as const;
 
 /**
  * A holiday needs an entity, a day and a name, and its `applies_when` must compile as a person condition; retracting one (unpublish, or moving its day or entity) is refused while
- * a payroll run captured it, and so is deleting it.
+ * a payroll run captured it, and so is deleting it. A local day's worksite is a wage place of the entity's lineage and
+ * its religions `RELIGION` codes, as written.
  */
 holidays.transform(async (inputs, { existing, db, refuse }) => {
 	const retracting = inputs.flatMap((input, index) => {
@@ -111,6 +119,30 @@ holidays.transform(async (inputs, { existing, db, refuse }) => {
 						all: true
 					})
 				).rows;
+	// A local day's worksite is a wage place of the entity's lineage, its religions RELIGION codes (as written).
+	const sited = inputs.flatMap((input, index) =>
+		'$delete' in input ||
+		((input.worksite ?? '').trim() === '' && (input.religion ?? '').trim() === '')
+			? []
+			: [input.company_id ?? existing[index]?.company_id]
+	);
+	const entities =
+		sited.length === 0
+			? []
+			: (
+					await db.read('companies', {
+						where: { id: { in: sited.filter((id) => id != null) } },
+						select: { id: true, settings_code: true },
+						all: true
+					})
+				).rows;
+	const lineageOf = new Map(entities.map((row) => [String(row.id), row.settings_code]));
+	const lineageCodesIn = [...new Set(lineageOf.values())];
+	const versions =
+		lineageCodesIn.length === 0
+			? []
+			: (await db.read('jurisdiction_settings', sealedLineages(lineageCodesIn))).rows;
+	const codesOf = await lineageCodes(db, versions, [CODED_FIELDS.jurisdiction_holidays.religion]);
 	// The run whose frozen `holidays` snapshot still captures a holiday.
 	const capturing = (id: string) =>
 		runs.find((run) => (run.holidays ?? []).some((holiday) => holiday.id === id));
@@ -133,14 +165,33 @@ holidays.transform(async (inputs, { existing, db, refuse }) => {
 		// A blank worksite is the whole company, stored as null so the key sees one company-wide row a day.
 		const row =
 			input.worksite != null && !input.worksite.trim() ? { ...input, worksite: null } : input;
-		if (stored == null || !retracting.includes(stored)) return row;
-		const run = capturing(stored.id);
+		const run = stored == null || !retracting.includes(stored) ? undefined : capturing(stored.id);
 		if (run != null)
 			refuse(
-				`Holiday ${String(stored.date)} was captured by payroll run ${run.period} and cannot ` +
+				`Holiday ${String(stored!.date)} was captured by payroll run ${run.period} and cannot ` +
 					`${input.published_at === null ? 'be unpublished' : 'move its day, entity or worksite'}. ` +
 					'Delete that draft run to release it; a paid run holds it permanently.'
 			);
+		const code = lineageOf.get(String(input.company_id ?? stored?.company_id)) ?? '';
+		const lineage = versions.filter((version) => version.code === code);
+		const site = wageKeyFault(
+			code,
+			'worksite',
+			'places',
+			input.worksite,
+			lineage.map((version) => version.work_rules?.wages)
+		);
+		if (site != null) refuse(site, { field: 'worksite' });
+		const religion = codedFieldFault(
+			code,
+			'religion',
+			CODED_FIELDS.jurisdiction_holidays.religion,
+			input.religion,
+			lineage,
+			codesOf(code),
+			true
+		);
+		if (religion != null) refuse(religion, { field: 'religion' });
 		return row;
 	});
 });

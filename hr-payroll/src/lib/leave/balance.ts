@@ -1,7 +1,7 @@
 import { refuse } from '../refuse.js';
 import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveWindow } from './entitlement.js';
-import type { LeaveEntryActivity } from './activity-fields.js';
+import { leaveActivityOf, type LeaveEntryActivity } from './activity-fields.js';
 
 /** Only approved manual activity and held debit reservations enter the balance query. */
 export type LeaveBalanceEntry = LeaveEntryActivity & {
@@ -33,6 +33,8 @@ export type EntitlementAt = (
 	readonly earned: number | null;
 	readonly unit?: 'DAY' | 'HOUR';
 	readonly automaticCarryFrom?: LeaveWindow | null;
+	/** Of a source year, the most unused days that carry; absent is all of them. */
+	readonly carryMax?: number | null;
 };
 /**
  * The year a window carries from, read without pricing it. The carry source is a calendar fact, so
@@ -149,7 +151,7 @@ const creditsFor = (
 			)
 		)
 			refuse('Resolve pending leave in the prior year before using its automatic carry.');
-		const earned = entitlementAt(source, source.end).earned;
+		const { earned, carryMax } = entitlementAt(source, source.end);
 		if (earned == null) refuse('Automatic leave carry needs a finite prior-year entitlement.');
 		const posted = allocationsIn(
 			entries.filter((entry) => entry.approval_id == null),
@@ -157,15 +159,18 @@ const creditsFor = (
 			sourceUnit,
 			pool
 		);
-		const quantity =
+		const unused =
 			earned +
 			posted
 				.filter((row) => row.credit_entry_id == null)
 				.reduce((sum, row) => sum + quantityOf(row, sourceUnit), 0);
-		if (quantity < -1e-9) refuse('Prior-year leave is overdrawn before automatic carry.');
+		if (unused < -1e-9) refuse('Prior-year leave is overdrawn before automatic carry.');
+		const quantity = Math.min(unused, carryMax ?? Infinity);
 		if (quantity <= 1e-9) return [];
 		if (sourceUnit !== unit)
 			refuse('Automatic leave carry needs the same day or hour unit in both years.');
+		if (carryMax != null && sourceUnit === 'HOUR')
+			refuse('A carry cap in days needs a leave year counted in days.');
 		return [
 			{
 				id: `a17c0000-0000-4000-8000-${source.start.replaceAll('-', '').padStart(12, '0')}`,
@@ -268,16 +273,14 @@ export function leaveBalanceAt(options: {
 	);
 	let balance = 0,
 		reservedBalance = 0,
-		expired = 0;
-	for (const credit of creditsFor(
-		entries,
-		window,
-		unit,
-		entitlementAt,
-		options.pool,
-		options.carryFrom
-	)) {
+		expired = 0,
+		granted = 0,
+		broughtForward = 0;
+	const credits = creditsFor(entries, window, unit, entitlementAt, options.pool, options.carryFrom);
+	for (const credit of credits) {
 		if (date < credit.available) continue;
+		if (credit.id === null) granted = entitlementAt(window, date).available ?? Infinity;
+		else broughtForward += credit.days;
 		if (date > credit.expires && credit.id !== null) {
 			expired += Math.max(0, creditQuantity(posted, credit, date, window, entitlementAt, unit));
 			continue;
@@ -288,11 +291,42 @@ export function leaveBalanceAt(options: {
 	const pending =
 		all.reduce((sum, row) => sum + quantityOf(row, unit), 0) -
 		posted.reduce((sum, row) => sum + quantityOf(row, unit), 0);
+	// The same posted movements, by what moved them: time off (net of its reversals) is taken;
+	// every other manual movement (adjustment, encashment, carry out) is a credit, signed.
+	const counted = new Set(credits.filter((credit) => date >= credit.available).map((c) => c.id));
+	const byId = new Map(entries.map((entry) => [entry.id, entry]));
+	const isTimeOff = (entry: LeaveBalanceEntry | undefined): boolean =>
+		entry != null &&
+		(leaveActivityOf(entry) === 'REVERSAL'
+			? isTimeOff(byId.get(entry.reversal_of_id ?? ''))
+			: leaveActivityOf(entry) === 'TIME_OFF');
+	let taken = 0,
+		credited = 0;
+	for (const entry of entries)
+		for (const row of allocationsIn(
+			entry.approval_id == null ? [entry] : [],
+			window,
+			unit,
+			options.pool
+		)) {
+			if (row.date > date || !counted.has(row.credit_entry_id ?? null)) continue;
+			if (isTimeOff(entry)) taken -= quantityOf(row, unit);
+			else credited += quantityOf(row, unit);
+		}
+	const total = granted + broughtForward + credited;
 	return {
 		balance: Number.isFinite(balance) ? balance : null,
 		available: Number.isFinite(reservedBalance) ? reservedBalance : null,
 		pending: -pending,
-		expired
+		expired,
+		/** The year's own grant released to date: what the balance counts of `entitlement`. */
+		granted: Number.isFinite(granted) ? granted : null,
+		/** Carried credits into this year, automatic or manual; `expired` is what of them forfeited. */
+		brought_forward: broughtForward,
+		credited,
+		taken,
+		/** `granted + brought_forward + credited`; less `taken` and `expired`, it is `balance`. */
+		total: Number.isFinite(total) ? total : null
 	};
 }
 

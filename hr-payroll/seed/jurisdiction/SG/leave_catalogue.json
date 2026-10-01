@@ -205,7 +205,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -267,7 +268,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -418,7 +420,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -484,7 +487,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -785,7 +789,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -847,7 +852,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -998,7 +1004,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -1064,7 +1071,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -1320,7 +1328,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1382,7 +1391,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -1533,7 +1543,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -1599,7 +1610,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -1855,7 +1867,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1917,7 +1930,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -2068,7 +2082,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -2134,7 +2149,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -2525,7 +2541,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2587,7 +2604,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -2738,7 +2756,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -2804,7 +2823,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3105,7 +3125,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3167,7 +3188,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3318,7 +3340,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3384,7 +3407,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3685,7 +3709,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3747,7 +3772,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3898,7 +3924,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -3964,7 +3991,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -4220,7 +4248,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4282,7 +4311,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -4433,7 +4463,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -4499,7 +4530,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -4755,7 +4787,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4817,7 +4850,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -4968,7 +5002,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -5034,7 +5069,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -5425,7 +5461,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5487,7 +5524,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -5638,7 +5676,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -5704,7 +5743,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6005,7 +6045,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6067,7 +6108,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6218,7 +6260,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6284,7 +6327,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6585,7 +6629,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6647,7 +6692,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6798,7 +6844,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -6864,7 +6911,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7120,7 +7168,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7182,7 +7231,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7333,7 +7383,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7399,7 +7450,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7655,7 +7707,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7717,7 +7770,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7868,7 +7922,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -7934,7 +7989,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -8325,7 +8381,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8387,7 +8444,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -8538,7 +8596,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -8604,7 +8663,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -8905,7 +8965,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8967,7 +9028,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -9118,7 +9180,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -9184,7 +9247,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -9485,7 +9549,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9547,7 +9612,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -9698,7 +9764,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -9764,7 +9831,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10020,7 +10088,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10082,7 +10151,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10233,7 +10303,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10299,7 +10370,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10555,7 +10627,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10617,7 +10690,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10768,7 +10842,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -10834,7 +10909,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -11225,7 +11301,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -11287,7 +11364,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -11438,7 +11516,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -11504,7 +11583,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -11805,7 +11885,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -11867,7 +11948,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12018,7 +12100,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12084,7 +12167,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12385,7 +12469,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -12447,7 +12532,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12598,7 +12684,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12664,7 +12751,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -12920,7 +13008,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -12982,7 +13071,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -13133,7 +13223,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -13199,7 +13290,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -13455,7 +13547,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -13517,7 +13610,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -13668,7 +13762,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -13734,7 +13829,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14125,7 +14221,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -14187,7 +14284,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14338,7 +14436,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14404,7 +14503,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14705,7 +14805,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -14767,7 +14868,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14918,7 +15020,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -14984,7 +15087,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -15285,7 +15389,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -15347,7 +15452,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -15498,7 +15604,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -15564,7 +15671,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -15820,7 +15928,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -15882,7 +15991,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -16033,7 +16143,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -16099,7 +16210,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -16355,7 +16467,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -16417,7 +16530,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -16568,7 +16682,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -16634,7 +16749,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17025,7 +17141,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -17087,7 +17204,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17238,7 +17356,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17304,7 +17423,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17605,7 +17725,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -17667,7 +17788,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17818,7 +17940,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -17884,7 +18007,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18185,7 +18309,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -18247,7 +18372,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18398,7 +18524,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18464,7 +18591,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18720,7 +18848,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -18782,7 +18911,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18933,7 +19063,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -18999,7 +19130,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -19255,7 +19387,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -19317,7 +19450,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -19468,7 +19602,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -19534,7 +19669,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -19925,7 +20061,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -19987,7 +20124,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -20138,7 +20276,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -20204,7 +20343,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -20505,7 +20645,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -20567,7 +20708,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -20718,7 +20860,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -20784,7 +20927,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21085,7 +21229,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -21147,7 +21292,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21298,7 +21444,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21364,7 +21511,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21620,7 +21768,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -21682,7 +21831,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21833,7 +21983,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -21899,7 +22050,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -22155,7 +22307,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -22217,7 +22370,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -22368,7 +22522,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -22434,7 +22589,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -22825,7 +22981,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -22887,7 +23044,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23038,7 +23196,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23104,7 +23263,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23405,7 +23565,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -23467,7 +23628,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23618,7 +23780,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23684,7 +23847,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -23985,7 +24149,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -24047,7 +24212,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -24198,7 +24364,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -24264,7 +24431,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -24520,7 +24688,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -24582,7 +24751,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -24733,7 +24903,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -24799,7 +24970,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -25055,7 +25227,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -25117,7 +25290,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -25268,7 +25442,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -25334,7 +25509,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -25725,7 +25901,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -25787,7 +25964,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -25938,7 +26116,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -26004,7 +26183,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -26305,7 +26485,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -26367,7 +26548,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -26518,7 +26700,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -26584,7 +26767,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -26885,7 +27069,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -26947,7 +27132,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27098,7 +27284,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27164,7 +27351,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27420,7 +27608,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -27482,7 +27671,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27633,7 +27823,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27699,7 +27890,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -27955,7 +28147,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -28017,7 +28210,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -28168,7 +28362,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -28234,7 +28429,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -28625,7 +28821,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -28687,7 +28884,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -28838,7 +29036,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -28904,7 +29103,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -29205,7 +29405,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -29267,7 +29468,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -29418,7 +29620,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -29484,7 +29687,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -29785,7 +29989,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -29847,7 +30052,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -29998,7 +30204,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -30064,7 +30271,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -30320,7 +30528,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -30382,7 +30591,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -30533,7 +30743,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -30599,7 +30810,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -30855,7 +31067,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -30917,7 +31130,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -31068,7 +31282,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -31134,7 +31349,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -31525,7 +31741,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -31587,7 +31804,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -31738,7 +31956,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -31804,7 +32023,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32105,7 +32325,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -32167,7 +32388,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32318,7 +32540,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32384,7 +32607,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32685,7 +32909,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -32747,7 +32972,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32898,7 +33124,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -32964,7 +33191,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -33265,7 +33493,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -33327,7 +33556,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -33478,7 +33708,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -33544,7 +33775,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -33845,7 +34077,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -33907,7 +34140,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -34058,7 +34292,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -34124,7 +34359,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -34425,7 +34661,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -34487,7 +34724,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -34638,7 +34876,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -34704,7 +34943,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35005,7 +35245,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -35067,7 +35308,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35218,7 +35460,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35284,7 +35527,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35585,7 +35829,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -35647,7 +35892,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35798,7 +36044,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -35864,7 +36111,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -36165,7 +36413,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -36227,7 +36476,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -36378,7 +36628,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -36444,7 +36695,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -36745,7 +36997,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -36807,7 +37060,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -36958,7 +37212,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -37024,7 +37279,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -37325,7 +37581,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -37387,7 +37644,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -37538,7 +37796,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -37604,7 +37863,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -37905,7 +38165,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -37967,7 +38228,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -38118,7 +38380,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -38184,7 +38447,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -38485,7 +38749,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -38547,7 +38812,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -38698,7 +38964,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -38764,7 +39031,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39065,7 +39333,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -39127,7 +39396,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39278,7 +39548,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39344,7 +39615,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39645,7 +39917,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -39707,7 +39980,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39858,7 +40132,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -39924,7 +40199,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -40225,7 +40501,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -40287,7 +40564,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -40438,7 +40716,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -40504,7 +40783,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -40805,7 +41085,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -40867,7 +41148,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41018,7 +41300,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41084,7 +41367,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41385,7 +41669,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -41447,7 +41732,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41598,7 +41884,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41664,7 +41951,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -41965,7 +42253,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -42027,7 +42316,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -42178,7 +42468,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -42244,7 +42535,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -42545,7 +42837,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -42607,7 +42900,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -42758,7 +43052,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -42824,7 +43119,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43125,7 +43421,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -43187,7 +43484,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43338,7 +43636,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43404,7 +43703,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43705,7 +44005,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -43767,7 +44068,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43918,7 +44220,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -43984,7 +44287,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -44285,7 +44589,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -44347,7 +44652,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -44498,7 +44804,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -44564,7 +44871,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -44865,7 +45173,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -44927,7 +45236,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -45078,7 +45388,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -45144,7 +45455,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -45445,7 +45757,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -45507,7 +45820,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -45658,7 +45972,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -45724,7 +46039,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -46025,7 +46341,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -46087,7 +46404,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -46238,7 +46556,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["ADOPTION"]
 			},
 			{
 				"key": "event_relationship",
@@ -46304,7 +46623,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "ADOPTION"]
 			},
 			{
 				"key": "event_relationship",

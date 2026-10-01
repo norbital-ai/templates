@@ -17,6 +17,8 @@
 	import DeductionClaims from './deduction-claims.svelte';
 	import { live } from '../../../lib/ui/live.svelte.js';
 	import { decodeNumber } from '../../../lib/wire.js';
+	import CodeSelect from '../../../lib/ui/code-select.svelte';
+	import { childClaimClasses } from '../../../lib/expressions/contexts.js';
 
 	type StatusKind = Value['kind'];
 
@@ -46,7 +48,10 @@
 			? bolt.get('statutory_contributions', props.schemeId, {
 					elections: true,
 					deduction_categories: true,
-					child_claims_hint: true
+					child_claims_hint: true,
+					assessed_on: true,
+					ordinary_on: true,
+					rules: true
 				})
 			: null
 	);
@@ -66,13 +71,8 @@
 
 	type Opening = NonNullable<Extract<Value, { kind: 'REGISTERED' }>['opening']>[number];
 	type ChildClaim = NonNullable<Extract<Value, { kind: 'REGISTERED' }>['child_claims']>[number];
-	const CHILD_CLASSES = $derived([
-		{ value: 'UNDER_18', label: t('statutory_status.child_under_18') },
-		{ value: 'STUDYING', label: t('statutory_status.child_studying') },
-		{ value: 'TERTIARY', label: t('statutory_status.child_tertiary') },
-		{ value: 'DISABLED', label: t('statutory_status.child_disabled') },
-		{ value: 'DISABLED_TERTIARY', label: t('statutory_status.child_disabled_tertiary') }
-	]);
+	/** The relief classes the scheme's expressions read: what the write admits. */
+	const childClasses = $derived(scheme.current == null ? [] : childClaimClasses(scheme.current));
 	/**
 	 * The registered arm with one row of a list — the instalments or the earlier-employer openings —
 	 * replaced, or the list without it.
@@ -242,7 +242,7 @@
 									...(current.child_claims ?? []),
 									{
 										year: String(new Date().getFullYear()),
-										relief_class: 'UNDER_18',
+										relief_class: childClasses[0] ?? '',
 										full_count: 0,
 										half_count: 0,
 										reference: ''
@@ -263,11 +263,10 @@
 								/>
 							</Labelled>
 							<Labelled label={t('statutory_status.relief_category')}>
-								<Combobox
-									class="w-64 max-w-full"
-									size="sm"
-									options={CHILD_CLASSES}
+								<CodeSelect
+									codes={childClasses}
 									value={row.relief_class}
+									clearable={false}
 									{disabled}
 									onChange={(value) => {
 										if (value) editChildClaim(index, { relief_class: value });

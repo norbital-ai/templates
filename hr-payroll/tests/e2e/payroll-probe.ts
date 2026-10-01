@@ -11,7 +11,8 @@
  *
  *   {
  *     id: 'my-foreign-worker-flat',           // unique; also the company's name
- *     profile: 'MY',                          // the settings lineage: the company's `settings_code`
+ *     profile: 'MY',                          // the settings lineage (the company's `settings_code`), or a
+ *                                             // locality profile whose `company.settings_code` names it
  *     description: 'what it proves',
  *     citation: ['primary source, section, URL', ...],  // where every expected figure comes from
  *     company: { pay_cutoff_day: 1 },         // optional overrides of the company the harness creates
@@ -407,8 +408,10 @@ export function differences(expected: ProbeExpectation['lines'], actual: Record<
 /** Create the case's company and rows, run its period through `payroll_runs.create`, read the saved payslips. */
 export async function runCase(host: Host, probe: ProbeCase) {
 	const first = `${probe.period.slice(0, 7)}-01`;
+	// The lineage the company names: a locality profile (CN-shanghai) is a city of one lineage (CN).
+	const lineage = String(probe.company?.settings_code ?? probe.profile);
 	const versions = await host.read('jurisdiction_settings', {
-		where: { code: { eq: probe.profile } }
+		where: { code: { eq: lineage } }
 	});
 	const versionOn = (day: string) => {
 		const version = versions.find((row) => {
@@ -422,7 +425,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		});
 		if (version === undefined)
 			throw new Error(
-				`${probe.id}: no sealed ${probe.profile} settings in force on ${day}: ${JSON.stringify(versions.slice(0, 2))}`
+				`${probe.id}: no sealed ${lineage} settings in force on ${day}: ${JSON.stringify(versions.slice(0, 2))}`
 			);
 		return version;
 	};
@@ -433,7 +436,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			where: { settings_id: { eq: versionOn(day).id as string }, code: { eq: code } }
 		});
 		if (row === undefined)
-			throw new Error(`${probe.id}: ${probe.profile} has no ${collection} ${code} on ${day}`);
+			throw new Error(`${probe.id}: ${lineage} has no ${collection} ${code} on ${day}`);
 		return row.id as string;
 	};
 	const resolve = async (v: Json): Promise<Json> => {
@@ -521,7 +524,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 	await create(
 		'companies',
 		{
-			settings_code: probe.profile,
+			settings_code: lineage,
 			name: `${probe.id} ${randomUUID().slice(0, 8)}`,
 			pay_cutoff_day: 1,
 			pay_frequency: 'MONTHLY',

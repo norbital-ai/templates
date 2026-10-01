@@ -82,6 +82,7 @@ export default messages({
 	'app.leave.requests_description':
 		'Time off, agreed encashment, manual carry-forward and corrections.',
 	'app.leave.requests_title': 'Leave activities',
+	'app.leave.export_balances': 'Export balances',
 	'app.loans.agreements': 'Loan agreements',
 	'app.loans.agreements_description':
 		'Outstanding falls as paid runs recover instalments against the obligation.',
@@ -319,6 +320,9 @@ export default messages({
 	'component.effective': 'Effective',
 	'component.effective_date': 'Effective date',
 	'component.effective_period': 'Effective period',
+	'component.employment_history': 'Prior history period',
+	'component.history_kind': 'History kind',
+	'component.history_facts': 'Declared facts',
 	'component.effective_period_hint':
 		'Applies from the start date through the end date, inclusive. Leave the end date empty if no successor is scheduled.',
 	'component.eligibility_hint':
@@ -1241,6 +1245,8 @@ export default messages({
 	'leave.year_anchor.CALENDAR': 'On the stated month',
 	'leave.year_anchor.SERVICE_ANNIVERSARY': 'On each hire anniversary',
 	'leave.auto_carry_one_year': 'Carry unused leave for one more year',
+	'leave.carry_max_days':
+		'Most days carried (a number or an expression over the person; empty is every unused day)',
 	'leave.leap_anniversary_unsupported':
 		'29 February hire: record the service-anniversary rule before approving this leave.',
 	'leave.no_pay_origin': 'No-pay leave origin',
@@ -1526,6 +1532,8 @@ export default messages({
 	'renderer.statutory_deductions.refusal': 'Calculation stop reason',
 	'renderer.statutory_deductions.rebate': 'Rebatable payments',
 	'entity_facts.unrecorded': 'Not recorded',
+	'code_select.unused': 'Not used in this lineage',
+	'code_select.unlisted': '{value} is not one of this lineage’s configured values',
 	'entity_facts.required': 'Required before calculation',
 	'entity_facts.default': 'If not recorded: {value}',
 	'entity_facts.no_declarations': 'No additional declarations in the selected settings.',
@@ -1748,11 +1756,6 @@ export default messages({
 	'statutory_status.registered_hint': 'Has a reference number with the authority.',
 	'statutory_status.not_registered': 'Not registered',
 	'statutory_status.not_registered_hint': 'Exempt or out of scope; a reason is required.',
-	'statutory_status.child_under_18': 'Under 18 during the tax year',
-	'statutory_status.child_studying': 'Adult in qualifying full-time education',
-	'statutory_status.child_tertiary': 'Adult in qualifying higher education',
-	'statutory_status.child_disabled': 'Certified disabled child',
-	'statutory_status.child_disabled_tertiary': 'Disabled adult in qualifying higher education',
 	'statutory_status.status': 'Status',
 	'statutory_status.reference_number': 'Reference number',
 	'statutory_status.rate_override': 'Rate override (blank uses the band)',

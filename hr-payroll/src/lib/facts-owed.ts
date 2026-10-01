@@ -19,6 +19,13 @@ import { resolvePersonFacts, type PersonFactRow } from './person-facts.js';
 import { dateKey } from './iso-day.js';
 import { getErrorMessage } from './refuse.js';
 import type { RunIssue } from './payroll/run/validate.js';
+import {
+	CODED_FIELDS,
+	codedFieldFault,
+	companyRegionFault,
+	wageKeyFault,
+	type CodedVersion
+} from './coded-fields.js';
 
 /** One subject's recorded values against the declarations that judge them, as the run would judge them. */
 export type OwedSubject = {
@@ -80,8 +87,8 @@ export const owedIssues = (owed: readonly OwedFact[]): RunIssue[] =>
 		...(fact.id === '' ? {} : { recordId: fact.id })
 	}));
 
-/** The declared schemas of one settings version the run judges. */
-type Declared = {
+/** The declared schemas, tables and wage order of one settings version the run judges. */
+type Declared = Pick<CodedVersion, 'tables' | 'work_rules'> & {
 	readonly facts?: readonly FactKey[] | null | undefined;
 	readonly terms_facts?: readonly FactKey[] | null | undefined;
 	readonly person_facts?: readonly FactKey[] | null | undefined;
@@ -100,6 +107,7 @@ export type OwedInput = {
 		readonly name?: string | undefined;
 		readonly settings_code: string;
 		readonly region: string | null;
+		readonly risk_class?: string | null | undefined;
 		readonly pay_frequency: string;
 		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 	};
@@ -157,6 +165,41 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 			evidenced: () => true
 		}
 	]);
+	const scope = company.name ?? company.settings_code;
+	// Coded columns against the governing version: a value loaded around the writes shows here before the run.
+	const codes = input.codesOn?.(asOf);
+	const coded = (
+		collection: string,
+		id: string,
+		label: string,
+		key: string,
+		message: string | null
+	) => {
+		if (message != null) owed.push({ collection, id, label, key, message });
+	};
+	if (governing != null && codes != null) {
+		coded(
+			'companies',
+			company.id,
+			scope,
+			'risk_class',
+			codedFieldFault(
+				scope,
+				'risk_class',
+				CODED_FIELDS.companies.risk_class,
+				company.risk_class,
+				[governing],
+				codes
+			)
+		);
+		coded(
+			'companies',
+			company.id,
+			scope,
+			'region',
+			companyRegionFault(scope, company.region, [governing.work_rules?.wages])
+		);
+	}
 	const employees = new Map(input.employees.map((row) => [row.id, row]));
 	const employments = input.employments.filter((row) =>
 		overlapsRange(row.effective_range, window.start, window.end)
@@ -181,10 +224,39 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 				},
 				asOf: day
 			});
+		const employee = employees.get(employment.employee_id);
+		if (employee != null && governing != null && codes != null)
+			for (const [key, table] of Object.entries(CODED_FIELDS.employees))
+				coded(
+					'employees',
+					employee.id,
+					`${employment.employee_number}: person`,
+					key,
+					codedFieldFault(
+						scope,
+						key,
+						table,
+						employee[key as keyof typeof CODED_FIELDS.employees],
+						[governing],
+						codes
+					)
+				);
 		for (const row of terms) {
 			if (!overlapsRange(row.effective_range, window.start, window.end)) continue;
 			const start = dateKey(readRange(row.effective_range)?.start);
 			const day = start < window.start ? window.start : start;
+			const wages = input.versionOn(day)?.work_rules?.wages;
+			for (const [key, kind] of [
+				['worksite', 'places'],
+				['worksite_sector', 'sectors']
+			] as const)
+				coded(
+					'employment_terms',
+					row.id,
+					`${employment.employee_number}: terms on ${day}`,
+					key,
+					wageKeyFault(scope, key, kind, row[key], [wages])
+				);
 			owed.push(
 				...factsOwed([
 					{

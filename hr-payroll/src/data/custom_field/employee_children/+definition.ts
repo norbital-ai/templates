@@ -16,7 +16,12 @@ const f = customField({
 				adoption_eligibility_date: { kind: 'text', optional: true },
 				relationship: { kind: 'enum', values: ['CHILD', 'STEPCHILD', 'ADOPTED', 'LEGAL_WARD'] },
 				effective_range: { kind: 'period', of: 'instant', optional: true },
-				citizenship: { kind: 'text', optional: true },
+				/** The same standing classes as `employment_terms.residency_status`. */
+				citizenship: {
+					kind: 'enum',
+					values: ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'],
+					optional: true
+				},
 				shared_parental_weeks: { kind: 'int', min: 0, optional: true },
 				prior_employment_days: { kind: 'int', min: 0, optional: true },
 				prior_childcare_days: { kind: 'int', min: 0, optional: true },

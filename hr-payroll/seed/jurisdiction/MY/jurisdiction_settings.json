@@ -48,7 +48,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -398,10 +398,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -497,6 +496,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -957,7 +971,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -1309,10 +1323,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -1408,6 +1421,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -1877,7 +1905,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -2231,10 +2259,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -2330,6 +2357,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -2808,7 +2850,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -3162,10 +3204,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -3261,6 +3302,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -3739,7 +3795,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -4093,10 +4149,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -4192,6 +4247,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -4670,7 +4740,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -5021,10 +5091,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -5120,6 +5189,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -5580,7 +5664,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -5933,10 +6017,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -6032,6 +6115,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -6501,7 +6599,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -6856,10 +6954,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -6955,6 +7052,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -7433,7 +7545,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -7788,10 +7900,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -7887,6 +7998,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -8365,7 +8491,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -8720,10 +8846,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -8819,6 +8944,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -9297,7 +9437,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -9649,10 +9789,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -9748,6 +9887,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -10208,7 +10362,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -10562,10 +10716,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -10661,6 +10814,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -11130,7 +11298,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -11486,10 +11654,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -11585,6 +11752,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -12063,7 +12245,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -12419,10 +12601,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -12518,6 +12699,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -12996,7 +13192,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -13352,10 +13548,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -13451,6 +13646,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -13929,7 +14139,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -14283,10 +14493,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -14382,6 +14591,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -14881,7 +15105,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -15237,10 +15461,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -15336,6 +15559,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -15844,7 +16082,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -16202,10 +16440,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -16301,6 +16538,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -16818,7 +17070,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -17176,10 +17428,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -17275,6 +17526,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -17792,7 +18058,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -18150,10 +18416,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -18249,6 +18514,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -18766,7 +19046,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -19120,10 +19400,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -19219,6 +19498,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -19738,7 +20032,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -20093,10 +20387,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -20192,6 +20485,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -20710,7 +21018,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -21067,10 +21375,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -21166,6 +21473,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -21693,7 +22015,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -22052,10 +22374,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -22151,6 +22472,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -22687,7 +23023,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -23045,10 +23381,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -23144,6 +23479,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -23681,7 +24031,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -24039,10 +24389,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -24138,6 +24487,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -24675,7 +25039,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -25036,10 +25400,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -25135,6 +25498,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -25919,7 +26297,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -26281,10 +26659,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -26380,6 +26757,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -27163,7 +27555,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -27527,10 +27919,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -27626,6 +28017,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -28418,7 +28824,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -28784,10 +29190,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -28883,6 +29288,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -29684,7 +30104,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -30049,10 +30469,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -30148,6 +30567,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [
@@ -30950,7 +31384,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
 			"rate_conversions": {
 				"weekly_to_monthly": "52.0 / 12.0",
 				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
@@ -31315,10 +31749,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Written notice date (YYYY-MM-DD)",
+				"type": "date",
+				"label": "Written notice date",
 				"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
-				"min_length": 10,
 				"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
 				"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
 				"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
@@ -31414,6 +31847,21 @@
 					"SABAH",
 					"SARAWAK"
 				]
+			},
+			{
+				"key": "annual_leave_carry_max_days",
+				"type": "number",
+				"label": "Annual leave carried forward (most days)",
+				"minimum": 0,
+				"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+			},
+			{
+				"key": "contract_hours_per_week",
+				"type": "number",
+				"label": "Contract hours a week",
+				"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+				"minimum": 1,
+				"default_value": 45
 			}
 		],
 		"obligations": [

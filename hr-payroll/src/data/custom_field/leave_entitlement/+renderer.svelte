@@ -142,6 +142,26 @@
 					emit({ ...current, auto_carry_one_year: auto_carry_one_year === true })}
 			/>
 		</Labelled>
+		{#if current.auto_carry_one_year === true}
+			<Labelled label={t('leave.carry_max_days')} class="text-sm font-medium">
+				<Input
+					value={current.carry_max_days == null ? '' : String(current.carry_max_days)}
+					{disabled}
+					oninput={(event) => {
+						const text = event.currentTarget.value.trim();
+						emit({
+							...current,
+							carry_max_days:
+								text === ''
+									? null
+									: Number.isFinite(Number(text)) && Number(text) >= 0
+										? Number(text)
+										: text
+						});
+					}}
+				/>
+			</Labelled>
+		{/if}
 		{#if current.availability !== 'UNLIMITED'}
 			<Labelled label={t('leave.proration')} class="text-sm font-medium">
 				<Combobox

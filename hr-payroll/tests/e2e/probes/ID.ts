@@ -5937,7 +5937,7 @@ const round11: ProbeCase[] = [
 				wage: 10_000_000,
 				hire: '2025-12-01',
 				exit: '2026-01-30',
-				religion: 'KONGHUCU',
+				religion: 'CONFUCIAN',
 				exit_ground: 'RESIGNATION',
 				exit_facts: departure('VOLUNTARY_RESIGNATION', {
 					thr_holiday_date: '2026-02-17',
@@ -5953,7 +5953,7 @@ const round11: ProbeCase[] = [
 				type: 'CONTRACT',
 				hire: '2025-12-01',
 				exit: '2026-01-30',
-				religion: 'KONGHUCU',
+				religion: 'CONFUCIAN',
 				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: departure(null, { thr_holiday_date: '2026-02-17' })
 			}),

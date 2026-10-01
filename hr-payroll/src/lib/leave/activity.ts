@@ -581,7 +581,10 @@ export function planLeaveActivity(
 				);
 			return true;
 		}
-		if (rule.child_years === true) {
+		if (
+			rule.child_years === true &&
+			isEligible(rule.child_years_when ?? '', rules.personOn(first.date))
+		) {
 			// Every day, earlier or asked for, on the pool of a child whose year from its birth date
 			// holds it: a transport problem (days to child-years), answered by maximum flow.
 			const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);

@@ -135,6 +135,7 @@ const f = customField({
 				optional: true
 			},
 			net_of_employee_schemes: { kind: 'list', of: { kind: 'text' }, optional: true },
+			net_of_employee_schemes_when: { kind: 'text', optional: true },
 			block_below_when: { kind: 'text', optional: true },
 			substitutes_below: { kind: 'bool', optional: true },
 			authority: { kind: 'text', optional: true }

@@ -17,6 +17,8 @@
 	import * as Predicate from 'effect/Predicate';
 	import type { VocabularyField } from '../../datatypes/payroll_settings.js';
 	import { vocabularyOptions } from './vocabulary-options.svelte.js';
+	import CodeSelect from '../code-select.svelte';
+	import type { WageKeys } from '../../coded-fields.js';
 
 	let {
 		employmentScoped,
@@ -51,6 +53,21 @@
 				value={typeof field.value === 'string' && field.value !== '' ? field.value : null}
 				disabled={field.disabled}
 				onChange={(next) => field.onChange((next ?? (optional ? null : '')) as never)}
+			/>
+		{/snippet}
+	</Field>
+{/snippet}
+
+{#snippet sited(name: 'worksite' | 'worksite_sector', wage: WageKeys, label: string)}
+	<Field {name} {label}>
+		{#snippet editor(field)}
+			<CodeSelect
+				{settingsCode}
+				day={firstDay}
+				{wage}
+				value={typeof field.value === 'string' ? field.value : null}
+				disabled={field.disabled}
+				onChange={(next) => field.onChange(next as never)}
 			/>
 		{/snippet}
 	</Field>
@@ -159,9 +176,9 @@
 				label={t('component.opening_attendance_reference')}
 			/>
 			<Field name="proration" label={t('component.proration')} />
-			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
-			<Field name="worksite" label={t('component.worksite')} />
-			<Field name="worksite_sector" label={t('component.worksite_sector')} />
+			<!-- The worksite and sector the wage order prices: its own keys, as the write checks them -->
+			{@render sited('worksite', 'places', t('component.worksite'))}
+			{@render sited('worksite_sector', 'sectors', t('component.worksite_sector'))}
 			<Field name="worksite_id" label={t('component.worksite_site')} />
 			<!-- The jurisdiction inputs the lineage declares for contract terms (`terms_facts`) -->
 			<Column span="all">

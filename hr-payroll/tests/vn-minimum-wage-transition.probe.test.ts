@@ -127,7 +127,7 @@ test('VN rejects a 2025 region absent from the governing decree', () => {
 					}
 				]
 			}),
-		/minimum-wage region on 2025-12-31 is unknown/
+		/Worksite region on 31 December 2025 must be one of: I, II, III, IV/
 	);
 });
 

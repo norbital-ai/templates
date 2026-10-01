@@ -1,0 +1,2212 @@
+[
+	{
+		"id": "b8d3e63f-8094-55c7-8b20-ed56d089fb28",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "18e11af0-76ac-5949-b809-9d674ee60151",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bfaba1b5-eed7-5db4-a5c5-92c3143e61b3",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "126efe81-71e3-51a5-bd27-97b2e8e198c8",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eff5a5a8-c742-5dd4-94bd-12d5bde24d60",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "964a1fed-56ec-5004-bda1-403c51f0e3e7",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "074fb41a-e937-5529-90f9-5324bc64c47a",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "44db76a3-2f39-5a3c-826d-09bc4ed0f17c",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b1f5e581-b0da-5ab3-902b-a1fbf1c2b3ad",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8cf92c51-59f3-5c9d-a72d-813c05e0e971",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/五华区",
+		"label": "五华区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "44f00371-a4ff-5c7c-964a-035b8cf04896",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/盘龙区",
+		"label": "盘龙区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "a86c80d7-432c-5889-86b1-161805d2144d",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/西山区",
+		"label": "西山区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "b5fa648c-782b-5605-ab00-675e95957ba2",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/官渡区",
+		"label": "官渡区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "14595486-a085-5385-807e-af38ac24d20e",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/呈贡区",
+		"label": "呈贡区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "6258d4f7-cdfa-5133-83f5-e13f736857d7",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/晋宁区",
+		"label": "晋宁区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "3ae99cee-c4b9-59c1-ba53-d4e5aa093905",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/安宁市",
+		"label": "安宁市",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "ec3b8fd5-a2ba-588a-82a7-284a9c602622",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/嵩明县",
+		"label": "嵩明县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "ed4756e9-3b41-50b3-942f-54b053ac64ee",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/东川区",
+		"label": "东川区",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "086c7811-40a7-5190-aafc-9226cc3cc623",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/富民县",
+		"label": "富民县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "94e072e8-36e1-5711-aee5-8f5296dde317",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/宜良县",
+		"label": "宜良县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "b5a11966-5ef4-56e3-b180-08358660360a",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/石林彝族自治县",
+		"label": "石林彝族自治县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "3088647b-4c55-5396-b679-f8eff3ad4062",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/禄劝彝族苗族自治县",
+		"label": "禄劝彝族苗族自治县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "656a3f12-8660-59a5-b479-48d411201e23",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/寻甸回族彝族自治县",
+		"label": "寻甸回族彝族自治县",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "652242e0-bb1c-535f-a8ed-e0bf3dbf4bfb",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
+		"label": "磨憨镇",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 1870,
+			"hourly": 19
+		}
+	},
+	{
+		"id": "23bea9ac-fa74-5993-9f04-51dbc5fc29dd",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "MINIMUM_WAGE",
+		"code": "SHANGHAI",
+		"label": "上海市",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "SHANGHAI",
+			"monthly": 2740,
+			"hourly": 25
+		}
+	},
+	{
+		"id": "a402dc77-b994-5576-8930-9e61d3487c8b",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "LOCALITY",
+		"code": "SHANGHAI",
+		"label": "Shanghai (上海市)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7908eef5-d2e7-573e-a418-139a87929ee5",
+		"settings_id": "a55988c0-6fa3-5c69-b15c-363c35bcd8f9",
+		"table": "LOCALITY",
+		"code": "KUNMING",
+		"label": "Kunming (昆明市), with the Mo Han trusteeship",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f2d53ccc-8a9c-5043-b119-3ddc1c88f1f8",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "edcc7540-8773-5783-9f02-5513aff89dcd",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "acba88d8-564b-5d45-ba2e-8443f4be880f",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0583f802-8505-5373-8076-43f718f7732e",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0bf21489-cb03-5da1-98f7-5f78d72516f3",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "49909655-6083-5bc6-8711-91ad5432bf00",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3279ac9b-a167-50a0-9702-13d6b1e701bb",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "037f0dfd-6f15-5eb3-afbb-a4a86829cacc",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "152099d9-7ea2-5079-842d-a64008fc1b4e",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c4c3f4a5-d9b0-538a-9e1b-9df288501a20",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/五华区",
+		"label": "五华区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "eef9157f-6902-5aed-b202-c35702ff5f04",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/盘龙区",
+		"label": "盘龙区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "0ed2d482-5cd5-52ac-a5be-1af2a4443d84",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/西山区",
+		"label": "西山区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "13ea9b17-0eb0-58be-8370-3f4b5c4ee588",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/官渡区",
+		"label": "官渡区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "ce0ef48e-dbd9-5832-a6d7-f91b2c933da7",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/呈贡区",
+		"label": "呈贡区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "7db8e53c-ebd2-5980-b0f2-9b49532413ed",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/晋宁区",
+		"label": "晋宁区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "22fcfa09-a636-5038-a91c-3e47023dc992",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/安宁市",
+		"label": "安宁市",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "1b6f1600-648f-548b-9080-9bf0270840d5",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/嵩明县",
+		"label": "嵩明县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "39693f5e-a831-5b88-908a-293132b95ce5",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/东川区",
+		"label": "东川区",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "db69b659-b6f8-55a2-b859-8914f24c9bfc",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/富民县",
+		"label": "富民县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "51091fdc-4920-507f-a9ee-3e3f5f0e2a4b",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/宜良县",
+		"label": "宜良县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "9c87cb9d-7ecf-5397-86e2-f9e689375af2",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/石林彝族自治县",
+		"label": "石林彝族自治县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "f2b10bbc-c1e7-5069-a2d5-d7a06b8b1fe1",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/禄劝彝族苗族自治县",
+		"label": "禄劝彝族苗族自治县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "8d0794da-39be-5d6f-9714-1345ca7d9c23",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/寻甸回族彝族自治县",
+		"label": "寻甸回族彝族自治县",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "7337ac0e-d0f7-538e-8478-455460542556",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
+		"label": "磨憨镇",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 1870,
+			"hourly": 19
+		}
+	},
+	{
+		"id": "2fddc631-2b17-50c0-90a3-0058ce10d4e8",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "MINIMUM_WAGE",
+		"code": "SHANGHAI",
+		"label": "上海市",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "SHANGHAI",
+			"monthly": 2740,
+			"hourly": 25
+		}
+	},
+	{
+		"id": "2b385154-2989-5b0b-b136-ee645551bae0",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "LOCALITY",
+		"code": "SHANGHAI",
+		"label": "Shanghai (上海市)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8ff11468-29f6-5142-8507-f807b635f87d",
+		"settings_id": "ca2bda60-36bf-5f18-b9c3-6c9b28ba0061",
+		"table": "LOCALITY",
+		"code": "KUNMING",
+		"label": "Kunming (昆明市), with the Mo Han trusteeship",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "40bc61e4-2bc2-587f-9304-8c4a81481669",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0b4446d4-ce2a-5e25-9732-13c63b29840f",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6a78eae3-b107-5b09-9ed1-04f29ffcd6e1",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "282ab032-50fa-554a-8ea9-07e75a30c44a",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bb17ecfa-e4d8-50fa-8403-4e428ccfcd8e",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1cc0f2e1-f028-5b9e-842b-f3c5e54b3067",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c45cf15b-39c3-5f42-8222-1efebb7cfc21",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "02ae43ba-3173-5d1e-b914-ceea8c80698c",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1b8a393b-bb1a-52d7-861e-abd46a1947de",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3248df8f-4be0-5ea5-812a-d19af4874a53",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/五华区",
+		"label": "五华区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "52bda492-0aeb-5a9a-b80c-d582aeed5178",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/盘龙区",
+		"label": "盘龙区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "de8b1bad-67b4-5457-9b02-419011b034f7",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/西山区",
+		"label": "西山区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "2dffb9f3-1d88-54a7-a162-ec332c9a14cd",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/官渡区",
+		"label": "官渡区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "bcd0aedd-153d-55ba-b761-7767eeacfb99",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/呈贡区",
+		"label": "呈贡区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "4be4cfdb-3df5-5db0-9443-1afebdbee24b",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/晋宁区",
+		"label": "晋宁区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "0b44b173-7423-5403-833a-b27ddffa3e60",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/安宁市",
+		"label": "安宁市",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "90bcd82b-7c20-56d0-b88e-42019f1873fc",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/嵩明县",
+		"label": "嵩明县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "309be29b-6d4f-5383-a4af-a8d834b79004",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/东川区",
+		"label": "东川区",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "a24d0775-f194-5cb6-88a6-296db132b09f",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/富民县",
+		"label": "富民县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "e7ab01a7-258c-5f46-b194-d256ff62192d",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/宜良县",
+		"label": "宜良县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "a0ba1a88-641b-515b-8f3f-d3ed0c092b8e",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/石林彝族自治县",
+		"label": "石林彝族自治县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "6267baf1-129f-550f-abf2-c0201ba5e3ec",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/禄劝彝族苗族自治县",
+		"label": "禄劝彝族苗族自治县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "07cd4ad7-55ca-5344-84b6-e1f8a6cc46b7",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/寻甸回族彝族自治县",
+		"label": "寻甸回族彝族自治县",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "9e810005-c543-5cdd-8fdf-ab2231daabf0",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
+		"label": "磨憨镇",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 1870,
+			"hourly": 19
+		}
+	},
+	{
+		"id": "7ce94082-1f5d-53b9-aa37-5a2c5802ee95",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "MINIMUM_WAGE",
+		"code": "SHANGHAI",
+		"label": "上海市",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "SHANGHAI",
+			"monthly": 2740,
+			"hourly": 25
+		}
+	},
+	{
+		"id": "40597953-dbe6-5595-b7a2-9d1079dad0f9",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "LOCALITY",
+		"code": "SHANGHAI",
+		"label": "Shanghai (上海市)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fbdb4426-2060-5db8-9ecd-35103412b90e",
+		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
+		"table": "LOCALITY",
+		"code": "KUNMING",
+		"label": "Kunming (昆明市), with the Mo Han trusteeship",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "36ce3147-b21f-5153-ab9c-4e9d7f1e075a",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0ec85d29-6dbd-5bc2-90ca-655460cb9789",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7a3a418b-77fb-5bd7-b471-1cc69945d3be",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9d0dc6ec-add2-5a82-a959-c6ecfe54c89b",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "51fe8955-8f63-5c11-9736-0c2dcb70b015",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fe2b129f-efc7-52be-b443-57b7b3813e7f",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "01b7ca57-df92-53a7-b35c-ba28b56309b5",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d262c7f9-8d8c-5095-a12b-603c55493bfe",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b05bc7a5-0813-55f3-ae33-bf83b38ea3d7",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "79bc6c7a-a911-572d-ad8a-7ee5dd323f47",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/五华区",
+		"label": "五华区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "ffd19aba-2801-5f8f-a230-ce7e87bdb0d3",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/盘龙区",
+		"label": "盘龙区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "841e9abd-992b-53df-8f3b-98a1da94670e",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/西山区",
+		"label": "西山区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "40bd1b8d-1175-5296-a762-000808bc726f",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/官渡区",
+		"label": "官渡区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "1a9c328f-fdf0-593c-82ee-9bf9e3fb81ac",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/呈贡区",
+		"label": "呈贡区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "bab09876-d633-5580-a810-c035a28ee959",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/晋宁区",
+		"label": "晋宁区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "41085eb5-1f40-5704-8ed0-cfd23f63338b",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/安宁市",
+		"label": "安宁市",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "6d3b44fd-ab22-575f-92c1-926f22f8e8de",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/嵩明县",
+		"label": "嵩明县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2170,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "d3356283-a8a6-5a41-ad2b-cf56e0bd538d",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/东川区",
+		"label": "东川区",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "b5fab8d7-e68a-5124-ba1e-c5947f8074f1",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/富民县",
+		"label": "富民县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "abc5851f-518a-54f0-a457-6432f06b4aee",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/宜良县",
+		"label": "宜良县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "d7d6dc79-64b5-5409-8615-99f12f03fe9c",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/石林彝族自治县",
+		"label": "石林彝族自治县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "2331a9a5-f02c-5517-bf9d-480686c72bd3",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/禄劝彝族苗族自治县",
+		"label": "禄劝彝族苗族自治县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "6e818ea0-9613-5452-a74f-adfbda7f07ee",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/寻甸回族彝族自治县",
+		"label": "寻甸回族彝族自治县",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2020,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "dbf4d9e3-e96d-543e-98a1-744dc3913e0f",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
+		"label": "磨憨镇",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 1870,
+			"hourly": 19
+		}
+	},
+	{
+		"id": "8e33732a-f534-5473-9b17-e5cbb4f325b6",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "MINIMUM_WAGE",
+		"code": "SHANGHAI",
+		"label": "上海市",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "SHANGHAI",
+			"monthly": 2740,
+			"hourly": 25
+		}
+	},
+	{
+		"id": "51f87287-c467-5131-ba9b-2cf664f343ad",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "LOCALITY",
+		"code": "SHANGHAI",
+		"label": "Shanghai (上海市)",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e80bf6ef-7cf0-5adf-b7e7-2f6f450ab7f7",
+		"settings_id": "9a0b376a-c5de-5eba-b0b3-38414f76b921",
+		"table": "LOCALITY",
+		"code": "KUNMING",
+		"label": "Kunming (昆明市), with the Mo Han trusteeship",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "38e7ef1b-a0d4-50ca-b9e9-926edcc90d56",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "56732df0-3304-5bb1-976b-6fe13061cd90",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ef18ddb3-e955-5b4f-80e0-18a63c0db2b9",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "676421aa-f773-5d8e-b935-8e2d1b825c4d",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7690cc69-fe98-5c32-9ec4-835f50425b69",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "36faff89-88a0-56d7-a82b-a26f29703db9",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c368f580-4bcb-50bb-be5e-4708f03d0c07",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cc3da0e6-8d0a-580f-bfdb-945b39823c35",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8a79c878-8a9a-55ee-977b-91db6b706374",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1d247a2d-3798-5c17-8aa3-b2ac914050dc",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/五华区",
+		"label": "五华区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "de388005-720a-5cfd-ba6e-050a250a88a7",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/盘龙区",
+		"label": "盘龙区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "e943f14e-921d-5422-a6d6-10a6386b0a57",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/西山区",
+		"label": "西山区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "b8ef341d-2974-5896-94bd-6701fb5e0287",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/官渡区",
+		"label": "官渡区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "15aaf0b6-249c-50b0-a5ed-42a5851c2c44",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/呈贡区",
+		"label": "呈贡区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "ef74ba64-72ae-5a4d-aae9-15dd66ab0d08",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/晋宁区",
+		"label": "晋宁区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "990e806f-0c68-5b5d-81f5-6ecbf406c562",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/安宁市",
+		"label": "安宁市",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "e1acd1c8-68a1-50f4-bf42-6113c14de1ce",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/嵩明县",
+		"label": "嵩明县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2270,
+			"hourly": 22
+		}
+	},
+	{
+		"id": "0f4696ee-5518-5b81-b188-bb3771cd9673",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/东川区",
+		"label": "东川区",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "fc5c0f97-003e-5409-b3dc-2d19a3e0483b",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/富民县",
+		"label": "富民县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "56f59309-1111-54db-87db-9c5218422efc",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/宜良县",
+		"label": "宜良县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "808187d6-e0f3-5af2-84b9-b6f45f4d6b84",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/石林彝族自治县",
+		"label": "石林彝族自治县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "cb7b4042-1496-5d79-850f-11b2ccf7aaf7",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/禄劝彝族苗族自治县",
+		"label": "禄劝彝族苗族自治县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "fd9bab1e-4b72-5ce2-85cc-532affdc166e",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/昆明市/寻甸回族彝族自治县",
+		"label": "寻甸回族彝族自治县",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 2120,
+			"hourly": 21
+		}
+	},
+	{
+		"id": "53e60285-4e25-57b5-a202-4ab87de045df",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
+		"label": "磨憨镇",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "KUNMING",
+			"monthly": 1970,
+			"hourly": 20
+		}
+	},
+	{
+		"id": "6a83adc9-27aa-5fed-82fd-12c94cf3b14d",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "MINIMUM_WAGE",
+		"code": "SHANGHAI",
+		"label": "上海市",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"locality": "SHANGHAI",
+			"monthly": 2740,
+			"hourly": 25
+		}
+	},
+	{
+		"id": "2882d7f7-ba14-5369-ba27-89915516bc0b",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "LOCALITY",
+		"code": "SHANGHAI",
+		"label": "Shanghai (上海市)",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "10ce8b1e-8d57-58bd-89f5-408debc0fff2",
+		"settings_id": "75969f7a-3014-512a-8efa-fe5f696ebed3",
+		"table": "LOCALITY",
+		"code": "KUNMING",
+		"label": "Kunming (昆明市), with the Mo Han trusteeship",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	}
+]

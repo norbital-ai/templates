@@ -11,6 +11,7 @@ import { termsSummary } from '../../../lib/derived-titles.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
+import { factTables, lineageCodes } from '../../../lib/coded-fields.js';
 import { readLeaveContext } from '../../../lib/leave/context.js';
 import { departureFactsMissing } from '../../../lib/leave/exit-settlement.js';
 import { employmentCheckIssues, refuseChecks } from '../../../lib/checks.js';
@@ -313,6 +314,14 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	const codes = [...new Set(companies.map((row) => row.settings_code))];
 	const versions =
 		codes.length === 0 ? [] : (await db.read('jurisdiction_settings', sealedLineages(codes))).rows;
+	const codesOf =
+		nested.length === 0
+			? () => undefined
+			: await lineageCodes(
+					db,
+					versions,
+					factTables(versions.flatMap((version) => version.terms_facts ?? []))
+				);
 
 	const groundVersions = grounded.flatMap((row) => {
 		const lastDay = lastDayOf(row.effective_range);
@@ -471,7 +480,8 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 					facts,
 					versions
 						.filter((version) => version.code === code)
-						.flatMap((version) => version.terms_facts ?? [])
+						.flatMap((version) => version.terms_facts ?? []),
+					codesOf(code)
 				);
 				if (fault != null) refuse(fault);
 			}

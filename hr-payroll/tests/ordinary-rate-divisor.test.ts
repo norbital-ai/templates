@@ -125,13 +125,21 @@ test('the Work states every week shape it rosters, so no person falls through', 
 });
 
 test('MY: the hour is basic × 12 ÷ (52 × the contract week), whatever week the roster measured', () => {
-	// The customer's own basis, owner-accepted: ÷ 195 for the 45-hour 6D group, ÷ 184.17 for the
-	// 42.5-hour 5D office group. The divisor states it over the roster-measured week the engine
-	// divides by, so a 9-hour five-day roster, a 7.5-hour six-day one and a short transition month
-	// all price the same hour.
-	const nihon = (payrollGroup: string, hours: number, days: number) => {
+	// The customer's own basis, owner-accepted: ÷ 195 for a 45-hour contract week (the 6D group),
+	// ÷ 184.17 for a 42.5-hour one (the 5D office group), read from the terms' declared
+	// `contract_hours_per_week` (EA s.2 normal hours of work), never the payroll-group label. The
+	// divisor states it over the roster-measured week the engine divides by, so a 9-hour five-day
+	// roster, a 7.5-hour six-day one and a short transition month all price the same hour.
+	const nihon = (contractHours: number, hours: number, days: number) => {
 		const base = person(hours, days, false);
-		return { ...base, terms: { ...base.terms, basic_salary: 1_700, payroll_group: payrollGroup } };
+		return {
+			...base,
+			terms: {
+				...base.terms,
+				basic_salary: 1_700,
+				facts: { ...base.terms.facts, contract_hours_per_week: contractHours }
+			}
+		};
 	};
 	const monthly = (hours: number, days: number): RateTerms => ({
 		...terms(hours, days, 1_700),
@@ -146,7 +154,7 @@ test('MY: the hour is basic × 12 ÷ (52 × the contract week), whatever week th
 		] as const) {
 			const divisor = ordinaryDivisorDays({
 				expression: version.work_rules.ordinary_divisor_days,
-				person: nihon(group, hours, days) as never
+				person: nihon(week, hours, days) as never
 			});
 			const hour = ordinaryHourlyRate(monthly(hours, days), divisor);
 			assert.ok(Math.abs(hour - (1_700 * 12) / (52 * week)) < 1e-10, `${group} ${hours}/${days}`);

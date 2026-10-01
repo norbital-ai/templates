@@ -283,7 +283,8 @@ export type PayrollSettings = {
 	readonly pay_calendar?: PayCalendar | null;
 	/**
 	 * The codes the version admits in each generic `employment_terms` classification field; the
-	 * lineage's expressions compare them. Absent declares none, so only an empty value is admitted.
+	 * lineage's expressions compare them. Absent or `[]` declares none, so only an empty value or the
+	 * model default (`VOCABULARY_DEFAULTS`) is admitted.
 	 */
 	readonly vocabularies?: { readonly [F in VocabularyField]: readonly string[] } | null;
 };
@@ -296,6 +297,21 @@ export const VOCABULARY_FIELDS = [
 	'tax_residency'
 ] as const;
 export type VocabularyField = (typeof VOCABULARY_FIELDS)[number];
+
+/** The `employment_terms` model default of a classification field: a lineage declaring no codes admits it. */
+export const VOCABULARY_DEFAULTS: Partial<Record<VocabularyField, string>> = {
+	statutory_work_category: 'NON_MANUAL'
+};
+
+/** Whether a version's vocabulary admits `value` in `field` (a non-empty value). */
+export const vocabularyAdmits = (
+	vocabularies: PayrollSettings['vocabularies'],
+	field: VocabularyField,
+	value: string
+): boolean => {
+	const declared = vocabularies?.[field] ?? [];
+	return declared.length === 0 ? value === VOCABULARY_DEFAULTS[field] : declared.includes(value);
+};
 
 const share = (value: number | null | undefined) => value == null || (value >= 0 && value <= 1);
 

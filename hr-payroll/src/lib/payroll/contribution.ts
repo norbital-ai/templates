@@ -833,7 +833,13 @@ function floorIssues(options: {
 			// is met by the contract less the month's employee charges of the named schemes.
 			// ponytail: the month's charges net every term segment of the month; split per segment if a
 			// mid-month rise lands on the floor.
-			const netOf = configuration.jurisdiction.work_rules.wages?.net_of_employee_schemes ?? [];
+			const netWhen = (
+				configuration.jurisdiction.work_rules.wages?.net_of_employee_schemes_when ?? ''
+			).trim();
+			const netOf =
+				netWhen === '' || isEligible(netWhen, person)
+					? (configuration.jurisdiction.work_rules.wages?.net_of_employee_schemes ?? [])
+					: [];
 			const withheld =
 				unit === 'a month' && netOf.length > 0
 					? (options.charges?.get(bundle.employment.id) ?? [])
@@ -1403,9 +1409,12 @@ function wageAgainstFloor(
 	// An hourly rate meets the hourly table. A monthly-paid part-timer uses the version's
 	// monthly proportion where stated; otherwise the hourly table is annualised by contract hours.
 	const scale = minimumWageScale(configuration, person);
+	// A workplace-keyed order states its hourly floor by the same worksite as its monthly one.
 	let hourly = placeWage(
 		configuration.jurisdiction.work_rules.wages?.hourly_by_region ?? {},
-		configuration.company.region ?? ''
+		configuration.jurisdiction.work_rules.wages?.workplace_keyed === true
+			? workplace(configuration, person)
+			: (configuration.company.region ?? '')
 	);
 	let statedMonthly: number | string = wage;
 	let statedHourly: number | string = hourly ?? 0;

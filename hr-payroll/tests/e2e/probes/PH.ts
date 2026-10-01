@@ -638,6 +638,29 @@ register(
 		]
 	},
 	{
+		...seam(
+			'PH-WG24-6',
+			'CALABARZON, Batangas/Santo Tomas (component city) manufacturing at exactly the IVA-22 non-agriculture floor of ₱600 a day: ₱600 × 261 ÷ 12 = ₱13,050, no evidence facts.',
+			13_050,
+			{ sss: [650, 1300], ec: 10, phic: [326.25, 326.25], hdmf: [200, 200] },
+			11_873.75,
+			1836.25,
+			'Wage Order IVA-22 s.2 table, p.3 (read 1 Oct 2026): Component Cities, Province of Batangas, City of Santo Tomas, non-agriculture ₱540 + ₱60 = ₱600 upon effectivity (5 Oct 2025), no second tranche (https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf); 600 × 261 ÷ 12 = 13,050. SSS 12,750–13,249.99 → MSC 13,000: 650 / 1,300, EC 10. PhilHealth 13,050 × 5% = 652.50 → 326.25 / 326.25. Pag-IBIG 200 / 200. WTAX 0 (minimum-wage earner). Net 13,050 − 1,176.25 = 11,873.75; employer cost 1,300 + 10 + 326.25 + 200 = 1,836.25.'
+		),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 13_050,
+				worksite: 'Batangas/Santo Tomas',
+				sector: 'MANUFACTURING'
+			})
+		]
+	},
+	{
 		id: 'PH-WH09-1',
 		profile: 'PH',
 		description:

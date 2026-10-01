@@ -4,7 +4,8 @@
  * Deterministic: the only variety comes from a fixed-seed mulberry32, so every run yields the same list. Each scenario
  * names the `docs/inventory/china.csv` row ids and the branch it exercises.
  *
- * Shape → probe harness (`tests/e2e/payroll-probe.ts`): `profile` is the case's settings lineage, `period` the run's
+ * Shape → probe harness (`tests/e2e/payroll-probe.ts`): `profile` is the Shanghai applicability profile of the CN
+ * lineage (the differential's company records `settings_code: 'CN'`, region SHANGHAI, worksite SHANGHAI), `period` the run's
  * period, `runs` the earlier same-employer periods that must be run first (cumulative withholding), `worker` /
  * `employment` / `contributions` / `tax` the employee, employment, terms and declared facts (tracker config paths:
  * `statutory_contributions:*` bases, `facts.housing_fund_rate`, `facts.housing_fund_supplementary_rate`,
