@@ -11,5 +11,23 @@
 {#if record == null}
 	<EmptyState title={bolt.t('component.communication_recorded_automatically')} />
 {:else}
-	<RecordShell of="communication_logs" id={record.id} subtitle={['sender', 'sent_at']} />
+	<RecordShell
+		of="communication_logs"
+		id={record.id}
+		subtitle={['sender', 'sent_at']}
+		sections={[
+			{
+				name: 'message',
+				title: bolt.t('section.message'),
+				fields: ['message']
+			},
+			{
+				name: 'delivery',
+				title: bolt.t('section.delivery'),
+				fields: ['sender', 'sent_at', 'source_message_id', 'job_assignment_id'],
+				defaultOpen: false,
+				summary: (row) => String(row.sender ?? '—')
+			}
+		]}
+	/>
 {/if}

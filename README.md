@@ -10,6 +10,19 @@ evidence whose integrity is checked mechanically. It is deliberately focused —
 project costing, payroll, or portfolio management, and the platform's native approval system owns the
 variation approval lifecycle.
 
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Dispatch control
+
+![Field Operations: Dispatch control](docs/images/current-field_ops_controller-dispatch.png)
+
+[All application screens](docs/README.md#current-screenshots).
+<!-- current-screenshots:end -->
+
 ## 1. What this workspace is
 
 The problem: field-service work needs the right people at the right site on the right day, and the

@@ -20,7 +20,7 @@
 	<RecordShell of="suspicious_activity_logs" mode="create">
 		<Form of="suspicious_activity_logs" mode="create">
 			{#snippet children()}
-				<Grid minimum="panel">
+				<Grid minimum="card">
 					<Field name="job_assignment_id" label={t('component.job_assignment')} />
 					<Field name="reason" label={t('component.suspicion_judgement')} />
 				</Grid>
