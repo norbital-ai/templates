@@ -43,7 +43,7 @@
 	} = $props();
 
 	// Every catalogue reaches its version through `settings_id`: the clause holds for each of them.
-	const inForce = $derived(inForceCatalogue(settingsCode) as Where<C> | undefined);
+	const inForce = $derived(eligibleTypeWhere(inForceCatalogue(settingsCode), null) as Where<C>);
 	/** The in-force version's rows only: every version together is thousands of ids, over a read's `in` limit. */
 	async function offer(employment: Id<'employments'>) {
 		const person = await bolt.get('employments', employment, ELIGIBILITY_SELECT);
@@ -51,6 +51,7 @@
 		const facts = plain(person) as Parameters<typeof personAsOf>[0];
 		// A sheet opened outside a scoped page narrows to the chosen employment's own lineage.
 		const clause = inForceCatalogue(settingsCode ?? facts.company_id?.settings_code);
+		if (clause == null) return eligibleTypeWhere(undefined, []) as Where<C>;
 		const candidates = await bolt.read<Catalogue>(catalogue, {
 			...(clause == null ? {} : { where: clause as Where<Catalogue> }),
 			select: { eligibility: true },

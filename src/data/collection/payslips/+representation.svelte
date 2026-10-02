@@ -12,13 +12,14 @@
 	 */
 	import { t, type MessageKey } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
-	import { Field, Form, Icon } from '@norbital-ai/ui';
+	import { Combobox, DateInput, Field, Form, Icon, useEnumText } from '@norbital-ai/ui';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { decodeNumber, plain } from '../../../lib/wire.js';
 	import { schemeLabel, bySchemeListing } from '../../../lib/payroll/scheme-label.js';
 	import { readRange } from '../../../lib/payroll/run/effective.js';
-	import { dateKey } from '../../../lib/iso-day.js';
+	import { dateKey, calendarDateInTimeZone } from '../../../lib/iso-day.js';
+	import { parseDate, toZoned } from '@internationalized/date';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { live, liveRows } from '../../../lib/ui/live.svelte.js';
 	import InfoTip from '../../../lib/ui/InfoTip.svelte';
@@ -26,6 +27,7 @@
 	import type { TracedLine } from '../../../lib/trace/record.js';
 
 	let { view }: { view: RecordView<'payslips'> } = $props();
+	const enumText = useEnumText();
 	/** The stored row, its wire values plain. */
 	const record = $derived(view.mode === 'update' ? plain(view.record) : null);
 
@@ -48,6 +50,16 @@
 	);
 	const employment = $derived(summary.current?.employment_id ?? null);
 	const run = $derived(summary.current?.payroll_run_id ?? null);
+	const paymentSettings = live(() =>
+		run?.settings_id == null
+			? null
+			: bolt.get('jurisdiction_settings', run.settings_id, { payroll: true })
+	);
+	const paymentTimeZone = $derived(paymentSettings.current?.payroll?.timezone ?? null);
+	const paymentDay = (instant: string | null | undefined) =>
+		instant == null || paymentTimeZone == null
+			? null
+			: calendarDateInTimeZone(new Date(instant), paymentTimeZone);
 	const terms = liveRows(() =>
 		record == null
 			? null
@@ -265,7 +277,8 @@
 		readonly key: string;
 		readonly title: string;
 		readonly rows: readonly Row[];
-		readonly total?: { readonly label: string; readonly amount: number } | undefined;
+		readonly total?:
+			{ readonly label: string; readonly amount: number; readonly help: string } | undefined;
 	};
 	const sum = (rows: readonly Row[]) => rows.reduce((total, row) => total + row.amount, 0);
 	const sections = $derived.by((): Section[] => {
@@ -278,7 +291,11 @@
 				key: 'earnings',
 				title: t('component.payslip_earnings'),
 				rows: [...baseRows, ...adjustmentRows('EARNING', 1), ...adjustmentRows('ABSENCE', -1)],
-				total: { label: t('component.payslip_gross_pay'), amount: decodeNumber(record.gross) }
+				total: {
+					label: t('component.payslip_gross_pay'),
+					amount: decodeNumber(record.gross),
+					help: t('component.payslip_gross_pay_help')
+				}
 			},
 			{
 				key: 'deductions',
@@ -286,7 +303,8 @@
 				rows: [...statutoryRows('employee'), ...adjustmentRows('DEDUCTION', -1)],
 				total: {
 					label: t('component.payslip_total_deductions'),
-					amount: -decodeNumber(record.total_deductions)
+					amount: -decodeNumber(record.total_deductions),
+					help: t('component.payslip_total_deductions_help')
 				}
 			},
 			...(payments.length === 0
@@ -299,7 +317,11 @@
 							key: 'employer',
 							title: t('component.payslip_employer_contributions'),
 							rows: employer,
-							total: { label: t('component.payslip_employer_total'), amount: sum(employer) }
+							total: {
+								label: t('component.payslip_employer_total'),
+								amount: sum(employer),
+								help: t('component.payslip_employer_total_help')
+							}
 						}
 					]),
 			...(information.length === 0
@@ -379,6 +401,14 @@
 					line={row.why.line}
 					title={row.label}
 				/>
+			{:else}
+				<InfoTip label={row.label}
+					>{t(
+						row.entries.length > 0
+							? 'component.payslip_grouped_amount_help'
+							: 'component.payslip_base_amount_help'
+					)}</InfoTip
+				>
 			{/if}
 		</td>
 	</tr>
@@ -389,7 +419,7 @@
 
 <RecordShell of="payslips" {...record == null ? {} : { id: record.id }} mode={view.mode}>
 	{#if record}
-		<Stack gap="lg">
+		<Stack gap="lg" shrink={false}>
 			<Grid as="dl" gap="sm" minimum="compact" class="text-sm" aria-label={t('component.payslip')}>
 				{#each header as [label, value] (label)}
 					<Stack gap="none">
@@ -398,7 +428,7 @@
 					</Stack>
 				{/each}
 			</Grid>
-			<Stack as="section" gap="sm" aria-label={t('app.payroll.payslip_payment')}>
+			<Stack as="section" gap="sm" shrink={false} aria-label={t('app.payroll.payslip_payment')}>
 				<h2 class="text-heading">{t('app.payroll.payslip_payment')}</h2>
 				{#if record.status === 'PAID'}
 					<Grid as="dl" gap="sm" minimum="compact" class="text-sm">
@@ -408,7 +438,7 @@
 						</Stack>
 						<Stack gap="none">
 							<dt class="text-meta">{t('app.payroll.actual_payment_date')}</dt>
-							<dd class="tabular-nums">{formatCalendarDate(record.paid_at)}</dd>
+							<dd class="tabular-nums">{formatCalendarDate(paymentDay(record.paid_at))}</dd>
 						</Stack>
 					</Grid>
 				{:else if record.payment_mode === 'EVENT_LEDGER'}
@@ -416,6 +446,7 @@
 				{:else}
 					<p class="text-sm text-muted-foreground">{t('app.payroll.payslip_payment_help')}</p>
 					<Form
+						class="h-auto! shrink-0"
 						of="payslips"
 						mode="update"
 						id={record.id}
@@ -423,8 +454,39 @@
 						submit={t('app.payroll.save_payment')}
 					>
 						<Grid gap="sm" minimum="compact">
-							<Field name="status" label={t('component.status')} />
-							<Field name="paid_at" label={t('app.payroll.actual_payment_date')} />
+							<Field name="status" label={t('component.status')}>
+								{#snippet editor(field)}
+									<Combobox
+										id={field.id}
+										options={field.kind.kind === 'state'
+											? [record.status, ...(field.kind.states[record.status]?.to ?? [])].map(
+													(value) => ({ value, label: enumText(value, 'status') })
+												)
+											: []}
+										value={typeof field.value === 'string' ? field.value : null}
+										disabled={field.disabled}
+										onChange={(next) => field.onChange(next)}
+									/>
+								{/snippet}
+							</Field>
+							<Field name="paid_at" label={t('app.payroll.actual_payment_date')}>
+								{#snippet editor(field)}
+									<DateInput
+										id={field.id}
+										of="date"
+										value={typeof field.value === 'string' ? paymentDay(field.value) : null}
+										disabled={field.disabled || paymentTimeZone == null}
+										onChange={(next) => {
+											if (paymentTimeZone != null)
+												field.onChange(
+													next == null
+														? null
+														: toZoned(parseDate(next), paymentTimeZone).toAbsoluteString()
+												);
+										}}
+									/>
+								{/snippet}
+							</Field>
 						</Grid>
 					</Form>
 				{/if}
@@ -477,7 +539,9 @@
 							<tr class="border-t border-border font-medium">
 								<td class="py-1 pr-3" colspan="2">{section.total.label}</td>
 								<td class="py-1 pr-1 text-right">{figure(section.total.amount)}</td>
-								<td></td>
+								<td class="w-7 py-0 text-right"
+									><InfoTip label={section.total.label}>{section.total.help}</InfoTip></td
+								>
 							</tr>
 						{/if}
 					</tbody>
@@ -487,18 +551,26 @@
 					<tr class="border-t-2 border-foreground/20">
 						<td class="py-1.5 pr-3 text-heading" colspan="2">{t('component.payslip_net_pay')}</td>
 						<td class="py-1.5 pr-1 text-right text-heading">{money(decodeNumber(record.net))}</td>
-						<td></td>
+						<td class="w-7 py-0 text-right"
+							><InfoTip label={t('component.payslip_net_pay')}
+								>{t('component.payslip_net_pay_help')}</InfoTip
+							></td
+						>
 					</tr>
 					<tr class="text-muted-foreground">
 						<td class="py-1 pr-3" colspan="2">{t('component.payslip_employer_cost_total')}</td>
 						<td class="py-1 pr-1 text-right">{money(decodeNumber(record.employer_cost))}</td>
-						<td></td>
+						<td class="w-7 py-0 text-right"
+							><InfoTip label={t('component.payslip_employer_cost_total')}
+								>{t('component.payslip_employer_cost_help')}</InfoTip
+							></td
+						>
 					</tr>
 				</tbody>
 			</table>
 
 			{#if decodeNumber(record.unfunded_contributions) > 0}
-				<Stack as="section" gap="sm" class="border-t border-border pt-4">
+				<Stack as="section" gap="sm" shrink={false} class="border-t border-border pt-4">
 					<Grid as="dl" gap="sm" minimum="compact" class="text-sm tabular-nums">
 						<Stack gap="none">
 							<dt class="text-meta">{t('component.unfunded_contributions')}</dt>
@@ -519,6 +591,7 @@
 					</Grid>
 					<!-- A paid slip edits nothing (its state's `edit: 'none'`): the fields read locked. -->
 					<Form
+						class="h-auto! shrink-0"
 						of="payslips"
 						mode="update"
 						id={record.id}

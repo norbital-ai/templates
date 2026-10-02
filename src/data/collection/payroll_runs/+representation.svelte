@@ -36,7 +36,9 @@
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { createValues, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { openCreated } from '../../../lib/ui/open-created.js';
-	import { dateKey } from '../../../lib/iso-day.js';
+	import { dateKey, calendarDateInTimeZone } from '../../../lib/iso-day.js';
+	import { parseDate, toZoned } from '@internationalized/date';
+	import { plain } from '../../../lib/wire.js';
 	import {
 		companyPeriods,
 		periodDayRange,
@@ -126,6 +128,10 @@
 	const companyOf = (id: unknown) => (companies.current ?? []).find((row) => row.id === id);
 
 	// ── the record ──
+	const paymentSettings = live(() =>
+		run == null ? null : bolt.get('jurisdiction_settings', run.settings_id, { payroll: true })
+	);
+	const paymentTimeZone = $derived(paymentSettings.current?.payroll?.timezone ?? null);
 	const company = live(() =>
 		run == null ? null : bolt.get('companies', run.company_id, { name: true })
 	);
@@ -153,15 +159,27 @@
 	/** What the engine noticed but did not refuse, one sentence per line, frozen with the run. */
 	const warnings = $derived(run == null || run.warnings === '' ? [] : run.warnings.split('\n'));
 	/** Hold keeps reviewed slips out of every bank file; release returns them; paid is terminal, on the pay date. */
-	const move = (status: 'DRAFT' | 'ON_HOLD' | 'PAID') => (selected: Id<'payslips'>[]) =>
-		selected.map((target) => ({
+	const move = (status: 'DRAFT' | 'ON_HOLD' | 'PAID') => (selected: Id<'payslips'>[]) => {
+		const zone = paymentTimeZone;
+		const payDate = run?.pay_date;
+		if (status === 'PAID' && (zone == null || payDate == null)) return [];
+		const paidAt =
+			status === 'PAID' && zone != null && payDate != null
+				? Instant(toZoned(parseDate(payDate), zone).toAbsoluteString())
+				: null;
+		return selected.map((target) => ({
 			target,
-			set: {
-				status,
-				...(status === 'PAID' ? { paid_at: Instant(`${run?.pay_date}T00:00:00.000Z`) } : {})
-			}
+			set: { status, ...(paidAt == null ? {} : { paid_at: paidAt }) }
 		}));
+	};
 </script>
+
+{#snippet paymentDateCell({ value }: { value: unknown })}
+	{@const instant = plain(value)}
+	{typeof instant === 'string' && paymentTimeZone != null
+		? formatCalendarDate(calendarDateInTimeZone(new Date(instant), paymentTimeZone))
+		: '—'}
+{/snippet}
 
 {#snippet runSummary()}
 	{#if run}
@@ -277,7 +295,7 @@
 							input: move('DRAFT'),
 							requiresSelection: true
 						},
-						...(slips.loading || eventLedger
+						...(slips.loading || eventLedger || paymentTimeZone == null
 							? []
 							: [
 									{
@@ -296,7 +314,7 @@
 					{ field: 'employment_id', label: t('component.employee') },
 					'currency',
 					'status',
-					{ field: 'paid_at', label: t('app.payroll.actual_payment_date') },
+					{ field: 'paid_at', label: t('app.payroll.actual_payment_date'), cell: paymentDateCell },
 					'gross',
 					{ field: 'total_deductions', label: t('component.deductions') },
 					'net',

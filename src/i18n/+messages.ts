@@ -1799,6 +1799,20 @@ export default messages({
 	'component.payslip_unpaid_time': 'Unpaid time',
 	'component.payslip_total_unpaid_time': 'Total unpaid time',
 	'component.payslip_gross_pay': 'Gross pay',
+	'component.payslip_base_amount_help':
+		'Contracted pay for this component in the pay window. Where prorated, the basis shows the contract amount multiplied by eligible days divided by the applicable denominator.',
+	'component.payslip_grouped_amount_help':
+		'Sum of the entries for this component and rate. Expand the row to inspect each entry and its calculation.',
+	'component.payslip_gross_pay_help':
+		'Earnings after absence reductions, before employee contributions and other deductions. Separate non-wage payments are added when calculating net pay.',
+	'component.payslip_total_deductions_help':
+		'Employee statutory contributions and other deductions taken from gross pay. The statement shows them as negative amounts.',
+	'component.payslip_employer_total_help':
+		'Sum of company-paid contributions and other employer-cost items shown above. These amounts do not reduce employee net pay.',
+	'component.payslip_net_pay_help':
+		'Gross pay less employee deductions, plus separate non-wage payments. This is the calculated take-home amount; payment status records whether it has been paid.',
+	'component.payslip_employer_cost_help':
+		'Company-paid statutory contributions and other employer-cost items. Gross wages are shown separately; this figure does not include them.',
 	'component.payslip_other_deductions': 'Other deductions',
 	'component.payslip_total_other_deductions': 'Total other deductions',
 	'component.payslip_reimbursements': 'Reimbursements',
