@@ -70,3 +70,20 @@ test('a March regular run does not hide earlier January work and missing cycles'
 	assert.equal(scope.next, '2026-01');
 	assert.equal(scope.available[0], '2026-01');
 });
+
+test('actual January work anchors payroll ahead of December roster planning', () => {
+	assert.equal(
+		payrollCycleScope({
+			...base,
+			evidenceDate: '2026-01-01',
+			rosterDate: '2025-12-01',
+			runs: [],
+			slips: []
+		}).next,
+		'2026-01'
+	);
+	assert.equal(
+		payrollCycleScope({ ...base, rosterDate: '2026-01-01', runs: [], slips: [] }).next,
+		'2026-01'
+	);
+});
