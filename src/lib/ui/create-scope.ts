@@ -15,6 +15,8 @@ import * as Predicate from 'effect/Predicate';
 export interface HrCreateScope {
 	readonly companyId: () => Id<'companies'> | undefined;
 	readonly settingsCode: () => string | undefined;
+	/** Payroll only: the cycle selected in the app header. */
+	readonly payrollPeriod?: () => string | undefined;
 	/** Self-service only: the request is this person's own. */
 	readonly employmentId?: () => Id<'employments'> | undefined;
 	/** Employee profile only: the fact is this person's own. */

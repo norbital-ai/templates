@@ -36,6 +36,7 @@
 	import { capturedWorkDayFrozen } from '../../../lib/ui/roster/capture-claims.js';
 	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 	import FormSection from '../../../lib/ui/form-section.svelte';
+	import InfoTip from '../../../lib/ui/InfoTip.svelte';
 	import { employmentPicker, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { todayKey } from '../../../lib/ui/calendar.js';
 	import { dateKey, isUtcIsoInstant, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
@@ -918,6 +919,7 @@
 		draftIntervals = [{ startMinutes: window.start, endMinutes: window.end }];
 		draftAttendanceRecorded = true;
 	}
+	let activeDayTab = $state('planned');
 </script>
 
 {#snippet fieldRow(label: string, value: string)}
@@ -927,12 +929,22 @@
 	</Inline>
 {/snippet}
 
+{#snippet projectedTab()}
+	<Stack gap="xs">
+		<Inline gap="xs" align="center">
+			<span class="text-sm font-medium">{t('roster.projected_shift')}</span>
+			<InfoTip label={t('roster.projected_shift')}
+				>{t('roster.projected_shift_description')}</InfoTip
+			>
+		</Inline>
+		<p class="text-sm">
+			{patternCodeId == null ? t('roster.plan_missing') : codeLabel(patternCodeId)}
+		</p>
+	</Stack>
+{/snippet}
+
 {#snippet plannedTab()}
 	<Stack gap="md">
-		{@render fieldRow(
-			t('roster.projected_shift'),
-			patternCodeId == null ? t('roster.plan_missing') : codeLabel(patternCodeId)
-		)}
 		{#if mode === 'controller'}
 			<Stack gap="xs">
 				<p class="text-sm font-medium">{t('roster.recorded_plan')}</p>
@@ -1289,7 +1301,14 @@
 			<div style="display: contents;" {@attach seedSheet}>
 				<Stack gap="md">
 					<Tabs
+						bind:value={activeDayTab}
 						tabs={[
+							{
+								name: 'projected',
+								title: t('roster.plan_projected'),
+								icon: 'lucide:calendar-days',
+								body: projectedTab
+							},
 							{
 								name: 'planned',
 								title: t('component.work_day_planned'),
@@ -1312,7 +1331,7 @@
 							role={notice.tone === 'destructive' ? 'alert' : 'status'}>{notice.text}</Alert.Root
 						>
 					{/if}
-					{#if !frozen && (mode === 'controller' || reporting)}
+					{#if activeDayTab !== 'projected' && !frozen && (mode === 'controller' || reporting)}
 						<Inline justify="end">
 							<Button
 								type="button"

@@ -10,7 +10,7 @@
 	import { AppShell, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import type { Live, Id } from '@norbital-ai/bolt';
 	import { Badge, Button, Combobox, EmptyState, Table, Tabs, openRecord } from '@norbital-ai/ui';
-	import { companyPeriods, payDateFor, periodWindow, todayKey } from '../../../lib/ui/calendar.js';
+	import { payDateFor, todayKey } from '../../../lib/ui/calendar.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
 	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
 	import Loading from '../../../lib/ui/Loading.svelte';
@@ -25,6 +25,12 @@
 		type PayslipExportFile
 	} from '../../../lib/ui/payslip-export-pages.js';
 	import OffCycleRun from './off-cycle-run.svelte';
+	import { getAllContexts, setContext } from 'svelte';
+	import { watch } from 'runed';
+	import { HR_CREATE_SCOPE } from '../../../lib/ui/create-scope.js';
+	import { payrollCycleScope } from '../../../lib/ui/payroll-cycle-scope.js';
+	import { readRange } from '../../../lib/payroll/run/effective.js';
+	import { dateKey } from '../../../lib/iso-day.js';
 
 	let pdfFiles = $state<readonly PayslipExportFile[]>([]);
 	let pdfBusy = $state(false);
@@ -183,23 +189,103 @@
 			})
 		)
 	);
-	let year = $state(today.slice(0, 4));
-	const years = $derived(
-		[...new Set([today.slice(0, 4), ...runRows.map((run) => run.period.slice(0, 4))])].toSorted(
-			(a, b) => b.localeCompare(a)
-		)
+	const employments = liveRows(() =>
+		scope.id == null
+			? null
+			: bolt.read('employments', {
+					where: { company_id: { eq: scope.id } },
+					select: { effective_range: true },
+					all: true
+				})
 	);
-	const visibleRuns = $derived(runRows.filter((run) => run.period.startsWith(`${year}-`)));
-	// A proposed period belongs to creation controls only; it is never a table row.
-	const creationPeriod = $derived.by(() => {
-		const company = scope.company;
-		if (company == null) return today.slice(0, 7);
-		const current =
-			companyPeriods(periodWindow(2, 1), company.pay_frequency).find(
-				(period) => payDateFor(period, company.pay_frequency) >= today
-			) ?? today.slice(0, 7);
-		return current > (runCycles[0]?.period ?? '') ? current : runCycles[0]!.period;
+	const firstWork = liveRows(() =>
+		scope.id == null
+			? null
+			: bolt.read('work_days', {
+					where: {
+						employment_id: { is: { company_id: { eq: scope.id } } },
+						approval_id: { isNull: true }
+					},
+					select: { work_date: true },
+					orderBy: { work_date: 'asc' },
+					limit: 1
+				})
+	);
+	const firstRoster = liveRows(() =>
+		scope.id == null
+			? null
+			: bolt.read('rosters', {
+					where: {
+						employment_id: { is: { company_id: { eq: scope.id } } },
+						approval_id: { isNull: true }
+					},
+					select: { period: true },
+					orderBy: { period: 'asc' },
+					limit: 1
+				})
+	);
+	const cycleScope = $derived.by(() => {
+		const starts = (employments.current ?? [])
+			.flatMap((row) => {
+				const start = readRange(row.effective_range)?.start;
+				return start == null ? [] : [dateKey(start)];
+			})
+			.toSorted();
+		const companyStart = readRange(scope.company?.effective_range)?.start;
+		const commencement =
+			[starts[0], companyStart == null ? undefined : dateKey(companyStart)]
+				.filter((value): value is string => value != null)
+				.toSorted()
+				.at(-1) ?? today;
+		const evidenceDate = [
+			firstWork.current?.[0]?.work_date == null
+				? undefined
+				: dateKey(firstWork.current[0].work_date),
+			firstRoster.current?.[0]?.period == null ? undefined : `${firstRoster.current[0].period}-01`
+		]
+			.filter((value): value is string => value != null)
+			.toSorted()[0];
+		return payrollCycleScope({
+			today,
+			frequency: scope.company?.pay_frequency ?? 'MONTHLY',
+			commencement,
+			...(evidenceDate == null ? {} : { evidenceDate }),
+			runs: runs.current ?? [],
+			slips: slips.current ?? []
+		});
 	});
+	let selectedCycle = $state<{ company: string | null; period: string }>({
+		company: null,
+		period: ''
+	});
+	watch(
+		() =>
+			scope.id != null &&
+			runs.current !== undefined &&
+			slips.current !== undefined &&
+			employments.current !== undefined &&
+			firstWork.current !== undefined &&
+			firstRoster.current !== undefined
+				? scope.id
+				: null,
+		(id) => {
+			if (id != null && selectedCycle.company !== id)
+				selectedCycle = { company: id, period: cycleScope.next };
+		}
+	);
+	const creationPeriod = $derived(
+		selectedCycle.company === scope.id && selectedCycle.period !== ''
+			? selectedCycle.period
+			: cycleScope.next
+	);
+	const year = $derived(creationPeriod.slice(0, 4));
+	const visibleRuns = $derived(runRows.filter((run) => run.period.startsWith(`${year}-`)));
+	setContext(HR_CREATE_SCOPE, {
+		companyId: () => scope.id ?? undefined,
+		settingsCode: () => scope.company?.settings_code,
+		payrollPeriod: () => cycleScope.available.find((period) => period >= creationPeriod)
+	});
+	const createContexts = getAllContexts();
 	const remindersBeforeRun = $derived(
 		runCycles.find((cycle) => cycle.period === creationPeriod)?.regular
 			? 0
@@ -215,7 +301,7 @@
 		tab = 'obligations';
 	};
 	let adhocPeriod = $state<string | null>(null);
-	const runPayroll = () => openRecord('payroll_runs', 'new');
+	const runPayroll = () => openRecord('payroll_runs', 'new', createContexts);
 
 	const KIND: Record<string, MessageKey> = {
 		REGULAR: 'models.payroll_runs.fields.kind.REGULAR',
@@ -285,14 +371,6 @@
 		{@const companyId = scope.id}
 		<Stack gap="sm">
 			<Cluster gap="sm">
-				<Combobox
-					size="sm"
-					class="w-32"
-					aria-label={t('app.payroll.year')}
-					options={years.map((value) => ({ value, label: value }))}
-					value={year}
-					onChange={(next) => next != null && (year = next)}
-				/>
 				{#if remindersBeforeRun > 0}
 					<Button size="sm" variant="link" onclick={showReminders}>
 						{remindersBeforeRun === 1
@@ -461,7 +539,27 @@
 	description={t('app.payroll.description')}
 	variant="full"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}
+		<Cluster gap="sm">
+			<CompanyScope {scope} />
+			<Combobox
+				size="sm"
+				class="w-40"
+				aria-label={t('app.payroll.period')}
+				options={cycleScope.periods.map((value) => ({ value, label: value }))}
+				value={creationPeriod}
+				disabled={scope.id == null ||
+					runs.current === undefined ||
+					slips.current === undefined ||
+					employments.current === undefined ||
+					firstWork.current === undefined ||
+					firstRoster.current === undefined}
+				onChange={(next) => {
+					if (next != null) selectedCycle = { company: scope.id, period: next };
+				}}
+			/>
+		</Cluster>
+	{/snippet}
 	<ScopeGate {scope} empty={t('app.payroll.empty_runs')}>
 		{#snippet children()}
 			{#if pdfBusy}<p role="status">

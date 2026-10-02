@@ -9,6 +9,7 @@ const jurisdiction = new URL('../seed/jurisdiction/', import.meta.url);
 const statuses = new Set([
 	'VERIFIED',
 	'TESTED',
+	'NET_TESTED',
 	'IMPL',
 	'PARTIAL',
 	'GAP',
@@ -53,7 +54,7 @@ test('tracker boundary: jurisdiction seed rows carry no local probe statuses', (
 			if (key === 'status' && /\.obligations\[/.test(path)) failures.push(`${path}.${key}`);
 			if (
 				typeof entry === 'string' &&
-				/\b(?:TESTED|VERIFIED|IMPL|PARTIAL|GAP|SRC-BLOCKED|AWAIT-LAW|IMPLEMENTED|SOURCE-BLOCKED|AWAITING-LAW|UNVERIFIED)\s*[;:]/i.test(
+				/\b(?:TESTED|NET_TESTED|VERIFIED|IMPL|PARTIAL|GAP|SRC-BLOCKED|AWAIT-LAW|IMPLEMENTED|SOURCE-BLOCKED|AWAITING-LAW|UNVERIFIED)\s*[;:]/i.test(
 					entry
 				)
 			)
@@ -65,6 +66,11 @@ test('tracker boundary: jurisdiction seed rows carry no local probe statuses', (
 				)
 			)
 				failures.push(`${path}.${key}: local testing note`);
+			if (
+				typeof entry === 'string' &&
+				/docs[\/]inventory|(?:^|[\/])tracker(?:-files)?\.[jt]s\b/i.test(entry)
+			)
+				failures.push(`${path}.${key}: local tracker reference`);
 			inspect(entry, `${path}.${key}`);
 		}
 	};
