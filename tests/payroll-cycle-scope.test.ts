@@ -87,3 +87,24 @@ test('actual January work anchors payroll ahead of December roster planning', ()
 		'2026-01'
 	);
 });
+
+test('fresh payroll defaults to the first missing cycle this year while retaining prior work history', () => {
+	const scope = payrollCycleScope({
+		...base,
+		evidenceDate: '2025-12-01',
+		rosterDate: '2025-12-01',
+		runs: [],
+		slips: []
+	});
+	assert.equal(scope.next, '2026-01');
+	assert.equal(scope.periods[0], '2025-12');
+	assert.equal(
+		payrollCycleScope({
+			...base,
+			evidenceDate: '2025-12-01',
+			runs: [run('dec', '2025-12')],
+			slips: [slip('dec', 'DRAFT')]
+		}).next,
+		'2025-12'
+	);
+});
