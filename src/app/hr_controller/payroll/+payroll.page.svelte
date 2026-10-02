@@ -237,19 +237,18 @@
 				.filter((value): value is string => value != null)
 				.toSorted()
 				.at(-1) ?? today;
-		const evidenceDate = [
+		const evidenceDate =
 			firstWork.current?.[0]?.work_date == null
 				? undefined
-				: dateKey(firstWork.current[0].work_date),
-			firstRoster.current?.[0]?.period == null ? undefined : `${firstRoster.current[0].period}-01`
-		]
-			.filter((value): value is string => value != null)
-			.toSorted()[0];
+				: dateKey(firstWork.current[0].work_date);
+		const rosterDate =
+			firstRoster.current?.[0]?.period == null ? undefined : `${firstRoster.current[0].period}-01`;
 		return payrollCycleScope({
 			today,
 			frequency: scope.company?.pay_frequency ?? 'MONTHLY',
 			commencement,
 			...(evidenceDate == null ? {} : { evidenceDate }),
+			...(rosterDate == null ? {} : { rosterDate }),
 			runs: runs.current ?? [],
 			slips: slips.current ?? []
 		});

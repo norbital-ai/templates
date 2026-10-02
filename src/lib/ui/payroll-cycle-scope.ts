@@ -7,26 +7,22 @@ export function payrollCycleScope(input: {
 	readonly frequency: string;
 	readonly commencement?: string;
 	readonly evidenceDate?: string;
+	readonly rosterDate?: string;
 	readonly runs: readonly { id: string; period: string; kind: string | null }[];
 	readonly slips: readonly { payroll_run_id: string; status: unknown }[];
 }) {
 	const regular = input.runs.filter((run) => (run.kind ?? 'REGULAR') === 'REGULAR');
+	const evidenceDate = input.evidenceDate ?? input.rosterDate;
 	const evidencePeriod =
-		input.evidenceDate == null
+		evidenceDate == null
 			? []
-			: [
-					periodInCompanyGrammar(
-						input.evidenceDate.slice(0, 7),
-						input.frequency,
-						input.evidenceDate
-					)
-				];
+			: [periodInCompanyGrammar(evidenceDate.slice(0, 7), input.frequency, evidenceDate)];
 	const first =
 		[...regular.map((run) => run.period), ...evidencePeriod].toSorted()[0] ??
 		periodInCompanyGrammar(
-			(input.evidenceDate ?? input.commencement ?? input.today).slice(0, 7),
+			(evidenceDate ?? input.commencement ?? input.today).slice(0, 7),
 			input.frequency,
-			input.evidenceDate ?? input.commencement ?? input.today
+			evidenceDate ?? input.commencement ?? input.today
 		);
 	const lastMonth = [
 		first.slice(0, 7),
