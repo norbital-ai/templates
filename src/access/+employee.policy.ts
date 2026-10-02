@@ -45,6 +45,19 @@ export default policy({
 			queries: ['leave_balances', 'preview_leave']
 		},
 		payslips: { read: OWN },
+		// Only source identities prove this person's capture lock; no payment figures are exposed.
+		payable_tranches: {
+			read: {
+				where: { settlement: { payslips: { is: OWN } } },
+				fields: ['id', 'settlement', 'reference', 'source_kind', 'source_id']
+			}
+		},
+		payment_allocations: {
+			read: {
+				where: { payable_tranche_id: { is: { settlement: { payslips: { is: OWN } } } } },
+				fields: ['id', 'payable_tranche_id']
+			}
+		},
 		// leave pickers need paid-period boundaries of their own entity, without payroll inputs or results
 		payroll_runs: {
 			read: {

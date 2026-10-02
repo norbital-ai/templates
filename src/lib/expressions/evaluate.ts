@@ -256,15 +256,21 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
  * (`compile.ts`), so what compiles there evaluates here. Catalogue text is finite; the cap only
  * guards a pathological caller.
  */
-const environment = new Environment({
-	unlistedVariablesAreDyn: true,
-	homogeneousAggregateLiterals: false
-});
-for (const [signature, handler] of OPS) environment.registerFunction(signature, handler);
-for (const entry of REGISTERED_FUNCTIONS)
-	environment.registerFunction(entry.signature, (...args: unknown[]) =>
-		entry.handler(bound, ...args)
-	);
+let environment: Environment | undefined;
+function environmentForParse(): Environment {
+	if (environment !== undefined) return environment;
+	const initialized = new Environment({
+		unlistedVariablesAreDyn: true,
+		homogeneousAggregateLiterals: false
+	});
+	for (const [signature, handler] of OPS) initialized.registerFunction(signature, handler);
+	for (const entry of REGISTERED_FUNCTIONS)
+		initialized.registerFunction(entry.signature, (...args: unknown[]) =>
+			entry.handler(bound, ...args)
+		);
+	environment = initialized;
+	return initialized;
+}
 
 const programs = new Map<string, ParseResult>();
 const PROGRAM_CAP = 65_536;
@@ -272,7 +278,7 @@ const PROGRAM_CAP = 65_536;
 export function programFor(expression: string): ParseResult {
 	const cached = programs.get(expression);
 	if (cached !== undefined) return cached;
-	const program = environment.parse(expression);
+	const program = environmentForParse().parse(expression);
 	if (programs.size >= PROGRAM_CAP) programs.clear();
 	programs.set(expression, program);
 	return program;

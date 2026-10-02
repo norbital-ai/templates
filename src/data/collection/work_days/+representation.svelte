@@ -285,7 +285,7 @@
 				})
 	);
 	const captureTranches = liveRows(() =>
-		mode !== 'controller' || capturedSlipId == null
+		capturedSlipId == null
 			? null
 			: bolt.read('payable_tranches', {
 					where: { settlement: { payslips: { eq: capturedSlipId } } },
@@ -295,7 +295,7 @@
 	);
 	const captureTrancheIds = $derived((captureTranches.current ?? []).map((row) => row.id));
 	const captureAllocations = liveRows(() =>
-		mode !== 'controller' || captureTrancheIds.length === 0
+		captureTrancheIds.length === 0
 			? null
 			: bolt.read('payment_allocations', {
 					where: { payable_tranche_id: { in: captureTrancheIds } },
@@ -314,7 +314,7 @@
 		)
 	);
 	const captureRun = live(() =>
-		mode !== 'controller' || capturedSlip.current == null
+		capturedSlip.current == null
 			? null
 			: bolt.get('payroll_runs', capturedSlip.current.payroll_run_id, { period: true })
 	);
@@ -322,8 +322,7 @@
 		capturedSlip.error ?? captureTranches.error ?? captureAllocations.error ?? captureRun.error
 	);
 	const captureReady = $derived(
-		mode === 'controller' &&
-			capturedSlip.current != null &&
+		capturedSlip.current != null &&
 			!capturedSlip.loading &&
 			captureError == null &&
 			captureTranches.current !== undefined &&
@@ -343,11 +342,10 @@
 		!frozen
 			? undefined
 			: (captureError ??
-					(mode === 'controller' &&
 					(capturedSlip.loading ||
-						captureTranches.loading ||
-						captureAllocations.loading ||
-						captureRun.loading)
+					captureTranches.loading ||
+					captureAllocations.loading ||
+					captureRun.loading
 						? t('component.loading')
 						: captureReady && captureRun.current != null
 							? t('component.work_day_capture_locked', { period: captureRun.current.period })

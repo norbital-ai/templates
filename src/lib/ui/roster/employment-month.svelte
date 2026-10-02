@@ -42,7 +42,8 @@
 	import { openRecord } from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { live } from '../live.svelte.js';
+	import { live, liveRows } from '../live.svelte.js';
+	import { captureClaims } from './capture-claims.js';
 	import { monthSources } from './month-sources.svelte.js';
 	import RosterMonthCalendar from './roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from './employee-reportability.js';
@@ -68,9 +69,9 @@
 	import { sourceLock, type DayLock, type SourceLock } from '../../scheduling/lock.js';
 
 	/**
-	 * No `payroll_runs` query lives here: an employee has no read grant on it (owner's ruling), and an
-	 * unreadable window list would make every window lock silently answer NONE. `sourceLock` gets
-	 * `windows: []`; what an employee can know is PENDING (`approval_id`) and CONSUMED (`payslip_id`).
+	 * This calendar uses individual source captures, without a run-wide paid window. The employee's
+	 * payroll-run grant exposes period and attendance bounds, not payment state. `sourceLock` gets
+	 * `windows: []`; the record axis is PENDING or an individually paid, funded or allocated capture.
 	 */
 	/** No window means no day lock on this surface: it is stated once instead of mapped over the month. */
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
@@ -111,8 +112,8 @@
 
 	/*
 	 * The month: the controller board's queries with `company_id` swapped for `employment_id`, scoped
-	 * by the employee policy. No day-lock axis — `payroll_runs` is not readable by an employee (see
-	 * `NO_DAY_LOCKS`); the record axis is pending and consumed (`payslip_id`).
+	 * by the employee policy. `NO_DAY_LOCKS` leaves this calendar's record axis pending or protected
+	 * by an individual capture, independent of another person's payment.
 	 */
 
 	let scheduleMonth = $state(todayKey().slice(0, 7));
@@ -174,17 +175,74 @@
 		)
 	);
 
-	/**
-	 * The settlement ledger, which is why a refusal on a settled day is an EXPLANATION here rather
-	 * than an access denial. `settlementLedgerGrants()` puts this read on the `employee` policy
-	 * deliberately — see `src/lib/policy_grants.ts`.
-	 */
+	const captureSlipIds = $derived([
+		...new Set(scheduleWorkDays.flatMap((day) => (day.payslip_id == null ? [] : [day.payslip_id])))
+	]);
+	const captureSlips = liveRows(() =>
+		captureSlipIds.length === 0
+			? null
+			: bolt.read('payslips', {
+					where: { id: { in: captureSlipIds } },
+					select: {
+						paid_at: true,
+						funding_received: true,
+						funding_received_on: true,
+						funding_reference: true
+					},
+					all: true
+				})
+	);
+	const captureTranches = liveRows(() =>
+		captureSlipIds.length === 0
+			? null
+			: bolt.read('payable_tranches', {
+					where: { settlement: { payslips: { in: captureSlipIds } } },
+					select: { settlement: true },
+					all: true
+				})
+	);
+	const captureTrancheIds = $derived((captureTranches.current ?? []).map((row) => row.id));
+	const captureAllocations = liveRows(() =>
+		captureTrancheIds.length === 0
+			? null
+			: bolt.read('payment_allocations', {
+					where: { payable_tranche_id: { in: captureTrancheIds } },
+					select: { payable_tranche_id: true },
+					all: true
+				})
+	);
+	const captureReady = $derived(
+		captureSlipIds.length === 0 ||
+			(captureSlips.current !== undefined &&
+				captureSlips.current.length === captureSlipIds.length &&
+				!captureSlips.loading &&
+				captureSlips.error == null &&
+				captureTranches.current !== undefined &&
+				!captureTranches.loading &&
+				captureTranches.error == null &&
+				(captureTrancheIds.length === 0 ||
+					(captureAllocations.current !== undefined &&
+						!captureAllocations.loading &&
+						captureAllocations.error == null)))
+	);
+	const allocatedSlipIds = $derived.by(() => {
+		const allocated = new Set(
+			(captureAllocations.current ?? []).map((row) => row.payable_tranche_id)
+		);
+		return new Set(
+			(captureTranches.current ?? [])
+				.filter((row) => allocated.has(row.id))
+				.map((row) => String(row.settlement.id))
+		);
+	});
 	const settlementByWorkDayId = $derived(
-		new Map(
-			scheduleWorkDays
-				.filter((row) => row.payslip_id != null)
-				.map((row) => [row.id, { period: '' }])
-		)
+		captureReady
+			? captureClaims(scheduleWorkDays, captureSlips.current ?? [], allocatedSlipIds)
+			: new Map(
+					scheduleWorkDays
+						.filter((day) => day.payslip_id != null)
+						.map((day) => [day.id, { period: '' }])
+				)
 	);
 
 	const scheduleHolidays = $derived(reads.calendar.holidays);
@@ -361,7 +419,10 @@
 		{ label: t('holiday_calendar.jurisdiction'), query: reads.settings },
 		{ label: t('app.hr_employee.source_holidays'), query: reads.holidays },
 		{ label: t('app.hr_employee.source_shifts'), query: reads.shifts },
-		{ label: t('app.hr_employee.source_terms'), query: reads.termRows }
+		{ label: t('app.hr_employee.source_terms'), query: reads.termRows },
+		{ label: t('component.work_day_capture_status_unavailable'), query: captureSlips },
+		{ label: t('component.work_day_capture_status_unavailable'), query: captureTranches },
+		{ label: t('component.work_day_capture_status_unavailable'), query: captureAllocations }
 	]);
 	/**
 	 * Named sources rather than an OR of `loading` flags, for the reason the board records: a gate
