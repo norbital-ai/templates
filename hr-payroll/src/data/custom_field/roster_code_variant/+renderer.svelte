@@ -44,7 +44,7 @@
 		if (view.mode === 'edit') view.onChange(value);
 	}
 
-	function selectKind(value: string): void {
+	function selectKind(value: 'WORK' | 'REST' | 'OFF' | null): void {
 		if (value === 'WORK') {
 			emit({
 				kind: 'WORK',
