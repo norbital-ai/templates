@@ -22,9 +22,15 @@ function pickWorkbookFile(): Promise<File | null> {
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.accept = ACCEPTED_FILE_TYPES;
-		input.addEventListener('change', () => resolve(input.files?.[0] ?? null), { once: true });
+		input.hidden = true;
+		const finish = (file: File | null) => {
+			input.remove();
+			resolve(file);
+		};
+		input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
 		// Dismissing the dialog fires `cancel`; without it a cancelled import would never settle.
-		input.addEventListener('cancel', () => resolve(null), { once: true });
+		input.addEventListener('cancel', () => finish(null), { once: true });
+		document.body.append(input);
 		input.click();
 	});
 }

@@ -189,7 +189,17 @@ describe('the shift check', () => {
 			(s) => (s.message as { to: string }).to === '6580000001@s.whatsapp.net'
 		);
 		expect(toCustomer).toHaveLength(2);
-		expect(notices.map((n) => n['whatsapp'])).toEqual(['sent', 'sent']);
+		const deliveryRuns = await t.db.read([
+			{
+				text: `SELECT automation, state, error FROM sys_run
+				       WHERE automation IN ('deliver_notices', 'customer_mail') ORDER BY due_at, id`,
+				params: []
+			}
+		]);
+		expect(
+			notices.map((n) => n['whatsapp']),
+			JSON.stringify(deliveryRuns)
+		).toEqual(['sent', 'sent']);
 		// and, since the seeded customer gave an address, by mail through the customer_mail channel, tracked on the notice
 		const mails = t.fakes.transports.email.sent;
 		expect(mails).toHaveLength(2);

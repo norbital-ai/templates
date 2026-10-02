@@ -9,6 +9,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
 	NO_ROW,
 	eligibleTypeIds,
@@ -97,4 +98,27 @@ test('the predicate keeps the in-force clause and never asks the server for `in 
 	});
 	assert.deepEqual(eligibleTypeWhere(inForce, []), { ...inForce, id: { in: [NO_ROW] } });
 	assert.deepEqual(eligibleTypeWhere(undefined, ['fuel']), { id: { in: ['fuel'] } });
+});
+
+test('an unscoped pending or failed employment read never offers every jurisdiction', () => {
+	assert.deepEqual(eligibleTypeWhere(undefined, null), { id: { in: [NO_ROW] } });
+	assert.deepEqual(eligibleTypeWhere(undefined, []), { id: { in: [NO_ROW] } });
+});
+
+test('missing notice evidence excludes that type without hiding an ordinary bonus', () => {
+	const catalogue = JSON.parse(
+		readFileSync(new URL('../seed/jurisdiction/MY/adhoc_catalogue.json', import.meta.url), 'utf8')
+	);
+	const notice = catalogue.find((row) => row.id === '2ca51b85-711e-408f-bb90-739bfa402719');
+	const bonus = catalogue.find((row) => row.id === 'abc248db-6d2f-5e75-8a4a-cf8199462618');
+	assert.deepEqual(eligibleTypeIds([notice, bonus], personAsOf(facts, '2026-09-10')), [bonus.id]);
+});
+
+test('invalid catalogue expressions still surface instead of becoming unavailable', () => {
+	assert.throws(() =>
+		eligibleTypeIds(
+			[{ id: 'invalid', eligibility: 'terms..department' }],
+			personAsOf(facts, '2026-09-10')
+		)
+	);
 });

@@ -10,6 +10,7 @@ import { isEligible, personContext, type PersonContext } from '../lib/payroll/ru
 import { childrenOn, resolveEmployment } from './employment-contract.js';
 import { payRequestTerms } from './component_entry_cap_subject.js';
 import { dateKey } from './iso-day.js';
+import { EvaluationError } from '@marcbachmann/cel-js';
 
 /**
  * The employment row with its person, entity and terms selected through its relations
@@ -84,17 +85,32 @@ export function personAsOf(facts: PersonFacts, day: string): PersonContext {
 export const eligibleTypeIds = (
 	rows: ReadonlyArray<{ readonly id: string; readonly eligibility: string }>,
 	person: PersonContext
-): string[] => rows.filter((row) => isEligible(row.eligibility, person)).map((row) => row.id);
+): string[] =>
+	rows
+		.filter((row) => {
+			try {
+				return isEligible(row.eligibility, person);
+			} catch (error) {
+				if (!(error instanceof EvaluationError) || error.code !== 'no_such_key') throw error;
+				// A type requiring facts this form cannot establish is unavailable, not a reason to
+				// discard the other eligible types or offer every jurisdiction's catalogue.
+				return false;
+			}
+		})
+		.map((row) => row.id);
 
 /** A uuid no row carries: `in ()` is not SQL, so an empty offer names this id instead. */
 export const NO_ROW = '00000000-0000-0000-0000-000000000000';
 
 /**
  * The picker's predicate: the in-force clause the page already applies, narrowed to the eligible
- * ids once the person is known. `null` ids is "no person yet", which offers every in-force row.
+ * ids once the person is known. `null` ids offers the known in-force scope; without a scope,
+ * it offers nothing until the employment's lineage can be read.
  */
 export const eligibleTypeWhere = (
 	inForce: Record<string, unknown> | undefined,
 	ids: readonly string[] | null
-): Record<string, unknown> | undefined =>
-	ids == null ? inForce : { ...inForce, id: { in: ids.length === 0 ? [NO_ROW] : [...ids] } };
+): Record<string, unknown> =>
+	ids == null && inForce != null
+		? inForce
+		: { ...inForce, id: { in: ids == null || ids.length === 0 ? [NO_ROW] : [...ids] } };

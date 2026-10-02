@@ -37,5 +37,12 @@ deliver_notices.run(async ({ ids }, ctx) => {
 		}
 		set.push({ target: n.id, set: { whatsapp: went } });
 	}
-	if (set.length > 0) await ctx.act('customer_notices.update', set);
+	if (set.length > 0) {
+		// The mail channel can advance the same notice while WhatsApp records its send.
+		// Retry only this status write on a revision conflict, never the external send.
+		const recorded = await ctx.act.try('customer_notices.update', set);
+		if (recorded.kind === 'conflict') await ctx.act('customer_notices.update', set);
+		else if (recorded.kind !== 'committed' && recorded.kind !== 'pendingApproval')
+			throw new Error(JSON.stringify(recorded));
+	}
 });
