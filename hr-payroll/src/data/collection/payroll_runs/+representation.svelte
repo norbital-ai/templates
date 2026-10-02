@@ -82,7 +82,15 @@
 					all: true
 				})
 	);
-	const periodCandidates = periodWindow(37, 12);
+	const periodCandidates = $derived.by(() => {
+		const scopedPeriod = scope?.payrollPeriod?.();
+		return [
+			...new Set([
+				...periodWindow(37, 12),
+				...(scopedPeriod == null ? [] : [periodMonth(scopedPeriod)])
+			])
+		].toSorted();
+	});
 	const monthName = (month: string) =>
 		new Intl.DateTimeFormat(bolt.locale, {
 			month: 'short',
@@ -327,7 +335,7 @@
 		<Form
 			of="payroll_runs"
 			mode="create"
-			values={createValues(view, { company_id: scopedCompanyId })}
+			values={createValues(view, { company_id: scopedCompanyId, period: scope?.payrollPeriod?.() })}
 			submit={t('component.create_payroll_run')}
 			onOutcome={openCreated(view)}
 		>

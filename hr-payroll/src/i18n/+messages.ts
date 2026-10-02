@@ -566,6 +566,8 @@ export default messages({
 	'roster.plan_missing': 'No plan',
 	'roster.actual_hours': '{hours} actual',
 	'roster.projected_shift': 'Projected shift',
+	'roster.projected_shift_description':
+		'The employment shift pattern for this date. This projection is read-only; use Planned to record an override or overtime and Actual to record attendance.',
 	'roster.recorded_plan': 'Planned override',
 	'roster.recorded_plan_help':
 		'Assign a roster code for this date, or leave it empty to follow the shift pattern.',
