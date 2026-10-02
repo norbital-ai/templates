@@ -128,6 +128,9 @@ export default messages({
 	'app.payroll.runs_title': 'Payroll runs',
 	'app.payroll.status': 'Status',
 	'app.payroll.adhoc_items': 'What the run pays',
+	'app.payroll.adhoc_people': 'People',
+	'app.payroll.choose_adhoc_people': 'Choose one or more people with outstanding entries.',
+	'app.payroll.remove_adhoc_person': 'Remove {name} from this run',
 	'app.payroll.adhoc_run_created': 'Ad hoc run created.',
 	'app.payroll.adhoc_run_title': 'Ad hoc run · {period}',
 	'app.payroll.new_adhoc_run': 'New ad hoc run',
@@ -303,6 +306,8 @@ export default messages({
 	'component.create_employment': 'Create employment contract',
 	'component.create_loan': 'Create loan',
 	'component.create_payroll_run': 'Create payroll run',
+	'component.payroll_regular_exists_help':
+		'A regular run already exists for this period. Open it and recalculate its unpaid payslips, or create an ad hoc or correction run for this same period.',
 	'component.create_run_hint':
 		'Creating the run builds it: the payslips and their complete component lines are written before this closes.',
 	'component.create_scheme': 'Create scheme',

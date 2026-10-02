@@ -494,63 +494,67 @@ async function factReminderSweep(
 ) {
 	const settled = { approval_id: { isNull: true } };
 	const ofCompany = { company_id: { is: settled } };
-	const [runs, revisions, employments, employees, terms, personFacts, evidence, recorded] =
-		await Promise.all([
-			readAll<{ company_id: string; period: string; kind?: string | null }>(
-				ctx,
-				'payroll_runs',
-				{ ...settled, ...ofCompany },
-				undefined,
-				{ company_id: true, period: true, kind: true }
-			),
-			readAll<OwedInput['companyFactRevisions'][number] & { company_id: string }>(
-				ctx,
-				'company_facts',
-				{ ...settled, ...ofCompany },
-				undefined,
-				{ company_id: true, facts: true, effective_range: true }
-			),
-			readAll<OwedInput['employments'][number] & { company_id: string }>(
-				ctx,
-				'employments',
-				{ ...settled, ...ofCompany },
-				undefined,
-				{
-					company_id: true,
-					employee_id: true,
-					employee_number: true,
-					effective_range: true,
-					exit_ground: true
-				}
-			),
-			readAll<OwedInput['employees'][number]>(ctx, 'employees', settled),
-			readAll<OwedInput['terms'][number]>(ctx, 'employment_terms', {
-				...settled,
-				employment_id: { is: ofCompany }
-			}),
-			readAll<OwedInput['personFacts'][number]>(ctx, 'person_facts', settled),
-			readAll<{ fact_key: string; subject: { collection: string; id: string } }>(
-				ctx,
-				'fact_evidence',
-				{},
-				undefined,
-				{ fact_key: true, subject: true }
-			),
-			readAll<Parameters<typeof factReminders>[0]['reminders'][number] & { company_id: string }>(
-				ctx,
-				'obligation_instances',
-				{ duty_code: { eq: FACT_OWED } },
-				undefined,
-				{
-					company_id: true,
-					state: true,
-					duty_code: true,
-					subject_kind: true,
-					subject_id: true,
-					trigger_ref: true
-				}
-			)
-		]);
+	// Bound each list and await it separately: concurrent pages share the host crossing budget.
+	const runs = await readAll<{ company_id: string; period: string; kind?: string | null }>(
+		ctx,
+		'payroll_runs',
+		{ ...settled, ...ofCompany },
+		100,
+		{ company_id: true, period: true, kind: true }
+	);
+	const revisions = await readAll<
+		OwedInput['companyFactRevisions'][number] & { company_id: string }
+	>(ctx, 'company_facts', { ...settled, ...ofCompany }, 100, {
+		company_id: true,
+		facts: true,
+		effective_range: true
+	});
+	const employments = await readAll<OwedInput['employments'][number] & { company_id: string }>(
+		ctx,
+		'employments',
+		{ ...settled, ...ofCompany },
+		100,
+		{
+			company_id: true,
+			employee_id: true,
+			employee_number: true,
+			effective_range: true,
+			exit_ground: true
+		}
+	);
+	const employees = await readAll<OwedInput['employees'][number]>(ctx, 'employees', settled, 100);
+	const terms = await readAll<OwedInput['terms'][number]>(
+		ctx,
+		'employment_terms',
+		{
+			...settled,
+			employment_id: { is: ofCompany }
+		},
+		100
+	);
+	const personFacts = await readAll<OwedInput['personFacts'][number]>(
+		ctx,
+		'person_facts',
+		settled,
+		100
+	);
+	const evidence = await readAll<{ fact_key: string; subject: { collection: string; id: string } }>(
+		ctx,
+		'fact_evidence',
+		{},
+		100,
+		{ fact_key: true, subject: true }
+	);
+	const recorded = await readAll<
+		Parameters<typeof factReminders>[0]['reminders'][number] & { company_id: string }
+	>(ctx, 'obligation_instances', { duty_code: { eq: FACT_OWED } }, 100, {
+		company_id: true,
+		state: true,
+		duty_code: true,
+		subject_kind: true,
+		subject_id: true,
+		trigger_ref: true
+	});
 	// Reference history is read separately: it must not share a crossing with the fact sweep's other large lists.
 	const references = await readAll<
 		Parameters<typeof referenceCodes>[0][number] & { settings_id: string }

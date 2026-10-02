@@ -282,7 +282,7 @@
 	setContext(HR_CREATE_SCOPE, {
 		companyId: () => scope.id ?? undefined,
 		settingsCode: () => scope.company?.settings_code,
-		payrollPeriod: () => cycleScope.available.find((period) => period >= creationPeriod)
+		payrollPeriod: () => creationPeriod
 	});
 	const createContexts = getAllContexts();
 	const remindersBeforeRun = $derived(
