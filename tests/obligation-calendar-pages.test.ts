@@ -42,6 +42,23 @@ test('obligation sweep pages wide settings and retains duties under every histor
 		]
 	};
 	tables.employees = [{ id: 'synthetic', name: 'x'.repeat(2_000_000), approval_id: null }];
+	tables.employments = [
+		{
+			id: 'historical-employment',
+			company_id: 'co',
+			employee_id: 'synthetic',
+			employee_number: 'SYN',
+			approval_id: null,
+			effective_range: { from: '2020-01-01', to: '2020-12-31' }
+		}
+	];
+	tables.employment_terms = Array.from({ length: 300 }, (_, index) => ({
+		id: `term-${index}`,
+		employment_id: 'historical-employment',
+		approval_id: null,
+		effective_range: { from: '2020-01-01', to: '2020-12-31' },
+		facts: { recorded_history: 'x'.repeat(8000) }
+	}));
 	tables.reference_rows = Array.from({ length: 3000 }, (_, index) => ({
 		id: `ref-${index}`,
 		settings_id: index < 1500 ? 'old' : 'new',
@@ -53,7 +70,8 @@ test('obligation sweep pages wide settings and retains duties under every histor
 	}));
 	let crossingBytes = 0,
 		clearing = false;
-	const referenceIds = [];
+	const referenceIds = [],
+		termIds = [];
 	const db = memoryDb(tables),
 		reads = [],
 		written = [];
@@ -73,6 +91,7 @@ test('obligation sweep pages wide settings and retains duties under every histor
 				crossingBytes <= 4 * 1024 * 1024,
 				`aggregate crossing ${crossingBytes} exceeds 4 MiB`
 			);
+			if (collection === 'employment_terms') termIds.push(...result.rows.map((row) => row.id));
 			if (collection === 'reference_rows') referenceIds.push(...result.rows.map((row) => row.id));
 			if (collection === 'jurisdiction_settings') {
 				const bytes = Buffer.byteLength(JSON.stringify(result));
@@ -88,6 +107,10 @@ test('obligation sweep pages wide settings and retains duties under every histor
 		}
 	};
 	const result = await calendar.body({}, ctx);
+	assert.deepEqual(
+		termIds,
+		tables.employment_terms.map((row) => row.id)
+	);
 	assert.deepEqual(
 		reads.flatMap((read) => read.ids),
 		['old', 'new']

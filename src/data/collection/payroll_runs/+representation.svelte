@@ -51,6 +51,9 @@
 	const run = $derived(view.mode === 'update' ? view.record : null);
 	const scope = hrCreateScope();
 	const scopedCompanyId = $derived(scope?.companyId?.());
+	const scopedPeriod = $derived(scope?.payrollPeriod?.());
+	// svelte-ignore state_referenced_locally
+	let createKind = $state(view.mode === 'create' ? (view.values.kind ?? 'REGULAR') : 'REGULAR');
 
 	/** A company whose calendar the engine cannot build (a cutoff out of range) offers no period, not an error. */
 	const windowFor = (period: string, company: Company, payDueDate?: string) => {
@@ -81,6 +84,17 @@
 					select: { company_id: true, period: true, kind: true },
 					all: true
 				})
+	);
+	const duplicateRegular = $derived(
+		createKind === 'REGULAR' &&
+			scopedPeriod != null &&
+			scopedCompanyId != null &&
+			(runs.current ?? []).some(
+				(row) =>
+					row.company_id === scopedCompanyId &&
+					row.period === scopedPeriod &&
+					row.kind === 'REGULAR'
+			)
 	);
 	const periodCandidates = $derived.by(() => {
 		const scopedPeriod = scope?.payrollPeriod?.();
@@ -335,7 +349,11 @@
 		<Form
 			of="payroll_runs"
 			mode="create"
-			values={createValues(view, { company_id: scopedCompanyId, period: scope?.payrollPeriod?.() })}
+			values={{
+				...createValues(view, { company_id: scopedCompanyId }),
+				...(scopedPeriod == null ? {} : { period: scopedPeriod })
+			}}
+			disabled={scopedPeriod != null && (duplicateRegular || runs.loading || runs.error != null)}
 			submit={t('component.create_payroll_run')}
 			onOutcome={openCreated(view)}
 		>
@@ -370,27 +388,34 @@
 								{/snippet}
 							</Field>
 						{/if}
-						<Field name="period" label={t('component.pay_period')}>
-							{#snippet editor(field)}
-								<Combobox
-									aria-label={t('component.pay_period')}
-									placeholder={chosen == null
-										? t('component.choose_entity_first')
-										: t('component.choose_payroll_period')}
-									options={chosen == null
-										? []
-										: periodsOf(chosen, form.get('kind')).map((candidate) => ({
-												value: candidate,
-												label: periodLabel(candidate, chosen)
-											}))}
-									value={typeof field.value === 'string' && field.value !== '' ? field.value : null}
-									disabled={field.disabled || chosen == null || runs.loading}
-									onChange={(next) => field.onChange(next)}
-								/>
-							{/snippet}
-						</Field>
+						{#if scopedPeriod == null}
+							<Field name="period" label={t('component.pay_period')}>
+								{#snippet editor(field)}
+									<Combobox
+										aria-label={t('component.pay_period')}
+										placeholder={chosen == null
+											? t('component.choose_entity_first')
+											: t('component.choose_payroll_period')}
+										options={chosen == null
+											? []
+											: periodsOf(chosen, form.get('kind')).map((candidate) => ({
+													value: candidate,
+													label: periodLabel(candidate, chosen)
+												}))}
+										value={typeof field.value === 'string' && field.value !== ''
+											? field.value
+											: null}
+										disabled={field.disabled || chosen == null || runs.loading}
+										onChange={(next) => field.onChange(next)}
+									/>
+								{/snippet}
+							</Field>
+						{/if}
+						{#if duplicateRegular}<p role="status" class="text-sm text-muted-foreground">
+								{t('component.payroll_regular_exists_help')}
+							</p>{/if}
 						<!-- A cycle's own runs; its off-cycle and correction runs are opened from the cycle (payroll page). -->
-						<Field name="kind" label={t('app.payroll.kind')}>
+						<Field name="kind" label={t('app.payroll.kind')} disabled={false}>
 							{#snippet editor(field)}
 								<Combobox
 									aria-label={t('app.payroll.kind')}
@@ -400,7 +425,10 @@
 									}))}
 									value={typeof field.value === 'string' ? field.value : 'REGULAR'}
 									disabled={field.disabled}
-									onChange={(next) => field.onChange(next)}
+									onChange={(next) => {
+										field.onChange(next);
+										createKind = next === 'FINAL' ? 'FINAL' : 'REGULAR';
+									}}
 								/>
 							{/snippet}
 						</Field>

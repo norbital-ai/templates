@@ -9,7 +9,7 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { toast } from 'svelte-sonner';
-	import { Badge, Button, Checkbox, Dialog, EmptyState } from '@norbital-ai/ui';
+	import { Badge, Button, Checkbox, Combobox, Dialog, EmptyState } from '@norbital-ai/ui';
 	import { Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from '../../../lib/ui/create-scope.js';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
@@ -103,6 +103,15 @@
 	);
 
 	let picked = $state<ReadonlySet<string>>(new Set());
+	let selectedPeople = $state<ReadonlySet<string>>(new Set());
+	const personOptions = $derived.by(() => {
+		const people = new Map<string, string>();
+		for (const row of [...(claims.current ?? []), ...(adhoc.current ?? [])])
+			people.set(row.employment_id.id, employmentLabel(row.employment_id));
+		return [...people]
+			.map(([value, label]) => ({ value, label }))
+			.toSorted((a, b) => a.label.localeCompare(b.label));
+	});
 	let unticked = $state<ReadonlySet<string>>(new Set());
 	let busy = $state(false);
 
@@ -118,6 +127,7 @@
 			const item = row.catalogue_id as { name?: string | null; code: string };
 			if (!picked.has(`${family}:${item.code}`)) continue;
 			const employment = row.employment_id;
+			if (!selectedPeople.has(employment.id)) continue;
 			const person = byPerson.get(employment.id) ?? {
 				id: employment.id,
 				name: employmentLabel(employment),
@@ -179,6 +189,29 @@
 			{:else if items.length === 0}
 				<EmptyState variant="inset" title={t('app.payroll.no_adhoc_items')} />
 			{:else}
+				<Stack gap="xs">
+					<span class="text-meta">{t('app.payroll.adhoc_people')}</span>
+					<Combobox
+						aria-label={t('app.payroll.adhoc_people')}
+						options={personOptions.filter((person) => !selectedPeople.has(person.value))}
+						value={null}
+						placeholder={t('app.payroll.choose_adhoc_people')}
+						onChange={(id) => {
+							if (id != null) selectedPeople = flip(selectedPeople, [id], true);
+						}}
+					/>
+					<Cluster gap="xs">
+						{#each personOptions.filter( (person) => selectedPeople.has(person.value) ) as person (person.value)}
+							<Button
+								size="sm"
+								variant="outline"
+								aria-label={t('app.payroll.remove_adhoc_person', { name: person.label })}
+								onclick={() => (selectedPeople = flip(selectedPeople, [person.value], false))}
+								>{person.label} ×</Button
+							>
+						{/each}
+					</Cluster>
+				</Stack>
 				<Cluster gap="xs" role="group" aria-label={t('app.payroll.adhoc_items')}>
 					{#each items as item (item.key)}
 						{@const on = picked.has(item.key)}
@@ -192,7 +225,10 @@
 						</Button>
 					{/each}
 				</Cluster>
-				{#if picked.size > 0 && people.length === 0}
+				{#if selectedPeople.size === 0}<p class="text-sm text-muted-foreground">
+						{t('app.payroll.choose_adhoc_people')}
+					</p>
+				{:else if picked.size > 0 && people.length === 0}
 					<EmptyState variant="inset" title={t('app.payroll.no_outstanding_entries')} />
 				{:else if people.length > 0}
 					<Scroll name={t('app.payroll.outstanding_entries')} max="standard">
