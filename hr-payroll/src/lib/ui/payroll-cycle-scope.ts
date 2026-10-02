@@ -46,7 +46,11 @@ export function payrollCycleScope(input: {
 	const recorded = new Set(regular.map((run) => run.period));
 	return {
 		periods,
-		next: periods.find((period) => !complete.has(period)) ?? first,
+		next:
+			periods.find(
+				(period) =>
+					(regular.length > 0 || period >= `${input.today.slice(0, 4)}-01`) && !complete.has(period)
+			) ?? first,
 		available: periods.filter((period) => !recorded.has(period))
 	};
 }
