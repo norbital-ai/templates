@@ -189,7 +189,7 @@ describe('the shift check', () => {
 			(s) => (s.message as { to: string }).to === '6580000001@s.whatsapp.net'
 		);
 		expect(toCustomer).toHaveLength(2);
-		expect(notices.every((n) => n['whatsapp'] === 'sent')).toBe(true);
+		expect(notices.map((n) => n['whatsapp'])).toEqual(['sent', 'sent']);
 		// and, since the seeded customer gave an address, by mail through the customer_mail channel, tracked on the notice
 		const mails = t.fakes.transports.email.sent;
 		expect(mails).toHaveLength(2);
