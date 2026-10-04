@@ -1,6 +1,18 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'app.booking.cleaner': 'Cleaner',
+	'app.booking.no_preference': 'No preference',
+	'app.booking.options': 'Booking options',
+	'app.booking.available_start': 'Available start',
+	'app.booking.dates_from': 'Show dates from',
+	'app.booking.select_service': 'Choose a service',
+	'app.booking.duration': '{minutes} minutes',
+	'app.booking.choose_cleaner': 'Choose a cleaner',
+	'app.booking.skill_mismatch':
+		'This cleaner cannot perform the selected service. Choose another cleaner or service.',
+	'app.booking.travel_estimated':
+		'Travel times are estimated. Availability is checked again when you confirm.',
 	'section.availability': 'Availability',
 	'section.account_location': 'Sign-in and location',
 	'section.map': 'Map location',
@@ -18,7 +30,12 @@ export default messages({
 	'summary.not_started': 'Not started',
 	'summary.sent': 'Sent {at}',
 	'summary.not_sent': 'Not sent',
-	'app.helper.location_gate_title': 'Turn on location',
+	'app.helper.location_gate_title': 'Location required',
+	'app.helper.location_always_body':
+		'To use the employee portal, enable Location Services and choose Always (iOS) or Allow all the time (Android) in this app’s permissions. Your location is shared with dispatch while the app is running, including in the background. The portal stays locked while required location access is unavailable.',
+	'app.helper.location_settings': 'Open location settings',
+	'app.helper.location_unavailable':
+		'Location is unavailable. Enable device location services and try again.',
 	'app.helper.location_gate_body':
 		'Dispatch uses your position to keep customers updated on your arrival. Your day opens once location is on.',
 	'app.helper.location_blocked':
@@ -37,19 +54,20 @@ export default messages({
 	'app.schedule.no_warning_letters': 'No warning letters on file.',
 	'app.configurations.save': 'Save settings',
 	'app.configurations.saved': 'Saved. The checks use the new settings from their next run.',
-	'component.eta_limit_minutes': 'ETA limit (minutes)',
+	'component.eta_limit_minutes': 'ETA alert threshold (minutes)',
 	'component.eta_limit_minutes_help':
 		'A helper further away than this is flagged for dispatch to call.',
-	'component.eta_check_lead_minutes': 'Check ETA from (minutes before a visit)',
+	'component.eta_check_lead_minutes': 'Check before visit (minutes)',
 	'component.eta_check_lead_minutes_help':
 		'How long before a visit its helper’s position starts being checked.',
-	'component.shift_check_lead_minutes': 'Ask to confirm (minutes before the first visit)',
+	'component.shift_check_lead_minutes': 'Ask before first visit (minutes)',
 	'component.shift_check_lead_minutes_help': 'When a helper is asked to confirm their day.',
-	'component.shift_reply_minutes': 'Time to answer (minutes)',
-	'component.shift_reply_minutes_help': 'No answer within this, and the day is reassigned.',
-	'component.free_change_hours': 'Free changes until (hours before a visit)',
+	'component.shift_reply_minutes': 'Response window (minutes)',
+	'component.shift_reply_minutes_help':
+		'No answer within this, and replacements are proposed for controller approval.',
+	'component.free_change_hours': 'Free-change window (hours)',
 	'component.free_change_hours_help':
-		'Cancelling later than this is a late, chargeable cancellation; moving is refused.',
+		'Later cancellations are marked late; moving is refused. No fee is collected automatically.',
 	'app.portal.visits_upcoming': 'Upcoming',
 	'app.portal.visits_nothing_upcoming': 'No visits booked. Book one on our booking page.',
 	'app.portal.visits_on_the_way': 'About {minutes} min away',
@@ -73,8 +91,8 @@ export default messages({
 	'app.schedule.by_helper': 'By helper',
 	'app.schedule.list': 'List',
 	'app.schedule.unassigned': 'Unassigned',
-	'app.schedule.auto_reassign': 'Reassign to best match',
-	'app.schedule.accept_proposal': 'Accept proposal',
+	'app.schedule.auto_reassign': 'Recommend replacement',
+	'app.schedule.accept_proposal': 'Approve replacement',
 	'app.schedule.cancel_visit': 'Cancel visit',
 	'app.schedule.cancel_visit_confirm':
 		'Cancel this visit? Inside the free-change window it is a late cancellation.',
@@ -138,6 +156,49 @@ export default messages({
 	'app.configurations.services_title': 'Services',
 	'app.configurations.services_description':
 		'What can be booked: the skill each service needs, how long it takes and its price.',
+	'component.attention_awaiting_approval': 'Awaiting approval',
+	'models.visits.fields.attention.awaiting_approval': 'Awaiting approval',
+	'models.visits.fields.unavailable_helper': 'Unavailable cleaner',
+	'app.recovery.report_absence': 'Report cleaner unavailable',
+	'app.recovery.report_absence_help':
+		'Blocks this cleaner for the visit’s day and prepares replacements for all remaining scheduled visits that day.',
+	'app.recovery.medical': 'Medical certificate recorded',
+	'app.recovery.no_medical': 'No medical certificate recorded',
+	'app.recovery.prepare': 'Prepare replacements for approval',
+	'app.recovery.prepared':
+		'Unavailability recorded. Replacement recommendations are being prepared.',
+	'app.recovery.title': 'Review and rebook',
+	'app.recovery.description':
+		'Approve a replacement at the same time, or choose a new feasible start.',
+	'app.recovery.before_start': 'Visit starts in {time}',
+	'app.recovery.overdue': 'Visit start passed by {time}',
+	'app.recovery.recommended': 'Recommended replacement',
+	'app.recovery.metrics': '{drive} min added travel · {hours} h booked this week',
+	'app.recovery.planning':
+		'Travel uses cached routes where available, otherwise an estimate. Availability is checked again on approval.',
+	'app.recovery.absent': 'Unavailable: {name}',
+	'app.recovery.approve': 'Approve {name}',
+	'app.recovery.refresh': 'Refresh recommendation',
+	'app.recovery.other_time': 'Choose another time',
+	'app.recovery.from': 'Show dates from',
+	'app.recovery.no_match': 'No eligible replacement at this start. Choose another time.',
+	'app.recovery.approved':
+		'Approved. The cleaner’s route has been updated and assignment alerts queued.',
+	'app.recovery.scope': 'This changes one occurrence. Other recurring visits remain as booked.',
+	'app.recovery.review': 'Review',
+	'app.recovery.date_change': 'Confirm the new time with the customer before approving.',
+	'app.helper.route_title': 'Your route',
+	'app.helper.route_description':
+		'Assignments in visit order. New assignments appear here and in your notifications.',
+	'app.helper.route_stop': 'Stop {number}',
+	'app.helper.route_drive': 'Estimated drive from previous stop: {minutes} min',
+	'app.helper.route_gap': '{minutes} min between visits, including travel',
+	'app.helper.route_first': 'First stop of the day',
+	'app.helper.route_empty': 'No assignments on this date.',
+	'app.helper.route_start': 'Open daily route in Google Maps',
+	'app.helper.route_location':
+		'You can review your route without location. Share location before starting a visit so dispatch can track your arrival.',
+	'app.helper.date': 'Route date',
 	'app.helper.title': 'My Day',
 	'app.helper.description': 'Your visits, the drive to each, your shift check and job completion.',
 	'app.helper.tab_today': 'Today',
@@ -174,7 +235,7 @@ export default messages({
 	'app.portal.step_time': 'Time',
 	'app.portal.step_done': 'Confirmed',
 	'app.portal.service': 'What do you need?',
-	'app.portal.address': 'Address and area',
+	'app.portal.address': 'Service address',
 	'app.portal.repeat': 'How often',
 	'app.portal.name': 'Your name',
 	'app.portal.phone': 'Mobile number',
@@ -278,7 +339,7 @@ export default messages({
 	'models.bookings.fields.visit_count': 'Visits',
 	'models.helper_warnings.fields.issued_at': 'Issued',
 	'models.booking_requests.fields.start': 'Requested time',
-	'models.dispatch_settings.fields.eta_limit_minutes': 'ETA limit (minutes)',
+	'models.dispatch_settings.fields.eta_limit_minutes': 'ETA alert threshold (minutes)',
 	'models.dispatch_settings.fields.eta_check_lead_minutes': 'ETA check lead (minutes)',
 	'models.dispatch_settings.fields.free_change_hours': 'Free change window (hours)',
 	'models.booking_requests.fields.area.central': 'Central',

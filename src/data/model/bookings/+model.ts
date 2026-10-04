@@ -14,7 +14,7 @@ export default model({
 		number: { kind: 'seq', pattern: 'BK-{yyyy}-{0000}' },
 		address: { kind: 'text' },
 		location: { kind: 'point', optional: true },
-		area: { kind: 'enum', values: AREAS },
+		area: { kind: 'enum', values: AREAS, optional: true },
 		preference: { kind: 'enum', values: ['any', 'preferred'] },
 		repeat: { kind: 'enum', values: REPEATS },
 		status: {

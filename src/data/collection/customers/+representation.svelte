@@ -13,7 +13,7 @@
 		{
 			name: 'customer',
 			title: t('models.customers.singular'),
-			fields: ['name', 'phone', 'email', 'address', 'area']
+			fields: ['name', 'phone', 'email', 'address']
 		},
 		{
 			name: 'notes',
@@ -56,6 +56,7 @@
 {#if record === null}
 	<RecordShell
 		of="customers"
+		fields={['name', 'phone', 'email', 'address', 'notes', 'location']}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
 		{sections}
@@ -63,6 +64,7 @@
 {:else}
 	<RecordShell
 		of="customers"
+		fields={['name', 'phone', 'email', 'address', 'notes', 'location']}
 		id={record.id}
 		title={record.name}
 		{sections}

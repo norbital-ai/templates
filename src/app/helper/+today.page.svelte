@@ -1,20 +1,20 @@
 <script lang="ts">
 	/**
 	 * A helper's day on their phone: the visit under way, the ones still to come with the drive to each from where the
-	 * phone is now, the shift check to answer, and one tap to start and to finish. While the page is open the phone's
+	 * phone is now, the shift check to answer, and one tap to start and to finish. The native phone continues sharing while backgrounded; browser sharing requires the page. Its
 	 * position is shared with the scheduler (at most every two minutes).
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Badge, Button, EmptyState, Icon, Label, Sheet, Textarea } from '@norbital-ai/ui';
+	import { Badge, Button, DateInput, EmptyState, Label, Sheet, Textarea } from '@norbital-ai/ui';
+	import { employeeLocation } from '../../lib/employee-location.svelte.js';
 	import { live } from '../../lib/live.svelte.js';
 	import { driveMinutes, type Point } from '../../lib/matching.js';
 
 	const t = bolt.t;
-	/** Position reports at most this often. */
-	const EVERY_MS = 120_000;
+
 	const DAY_MS = 86_400_000;
 
 	const actor = bolt.actor;
@@ -28,8 +28,13 @@
 			: null
 	);
 	const helper = $derived(me.current?.rows[0]);
-	const midnight = new Date();
-	midnight.setHours(0, 0, 0, 0);
+	const today = new Intl.DateTimeFormat('en-CA').format(new Date());
+	let selectedDay = $state(today);
+	const midnight = $derived(new Date(`${selectedDay}T00:00:00`));
+	const span = $derived({
+		start: Instant(midnight.toISOString()),
+		end: Instant(new Date(midnight.getTime() + DAY_MS).toISOString())
+	});
 	const VISIT = {
 		number: true,
 		slot: true,
@@ -37,6 +42,7 @@
 		location: true,
 		status: true,
 		shift_check: true,
+		completed_at: true,
 		booking: {
 			select: {
 				notes: true,
@@ -52,15 +58,10 @@
 					where: {
 						helper: { eq: helper.id },
 						status: { in: ['scheduled', 'in_progress'] },
-						slot: {
-							overlaps: {
-								start: Instant(midnight.toISOString()),
-								end: Instant(new Date(midnight.getTime() + 7 * DAY_MS).toISOString())
-							}
-						}
+						slot: { overlaps: span }
 					},
 					select: VISIT,
-					limit: 50
+					all: true
 				})
 	);
 	const done = live(() =>
@@ -70,10 +71,10 @@
 					where: {
 						helper: { eq: helper.id },
 						status: { eq: 'done' },
-						completed_at: { gte: Instant(midnight.toISOString()) }
+						slot: { overlaps: span }
 					},
-					select: { number: true, slot: true, address: true, completed_at: true },
-					limit: 20
+					select: VISIT,
+					all: true
 				})
 	);
 	const visits = $derived(
@@ -81,64 +82,50 @@
 	);
 	const current = $derived(visits.find((v) => v.status === 'in_progress'));
 	const upcoming = $derived(visits.filter((v) => v.status === 'scheduled'));
-	const asked = $derived(upcoming.find((v) => v.shift_check === 'asked'));
-
-	// ── position: the day opens only while the phone shares where it is ──
-	let here = $state<Point | null>(null);
-	/** `blocked`: the browser refused; `unsupported`: this browser has no location at all. */
-	let refusal = $state<'blocked' | 'unsupported' | null>(null);
-	let sent = $state(0);
-	/** The browser's watch on the phone's position; "Try again" restarts it, which asks the browser again. */
-	const watching = { id: null as number | null };
-	const stopWatching = () => {
-		if (watching.id !== null) navigator.geolocation.clearWatch(watching.id);
-		watching.id = null;
-	};
-	function watchPosition(id: Id<'helpers'>) {
-		stopWatching();
-		watching.id = navigator.geolocation.watchPosition(
-			({ coords }) => {
-				here = { lat: coords.latitude, lng: coords.longitude };
-				refusal = null;
-				if (Date.now() - sent < EVERY_MS) return;
-				sent = Date.now();
-				void bolt.act('helpers.update', { target: id, set: { last_location: here } });
-			},
-			// a revoked permission closes the day again; a lost fix keeps the last position
-			(e) => {
-				if (e.code === e.PERMISSION_DENIED) ((here = null), (refusal = 'blocked'));
-			},
-			{ enableHighAccuracy: true }
-		);
-	}
-	// keyed by the id: the helper's own row changes with every position it reports
-	const helperId = $derived(helper?.id);
-	$effect(() => {
-		if (helperId === undefined) return;
-		if (!('geolocation' in navigator)) return void (refusal = 'unsupported');
-		watchPosition(helperId);
-		return stopWatching;
+	const asked = $derived(upcoming.find((v) => v.shift_check === 'asked') ?? upcoming[0]);
+	const route = $derived(
+		[...(done.current?.rows ?? []), ...visits].sort((a, b) =>
+			a.slot.start.localeCompare(b.slot.start)
+		)
+	);
+	const stops = $derived(route.filter((v) => v.status !== 'done'));
+	const routeUrl = $derived.by(() => {
+		if (stops.length === 0 || stops.length > 4) return null;
+		const place = (v: (typeof stops)[number]) =>
+			v.location === null ? v.address : `${v.location.lat},${v.location.lng}`;
+		const params = new URLSearchParams({
+			api: '1',
+			travelmode: 'driving',
+			destination: place(stops.at(-1)!)
+		});
+		if (stops.length > 1) params.set('waypoints', stops.slice(0, -1).map(place).join('|'));
+		return `https://www.google.com/maps/dir/?${params}`;
 	});
+
+	const here = $derived(employeeLocation.here);
+	const locationReady = $derived(employeeLocation.ready);
 
 	// ── acting ──
 	let problem = $state<string | null>(null);
 	let busy = $state(false);
 	let completing = $state<(typeof visits)[number] | null>(null);
 	let notes = $state('');
-	async function run(outcome: Promise<{ kind: string; message?: string }>) {
+	async function run(outcome: () => Promise<{ kind: string; message?: string }>) {
+		if (!locationReady) return false;
 		busy = true;
-		const o = await outcome;
+		const o = await outcome();
 		problem = o.kind === 'refused' ? (o.message ?? null) : null;
 		busy = false;
 		return o.kind === 'committed';
 	}
 	const start = (id: Id<'visits'>) =>
-		run(bolt.act('visits.update', { target: id, set: { status: 'in_progress' } }));
+		run(() => bolt.act('visits.update', { target: id, set: { status: 'in_progress' } }));
 	async function complete() {
 		if (completing === null) return;
-		const ok = await run(
+		const visit = completing;
+		const ok = await run(() =>
 			bolt.act('visits.update', {
-				target: completing.id,
+				target: visit.id,
 				set: { status: 'done', ...(notes.trim() === '' ? {} : { completion_notes: notes.trim() }) }
 			})
 		);
@@ -161,7 +148,7 @@
 			day: 'numeric',
 			month: 'short'
 		}).format(new Date(i));
-	const isToday = (i: string) => Date.parse(i) < midnight.getTime() + DAY_MS;
+	const isToday = (_: string) => selectedDay === today;
 	const eta = (to: Point | null) => (here === null || to === null ? null : driveMinutes(here, to));
 	const directions = (v: (typeof visits)[number]) =>
 		v.location === null
@@ -177,42 +164,15 @@
 	</Inline>
 {/snippet}
 
-{#snippet locationGate()}
-	<Center measure="narrow" layout="stack" gap="md" align="center" class="py-10 text-center">
-		<Stack as="span" align="center" justify="center" class="size-14 rounded-full bg-muted">
-			<Icon name={refusal === null ? 'lucide:map-pin' : 'lucide:map-pin-off'} class="size-7" />
-		</Stack>
-		<h2 class="text-title">{t('app.helper.location_gate_title')}</h2>
-		<p class="text-sm text-muted-foreground">
-			{refusal === 'blocked'
-				? t('app.helper.location_blocked')
-				: refusal === 'unsupported'
-					? t('app.helper.location_unsupported')
-					: t('app.helper.location_gate_body')}
-		</p>
-		{#if refusal !== 'unsupported'}
-			<Button
-				size="lg"
-				class="w-full"
-				onclick={() => helperId !== undefined && watchPosition(helperId)}
-			>
-				{refusal === 'blocked'
-					? t('app.helper.location_try_again')
-					: t('app.helper.location_turn_on')}
-			</Button>
-		{/if}
-	</Center>
-{/snippet}
-
 {#snippet visitCard(v: (typeof visits)[number], next: boolean)}
 	{@const minutes = eta(v.location)}
-	<div class="rounded-xl border bg-card p-4 shadow-sm">
+	<div class="rounded-xl border bg-card p-5">
 		<Stack gap="sm">
 			<Cluster gap="xs" justify="between" align="center">
 				<p class="text-lg font-semibold tabular-nums">{time(v.slot.start)} – {time(v.slot.end)}</p>
 				{#if v.status === 'in_progress'}
 					<Badge variant="info">{t('component.status_in_progress')}</Badge>
-				{:else if minutes !== null}
+				{:else if next && isToday(v.slot.start) && minutes !== null}
 					<!-- the next visit's drive is the one that can make them late; later ones are for planning -->
 					<Badge variant={!next ? 'outline' : minutes > 30 ? 'warning' : 'success'}
 						>{t('app.helper.minutes_away', { minutes })}</Badge
@@ -239,11 +199,11 @@
 				{/if}
 			</Cluster>
 			{#if v.status === 'in_progress'}
-				<Button size="lg" disabled={busy} onclick={() => (completing = v)}
+				<Button size="lg" disabled={busy || !locationReady} onclick={() => (completing = v)}
 					>{t('app.helper.complete')}</Button
 				>
 			{:else if next && current === undefined && isToday(v.slot.start)}
-				<Button size="lg" disabled={busy} onclick={() => start(v.id)}
+				<Button size="lg" disabled={busy || here === null} onclick={() => start(v.id)}
 					>{t('app.helper.start')}</Button
 				>
 			{/if}
@@ -257,86 +217,115 @@
 	description={t('app.helper.today_description')}
 >
 	<Scroll name="today" inset>
-		<Stack gap="lg" class="pt-4">
-			{#if helper !== undefined && here === null}
-				{@render locationGate()}
-			{:else}
-				{#if helper !== undefined}{@render sharingLine()}{/if}
-				{#if actor?.kind === 'member' && me.current !== undefined && helper === undefined}
-					<EmptyState title={t('app.helper.not_a_helper')} />
-				{/if}
-				{#if problem}<p class="text-sm text-destructive">{problem}</p>{/if}
-
-				{#if asked}
-					<div class="rounded-xl border border-warning bg-card p-4 shadow-sm">
-						<Stack gap="sm">
-							<p class="font-semibold">{t('app.helper.confirm_title')}</p>
-							<p class="text-sm text-muted-foreground">
-								{t('app.helper.confirm_body', { time: time(asked.slot.start) })}
-							</p>
-							<Cluster gap="xs">
-								<Button
-									disabled={busy}
-									onclick={() =>
-										run(bolt.act('visits.confirm_shift', { target: asked.id, input: {} }))}
-									>{t('app.helper.confirm_shift')}</Button
-								>
-								<Button
-									variant="outline"
-									disabled={busy}
-									onclick={() =>
-										run(
-											bolt.act('visits.decline_shift', { target: asked.id, input: { mc: true } })
-										)}>{t('app.helper.decline_with_mc')}</Button
-								>
-								<Button
-									variant="ghost"
-									disabled={busy}
-									onclick={() =>
-										run(
-											bolt.act('visits.decline_shift', { target: asked.id, input: { mc: false } })
-										)}>{t('app.helper.decline_without_mc')}</Button
-								>
-							</Cluster>
-						</Stack>
-					</div>
-				{/if}
-
-				{#if current}
-					<Stack gap="sm">
-						<Label>{t('app.helper.now')}</Label>
-						{@render visitCard(current, false)}
-					</Stack>
-				{/if}
-
+		<Center measure="reading">
+			<Stack gap="lg" class="py-6">
 				<Stack gap="sm">
-					<Label>{t('app.helper.next')}</Label>
-					{#if open.current === undefined && helper !== undefined}
-						<p class="text-caption">{t('component.loading')}</p>
-					{:else if upcoming.length === 0}
-						<p class="text-caption">{t('app.helper.nothing_next')}</p>
-					{:else}
-						{#each upcoming as v, i (v.id)}
-							{@render visitCard(v, i === 0)}
-						{/each}
-					{/if}
+					<Label for="route-date">{t('app.helper.date')}</Label>
+					<DateInput
+						id="route-date"
+						value={selectedDay}
+						onChange={(day) => (selectedDay = day ?? today)}
+					/>
 				</Stack>
 
-				{#if (done.current?.rows.length ?? 0) > 0}
-					<Stack gap="sm">
-						<Label>{t('app.helper.done_today')}</Label>
-						{#each done.current?.rows ?? [] as v (v.id)}
-							<Cluster gap="xs" justify="between">
-								<p class="text-sm">{time(v.slot.start)} · {v.address}</p>
-								<Badge variant="success"
-									>{t('app.helper.finished_at', { time: time(v.completed_at) })}</Badge
+				{#if actor?.kind === 'member' && me.current !== undefined && helper === undefined}<EmptyState
+						title={t('app.helper.not_a_helper')}
+					/>{/if}
+				{#if helper !== undefined}
+					{#if here !== null}{@render sharingLine()}{/if}
+					{#if problem}<p class="text-sm text-destructive">{problem}</p>{/if}
+
+					{#if asked && Date.parse(asked.slot.end!) > Date.now()}
+						<Stack gap="sm" class="border-b pb-5">
+							<p class="font-semibold">
+								{t(
+									asked.shift_check === 'confirmed'
+										? 'app.helper.day_confirmed'
+										: 'app.helper.confirm_title'
+								)}
+							</p>
+							{#if asked.shift_check !== 'confirmed'}
+								<p class="text-sm text-muted-foreground">
+									{t('app.helper.confirm_body', { time: time(asked.slot.start) })}
+								</p>
+								<Button
+									disabled={busy || !locationReady}
+									onclick={() =>
+										run(() => bolt.act('visits.confirm_shift', { target: asked.id, input: {} }))}
+									>{t('app.helper.confirm_shift')}</Button
 								>
-							</Cluster>
-						{/each}
+							{/if}
+							<details>
+								<summary class="cursor-pointer py-2 text-sm"
+									>{t('app.helper.decline_without_mc')}</summary
+								>
+								<Stack gap="sm" class="pt-2">
+									<Button
+										variant="outline"
+										disabled={busy || !locationReady}
+										onclick={() =>
+											run(() =>
+												bolt.act('visits.decline_shift', { target: asked.id, input: { mc: true } })
+											)}>{t('app.helper.decline_with_mc')}</Button
+									>
+									<Button
+										variant="outline"
+										disabled={busy || !locationReady}
+										onclick={() =>
+											run(() =>
+												bolt.act('visits.decline_shift', { target: asked.id, input: { mc: false } })
+											)}>{t('app.helper.decline_without_mc')}</Button
+									>
+								</Stack>
+							</details>
+						</Stack>
+					{/if}
+
+					<Stack gap="md">
+						<Cluster justify="between" align="center">
+							<h2 class="text-lg font-semibold">{t('app.helper.route_title')}</h2>
+							{#if routeUrl}<a
+									class="text-sm underline"
+									href={routeUrl}
+									target="_blank"
+									rel="noopener">{t('app.helper.route_start')}</a
+								>{/if}
+						</Cluster>
+						<p class="text-sm text-muted-foreground">{t('app.helper.route_description')}</p>
+						{#if open.current === undefined}<p>{t('component.loading')}</p>
+						{:else if route.length === 0}<p>{t('app.helper.route_empty')}</p>
+						{:else}
+							{#each route as v, i (v.id)}
+								<Stack gap="sm">
+									<p class="text-sm font-medium">{t('app.helper.route_stop', { number: i + 1 })}</p>
+									{#if i > 0}
+										<p class="text-caption">
+											{t('app.helper.route_drive', {
+												minutes: driveMinutes(route[i - 1]!.location, v.location)
+											})} · {t('app.helper.route_gap', {
+												minutes: Math.max(
+													0,
+													Math.round(
+														(Date.parse(v.slot.start) - Date.parse(route[i - 1]!.slot.end!)) /
+															60_000
+													)
+												)
+											})}
+										</p>
+									{:else}<p class="text-caption">{t('app.helper.route_first')}</p>{/if}
+									{#if v.status === 'done'}
+										<Cluster justify="between" gap="sm"
+											><p class="text-sm">{time(v.slot.start)} · {v.address}</p>
+											<Badge variant="success">{t('component.status_done')}</Badge></Cluster
+										>
+									{:else}{@render visitCard(v, v.id === upcoming[0]?.id)}{/if}
+								</Stack>
+							{/each}
+						{/if}
 					</Stack>
 				{/if}
-			{/if}
-		</Stack>
+			</Stack>
+		</Center>
 	</Scroll>
 </AppShell>
 
@@ -361,7 +350,9 @@
 					placeholder={t('app.helper.notes_hint')}
 				/>
 			</Stack>
-			<Button size="lg" disabled={busy} onclick={complete}>{t('app.helper.mark_complete')}</Button>
+			<Button size="lg" disabled={busy || !locationReady} onclick={complete}
+				>{t('app.helper.mark_complete')}</Button
+			>
 		</Stack>
 	{/if}
 </Sheet>

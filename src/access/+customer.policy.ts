@@ -17,19 +17,33 @@ export default policy({
 	capabilities: { apps: ['portal'] },
 	grants: {
 		customers: {
-			read: { where: { id: ME }, fields: ['id', 'name', 'phone', 'email', 'address', 'area'] }
+			read: {
+				where: { id: ME },
+				fields: ['id', 'name', 'phone', 'email', 'address', 'location', 'area']
+			}
 		},
 		services: {
 			read: {
 				where: { active: { eq: true } },
-				fields: ['id', 'name', 'duration_minutes', 'price', 'description']
+				fields: ['id', 'name', 'duration_minutes', 'price', 'description', 'skill']
 			}
 		},
 		openings: { read: { fields: ['id', 'service', 'day', 'starts'] } },
 		booking_requests: {
 			create: {
 				where: MY_NUMBER,
-				fields: ['name', 'email', 'phone', 'address', 'area', 'service', 'start', 'repeat', 'notes']
+				fields: [
+					'name',
+					'email',
+					'phone',
+					'address',
+					'area',
+					'service',
+					'start',
+					'repeat',
+					'notes',
+					'availability'
+				]
 			},
 			read: {
 				where: MY_NUMBER,
@@ -68,7 +82,40 @@ export default policy({
 				]
 			}
 		},
-		helpers: { read: { where: { visits: { some: MY_VISITS } }, fields: ['id', 'name'] } },
+		helpers: { read: { where: { status: { eq: 'active' } }, fields: ['id', 'name', 'skills'] } },
+		availability_requests: {
+			create: {
+				where: MY_NUMBER,
+				fields: [
+					'phone',
+					'address',
+					'location',
+					'area',
+					'service',
+					'preference',
+					'helper',
+					'repeat'
+				]
+			},
+			read: {
+				where: MY_NUMBER,
+				fields: [
+					'id',
+					'phone',
+					'address',
+					'area',
+					'service',
+					'preference',
+					'helper',
+					'repeat',
+					'starts',
+					'estimated',
+					'status',
+					'problem',
+					'checked_at'
+				]
+			}
+		},
 		customer_notices: {
 			read: { where: MINE, fields: ['id', 'customer', 'visit', 'subject', 'body'] }
 		}

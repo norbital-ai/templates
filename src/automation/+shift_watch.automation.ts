@@ -1,18 +1,19 @@
-import { Instant } from '@norbital-ai/std/date';
+import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { automation, type Id } from '@norbital-ai/bolt';
-import { dayOf, reassign, settingsOf, VISIT, when, whatsapp } from '../lib/dispatch.js';
+import { dayOf, recommend, settingsOf, VISIT, when, whatsapp } from '../lib/dispatch.js';
+import { localOf } from '@norbital-ai/std/zone';
 import type { Slot } from '../lib/matching.js';
 
 const MINUTE = 60_000;
 
 /**
  * The pre-shift check. Two hours before a helper's first visit of the day they are asked to confirm the day. No answer
- * within the hour, or a decline, and the day's visits go to other helpers; a customer who asked for particular helpers is
+ * within the hour, or a decline, and the day's visits receive replacement proposals for controller approval; a customer who asked for particular helpers is
  * told. A no-show without a medical certificate earns a warning letter.
  */
 const shift_watch = automation({
 	description:
-		'Asks each helper to confirm their day two hours before its first visit, and reassigns the day when they decline or do not answer, issuing a warning letter when there is no medical certificate.',
+		'Asks each helper to confirm their day two hours before its first visit, and proposes replacements for controller approval when they decline or do not answer, issuing a warning letter when there is no medical certificate.',
 	on: [
 		// not `*/5`: a cron run is keyed by its expression alone, so two automations on one expression run once between them
 		{ cron: '*/10 * * * *' },
@@ -86,6 +87,7 @@ shift_watch.run(async (input, ctx) => {
 	const { rows: silent } = await ctx.read('visits', {
 		where: {
 			status: { eq: 'scheduled' },
+			helper: { isNull: false },
 			shift_check: { eq: 'asked' },
 			shift_asked_at: { lte: at(-settings.shift_reply_minutes) }
 		},
@@ -96,14 +98,18 @@ shift_watch.run(async (input, ctx) => {
 		'ids' in input && input.ids !== undefined && input.ids.length > 0
 			? (
 					await ctx.read('visits', {
-						where: { id: { in: input.ids }, shift_check: { eq: 'declined' } },
+						where: {
+							id: { in: input.ids },
+							helper: { isNull: false },
+							shift_check: { eq: 'declined' }
+						},
 						select: { helper: true, slot: true, mc: true },
 						all: true
 					})
 				).rows
 			: [];
 
-	// one warning and one reassignment per helper's day
+	// one warning and one recovery plan per helper's day
 	const days = new Map<
 		string,
 		{
@@ -141,6 +147,22 @@ shift_watch.run(async (input, ctx) => {
 			select: VISIT,
 			all: true
 		});
-		await reassign(ctx, rows, d.helper);
+		const date = PlainDate(localOf(Date.parse(d.day.start), ctx.tz).date);
+		const existing = await ctx.read('helper_time_off', {
+			where: { helper: { eq: d.helper }, period: { overlaps: { from: date, to: date } } },
+			limit: 1
+		});
+		if (existing.rows.length === 0)
+			await ctx.act('helper_time_off.create', {
+				helper: d.helper,
+				period: { from: date, to: date },
+				reason: d.warn === null ? 'medical' : 'other'
+			});
+		if (d.warn === 'no_response')
+			await ctx.act(
+				'visits.update',
+				rows.map((v) => ({ target: v.id, set: { shift_check: 'no_response' as const } }))
+			);
+		await recommend(ctx, rows, d.helper);
 	}
 });

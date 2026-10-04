@@ -7,25 +7,30 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
-	import { Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
-		Badge,
 		Button,
 		Icon,
 		Input,
+		Label,
 		Section,
 		PhoneVerify,
+		PointInput,
 		Spinner,
 		Textarea
 	} from '@norbital-ai/ui';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
+	import Choice from '../../lib/Choice.svelte';
 	import { live } from '../../lib/live.svelte.js';
 
 	const t = bolt.t;
-	const AREAS = ['central', 'north', 'north_east', 'east', 'west'] as const;
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
 	const me = bolt.actor?.kind === 'member' ? bolt.actor : null;
 	const STEPS = ['details', 'time', 'done'] as const;
+	function changeAddress(next: string | null) {
+		if (next !== address) location = null;
+		address = next ?? '';
+	}
 
 	// a returning customer starts with their details; typing replaces them
 	const mine = live(() => (me === null ? null : bolt.read('customers', { limit: 1 })));
@@ -33,9 +38,12 @@
 	let service = $state<Id<'services'> | null>(null);
 	let name = $derived(known?.name ?? '');
 	let address = $derived(known?.address ?? '');
-	let area = $derived<(typeof AREAS)[number] | null>(known?.area ?? null);
+	let location = $derived<{ lat: number; lng: number } | null>(known?.location ?? null);
 	let repeat = $state<(typeof REPEATS)[number]>('once');
 	let notes = $state('');
+	let preference = $state<'any' | 'preferred'>('any');
+	let helper = $state<Id<'helpers'> | null>(null);
+	let availability = $state<Id<'availability_requests'> | null>(null);
 	let step = $state<'details' | 'time' | 'done'>('details');
 	let start = $state<string | null>(null);
 	let request = $state<Id<'booking_requests'> | null>(null);
@@ -47,23 +55,32 @@
 		me === null
 			? null
 			: bolt.read('services', {
-					select: { name: true, duration_minutes: true, description: true },
+					select: { name: true, duration_minutes: true, description: true, skill: true },
 					orderBy: { name: 'asc' },
 					limit: 20
 				})
 	);
-	const openings = live(
-		() =>
-			service === null
-				? null
-				: bolt.read('openings', {
-						where: { service: { eq: service } },
-						orderBy: { day: 'asc' },
-						limit: 14
-					}),
-		['openings']
+	const helpers = live(() =>
+		me === null
+			? null
+			: bolt.read('helpers', {
+					select: { name: true, skills: true },
+					all: true
+				})
 	);
-	const days = $derived((openings.current?.rows ?? []).filter((o) => o.starts.length > 0));
+	const quote = live(() =>
+		availability === null ? null : bolt.get('availability_requests', availability)
+	);
+	const days = $derived.by(() => {
+		const by = new Map<string, string[]>();
+		for (const start of quote.current?.starts ?? []) {
+			const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(
+				new Date(start)
+			);
+			by.set(day, [...(by.get(day) ?? []), start]);
+		}
+		return [...by].map(([day, starts]) => ({ day, starts }));
+	});
 	const settled = live(() =>
 		request === null
 			? null
@@ -75,6 +92,12 @@
 				})
 	);
 	const chosen = $derived(services.current?.rows.find((s) => s.id === service));
+	const mismatch = $derived(
+		preference === 'preferred' &&
+			helper !== null &&
+			chosen !== undefined &&
+			!helpers.current?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
+	);
 	/** The booking's first visit, once it is booked: who comes, and exactly when. */
 	const first = live(() => {
 		const booking = settled.current?.booking;
@@ -154,7 +177,11 @@
 		URL.revokeObjectURL(a.href);
 	}
 	const ready = $derived(
-		me !== null && service !== null && name.trim() !== '' && address.trim() !== '' && area !== null
+		me !== null &&
+			service !== null &&
+			name.trim() !== '' &&
+			address.trim() !== '' &&
+			(preference === 'any' || (helper !== null && !mismatch))
 	);
 
 	const time = (i: string) =>
@@ -170,16 +197,46 @@
 			minute: '2-digit'
 		}).format(new Date(i));
 
+	async function chooseTime() {
+		if (!ready || me?.phone == null || service === null) return;
+		busy = true;
+		error = null;
+		start = null;
+		availability = null;
+		const outcome = await bolt.act('availability_requests.create', {
+			phone: me.phone,
+			service,
+			address: address.trim(),
+			...(location === null ? {} : { location }),
+			preference,
+			repeat,
+			...(preference === 'preferred' && helper !== null ? { helper } : {})
+		});
+		busy = false;
+		if (outcome.kind !== 'committed') {
+			error = outcome.kind === 'refused' ? outcome.message : t('app.portal.failed');
+			return;
+		}
+		availability = outcome.records[0]!.id as Id<'availability_requests'>;
+		step = 'time';
+	}
 	async function confirm() {
-		if (me === null || me.phone === null || service === null || area === null || start === null)
+		if (
+			me === null ||
+			me.phone === null ||
+			service === null ||
+			start === null ||
+			availability === null ||
+			quote.current?.status !== 'ready'
+		)
 			return;
 		busy = true;
 		error = null;
 		const outcome = await bolt.act('booking_requests.create', {
+			availability,
 			name: name.trim(),
 			phone: me.phone,
 			address: address.trim(),
-			area: area,
 			service: service,
 			start: Instant(start),
 			repeat: repeat,
@@ -200,95 +257,106 @@
 	}
 </script>
 
-{#snippet chip(selected: boolean, label: string, pick: () => void)}
-	<Button size="sm" class="shrink-0" variant={selected ? 'default' : 'outline'} onclick={pick}
-		>{label}</Button
-	>
-{/snippet}
-
 <Scroll name="portal-book" inset>
-	<Center measure="narrow">
-		<Stack gap="lg" class="py-6">
-			<Stack gap="xs">
-				<p class="text-caption" data-portal-org>{bolt.org.name}</p>
-				<Inline gap="sm" align="center">
-					<Icon name="lucide:calendar-heart" class="size-6 text-brand" />
-					<h1 class="text-title">{t('app.portal.title')}</h1>
-				</Inline>
-				<Cluster gap="xs">
+	<Center measure="reading">
+		<Stack gap="lg" class="py-6 sm:py-8">
+			<Stack as="header" gap="md">
+				<h1 class="text-title">{t('app.portal.title')}</h1>
+				<p class="text-sm text-muted-foreground" data-portal-org>{bolt.org.name}</p>
+				<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
 					{#each STEPS as s, i (s)}
-						<Badge variant={step === s ? 'default' : 'outline'}
-							>{i + 1}. {t(`app.portal.step_${s}`)}</Badge
+						<li
+							aria-current={step === s ? 'step' : undefined}
+							class={step === s ? 'font-semibold' : 'text-muted-foreground'}
 						>
+							{i + 1}. {t(`app.portal.step_${s}`)}
+						</li>
 					{/each}
-				</Cluster>
+				</Inline>
 			</Stack>
 
 			{#if step === 'details'}
-				<Stack gap="lg">
-					<Section first name="phone" title={t('app.portal.phone')}>
-						{#if me === null}
-							<PhoneVerify session={bolt.session} />
-						{:else}
-							<Cluster gap="xs">
-								<p class="text-sm">{me.phone}</p>
-								<Badge variant="success">{t('app.portal.verified')}</Badge>
-							</Cluster>
-						{/if}
-					</Section>
-					{#if me !== null}
-						<Section name="service" title={t('app.portal.service')}>
-							{#if services.current === undefined}
-								<Spinner class="h-4 w-4" />
-							{:else}
-								<Stack gap="xs">
-									{#each services.current.rows as s (s.id)}
-										<button
-											type="button"
-											class="rounded-lg border p-3 text-left transition-colors hover:bg-muted aria-pressed:border-primary aria-pressed:bg-muted"
-											aria-pressed={service === s.id}
-											onclick={() => ((service = s.id), (start = null))}
-										>
-											<p class="text-sm font-medium">{s.name}</p>
-											{#if s.description}<p class="text-caption">{s.description}</p>{/if}
-										</button>
-									{/each}
-								</Stack>
-							{/if}
-						</Section>
-						<Section name="address" title={t('app.portal.address')}>
-							<Input
+				{#if me === null}
+					<Stack gap="md">
+						<PhoneVerify session={bolt.session} />
+					</Stack>
+				{:else}
+					<Stack gap="lg">
+						<p class="text-sm text-muted-foreground">{me.phone} · {t('app.portal.verified')}</p>
+						<Grid minimum="compact" gap="md">
+							<Stack gap="sm">
+								<Label for="portal-service">{t('app.portal.service')}</Label>
+								<Choice
+									id="portal-service"
+									value={service ?? ''}
+									onChange={(value) => {
+										service = value ? (value as Id<'services'>) : null;
+										start = null;
+									}}
+								>
+									<option value="">{t('app.booking.select_service')}</option>
+									{#each services.current?.rows ?? [] as s (s.id)}<option value={s.id}
+											>{s.name}</option
+										>{/each}
+								</Choice>
+								{#if chosen}<p class="text-caption">
+										{chosen.description} · {t('app.booking.duration', {
+											minutes: chosen.duration_minutes
+										})}
+									</p>{/if}
+							</Stack>
+							<Stack gap="sm">
+								<Label for="portal-repeat">{t('app.portal.repeat')}</Label>
+								<Choice
+									id="portal-repeat"
+									value={repeat}
+									onChange={(value) => (repeat = value as typeof repeat)}
+								>
+									{#each REPEATS as r (r)}<option value={r}>{t(`component.repeat_${r}`)}</option
+										>{/each}
+								</Choice>
+							</Stack>
+						</Grid>
+						<Stack gap="sm" class="booking-destination">
+							<Label for="portal-address">{t('app.portal.address')}</Label>
+							<PointInput
 								id="portal-address"
-								aria-label={t('app.portal.address')}
-								autocomplete="street-address"
-								bind:value={address}
+								value={location}
+								{address}
+								onAddress={changeAddress}
+								onChange={(next) => {
+									// The picker sets a point before its address callback; apply the point after address invalidation.
+									queueMicrotask(() => {
+										location = next === null ? null : (next as { lat: number; lng: number });
+									});
+								}}
 							/>
-							<Cluster gap="xs">
-								{#each AREAS as a (a)}
-									{@render chip(area === a, t(`component.area_${a}`), () => (area = a))}
-								{/each}
-							</Cluster>
-						</Section>
-						<Section
-							name="repeat"
-							title={t('app.portal.repeat')}
-							defaultOpen={false}
-							summary={t(`component.repeat_${repeat}`)}
-						>
-							<Cluster gap="xs">
-								{#each REPEATS as r (r)}
-									{@render chip(repeat === r, t(`component.repeat_${r}`), () => (repeat = r))}
-								{/each}
-							</Cluster>
-						</Section>
-						<Section name="name" title={t('app.portal.name')}>
-							<Input
-								id="portal-name"
-								aria-label={t('app.portal.name')}
-								autocomplete="name"
-								bind:value={name}
-							/>
-						</Section>
+						</Stack>
+						<Grid minimum="compact" gap="md">
+							<Stack gap="sm">
+								<Label for="portal-name">{t('app.portal.name')}</Label>
+								<Input id="portal-name" class="min-h-11" autocomplete="name" bind:value={name} />
+							</Stack>
+							<Stack gap="sm">
+								<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
+								<Choice
+									id="preferred-helper"
+									value={helper ?? ''}
+									onChange={(value) => {
+										helper = value ? (value as Id<'helpers'>) : null;
+										preference = helper === null ? 'any' : 'preferred';
+									}}
+								>
+									<option value="">{t('app.booking.no_preference')}</option>
+									{#each helpers.current?.rows ?? [] as h (h.id)}<option value={h.id}
+											>{h.name}</option
+										>{/each}
+								</Choice>
+								{#if mismatch}<p role="alert" class="text-sm text-destructive">
+										{t('app.booking.skill_mismatch')}
+									</p>{/if}
+							</Stack>
+						</Grid>
 						<Section
 							name="notes"
 							title={t('app.portal.notes')}
@@ -298,20 +366,23 @@
 							<Textarea
 								id="portal-notes"
 								aria-label={t('app.portal.notes')}
-								rows={2}
+								rows={3}
 								bind:value={notes}
 							/>
 						</Section>
-						<Button class="w-full" disabled={!ready} onclick={() => (step = 'time')}>
-							{t('app.portal.choose_time')}
+						{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
+						<Button size="lg" class="w-full" disabled={!ready || busy} onclick={chooseTime}>
+							{#if busy}<Spinner class="size-4" />{/if}{t('app.portal.choose_time')}
 						</Button>
-					{/if}
-				</Stack>
+					</Stack>
+				{/if}
 			{:else if step === 'time'}
 				<Stack gap="lg">
 					<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
-					{#if openings.current === undefined}
+					{#if quote.current == null || quote.current.status === 'pending'}
 						<Spinner class="h-4 w-4" />
+					{:else if quote.current.status === 'failed'}
+						<p role="alert" class="text-sm text-destructive">{quote.current.problem}</p>
 					{:else if days.length === 0}
 						<p class="text-sm">{t('app.portal.no_times')}</p>
 					{:else}
@@ -324,13 +395,27 @@
 							t={(k) => t(k as never)}
 						/>
 					{/if}
+					{#if quote.current?.estimated}<p class="text-caption">
+							{t('app.booking.travel_estimated')}
+						</p>{/if}
 					{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 					<Stack gap="sm">
-						<Button size="lg" class="w-full" disabled={start === null || busy} onclick={confirm}>
+						<Button
+							size="lg"
+							class="w-full"
+							disabled={start === null || busy || quote.current?.status !== 'ready'}
+							onclick={confirm}
+						>
 							{#if busy}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
 						</Button>
-						<Button variant="ghost" class="w-full" onclick={() => (step = 'details')}
-							>{t('app.portal.back')}</Button
+						<Button
+							variant="ghost"
+							class="w-full"
+							onclick={() => {
+								step = 'details';
+								start = null;
+								availability = null;
+							}}>{t('app.portal.back')}</Button
 						>
 					</Stack>
 				</Stack>

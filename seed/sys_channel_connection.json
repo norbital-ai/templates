@@ -1,0 +1,18 @@
+[
+	{
+		"id": "customer_mail",
+		"name": "customer mail",
+		"type": "customer_mail_delivery",
+		"owner": null,
+		"configuration": {},
+		"revision": 1
+	},
+	{
+		"id": "whatsapp",
+		"name": "whatsapp",
+		"type": "whatsapp",
+		"owner": null,
+		"configuration": {},
+		"revision": 1
+	}
+]

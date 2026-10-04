@@ -15,7 +15,7 @@ export default model({
 		phone: { kind: 'text', format: 'phone' },
 		email: { kind: 'text', format: 'email', optional: true },
 		address: { kind: 'text', max: 500 },
-		area: { kind: 'enum', values: AREAS },
+		area: { kind: 'enum', values: AREAS, optional: true },
 		start: { kind: 'instant' },
 		repeat: { kind: 'enum', values: REPEATS, default: 'once' },
 		notes: { kind: 'text', max: 2000, optional: true },

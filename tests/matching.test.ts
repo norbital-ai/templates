@@ -9,6 +9,8 @@ import {
 	lookups,
 	occurrences,
 	openSlots,
+	availableSlots,
+	planBooking,
 	proposal,
 	rank,
 	refusal,
@@ -89,7 +91,8 @@ describe('ranking', () => {
 			'near',
 			'far'
 		]);
-		expect(rank(need, pool({ helpers: [far, near] }), SG, 'far')[0]!.helper).toBe('far');
+		// Continuity is modest: it cannot justify a large detour.
+		expect(rank(need, pool({ helpers: [far, near] }), SG, 'far')[0]!.helper).toBe('near');
 		// the same helper twice over: the one with a visit already this week ranks second
 		const twin = helper('twin');
 		const tuesday = {
@@ -259,5 +262,77 @@ describe('scheduling', () => {
 		const next = proposal(need, gone, pool({ helpers: [deep], busy: [held] }), SG);
 		expect(next?.helper).toBe('deep');
 		expect(next!.slot.start).not.toBe(MONDAY.start);
+	});
+});
+
+// Prevent booking-order bias without moving any existing appointment.
+describe('small booking heuristics', () => {
+	it('spreads otherwise-identical ad hoc visits across cleaners', () => {
+		const p = pool({ helpers: [helper('a'), helper('b')] });
+		const first = planBooking({ ...need, minutes: 60 }, [MONDAY.start], p, SG);
+		expect(first.visits[0]?.helper).toBe('a');
+		const held = { id: 'first', helper: 'a', slot: first.visits[0]!.slot, location: EAST };
+		const second = planBooking(
+			{ ...need, minutes: 60 },
+			[at('2026-09-29T02:00:00.000Z')],
+			{ ...p, busy: [held] },
+			SG
+		);
+		expect(second.visits[0]?.helper).toBe('b');
+	});
+
+	it('balances utilization rather than penalizing a longer available shift', () => {
+		const short = helper('short', { day_end: '12:00' as never });
+		const full = helper('full');
+		const busy = [
+			{ id: 's', helper: 'short', slot: slotOf('2026-09-29T00:00:00.000Z', 120), location: EAST },
+			{ id: 'f', helper: 'full', slot: slotOf('2026-09-29T00:00:00.000Z', 240), location: EAST }
+		];
+		const found = rank(
+			{ ...need, slot: slotOf(MONDAY.start, 60) },
+			pool({ helpers: [short, full], busy }),
+			SG
+		);
+		expect(found[0]).toMatchObject({ helper: 'full', week_hours: 4 });
+	});
+
+	it('preserves a uniquely skilled cleaner when travel and utilization tie', () => {
+		const specialist = helper('a', { skills: ['home_cleaning', 'handyman'] });
+		expect(rank(need, pool({ helpers: [specialist, helper('b')] }), SG)[0]?.helper).toBe('b');
+	});
+
+	it('scopes starts to the preference, and checks every recurring occurrence', () => {
+		const p = pool({
+			helpers: [helper('a'), helper('b', { skills: ['handyman'] })],
+			off: [{ helper: 'a', period: { from: '2026-10-05', to: '2026-10-05' } }]
+		});
+		const args = { ...need, minutes: 180 };
+		const days = ['2026-09-28' as never];
+		const once = availableSlots(args, days, p, SG, '2026-09-25T00:00:00Z', 'once', 2, ['a']);
+		expect(once[0]!.starts).toContain(MONDAY.start);
+		expect(
+			availableSlots(args, days, p, SG, '2026-09-25T00:00:00Z', 'weekly', 2, ['a'])[0]!.starts
+		).toEqual([]);
+		expect(
+			availableSlots(args, days, p, SG, '2026-09-25T00:00:00Z', 'once', 2, ['b'])[0]!.starts
+		).toEqual([]);
+		expect(
+			planBooking(args, occurrences(MONDAY.start, 'weekly', 2, SG), p, SG, ['a']).missing
+		).toBe(1);
+	});
+
+	it('uses continuity for recurring visits but falls back when the cleaner is unavailable', () => {
+		const p = pool({
+			helpers: [helper('a'), helper('b')],
+			off: [{ helper: 'a', period: { from: '2026-10-12', to: '2026-10-12' } }]
+		});
+		const plan = planBooking(
+			{ ...need, minutes: 180 },
+			occurrences(MONDAY.start, 'weekly', 3, SG),
+			p,
+			SG
+		);
+		expect(plan.missing).toBeNull();
+		expect(plan.visits.map((v) => v.helper)).toEqual(['a', 'a', 'b']);
 	});
 });

@@ -59,7 +59,7 @@
 </script>
 
 <Scroll name="my-visits" inset>
-	<Center measure="narrow">
+	<Center measure="reading">
 		<Stack gap="lg" class="py-6">
 			<Stack gap="xs">
 				<p class="text-caption" data-portal-org>{bolt.org.name}</p>
@@ -80,7 +80,7 @@
 						<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
 					{:else}
 						{#each upcoming as v (v.id)}
-							<div class="rounded-xl border bg-card p-4 shadow-sm">
+							<div class="rounded-xl border bg-card p-5">
 								<Stack gap="xs">
 									<Cluster gap="xs" justify="between" align="center">
 										<p class="font-semibold">{when(v.slot.start)}</p>

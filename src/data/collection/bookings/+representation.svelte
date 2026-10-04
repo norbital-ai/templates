@@ -1,9 +1,5 @@
 <script lang="ts">
-	/**
-	 * A booking. Taken by `book` (the toolbar's New): without a preference, customer, service, a date and time; with one,
-	 * the customer's helpers, then a tab per helper of the times they are free this week — the time picked is booked with
-	 * that helper first. A stored booking is the generated view.
-	 */
+	/** Customer, service, preference and recurrence determine feasible starts before booking. */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
@@ -15,7 +11,6 @@
 		Picker,
 		RecordShell,
 		Section,
-		Tabs,
 		openRecord,
 		type RecordSection,
 		type RecordView
@@ -23,6 +18,8 @@
 	import { untrack } from 'svelte';
 	import { live } from '../../../lib/live.svelte.js';
 	import { excerpt } from '../../../lib/summary.js';
+	import SlotPicker from '../../../lib/SlotPicker.svelte';
+	import Choice from '../../../lib/Choice.svelte';
 
 	let { view }: { view: RecordView<'bookings'> } = $props();
 
@@ -42,8 +39,7 @@
 				'preference',
 				'repeat',
 				'visit_count',
-				'address',
-				'area'
+				'address'
 			]
 		},
 		{
@@ -77,8 +73,6 @@
 	let helpers = $state<Id<'helpers'>[]>([]);
 	let from = $state(today);
 	let start = $state<string | null>(null);
-	let chosen = $state<Id<'helpers'> | null>(null);
-	let tab = $state<string | undefined>(undefined);
 	let repeat = $state<(typeof REPEATS)[number]>('once');
 	let message = $state<string | null>(null);
 	let booking = $state(false);
@@ -86,44 +80,44 @@
 	const names = live(() =>
 		helpers.length === 0
 			? null
-			: bolt.read('helpers', { where: { id: { in: helpers } }, select: { name: true }, limit: 5 })
+			: bolt.read('helpers', {
+					where: { id: { in: helpers } },
+					select: { name: true, skills: true },
+					limit: 5
+				})
 	);
 	const open = live(
 		() =>
-			preference === 'preferred' && customer !== null && service !== null && helpers.length > 0
-				? bolt.query('helpers.open_slots', {
-						helpers,
+			customer !== null && service !== null && (preference === 'any' || helpers.length > 0)
+				? bolt.query('bookings.open_slots', {
+						preference,
+						repeat,
+						...(preference === 'preferred' ? { helpers } : {}),
 						customer,
 						service,
 						from: PlainDate(from),
 						days: 7
 					})
 				: null,
-		['visits', 'helpers', 'helper_time_off']
+		['visits', 'helpers', 'helper_time_off', 'drive_times', 'services', 'customers']
 	);
-	const shown = $derived(open.current?.find((h) => h.helper === tab) ?? open.current?.[0]);
-	const day = (d: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short'
-		}).format(new Date(`${d}T00:00:00`));
-	const time = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, { hour: 'numeric', minute: '2-digit' }).format(
-			new Date(i)
-		);
+	const shown = $derived(open.current);
+	const chosenService = live(() =>
+		service === null ? null : bolt.get('services', service, { duration_minutes: true })
+	);
 	const ready = $derived(
 		customer !== null &&
 			service !== null &&
 			start !== null &&
-			(preference === 'any' || helpers.length > 0)
+			(preference === 'any' || helpers.length > 0) &&
+			open.current?.some((d) => d.starts.includes(Instant(start!))) === true
 	);
 
 	async function book() {
 		if (customer === null || service === null || start === null) return;
 		booking = true;
 		message = null;
-		const order = chosen === null ? helpers : [chosen, ...helpers.filter((h) => h !== chosen)];
+		const order = helpers;
 		const outcome = await bolt.act('bookings.book', {
 			customer,
 			service,
@@ -147,39 +141,26 @@
 	}
 </script>
 
-{#snippet slots()}
-	{#if shown}
-		<Stack gap="sm">
-			{#each shown.days as d (d.day)}
-				<Stack gap="xs">
-					<Label>{day(d.day)}</Label>
-					{#if d.starts.length === 0}
-						<p class="text-caption">{t('app.schedule.not_free')}</p>
-					{:else}
-						<Cluster gap="xs">
-							{#each d.starts as s (s)}
-								<Button
-									size="sm"
-									variant={start === s && chosen === shown.helper ? 'default' : 'outline'}
-									onclick={() => {
-										start = s;
-										chosen = shown.helper;
-									}}>{time(s)}</Button
-								>
-							{/each}
-						</Cluster>
-					{/if}
-				</Stack>
-			{/each}
-		</Stack>
-	{/if}
-{/snippet}
-
 {#if view.mode === 'create'}
-	<RecordShell of="bookings" mode="create">
+	<RecordShell
+		of="bookings"
+		fields={[
+			'number',
+			'customer',
+			'service',
+			'status',
+			'preference',
+			'repeat',
+			'visit_count',
+			'address',
+			'notes',
+			'location'
+		]}
+		mode="create"
+	>
 		<Stack gap="lg">
-			<Section first name="where" title={t('app.schedule.step_where')}>
-				<Grid minimum="card">
+			<Section collapsible={false} first name="where" title={t('app.schedule.step_where')}>
+				<Grid minimum="compact">
 					{#if view.values.customer == null}
 						<Stack gap="xs">
 							<Label for="booking-customer">{t('component.customer')}</Label>
@@ -187,7 +168,10 @@
 								id="booking-customer"
 								of="customers"
 								value={customer}
-								onChange={(id) => (customer = id)}
+								onChange={(id) => {
+									customer = id;
+									start = null;
+								}}
 							/>
 						</Stack>
 					{/if}
@@ -198,35 +182,56 @@
 							of="services"
 							where={{ active: { eq: true } }}
 							value={service}
-							onChange={(id) => (service = id)}
+							onChange={(id) => {
+								service = id;
+								start = null;
+							}}
 						/>
 					</Stack>
 				</Grid>
 			</Section>
-			<Section name="preference" title={t('app.schedule.step_preference')}>
-				<Cluster gap="xs">
-					<Button
-						variant={preference === 'any' ? 'default' : 'outline'}
-						onclick={() => (preference = 'any')}>{t('app.schedule.no_preference')}</Button
-					>
-					<Button
-						variant={preference === 'preferred' ? 'default' : 'outline'}
-						onclick={() => {
-							preference = 'preferred';
-							start = null;
-						}}>{t('app.schedule.has_preference')}</Button
-					>
-				</Cluster>
+			<Section collapsible={false} name="options" title={t('app.booking.options')}>
+				<Grid minimum="compact" gap="md">
+					<Stack gap="sm">
+						<Label for="booking-preference">{t('app.schedule.step_preference')}</Label>
+						<Choice
+							id="booking-preference"
+							value={preference}
+							onChange={(value) => {
+								preference = value as 'any' | 'preferred';
+								start = null;
+							}}
+						>
+							<option value="any">{t('app.schedule.no_preference')}</option>
+							<option value="preferred">{t('app.schedule.has_preference')}</option>
+						</Choice>
+					</Stack>
+					<Stack gap="sm">
+						<Label for="booking-repeat">{t('app.schedule.step_repeat')}</Label>
+						<Choice
+							id="booking-repeat"
+							value={repeat}
+							onChange={(value) => {
+								repeat = value as typeof repeat;
+								start = null;
+							}}
+						>
+							{#each REPEATS as r (r)}<option value={r}>{t(`component.repeat_${r}`)}</option>{/each}
+						</Choice>
+					</Stack>
+				</Grid>
 			</Section>
 			{#if preference === 'preferred'}
-				<Section name="helpers" title={t('app.schedule.preferred_helpers')}>
+				<Section collapsible={false} name="helpers" title={t('app.schedule.preferred_helpers')}>
 					<Cluster gap="xs" align="center">
 						{#each helpers as h, i (h)}
 							<Button
 								size="sm"
 								variant="secondary"
-								onclick={() => (helpers = helpers.filter((x) => x !== h))}
-								>{i + 1}. {names.current?.rows.find((r) => r.id === h)?.name ?? '—'} ×</Button
+								onclick={() => {
+									helpers = helpers.filter((x) => x !== h);
+									start = null;
+								}}>{i + 1}. {names.current?.rows.find((r) => r.id === h)?.name ?? '—'} ×</Button
 							>
 						{/each}
 					</Cluster>
@@ -238,45 +243,45 @@
 								where={{ status: { eq: 'active' } }}
 								value={null}
 								onChange={(id) => {
-									if (id !== null && !helpers.includes(id)) helpers = [...helpers, id];
+									if (id !== null && !helpers.includes(id)) {
+										helpers = [...helpers, id];
+										start = null;
+									}
 								}}
 							/>
 						{/key}
 					{/if}
 				</Section>
-				<Section name="schedule" title={t('app.schedule.step_schedule')}>
-					<div class="w-48">
-						<DateInput value={from} onChange={(next) => (from = next ?? today)} />
-					</div>
-					{#if open.current && open.current.length > 0}
-						<Tabs
-							value={shown?.helper ?? ''}
-							onValueChange={(v) => (tab = v)}
-							tabs={open.current.map((h) => ({ name: h.helper, title: h.name, body: slots }))}
-						/>
-					{/if}
-				</Section>
-			{:else}
-				<Section name="when" title={t('app.schedule.step_when')}>
-					<div class="w-64">
-						<DateInput of="instant" value={start} onChange={(next) => (start = next)} />
-					</div>
-				</Section>
 			{/if}
-			<!-- defaults to once: a rarely changed choice, its current value shown while closed -->
-			<Section
-				name="repeat"
-				title={t('app.schedule.step_repeat')}
-				defaultOpen={false}
-				summary={t(`component.repeat_${repeat}`)}
-			>
-				<Cluster gap="xs">
-					{#each REPEATS as r (r)}
-						<Button variant={repeat === r ? 'default' : 'outline'} onclick={() => (repeat = r)}
-							>{t(`component.repeat_${r}`)}</Button
-						>
-					{/each}
-				</Cluster>
+			<Section collapsible={false} name="schedule" title={t('app.booking.available_start')}>
+				<Stack gap="sm" class="max-w-xs">
+					<Label for="booking-date">{t('app.booking.dates_from')}</Label>
+					<DateInput
+						id="booking-date"
+						value={from}
+						onChange={(next) => {
+							from = next ?? today;
+							start = null;
+						}}
+					/>
+				</Stack>
+				{#if open.error}<p role="alert" class="text-sm text-destructive">{open.error}</p>{/if}
+				{#if shown && shown.some((d) => d.starts.length > 0)}
+					<SlotPicker
+						days={shown}
+						minutes={chosenService.current?.duration_minutes ?? 60}
+						value={start}
+						locale={bolt.locale}
+						onPick={(s) => (start = s)}
+						t={(k) => t(k as never)}
+					/>
+				{:else if shown}<p class="text-caption">{t('app.schedule.not_free')}</p>
+				{:else if customer !== null && service !== null && !open.error}<p
+						role="status"
+						class="text-caption"
+					>
+						{t('component.loading')}
+					</p>{/if}
 			</Section>
 			<Cluster gap="sm" align="center">
 				<Button disabled={!ready || booking} onclick={book}>{t('app.schedule.book')}</Button>
@@ -285,5 +290,21 @@
 		</Stack>
 	</RecordShell>
 {:else}
-	<RecordShell of="bookings" id={view.record.id} {sections} />
+	<RecordShell
+		of="bookings"
+		fields={[
+			'number',
+			'customer',
+			'service',
+			'status',
+			'preference',
+			'repeat',
+			'visit_count',
+			'address',
+			'notes',
+			'location'
+		]}
+		id={view.record.id}
+		{sections}
+	/>
 {/if}
