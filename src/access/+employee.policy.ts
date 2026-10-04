@@ -10,7 +10,7 @@ import { MEMBER_LIMITS, OWN, OWN_EMPLOYEE, OWN_EMPLOYMENT, WORK_DAY_ATTENDANCE_F
 export default policy({
 	description: 'Employee self-service access to profile, time, requests, loans, and payslips.',
 	capabilities: { apps: [] },
-	automations: ['catalog_events'],
+	automations: ['behaviour_catalog_events'],
 	grants: {
   catalogue_entries: {
    queries: ['leave_summary','preview_leave'],

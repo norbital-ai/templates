@@ -1,9 +1,9 @@
 import { automation, type Id } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import { googleHolidayRows, holidaySources, readGoogleHolidayYear } from '../lib/holiday-import.js';
-import {dedupeHolidayRows} from '../lib/payroll_engine/catalogues/holiday-rows.js';
-import {getErrorMessage} from '../lib/payroll_engine/foundation/primitives.js';
+import { googleHolidayRows, holidaySources, readGoogleHolidayYear } from '../lib/payroll_engine/services.js';
+import {dedupeHolidayRows} from '../lib/payroll_engine/services.js';
+import {getErrorMessage} from '../lib/payroll_engine/foundation.js';
 
 const outcome = {
 	kind: 'object',
@@ -26,7 +26,7 @@ const holiday_import = automation({
 		'Every 1 October, reads each entity’s enabled Google holiday calendar for next year and adds the days that entity does not have yet, unpublished. Manual runs choose an entity and a year. It never publishes, changes or deletes a holiday.',
 	on: { cron: '0 3 1 10 *' },
 	input: {
-		company_id: { kind: 'id', of: 'entities', optional: true },
+		company_id: { kind: 'id', of: 'entity', optional: true },
 		year: { kind: 'int', min: 1, max: 9998, optional: true }
 	},
 	output: { kind: 'object', fields: { imports: { kind: 'list', of: outcome } } },
@@ -36,7 +36,7 @@ const holiday_import = automation({
 export default holiday_import;
 
 holiday_import.run(async (input, ctx) => {
-	const { rows: entities } = await ctx.read('entities', {
+	const { rows: entities } = await ctx.read('entity', {
 		where: {
 			approval_id: { isNull: true },
 			...(input.company_id == null ? {} : { id: { eq: input.company_id } })
@@ -73,7 +73,7 @@ holiday_import.run(async (input, ctx) => {
 			await ctx.act(
 				'holidays.create',
 				inserts.map((row) => ({
-					company_id: row.company_id as Id<'entities'>,
+					company_id: row.company_id as Id<'entity'>,
 					date: PlainDate(row.date),
 					name: row.name,
 					source: row.source

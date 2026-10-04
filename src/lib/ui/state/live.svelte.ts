@@ -1,6 +1,6 @@
 import type { CollectionName, Page, Q } from '@norbital-ai/bolt';
 import { bolt } from '$bolt';
-import { plain, type Wire } from '../../payroll_engine/foundation/primitives.js';
+import { plain, type Wire } from '../../payroll_engine/foundation.js';
 
 /**
  * A `bolt` read kept live while the component that calls this renders (rule 64): the subscription follows `query()`,

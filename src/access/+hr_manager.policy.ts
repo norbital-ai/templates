@@ -8,7 +8,7 @@ export default policy({
 		'HR management: everything HR administration covers, plus creating, running and deleting payroll runs.',
 	capabilities: { apps: [...HR_CONTROLLER_APPS] },
 	// the entities app starts the Google holiday import
-	automations: ['payroll_export', 'work_catalog', 'holiday_import', 'catalog_events'],
+	automations: ['holiday_import', 'behaviour_catalog_events'],
 	grants: {
 		catalogue_entries: {
    read: { where: { catalog: { in: ['CLAIM', 'ADHOC'] } } },

@@ -7,7 +7,7 @@ export default policy({
 	description:
 		'Senior management: the full people-operations view, plus creating, running and deleting payroll runs.',
 	capabilities: { apps: [] },
-	automations: ['payroll_export', 'catalog_events'],
+	automations: ['behaviour_catalog_events'],
 	grants: {
   catalogue_entries: {
    queries: ['leave_summary','preview_leave'],

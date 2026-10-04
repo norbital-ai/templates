@@ -8,9 +8,9 @@ import {
 	workbookGrids,
 	WorkbookImportError,
 	type WorkbookGrids
-} from '../../payroll_engine/foundation/workbook-rows.js';
-import { getErrorMessage } from '../../payroll_engine/foundation/primitives.js';
-import { formatNamedList } from '../../payroll_engine/foundation/time.js';
+} from '../../payroll_engine/foundation.js';
+import { getErrorMessage } from '../../payroll_engine/foundation.js';
+import { formatNamedList } from '../../payroll_engine/foundation.js';
 import WorkbookImportDetails from './workbook-import-details.svelte';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';

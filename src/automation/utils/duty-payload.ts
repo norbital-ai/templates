@@ -1,8 +1,8 @@
 import type {Id,Insert} from '@norbital-ai/bolt';
 import {Schema} from 'effect';
 import {PlainDate} from '@norbital-ai/std/date';
-import {calendarDay} from '../../lib/payroll_engine/foundation/time.js';
-import {refuse} from '../../lib/payroll_engine/foundation/primitives.js';
+import {calendarDay} from '../../lib/payroll_engine/foundation.js';
+import {refuse} from '../../lib/payroll_engine/foundation.js';
 
 const configuredDuty=Schema.Struct({
  company_id:Schema.NonEmptyString,settings_id:Schema.NonEmptyString,duty_code:Schema.NonEmptyString,
@@ -14,7 +14,7 @@ const configuredDuty=Schema.Struct({
 });
 
 /** One admitted configured duty as its native obligations insert; the caller supplies the owner it already resolved. */
-export function configuredDutyPayload(company_id:Id<'entities'>,settings_id:Id<'jurisdiction_settings'>,row:Readonly<Record<string,unknown>>,source_basis?:unknown):Insert<'obligations'>{
+export function configuredDutyPayload(company_id:Id<'entity'>,settings_id:Id<'jurisdiction_settings'>,row:Readonly<Record<string,unknown>>,source_basis?:unknown):Insert<'obligation'>{
  const value=Schema.decodeUnknownSync(configuredDuty)(row);
  if(value.company_id!==company_id||value.settings_id!==settings_id)refuse('A configured duty retains its actual owner and governing snapshot.');
  const basis=Schema.decodeUnknownSync(Schema.Json)(source_basis===undefined?value.source_basis:source_basis);

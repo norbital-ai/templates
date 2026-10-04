@@ -1,6 +1,6 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import {PlainDate,days,monthOf} from '@norbital-ai/std/date';
-import {isYearMonth} from '../../../lib/payroll_engine/foundation/time.js';
+import {isYearMonth} from '../../../lib/payroll_engine/foundation.js';
 import {SETTINGS_SHEET_NAME,ROSTER_SHEET_NAME,ATTENDANCE_SHEET_NAME,OVERTIME_SHEET_NAME,PIECE_SHEET_NAME} from './attendance-workbook.js';
 /** A downloadable input workbook for the same grammar the native attendance importer accepts. */
 export function schedulingTemplateWorkbook(options:{legalEntity:string;month:string;timezone:string;overtimeConsent?:boolean;factColumns?:readonly string[]}){

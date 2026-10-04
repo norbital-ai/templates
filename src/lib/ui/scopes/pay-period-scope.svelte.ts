@@ -6,7 +6,7 @@
  * in it. One owner, so the four pages cannot drift.
  */
 import { PlainDate } from '@norbital-ai/std/date';
-import { payPeriodWindow } from '../../payroll_engine/foundation/time.js';
+import { payPeriodWindow } from '../../payroll_engine/foundation.js';
 import { periodInCompanyGrammar, todayKey } from '../format/calendar.js';
 
 type PayGridCompany = {

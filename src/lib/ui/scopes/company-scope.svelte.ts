@@ -1,5 +1,5 @@
 import type { Id } from '@norbital-ai/bolt';
-import { everyField } from '../../payroll_engine/foundation/reads.js';
+import { everyField } from '../../payroll_engine/foundation.js';
 import { bolt } from '$bolt';
 import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from './create-scope.js';
 import { liveRows } from '../state/live.svelte.js';
@@ -10,14 +10,14 @@ import { liveRows } from '../state/live.svelte.js';
  */
 export function companyScope() {
 	const entities = liveRows(() =>
-		bolt.read('entities', {
-			select: everyField('entities'),
+		bolt.read('entity', {
+			select: everyField('entity'),
 			where: { approval_id: { isNull: true }, effective_range: { contains: { today: '' } } },
 			orderBy: { name: 'asc' },
 			all: true
 		})
 	);
-	let chosen = $state<Id<'entities'> | null>(null);
+	let chosen = $state<Id<'entity'> | null>(null);
 	const list = $derived(entities.current ?? []);
 	const company = $derived(list.find((row) => row.id === chosen) ?? list[0] ?? null);
 	return {
@@ -34,7 +34,7 @@ export function companyScope() {
 		get id() {
 			return company?.id ?? null;
 		},
-		select(id: Id<'entities'>) {
+		select(id: Id<'entity'>) {
 			chosen = id;
 		}
 	};
@@ -42,12 +42,12 @@ export function companyScope() {
 export type CompanyScope = ReturnType<typeof companyScope>;
 
 /** "NAME (NUMBER)" of every employment of the scoped entity, live: what a table's person column prints. */
-export function employmentNames(companyId: () => Id<'entities'> | null) {
+export function employmentNames(companyId: () => Id<'entity'> | null) {
 	const rows = liveRows(() => {
 		const id = companyId();
 		return id == null
 			? null
-			: bolt.read('employee_profiles', {
+			: bolt.read('employment_contract', {
 					where: { company_id: { eq: id } },
 					select: EMPLOYMENT_LABEL_SELECT,
 					all: true

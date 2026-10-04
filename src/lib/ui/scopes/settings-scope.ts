@@ -8,7 +8,7 @@
  * than a second query for the versions.
  */
 import { PlainDate } from '@norbital-ai/std/date';
-import { dateKey } from '../../payroll_engine/foundation/time.js';
+import { dateKey } from '../../payroll_engine/foundation.js';
 
 /** Every version of the lineage, draft, sealed and voided alike: what a code-to-name map reads. */
 export function onLineage(code: string) {

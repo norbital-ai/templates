@@ -10,14 +10,14 @@
 	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
 	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
-	import { decodeNumber } from '../../../lib/payroll_engine/foundation/primitives.js';
+	import { decodeNumber } from '../../../lib/payroll_engine/foundation.js';
 
 	const scope = companyScope();
 	const today = todayKey();
 	const employee_profiles = liveRows(() =>
 		scope.id == null
 			? null
-			: bolt.read('employee_profiles', {
+			: bolt.read('employment_contract', {
 					where: { approval_id: { isNull: true }, company_id: { eq: scope.id } },
 					select: { employee_id: true, effective_range: true },
 					all: true
