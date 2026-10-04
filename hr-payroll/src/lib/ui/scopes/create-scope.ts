@@ -13,14 +13,14 @@ import * as Predicate from 'effect/Predicate';
  * with no scope stays unnarrowed.
  */
 export interface HrCreateScope {
-	readonly companyId: () => Id<'entities'> | undefined;
+	readonly companyId: () => Id<'entity'> | undefined;
 	readonly settingsCode: () => string | undefined;
 	/** Payroll only: the cycle selected in the app header. */
 	readonly payrollPeriod?: () => string | undefined;
 	/** Self-service only: the request is this person's own. */
-	readonly employmentId?: () => Id<'employee_profiles'> | undefined;
+	readonly employmentId?: () => Id<'employment_contract'> | undefined;
 	/** Employee profile only: the fact is this person's own. */
-	readonly employeeId?: () => Id<'employees'> | undefined;
+	readonly employeeId?: () => Id<'employment_profile'> | undefined;
 	/** Settings only: the version whose catalogue the row is a line of. */
 	readonly settingsId?: () => Id<'jurisdiction_settings'> | undefined;
 	/** Allowances only: the first day of the shown period, so a new allowance opens from it. */
@@ -77,8 +77,8 @@ export const EMPLOYMENT_LABEL_SELECT = {
 } as const;
 
 /** The employment `Picker` of a scoped form: the entity's own people, by employee number. */
-export const employmentPicker = (companyId: Id<'entities'> | undefined) => ({
-	of: 'employee_profiles' as const,
+export const employmentPicker = (companyId: Id<'entity'> | undefined) => ({
+	of: 'employment_contract' as const,
 	label: ['employee_number' as const],
 	...(companyId == null ? {} : { where: { company_id: { eq: companyId } } }),
 	orderBy: { employee_number: 'asc' } as const

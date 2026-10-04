@@ -8,13 +8,14 @@ work — anything booked by the visit. It replaces matching helpers to jobs over
 - Every visit is matched to a helper who has the skill and is free, with the drive between jobs
   allowed for. Among qualified helpers, the least added driving and the lightest week win.
 - Before each working day, helpers confirm their shift. A helper who does not answer, or cannot
-  come, is replaced automatically.
+  come, gets replacement recommendations awaiting controller approval.
 - Before each visit, the helper's position is checked. A helper who is too far away is flagged for
   the desk to call.
 - Helpers run their day from their phone: their visits, the drive to each, one tap to start and
   complete.
 
-Screens in this guide use sample data.
+Screens in this guide use sample data. Cleaner is the operational role labeled **Helper** in the UI.
+Existing embedded screenshots illustrate the original layout; the companion PDF includes the updated booking screens.
 
 ## Who uses what
 
@@ -64,12 +65,12 @@ visits under way or starting in the next four hours.
 ### Bookings
 
 - **All bookings** lists every booking. Cancelling a booking cancels its visits still to come.
-- **New** on its toolbar takes a booking. Pick the customer and the service, the date and time,
-  and how often. **Repeat** starts closed, showing **Once**; open it for a recurring booking.
-  - With **Any helper**, the best match is chosen; a recurring customer keeps that helper while
-    they stay free.
-  - With **Preferred helpers**, name them in the customer's order. There is a tab per helper with
-    the half-hours they are free that week. The time you pick goes to the first of them who is free.
+- **New** takes a booking. Pick the customer, service, cleaner preference and recurrence first.
+  The date-first calendar offers feasible half-hour starts for one selected day at the destination.
+  - **Any helper** ranks all eligible cleaners by added travel and normalized weekly workload.
+  - **Preferred helpers** scopes starts to the ordered selection. An incompatible skill is flagged.
+  - **Once** checks one visit; weekly, fortnightly and monthly check eight planned occurrences.
+    Every occurrence must fit before any part of the booking is saved. Continuity has a small bonus.
 - **Portal requests** lists requests from the portal that no helper could take at the time asked,
   for the desk to propose a time.
 
@@ -83,20 +84,20 @@ and the desk accepts it from the visit.
 
 ### Customer profiles
 
-Contact details, address and area, their bookings, and every notice sent to them. **Notes** and the
+Contact details and destination, their bookings, and every notice sent to them. **Notes** and the
 **Map location** pin fold away behind a one-line summary.
 
 ### Configurations
 
 **Dispatch** holds the settings below; change them and press **Save settings**.
 
-| Setting                                         | Default | What it does                                                |
-| ----------------------------------------------- | ------- | ----------------------------------------------------------- |
-| ETA limit (minutes)                             | 30      | A helper further away than this before a visit is flagged   |
-| Check ETA from (minutes before a visit)         | 60      | How long before a visit the ETA check starts                |
-| Ask to confirm (minutes before the first visit) | 120     | When a helper is asked to confirm their day                 |
-| Time to answer (minutes)                        | 60      | No answer within this, and the day is reassigned            |
-| Free changes until (hours before a visit)       | 24      | Later cancellations are chargeable; later moves are refused |
+| Setting                                         | Default | What it does                                                      |
+| ----------------------------------------------- | ------- | ----------------------------------------------------------------- |
+| ETA limit (minutes)                             | 30      | A helper further away than this before a visit is flagged         |
+| Check ETA from (minutes before a visit)         | 60      | How long before a visit the ETA check starts                      |
+| Ask to confirm (minutes before the first visit) | 120     | When a helper is asked to confirm their day                       |
+| Time to answer (minutes)                        | 60      | No answer within this, and replacements await controller approval |
+| Free changes until (hours before a visit)       | 24      | Later cancellations are flagged; later moves are refused          |
 
 **Services** lists what can be booked. Each has a skill (the matching requirement), a duration, a price and a description.
 Only active services are offered on the portal.
@@ -105,11 +106,13 @@ Only active services are offered on the portal.
 
 1. **Details.** The customer types their mobile number and presses **Send code**. The six-digit code
    box appears beside **Verify**; the sixth digit verifies. The first verification signs them up.
-   They then pick the service, address and area, how often, and their name. **How often** and the
-   optional notes start closed, showing **Once** and **No notes**; a tap opens them. A returning
-   customer finds these filled in.
-2. **Time.** The service's open start times over the next two weeks, day by day. Only times a
-   qualified helper can take are offered.
+   They then choose the service, recurrence and cleaner, enter their name, and use the location
+   picker to search an address or place a pin. No separate area selection is required. Optional
+   notes stay collapsed until needed. Returning customers start with their saved name and address.
+2. **Time.** Private availability is computed over 14 days after the destination, preference and
+   recurrence are known. It includes working hours, leave, travel and all eight recurring occurrences.
+   An incompatible preferred cleaner blocks progression. Quotes expire after 15 minutes and are
+   bound to the verified phone and exact booking details. Missing route data is labeled estimated.
 3. **Confirmed.** The visit is matched and confirmed on the spot, with a reference. If the time was
    taken meanwhile, the request goes to the desk, who proposes a time.
 
@@ -149,6 +152,9 @@ helper profile names.
 
 ## How assignment works
 
+Area labels are retained for old records but are optional, hidden in forms and not used to rank
+assignments. Coordinates and route durations determine travel.
+
 The same rules run for every booking, drag, reassignment, move and portal time.
 
 **Hard requirements.** A helper can take a visit only when:
@@ -159,20 +165,24 @@ The same rules run for every booking, drag, reassignment, move and portal time.
 4. they have no visit too close to it: the drive between the two addresses, plus 15 minutes to park
    and carry the kit in, must fit on both sides.
 
-**Ranking.** Every helper who passes is scored in minutes of driving, and the highest wins:
+**Ranking.** Every eligible cleaner receives a score in driving-minute equivalents:
 
-| What counts                                 | Score                         |
-| ------------------------------------------- | ----------------------------- |
-| Drive this visit adds to the helper's day   | − minutes                     |
-| Hours already booked that week              | − 2 per hour (load balancing) |
-| Helper lives in the customer's area         | + 5                           |
-| Same helper as this booking's earlier visit | + 100 (recurring continuity)  |
+`-D - 180 * (((L + J + D) / C)^2 - (L / C)^2) + continuity`
 
-The added drive is the trip in from the helper's last stop (a visit, or home), plus the trip on to
-their next visit that day, less the direct trip it replaces. A visit on a helper's way costs almost
-nothing, so days stay tight and total driving stays low. Between two helpers with similar drives,
-the one with fewer hours that week wins. With preferred helpers, the customer's order decides
-among those who pass.
+D is added route travel; J is service duration; L is weekly service plus planned travel;
+C is available weekly work minutes after leave. Continuity adds 15 for the previous recurring
+cleaner. Exact ties preserve scarce extra skills, then sort by name/id. Preferred order overrides
+soft ranking and never overrides hard constraints. The weights are code constants.
+
+Added travel uses previous stop (or home) to new, plus new to next, minus the replaced direct leg,
+clamped at zero. There is no return-home cost. Existing visits stay fixed; this is a sequential
+heuristic and does not guarantee a global minimum. First-commute feasibility and cache expiry
+remain limitations.
+
+Before customer starts are offered, private dispatch preparation geocodes the submitted destination
+and attempts missing Google route legs, bounded to 24 distinct stops. Cached times or labeled
+estimates cover larger rosters and unavailable providers. The submitted address/location is applied
+to returning customers' new visits too.
 
 **No double booking.** Three layers stop it:
 
@@ -188,11 +198,10 @@ among those who pass.
 **Shift check.** Two hours before a helper's first visit of the day (configurable), they are asked
 in My Day to confirm.
 
-- No answer within the reply window, or a decline, and the day's visits are reassigned to the best
-  match.
+- No answer within the reply window, or a decline, records time off for that day and unassigns its remaining scheduled visits. Matching prepares proposals in appointment order, factoring travel and workload. They remain awaiting controller approval.
 - Without a medical certificate, a warning and a warning letter (PDF) are filed on the helper's
   record.
-- A customer who asked for particular helpers is told who comes instead; one who did not is not.
+- Approval rechecks skills, hours, leave, conflicts and travel, then updates the assigned route and tells the customer. No customer replacement confirmation is sent while approval is pending.
 
 **ETA check.** From an hour before each visit, the drive from the helper's last position is
 re-estimated every five minutes.
@@ -202,13 +211,13 @@ re-estimated every five minutes.
 - The flag clears on its own when the helper gets closer.
 
 **Changes and cancellations.** A visit can be moved or cancelled up to the free change window before
-it starts. Later, a cancellation is marked late (chargeable) and a move is refused.
+it starts. Later, a cancellation is marked late; no fee is collected and a move is refused.
 
 **Messages.**
 
 - Customers: booking confirmations, a change of helper, proposals and cancellations. These go by
   WhatsApp, plus email when they have one.
-- Helpers: new and changed visits, by WhatsApp.
+- Helpers: new assignments and time changes, in the in-app inbox and by WhatsApp when configured. Recommendations do not notify a cleaner as though they were assigned.
 - The desk: in-app alerts for ETA risks, visits without a helper and portal requests that need a
   time.
 
@@ -246,6 +255,8 @@ Until a channel is connected, nothing is delivered on it: the channel counts its
 At 2,000 visits a month, Google usage sits within or near its monthly free allowance.
 
 <!-- current-screenshots:start -->
+
+These earlier sample screens are retained as references; the current October 4 walkthrough appears below.
 
 ## Current screenshots
 
@@ -295,3 +306,72 @@ Captured 2 October 2026 from the standalone template with sample data.
 
 ![On-Demand Services: Warnings](images/current-scheduler-schedule-warnings.png)
 <!-- current-screenshots:end -->
+
+## Operational limits
+
+Attendance confirmation is currently for the first visit of the day. It does not record departure
+or arrival, and the proposed per-visit 90-minute readiness workflow is not implemented. Declining
+a shift now records day-level time off and prepares replacement recommendations; the controller approves assignment.
+
+ETA warnings are risks for investigation, not verified no-shows. Dedicated no-show incidents,
+complaint cases, compensation and payment/refund collection remain proposed workflows. The
+late-cancellation flag records policy timing; it does not collect a fee. Local probes use fictional
+locations and do not establish live Google routing, GPS movement or external message delivery.
+
+## Controller recovery and cleaner route
+
+Open a scheduled visit → **Review and rebook**, or **Warnings → Needs attention → Review**.
+The review shows the customer, current appointment, a live countdown, the unavailable cleaner,
+and ranked replacement choices with added travel and weekly booked hours. **Approve [cleaner]**
+rechecks live capacity; a stale choice is refused with instructions to refresh. **Refresh recommendation**
+prepares another suggestion without assigning it. The controller can also **Report cleaner unavailable**,
+record whether an MC exists, and prepare replacements for that cleaner's remaining visits that day.
+
+**Choose another time** uses the shared calendar and half-hour picker with skills, leave, hours,
+existing appointments and travel on both sides. Confirm the new time with the customer before approving.
+Service recovery after an actual recorded absence can move a visit inside the normal customer change
+cutoff. Ordinary customer changes still obey the configured cutoff. Rebooking changes one occurrence;
+other weekly, fortnightly or monthly occurrences remain intact. There is no automatic approval when
+the countdown expires: the queue stays visible and marks the appointment overdue.
+
+**My Day → Route date** shows that cleaner's assignments in chronological order, including completed
+stops, the next job, estimated travel between stops and the available gap. The route remains readable
+without GPS; starting a visit requires location sharing in the UI. New assignments appear through live
+updates and create an in-app notification, plus WhatsApp if configured. Google Maps opens the ordered
+remaining route for up to four stops (mobile waypoint limit), with individual directions for every
+stop on longer days. The route view's inter-stop times are clearly labeled estimates; matching uses
+cached Google route times where available. Inbox creation is verified locally; real push and WhatsApp
+delivery require configured providers and device permissions.
+
+## Booking, recovery and daily route walkthrough
+
+The screens below use fictional data from the local probe. Recovery screens were captured on 4 October 2026 from port 4185; customer screens show the earlier booking replay. Real GPS and external delivery were not exercised.
+
+### Choose a service and available start
+
+Select the service, destination, recurrence and cleaner preference. An incompatible cleaner is rejected. Choose a time computes feasible starts for the selected cleaner or all eligible cleaners, including travel between existing jobs; no-preference ranking balances workload and added travel. Confirmation rechecks capacity.
+
+![Customer booking details](images/ui-customer.png)
+
+![Available booking starts](images/ui-times.png)
+
+### Review an absence before assigning a replacement
+
+A cleaner reports **Can't come**, or the controller uses **Report cleaner unavailable**. The affected day is blocked and visits enter **Awaiting approval**. The queue shows each proposed cleaner and countdown to the original start.
+
+![Recovery queue with job countdowns](images/recovery-queue.png)
+
+Open **Review** or the visit's **Review and rebook** tab. Compare the recommendation's travel and booked hours. **Approve [cleaner]** rechecks feasibility; a stale choice is refused. Countdown expiry never approves a proposal.
+
+![Replacement approval panel](images/recovery-panel.png)
+
+**Choose another time** offers feasible starts and ranks cleaners for the chosen time. Confirm the change with the customer first. Approval changes one occurrence and leaves other recurring visits intact.
+
+![Rebooking calendar and replacement recommendation](images/recovery-calendar.png)
+
+### Follow the cleaner's day
+
+**My Day** shows assignments in chronological order, directions and estimated travel between stops. The route can be read without GPS; starting work requires location sharing. Approved assignments and time changes queue in-app alerts for linked users and WhatsApp when configured. A proposal alone sends no assignment notice. The local probe substitutes clearly labeled fictional coordinates.
+
+![Cleaner daily route](images/recovery-route.png)
+

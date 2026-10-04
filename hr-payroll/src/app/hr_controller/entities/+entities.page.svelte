@@ -7,7 +7,7 @@
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
 	import { Toaster } from 'svelte-sonner';
-	import { holidayBulkImportPayload } from '../../../lib/holiday-workbook.js';
+	import { holidayBulkImportPayload } from '../../../lib/payroll_engine/services.js';
 	import { runWorkbookImport } from '../../../lib/ui/workbook/workbook-import.js';
 
 	let importing = $state(false);

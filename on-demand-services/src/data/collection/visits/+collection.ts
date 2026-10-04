@@ -1,7 +1,9 @@
 import { collection, type ActionCtx, type Id, type Instant } from '@norbital-ai/bolt';
-import { Instant as instant } from '@norbital-ai/std/date';
+import { addDays, Instant as instant } from '@norbital-ai/std/date';
 import { dayOf, loadPool, reassign, settingsOf, VISIT, when } from '../../../lib/dispatch.js';
-import { lookups, rank, refusal, slotOf, type Refusal } from '../../../lib/matching.js';
+import { lookups, openSlots, rank, refusal, slotOf, type Refusal } from '../../../lib/matching.js';
+
+import { localOf, utcOf } from '@norbital-ai/std/zone';
 
 const HOUR = 3_600_000;
 const WHY: { [R in Refusal]: string } = {
@@ -32,6 +34,7 @@ const visits = collection('visits', {
 				'eta_checked_at',
 				'attention',
 				'proposed_helper',
+				'unavailable_helper',
 				'proposed_slot',
 				'late_cancellation',
 				'completion_notes'
@@ -39,9 +42,24 @@ const visits = collection('visits', {
 		}
 	},
 	queries: {
+		rebooking_slots: {
+			description: 'Feasible replacement starts for this occurrence, including adjacent travel.',
+			input: {
+				visit: { kind: 'id', of: 'visits' },
+				from: { kind: 'date' },
+				days: { kind: 'int', min: 1, max: 14 }
+			},
+			output: {
+				kind: 'list',
+				of: {
+					kind: 'object',
+					fields: { day: { kind: 'date' }, starts: { kind: 'list', of: { kind: 'instant' } } }
+				}
+			}
+		},
 		candidates: {
 			description: 'The helpers who could take this visit instead, best match first.',
-			input: { visit: { kind: 'id', of: 'visits' } },
+			input: { visit: { kind: 'id', of: 'visits' }, start: { kind: 'instant', optional: true } },
 			output: {
 				kind: 'list',
 				of: {
@@ -58,6 +76,23 @@ const visits = collection('visits', {
 		}
 	},
 	actions: {
+		report_unavailable: {
+			description:
+				'The controller records that the assigned cleaner cannot work this day and requests recommendations.',
+			target: 'record',
+			input: { mc: { kind: 'bool' } }
+		},
+		recommend: {
+			description: 'Prepares a replacement recommendation; the controller must approve it.',
+			target: 'record',
+			input: {}
+		},
+		rebook: {
+			description:
+				'Approves one occurrence at a feasible start; service recovery can bypass the customer change cutoff.',
+			target: 'record',
+			input: { start: { kind: 'instant' }, helper: { kind: 'id', of: 'helpers', optional: true } }
+		},
 		confirm_shift: {
 			description: 'The helper confirms they will work their visits that day.',
 			target: 'record',
@@ -65,7 +100,7 @@ const visits = collection('visits', {
 		},
 		decline_shift: {
 			description:
-				'The helper says they cannot work their visits that day, with or without a medical certificate. Dispatch reassigns them.',
+				'The helper says they cannot work their visits that day. Dispatch proposes replacements for controller approval.',
 			target: 'record',
 			input: { mc: { kind: 'bool' } }
 		},
@@ -88,7 +123,8 @@ const visits = collection('visits', {
 			input: {}
 		},
 		accept_proposal: {
-			description: 'Takes the helper and time proposed when the visit’s helper left.',
+			description:
+				'Approves a recommended replacement, rechecking availability and travel at approval.',
 			target: 'record',
 			input: {}
 		}
@@ -217,20 +253,26 @@ visits.transform(async (inputs, ctx) => {
 	});
 });
 
-visits.query('candidates', async ({ visit }, ctx) => {
+visits.query('candidates', async ({ visit, start }, ctx) => {
 	const v = await ctx.get('visits', visit);
 	if (v === null) return ctx.refuse('This visit is not visible to you.');
-	const pool = await loadPool(ctx, v.slot.start, v.slot.start, [v.location]);
+	const at = start ?? v.slot.start;
+	const pool = await loadPool(ctx, at, at, [v.location]);
 	const need = {
 		skill: v.skill,
-		slot: { start: v.slot.start, end: v.slot.end! },
+		slot: slotOf(at, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000),
 		location: v.location,
 		area: v.area,
 		visit: v.id
 	};
 	return rank(
 		need,
-		{ ...pool, helpers: pool.helpers.filter((h) => h.id !== v.helper) },
+		{
+			...pool,
+			helpers: pool.helpers.filter(
+				(h) => (start !== undefined || h.id !== v.helper) && h.id !== v.unavailable_helper
+			)
+		},
 		ctx.tz
 	).map((c) => ({
 		helper: c.helper as Id<'helpers'>,
@@ -297,6 +339,14 @@ visits.action('decline_shift', async ({ mc }, ctx) => {
 	);
 });
 
+visits.action('report_unavailable', async ({ mc }, ctx) => {
+	const day = await sameDay(ctx, ctx.target);
+	await ctx.act(
+		'visits.update',
+		day.map((v) => ({ target: v.id, set: { shift_check: 'declined' as const, mc } }))
+	);
+});
+
 visits.action('reassign', async ({ helper }, ctx) => {
 	const v = ctx.target;
 	if (v.status !== 'scheduled') ctx.refuse('Only a scheduled visit can be reassigned.');
@@ -309,7 +359,10 @@ visits.action('reassign', async ({ helper }, ctx) => {
 			ctx.refuse('No other helper is free for this visit. Reschedule it instead.');
 		return;
 	}
-	await ctx.act('visits.update', { target: v.id, set: { helper, attention: 'none' } });
+	await ctx.act('visits.update', {
+		target: v.id,
+		set: { helper, attention: 'none', proposed_helper: null, proposed_slot: null, mc: false }
+	});
 	const [booking, next] = await Promise.all([
 		ctx.get('bookings', v.booking, {
 			select: { preference: true, customer: true }
@@ -372,16 +425,121 @@ visits.action('cancel', async (_, ctx) => {
 
 visits.action('accept_proposal', async (_, ctx) => {
 	const v = ctx.target;
-	if (v.proposed_helper === null || v.proposed_slot === null)
-		return ctx.refuse('This visit has no proposal.');
+	if (v.status !== 'scheduled' || v.proposed_helper === null || v.proposed_slot === null)
+		return ctx.refuse('This scheduled visit has no recommendation to approve.');
+	await ctx.act('visits.rebook', {
+		target: v.id,
+		input: { start: v.proposed_slot.start, helper: v.proposed_helper }
+	});
+});
+
+visits.action('recommend', async (_, ctx) => {
+	const v = ctx.target;
+	if (v.status !== 'scheduled') return ctx.refuse('Only a scheduled visit can have a replacement.');
+	if (Date.parse(v.slot.start) <= Date.parse(ctx.now))
+		return ctx.refuse('This visit has already started. Choose a new future time.');
+	const pool = await loadPool(ctx, v.slot.start, v.slot.start, [v.location]);
+	const best = rank(
+		{
+			skill: v.skill,
+			slot: { start: v.slot.start, end: v.slot.end! },
+			location: v.location,
+			area: v.area,
+			visit: v.id
+		},
+		{
+			...pool,
+			helpers: pool.helpers.filter((h) => h.id !== v.helper && h.id !== v.unavailable_helper)
+		},
+		ctx.tz
+	)[0];
 	await ctx.act('visits.update', {
 		target: v.id,
 		set: {
-			helper: v.proposed_helper,
-			slot: v.proposed_slot,
-			proposed_helper: null,
-			proposed_slot: null,
-			attention: 'none'
+			proposed_helper: (best?.helper ?? null) as Id<'helpers'> | null,
+			proposed_slot: best === undefined ? null : v.slot,
+			attention: best === undefined ? 'unassigned' : 'awaiting_approval'
 		}
 	});
+});
+
+visits.query('rebooking_slots', async ({ visit, from, days }, ctx) => {
+	const v = await ctx.get('visits', visit);
+	if (v === null || v.status !== 'scheduled') return ctx.refuse('Choose a scheduled visit.');
+	const dates = Array.from({ length: days }, (_, i) => addDays(from, i));
+	const pool = await loadPool(
+		ctx,
+		new Date(utcOf(from, 0, ctx.tz)).toISOString(),
+		new Date(utcOf(dates.at(-1)!, 0, ctx.tz)).toISOString(),
+		[v.location]
+	);
+	const freed = {
+		...pool,
+		busy: pool.busy.filter((b) => b.id !== v.id),
+		helpers: pool.helpers.filter((h) => h.id !== v.unavailable_helper)
+	};
+	const need = {
+		skill: v.skill,
+		location: v.location,
+		area: v.area,
+		minutes: (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000
+	};
+	const starts = new Map(dates.map((d) => [d, new Set<Instant>()]));
+	for (const h of freed.helpers)
+		for (const d of openSlots(h, need, dates, freed, ctx.tz, ctx.now))
+			for (const start of d.starts) starts.get(d.day)!.add(start);
+	return dates.map((day) => ({ day, starts: [...starts.get(day)!].sort() }));
+});
+
+visits.action('rebook', async ({ start, helper }, ctx) => {
+	const v = ctx.target;
+	if (v.status !== 'scheduled') return ctx.refuse('Only a scheduled visit can be rebooked.');
+	if (Date.parse(start) <= Date.parse(ctx.now))
+		return ctx.refuse('Choose a start in the future.', { field: 'start' });
+	const sameTime = start === v.slot.start;
+	const recovery =
+		(v.unavailable_helper !== null && v.helper === null) ||
+		v.attention === 'helper_left' ||
+		v.helper === null;
+	const { free_change_hours } = await settingsOf(ctx);
+	if (
+		!sameTime &&
+		!recovery &&
+		Date.parse(v.slot.start) - Date.parse(ctx.now) < free_change_hours * HOUR
+	)
+		return ctx.refuse(
+			`A customer time change must be at least ${free_change_hours} hours before the visit. Confirm the cleaner is unavailable before using service recovery.`
+		);
+	const slot = slotOf(start, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000);
+	const pool = await loadPool(ctx, start, start, [v.location]);
+	const eligible = pool.helpers.filter(
+		(h) => h.id !== v.unavailable_helper && (helper === undefined || h.id === helper)
+	);
+	const best = rank(
+		{ skill: v.skill, slot, location: v.location, area: v.area, visit: v.id },
+		{ ...pool, helpers: eligible },
+		ctx.tz,
+		v.helper
+	)[0];
+	if (best === undefined)
+		return ctx.refuse(
+			'That cleaner or time is no longer available. Refresh the recommendation or choose another start.'
+		);
+	await ctx.act('visits.update', {
+		target: v.id,
+		set: {
+			helper: best.helper as Id<'helpers'>,
+			slot,
+			attention: 'none',
+			proposed_helper: null,
+			proposed_slot: null,
+			mc: false
+		}
+	});
+	await tellCustomer(
+		ctx,
+		v,
+		sameTime ? `A new helper for your visit on ${when(start, ctx.tz)}` : `Visit ${v.number} moved`,
+		`${best.name} will come for your visit ${v.number} on ${when(start, ctx.tz)}. Please contact us if this does not suit you.`
+	);
 });

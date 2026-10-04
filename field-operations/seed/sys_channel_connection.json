@@ -1,0 +1,10 @@
+[
+	{
+		"id": "field_ops_whatsapp",
+		"name": "field ops whatsapp",
+		"type": "whatsapp",
+		"owner": null,
+		"configuration": {},
+		"revision": 1
+	}
+]

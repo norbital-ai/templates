@@ -122,7 +122,7 @@ export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' }
 /** An automation's budget. */
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
 
-import jurisdictionModel from '../data/model/jurisdiction_settings/+model.ts';
+import jurisdictionModel from '../data/model/jurisdiction/jurisdiction_settings/+model.ts';
 import relationships from '../data/+relationship.ts';
 import type { ReadField } from '@norbital-ai/bolt';
 /** Configuration moved under the jurisdiction retains each policy's original field visibility. */

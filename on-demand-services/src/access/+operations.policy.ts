@@ -21,14 +21,29 @@ export default policy({
 		},
 		helper_time_off: { read: true, create: true, update: true, delete: true },
 		booking_requests: { read: true, update: true, moves: 'all' },
-		bookings: { read: true, create: true, update: true, moves: 'all', actions: ['book', 'cancel'] },
+		bookings: {
+			read: true,
+			create: true,
+			update: true,
+			moves: 'all',
+			queries: ['open_slots'],
+			actions: ['book', 'cancel']
+		},
 		booking_helpers: { read: true },
 		visits: {
 			read: true,
 			update: true,
 			moves: 'all',
-			queries: ['candidates'],
-			actions: ['reassign', 'reschedule', 'cancel', 'accept_proposal']
+			queries: ['candidates', 'rebooking_slots'],
+			actions: [
+				'reassign',
+				'reschedule',
+				'cancel',
+				'accept_proposal',
+				'recommend',
+				'rebook',
+				'report_unavailable'
+			]
 		},
 		helper_warnings: { read: true, create: true },
 		customer_notices: { read: true, create: true },

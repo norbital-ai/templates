@@ -155,8 +155,8 @@ and procurement no quote grant. `src/access/+team.ts` binds the three teams (Sal
 
 ### Channel and envoy
 
-`sales_desk` — a Telegram channel (`src/channel/+sales_desk.channel.ts`) answered by the `sales_desk` envoy
-(`src/agent/envoy/+sales_desk.envoy.ts`, public, groups ignored, delegation on). An unlinked customer's direct message
+`sales_desk` — a stored Telegram connection answered by the stored `sales_desk` envoy
+(`seed/sys_channel_connection.json`, `seed/sys_envoy.json`, `seed/sys_envoy_channel.json`; public, groups ignored, delegation on). An unlinked customer's direct message
 runs under the Sales team's four policies alone; a linked member's adds their own authority. `envoys.receive` caps each
 sender at 8 a minute and the desk at 300; the desk's turns share `sales_rep`'s 100 an hour.
 
@@ -176,9 +176,8 @@ src/
 │   └── collection/<c>/        +collection.ts (allowlists, the one transform, queries), +representation.svelte,
 │                              +pipeline.ts (the three master imports)
 ├── access/                    +team.ts and the seven +<p>.policy.ts
-├── agent/                     +agent.md, envoy/+sales_desk.envoy.ts
+├── agent/                     +agent.md
 ├── automation/                +quote_expiry_watch.automation.ts
-├── channel/                   +sales_desk.channel.ts
 ├── app/                       crm/ and crm_purchase/: +app.ts and +desk.page.svelte
 ├── i18n/                      +messages.ts / +zh.messages.ts
 └── lib/                       pricing.ts (the only rounding), erp-feed.ts, document-export.ts, currency.ts, ui/

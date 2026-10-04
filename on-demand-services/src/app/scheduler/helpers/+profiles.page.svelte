@@ -19,17 +19,7 @@
 		initialFilter={{ status: { eq: 'active' } }}
 		orderBy={{ name: 'asc' }}
 		toolbar={{ title: t('app.helpers.tab_profiles') }}
-		columns={[
-			'name',
-			'phone',
-			'skills',
-			'home_area',
-			'work_days',
-			'day_start',
-			'day_end',
-			'status',
-			'warning_count'
-		]}
+		columns={['name', 'phone', 'skills', 'work_days', 'day_start', 'day_end', 'status']}
 		actions={[
 			{
 				action: 'helpers.offboard',

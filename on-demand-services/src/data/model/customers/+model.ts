@@ -15,7 +15,7 @@ export default model({
 		email: { kind: 'text', format: 'email', optional: true },
 		address: { kind: 'text' },
 		location: { kind: 'point', optional: true },
-		area: { kind: 'enum', values: AREAS },
+		area: { kind: 'enum', values: AREAS, optional: true },
 		notes: { kind: 'text', optional: true }
 	},
 	search: { text: ['name', 'phone', 'email', 'address'] }

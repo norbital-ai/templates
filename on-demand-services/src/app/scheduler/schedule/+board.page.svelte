@@ -90,7 +90,7 @@
 			{#if row.attention !== 'none'}
 				<Badge variant="warning">{t(`component.attention_${row.attention}`)}</Badge>
 			{/if}
-			{#if row.eta_minutes !== null}
+			{#if row.status === 'scheduled' && row.eta_minutes !== null}
 				<Badge variant="outline">{t('component.eta', { minutes: row.eta_minutes })}</Badge>
 			{/if}
 		</Cluster>
@@ -119,7 +119,7 @@
 		toolbar={{ title: t('app.schedule.list'), controls: dayPicker, new: false }}
 		columns={['number', 'slot', 'helper', 'address', 'status', 'shift_check', 'eta_minutes']}
 		actions={[
-			{ action: 'visits.reassign', label: t('app.schedule.auto_reassign') },
+			{ action: 'visits.recommend', label: t('app.schedule.auto_reassign') },
 			{
 				action: 'visits.cancel',
 				label: t('app.schedule.cancel_visit'),

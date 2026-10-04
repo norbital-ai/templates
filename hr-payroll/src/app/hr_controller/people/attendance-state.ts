@@ -1,5 +1,5 @@
 import { parseDateTime, toZoned } from '@internationalized/date';
-import { calendarDateInTimeZone } from '../../../lib/payroll_engine/foundation/time.js';
+import { calendarDateInTimeZone } from '../../../lib/payroll_engine/foundation.js';
 import * as Predicate from 'effect/Predicate';
 
 export type AttendanceInterval = { start: string | Date; end: string | Date | null };

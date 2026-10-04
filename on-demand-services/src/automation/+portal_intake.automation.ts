@@ -37,10 +37,25 @@ portal_intake.run(async ({ ids }, ctx) => {
 			});
 			customer = records[0]!.id as Id<'customers'>;
 		}
+		const availability =
+			r.availability === null ? null : await ctx.get('availability_requests', r.availability);
+		const profile =
+			known ??
+			(await ctx.get('customers', customer, { select: { address: true, location: true } }));
+		const destination =
+			availability?.location ?? (profile?.address === r.address ? profile.location : null);
+		const preferred =
+			availability?.preference === 'preferred' && availability.helper !== null
+				? [availability.helper]
+				: [];
 		const booked = await ctx.act.try('bookings.book', {
 			customer,
 			service: r.service,
-			preference: 'any',
+			preference: preferred.length > 0 ? 'preferred' : 'any',
+			...(preferred.length === 0 ? {} : { helpers: preferred }),
+			address: r.address,
+			area: r.area,
+			...(destination == null ? {} : { location: destination }),
 			start: r.start,
 			repeat: r.repeat,
 			...(r.notes === null ? {} : { notes: r.notes })

@@ -14,7 +14,7 @@
 		{
 			name: 'helper',
 			title: t('models.helpers.singular'),
-			fields: ['name', 'phone', 'status', 'left_on', 'skills', 'home_area', 'warning_count']
+			fields: ['name', 'phone', 'status', 'left_on', 'skills', 'warning_count']
 		},
 		{
 			name: 'availability',
@@ -68,6 +68,21 @@
 {#if record === null}
 	<RecordShell
 		of="helpers"
+		fields={[
+			'name',
+			'phone',
+			'status',
+			'left_on',
+			'skills',
+			'warning_count',
+			'work_days',
+			'day_start',
+			'day_end',
+			'user',
+			'home_location',
+			'last_location',
+			'last_location_at'
+		]}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
 		{sections}
@@ -75,6 +90,21 @@
 {:else}
 	<RecordShell
 		of="helpers"
+		fields={[
+			'name',
+			'phone',
+			'status',
+			'left_on',
+			'skills',
+			'warning_count',
+			'work_days',
+			'day_start',
+			'day_end',
+			'user',
+			'home_location',
+			'last_location',
+			'last_location_at'
+		]}
 		id={record.id}
 		title={record.name}
 		{sections}

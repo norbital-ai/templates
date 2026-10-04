@@ -7,7 +7,7 @@ export default policy({
 	description:
 		'First-line supervisor: reads the team, reviews and records their attendance and leave.',
 	capabilities: { apps: [] },
-	automations: ['catalog_events'],
+	automations: ['behaviour_catalog_events'],
 	grants: {
   catalogue_entries: {
    queries: ['leave_summary','preview_leave'],

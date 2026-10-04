@@ -15,15 +15,15 @@
  import { runWorkbookImport } from '../../../lib/ui/workbook/workbook-import.js';
  import { schedulingTemplateWorkbook } from './attendance-template.js';
  import { schedulingImportPayload, attendanceWorkbookRequest } from './attendance-workbook.js';
- import { getErrorMessage } from '../../../lib/payroll_engine/foundation/primitives.js';
+ import { getErrorMessage } from '../../../lib/payroll_engine/foundation.js';
  const scope = companyScope();
 
- type BoardCell = AttendanceCell & { employmentId: Id<'employee_profiles'>; snapshot_id: Id<'jurisdiction_settings'>; base:{code:string;kind:string;patternCode:string|null}|null;override:{code:string;kind:string}|null;effective:string; snapshot_range: {from:string;to:string|null}; configuration_hash: string; timezone: string; projected_shift_id: string | null; lock_rung: string; writable: boolean; holidayName:string|null;holidayFrom:string|null;holiday: boolean; shift_options: { id: string; code: string; kind: string; start_time: string | null; end_time: string | null; break_minutes: number | null }[] };
+ type BoardCell = AttendanceCell & { employmentId: Id<'employment_contract'>; snapshot_id: Id<'jurisdiction_settings'>; base:{code:string;kind:string;patternCode:string|null}|null;override:{code:string;kind:string}|null;effective:string; snapshot_range: {from:string;to:string|null}; configuration_hash: string; timezone: string; projected_shift_id: string | null; lock_rung: string; writable: boolean; holidayName:string|null;holidayFrom:string|null;holiday: boolean; shift_options: { id: string; code: string; kind: string; start_time: string | null; end_time: string | null; break_minutes: number | null }[] };
  const narration = (key:string,parameters:Record<string,unknown>={}) => bolt.t(key as Parameters<typeof bolt.t>[0], Object.fromEntries(Object.entries(parameters).map(([key,value])=>[key,String(value)])));
  let month = $state(String(todayKey()).slice(0, 7));
- let profileId = $state<Id<'employee_profiles'> | ''>('');
- const profiles = liveRows(() => scope.id == null ? null : bolt.read('employee_profiles', { where: { company_id: { eq: scope.id }, approval_id: { isNull: true } }, select: { id: true, employee_id: true }, all: true }));
- const board = live(() => scope.id == null || !profileId || !(profiles.current ?? []).some(profile => profile.id === profileId) ? null : bolt.query('roster_entries.attendance_month', { profile_id: profileId, month }), ['employee_profiles', 'entities', 'roster_entries', 'rosters', 'payslips', 'payroll_runs', 'jurisdiction_settings', 'work_catalogue', 'holidays']);
+ let profileId = $state<Id<'employment_contract'> | ''>('');
+ const profiles = liveRows(() => scope.id == null ? null : bolt.read('employment_contract', { where: { company_id: { eq: scope.id }, approval_id: { isNull: true } }, select: { id: true, employee_id: true }, all: true }));
+ const board = live(() => scope.id == null || !profileId || !(profiles.current ?? []).some(profile => profile.id === profileId) ? null : bolt.query('roster_entries.attendance_month', { profile_id: profileId, month }), ['employment_contract', 'entity', 'roster_entry', 'rosters', 'payslips', 'payroll_run', 'jurisdiction_settings', 'work_catalog', 'holiday']);
  const boardValue = (value: unknown): { cells: BoardCell[]; observed_day: string } | undefined => {
   if (!Predicate.isObject(value) || !Predicate.isString(value.observed_day) || !Array.isArray(value.cells)) return undefined;
   return { cells: value.cells as BoardCell[], observed_day: value.observed_day };
@@ -52,7 +52,7 @@
    return { start: instantFromDayStart(selected!.date, start, selected!.timezone), end: end == null ? null : instantFromDayStart(selected!.date, end, selected!.timezone) };
   });
  });
- const headroom = live(() => selected == null ? null : bolt.query('roster_entries.attendance_overtime_headroom', { profile_id: selected.employmentId, work_date: PlainDate(selected.date), ...(assigned === '' ? {} : { shift_code: assigned }) }), ['roster_entries', 'employee_profiles', 'entities', 'jurisdiction_settings', 'work_catalogue', 'rule_sets', 'holidays']);
+ const headroom = live(() => selected == null ? null : bolt.query('roster_entries.attendance_overtime_headroom', { profile_id: selected.employmentId, work_date: PlainDate(selected.date), ...(assigned === '' ? {} : { shift_code: assigned }) }), ['roster_entry', 'employment_contract', 'entity', 'jurisdiction_settings', 'work_catalog', 'rule_set', 'holiday']);
  const headroomValue = (value: unknown): { hours: number | null; limit: { key: string } | null } | undefined => {
   if (!Predicate.isObject(value)) return undefined;
   const limit = Predicate.isObject(value.limit) && Predicate.isString(value.limit.key) ? { key: value.limit.key } : null;

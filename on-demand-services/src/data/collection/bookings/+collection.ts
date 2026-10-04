@@ -1,15 +1,22 @@
 import { collection, type Id } from '@norbital-ai/bolt';
 import { loadPool, settingsOf, when } from '../../../lib/dispatch.js';
-import { occurrences, rank, REPEATS, slotOf, type Busy } from '../../../lib/matching.js';
+import { addDays } from '@norbital-ai/std/date';
+import { utcOf } from '@norbital-ai/std/zone';
+import {
+	AREAS,
+	availableSlots,
+	BOOKING_AHEAD,
+	occurrences,
+	planBooking,
+	REPEATS
+} from '../../../lib/matching.js';
 
 const HOUR = 3_600_000;
-/** How many visits a recurring booking schedules ahead when the desk does not say. */
-const AHEAD = 8;
 
 /**
  * A booking is made by `book`, which matches every visit before anything is written. With a preference the visits go to
- * the customer's helpers in their order; without one, to the best-matched helper, kept from visit to visit while they
- * stay free.
+ * the customer's helpers in their order; without one, ranking balances added travel and weekly load, with a small
+ * continuity bonus for the previous recurring cleaner.
  */
 const bookings = collection('bookings', {
 	read: { fields: 'all', relations: 'all' },
@@ -36,10 +43,36 @@ const bookings = collection('bookings', {
 		}
 	},
 	update: { input: { columns: ['notes', 'status'] } },
+	queries: {
+		open_slots: {
+			description:
+				'Destination-specific starts after skills, preference, travel and the full recurring horizon are checked.',
+			input: {
+				customer: { kind: 'id', of: 'customers' },
+				service: { kind: 'id', of: 'services' },
+				preference: { kind: 'enum', values: ['any', 'preferred'] },
+				helpers: { kind: 'list', of: { kind: 'id', of: 'helpers' }, max: 5, optional: true },
+				repeat: { kind: 'enum', values: REPEATS },
+				visits: { kind: 'int', min: 1, max: 26, optional: true },
+				from: { kind: 'date' },
+				days: { kind: 'int', min: 1, max: 14 }
+			},
+			output: {
+				kind: 'list',
+				of: {
+					kind: 'object',
+					fields: {
+						day: { kind: 'date' },
+						starts: { kind: 'list', of: { kind: 'instant' } }
+					}
+				}
+			}
+		}
+	},
 	actions: {
 		book: {
 			description:
-				'Books a service for a customer at their address, once or recurring. With preferred helpers every visit goes to the first of them who is free; without, to the best-matched helper. The first visit must find a helper; a later one nobody can take waits for dispatch.',
+				'Books a service for a customer at their address, once or recurring. With preferred helpers every visit goes to the first of them who is free; without, to the best-matched helper. Every occurrence in the requested horizon must find a helper; otherwise nothing is booked.',
 			input: {
 				customer: { kind: 'id', of: 'customers' },
 				service: { kind: 'id', of: 'services', where: { active: { eq: true } } },
@@ -48,7 +81,10 @@ const bookings = collection('bookings', {
 				start: { kind: 'instant' },
 				repeat: { kind: 'enum', values: REPEATS },
 				visits: { kind: 'int', min: 1, max: 26, optional: true },
-				notes: { kind: 'text', optional: true }
+				notes: { kind: 'text', optional: true },
+				address: { kind: 'text', max: 500, optional: true },
+				area: { kind: 'enum', values: AREAS, optional: true },
+				location: { kind: 'point', optional: true }
 			},
 			output: {
 				kind: 'object',
@@ -61,7 +97,7 @@ const bookings = collection('bookings', {
 		},
 		cancel: {
 			description:
-				'Cancels the booking and every visit still to come. A visit starting within a day is marked a late cancellation.',
+				'Cancels the booking and every visit still to come. Each visit inside the configured free-change cutoff is marked late.',
 			target: 'record',
 			input: {},
 			output: { kind: 'object', fields: { cancelled: { kind: 'int' }, late: { kind: 'int' } } }
@@ -69,6 +105,44 @@ const bookings = collection('bookings', {
 	}
 });
 export default bookings;
+
+bookings.query('open_slots', async (input, ctx) => {
+	const [customer, service] = await Promise.all([
+		ctx.get('customers', input.customer),
+		ctx.get('services', input.service)
+	]);
+	if (customer === null || service === null || !service.active)
+		return ctx.refuse('Pick a customer and an active service.');
+	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
+	if (input.preference === 'preferred' && preferred.length === 0)
+		ctx.refuse('Name at least one preferred helper.');
+	const days = Array.from({ length: input.days }, (_, i) => addDays(input.from, i));
+	const from = new Date(utcOf(days[0]!, 0, ctx.tz)).toISOString();
+	const last = new Date(utcOf(days.at(-1)!, 0, ctx.tz)).toISOString();
+	const end = occurrences(last, input.repeat, input.visits ?? BOOKING_AHEAD, ctx.tz).at(-1)!;
+	const pool = await loadPool(ctx, from, end, [customer.location]);
+	for (const id of preferred) {
+		const h = pool.helpers.find((h) => h.id === id);
+		if (h === undefined) return ctx.refuse('The selected helper is not available.');
+		if (!h.skills.includes(service.skill))
+			return ctx.refuse(`${h.name} cannot perform the selected service.`);
+	}
+	return availableSlots(
+		{
+			skill: service.skill,
+			minutes: service.duration_minutes,
+			location: customer.location,
+			area: customer.area
+		},
+		days,
+		pool,
+		ctx.tz,
+		ctx.now,
+		input.repeat,
+		input.visits ?? BOOKING_AHEAD,
+		preferred
+	);
+});
 
 bookings.action('book', async (input, ctx) => {
 	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
@@ -80,72 +154,64 @@ bookings.action('book', async (input, ctx) => {
 		ctx.get('customers', input.customer),
 		ctx.get('services', input.service)
 	]);
-	if (customer === null || service === null) return ctx.refuse('Pick a customer and a service.');
-	const starts = occurrences(input.start, input.repeat, input.visits ?? AHEAD, ctx.tz);
-	const pool = await loadPool(ctx, starts[0]!, starts.at(-1)!, [customer.location]);
-	const helpers =
-		preferred.length === 0
-			? pool.helpers
-			: preferred.flatMap((id) => pool.helpers.filter((h) => h.id === id));
-	const order = new Map(preferred.map((id, i) => [id, i]));
-	const busy: Busy[] = [...pool.busy];
-	let keep: string | null = null;
-	const visits = starts.map((start, i) => {
-		const slot = slotOf(start, service.duration_minutes);
-		const need = { skill: service.skill, slot, location: customer.location, area: customer.area };
-		const found = rank(need, { ...pool, helpers, busy }, ctx.tz, keep);
-		// a preference is an order, not a score: the first preferred helper free takes it
-		const best =
-			preferred.length === 0
-				? found[0]
-				: [...found].sort(
-						(a, b) => order.get(a.helper as Id<'helpers'>)! - order.get(b.helper as Id<'helpers'>)!
-					)[0];
-		if (best === undefined && i === 0)
-			ctx.refuse(
-				preferred.length === 0
-					? 'No helper with this skill is free at that time. Pick another time.'
-					: 'None of the preferred helpers is free at that time. Pick one of their open times.',
-				{ field: 'start' }
-			);
-		if (best !== undefined) {
-			keep = best.helper;
-			busy.push({ id: `new-${i}`, helper: best.helper, slot, location: customer.location });
-		}
-		return {
-			slot,
-			address: customer.address,
-			location: customer.location,
-			area: customer.area,
-			skill: service.skill,
-			helper: (best?.helper ?? null) as Id<'helpers'> | null,
-			attention: best === undefined ? ('unassigned' as const) : ('none' as const)
-		};
-	});
+	if (customer === null || service === null || !service.active)
+		return ctx.refuse('Pick a customer and an active service.');
+	const starts = occurrences(input.start, input.repeat, input.visits ?? BOOKING_AHEAD, ctx.tz);
+	const address = input.address ?? customer.address;
+	const location = input.address === undefined ? customer.location : (input.location ?? null);
+	const area = input.address === undefined ? (input.area ?? customer.area) : (input.area ?? null);
+	const pool = await loadPool(ctx, starts[0]!, starts.at(-1)!, [location]);
+	for (const id of preferred) {
+		const h = pool.helpers.find((h) => h.id === id);
+		if (h === undefined)
+			return ctx.refuse('The selected helper is not available.', { field: 'helpers' });
+		if (!h.skills.includes(service.skill))
+			ctx.refuse(`${h.name} cannot perform the selected service.`, { field: 'helpers' });
+	}
+	const plan = planBooking(
+		{ skill: service.skill, minutes: service.duration_minutes, location, area },
+		starts,
+		pool,
+		ctx.tz,
+		preferred
+	);
+	if (plan.missing !== null)
+		ctx.refuse(
+			`No eligible helper is free for occurrence ${plan.missing + 1}. Pick another time.`,
+			{ field: 'start' }
+		);
+	const visits = plan.visits.map((v) => ({
+		...v,
+		helper: v.helper as Id<'helpers'>,
+		address,
+		location,
+		area,
+		skill: service.skill,
+		attention: 'none' as const
+	}));
 	const { records } = await ctx.act('bookings.create', {
 		customer: customer.id,
 		service: service.id,
-		address: customer.address,
-		location: customer.location,
-		area: customer.area,
+		address,
+		location,
+		area,
 		preference: input.preference,
 		repeat: input.repeat,
 		...(input.notes === undefined ? {} : { notes: input.notes }),
 		preferred_helpers: { create: preferred.map((helper, i) => ({ helper, rank: i + 1 })) },
 		visits: { create: visits }
 	});
-	const unassigned = visits.filter((v) => v.helper === null).length;
 	const repeats =
 		input.repeat === 'once' ? '' : ` (${input.repeat}, ${visits.length} visits booked ahead)`;
 	await ctx.act('customer_notices.create', {
 		customer: customer.id,
 		subject: `Booking confirmed: ${service.name}, ${when(visits[0]!.slot.start, ctx.tz)}`,
-		body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${customer.address}. We will message you if anything changes.`
+		body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${address}. We will message you if anything changes.`
 	});
 	return {
 		booking: records.find((r) => r.collection === 'bookings')!.id as Id<'bookings'>,
-		assigned: visits.length - unassigned,
-		unassigned
+		assigned: visits.length,
+		unassigned: 0
 	};
 });
 

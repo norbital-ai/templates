@@ -7,10 +7,10 @@ import { when, whatsapp } from '../lib/dispatch.js';
  */
 const helper_alerts = automation({
 	description:
-		'Messages each helper on WhatsApp the visits newly assigned to them, one message per helper.',
+		'Creates in-app assignment alerts and messages each helper on WhatsApp with new or changed visits.',
 	on: [
 		{ created: 'visits', where: { helper: { isNull: false } } },
-		{ updated: 'visits', fields: ['helper'], where: { helper: { isNull: false } } }
+		{ updated: 'visits', fields: ['helper', 'slot'], where: { helper: { isNull: false } } }
 	],
 	runAs: ['dispatch_automation']
 });
@@ -25,9 +25,28 @@ helper_alerts.run(async ({ ids }, ctx) => {
 			helper: { isNull: false },
 			slot: { overlaps: { start: ctx.now, end: null } }
 		},
-		select: { number: true, slot: true, address: true, helper: { select: { phone: true } } },
+		select: {
+			number: true,
+			slot: true,
+			address: true,
+			helper: { select: { phone: true, user: true } }
+		},
 		all: true
 	});
+	await ctx.notify(
+		rows.flatMap((v) =>
+			v.helper!.user === null
+				? []
+				: [
+						{
+							to: { user: v.helper!.user },
+							title: 'Your route has a new assignment',
+							body: `${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}. Open My Day to review your route.`,
+							link: { collection: 'visits', id: v.id }
+						}
+					]
+		)
+	);
 	const byHelper = new Map<Id<'helpers'>, { phone: string; lines: string[] }>();
 	for (const v of [...rows].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
 		const h = v.helper!;

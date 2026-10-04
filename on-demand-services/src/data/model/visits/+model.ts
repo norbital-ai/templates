@@ -15,7 +15,7 @@ export default model({
 		slot: { kind: 'period', of: 'instant' },
 		address: { kind: 'text' },
 		location: { kind: 'point', optional: true },
-		area: { kind: 'enum', values: AREAS },
+		area: { kind: 'enum', values: AREAS, optional: true },
 		skill: { kind: 'enum', values: SKILLS },
 		status: {
 			kind: 'state',
@@ -42,7 +42,7 @@ export default model({
 		eta_checked_at: { kind: 'instant', optional: true },
 		attention: {
 			kind: 'enum',
-			values: ['none', 'unassigned', 'eta_risk', 'helper_left'],
+			values: ['none', 'unassigned', 'eta_risk', 'helper_left', 'awaiting_approval'],
 			default: 'none'
 		},
 		proposed_slot: { kind: 'period', of: 'instant', optional: true },

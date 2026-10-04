@@ -14,7 +14,7 @@ export default model({
 		name: { kind: 'text' },
 		phone: { kind: 'text', format: 'phone' },
 		skills: { kind: 'enum', values: SKILLS, many: true },
-		home_area: { kind: 'enum', values: AREAS },
+		home_area: { kind: 'enum', values: AREAS, optional: true },
 		home_location: { kind: 'point', optional: true },
 		work_days: { kind: 'enum', values: DAYS, many: true },
 		day_start: { kind: 'time' },

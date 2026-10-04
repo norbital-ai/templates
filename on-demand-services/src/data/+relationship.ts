@@ -13,6 +13,7 @@ export default relationship({
 	'booking_helpers.helper': { to: 'helpers', inverse: 'preferred_by' },
 	'visits.booking': { to: 'bookings', inverse: 'visits', owned: true },
 	'visits.helper': { to: 'helpers', inverse: 'visits', optional: true, onDelete: 'setNull' },
+	'visits.unavailable_helper': { to: 'helpers', optional: true, onDelete: 'setNull' },
 	'visits.proposed_helper': { to: 'helpers', optional: true, onDelete: 'setNull' },
 	'helper_warnings.helper': { to: 'helpers', inverse: 'warnings' },
 	'helper_warnings.visit': { to: 'visits', optional: true, onDelete: 'setNull' },
@@ -20,5 +21,8 @@ export default relationship({
 	'customer_notices.visit': { to: 'visits', optional: true, onDelete: 'setNull' },
 	'booking_requests.service': { to: 'services', where: { active: { eq: true } } },
 	'booking_requests.booking': { to: 'bookings', optional: true, onDelete: 'setNull' },
+	'availability_requests.service': { to: 'services' },
+	'availability_requests.helper': { to: 'helpers', optional: true },
+	'booking_requests.availability': { to: 'availability_requests', optional: true },
 	'openings.service': { to: 'services', inverse: 'openings', owned: true }
 });

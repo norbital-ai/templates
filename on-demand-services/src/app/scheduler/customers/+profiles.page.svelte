@@ -16,6 +16,6 @@
 		of="customers"
 		orderBy={{ name: 'asc' }}
 		toolbar={{ title: t('app.customers.tab_profiles') }}
-		columns={['name', 'phone', 'email', 'address', 'area']}
+		columns={['name', 'phone', 'email', 'address']}
 	/>
 </AppShell>

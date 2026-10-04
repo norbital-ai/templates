@@ -41,6 +41,8 @@ export async function workspace(
 	);
 	if (sample)
 		await loadPack(t.db, t.manifest, readPack(`${root}.norbital/seed/sample`), t.clock.now());
+	await t.engine.refreshMessaging();
+	if (sample) await t.engine.runs!.reconfigure();
 	return t;
 }
 

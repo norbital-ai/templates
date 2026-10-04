@@ -10,6 +10,8 @@ The user guide, with screens of every app, is [docs/README.md](docs/README.md).
 
 <!-- current-screenshots:start -->
 
+These earlier sample screens are retained as references; the current October 4 walkthrough appears below.
+
 ## Current screenshots
 
 Captured 2 October 2026 from the standalone template with sample data.
@@ -26,33 +28,47 @@ Captured 2 October 2026 from the standalone template with sample data.
 A **customer** books a **service** at their address. The booking has one **visit** per occurrence
 (once, weekly, fortnightly or monthly), and every visit is held by one **helper**.
 
-**Booking without a preference.** Pick the customer and the service, choose a date and time, and
-confirm. The workspace matches the best helper; a recurring customer keeps that helper for as long
-as they stay free.
+**Booking without a preference.** Choose service, destination and recurrence before requesting
+available starts. The customer portal privately computes travel-aware half-hour starts over 14 days;
+the controller uses the same feasibility functions. For each start, the workspace simulates a
+provisional assignment. Confirmation reruns it against current supply.
 
-**Booking with preferred helpers.** Name one or more helpers in the customer's order. The desk sees a
-tab per helper with the half-hours each is free that week; the time picked is booked with that
-helper first, then the others in order.
+**Booking with preferred helpers.** The portal scopes availability to one selected cleaner. The desk
+accepts up to five cleaners in preference order and shows their feasible start union. A selected
+cleaner missing the service skill is flagged and refused, rather than silently replaced.
 
-**Matching.** Every booking, drag, reassignment, move and portal time runs the same rules
-(`src/lib/matching.ts`).
+**Ad hoc and recurring.** Once creates one visit. Weekly, fortnightly and monthly default to eight
+occurrences at the same local start time. Every occurrence must be staffable before the start is
+offered or the series is saved; no partial series is created. This is a finite booking horizon, not
+an indefinite subscription scheduler. Leave and later visits are included in the check.
 
-1. _Hard requirements._ The helper is active, has the service's skill, works that weekday and those
-   hours, and is not on time off. They must also be free once the drive to the visit and on to the
-   next one is counted, plus 15 minutes to park and carry the kit in, on both sides.
-2. _Ranking._ Every helper who passes is scored in minutes of driving, and the highest score wins:
+**Matching.** Booking, drag, reassignment and move share `src/lib/matching.ts`.
 
-   | Term                                   | Score                         |
-   | -------------------------------------- | ----------------------------- |
-   | Drive this visit adds to the day       | − minutes                     |
-   | Hours already booked that week         | − 2 per hour (load balancing) |
-   | Helper lives in the customer's area    | + 5                           |
-   | Same helper as this booking's last one | + 100 (recurring continuity)  |
+1. _Hard requirements._ Active, required skill, working weekday/hours, no leave, and enough time
+   around existing visits for travel plus a 15-minute settling buffer on both relevant legs.
+2. _Small ranking heuristics._ Prefer less added route travel and a smaller increase in squared
+   weekly utilization. Utilization includes service and planned travel, divided by available
+   weekly work minutes after leave. The score is:
 
-   The added drive is the trip in from the helper's last stop (a visit, or home), plus the trip on
-   to their next visit that day, less the direct trip it replaces. A visit on a helper's way costs
-   close to nothing, so days stay tight and total driving stays low. Ties go by name. With preferred
-   helpers, the customer's order decides among the helpers who pass.
+   `-D - 180 * (((L + J + D) / C)^2 - (L / C)^2) + continuity`
+
+   D = added drive minutes; J = service duration; L = existing weekly service plus travel;
+   C = weekly available work minutes. Continuity adds 15 for the previous recurring cleaner.
+   Equal scores favor cleaners with fewer scarce extra skills, then name and id. Preferred order
+   decides among feasible candidates and never overrides hard constraints. Weights are code
+   constants, not dashboard settings.
+
+   Added drive is previous stop (or home) to the new visit, plus new-to-next, minus previous-to-next
+   where both neighbors exist, clamped at zero. No return-home cost is included. Existing jobs are
+   never moved. This is sequential optimization and does not guarantee a global minimum.
+
+**Private customer availability.** `prepare_availability` geocodes the submitted address and attempts
+missing destination routes through Google, bounded to 24 distinct existing stops. Unknown locations,
+missing data and larger rosters use labeled estimates. Successfully timed legs are cached for the
+final match. Quotes belong to the verified phone, match exact booking details and expire after
+15 minutes. A start is not held: final capacity loss becomes a controller follow-up. The submitted
+address/location applies to returning customers too. First-commute feasibility and cache expiry are
+still limitations; home travel affects ranking, but cannot block a first visit by shift start.
 
 **No double booking.** Three layers stop it:
 
@@ -68,10 +84,11 @@ helper first, then the others in order.
 needs the **Routes API** enabled in Google Cloud.
 
 - `check_drives` runs every 15 minutes and whenever the schedule changes. It asks Google (Routes
-  API, typical traffic) for every leg the helpers' next two weeks will be driven: home to the first
+  API, traffic-unaware routing) for every leg the helpers' next two weeks will be driven: home to the first
   visit, then visit to visit.
 - Each time is cached in `drive_times`, per pair of ~1 km squares (0.01°). Matching reads that cache
-  first. Squares recur, so a weekly customer's legs are timed once and reused.
+  first. Squares recur, so a weekly customer's legs are timed once and reused. Cache rows are
+  immutable; periodic checks do not refresh existing durations.
 - A leg Google has not timed yet uses the straight-line estimate, at an urban 25 km/h.
 - The ETA check asks Google in **live traffic** whenever the straight-line estimate is over half the
   ETA limit. A helper who is plainly close is not worth a paid lookup.
@@ -86,14 +103,12 @@ the closest skills at the same time — or the nearest time anyone is free. The 
 the proposal; the desk accepts it.
 
 **Changes and cancellations.** A visit can be moved or cancelled up to 24 hours before it starts;
-a cancellation inside 24 hours is marked late (chargeable). The window, like the ETA limit and the
+a cancellation inside 24 hours is marked late; no fee is collected. The window, like the ETA limit and the
 shift-check timing, is set in Configurations → Dispatch.
 
 **Shift check.** Two hours before a helper's first visit of the day they are asked to confirm the
-day in the helper app. No answer within the hour, or a decline, and the day's visits are reassigned
-to the best match. Without a medical certificate a warning letter (PDF) is filed on the helper's
-record. A customer who asked for particular helpers is emailed who comes instead; one who did not is
-not.
+day in the helper app. No answer within the hour, or a decline, blocks that cleaner for the day and prepares replacement recommendations. The controller must approve each replacement; availability is checked again at approval. Without a medical certificate a warning letter (PDF) is filed on the helper's
+record. The customer is notified after the controller approves a replacement; recommendations are not sent as confirmed assignments.
 
 **ETA check.** Helpers share their position from the helper app while working. An hour before each
 visit the drive from their last position is estimated (Google, in live traffic, when a key is
@@ -179,3 +194,72 @@ pnpm test
 
 The template pins its Norbital packages. Use the realm's local package overlay when testing
 unpublished package changes.
+
+## UI layout
+
+Booking uses one control per decision: service, recurrence, cleaner and a single destination
+picker. Short fields share rows on wide screens and stack on phones. Area classifications are
+optional legacy metadata; customers do not select a compass region. A chosen map point feeds
+availability and confirmation, and a changed destination clears the previous pin.
+
+The controller uses the same date-first time picker instead of rendering every day’s time
+buttons together. Settings pair related inputs; cleaner visits use a consistent reading width
+and reserve travel status for the next visit. Notes and supporting record details stay folded.
+
+## Controller recovery and cleaner route
+
+Open a scheduled visit → **Review and rebook**, or **Warnings → Needs attention → Review**.
+The review shows the customer, current appointment, a live countdown, the unavailable cleaner,
+and ranked replacement choices with added travel and weekly booked hours. **Approve [cleaner]**
+rechecks live capacity; a stale choice is refused with instructions to refresh. **Refresh recommendation**
+prepares another suggestion without assigning it. The controller can also **Report cleaner unavailable**,
+record whether an MC exists, and prepare replacements for that cleaner's remaining visits that day.
+
+**Choose another time** uses the shared calendar and half-hour picker with skills, leave, hours,
+existing appointments and travel on both sides. Confirm the new time with the customer before approving.
+Service recovery after an actual recorded absence can move a visit inside the normal customer change
+cutoff. Ordinary customer changes still obey the configured cutoff. Rebooking changes one occurrence;
+other weekly, fortnightly or monthly occurrences remain intact. There is no automatic approval when
+the countdown expires: the queue stays visible and marks the appointment overdue.
+
+**My Day → Route date** shows that cleaner's assignments in chronological order, including completed
+stops, the next job, estimated travel between stops and the available gap. The route remains readable
+without GPS; starting a visit requires location sharing in the UI. New assignments appear through live
+updates and create an in-app notification, plus WhatsApp if configured. Google Maps opens the ordered
+remaining route for up to four stops (mobile waypoint limit), with individual directions for every
+stop on longer days. The route view's inter-stop times are clearly labeled estimates; matching uses
+cached Google route times where available. Inbox creation is verified locally; real push and WhatsApp
+delivery require configured providers and device permissions.
+
+## Booking, recovery and daily route walkthrough
+
+The screens below use fictional data from the local probe. Recovery screens were captured on 4 October 2026 from port 4185; customer screens show the earlier booking replay. Real GPS and external delivery were not exercised.
+
+### Choose a service and available start
+
+Select the service, destination, recurrence and cleaner preference. An incompatible cleaner is rejected. Choose a time computes feasible starts for the selected cleaner or all eligible cleaners, including travel between existing jobs; no-preference ranking balances workload and added travel. Confirmation rechecks capacity.
+
+![Customer booking details](docs/images/ui-customer.png)
+
+![Available booking starts](docs/images/ui-times.png)
+
+### Review an absence before assigning a replacement
+
+A cleaner reports **Can't come**, or the controller uses **Report cleaner unavailable**. The affected day is blocked and visits enter **Awaiting approval**. The queue shows each proposed cleaner and countdown to the original start.
+
+![Recovery queue with job countdowns](docs/images/recovery-queue.png)
+
+Open **Review** or the visit's **Review and rebook** tab. Compare the recommendation's travel and booked hours. **Approve [cleaner]** rechecks feasibility; a stale choice is refused. Countdown expiry never approves a proposal.
+
+![Replacement approval panel](docs/images/recovery-panel.png)
+
+**Choose another time** offers feasible starts and ranks cleaners for the chosen time. Confirm the change with the customer first. Approval changes one occurrence and leaves other recurring visits intact.
+
+![Rebooking calendar and replacement recommendation](docs/images/recovery-calendar.png)
+
+### Follow the cleaner's day
+
+**My Day** shows assignments in chronological order, directions and estimated travel between stops. The route can be read without GPS; starting work requires location sharing. Approved assignments and time changes queue in-app alerts for linked users and WhatsApp when configured. A proposal alone sends no assignment notice. The local probe substitutes clearly labeled fictional coordinates.
+
+![Cleaner daily route](docs/images/recovery-route.png)
+

@@ -3,7 +3,7 @@
  * pool a match runs over, and handing visits to another helper.
  */
 import type { ActionCtx, AutomationCtx, Id, QueryCtx } from '@norbital-ai/bolt';
-import { addDays, Instant, PlainDate } from '@norbital-ai/std/date';
+import { addDays, Instant } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
 import {
 	DEFAULTS,
@@ -18,7 +18,6 @@ import {
 type Reads = Pick<QueryCtx, 'read' | 'tz' | 'now'>;
 type Writes = Reads & Pick<ActionCtx<'visits'>, 'act' | 'notify'>;
 
-const DAY = 86_400_000;
 const iso = (t: number) => Instant(new Date(t).toISOString());
 
 /** The dispatch thresholds: the workspace's row, else the defaults. */
@@ -34,7 +33,8 @@ export function dayOf(instant: string, zone: string): Slot {
 }
 
 /**
- * Every active helper, what holds them from a day before `from` to a day after `to`, and the Google drive times cached
+ * Every active helper, visits and leave across the complete weeks covering `from` through `to` (plus day margins),
+ * and the Google drive times cached
  * for the legs a match at `spots` may ask about.
  */
 export async function loadPool(
@@ -43,8 +43,13 @@ export async function loadPool(
 	to: string,
 	spots: readonly (Point | null)[] = []
 ): Promise<Pool> {
-	const start = iso(Date.parse(from) - DAY),
-		end = iso(Date.parse(to) + DAY);
+	const first = localOf(Date.parse(from), ctx.tz).date;
+	const last = localOf(Date.parse(to), ctx.tz).date;
+	const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7;
+	const monday = addDays(first, -weekday(first));
+	const nextMonday = addDays(last, 7 - weekday(last));
+	const start = iso(utcOf(addDays(monday, -1), 0, ctx.tz)),
+		end = iso(utcOf(addDays(nextMonday, 1), 0, ctx.tz));
 	const [helpers, visits, off] = await Promise.all([
 		ctx.read('helpers', {
 			where: { status: { eq: 'active' } },
@@ -72,7 +77,7 @@ export async function loadPool(
 		ctx.read('helper_time_off', {
 			where: {
 				period: {
-					overlaps: { from: PlainDate(start.slice(0, 10)), to: PlainDate(end.slice(0, 10)) }
+					overlaps: { from: addDays(monday, -1), to: addDays(nextMonday, 1) }
 				}
 			},
 			select: { helper: true, period: true },
@@ -161,7 +166,7 @@ type Visit = {
 	readonly number: string;
 	readonly slot: { readonly start: Instant; readonly end: Instant | null };
 	readonly location: { readonly lat: number; readonly lng: number } | null;
-	readonly area: string;
+	readonly area: string | null;
 	readonly skill: string;
 	readonly booking: {
 		readonly id: Id<'bookings'>;
@@ -237,4 +242,47 @@ export async function reassign(
 			body: visits.map((v) => v.number).join(', ')
 		});
 	return { assigned: visits.length - unassigned, unassigned };
+}
+
+/** Plan recovery in appointment order, reserving each recommendation only in this provisional plan. */
+export async function recommend(ctx: Writes, visits: readonly Visit[], away: string) {
+	if (visits.length === 0) return;
+	const ordered = [...visits].sort((a, b) => a.slot.start.localeCompare(b.slot.start));
+	const pool = await loadPool(
+		ctx,
+		ordered[0]!.slot.start,
+		ordered.at(-1)!.slot.start,
+		ordered.map((v) => v.location)
+	);
+	const helpers = pool.helpers.filter((h) => h.id !== away);
+	const busy = pool.busy.filter((b) => !visits.some((v) => v.id === b.id));
+	const updates = ordered.map((v) => {
+		const slot = { start: v.slot.start, end: v.slot.end! };
+		const best = rank(
+			{ skill: v.skill, slot, location: v.location, area: v.area, visit: v.id },
+			{ ...pool, helpers, busy },
+			ctx.tz
+		)[0];
+		if (best !== undefined)
+			busy.push({ id: v.id, helper: best.helper, slot, location: v.location });
+		return {
+			target: v.id,
+			set: {
+				helper: null,
+				unavailable_helper: away as Id<'helpers'>,
+				proposed_helper: (best?.helper ?? null) as Id<'helpers'> | null,
+				proposed_slot: best === undefined ? null : slot,
+				attention: best === undefined ? ('unassigned' as const) : ('awaiting_approval' as const),
+				eta_minutes: null,
+				eta_checked_at: null
+			}
+		};
+	});
+	await ctx.act('visits.update', updates);
+	await ctx.notify({
+		to: { team: 'Operations' },
+		title: 'Approve replacement cleaners',
+		body: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
+		link: { collection: 'visits', id: ordered[0]!.id }
+	});
 }

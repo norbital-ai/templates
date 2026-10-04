@@ -9,12 +9,12 @@
  import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
  import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
  import {liveRows} from '../../../lib/ui/state/live.svelte.js';
- import {collectNativePayslipPages} from '../../../lib/payroll_engine/payslips/artifacts.js';
- import {getErrorMessage} from '../../../lib/payroll_engine/foundation/primitives.js';
+ import {collectNativePayslipPages} from '../../../lib/payroll_engine/services.js';
+ import {getErrorMessage} from '../../../lib/payroll_engine/foundation.js';
    const exportedArtifacts=Schema.Struct({artefacts:Schema.Array(Schema.Struct({files:Schema.Array(Schema.Struct({id:Schema.NonEmptyString,name:Schema.NonEmptyString}))}))});
   const scope = companyScope();
- const runs=liveRows(()=>scope.id==null?null:bolt.read('payroll_runs',{where:{company_id:{eq:scope.id},approval_id:{isNull:true}},select:{id:true,period:true},orderBy:{period:'desc'},all:true}));
- let runId=$state<Id<'payroll_runs'>|''>(''),filingCode=$state(''),exporting=$state(false),exportError=$state('');
+ const runs=liveRows(()=>scope.id==null?null:bolt.read('payroll_run',{where:{company_id:{eq:scope.id},approval_id:{isNull:true}},select:{id:true,period:true},orderBy:{period:'desc'},all:true}));
+ let runId=$state<Id<'payroll_run'>|''>(''),filingCode=$state(''),exporting=$state(false),exportError=$state('');
  let signerName=$state(''),signerDesignation=$state(''),signerContact=$state(''),signerDate=$state(''),submission=$state<'ORIGINAL'|'AMENDMENT'|'REVISION'>('ORIGINAL');
  let submittedAmounts=$state<{id_number:string;item:string;amount:number}[]>([]);
  async function exportSaved(kind:'PAYROLL'|'CATALOGUE'|'FILING'|'PAYSLIPS'|'BANK'|'INCOME'){

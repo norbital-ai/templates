@@ -13,7 +13,7 @@ export default policy({
 		'Manager: reads people operations across the company and owns their team’s time and leave.',
 	capabilities: { apps: [...HR_CONTROLLER_APPS] },
 	// the entities app starts the Google holiday import
-	automations: ['holiday_import', 'catalog_events'],
+	automations: ['holiday_import', 'behaviour_catalog_events'],
 	grants: {
   catalogue_entries: {
    queries: ['leave_summary','preview_leave'],

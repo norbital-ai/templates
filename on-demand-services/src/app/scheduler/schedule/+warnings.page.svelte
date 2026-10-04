@@ -4,9 +4,13 @@
 	 * still open; and the warning letters on file.
 	 */
 	import { bolt } from '$bolt';
-	import { AppShell } from '@norbital-ai/ui/layout';
-	import { EmptyState, Table, Tabs } from '@norbital-ai/ui';
+	import { AppShell, Stack, Cluster } from '@norbital-ai/ui/layout';
+	import { EmptyState, Table, Tabs, Button, Sheet } from '@norbital-ai/ui';
 
+	import type { Id, ListRow } from '@norbital-ai/bolt';
+	import Recovery from '../../../lib/Recovery.svelte';
+	import Countdown from '../../../lib/Countdown.svelte';
+	let selected = $state<Id<'visits'> | null>(null);
 	const t = bolt.t;
 </script>
 
@@ -17,6 +21,27 @@
 {#snippet noShifts()}{@render calm(t('app.schedule.no_open_shift_checks'))}{/snippet}
 {#snippet noLetters()}{@render calm(t('app.schedule.no_warning_letters'))}{/snippet}
 
+{#snippet timerCell({ row }: { row: ListRow<'visits'> })}
+	<Stack gap="xs"
+		><span
+			>{new Intl.DateTimeFormat(bolt.locale, {
+				day: 'numeric',
+				month: 'short',
+				hour: 'numeric',
+				minute: '2-digit'
+			}).format(new Date(row.slot.start))}</span
+		><Countdown start={row.slot.start} /></Stack
+	>
+{/snippet}
+{#snippet reviewCell({ row }: { row: ListRow<'visits'> })}
+	<Cluster gap="sm"
+		><span>{row.number}</span><Button
+			variant="outline"
+			size="sm"
+			onclick={() => (selected = row.id)}>{t('app.recovery.review')}</Button
+		></Cluster
+	>
+{/snippet}
 {#snippet attention()}
 	<Table
 		empty={noAttention}
@@ -26,17 +51,13 @@
 		where={{ attention: { ne: 'none' }, status: { eq: 'scheduled' } }}
 		orderBy={{ number: 'asc' }}
 		columns={[
-			'number',
-			'slot',
+			{ field: 'number', label: t('app.recovery.review'), cell: reviewCell },
 			'attention',
-			'helper',
-			'eta_minutes',
 			'proposed_helper',
-			'proposed_slot',
-			'address'
+			{ field: 'slot', label: t('models.visits.fields.slot'), cell: timerCell }
 		]}
 		actions={[
-			{ action: 'visits.reassign', label: t('app.schedule.auto_reassign') },
+			{ action: 'visits.recommend', label: t('app.schedule.auto_reassign') },
 			{ action: 'visits.accept_proposal', label: t('app.schedule.accept_proposal') },
 			{
 				action: 'visits.cancel',
@@ -99,3 +120,13 @@
 		]}
 	/>
 </AppShell>
+
+<Sheet
+	open={selected !== null}
+	onOpenChange={(open) => {
+		if (!open) selected = null;
+	}}
+	title={t('app.recovery.title')}
+>
+	{#if selected !== null}{#key selected}<Recovery visit={selected} />{/key}{/if}
+</Sheet>

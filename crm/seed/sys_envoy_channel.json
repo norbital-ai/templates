@@ -1,0 +1,8 @@
+[
+	{
+		"id": "sales_desk:sales_desk",
+		"envoy": "sales_desk",
+		"channel_connection": "sales_desk",
+		"revision": 1
+	}
+]

@@ -1,0 +1,10 @@
+[
+	{
+		"id": "sales_desk",
+		"name": "sales desk",
+		"type": "telegram",
+		"owner": null,
+		"configuration": {},
+		"revision": 1
+	}
+]

@@ -116,7 +116,7 @@ describe('booking', () => {
 			})
 		).toMatchObject({
 			kind: 'refused',
-			message: expect.stringContaining('None of the preferred helpers')
+			message: expect.stringContaining('No eligible helper')
 		});
 	});
 
@@ -153,7 +153,7 @@ describe('booking', () => {
 });
 
 describe('the shift check', () => {
-	it('asks two hours ahead; no answer in an hour means a warning letter, another helper and a note to a preferring customer', async () => {
+	it('asks two hours ahead; silence proposes a replacement, and only controller approval assigns them', async () => {
 		const t = await workspace();
 		committed(await book(t, { preference: 'preferred', helpers: [ALPHA, CHARLIE] }));
 		t.clock.set('2026-09-29T00:05:00.000Z'); // 08:05, under two hours ahead
@@ -164,8 +164,22 @@ describe('the shift check', () => {
 		await t.runDue(); // the warning's letter
 		const [v] = await visits(t);
 		// the new helper's shift is checked afresh (the ETA watch may already flag them in the same wake)
-		expect(v).toMatchObject({ shift_check: 'not_due' });
-		expect(v!['helper']).toBe(CHARLIE);
+		expect(v).toMatchObject({
+			shift_check: 'no_response',
+			helper: null,
+			proposed_helper: CHARLIE,
+			attention: 'awaiting_approval',
+			unavailable_helper: ALPHA
+		});
+		expect((await t.as(t.admin).read('customer_notices', { all: true })).rows).toHaveLength(1);
+		committed(await desk(t).act('visits.accept_proposal', { target: v!['id'] } as never));
+		await settle(t);
+		expect((await visits(t))[0]).toMatchObject({
+			helper: CHARLIE,
+			shift_check: 'not_due',
+			proposed_helper: null,
+			attention: 'none'
+		});
 		const admin = t.as(t.admin);
 		const warnings = (await admin.read('helper_warnings', { all: true })).rows;
 		expect(warnings).toMatchObject([{ helper: ALPHA, reason: 'no_response' }]);
@@ -251,7 +265,7 @@ describe('the shift check', () => {
 		expect(after['opened_at']).not.toBeNull();
 	});
 
-	it('a decline with a medical certificate reassigns the day without a warning, and a customer with no preference is not told', async () => {
+	it('a medical decline blocks the cleaner for the day and waits for controller approval without a warning', async () => {
 		const t = await workspace();
 		committed(await book(t, {}));
 		const alpha = await signedIn(t, ALPHA);
@@ -259,15 +273,155 @@ describe('the shift check', () => {
 		committed(await alpha.act('visits.decline_shift', { target: v!['id'], input: { mc: true } }));
 		await t.runDue();
 		const [after] = await visits(t);
-		expect(after!['helper']).not.toBe(ALPHA);
+		expect(after).toMatchObject({
+			helper: null,
+			unavailable_helper: ALPHA,
+			attention: 'awaiting_approval'
+		});
+		expect(after!['proposed_helper']).not.toBeNull();
+		expect((await t.as(t.admin).read('helper_time_off', { all: true })).rows).toMatchObject([
+			{ helper: ALPHA, reason: 'medical' }
+		]);
+		const replacement = await signedIn(t, String(after!['proposed_helper']));
+		expect((await replacement.read('visits', { all: true })).rows).toEqual([]);
+		committed(await desk(t).act('visits.accept_proposal', { target: after!['id'] } as never));
+		await settle(t);
+		expect((await replacement.read('visits', { all: true })).rows).toHaveLength(1);
 		const admin = t.as(t.admin);
 		expect((await admin.read('helper_warnings', { all: true })).rows).toEqual([]);
-		// only the booking's confirmation: no preference, so the change of helper is not news to them
+		// Customer receives the confirmed replacement, never an unapproved recommendation.
 		expect(
 			(await admin.read('customer_notices', { all: true })).rows.map((n) => n['subject'])
-		).toEqual([expect.stringContaining('Booking confirmed')]);
+		).toEqual(
+			expect.arrayContaining([
+				expect.stringContaining('Booking confirmed'),
+				expect.stringContaining('A new helper')
+			])
+		);
 	});
 
+	it('lets the controller report unavailability and prepare recommendations for the day', async () => {
+		const t = await workspace();
+		committed(await book(t, {}));
+		const [v] = await visits(t);
+		committed(
+			await desk(t).act('visits.report_unavailable', {
+				target: v!['id'],
+				input: { mc: true }
+			} as never)
+		);
+		await settle(t);
+		expect((await visits(t))[0]).toMatchObject({
+			helper: null,
+			unavailable_helper: ALPHA,
+			attention: 'awaiting_approval'
+		});
+	});
+
+	it('rejects stale approval, refreshes the recommendation, and never assigns an unavailable cleaner', async () => {
+		const t = await workspace();
+		committed(await book(t, {}));
+		const alpha = await signedIn(t, ALPHA);
+		const [v] = await visits(t);
+		committed(await alpha.act('visits.decline_shift', { target: v!['id'], input: { mc: true } }));
+		await settle(t);
+		const [pending] = await visits(t);
+		const proposed = String(pending!['proposed_helper']);
+		committed(
+			await desk(t).act('helper_time_off.create', {
+				helper: proposed,
+				period: { from: '2026-09-29', to: '2026-09-29' },
+				reason: 'leave'
+			} as never)
+		);
+		expect(
+			await desk(t).act('visits.accept_proposal', { target: v!['id'] } as never)
+		).toMatchObject({ kind: 'refused' });
+		expect((await visits(t))[0]).toMatchObject({ helper: null, attention: 'awaiting_approval' });
+		committed(await desk(t).act('visits.recommend', { target: v!['id'] } as never));
+		const [refreshed] = await visits(t);
+		expect(refreshed!['proposed_helper']).not.toBe(proposed);
+		expect(refreshed!['proposed_helper']).not.toBe(ALPHA);
+		// Repeated deadline wakes must not issue duplicate absence warnings or leave records.
+		await settle(t);
+		expect((await t.as(t.admin).read('helper_time_off', { all: true })).rows).toHaveLength(2);
+	});
+
+	it('offers recovery starts and rebooks one recurring occurrence inside the cutoff, then notifies its assigned cleaner', async () => {
+		const t = await workspace();
+		committed(await book(t, { repeat: 'weekly', visits: 2 }));
+		const alpha = await signedIn(t, ALPHA);
+		const [first, second] = await visits(t);
+		t.clock.set('2026-09-29T01:30:00.000Z');
+		committed(
+			await alpha.act('visits.decline_shift', { target: first!['id'], input: { mc: true } })
+		);
+		await settle(t);
+		const slots = (await desk(t).query('visits.rebooking_slots', {
+			visit: first!['id'],
+			from: '2026-09-30',
+			days: 2
+		})) as { day: string; starts: string[] }[];
+		expect(slots[0]!.starts.length).toBeGreaterThan(0);
+		const start = slots[0]!.starts[0]!;
+		const candidates = (await desk(t).query('visits.candidates', {
+			visit: first!['id'],
+			start
+		})) as { helper: string }[];
+		expect(candidates.some((c) => c.helper === ALPHA)).toBe(false);
+		const replacement = await signedIn(t, candidates[0]!.helper);
+		committed(
+			await desk(t).act('visits.rebook', {
+				target: first!['id'],
+				input: { start, helper: candidates[0]!.helper }
+			} as never)
+		);
+		await settle(t);
+		const [a, b] = await visits(t);
+		expect(a).toMatchObject({
+			helper: candidates[0]!.helper,
+			attention: 'none',
+			proposed_helper: null
+		});
+		expect((a!['slot'] as { start: unknown }).start).toEqual({ $t: start });
+		expect(b).toEqual(second);
+		expect((await replacement.read('visits', { all: true })).rows).toHaveLength(1);
+		const [{ rows: notices }] = await t.db.read([
+			{
+				text: "SELECT title, body FROM sys_notification WHERE title = 'Your route has a new assignment'",
+				params: []
+			}
+		]);
+		expect(
+			notices.some(
+				(n) =>
+					String(n['body']).includes(String(first!['number'])) &&
+					String(n['body']).includes('Open My Day')
+			)
+		).toBe(true);
+		expect(
+			t.fakes.transports.whatsapp.sent.some((s) =>
+				(s.message as { text?: string }).text?.includes('New visit')
+			)
+		).toBe(true);
+	});
+
+	it('does not let ordinary customer rebooking bypass the cutoff or let cleaners approve replacements', async () => {
+		const t = await workspace();
+		committed(await book(t, {}));
+		const [v] = await visits(t);
+		const alpha = await signedIn(t, ALPHA);
+		t.clock.set('2026-09-29T01:30:00.000Z');
+		expect(
+			await desk(t).act('visits.rebook', {
+				target: v!['id'],
+				input: { start: '2026-09-30T02:00:00.000Z' }
+			} as never)
+		).toMatchObject({ kind: 'refused' });
+		expect(await alpha.act('visits.accept_proposal', { target: v!['id'] } as never)).toMatchObject({
+			kind: 'refused'
+		});
+	});
 	it('a confirmed helper is not chased', async () => {
 		const t = await workspace();
 		committed(await book(t, {}));
@@ -750,5 +904,228 @@ describe('registered customers', () => {
 			policies: ['customer'],
 			party: { collection: 'customers', match: { phone: 'phone' } }
 		});
+	});
+});
+
+// These tests cross the private computation boundary: customer data must not expose another customer's schedule.
+describe('destination-specific booking availability', () => {
+	const phone = '+6580000001';
+	const address = '1 Example Avenue, Singapore 400001';
+	const quoteInput = {
+		phone,
+		address,
+		area: 'east',
+		service: HOME_CLEANING,
+		preference: 'any',
+		repeat: 'once'
+	};
+	const customer = (t: T, number = phone) =>
+		t.as(t.member(['customer'], { external: true, phone: number }));
+	async function quote(t: T, over: Row = {}) {
+		const filed = committed(
+			await customer(t, String(over.phone ?? phone)).act('availability_requests.create', {
+				...quoteInput,
+				...over
+			} as never)
+		);
+		await settle(t);
+		const id = filed.records[0]!.id;
+		const result = await t.as(t.admin).get('availability_requests', id);
+		return { id, result };
+	}
+	const request = (availability: string, over: Row = {}) => ({
+		name: 'Fixture Customer One',
+		phone,
+		address,
+		area: 'east',
+		service: HOME_CLEANING,
+		repeat: 'once',
+		start: TUESDAY_10,
+		availability,
+		...over
+	});
+
+	// The map pin must reach matching and the saved visit without a redundant region or a second geocode.
+	it('books the selected map destination without asking for an area', async () => {
+		const t = await workspace();
+		const point = { lat: 1.3521, lng: 103.8198 };
+		const newAddress = 'Map-selected fixture destination';
+		const { area: _area, ...input } = quoteInput;
+		const filed = committed(
+			await customer(t).act('availability_requests.create', {
+				...input,
+				address: newAddress,
+				location: point,
+				preference: 'preferred',
+				helper: BRAVO
+			} as never)
+		);
+		await settle(t);
+		const q = {
+			id: filed.records[0]!.id,
+			result: await t.as(t.admin).get('availability_requests', filed.records[0]!.id)
+		};
+		expect(q.result).toMatchObject({
+			status: 'ready',
+			area: null,
+			location: point,
+			starts: expect.arrayContaining([TUESDAY_10])
+		});
+		const { area: _bookingArea, ...bookingInput } = request(q.id, { address: newAddress });
+		committed(await customer(t).act('booking_requests.create', bookingInput as never));
+		await settle(t);
+		expect((await visits(t))[0]).toMatchObject({
+			address: newAddress,
+			area: null,
+			location: point,
+			helper: BRAVO
+		});
+	});
+
+	it('returns preference-scoped starts and books the selected cleaner instead of the nearer one', async () => {
+		const t = await workspace();
+		const q = await quote(t, { preference: 'preferred', helper: BRAVO });
+		expect(q.result).toMatchObject({
+			status: 'ready',
+			starts: expect.arrayContaining([TUESDAY_10])
+		});
+		committed(await customer(t).act('booking_requests.create', request(q.id) as never));
+		await settle(t);
+		expect((await visits(t))[0]).toMatchObject({ helper: BRAVO, address });
+	});
+
+	it('flags an incompatible preferred cleaner and creates no booking', async () => {
+		const t = await workspace();
+		const deep = '0d500001-0000-4000-8000-000000000002';
+		const q = await quote(t, { preference: 'preferred', helper: BRAVO, service: deep });
+		expect(q.result).toMatchObject({
+			status: 'failed',
+			problem: expect.stringContaining('cannot perform')
+		});
+		expect(
+			await book(t, { service: deep, preference: 'preferred', helpers: [BRAVO] })
+		).toMatchObject({ kind: 'refused', message: expect.stringContaining('cannot perform') });
+		expect(await visits(t)).toEqual([]);
+		expect((await t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+	});
+
+	it('does not sell a recurring start when a later occurrence cannot be staffed; ad hoc still fits', async () => {
+		const t = await workspace();
+		committed(
+			await t.as(t.admin).act('helper_time_off.create', {
+				helper: ALPHA,
+				period: { from: '2026-10-06', to: '2026-10-06' },
+				reason: 'leave'
+			})
+		);
+		const q = await quote(t, { preference: 'preferred', helper: ALPHA, repeat: 'weekly' });
+		expect(q.result).toMatchObject({ status: 'ready' });
+		expect(q.result!['starts']).not.toContain(TUESDAY_10);
+		const once = await quote(t, { preference: 'preferred', helper: ALPHA });
+		expect(once.result!['starts']).toContain(TUESDAY_10);
+		expect(
+			await book(t, { repeat: 'weekly', visits: 2, preference: 'preferred', helpers: [ALPHA] })
+		).toMatchObject({ kind: 'refused', message: expect.stringContaining('occurrence 2') });
+		expect(await visits(t)).toEqual([]);
+		expect((await t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+	});
+
+	it('rechecks capacity after a quote instead of overbooking a preferred cleaner', async () => {
+		const t = await workspace();
+		const q = await quote(t, { preference: 'preferred', helper: ALPHA });
+		expect(q.result!['starts']).toContain(TUESDAY_10);
+		committed(await book(t, { preference: 'preferred', helpers: [ALPHA] }));
+		committed(await customer(t).act('booking_requests.create', request(q.id) as never));
+		await settle(t);
+		expect((await t.as(t.admin).read('booking_requests', { all: true })).rows[0]).toMatchObject({
+			status: 'follow_up'
+		});
+		expect(await visits(t)).toHaveLength(1);
+	});
+
+	it('binds quotes to the verified phone and exact inputs and keeps schedules private', async () => {
+		const t = await workspace();
+		const q = await quote(t);
+		expect(q.result!['starts']).toContain(TUESDAY_10);
+		const other = customer(t, '+6580000002');
+		expect((await other.read('availability_requests', { all: true })).rows).toEqual([]);
+		expect((await other.read('visits', { all: true, select: { location: true } })).rows).toEqual(
+			[]
+		);
+		const publicHelpers = (
+			await customer(t).read('helpers', { all: true, select: { phone: true } })
+		).rows;
+		expect(publicHelpers.map((h) => h.phone)).toEqual([
+			{ $masked: true },
+			{ $masked: true },
+			{ $masked: true }
+		]);
+		expect(
+			await other.act('booking_requests.create', request(q.id, { phone: '+6580000002' }) as never)
+		).toMatchObject({ kind: 'refused' });
+		expect(
+			await customer(t).act(
+				'booking_requests.create',
+				request(q.id, { address: 'Another address' }) as never
+			)
+		).toMatchObject({ kind: 'refused' });
+		expect((await t.as(t.admin).read('booking_requests', { all: true })).rows).toEqual([]);
+	});
+
+	it('expires old quotes and exposes only travel-feasible starts in the desk union', async () => {
+		const t = await workspace();
+		const q = await quote(t);
+		expect(q.result!['starts']).toContain(TUESDAY_10);
+		await t.clock.advance('16min');
+		expect(await customer(t).act('booking_requests.create', request(q.id) as never)).toMatchObject({
+			kind: 'refused',
+			message: expect.stringContaining('Check times again')
+		});
+		committed(await book(t, { preference: 'preferred', helpers: [ALPHA] }));
+		const starts = (await desk(t).query('bookings.open_slots', {
+			customer: WEST_CUSTOMER,
+			service: HOME_CLEANING,
+			preference: 'preferred',
+			helpers: [ALPHA],
+			repeat: 'once',
+			from: '2026-09-29',
+			days: 1
+		})) as { starts: string[] }[];
+		expect(starts[0]!.starts).not.toContain('2026-09-29T05:00:00.000Z');
+		expect(starts[0]!.starts).toContain('2026-09-29T06:30:00.000Z');
+	});
+
+	it('applies the submitted destination to a returning customer booking', async () => {
+		const t = await workspace();
+		const newAddress = 'Changed fixture destination';
+		const q = await quote(t, { address: newAddress });
+		expect(q.result).toMatchObject({
+			status: 'ready',
+			estimated: true,
+			starts: expect.arrayContaining([TUESDAY_10])
+		});
+		committed(
+			await customer(t).act(
+				'booking_requests.create',
+				request(q.id, { address: newAddress }) as never
+			)
+		);
+		await settle(t);
+		expect((await visits(t))[0]).toMatchObject({ address: newAddress, location: null });
+	});
+
+	it('uses Google travel durations when preparing customer-specific starts', async () => {
+		const t = await workspace(google({ TRAFFIC_UNAWARE: 60, TRAFFIC_AWARE: 60 }));
+		committed(await book(t, { preference: 'preferred', helpers: [ALPHA] }));
+		const q = await quote(t, {
+			phone: '+6580000002',
+			address: '2 Sample Road, Singapore 600002',
+			preference: 'preferred',
+			helper: ALPHA
+		});
+		// 13:00 finish + Google 60 minutes + 15 buffer => first grid start 14:30.
+		expect(q.result).toMatchObject({ status: 'ready' });
+		expect(q.result!['starts']).not.toContain('2026-09-29T06:00:00.000Z');
+		expect(q.result!['starts']).toContain('2026-09-29T06:30:00.000Z');
 	});
 });

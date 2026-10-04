@@ -34,7 +34,11 @@
 	const today = $derived(days[0]?.day ?? '');
 	let picked = $state<string | null>(null);
 	/** The day shown: the one picked, else the first with an opening. */
-	const day = $derived(picked ?? days.find((d) => d.starts.length > 0)?.day ?? today);
+	const day = $derived(
+		(picked !== null && starts.has(picked) ? picked : null) ??
+			days.find((d) => d.starts.length > 0)?.day ??
+			today
+	);
 
 	/** Monday-first weeks covering the two weeks offered; cells outside them are blank. */
 	const cells = $derived.by(() => {
@@ -108,19 +112,12 @@
 							picked = c.day;
 							if (value !== null && !(starts.get(c.day) ?? []).includes(value)) onPick(null);
 						}}
-						class="aspect-square rounded-lg border text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted-foreground/50 disabled:hover:bg-transparent aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+						class="h-11 rounded-lg border text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted-foreground/50 disabled:hover:bg-transparent aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 					>
 						<Stack as="span" gap="xs" align="center" justify="center" fill>
 							<span class="font-semibold tabular-nums"
 								>{fmt({ day: 'numeric' }, true).format(at(c.day))}</span
 							>
-							<!-- a dot where a helper is free -->
-							<span
-								class={[
-									'size-1 rounded-full',
-									open > 0 ? 'bg-current opacity-60' : 'bg-transparent'
-								]}
-							></span>
 						</Stack>
 					</button>
 				{/if}
@@ -133,10 +130,10 @@
 			{fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(at(day))}
 		</p>
 		<!-- the day as a timeline: a rail down the day's parts, each with its open starts in even columns -->
-		<Stack gap="md" class="border-l-2 pl-4">
+		<Stack gap="md">
 			{#each parts as part (part.key)}
 				<Stack gap="sm">
-					<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+					<p class="text-sm font-medium text-muted-foreground">
 						{t(part.key)}
 					</p>
 					<Grid tracks="repeat(3, minmax(0, 1fr))" gap="sm">
@@ -145,7 +142,7 @@
 								type="button"
 								aria-pressed={value === s}
 								onclick={() => onPick(s)}
-								class="h-10 rounded-md border text-sm font-medium tabular-nums transition-colors hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+								class="min-h-11 rounded-md border text-sm font-medium tabular-nums transition-colors hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 							>
 								{time(s)}
 							</button>

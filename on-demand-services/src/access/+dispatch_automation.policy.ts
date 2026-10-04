@@ -14,8 +14,9 @@ export default policy({
 		openings: { read: true, create: true, update: true, delete: true },
 		drive_times: { read: true, create: true },
 		helpers: { read: true },
-		helper_time_off: { read: true },
+		helper_time_off: { read: true, create: true },
 		customers: { read: true, create: true },
+		availability_requests: { read: true, update: true, moves: 'all' },
 		booking_requests: {
 			read: true,
 			update: { fields: ['status', 'booking', 'outcome'] },
@@ -31,7 +32,10 @@ export default policy({
 					'shift_asked_at',
 					'eta_minutes',
 					'eta_checked_at',
-					'attention'
+					'attention',
+					'proposed_helper',
+					'proposed_slot',
+					'unavailable_helper'
 				]
 			}
 		},

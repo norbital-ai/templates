@@ -41,12 +41,15 @@
 			? null
 			: bolt.read('sites', {
 					where: { id: { in: siteIds } },
-					select: { name: true },
+					select: { name: true, location: true },
 					limit: 1000
 				})
 	);
 	const siteName = $derived(
 		new globalThis.Map((sites.current?.rows ?? []).map((site) => [site.id, site.name]))
+	);
+	const mappedSites = $derived(
+		(sites.current?.rows ?? []).filter((site) => site.location != null).map((site) => site.id)
 	);
 	/** Read once for the board: which of the day's jobs carry a finding nobody has answered. */
 	const open = live(() =>
@@ -202,17 +205,18 @@
 			{/snippet}
 			{#snippet end()}
 				<Stack gap="sm" fill>
-					<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
-					<div class="isolate">
-						<Map
-							of="sites"
-							at="location"
-							label="name"
-							where={{ id: { in: siteIds } }}
-							toolbar={{ new: false }}
-						/>
-					</div>
-					{#if siteIds.length === 0}
+					{#if mappedSites.length > 0}
+						<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
+						<div class="isolate">
+							<Map
+								of="sites"
+								at="location"
+								label="name"
+								where={{ id: { in: mappedSites } }}
+								toolbar={{ new: false }}
+							/>
+						</div>
+					{:else}
 						<EmptyState variant="inset" title={t('app.field_ops_controller.map_empty', { date })} />
 					{/if}
 				</Stack>
