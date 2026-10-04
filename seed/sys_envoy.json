@@ -1,0 +1,19 @@
+[
+	{
+		"id": "sales_desk",
+		"name": "Norbital",
+		"task": "Answer questions about quotes and accounts for this customer.",
+		"audience": "public",
+		"policies": [
+			"accounts_read",
+			"products_read",
+			"commercial_shared",
+			"sales_rep"
+		],
+		"group_messages": "disabled",
+		"delegation": "enabled",
+		"triage": {},
+		"active": true,
+		"revision": 1
+	}
+]

@@ -1,3 +1,6 @@
+import sys_channel_connection from './sys_channel_connection.json' with { type: 'json' };
+import sys_envoy_channel from './sys_envoy_channel.json' with { type: 'json' };
+import sys_envoy from './sys_envoy.json' with { type: 'json' };
 import type { SeedSource } from '@norbital-ai/bolt';
 
 type Row = { readonly [field: string]: unknown };
@@ -48,6 +51,6 @@ export default {
 			const currency = new Map((out[docs] ?? []).map((d) => [d['id'], d['currency']]));
 			if (out[lines]) out[lines] = out[lines].map((l) => ({ ...l, currency: currency.get(l[fk]) }));
 		}
-		return out as never;
+		return { ...out, sys_channel_connection, sys_envoy_channel, sys_envoy } as never;
 	}
 } satisfies SeedSource;
