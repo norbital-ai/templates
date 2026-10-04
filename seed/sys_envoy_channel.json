@@ -1,0 +1,8 @@
+[
+	{
+		"id": "field_ops_whatsapp:field_ops_whatsapp",
+		"envoy": "field_ops_whatsapp",
+		"channel_connection": "field_ops_whatsapp",
+		"revision": 1
+	}
+]

@@ -36,10 +36,7 @@
 			...(dispatcher
 				? [{ field: 'assignee_user_id', label: t('component.contractor') } as const]
 				: []),
-			{ field: 'dispatched_at', label: t('component.dispatched') },
-			{ field: 'status', label: t('component.status') },
-			{ field: 'location_address', label: t('component.reported_location') },
-			'summary'
+			{ field: 'status', label: t('component.status') }
 		]}
 	/>
 </AppShell>

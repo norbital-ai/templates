@@ -10,18 +10,7 @@ evidence whose integrity is checked mechanically. It is deliberately focused —
 project costing, payroll, or portfolio management, and the platform's native approval system owns the
 variation approval lifecycle.
 
-<!-- current-screenshots:start -->
 
-## Current screenshots
-
-Captured 2 October 2026 from the standalone template with sample data.
-
-### Dispatch control
-
-![Field Operations: Dispatch control](docs/images/current-field_ops_controller-dispatch.png)
-
-[All application screens](docs/README.md#current-screenshots).
-<!-- current-screenshots:end -->
 
 ## 1. What this workspace is
 
@@ -161,7 +150,7 @@ assignment's progress and their evidence photos — never the integrity results.
 
 `field_ops_whatsapp` is a conversational entry point for contractors who already have an active
 workspace account. It answers on the WhatsApp channel of the same name
-(`src/channels/+field_ops_whatsapp.ts`). An administrator records the contractor's WhatsApp number on that account
+(initial records in `seed/sys_channel_connection.json`, `sys_envoy.json` and `sys_envoy_channel.json`; editable at runtime). An administrator records the contractor's WhatsApp number on that account
 (Settings → People); an unknown number is told it is not recognised and gets no model run.
 
 The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
@@ -215,7 +204,7 @@ src/
 │   ├── collection/<c>/             +collection.ts (write contract, transform, queries/actions) and +representation.svelte
 │   └── custom_field/photo_source/  where a photo came from: workspace upload or a channel message
 ├── access/                         +team.ts and the four +<name>.policy.ts (the variation approval is in the contractor's)
-├── agent/                          +agent.md and envoy/+field_ops_whatsapp.envoy.ts
+├── agent/                          +agent.md
 ├── channel/                        +field_ops_whatsapp.channel.ts
 ├── automation/                     photo inspection, the suspicion review, the site handover bundle
 ├── app/                            field_ops_controller (dispatch, sites) and field_ops_contractor (jobs)
@@ -302,3 +291,11 @@ pnpm lint    # prettier --check + svelte-check
   From the realm root, `pnpm run env -- link` only tests local OSS packages inside the
   template and does not link template source into Colony. The template detail page on the website
   is generated from this README and `norbital.template.json` — no separate copy.
+
+## Illustrated walkthrough
+
+[Read the user flows and verification notes](docs/README.md). Screens below use fictional local records, captured 4 October 2026.
+
+![Dispatch the day](docs/images/walkthrough-dispatch.png)
+
+![Assign and record the job](docs/images/walkthrough-job.png)

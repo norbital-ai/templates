@@ -1,3 +1,6 @@
+import sys_channel_connection from './sys_channel_connection.json' with { type: 'json' };
+import sys_envoy_channel from './sys_envoy_channel.json' with { type: 'json' };
+import sys_envoy from './sys_envoy.json' with { type: 'json' };
 import type { BankReader, SeedSource } from '@norbital-ai/bolt';
 import { hexToBinaryEmbedding, photoSourceKey, photoSummary } from '../src/lib/photo-integrity.js';
 import { siteKey } from '../src/lib/site-key.js';
@@ -159,4 +162,4 @@ const source: SeedSource = {
 		} as never;
 	}
 };
-export default source;
+export default { ...source, async rows(bank: Parameters<SeedSource['rows']>[0]) { return { ...await source.rows(bank), sys_channel_connection, sys_envoy_channel, sys_envoy }; } } satisfies SeedSource;

@@ -1,3 +1,6 @@
+import sys_channel_connection from '../seed/sys_channel_connection.json' with { type: 'json' };
+import sys_envoy from '../seed/sys_envoy.json' with { type: 'json' };
+import sys_envoy_channel from '../seed/sys_envoy_channel.json' with { type: 'json' };
 import { readFileSync } from 'node:fs';
 import { loadPack, readPack, type EngineManifest, type Json } from '@norbital-ai/bolt/engine';
 import { testWorkspace } from '@norbital-ai/bolt/test';
@@ -24,16 +27,19 @@ export async function workspace(options: Options = {}) {
 	const { sample, ...rest } = options;
 	const t = await testWorkspace(
 		typeof window === 'undefined'
-			? { root, seed: 'none', ...rest }
+			? { root, seed: sample ? 'none' : { sys_channel_connection, sys_envoy, sys_envoy_channel }, ...rest }
 			: {
 					manifest: JSON.parse(built('manifest.json')) as EngineManifest,
 					guest: { source: built('guest.mjs') },
 					transforms: (JSON.parse(built('artifact.json')) as { transforms: string[] }).transforms,
+					seed: sample ? 'none' : { sys_channel_connection, sys_envoy, sys_envoy_channel },
 					...rest
 				}
 	);
 	if (sample)
 		await loadPack(t.db, t.manifest, readPack(`${root}.norbital/seed/sample`), t.clock.now());
+	await t.engine.refreshMessaging();
+	if (sample) await t.engine.runs!.reconfigure();
 	return t;
 }
 
