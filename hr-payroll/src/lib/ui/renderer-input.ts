@@ -14,7 +14,7 @@
  * than a real component, so it stays inlined.
  */
 
-import { decodeNumber } from '../wire.js';
+import { decodeNumber } from '../payroll_engine/foundation/primitives.js';
 
 /** A finite number from a raw field, or `fallback` when the field does not hold one. */
 export function numberFrom(raw: string, fallback: number): number {

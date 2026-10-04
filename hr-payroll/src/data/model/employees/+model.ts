@@ -2,10 +2,20 @@ import { model } from '@norbital-ai/bolt';
 
 export default model({
 	description:
-		'A natural person. Holds only facts true of the human being — never of a job; everything employment-shaped lives on employments.',
+		'A natural person. Holds only facts true of the human being — never of a job; everything employment-shaped lives on employee_profiles.',
 	icon: 'lucide:user',
 	label: 'name',
 	fields: {
+    input_column_history: { kind: 'json', optional: true, hidden: true },
+		input_census: { kind: 'json', optional: true, hidden: true },
+		/** Original proof records retain their IDs and exact accepted schema/value bindings. */
+		input_originals: { kind: 'json', optional: true, hidden: true },
+		input_proofs: { kind: 'json', optional: true, hidden: true },
+		input_files: { kind: 'file', accept: ['*/*'], max: '20MiB', multiple: true, optional: true, hidden: true },
+		input_schema_code: { kind: 'text' },
+		facts: { kind: 'json' },
+		input_schema_snapshot: { kind: 'json', optional: true, hidden: true },
+		input_history: { kind: 'json', optional: true, hidden: true },
 		name: { kind: 'text' },
 		date_of_birth: { kind: 'date', optional: true },
 		gender: { kind: 'enum', values: ['MALE', 'FEMALE'], optional: true },
@@ -27,7 +37,33 @@ export default model({
 			optional: true
 		},
 		/** Append-only child facts; `[]` when none. */
-		children: { kind: 'custom', of: 'employee_children', default: [] },
+		children: { kind: 'json', shape: {
+		kind: 'list',
+		of: {
+			kind: 'object',
+			fields: {
+				child_birthdate: { kind: 'text' },
+				child_deathdate: { kind: 'text', optional: true },
+				child_confinement_date: { kind: 'text', optional: true },
+				estimated_delivery_date: { kind: 'text', optional: true },
+				adoption_eligibility_date: { kind: 'text', optional: true },
+				relationship: { kind: 'enum', values: ['CHILD', 'STEPCHILD', 'ADOPTED', 'LEGAL_WARD'] },
+				effective_range: { kind: 'period', of: 'instant', optional: true },
+				/** The same standing classes as `employment_terms.residency_status`. */
+				citizenship: {
+					kind: 'enum',
+					values: ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'],
+					optional: true
+				},
+				shared_parental_weeks: { kind: 'int', min: 0, optional: true },
+				prior_employment_days: { kind: 'int', min: 0, optional: true },
+				prior_childcare_days: { kind: 'int', min: 0, optional: true },
+				prior_extended_childcare_days: { kind: 'int', min: 0, optional: true },
+				prior_infant_care_days: { kind: 'int', min: 0, optional: true },
+				relief_class: { kind: 'text', optional: true }
+			}
+		}
+	}, default: [] },
 		nationality: { kind: 'text', optional: true },
 		identity_number: { kind: 'text', optional: true },
 		dependents_count: { kind: 'int', min: 0, default: 0 },

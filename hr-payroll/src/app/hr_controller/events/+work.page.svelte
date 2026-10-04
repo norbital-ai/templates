@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
-	import { t } from '../../../lib/ui/t.js';
+	import ScopeGate from '../../../lib/ui/scopes/ScopeGate.svelte';
+	import { t } from '../../../lib/ui/i18n/t.js';
 	import { everyField } from '../../../lib/every-field.js';
 	/**
 	 * The roster board for one legal entity and one pay period (a month, a half or a week in the entity's grammar): every
@@ -21,7 +21,7 @@
 	import { Alert, CustomView, EmptyState, Sheet, type ToolbarItem } from '@norbital-ai/ui';
 	import { openRecord, RecordShell } from '@norbital-ai/ui';
 	import { addDays, monthBounds, periodMonth } from '../../../lib/payroll/run/dates.js';
-	import { resolveWindow } from '../../../lib/payroll/run/period.js';
+	import { resolveWindow } from '../../../lib/payroll_engine/foundation/time.js';
 	import {
 		holidayWorkedRows,
 		schedulingImportDays,
@@ -32,7 +32,7 @@
 		XLSX_MEDIA_TYPE
 	} from '../../../data/collection/work_days/lib/import-template.js';
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
-	import { dateKey, isSettledId } from '../../../lib/iso-day.js';
+	import { dateKey, isSettledId } from '../../../lib/payroll_engine/foundation/time.js';
 	import {
 		dayLockKey,
 		lockMap,
@@ -49,14 +49,14 @@
 		patternRosterCodeId,
 		termPatternRow
 	} from '../../../lib/scheduling/work-pattern.js';
-	import { periodInCompanyGrammar, todayKey } from '../../../lib/ui/calendar.js';
-	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
-	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
-	import { saveBlob } from '../../../lib/ui/export-download.js';
-	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import { periodInCompanyGrammar, todayKey } from '../../../lib/ui/format/calendar.js';
+	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
+	import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
+	import { saveBlob } from '../../../lib/ui/format/export-download.js';
+	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import { captureClaims } from '../../../lib/ui/roster/capture-claims.js';
 	import { monthSources } from '../../../lib/ui/roster/month-sources.svelte.js';
-	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import MonthPeriodPicker from '../../../lib/ui/components/month-period-picker.svelte';
 	import RosterMonthBoard, {
 		type BoardCell
 	} from '../../../lib/ui/roster/roster-month-board.svelte';
@@ -73,8 +73,8 @@
 		personDayKey,
 		termCovers
 	} from '../../../lib/ui/roster/roster-month.js';
-	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
-	import WorkbookImportDetails from '../../../lib/ui/workbook-import-details.svelte';
+	import { runWorkbookImport } from '../../../lib/ui/workbook/workbook-import.js';
+	import WorkbookImportDetails from '../../../lib/ui/workbook/workbook-import-details.svelte';
 
 	const scope = companyScope();
 	const company = $derived(scope.company);

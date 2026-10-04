@@ -16,7 +16,7 @@
 	import ElectionsEditor from '../entity_facts/+renderer.svelte';
 	import DeductionClaims from './deduction-claims.svelte';
 	import { live } from '../../../lib/ui/live.svelte.js';
-	import { decodeNumber } from '../../../lib/wire.js';
+	import { decodeNumber } from '../../../lib/payroll_engine/foundation/primitives.js';
 	import CodeSelect from '../../../lib/ui/code-select.svelte';
 	import { childClaimClasses } from '../../../lib/expressions/contexts.js';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Labelled from '../../lib/ui/Labelled.svelte';
-	import { t } from '../../lib/ui/t.js';
+	import Labelled from '../../lib/ui/components/Labelled.svelte';
+	import { t } from '../../lib/ui/i18n/t.js';
 	import { everyField } from '../../lib/every-field.js';
 	/**
 	 * Employee self-service: the signed-in person's profile and contract, their month (the plan, the clock and a missing
@@ -10,7 +10,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import { setContext } from 'svelte';
-	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/scopes/create-scope.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Alert, Combobox, Table, Tabs } from '@norbital-ai/ui';
@@ -19,14 +19,14 @@
 	import { resolveEmployment } from '../../lib/employment-contract.js';
 	import type { LeaveBalanceSummaries } from '../../lib/leave/summary.js';
 	import { payRequestRecordMetadata } from '../../lib/scheduling/lock.js';
-	import { payDateFor, todayKey } from '../../lib/ui/calendar.js';
+	import { payDateFor, todayKey } from '../../lib/ui/format/calendar.js';
 	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
 	import {
 		formatCalendarDate,
 		formatLeaveSummary,
 		formatNumeric
-	} from '../../lib/ui/display-formatters.js';
-	import { live, liveRows } from '../../lib/ui/live.svelte.js';
+	} from '../../lib/ui/format/display-formatters.js';
+	import { live, liveRows } from '../../lib/ui/state/live.svelte.js';
 	import EmploymentMonth from '../../lib/ui/roster/employment-month.svelte';
 
 	const today = todayKey();

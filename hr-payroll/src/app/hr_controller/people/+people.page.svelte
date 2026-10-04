@@ -1,25 +1,23 @@
 <script lang="ts">
 	/**
 	 * Workforce health for one legal entity (headcount in force today and twelve months of turnover and hire rate,
-	 * derived from its employments' ranges, never stored) and one profile per person employed there.
+	 * derived from its employee_profiles' ranges, never stored) and one profile per person employed there.
 	 */
-	import { t } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
 	import { AppShell, Columns, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
-	import { todayKey } from '../../../lib/ui/calendar.js';
-	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
-	import Loading from '../../../lib/ui/Loading.svelte';
-	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
-	import { liveRows } from '../../../lib/ui/live.svelte.js';
-	import { decodeNumber } from '../../../lib/wire.js';
+	import { todayKey } from '../../../lib/ui/format/calendar.js';
+	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
+	import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
+	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
+	import { decodeNumber } from '../../../lib/payroll_engine/foundation/primitives.js';
 
 	const scope = companyScope();
 	const today = todayKey();
-	const employments = liveRows(() =>
+	const employee_profiles = liveRows(() =>
 		scope.id == null
 			? null
-			: bolt.read('employments', {
+			: bolt.read('employee_profiles', {
 					where: { approval_id: { isNull: true }, company_id: { eq: scope.id } },
 					select: { employee_id: true, effective_range: true },
 					all: true
@@ -27,7 +25,7 @@
 	);
 	// an open contract runs to the end of time
 	const ranges = $derived(
-		(employments.current ?? []).map((row) => ({
+		(employee_profiles.current ?? []).map((row) => ({
 			employee: row.employee_id,
 			start: row.effective_range.from,
 			end: row.effective_range.to ?? '9999-12-31'
@@ -36,8 +34,8 @@
 	const current = $derived(
 		new Set(ranges.filter((r) => r.start <= today && r.end >= today).map((r) => r.employee)).size
 	);
-	const TURNOVER = $derived(t('app.people.chart_turnover_rate'));
-	const HIRES = $derived(t('app.people.chart_hire_rate'));
+	const TURNOVER = $derived(bolt.t('app.people.chart_turnover_rate'));
+	const HIRES = $derived(bolt.t('app.people.chart_hire_rate'));
 	// a rate in percent, one decimal: the chart's axis reads 4.2, not 0.042
 	const rate = (count: number, average: number) =>
 		average > 0 ? Math.round((count / average) * 1000) / 10 : 0;
@@ -71,26 +69,26 @@
 </script>
 
 {#snippet empty(message: string)}
-	{#if scope.unknown}<Loading />{:else}<EmptyState title={message} />{/if}
+	<EmptyState title={message} />
 {/snippet}
 
 {#snippet summary()}
-	<Stack as="section" gap="md" aria-label={t('app.people.workforce')}>
+	<Stack as="section" gap="md" aria-label={bolt.t('app.people.workforce')}>
 		<div>
-			<h2 class="text-heading">{t('app.people.workforce')}</h2>
-			<p class="text-sm text-muted-foreground">{t('app.people.workforce_description')}</p>
+			<h2 class="text-heading">{bolt.t('app.people.workforce')}</h2>
+			<p class="text-sm text-muted-foreground">{bolt.t('app.people.workforce_description')}</p>
 		</div>
 		{#if scope.id == null}
-			{@render empty(t('app.people.empty_overview'))}
+			{@render empty(bolt.t('app.people.empty_overview'))}
 		{:else}
 			<!-- repository-health:allow UI27 -- a 1px hairline between the cards; the gap scale has none -->
 			<Columns count={2} gap="none" class="gap-px rounded-lg border bg-border">
 				<Stack gap="none" class="bg-card p-4">
-					<p class="text-xs font-medium text-muted-foreground">{t('app.people.current')}</p>
+					<p class="text-xs font-medium text-muted-foreground">{bolt.t('app.people.current')}</p>
 					<p class="text-2xl font-semibold tabular-nums" data-headcount>{current}</p>
 				</Stack>
 				<Stack gap="none" class="bg-card p-4">
-					<p class="text-xs font-medium text-muted-foreground">{t('app.people.turnover_12m')}</p>
+					<p class="text-xs font-medium text-muted-foreground">{bolt.t('app.people.turnover_12m')}</p>
 					<p class="text-2xl font-semibold tabular-nums">{percent(turnover)}</p>
 				</Stack>
 			</Columns>
@@ -100,7 +98,7 @@
 
 {#snippet chart()}
 	{#if scope.id == null}
-		{@render empty(t('app.people.empty_trend'))}
+		{@render empty(bolt.t('app.people.empty_trend'))}
 	{:else}
 		<div class="min-w-0 rounded-lg border bg-card p-4 shadow-card">
 			<Chart
@@ -108,9 +106,9 @@
 				x="month"
 				y={[TURNOVER, HIRES]}
 				kind="line"
-				title={t('app.people.chart_title')}
+				title={bolt.t('app.people.chart_title')}
 			/>
-			<p class="text-sm text-muted-foreground">{t('app.people.chart_description')}</p>
+			<p class="text-sm text-muted-foreground">{bolt.t('app.people.chart_description')}</p>
 		</div>
 	{/if}
 {/snippet}
@@ -121,25 +119,25 @@
 
 {#snippet profiles()}
 	{#if scope.id == null}
-		{@render empty(t('app.people.empty_profiles'))}
+		{@render empty(bolt.t('app.people.empty_profiles'))}
 	{:else}
 		{#key scope.id}
 			<Table
 				of="employees"
 				key={`people-${scope.id}`}
-				toolbar={{ title: t('app.people.profiles_title') }}
+				toolbar={{ title: bolt.t('app.people.profiles_title') }}
 				where={{
-					employments: { some: { approval_id: { isNull: true }, company_id: { eq: scope.id } } }
+					employee_profiles: { some: { approval_id: { isNull: true }, company_id: { eq: scope.id } } }
 				}}
-				initialFilter={{ employments: { some: { effective_range: { contains: { today: '' } } } } }}
+				initialFilter={{ employee_profiles: { some: { effective_range: { contains: { today: '' } } } } }}
 				orderBy={{ name: 'asc' }}
 				columns={[
 					'name',
 					'email',
 					'phone',
 					'nationality',
-					{ field: 'date_of_birth', label: t('app.people.date_of_birth') },
-					{ field: 'dependents_count', label: t('app.people.dependents') },
+					{ field: 'date_of_birth', label: bolt.t('app.people.date_of_birth') },
+					{ field: 'dependents_count', label: bolt.t('app.people.dependents') },
 					'face_enrollment_status'
 				]}
 			/>
@@ -149,8 +147,8 @@
 
 <AppShell
 	icon="lucide:users"
-	title={t('app.people.title')}
-	description={t('app.people.description')}
+	title={bolt.t('app.people.title')}
+	description={bolt.t('app.people.description')}
 	variant="full"
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}
@@ -158,13 +156,13 @@
 		tabs={[
 			{
 				name: 'overview',
-				title: t('component.tab_overview'),
+				title: bolt.t('component.tab_overview'),
 				icon: 'lucide:chart-no-axes-combined',
 				body: overview
 			},
 			{
 				name: 'profiles',
-				title: t('app.people.tab_profiles'),
+				title: bolt.t('app.people.tab_profiles'),
 				icon: 'lucide:users',
 				body: profiles
 			}

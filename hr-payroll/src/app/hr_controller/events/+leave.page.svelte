@@ -3,24 +3,24 @@
 	 * One legal entity's manual leave activities for a pay period (anything valued inside it, and time off whose days
 	 * overlap it) and their payroll settlement. An approved entry is immutable; a change is a reversal.
 	 */
-	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
-	import { t } from '../../../lib/ui/t.js';
+	import ScopeGate from '../../../lib/ui/scopes/ScopeGate.svelte';
+	import { t } from '../../../lib/ui/i18n/t.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, Tabs } from '@norbital-ai/ui';
 	import { leavePeriodWhere } from '../../../lib/leave/activity-fields.js';
-	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
-	import { companyScope, employmentNames } from '../../../lib/ui/company-scope.svelte.js';
-	import { formatLeaveSummary } from '../../../lib/ui/display-formatters.js';
-	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
+	import { companyScope, employmentNames } from '../../../lib/ui/scopes/company-scope.svelte.js';
+	import { formatLeaveSummary } from '../../../lib/ui/format/display-formatters.js';
+	import MonthPeriodPicker from '../../../lib/ui/components/month-period-picker.svelte';
 	import BenefitCaseAdvanceStatus from '../../../lib/ui/leave/benefit-case-advance-status.svelte';
 	import { bolt } from '$bolt';
-	import { liveRows } from '../../../lib/ui/live.svelte.js';
-	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
+	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
+	import { createPayPeriodScope } from '../../../lib/ui/scopes/pay-period-scope.svelte.js';
 	import { toast, Toaster } from 'svelte-sonner';
-	import { todayKey } from '../../../lib/ui/calendar.js';
-	import { saveBlob } from '../../../lib/ui/export-download.js';
-	import { getErrorMessage } from '../../../lib/refuse.js';
+	import { todayKey } from '../../../lib/ui/format/calendar.js';
+	import { saveBlob } from '../../../lib/ui/format/export-download.js';
+	import { getErrorMessage } from '../../../lib/payroll_engine/foundation/primitives.js';
 	import { XLSX_MEDIA_TYPE } from '../../../data/collection/work_days/lib/import-template.js';
 	import {
 		leaveBalanceWorkbook,

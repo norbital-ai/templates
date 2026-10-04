@@ -11,8 +11,8 @@
  * Long-form sheets (`employee_number`, `work_date`, …) keep importing unchanged.
  */
 
-import { isCalendarDate, isClockTime } from '../../../../lib/iso-day.js';
-import { decodeNumber } from '../../../../lib/wire.js';
+import { isCalendarDate, isClockTime } from '../../../../lib/payroll_engine/foundation/time.js';
+import { decodeNumber } from '../../../../lib/payroll_engine/foundation/primitives.js';
 
 import { Result } from 'effect';
 import { days, monthOf } from '@norbital-ai/std/date';
@@ -23,7 +23,7 @@ import {
 	type SheetTable
 } from '../../../../lib/workbook-rows.js';
 import * as Predicate from 'effect/Predicate';
-import { getErrorMessage } from '../../../../lib/refuse.js';
+import { getErrorMessage } from '../../../../lib/payroll_engine/foundation/primitives.js';
 
 const LONG_FORM_COLUMNS = new Set([
 	'employee_number',

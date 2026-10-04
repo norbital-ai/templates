@@ -8,7 +8,7 @@ import { MEMBER_LIMITS } from './grants.js';
 export default policy({
 	description:
 		'Attendance-kiosk device access: the kiosk app only, time entries for people, and kiosk enrollments that always land pending HR review.',
-	capabilities: { apps: ['hr_controller/kiosk'] },
+	capabilities: { apps: ['kiosk'] },
 	grants: {
 		employees: {
 			read: {

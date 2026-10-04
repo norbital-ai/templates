@@ -1,4 +1,4 @@
-import { decodeNumber } from '../../wire.js';
+import { decodeNumber } from '../../payroll_engine/foundation/primitives.js';
 import type { SettlementClaim } from '../../scheduling/lock.js';
 
 /** An unpaid snapshot pin is advisory; payment, received funds or actual allocation freezes its source. */

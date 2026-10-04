@@ -1,15 +1,7 @@
+import { CLAIM_APPROVAL, LEAVE_APPROVAL } from './grants.js';
+import { jurisdictionReadFields } from './grants.js';
 import { policy } from '@norbital-ai/bolt';
-import {
-	ATTENDANCE_ONLY_DAY,
-	CLAIM_APPROVAL,
-	HR_CONTROLLER_APPS,
-	LEAVE_APPROVAL,
-	MEMBER_LIMITS,
-	OWN,
-	WORK_DAY_ATTENDANCE_FIELDS,
-	WORK_DAY_CREATE_APPROVAL,
-	WORK_DAY_UPDATE_APPROVAL
-} from './grants.js';
+import { ATTENDANCE_ONLY_DAY, HR_CONTROLLER_APPS, MEMBER_LIMITS, OWN, WORK_DAY_ATTENDANCE_FIELDS, WORK_DAY_CREATE_APPROVAL, WORK_DAY_UPDATE_APPROVAL } from './grants.js';
 
 /**
  * The supervisor's authority across the company, plus deleting attendance-only days. The kiosk and settings calls
@@ -19,47 +11,36 @@ import {
 export default policy({
 	description:
 		'Manager: reads people operations across the company and owns their team’s time and leave.',
-	capabilities: { apps: ['hr_employee', ...HR_CONTROLLER_APPS] },
+	capabilities: { apps: [...HR_CONTROLLER_APPS] },
 	// the entities app starts the Google holiday import
-	automations: ['holiday_import'],
+	automations: ['holiday_import', 'catalog_events'],
 	grants: {
-		companies: { read: true },
-		company_facts: { read: true },
-		worksites: { read: true },
-		shift_definitions: { read: true },
-		shift_patterns: { read: true },
+  catalogue_entries: {
+   queries: ['leave_summary','preview_leave'],
+   read: { where: { source_kind: { in: ['claim_requests', 'adhoc_requests', 'leave_entries'] } } },
+   create: { where: { or: [{ ...OWN, source_kind: { eq: 'claim_requests' }, catalog: { eq: 'CLAIM' } }, { source_kind: { eq: 'leave_entries' }, catalog: { eq: 'LEAVE' }, activity: { eq: 'TIME_OFF' } }] }, fields: ['source_basis', 'company_id', 'employment_id', 'catalog', 'catalogue_id', 'reference', 'occurred_on', 'values', 'input_proofs', 'input_files'], approval: [
+    { ...CLAIM_APPROVAL, match: { record: { catalog: { eq: 'CLAIM' } } } },
+    { ...LEAVE_APPROVAL, match: { record: { catalog: { eq: 'LEAVE' }, activity: { eq: 'TIME_OFF' } } } }
+   ] }
+  },
+		entities: { read: true },
 		leave_catalogue: { read: true },
-		jurisdiction_holidays: { read: true },
-		jurisdiction_settings: { read: true, actions: ['new_settings_version'] },
+		holidays: { read: true },
+		rule_sets: { read: { where: { scope: { ne: "GLOBAL" } } } },
+		jurisdiction_settings: { read: { fields: jurisdictionReadFields(false, false) }, actions: ['new_settings_version'] },
 		statutory_contributions: { read: true },
-		employees: { read: true, queries: ['kiosk_match'], actions: ['kiosk_enroll'] },
-		employments: { read: true },
-		employment_terms: { read: true },
-		employment_statutory_facts: { read: true },
-		person_facts: { read: true },
-		employment_history: { read: true },
-		employment_wage_periods: { read: true },
-		presence_periods: { read: true },
-		payment_holds: { read: true },
+		employees: { read: true, queries: ['kiosk_match','kiosk_input_schema'], actions: ['kiosk_enroll','kiosk_receipt'] },
+		employee_profiles: { read: true },
 		payroll_runs: {
 			read: { fields: ['company_id', 'period', 'attendance_from', 'attendance_to'] }
 		},
 		payslips: { read: OWN },
-		work_days: {
+		roster_entries: {
 			read: true,
-			create: { fields: WORK_DAY_ATTENDANCE_FIELDS, approval: WORK_DAY_CREATE_APPROVAL },
-			update: { fields: WORK_DAY_ATTENDANCE_FIELDS, approval: WORK_DAY_UPDATE_APPROVAL },
-			delete: ATTENDANCE_ONLY_DAY,
-			actions: ['kiosk_punch', 'import_month']
-		},
-		rosters: { read: true },
-		leave_entries: {
-			read: true,
-			create: { where: { activity: { eq: 'TIME_OFF' } }, approval: LEAVE_APPROVAL },
-			queries: ['leave_balances', 'leave_balance_report', 'preview_leave']
-		},
-		claim_requests: { read: true, create: { where: OWN, approval: CLAIM_APPROVAL } },
-		adhoc_requests: { read: true }
+			
+			
+					},
+		rosters: { read: true }
 	},
 	limits: MEMBER_LIMITS
 });

@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
-	import { todayKey } from '../calendar.js';
-	import { live } from '../live.svelte.js';
-	import { t } from '../t.js';
+	import { todayKey } from '../format/calendar.js';
+	import { live } from '../state/live.svelte.js';
+	import { t } from '../i18n/t.js';
 
 	let { planId }: { planId: Id<'benefit_case_plans'> } = $props();
 	const statusQuery = live(

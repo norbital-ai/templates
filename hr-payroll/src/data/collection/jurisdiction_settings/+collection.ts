@@ -1,772 +1,165 @@
-import { collection, type Id } from '@norbital-ai/bolt';
-import { compileExpression, type DeclaredKey } from '../../../lib/expressions/compile.js';
-import { openKeyMentions } from '../../../lib/expressions/contexts.js';
-import {
-	assessedOnMentionFault,
-	catalogueCodes,
-	membershipFault,
-	schemeFault
-} from '../../../lib/catalogue_rules.js';
-import {
-	describeVersion,
-	governed,
-	overlayFault,
-	periodsOverlap,
-	stableJson,
-	type Governed,
-	type LineageOverlay
-} from '../../../lib/jurisdiction_settings.js';
-import { checksOf } from '../../../lib/datatypes/checks.js';
-import { returnsFault, returnsOf } from '../../../lib/datatypes/returns.js';
-import {
-	createSettingsDraft,
-	readSettingsVersionTree,
-	settingsDraftWrite
-} from '../../../lib/settings_clone.js';
-import {
-	referenceCodes,
-	referenceRowOf,
-	referenceRowsFault,
-	tableMentionFault
-} from '../../../lib/expressions/functions/tables.js';
-import type { ReferenceTable } from '../../../lib/datatypes/reference_tables.js';
-import { DOCUMENT_TABLE } from '../../../lib/datatypes/fact_keys.js';
-import { dutyTypesOf } from '../../../lib/obligations/materialise.js';
-import { everyField } from '../../../lib/every-field.js';
+import rule_sets from '../rule_sets/+collection.js';
+import {validateRuleSetDraft,ruleSetContentHash} from '../../../lib/payroll_engine/execution/rule-sets.js';
+import { Schema } from 'effect';
+import leave_catalogue from '../leave_catalogue/+collection.js';
+import claim_catalogue from '../claim_catalogue/+collection.js';
+import adhoc_catalogue from '../adhoc_catalogue/+collection.js';
+import allowance_catalogue from '../allowance_catalogue/+collection.js';
+import loan_catalogue from '../loan_catalogue/+collection.js';
+import statutory_contributions from '../statutory_contributions/+collection.js';
+import work_catalogue from '../work_catalogue/+collection.js';
+import { validateCatalogueDraft } from '../../../lib/payroll_engine/catalogues/authoring.js';
+import { validateStaticDefinition, resolveWorkCaptureRecipe, type StaticDefinition } from '../../../lib/payroll_engine/catalogues/static.js';
+import { collection, type Insert } from '@norbital-ai/bolt';
+import model from '../../model/jurisdiction_settings/+model.js';
+import { plain, stableJson, decodeNumber } from '../../../lib/payroll_engine/foundation/primitives.js';
+import { readAll } from '../../../lib/payroll_engine/foundation/reads.js';
+import { governed, periodsOverlap } from '../../../lib/payroll_engine/admission/schema-version.js';
+import { behavioursFault, resolveBehaviourProgram } from '../../../lib/payroll_engine/execution/behaviours.js';
+import { configuredProgramFault } from '../../../lib/payroll_engine/execution/configured-program.js';
+import { inputSchemaRootFault, inputValueFault } from '../../../lib/payroll_engine/datatypes/input-schema.js';
+import { isOffsetIsoInstant } from '../../../lib/payroll_engine/foundation/time.js';
+import {admitReferenceAuthoring,admitReferenceExpression} from '../../../lib/payroll_engine/catalogues/admission.js';
+import {factValueFault,factKeySchema} from '../../../lib/payroll_engine/datatypes/fact-keys.js';
+import {policyAdmissionFault} from '../../../lib/payroll_engine/catalogues/admission.js';
+import * as Predicate from 'effect/Predicate';
 
-/** Settings versions. A version is created with its schemes and catalogues in one write (a clone); sealing and voiding are the reviewed writes (the policies' approval routes). */
-const settings = collection('jurisdiction_settings', {
-	read: { fields: 'all' },
-	create: {
-		input: {
-			columns: [
-				'code',
-				'jurisdiction_code',
-				'name',
-				'sealed_at',
-				'voided_at',
-				'void_reason',
-				'cloned_from_id',
-				'payroll',
-				'sources',
-				'work_rules',
-				'facts',
-				'exit_facts',
-				'terms_facts',
-				'work_day_facts',
-				'payment_facts',
-				'settlement_facts',
-				'worksite_facts',
-				'person_facts',
-				'history_kinds',
-				'tables',
-				'overlays',
-				'obligations',
-				'duty_types',
-				'checks',
-				'returns',
-				'change_summary',
-				'effective_range'
-			],
-			with: {
-				claim_catalogue: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'authority',
-							'destination',
-							'direction',
-							'bands',
-							'eligibility',
-							'qualifies_when',
-							'evidence',
-							'counts_toward',
-							'request_requirements',
-							'request_facts'
-						]
-					}
-				},
-				adhoc_catalogue: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'authority',
-							'destination',
-							'direction',
-							'bands',
-							'eligibility',
-							'evidence',
-							'raised_by',
-							'schedule',
-							'counts_toward',
-							'reduces_unpaid_salary',
-							'request_requirements',
-							'request_facts'
-						]
-					}
-				},
-				allowance_catalogue: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'authority',
-							'destination',
-							'direction',
-							'bands',
-							'eligibility',
-							'counts_toward',
-							'npl_prorates',
-							'outpatient_sick_pay',
-							'owed'
-						]
-					}
-				},
-				loan_catalogue: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'destination',
-							'direction',
-							'bands',
-							'loan_type',
-							'minimum_repayment',
-							'eligibility',
-							'evidence'
-						]
-					}
-				},
-				leave_catalogue: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'authority',
-							'eligibility',
-							'evidence',
-							'is_npl',
-							'can_encash',
-							'encash_on_exit',
-							'pay_fraction',
-							'time_off_amount',
-							'paid_by',
-							'consumes_code',
-							'unit',
-							'evidence_after_days',
-							'entitlement',
-							'requires_no_pay_origin',
-							'event_facts',
-							'schedule'
-						]
-					}
-				},
-				reference_rows: {
-					create: {
-						columns: [
-							'table',
-							'code',
-							'parent_code',
-							'label',
-							'effective_range',
-							'range_from',
-							'range_to',
-							'values'
-						]
-					}
-				},
-				statutory_contributions: {
-					create: {
-						columns: [
-							'code',
-							'name',
-							'authority',
-							'assessment_period',
-							'late_line_month',
-							'assessment_scope',
-							'base_when',
-							'remittance_rounding',
-							'remittance_rounding_when',
-							'unregistered_action',
-							'registration_subject',
-							'opening_scope',
-							'elections',
-							'employee_share_annual_cap',
-							'shared_cap_group',
-							'project_relief_annually',
-							'rules',
-							'assessed_on',
-							'ordinary_on',
-							'deduction_categories',
-							'child_claims_hint',
-							'parts',
-							'short_name',
-							'listing_order',
-							'listing_group',
-							'history_trigger'
-						]
-					}
-				}
-			}
-		}
-	},
-	update: {
-		input: {
-			columns: [
-				'code',
-				'jurisdiction_code',
-				'name',
-				'sealed_at',
-				'voided_at',
-				'void_reason',
-				'cloned_from_id',
-				'payroll',
-				'sources',
-				'work_rules',
-				'facts',
-				'exit_facts',
-				'terms_facts',
-				'work_day_facts',
-				'payment_facts',
-				'settlement_facts',
-				'worksite_facts',
-				'person_facts',
-				'history_kinds',
-				'tables',
-				'overlays',
-				'obligations',
-				'duty_types',
-				'checks',
-				'returns',
-				'change_summary',
-				'effective_range'
-			]
-		}
-	},
-	delete: {},
-	actions: {
-		new_settings_version: {
-			description:
-				'Clones one jurisdiction settings version and every row under it (schemes, rules, leave catalogue entries, components) into a draft of the same lineage starting on a given day.',
-			input: {
-				settings_id: { kind: 'id', of: 'jurisdiction_settings' },
-				/** The first day the new version governs. */
-				starts_on: { kind: 'date' },
-				name: { kind: 'text', optional: true }
-			},
-			output: { kind: 'id', of: 'jurisdiction_settings' }
-		}
-	}
+type Row = Record<string, unknown>;
+const object = (value: unknown): Row => Predicate.isObject(value) ? value as Row : {};
+const columns = Object.keys(model.fields).filter(key=>key!=='accepted_input_schemas') as (keyof typeof model.fields)[];
+const c = collection('jurisdiction_settings', {
+ read: { fields: 'all' }, create: { input: { columns: [...columns, 'cloned_from_id'], with: { rule_sets: { create: { columns: rule_sets.spec.create.input.columns.filter((column): column is Exclude<typeof rule_sets.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, leave_catalogue: { create: { columns: leave_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof leave_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, claim_catalogue: { create: { columns: claim_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof claim_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, adhoc_catalogue: { create: { columns: adhoc_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof adhoc_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, allowance_catalogue: { create: { columns: allowance_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof allowance_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, loan_catalogue: { create: { columns: loan_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof loan_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, statutory_contributions: { create: { columns: statutory_contributions.spec.create.input.columns.filter((column): column is Exclude<typeof statutory_contributions.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }, work_catalogue: { create: { columns: work_catalogue.spec.create.input.columns.filter((column): column is Exclude<typeof work_catalogue.spec.create.input.columns[number], 'settings_id'> => column !== 'settings_id') } }} } }, update: { input: { columns } }, delete: { transform: true }, actions: { new_settings_version: { description: 'Clone an actual approved jurisdiction and its configured catalogues into one native draft.', input: { settings_id: { kind: 'id', of: 'jurisdiction_settings' }, starts_on: { kind: 'date' }, name: { kind: 'text', optional: true } }, output: { kind: 'json' } } }
 });
-export default settings;
+export default c;
 
-/** The two columns a sealed version may still take: the void, once. */
-const VOID_COLUMNS = new Set(['voided_at', 'void_reason']);
-
-/** Whether an edit to a sealed version's period only ends it earlier: the same start, an end at or before the stored one. */
-function onlyShortens(stored: Governed | null, next: Governed | null): boolean {
-	if (stored == null || next == null || stored.from !== next.from) return false;
-	if (next.to == null) return stored.to == null;
-	return next.to >= next.from && (stored.to == null || next.to <= stored.to);
-}
-
-type WorkRules = {
-	readonly ordinary_divisor_days: string;
-	readonly ordinary_rate?: { readonly hour: string; readonly day: string } | null;
-	readonly overtime_when: string;
-	readonly bands: readonly {
-		readonly when: string;
-		readonly take_hours: string;
-		readonly price_amount: string;
-		readonly funnel_above_hours?: string | null;
-	}[];
-	readonly breaks: readonly { readonly when: string; readonly owed_minutes: string }[];
-	readonly overtime_consent?: { readonly required_when: string } | null;
-	readonly day_rules?: readonly { readonly when: string }[] | null;
-};
-
-/** Every expression a version's work rules carry, for the entity-fact key check. */
-const workRuleExpressions = (work: WorkRules): string[] => [
-	work.ordinary_divisor_days,
-	work.ordinary_rate?.hour ?? '',
-	work.ordinary_rate?.day ?? '',
-	work.overtime_when,
-	...work.bands.flatMap((band) => [
-		band.when,
-		band.take_hours,
-		band.price_amount,
-		band.funnel_above_hours ?? ''
-	]),
-	...work.breaks.flatMap((brk) => [brk.when, brk.owed_minutes]),
-	work.overtime_consent?.required_when ?? '',
-	...(work.day_rules ?? []).map((rule) => rule.when)
-];
-
-/**
- * The sealed, shareable root of a jurisdiction lineage. Validates the payroll scope; freezes every column of a sealed
- * version except a shortened period and a one-time void; never unseals; requires a reason to void a version a paid run
- * cites; refuses sealing a version whose period overlaps another sealed live version of its code unless that version is
- * ended in the same batch. A sealed version is never deleted, only voided: the delete grants admit drafts alone.
- */
-settings.transform(async (inputs, { existing, db, refuse }) => {
-	const sealing: Id<'jurisdiction_settings'>[] = [];
-	const voiding: Id<'jurisdiction_settings'>[] = [];
-	for (const [index, input] of inputs.entries()) {
-		const row = existing[index];
-		if (row == null) continue;
-		if (row.sealed_at == null && input.sealed_at != null) sealing.push(row.id);
-		if (row.voided_at == null && input.voided_at != null) voiding.push(row.id);
-	}
-	const codes = [
-		...new Set(inputs.flatMap((input, index) => [input.code ?? existing[index]?.code ?? []].flat()))
-	];
-	const held = { approval_id: { isNull: true } } as const;
-	const under = { settings_id: { in: sealing }, ...held } as const;
-	const none = { rows: [] as const, next: null };
-	// One wave: every read is keyed by the inputs and their stored rows.
-	const [
-		paidRuns,
-		schemes,
-		allowances,
-		adhoc,
-		claims,
-		loans,
-		leaves,
-		siblings,
-		references,
-		lineages
-	] = await Promise.all([
-		voiding.length === 0
-			? none
-			: db.read('payroll_runs', {
-					where: { settings_id: { in: voiding }, payslips: { some: { status: { eq: 'PAID' } } } },
-					all: true
-				}),
-		sealing.length === 0 ? none : db.read('statutory_contributions', { where: under, all: true }),
-		sealing.length === 0 ? none : db.read('allowance_catalogue', { where: under, all: true }),
-		sealing.length === 0 ? none : db.read('adhoc_catalogue', { where: under, all: true }),
-		sealing.length === 0 ? none : db.read('claim_catalogue', { where: under, all: true }),
-		sealing.length === 0 ? none : db.read('loan_catalogue', { where: under, all: true }),
-		sealing.length === 0 ? none : db.read('leave_catalogue', { where: under, all: true }),
-		codes.length === 0
-			? none
-			: db.read('jurisdiction_settings', {
-					where: {
-						code: { in: codes },
-						sealed_at: { isNull: false },
-						voided_at: { isNull: true },
-						...held
-					},
-					all: true
-				}),
-		sealing.length === 0
-			? none
-			: db.read('reference_rows', {
-					where: under,
-					select: everyField('reference_rows'),
-					all: true
-				}),
-		// Every sealed live version: an overlay and the base it serves are judged together (E8).
-		sealing.length === 0
-			? none
-			: db.read('jurisdiction_settings', {
-					where: { sealed_at: { isNull: false }, voided_at: { isNull: true }, ...held },
-					select: {
-						id: true,
-						code: true,
-						name: true,
-						work_rules: true,
-						overlays: true,
-						effective_range: true
-					},
-					all: true
-				})
-	]);
-	// The overlay versions a sealing base names, and their schemes (an overlay states none).
-	const overlaysOf = (version: { readonly overlays?: unknown }) =>
-		(version.overlays ?? []) as readonly LineageOverlay[];
-	const named = new Set(
-		inputs.flatMap((input, index) =>
-			sealing.includes(existing[index]?.id as Id<'jurisdiction_settings'>)
-				? overlaysOf({ ...existing[index], ...input }).map((declaration) => declaration.lineage)
-				: []
-		)
-	);
-	const overlayIds = lineages.rows.filter((row) => named.has(row.code)).map((row) => row.id);
-	const overlaySchemes =
-		overlayIds.length === 0
-			? none
-			: await db.read('statutory_contributions', {
-					where: { settings_id: { in: overlayIds }, ...held },
-					select: { code: true, settings_id: true },
-					all: true
-				});
-	const schemeCodesOf = (settingsId: string) =>
-		[...overlaySchemes.rows, ...schemes.rows]
-			.filter((scheme) => scheme.settings_id === settingsId)
-			.map((scheme) => scheme.code);
-	const catalogues = catalogueCodes({
-		allowances: allowances.rows,
-		adhoc: adhoc.rows,
-		claims: claims.rows,
-		loans: loans.rows,
-		leaves: leaves.rows
-	});
-	const memberships = [
-		...allowances.rows.map((row) => ({ ...row, noun: 'Allowance' })),
-		...claims.rows.map((row) => ({ ...row, noun: 'Claim' })),
-		...adhoc.rows.map((row) => ({ ...row, noun: 'Ad hoc' }))
-	];
-	// What the batch says about each version's period, so a predecessor ended in the same write counts.
-	const periods = new Map<string, Governed>();
-	for (const [index, input] of inputs.entries()) {
-		const row = existing[index];
-		const days =
-			row == null || input.effective_range === undefined ? null : governed(input.effective_range);
-		if (row != null && days != null) periods.set(row.id, days);
-	}
-	return inputs.map((input, index) => {
-		const stored = existing[index];
-		const row = { ...stored, ...input };
-		if (stored != null && stored.sealed_at != null) {
-			const version = describeVersion(stored);
-			if (input.sealed_at === null)
-				refuse(`${version} is never unsealed. Void it and seal a corrected version instead.`);
-			for (const [column, value] of Object.entries(input)) {
-				if (VOID_COLUMNS.has(column)) continue;
-				if (stableJson(value) === stableJson(stored[column as keyof typeof stored])) continue;
-				if (
-					column === 'effective_range' &&
-					onlyShortens(governed(stored.effective_range), governed(input.effective_range))
-				)
-					continue;
-				refuse(
-					`${version} is sealed, so ${column} cannot change. ` +
-						'Enact a new version of the settings instead; a wrong seal is voided.'
-				);
-			}
-			if (stored.voided_at != null && input.voided_at === null)
-				refuse(`${version} is voided; a void is one action, never undone.`);
-			if (
-				stored.voided_at != null &&
-				input.void_reason !== undefined &&
-				input.void_reason !== stored.void_reason
-			)
-				refuse(`${version} is voided; its reason is part of the record.`);
-			if (stored.voided_at == null && input.voided_at != null) {
-				const paid = paidRuns.rows.find((run) => run.settings_id === stored.id);
-				if (paid != null && (row.void_reason ?? '').trim() === '')
-					refuse(
-						`${version} priced the paid ${paid.period} payroll run, so voiding it states a reason.`
-					);
-			}
-			return input;
-		}
-		// A draft, or a create: the whole row is checked, and a draft's defaults are filled.
-		if (row.voided_at != null)
-			refuse('Only a sealed version can be voided; delete a draft instead.');
-		if (row.payroll?.currency == null || !(row.jurisdiction_code ?? '').trim())
-			refuse('Settings require a currency and payroll jurisdiction.');
-		// stored `fact_keys` values; the expression compiler's declared-key type spells absent members as missing
-		const facts = (row.facts ?? []) as readonly DeclaredKey[];
-		const exitFacts = (row.exit_facts ?? []) as readonly DeclaredKey[];
-		for (const field of facts)
-			for (const [kind, expression] of [
-				['requirement', field.required_when],
-				['validation', field.valid_when],
-				['evidence', field.evidence?.when]
-			] as const) {
-				const fault = compileExpression({ expression, site: 'entity', type: 'boolean', facts });
-				if (fault != null) refuse(`${field.key} ${kind}: ${fault}`);
-			}
-		for (const field of exitFacts)
-			for (const [kind, expression] of [
-				['requirement', field.required_when],
-				['validation', field.valid_when]
-			] as const) {
-				const fault = compileExpression({ expression, site: 'person', type: 'boolean', exitFacts });
-				if (fault != null) refuse(`${field.key} departure ${kind}: ${fault}`);
-			}
-		// A subject's inputs are judged at the person site (terms, work days) or the payment site.
-		const termsFacts = (row.terms_facts ?? []) as readonly DeclaredKey[];
-		const workDayFacts = (row.work_day_facts ?? []) as readonly DeclaredKey[];
-		const paymentFacts = (row.payment_facts ?? []) as readonly DeclaredKey[];
-		const settlementFacts = (row.settlement_facts ?? []) as readonly DeclaredKey[];
-		const personFacts = (row.person_facts ?? []) as readonly DeclaredKey[];
-		for (const [noun, fields, site] of [
-			['terms', termsFacts, 'person'],
-			['person', personFacts, 'person'],
-			['work-day', workDayFacts, 'person'],
-			['payment', paymentFacts, 'payment'],
-			['settlement', settlementFacts, 'payment']
-		] as const)
-			for (const field of fields)
-				for (const [kind, expression] of [
-					['requirement', field.required_when],
-					['validation', field.valid_when],
-					['evidence', field.evidence?.when]
-				] as const) {
-					const fault = compileExpression({
-						expression,
-						site,
-						type: 'boolean',
-						exitFacts,
-						termsFacts,
-						paymentFacts,
-						settlementFacts
-					});
-					if (fault != null) refuse(`${field.key} ${noun} ${kind}: ${fault}`);
-				}
-		// A duty type's expressions are judged at the obligation site, with the version's entity facts.
-		for (const duty of dutyTypesOf(row))
-			for (const [kind, expression, type] of [
-				['trigger', duty.trigger.when, 'boolean'],
-				['due day', duty.due, 'date'],
-				['amount', duty.amount, 'money'],
-				['late charge', duty.late_charge, 'money'],
-				['retention', duty.retain_years, 'number'],
-				...(duty.evidence ?? []).flatMap((field) => [
-					[`${field.key} requirement`, field.required_when, 'boolean'] as const,
-					[`${field.key} validation`, field.valid_when, 'boolean'] as const
-				])
-			] as const) {
-				const fault = compileExpression({ expression, site: 'obligation', type, facts });
-				if (fault != null) refuse(`Duty ${duty.code} ${kind}: ${fault}`);
-			}
-		// A stored check is judged at the check site, with the version's declared inputs (E9).
-		for (const check of checksOf(row)) {
-			const fault = compileExpression({
-				expression: check.when,
-				site: 'check',
-				type: 'boolean',
-				facts,
-				exitFacts,
-				termsFacts,
-				personFacts
-			});
-			if (fault != null) refuse(`Check ${check.code}: ${fault}`);
-		}
-		// Returns and bank files are judged with the version's tables (L2).
-		const returnFault = returnsFault(
-			returnsOf(row),
-			(row.tables ?? []) as readonly ReferenceTable[]
-		);
-		if (returnFault != null) refuse(returnFault);
-		for (const [region, wage] of Object.entries(row.work_rules?.wages?.by_region ?? {}))
-			if (!(wage > 0)) refuse(`The minimum wage of region ${region} must be a positive amount.`);
-		const filled =
-			stored == null
-				? {
-						...input,
-						facts: row.facts ?? [],
-						exit_facts: row.exit_facts ?? [],
-						obligations: row.obligations ?? [],
-						duty_types: row.duty_types ?? [],
-						checks: row.checks ?? [],
-						returns: row.returns ?? [],
-						overlays: row.overlays ?? []
-					}
-				: input;
-		if (row.sealed_at == null) return filled;
-		// A sealing version's schemes each charge something: their formulas compile, and every code and catalogue one
-		// names is a row of this version.
-		if (stored != null) {
-			const own = schemes.rows.filter((scheme) => scheme.settings_id === stored.id);
-			const elections = Object.fromEntries(own.map((scheme) => [scheme.code, scheme.elections]));
-			for (const scheme of own) {
-				const fault = schemeFault(
-					{
-						rules: scheme.rules as Parameters<typeof schemeFault>[0]['rules'],
-						assessment_period: scheme.assessment_period,
-						assessment_scope: scheme.assessment_scope,
-						assessed_on: scheme.assessed_on,
-						ordinary_on: scheme.ordinary_on,
-						elections: elections[scheme.code] ?? [],
-						parts: scheme.parts
-					},
-					elections
-				);
-				if (fault != null) refuse(`Scheme ${scheme.code} ${fault}`);
-				const mention = assessedOnMentionFault(
-					catalogues,
-					stored.id,
-					scheme.assessed_on,
-					`Scheme ${scheme.code}`
-				);
-				if (mention != null) refuse(mention);
-			}
-			for (const claim of claims.rows)
-				if (claim.settings_id === stored.id && (claim.qualifies_when ?? '').trim() !== '') {
-					if ((claim.authority ?? '').trim() === '')
-						refuse(`Claim ${claim.code} must cite its qualification authority before sealing.`);
-					const fault = compileExpression({
-						expression: claim.qualifies_when,
-						site: 'entry',
-						type: 'boolean'
-					});
-					if (fault != null) refuse(`Claim ${claim.code} qualification: ${fault}`);
-				}
-			// Every class of the version counts toward schemes the version has, by the parts they declare — a membership
-			// nothing honours would read as "no base" at payroll.
-			const ownParts = new Map(own.map((scheme) => [scheme.code, scheme.parts]));
-			for (const member of memberships)
-				if (member.settings_id === stored.id) {
-					const fault = membershipFault(
-						ownParts,
-						member.counts_toward,
-						`${member.noun} ${member.code}`
-					);
-					if (fault != null) refuse(fault);
-				}
-			// A `person.company.facts.<key>` mention is legal only when this version declares the key and its type;
-			// otherwise a typo reads zero at payroll. So is a `terms.facts.<key>` or `day_facts.<key>` one.
-			const declaredFacts = new Set(facts.map((fact) => fact.key));
-			const declaredTerms = new Set(termsFacts.map((fact) => fact.key));
-			const declaredDays = new Set(workDayFacts.map((fact) => fact.key));
-			const exceptionFact = row.work_rules?.overtime_consent?.exception_fact;
-			if (exceptionFact != null && !declaredDays.has(exceptionFact))
-				refuse(
-					`This settings version excuses overtime consent by day_facts.${exceptionFact}, which it does not declare.`
-				);
-			const expressions = [
-				...(row.work_rules == null ? [] : workRuleExpressions(row.work_rules)),
-				...own.flatMap((scheme) => [
-					scheme.assessed_on,
-					scheme.ordinary_on,
-					...scheme.elections.map((field) => field.required_when ?? ''),
-					...scheme.rules.flatMap((rule) => [
-						rule.when,
-						rule.employee,
-						rule.employer,
-						rule.rebate ?? '',
-						rule.deduction ?? ''
-					])
-				])
-			];
-			for (const expression of expressions)
-				for (const key of [
-					...openKeyMentions(expression, 'person.company.facts'),
-					...openKeyMentions(expression, 'company.facts')
-				])
-					if (!declaredFacts.has(key))
-						refuse(
-							`This settings version reads company.facts.${key}, which it does not declare. ` +
-								'Declare the entity fact (its key and type) on the version first.'
-						);
-			for (const expression of expressions) {
-				for (const key of openKeyMentions(expression, 'terms.facts'))
-					if (!declaredTerms.has(key))
-						refuse(
-							`This settings version reads terms.facts.${key}, which it does not declare. ` +
-								'Declare the terms input (its key and type) on the version first.'
-						);
-				for (const key of openKeyMentions(expression, 'day_facts'))
-					if (!declaredDays.has(key))
-						refuse(
-							`This settings version reads day_facts.${key}, which it does not declare. ` +
-								'Declare the work-day input (its key and type) on the version first.'
-						);
-			}
-			// The version's tables: its rows fit their declarations, every table an expression reads is
-			// declared for that lookup, and every `code` input picks from a declared table.
-			const tables = (row.tables ?? []) as readonly ReferenceTable[];
-			const ownRows = references.rows
-				.filter((reference) => reference.settings_id === stored.id)
-				.map(referenceRowOf);
-			const rowsFault = referenceRowsFault(tables, ownRows);
-			if (rowsFault != null) refuse(rowsFault);
-			for (const expression of expressions) {
-				const fault = tableMentionFault(tables, expression);
-				if (fault != null) refuse(`This settings version: ${fault}`);
-			}
-			const codes = referenceCodes(ownRows, governed(row.effective_range)?.from ?? '');
-			const declarations = [
-				...facts,
-				...exitFacts,
-				...termsFacts,
-				...workDayFacts,
-				...paymentFacts,
-				...settlementFacts,
-				...personFacts,
-				...((row.worksite_facts ?? []) as readonly DeclaredKey[]),
-				...(row.history_kinds ?? []).flatMap((kind) => kind.facts as readonly DeclaredKey[]),
-				...(row.duty_types ?? []).flatMap((duty) => (duty.evidence ?? []) as readonly DeclaredKey[])
-			];
-			for (const field of declarations) {
-				const document = field.evidence?.document;
-				if (document != null && codes(DOCUMENT_TABLE, document) == null)
-					refuse(
-						`${field.key}: its evidence names document ${document}, which is not a ${DOCUMENT_TABLE} ` +
-							'row of this settings version when it begins.'
-					);
-			}
-			for (const field of declarations)
-				if (field.type === 'code') {
-					if (!tables.some((table) => table.name === field.table))
-						refuse(
-							`${field.key} picks its codes from table ${field.table}, which this settings version does not declare.`
-						);
-					for (const value of [field.default_value, ...(field.options ?? [])])
-						if (value != null && codes(field.table!, String(value)) == null)
-							refuse(
-								`${field.key}: ${String(value)} is not a code of table ${field.table} when this version begins.`
-							);
-				}
-		}
-		// An overlay never replaces a scheme, never routes further, and states what its base says it
-		// replaces: judged from both sides, sealing the base or sealing the overlay (E8).
-		const days0 = governed(row.effective_range);
-		const overlapping = (other: { readonly effective_range: unknown }) => {
-			const span = governed(other.effective_range);
-			return days0 != null && span != null && periodsOverlap(days0, span);
-		};
-		const code = row.code ?? '';
-		for (const declaration of overlaysOf(row)) {
-			const self = overlayFault(code, declaration, { code: '', work_rules: {} }, []);
-			if (self != null) refuse(self);
-			for (const overlay of lineages.rows)
-				if (overlay.code === declaration.lineage && overlapping(overlay)) {
-					const fault = overlayFault(code, declaration, overlay, schemeCodesOf(overlay.id));
-					if (fault != null) refuse(fault);
-				}
-		}
-		if (stored != null)
-			for (const base of lineages.rows)
-				if (base.code !== code && overlapping(base))
-					for (const declaration of overlaysOf(base))
-						if (declaration.lineage === code) {
-							const fault = overlayFault(
-								base.code,
-								declaration,
-								{ ...row, code, work_rules: row.work_rules },
-								schemeCodesOf(stored.id)
-							);
-							if (fault != null) refuse(fault);
-						}
-		// Sealing. The sealed-only `noOverlap` holds the overlap too; the sentence is why it happens here, and the batch
-		// is read so a predecessor ended in the same write counts.
-		const days =
-			governed(row.effective_range) ?? refuse('A sealed version states the period it governs.');
-		for (const sibling of siblings.rows) {
-			if (sibling.code !== row.code || sibling.id === stored?.id) continue;
-			const other = periods.get(sibling.id) ?? governed(sibling.effective_range);
-			if (other != null && periodsOverlap(days, other))
-				refuse(
-					`Sealed ${row.code} versions cannot overlap: ${sibling.name} already governs ` +
-						`${other.from} to ${other.to ?? 'open'}. Seal from the Settings timeline, which ` +
-						'ends the previous version the day before this one begins.'
-				);
-		}
-		return filled;
-	});
+/** One native authoring boundary for drafts and their immutable seals. */
+c.transform(async (inputs, ctx) => {
+ const outputs = inputs.map(value=>object(plain(value)));
+ const previous = ctx.existing.map(value => value == null ? undefined : object(plain(value)));
+ const rows = inputs.map((value,index) => ({ ...previous[index], ...object(plain(value)) }));
+ for(const [index,row] of rows.entries()) {
+  if(object(plain(inputs[index])).$delete===true)continue;
+  const recipient=object(object(row.payroll).income_return).recipient_source;
+  if(recipient!=null){const fault=policyAdmissionFault('annual_recipient_source',{policy:recipient,kinds:row.history_kinds??[]});if(fault!=null)ctx.refuse(fault);}
+  for(const field of ['payroll','history_kinds','overlays','statutory_calendar'])if(Object.hasOwn(row,field)) {
+   const fault=policyAdmissionFault(field,row[field]);if(fault!=null)ctx.refuse(`${field}: ${fault}`);
+   if(field==="history_kinds"){const fault=policyAdmissionFault("history_restatement",row[field]);if(fault!=null)ctx.refuse(`history_kinds: ${fault}`);}
+  }
+ }
+ const lineage = await readAll<Row>(ctx.db, 'jurisdiction_settings', { code: { in: [...new Set(rows.map(row=>String(row.code)))] } });
+ for (let index=0; index<inputs.length; index++) {
+  const input = object(plain(inputs[index])), stored = previous[index], row = rows[index]!;
+  const deleting = input.$delete === true;
+  if (deleting) { if (stored?.sealed_at != null) ctx.refuse('A sealed jurisdiction version cannot be deleted.'); continue; }
+  if (stored?.sealed_at != null) {
+   const oldRange=governed(stored.effective_range), nextRange=governed(row.effective_range);
+   for (const [key,value] of Object.entries(input)) {
+    if (['voided_at','void_reason'].includes(key) || stableJson(value) === stableJson(stored[key])) continue;
+    if (key === 'effective_range' && oldRange != null && nextRange != null && oldRange.from === nextRange.from && nextRange.to != null && (oldRange.to == null || nextRange.to <= oldRange.to)) continue;
+    ctx.refuse('A sealed jurisdiction version is immutable; only its end may shorten or its seal may be voided.');
+   }
+   if (stored.voided_at != null && (row.voided_at !== stored.voided_at || row.void_reason !== stored.void_reason)) ctx.refuse('A jurisdiction void and its reason are permanent.');
+  } else {
+   if (row.voided_at != null) ctx.refuse('Only a sealed jurisdiction version can be voided.');
+   const referenceFault=admitReferenceAuthoring(row);if(referenceFault!=null)ctx.refuse(referenceFault);
+   const declarations=Array.isArray(row.tables)?row.tables.map(object):[];
+   const referenceRows=Array.isArray(row.reference_rows)?row.reference_rows.map(object):[];
+   const inspect=(value:unknown,path:string)=>{
+    if(Array.isArray(value)){for(const child of value)inspect(child,path);return;}
+    if(!Predicate.isObjectOrArray(value))return;
+    const node=object(value),meta=object(node['x-norbital']);
+    const declaration=meta.fact??(Predicate.isString(node.key)&&['boolean','number','string','date','instant','code'].includes(String(node.type))?node:undefined);
+    if(declaration!=null){const fact=Schema.decodeUnknownSync(factKeySchema)(declaration);
+     if(fact.type==='code'&&!declarations.some(table=>table.name===fact.table))ctx.refuse(`${fact.key} names table ${String(fact.table)}, which this settings version does not declare.`);
+     if(fact.evidence?.document!=null&&!referenceRows.some(record=>record.table==='DOCUMENT_TYPE'&&record.code===fact.evidence!.document))ctx.refuse(`${fact.key} names document ${fact.evidence.document}, which is not a DOCUMENT_TYPE row.`);
+     if(fact.default_value!=null&&fact.type==='code'){
+      const fault=factValueFault(fact,fact.default_value,(table,code)=>{const found=referenceRows.find(record=>record.table===table&&record.code===code&&governed(record.effective_range)!=null&&governed(record.effective_range)!.from<=String(object(row.effective_range).from)&&(governed(record.effective_range)!.to==null||String(object(row.effective_range).from)<=governed(record.effective_range)!.to!));return found==null?null:{parent_code:Predicate.isString(found.parent_code)?found.parent_code:null};});if(fault!=null)ctx.refuse(`${fault} when this version begins.`);
+     }
+    }
+    for(const [key,child] of Object.entries(node)){
+     if(Predicate.isString(child)&&['expression','when','require','emit','due','employee','employer'].includes(key)){const fault=admitReferenceExpression(declarations,child);if(fault)ctx.refuse(`${path}/${key}: ${fault}`);}
+     else if(Predicate.isObjectOrArray(child))inspect(child,path+'/'+key);
+    }
+   };
+   inspect(row,'jurisdiction');
+   for (const field of ['employee_input_schema','entity_input_schema']) {
+    if (row[field] == null) continue;
+    const fault=inputSchemaRootFault(row[field]); if (fault != null) ctx.refuse(`${field}: ${fault}`);
+    if (object(row[field]).type !== 'object') ctx.refuse(`${field} requires a closed root object.`);
+   }
+   const finite=inputValueFault({},row.behaviours); if(finite != null) ctx.refuse(finite);
+   const fault=behavioursFault(row.behaviours); if(fault != null) ctx.refuse(fault);
+   for (const [hash,program] of Object.entries(object(object(row.behaviours).programs))) {
+    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stableJson(program)))),byte=>byte.toString(16).padStart(2,'0')).join('');
+    if(actual !== hash) ctx.refuse('Configured programmes retain their exact content-addressed SHA-256 identity.');
+   }
+   for (const family of ['leave_catalogue','claim_catalogue','adhoc_catalogue','allowance_catalogue','loan_catalogue','statutory_contributions'] as const) {
+    const nested=Array.isArray(input[family]) ? input[family] as unknown[] : [];
+    const persisted=row.id==null?[]:await readAll<Row>(ctx.db,family,{settings_id:{eq:String(row.id)}});
+    for(const child of [...persisted,...nested.map(object)]) await validateCatalogueDraft(family,child,{...row,sealed_at:null,voided_at:null});
+   }
+   const nestedRules=Array.isArray(input.rule_sets)?input.rule_sets.map(object):[];
+   const savedRules=row.id==null?[]:await readAll<Row>(ctx.db,'rule_sets',{settings_id:{eq:String(row.id)}});
+   const identities=new Set<string>(),ordinals=new Set<number>();
+   for(const child of [...savedRules,...nestedRules]){
+    await validateRuleSetDraft(child,{...row,sealed_at:stored?.sealed_at??null,voided_at:stored?.voided_at??null},ctx.db);
+    const identity=stableJson([child.family,child.code]);if(identities.has(identity))ctx.refuse('A jurisdiction draft retains unique rule group identities.');identities.add(identity);
+    for(const entry of object(child.rules).entries as Row[]){const ordinal=decodeNumber(entry.global_ordinal);if(ordinals.has(ordinal))ctx.refuse('Rule groups preserve distinct original global ordinals.');ordinals.add(ordinal);}
+   }
+   if(nestedRules.length)outputs[index]={...outputs[index],rule_sets:await Promise.all(nestedRules.map(async child=>({...child,content_hash:await ruleSetContentHash(child)})))};
+   if(row.sealed_at!=null&&!identities.has(stableJson(['WORK','WORK'])))ctx.refuse('A jurisdiction seal requires its authoritative WORK rule group.');
+   const workChildren=Array.isArray(input.work_catalogue)?input.work_catalogue as unknown[]:[];
+   const savedWork=row.id==null?[]:await readAll<Row>(ctx.db,'work_catalogue',{settings_id:{eq:String(row.id)}});
+   const workRules=[...savedRules,...nestedRules].filter(child=>child.family==='WORK'&&child.code==='WORK');
+   if([...savedWork,...workChildren].length&&workRules.length!==1)ctx.refuse('WORK recipes require exactly one actual draft regulatory group.');
+   for(const child of [...savedWork,...workChildren.map(object)])validateStaticDefinition(await resolveWorkCaptureRecipe(child as StaticDefinition,object(workRules[0]?.rules).data));
+   const clearance=object(object(row.payroll).clearance_source_refs);
+   if(Object.keys(clearance).length){
+    if(Object.keys(clearance).sort().join(',')!=='families_program_ref,financial_program_ref')ctx.refuse('Clearance programmes require both exact immutable source references.');
+    for(const ref of Object.values(clearance)){if(!Predicate.isString(ref)||!/^[a-f0-9]{64}$/.test(ref))ctx.refuse('Clearance programme references require lowercase SHA-256 identities.');await resolveBehaviourProgram(row.behaviours,String(ref),ctx.db);}
+   }
+   const payroll=object(row.payroll), cases=Array.isArray(payroll.benefit_cases)?payroll.benefit_cases.map(object):[], programs=object(payroll.certified_assessment_programs);
+   const types=cases.filter(type=>type.basis === 'CERTIFIED_INTERVALS');
+   if(new Set(types.map(type=>type.case_type)).size !== types.length || Object.keys(programs).some(key=>!types.some(type=>type.case_type===key))) ctx.refuse('Certified programmes bind unique actual governing certified benefit case types.');
+   for(const type of types) {
+    const frame=object(programs[String(type.case_type)]);
+    if(stableJson(frame.type)!==stableJson(type))ctx.refuse('Certified programme metadata must match its exact governing case type and basis.');
+    for(const key of ['admission','earning','qualification','pricing','absence','frozen','paid_leave','dates','disease','totals','source_capture']) {
+     const fault=configuredProgramFault(frame[key]);if(fault != null)ctx.refuse(`Certified ${String(type.case_type)} ${key}: ${fault}`);
+    }
+   }
+   if(!Predicate.isString(payroll.currency) || !payroll.currency.trim() || !Predicate.isString(row.jurisdiction_code) || !row.jurisdiction_code.trim())ctx.refuse('A jurisdiction requires its currency and stable jurisdiction code.');
+  }
+  const range=governed(row.effective_range);if(range==null)ctx.refuse('A jurisdiction requires a valid inclusive native effective range.');
+  if(row.sealed_at!=null && !isOffsetIsoInstant(row.sealed_at))ctx.refuse('A jurisdiction seal requires an actual offset timestamp.');
+  if(row.voided_at!=null) {
+   if(!isOffsetIsoInstant(row.voided_at))ctx.refuse('Voiding a sealed jurisdiction retains its actual dated timestamp.');
+   if(stored?.voided_at == null) {
+    const paid=await readAll<Row>(ctx.db,'payslips',{status:{eq:'PAID'},payroll_run_id:{is:{settings_id:{eq:String(row.id)}}}},undefined,{id:true},1);
+    if(paid.length && (!Predicate.isString(row.void_reason)||!row.void_reason.trim()))ctx.refuse('Voiding a jurisdiction that priced paid payroll requires its retained reason.');
+   }
+  }
+  if(row.sealed_at!=null&&row.voided_at==null) {
+   const candidates=[...lineage.filter(other=>other.id!==row.id&&!rows.some(candidate=>candidate.id===other.id)),...rows.filter(other=>other!==row)];
+   if(candidates.some(other=>other.code===row.code&&other.sealed_at!=null&&other.voided_at==null&&governed(other.effective_range)!=null&&periodsOverlap(range!,governed(other.effective_range)!)))ctx.refuse('Live sealed versions of one jurisdiction lineage cannot overlap.');
+  }
+ }
+ return outputs as typeof inputs;
 });
 
-/** The Settings timeline's New version: the version and every row under it, cloned into a draft. */
-settings.action('new_settings_version', async ({ settings_id, starts_on, name }, ctx) => {
-	const tree = await readSettingsVersionTree(ctx, settings_id, ctx.refuse);
-	const draft = settingsDraftWrite(tree, { starts_on: String(starts_on), name }, ctx.refuse);
-	const created = await createSettingsDraft(ctx, tree, draft);
-	return created.id as typeof settings_id;
+c.action('new_settings_version', async (input,ctx) => {
+ const originals=await readAll<Row>(ctx,'jurisdiction_settings',{id:{eq:String(input.settings_id)},approval_id:{isNull:true}});
+ if(originals.length!==1)ctx.refuse('A jurisdiction clone requires one actual approved source version.');
+ const source=originals[0]!;
+ const range=governed(source.effective_range);
+ if(range==null||!Schema.is(Schema.String)(input.starts_on)||inputValueFault({type:'string',format:'date'},input.starts_on)!=null||String(input.starts_on)<=range.from)ctx.refuse('A successor starts after its original version begins.');
+ const draft:Row=Object.fromEntries(columns.filter(key=>!['sealed_at','voided_at','void_reason'].includes(key)).map(key=>[key,source[key]]));
+ draft.cloned_from_id=source.id;draft.name=input.name??`${String(source.code)} from ${String(input.starts_on)}`;draft.sealed_at=null;draft.voided_at=null;draft.void_reason=null;draft.effective_range={from:String(input.starts_on),to:object(source.effective_range).to??null};
+ const families={rule_sets,leave_catalogue,claim_catalogue,adhoc_catalogue,allowance_catalogue,loan_catalogue,statutory_contributions,work_catalogue};
+ for(const family of ['rule_sets','leave_catalogue','claim_catalogue','adhoc_catalogue','allowance_catalogue','loan_catalogue','statutory_contributions','work_catalogue'] as const) {
+  const definition=families[family];
+  const children=await readAll<Row>(ctx,family,{settings_id:{eq:String(source.id)},approval_id:{isNull:true}});
+  draft[family]=children.map(child=>Object.fromEntries(definition.spec.create.input.columns.filter(key=>key!=='settings_id').map(key=>[key,child[key]])));
+ }
+ return Schema.decodeUnknownSync(Schema.Json)(plain(await ctx.act('jurisdiction_settings.create',draft as Insert<'jurisdiction_settings'>)));
 });

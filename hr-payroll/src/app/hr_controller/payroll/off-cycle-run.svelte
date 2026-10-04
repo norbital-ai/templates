@@ -5,19 +5,18 @@
 	 * person, all ticked; the ticked ones are the run's `sources`. A person whose salary the run settles ahead of the
 	 * cycle's REGULAR run carries the EARLY mark (`settlesSalaryEarly`).
 	 */
-	import { t } from '../../../lib/ui/t.js';
+	import { t } from '../../../lib/ui/i18n/t.js';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { toast } from 'svelte-sonner';
 	import { Badge, Button, Checkbox, Combobox, Dialog, EmptyState } from '@norbital-ai/ui';
 	import { Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from '../../../lib/ui/create-scope.js';
-	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
-	import { liveRows } from '../../../lib/ui/live.svelte.js';
-	import { inForceSettings } from '../../../lib/ui/settings-scope.js';
-	import { todayKey } from '../../../lib/ui/calendar.js';
-	import Loading from '../../../lib/ui/Loading.svelte';
-	import { decodeNumber } from '../../../lib/wire.js';
+	import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from '../../../lib/ui/scopes/create-scope.js';
+	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/format/display-formatters.js';
+	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
+	import { inForceSettings } from '../../../lib/ui/scopes/settings-scope.js';
+	import { todayKey } from '../../../lib/ui/format/calendar.js';
+	import { decodeNumber } from '../../../lib/payroll_engine/foundation/primitives.js';
 	import { settlesSalaryEarly } from '../../../lib/pay-cycles.js';
 
 	let {
@@ -185,7 +184,7 @@
 				<Dialog.Title>{t('app.payroll.adhoc_run_title', { period })}</Dialog.Title>
 			</Dialog.Header>
 			{#if loading}
-				<Loading />
+				
 			{:else if items.length === 0}
 				<EmptyState variant="inset" title={t('app.payroll.no_adhoc_items')} />
 			{:else}

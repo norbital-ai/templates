@@ -53,7 +53,7 @@
 	manager" is the state this reader can act on and the one they opened the calendar for.
 -->
 <script lang="ts">
-	import { t, type MessageKey } from '../t.js';
+	import { t, type MessageKey } from '../i18n/t.js';
 	import { Button } from '@norbital-ai/ui';
 	import { Icon as IconWrapper } from '@norbital-ai/ui';
 	import {
@@ -66,10 +66,10 @@
 		Scroll,
 		Stack
 	} from '@norbital-ai/ui/layout';
-	import Skeleton from '../skeleton.svelte';
+	import Skeleton from '../components/skeleton.svelte';
 	import { cn } from '@norbital-ai/ui';
-	import MonthPeriodPicker from '../month-period-picker.svelte';
-	import { formatDurationHours } from '../display-formatters.js';
+	import MonthPeriodPicker from '../components/month-period-picker.svelte';
+	import { formatDurationHours } from '../format/display-formatters.js';
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
 	import {
 		HOLIDAY_PRESENTATION,
@@ -82,7 +82,7 @@
 	} from './roster-month.js';
 	import RosterSlot from './roster-slot.svelte';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
-	import { decodeNumber } from '../../wire.js';
+	import { decodeNumber } from '../../payroll_engine/foundation/primitives.js';
 
 	/**
 	 * The clock boundaries of a day's punches, as the caller read them off the stored intervals.

@@ -2,13 +2,13 @@ import type { Id } from '@norbital-ai/bolt';
 import { addDays, type PlainDate } from '@norbital-ai/std/date';
 import { bolt } from '$bolt';
 import { everyField } from '../../every-field.js';
-import { PAYROLL_TIME_ZONE } from '../../iso-day.js';
+import { PAYROLL_TIME_ZONE } from '../../payroll_engine/foundation/time.js';
 import { settingsInForce } from '../../jurisdiction_settings.js';
 import { attachPatterns, type ShiftPatternLike } from '../../scheduling/work-pattern.js';
-import { HOLIDAY_QUERY_LIMIT, holidayView } from '../holiday-calendar.js';
-import { liveRows } from '../live.svelte.js';
-import { onLineage } from '../settings-scope.js';
-import { t } from '../t.js';
+import { HOLIDAY_QUERY_LIMIT, holidayView } from '../catalogues/holiday-calendar.js';
+import { liveRows } from '../state/live.svelte.js';
+import { onLineage } from '../scopes/settings-scope.js';
+import { t } from '../i18n/t.js';
 
 /** Every catalogue read on these surfaces skips rows still held under an approval request. */
 const approved = { approval_id: { isNull: true } } as const;

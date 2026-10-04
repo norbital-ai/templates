@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { t } from '../t.js';
+	import { t } from '../i18n/t.js';
 	/** A departure's declared facts, edited against the version of the entity's lineage in force on the last day. */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import type { CustomFieldView } from '@norbital-ai/ui';
 	import EntityFactsRenderer from '../../../data/custom_field/entity_facts/+renderer.svelte';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
-	import { live, liveRows } from '../live.svelte.js';
-	import { inForceSettings } from '../settings-scope.js';
+	import { live, liveRows } from '../state/live.svelte.js';
+	import { inForceSettings } from '../scopes/settings-scope.js';
 
 	let {
 		view,

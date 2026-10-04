@@ -1,6 +1,6 @@
 import type { Id } from '@norbital-ai/bolt';
 import type { ComboboxOption } from '@norbital-ai/ui';
-import { t } from '../../../lib/ui/t.js';
+import { t } from '../../../lib/ui/i18n/t.js';
 /**
  * The Settings app's scope: which law, and which version of it.
  *
@@ -15,10 +15,10 @@ import { t } from '../../../lib/ui/t.js';
  * and "the MY settings" is not a thing the page can show.
  */
 import { bolt } from '$bolt';
-import { formatSettingsRange } from '../../../lib/ui/display-formatters.js';
+import { formatSettingsRange } from '../../../lib/ui/format/display-formatters.js';
 import { coversDay, isInForceCandidate, newestFirst } from '../../../lib/jurisdiction_settings.js';
-import { todayKey } from '../../../lib/ui/calendar.js';
-import { liveRows } from '../../../lib/ui/live.svelte.js';
+import { todayKey } from '../../../lib/ui/format/calendar.js';
+import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 
 /** What a selected node carries back to the page, so it never re-reads the tree to find it. */
 type JurisdictionScopeNode = Readonly<{

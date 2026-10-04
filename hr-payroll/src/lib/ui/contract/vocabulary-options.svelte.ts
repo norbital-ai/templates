@@ -1,9 +1,9 @@
 import { bolt } from '$bolt';
 import { VOCABULARY_DEFAULTS, type VocabularyField } from '../../datatypes/payroll_settings.js';
 import { settingsInForce } from '../../jurisdiction_settings.js';
-import { todayKey } from '../calendar.js';
-import { liveRows } from '../live.svelte.js';
-import { inForceSettings } from '../settings-scope.js';
+import { todayKey } from '../format/calendar.js';
+import { liveRows } from '../state/live.svelte.js';
+import { inForceSettings } from '../scopes/settings-scope.js';
 
 /**
  * The classification codes (`payroll.vocabularies`) of the lineage's version in force on a day —

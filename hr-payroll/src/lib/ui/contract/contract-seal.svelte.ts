@@ -1,6 +1,6 @@
 import type { Id } from '@norbital-ai/bolt';
 import { bolt } from '$bolt';
-import { liveRows } from '../live.svelte.js';
+import { liveRows } from '../state/live.svelte.js';
 
 /** The collections whose rows seal a contract by naming it. */
 const CONSUMERS = [

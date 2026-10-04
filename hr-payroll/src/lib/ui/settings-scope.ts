@@ -8,7 +8,7 @@
  * than a second query for the versions.
  */
 import { PlainDate } from '@norbital-ai/std/date';
-import { dateKey } from '../iso-day.js';
+import { dateKey } from '../payroll_engine/foundation/time.js';
 
 /** Every version of the lineage, draft, sealed and voided alike: what a code-to-name map reads. */
 export function onLineage(code: string) {
@@ -28,4 +28,11 @@ export function inForceSettings(code: string, day: string) {
 		voided_at: { isNull: true },
 		effective_range: { contains: PlainDate(dateKey(day)) }
 	} as const;
+}
+
+/** Native jurisdiction periods have inclusive calendar-day bounds. */
+export function formatSettingsRange(range: {from: string; to: string | null} | null) {
+ if (range == null) return '—';
+ const display = (day: string) => new Intl.DateTimeFormat('en-GB', {day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`));
+ return `${display(range.from)} – ${range.to == null ? 'open' : display(range.to)}`;
 }
