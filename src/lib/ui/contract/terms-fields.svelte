@@ -4,20 +4,20 @@
 	 * standing, organisation and the dates. The contract detail, the hire form and the terms record all compose this
 	 * inside their `Form`, so a term never shows a different set of facts in two places.
 	 */
-	import EmploymentField from '../EmploymentField.svelte';
-	import { t } from '../t.js';
+	import EmploymentField from '../components/EmploymentField.svelte';
+	import { t } from '../i18n/t.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Combobox, Field, Picker, useForm } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import ContractAllowancesEditor from '../contract-allowances-editor.svelte';
-	import DeclaredFactsField from '../declared-facts-field.svelte';
+	import ContractAllowancesEditor from '../payroll/contract-allowances-editor.svelte';
+	import DeclaredFactsField from '../catalogues/declared-facts-field.svelte';
 	import type { ContractAllowance } from '../../datatypes/contract_allowances.js';
-	import { hrCreateScope } from '../create-scope.js';
-	import FormSection from '../form-section.svelte';
+	import { hrCreateScope } from '../scopes/create-scope.js';
+	import FormSection from '../components/form-section.svelte';
 	import * as Predicate from 'effect/Predicate';
 	import type { VocabularyField } from '../../datatypes/payroll_settings.js';
 	import { vocabularyOptions } from './vocabulary-options.svelte.js';
-	import CodeSelect from '../code-select.svelte';
+	import CodeSelect from '../catalogues/code-select.svelte';
 	import type { WageKeys } from '../../coded-fields.js';
 
 	let {

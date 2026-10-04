@@ -6,36 +6,53 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 45,
-		"apps": 7,
-		"automations": 8
+		"collections": 18,
+		"apps": 3,
+		"automations": 1
 	},
-	"tags": ["HR", "Finance", "Approvals"],
+	"tags": [
+		"HR",
+		"Finance",
+		"Approvals"
+	],
 	"seed": {
 		"bankTree": "norbital_hr",
 		"layout": "hr-records",
 		"stages": [
-			["team", "jurisdiction_settings"],
-			["user"],
 			[
-				"companies",
+				"sys_team",
+				"jurisdiction_settings"
+			],
+			[
+				"sys_user",
+				"entities",
 				"statutory_contributions",
 				"leave_catalogue",
 				"loan_catalogue",
 				"claim_catalogue",
 				"adhoc_catalogue",
-				"allowance_catalogue"
+				"allowance_catalogue",
+				"work_catalogue"
 			],
-			["company_facts"],
-			["employees", "shift_definitions", "jurisdiction_holidays"],
-			["shift_patterns"],
-			["employments"],
-			["payment_holds"],
-			["employment_statutory_facts", "employment_terms", "employment_wage_periods"],
-			["rosters"],
-			["work_days"],
-			["leave_entries", "claim_requests", "adhoc_requests", "loans"],
-			["loan_repayments"]
+			[
+				"employees",
+				"holidays"
+			],
+			[
+				"employee_profiles"
+			],
+			[
+				"rosters",
+				"obligations",
+				"payroll_runs"
+			],
+			[
+				"payslips"
+			],
+			[
+				"roster_entries",
+				"catalogue_entries"
+			]
 		]
 	},
 	"name_zh": "HR 与薪资",

@@ -1,207 +1,26 @@
-import { collection, type TransformRow } from '@norbital-ai/bolt';
-import { compileEligibility } from '../../../lib/payroll/run/eligibility.js';
-import { compileExpression } from '../../../lib/expressions/compile.js';
-import {
-	refuseUnlessDraftOnBoth,
-	versionsById,
-	type SealedVersion
-} from '../../../lib/settings_seal.js';
-import type { PayrollSettings } from '../../../lib/datatypes/payroll_settings.js';
-import type { LeaveEntitlement } from '../../../lib/datatypes/leave_entitlement.js';
-import { plain } from '../../../lib/wire.js';
-import * as Predicate from 'effect/Predicate';
-import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
-
-type Row = {
-	readonly settings_id?: string;
-	readonly code?: string;
-	readonly eligibility?: string;
-	readonly pay_fraction?: string;
-	readonly time_off_amount?: string;
-	readonly consumes_code?: string | null;
-	readonly unit?: 'DAY' | 'HOUR';
-	readonly entitlement?: LeaveEntitlement;
-	readonly event_facts?: readonly FactKey[];
-};
-
-const c = collection('leave_catalogue', {
-	read: { fields: 'all' },
-	create: {
-		input: {
-			columns: [
-				'settings_id',
-				'code',
-				'name',
-				'authority',
-				'eligibility',
-				'evidence',
-				'is_npl',
-				'requires_no_pay_origin',
-				'can_encash',
-				'encash_on_exit',
-				'pay_fraction',
-				'time_off_amount',
-				'paid_by',
-				'consumes_code',
-				'unit',
-				'evidence_after_days',
-				'entitlement',
-				'event_facts',
-				'schedule'
-			]
-		}
-	},
-	update: {
-		input: {
-			columns: [
-				'code',
-				'name',
-				'authority',
-				'eligibility',
-				'evidence',
-				'is_npl',
-				'requires_no_pay_origin',
-				'can_encash',
-				'encash_on_exit',
-				'pay_fraction',
-				'time_off_amount',
-				'paid_by',
-				'consumes_code',
-				'unit',
-				'evidence_after_days',
-				'entitlement',
-				'event_facts',
-				'schedule'
-			]
-		}
-	},
-	delete: {}
-});
+import { collection } from '@norbital-ai/bolt';
+import { plain } from '../../../lib/payroll_engine/foundation/primitives.js';
+import { versionsById, refuseUnlessDraftOnBoth } from '../../../lib/payroll_engine/catalogues/settings-seal.js';
+import { readAll } from '../../../lib/payroll_engine/foundation/reads.js';
+import { validateCatalogueDraft,validateCatalogueIntrinsicPolicies } from '../../../lib/payroll_engine/catalogues/authoring.js';
+import { refuse } from '../../../lib/payroll_engine/foundation/primitives.js';
+const columns = ['entry_schema', 'pricing', 'code', 'preceding_leave_code', 'preceding_leave_same_event', 'preceding_leave_contiguous', 'name', 'description', 'authority', 'eligibility', 'evidence', 'is_npl', 'requires_no_pay_origin', 'pay_fraction', 'episode_start', 'time_off_amount', 'payment_component_when', 'payment_release_when', 'payment_instruction_facts', 'payment_release_facts', 'payment_suspend_when', 'payment_component_amount', 'payment_component_monthly_when', 'payment_deduction_reference', 'payment_deduction_policy', 'time_off_rate_required_when', 'time_off_rate_basis', 'time_off_basis_when', 'time_off_retained_basis', 'time_off_unit', 'paid_by', 'consumes_code', 'unit', 'can_encash', 'encash_on_exit', 'evidence_after_days', 'entitlement', 'event_facts', 'schedule'] as const;
+const c = collection('leave_catalogue', { read: { fields: 'all' },  create: { input: { columns: ['settings_id', ...columns] } }, update: { input: { columns } }, delete: { transform: true } });
 export default c;
-
-/**
- * Sealed catalogue revisions remain the historical rules used by entitlement queries: a row of a
- * sealed version refuses create and update here, and delete through the grant. The eligibility
- * expression and every entitlement band predicate compile against the person context.
- */
-c.transform(async (inputs, ctx) => {
-	const existing = ctx.existing.map((row) => plain(row) as Row | undefined);
-	const versions = await versionsById(ctx.db, [
-		...inputs.map((input) => input.settings_id),
-		...existing.map((row) => row?.settings_id)
-	]);
-	return inputs.map((input, index) => {
-		const stored = existing[index];
-		const row: Row = { ...stored, ...(plain(input) as Row) };
-		refuseUnlessDraftOnBoth(
-			versions,
-			stored?.settings_id,
-			input.settings_id,
-			`Leave ${row.code ?? ''}`
-		);
-		// What the version's law fixes in this row's entitlement (`payroll.leave_constraints`).
-		const version = versions.get(row.settings_id ?? '') as
-			(SealedVersion & { readonly payroll?: PayrollSettings | null }) | undefined;
-		const rule = row.entitlement;
-		if (
-			rule?.consumes_overflow_unpaid === true &&
-			(row.consumes_code == null || (row.unit ?? 'DAY') !== 'DAY' || rule.rolling_months != null)
-		)
-			ctx.refuse(
-				'Unpaid shared-pool overflow requires a day-denominated leave with a named pool and a fixed entitlement window.'
-			);
-		for (const constraint of version?.payroll?.leave_constraints ?? []) {
-			if (constraint.code !== row.code) continue;
-			const cite = ` (${constraint.authority})`;
-			if (
-				constraint.year_anchor != null &&
-				(rule?.year_anchor ?? 'CALENDAR') !== constraint.year_anchor
-			)
-				ctx.refuse(`${row.code} must use the ${constraint.year_anchor} leave year${cite}.`);
-			if (
-				constraint.auto_carry_one_year != null &&
-				(rule?.auto_carry_one_year ?? false) !== constraint.auto_carry_one_year
-			)
-				ctx.refuse(
-					`${row.code} must ${constraint.auto_carry_one_year ? '' : 'not '}carry unused leave through the next leave year${cite}.`
-				);
-			if (
-				constraint.proration_in != null &&
-				!constraint.proration_in.includes(rule?.proration ?? '')
-			)
-				ctx.refuse(
-					`${row.code} proration must be one of ${constraint.proration_in.join(', ')}${cite}.`
-				);
-			if (constraint.rounding != null && (rule?.rounding ?? 'HALF_DAY') !== constraint.rounding)
-				ctx.refuse(`${row.code} must round a partial-year grant as ${constraint.rounding}${cite}.`);
-		}
-		const fault = (problem: string | null | undefined, what = '') => {
-			if (problem != null) ctx.refuse(`${what}${problem}`);
-		};
-		fault(compileEligibility(row.eligibility));
-		for (const band of row.entitlement?.bands ?? []) {
-			fault(compileEligibility(band.eligibility), 'Entitlement band: ');
-			if (Predicate.isString(band.days))
-				fault(
-					compileExpression({ expression: band.days, site: 'person', type: 'days' }),
-					'Entitlement days: '
-				);
-		}
-		const scale = row.entitlement?.scale ?? '';
-		if (scale.trim() !== '')
-			fault(
-				compileExpression({ expression: scale, site: 'person', type: 'number' }),
-				'Entitlement scale: '
-			);
-		fault(
-			compileEligibility(row.entitlement?.encash_on_exit_when ?? ''),
-			'Exit pay-out condition: '
-		);
-		fault(compileEligibility(row.entitlement?.child_years_when ?? ''), 'Child-year condition: ');
-		fault(
-			compileEligibility(
-				row.entitlement?.encash_carry_on_exit_when ?? row.entitlement?.encash_on_exit_when ?? ''
-			),
-			'Carried leave exit pay-out condition: '
-		);
-		const lifetime = row.entitlement?.lifetime_days;
-		if (Predicate.isString(lifetime))
-			fault(
-				compileExpression({ expression: lifetime, site: 'person', type: 'days' }),
-				'Lifetime days: '
-			);
-		const eventFacts = (row.event_facts ?? []) as readonly FactKey[];
-		const target = row.time_off_amount ?? '';
-		if (target.trim() !== '')
-			fault(
-				compileExpression({ expression: target, site: 'leave_day', type: 'number', eventFacts }),
-				'Time-off daily amount: '
-			);
-		const fraction = row.pay_fraction ?? '';
-		if (fraction.trim() !== '')
-			fault(
-				compileExpression({
-					expression: fraction,
-					site: 'leave_day',
-					type: 'number',
-					eventFacts
-				}),
-				'Pay fraction: '
-			);
-		// An event input's own conditions read the leave day, the entry's other inputs beside it.
-		for (const field of eventFacts)
-			for (const [kind, expression] of [
-				['requirement', field.required_when],
-				['validation', field.valid_when]
-			] as const)
-				fault(
-					compileExpression({ expression, site: 'leave_day', type: 'boolean', eventFacts }),
-					`Event input ${field.key} ${kind}: `
-				);
-		if (row.consumes_code != null && row.consumes_code === row.code)
-			ctx.refuse('A leave row cannot draw from its own pool; leave `consumes_code` empty.', {
-				field: 'consumes_code'
-			});
-		return input;
-	}) satisfies readonly TransformRow<'leave_catalogue'>[];
+c.transform(async (inputs,ctx)=>{
+ const rows=inputs.map(input=>plain(input));
+ const stored=ctx.existing.map(value=>value==null?undefined:plain(value));
+ for(const [index,row]of rows.entries())if(!('$delete' in row))validateCatalogueIntrinsicPolicies('leave_catalogue',{...stored[index],...row});
+ const ids=[...new Set(rows.flatMap((row,index)=>['settings_id' in row?row.settings_id:undefined,stored[index]?.settings_id]).filter(id=>id!=null&&id!==''))];
+ const versions=await versionsById(ctx.db,ids);
+ const parents=await readAll<Record<string,unknown>>(ctx.db,'jurisdiction_settings',{id:{in:ids}});
+ for(const [index,row] of rows.entries()){
+  const before=stored[index],deleting='$delete' in row,next={...before,...row};
+  refuseUnlessDraftOnBoth(versions,before?.settings_id,deleting?undefined:row.settings_id,'leave_catalogue');
+  if(deleting)continue;
+  if(next.settings_id==null)continue; // Nested children are validated by the actual root transform.
+  const parent=parents.find(value=>value.id===next.settings_id);if(!parent)refuse('Catalogue authoring requires its actual owning jurisdiction.');
+  await validateCatalogueDraft('leave_catalogue',next,parent);
+ }
+ return inputs;
 });

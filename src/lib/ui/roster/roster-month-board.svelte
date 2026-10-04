@@ -39,11 +39,11 @@
 </script>
 
 <script lang="ts">
-	import { t } from '../t.js';
+	import { t } from '../i18n/t.js';
 	import { Icon as IconWrapper } from '@norbital-ai/ui';
 	import { Number as EffectNumber } from 'effect';
 	import { Bound, Cluster, Cover, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import Skeleton from '../skeleton.svelte';
+	import Skeleton from '../components/skeleton.svelte';
 	import { cn } from '@norbital-ai/ui';
 	import {
 		CONFLICT_PRESENTATION,
@@ -63,7 +63,7 @@
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import RosterSlot from './roster-slot.svelte';
 	import type { SettlementClaim } from '../../scheduling/lock.js';
-	import { decodeNumber } from '../../wire.js';
+	import { decodeNumber } from '../../payroll_engine/foundation/primitives.js';
 
 	type Person = { readonly id: Id<'employments'>; readonly number: string; readonly name: string };
 

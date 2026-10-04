@@ -1,6 +1,6 @@
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
 import type { HolidaySnapshot } from '../datatypes/holiday_snapshots.js';
-import { getErrorMessage } from '../refuse.js';
+import { getErrorMessage } from '../payroll_engine/foundation/primitives.js';
 
 export const HOLIDAY_QUERY_LIMIT = 200;
 

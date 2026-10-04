@@ -10,7 +10,7 @@
 export const OWN_EMPLOYEE = { email: { eq: { actor: 'email' } } } as const;
 /** An employment whose employee is the signed-in member. */
 export const OWN_EMPLOYMENT = { employee_id: { is: OWN_EMPLOYEE } } as const;
-/** A row about one of the member's own employments. */
+/** A row about one of the member's own employee_profiles. */
 export const OWN = { employment_id: { is: OWN_EMPLOYMENT } } as const;
 
 /** A source no payslip settled; a settled one is released by deleting that draft payslip, never directly. */
@@ -115,16 +115,18 @@ export const SEAL_UPDATE_APPROVAL = {
 } as const;
 
 /** Every app of the HR controller group (a policy lists apps by name). */
-export const HR_CONTROLLER_APPS = [
-	'hr_controller/entities',
-	'hr_controller/payroll',
-	'hr_controller/kiosk',
-	'hr_controller/settings',
-	'hr_controller/people',
-	'hr_controller/events'
-] as const;
+export const HR_CONTROLLER_APPS = ['hr_controller/entities', 'hr_controller/people'] as const;
 
 /** Today's per-member budget: 600 collection calls a minute, 100 agent turns an hour. */
 export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' } as const;
 /** An automation's budget. */
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
+
+import jurisdictionModel from '../data/model/jurisdiction_settings/+model.ts';
+import relationships from '../data/+relationship.ts';
+import type { ReadField } from '@norbital-ai/bolt';
+/** Configuration moved under the jurisdiction retains each policy's original field visibility. */
+export function jurisdictionReadFields(referenceRows: boolean, assessmentPolicies: boolean): readonly ReadField<'jurisdiction_settings'>[] {
+ const excluded = new Set([...(referenceRows ? [] : ['reference_rows']), ...(assessmentPolicies ? [] : ['employer_assessment_policies'])]);
+ return [...new Set(['id', 'revision', 'approval_id', 'created_at', 'updated_at', 'created_by', 'updated_by', ...Object.keys(jurisdictionModel.fields), ...Object.keys(relationships).filter(key => key.startsWith('jurisdiction_settings.')).map(key => key.slice('jurisdiction_settings.'.length))])].filter(field => !excluded.has(field)) as ReadField<'jurisdiction_settings'>[];
+}

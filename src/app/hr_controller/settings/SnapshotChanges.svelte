@@ -7,12 +7,12 @@
 	 * It opens on the version on screen against its predecessor, and either side is pickable, so
 	 * "what did this version change?" and "what changed between these two?" are the same control.
 	 */
-	import { t } from '../../../lib/ui/t.js';
+	import { t } from '../../../lib/ui/i18n/t.js';
 	import { bolt } from '$bolt';
 	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Combobox, Spinner } from '@norbital-ai/ui';
-	import { formatSettingsRange } from '../../../lib/ui/display-formatters.js';
+	import { formatSettingsRange } from '../../../lib/ui/format/display-formatters.js';
 	import {
 		diffCollection,
 		diffSettingsRoot,

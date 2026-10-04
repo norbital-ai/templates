@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '../t.js';
+	import { t } from '../i18n/t.js';
 	import { everyField } from '../../every-field.js';
 	/**
 	 * One employment contract, whole: the stint (entity, employee number, contract number, bank, dates, departure) and
@@ -14,14 +14,14 @@
 	import { Field, Form, Picker } from '@norbital-ai/ui';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { coversDate } from '../../../lib/payroll/run/effective.js';
-	import { todayKey } from '../calendar.js';
-	import { formatTermsDates } from '../display-formatters.js';
-	import FormSection from '../form-section.svelte';
+	import { todayKey } from '../format/calendar.js';
+	import { formatTermsDates } from '../format/display-formatters.js';
+	import FormSection from '../components/form-section.svelte';
 	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
 	import { contractSeal } from './contract-seal.svelte.js';
 	import TermsFields from './terms-fields.svelte';
-	import CodeSelect from '../code-select.svelte';
-	import { live } from '../live.svelte.js';
+	import CodeSelect from '../catalogues/code-select.svelte';
+	import { live } from '../state/live.svelte.js';
 	import * as Predicate from 'effect/Predicate';
 
 	let {

@@ -3,7 +3,7 @@ import type { CodedVersion } from '../coded-fields.js';
 import { coversDate } from '../payroll/run/effective.js';
 import type { IsoDate } from '../payroll/run/dates.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
-import type { Wire } from '../wire.js';
+import type { Wire } from '../payroll_engine/foundation/primitives.js';
 import { liveRows } from './live.svelte.js';
 import { inForceSettings } from './settings-scope.js';
 

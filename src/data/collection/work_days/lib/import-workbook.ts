@@ -24,7 +24,7 @@ import {
 	RETIRED_OVERTIME_COLUMNS
 } from './import-month-grid.js';
 import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../../lib/workbook-settings.js';
-import { decodeNumber } from '../../../../lib/wire.js';
+import { decodeNumber } from '../../../../lib/payroll_engine/foundation/primitives.js';
 
 const ROSTER_SHEET_NAME = 'Roster';
 const ATTENDANCE_SHEET_NAME = 'Time entries';

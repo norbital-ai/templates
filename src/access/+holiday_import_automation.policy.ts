@@ -1,12 +1,13 @@
 import { policy } from '@norbital-ai/bolt';
-import { AUTOMATION_LIMITS } from './grants.js';
+import { AUTOMATION_LIMITS,jurisdictionReadFields } from './grants.js';
 
 export default policy({
 	description:
 		'Reads each entity’s configured holiday source and adds the holidays a Google calendar names that the entity does not have yet, unpublished. It cannot publish, change or delete a holiday.',
 	grants: {
-		companies: { read: true },
-		jurisdiction_holidays: {
+		entities: { read: true },
+  jurisdiction_settings:{read:{fields:jurisdictionReadFields(true,false)}},
+		holidays: {
 			read: true,
 			create: { fields: ['company_id', 'date', 'name', 'replaces', 'source'] }
 		}

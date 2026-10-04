@@ -1,5 +1,7 @@
 # Jurisdiction obligation trackers
 
+Current reconciled checkpoint: [CURRENT.md](CURRENT.md).
+
 One CSV tracker per jurisdiction, `docs/inventory/<jurisdiction>.csv`:
 
 | Jurisdiction              | Tracker           |
@@ -64,7 +66,7 @@ newline (`""` escapes a quote). The first line is the header, exactly these colu
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `VERIFIED`          | A production-path probe — saved inputs through the real workspace write path → payroll run → a saved payslip, refusal, obligation instance or generated file (owner decision 2026-09-30) — matches a hand-computed, cited result, and its `config_path` resolves against the seeds (`tests/inventory-inputs.test.ts`). Needs `probe` and `verified_at`. |
 | `TESTED`            | A hand-computed golden passes against the engine; no probe yet. Needs `golden`.                                                                                                                                                                                                                                                                         |
-| `IMPLEMENTED`       | Configured or coded; no golden.                                                                                                                                                                                                                                                                                                                         |
+| `IMPLEMENTED`       | The row’s full stated scope is implemented and integrated in application source, but not yet production-path verified. `reason` records the implementation evidence and any verification still due. Frozen candidates and partial subbranches do not qualify.                                                                                                                                                                                                                                                                                                                         |
 | `PARTIAL`           | Some branches proven; `reason` names the branches that are not.                                                                                                                                                                                                                                                                                         |
 | `GAP`               | A missing engine, profile or input feature that changes a payslip or HR result.                                                                                                                                                                                                                                                                         |
 | `EXTERNAL`          | An employer duty outside the calculator (filing, remittance, registration).                                                                                                                                                                                                                                                                             |
@@ -72,6 +74,10 @@ newline (`""` escapes a quote). The first line is the header, exactly these colu
 | `AWAITING-LAW`      | Announced but not yet published or gazetted.                                                                                                                                                                                                                                                                                                            |
 | `SOURCE-BLOCKED`    | The official text is unreachable; `reason` names what was tried.                                                                                                                                                                                                                                                                                        |
 | `NOT-APPLICABLE`    | A sourced exclusion; `citation`/`url` carry the source.                                                                                                                                                                                                                                                                                                 |
+
+### Wave 1 implementation tracking
+
+During implementation, change a fully integrated row to `IMPLEMENTED` without waiting for a probe. Keep incomplete rows as `GAP` or `PARTIAL`, with the exact unimplemented branch in `reason`. Preserve existing `VERIFIED` evidence; implementation is not verification. Documentary, source, future-law and external-action blockers retain their distinct statuses. Source adoption receipts and relevant application paths support implementation decisions; Wave 2 supplies production-path verification.
 
 ## Runtime-schema rule
 

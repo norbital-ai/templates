@@ -26,10 +26,10 @@
 	records why a fixed viewport-derived height is not the way to do that.
 -->
 <script lang="ts">
-	import Labelled from '../Labelled.svelte';
-	import { t } from '../t.js';
+	import Labelled from '../components/Labelled.svelte';
+	import { t } from '../i18n/t.js';
 	import { everyField } from '../../every-field.js';
-	import { isSettledId, dateKey } from '../../iso-day.js';
+	import { isSettledId, dateKey } from '../../payroll_engine/foundation/time.js';
 	import { resolveEmployment } from '../../employment-contract.js';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
 	import { patternAnchor, termPatternRow } from '../../scheduling/work-pattern.js';
@@ -42,15 +42,15 @@
 	import { openRecord } from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { live, liveRows } from '../live.svelte.js';
+	import { live, liveRows } from '../state/live.svelte.js';
 	import { captureClaims } from './capture-claims.js';
 	import { monthSources } from './month-sources.svelte.js';
 	import RosterMonthCalendar from './roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from './employee-reportability.js';
-	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
-	import { todayKey } from '../calendar.js';
+	import { formatCalendarDate, formatDurationHours } from '../format/display-formatters.js';
+	import { todayKey } from '../format/calendar.js';
 	import { addDays, monthBounds, shiftPeriod } from '../../../lib/payroll/run/dates.js';
-	import { decodeNumber } from '../../wire.js';
+	import { decodeNumber } from '../../payroll_engine/foundation/primitives.js';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
 		DAY_MINUTES,

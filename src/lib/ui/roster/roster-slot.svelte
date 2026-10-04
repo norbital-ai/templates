@@ -16,7 +16,7 @@
 	window and the presence.
 -->
 <script lang="ts">
-	import { t, type MessageKey } from '../t.js';
+	import { t, type MessageKey } from '../i18n/t.js';
 	import { cn } from '@norbital-ai/ui';
 	import { Bound, Imposter, Stack } from '@norbital-ai/ui/layout';
 	import {

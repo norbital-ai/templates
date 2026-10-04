@@ -1,9 +1,6 @@
 import { app } from '@norbital-ai/bolt';
-
 export default app('hr_controller/payroll', {
-	title: 'app.payroll.title',
-	description: 'app.payroll.description',
-	icon: 'lucide:badge-dollar-sign',
-	banner: 'app-media/payroll-banner.webp',
-	pages: { payroll: { title: 'app.payroll.title', icon: 'lucide:badge-dollar-sign' } }
+ title: 'app.payroll.runs_title', description: 'app.payroll.runs_description', icon: 'lucide:receipt',
+ banner: 'app-media/entities-banner.webp',
+ pages: { payroll: { title: 'app.payroll.runs_title', icon: 'lucide:receipt' } }
 });

@@ -2,7 +2,8 @@ import { automation, type Id } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { googleHolidayRows, holidaySources, readGoogleHolidayYear } from '../lib/holiday-import.js';
-import { plainRows } from '../lib/wire.js';
+import {dedupeHolidayRows} from '../lib/payroll_engine/catalogues/holiday-rows.js';
+import {getErrorMessage} from '../lib/payroll_engine/foundation/primitives.js';
 
 const outcome = {
 	kind: 'object',
@@ -25,7 +26,7 @@ const holiday_import = automation({
 		'Every 1 October, reads each entity’s enabled Google holiday calendar for next year and adds the days that entity does not have yet, unpublished. Manual runs choose an entity and a year. It never publishes, changes or deletes a holiday.',
 	on: { cron: '0 3 1 10 *' },
 	input: {
-		company_id: { kind: 'id', of: 'companies', optional: true },
+		company_id: { kind: 'id', of: 'entities', optional: true },
 		year: { kind: 'int', min: 1, max: 9998, optional: true }
 	},
 	output: { kind: 'object', fields: { imports: { kind: 'list', of: outcome } } },
@@ -35,15 +36,15 @@ const holiday_import = automation({
 export default holiday_import;
 
 holiday_import.run(async (input, ctx) => {
-	const { rows: companies } = await ctx.read('companies', {
+	const { rows: entities } = await ctx.read('entities', {
 		where: {
 			approval_id: { isNull: true },
 			...(input.company_id == null ? {} : { id: { eq: input.company_id } })
 		},
-		select: { name: true, settings_code: true, holiday_source: true },
+		select: { id:true,name: true, settings_code: true, holiday_source: true },
 		all: true
 	});
-	const sources = holidaySources(companies, input.company_id ?? undefined);
+	const sources = holidaySources(entities, input.company_id ?? undefined);
 	if (input.company_id != null && sources.length === 0)
 		throw new Error(
 			'No Google holiday calendar is known for this entity. Set one on the entity before importing.'
@@ -58,37 +59,21 @@ holiday_import.run(async (input, ctx) => {
 		});
 		const events = await Effect.runPromise(
 			readGoogleHolidayYear(source, year, (request) =>
-				Effect.promise(() =>
+				Effect.tryPromise({try:() =>
 					ctx.http('google_calendar').get(request.path, {
 						query: request.query,
 						output: { kind: 'json' }
-					})
-				)
+					}),catch:error=>new Error(getErrorMessage(error))
+				})
 			)
 		);
-		// a day repeated in the feed: the last statement wins
-		const proposed = [
-			...new Map(
-				googleHolidayRows(source.company_id, events).map((row) => [row.date, row])
-			).values()
-		];
-		const { rows: held } = await ctx.read('jurisdiction_holidays', {
-			where: {
-				company_id: { eq: source.company_id as Id<'companies'> },
-				date: { gte: PlainDate(`${year}-01-01`), lte: PlainDate(`${year}-12-31`) },
-				worksite: { isNull: true },
-				approval_id: { isNull: true }
-			},
-			select: { date: true },
-			all: true
-		});
-		const have = new Set(plainRows<{ date: string }>({ rows: held }).map((row) => row.date));
-		const inserts = proposed.filter((row) => !have.has(row.date));
+		const proposed=googleHolidayRows(source.company_id,events);
+		const {inserts,reconciliation}=await dedupeHolidayRows(ctx,proposed,message=>{throw new Error(message);});
 		if (inserts.length > 0)
 			await ctx.act(
-				'jurisdiction_holidays.create',
+				'holidays.create',
 				inserts.map((row) => ({
-					company_id: row.company_id as Id<'companies'>,
+					company_id: row.company_id as Id<'entities'>,
 					date: PlainDate(row.date),
 					name: row.name,
 					source: row.source
@@ -98,7 +83,7 @@ holiday_import.run(async (input, ctx) => {
 			company_id: source.company_id,
 			year,
 			inserted: inserts.length,
-			skipped: proposed.length - inserts.length
+			skipped: reconciliation.filter(row=>row.reason==='ALREADY_PRESENT').length
 		});
 	}
 	const inserted = imports.reduce((sum, row) => sum + row.inserted, 0);

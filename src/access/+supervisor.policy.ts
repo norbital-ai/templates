@@ -1,55 +1,39 @@
+import { CLAIM_APPROVAL, LEAVE_APPROVAL } from './grants.js';
+import { jurisdictionReadFields } from './grants.js';
 import { policy } from '@norbital-ai/bolt';
-import {
-	CLAIM_APPROVAL,
-	LEAVE_APPROVAL,
-	MEMBER_LIMITS,
-	OWN,
-	WORK_DAY_ATTENDANCE_FIELDS,
-	WORK_DAY_CREATE_APPROVAL,
-	WORK_DAY_UPDATE_APPROVAL
-} from './grants.js';
+import { MEMBER_LIMITS, OWN, WORK_DAY_ATTENDANCE_FIELDS, WORK_DAY_CREATE_APPROVAL, WORK_DAY_UPDATE_APPROVAL } from './grants.js';
 
 export default policy({
 	description:
 		'First-line supervisor: reads the team, reviews and records their attendance and leave.',
-	capabilities: { apps: ['hr_employee'] },
+	capabilities: { apps: [] },
+	automations: ['catalog_events'],
 	grants: {
-		companies: { read: true },
-		company_facts: { read: true },
-		worksites: { read: true },
-		shift_definitions: { read: true },
-		shift_patterns: { read: true },
+  catalogue_entries: {
+   queries: ['leave_summary','preview_leave'],
+   read: { where: { source_kind: { in: ['claim_requests', 'adhoc_requests', 'leave_entries'] } } },
+   create: { where: { or: [{ ...OWN, source_kind: { eq: 'claim_requests' }, catalog: { eq: 'CLAIM' } }, { source_kind: { eq: 'leave_entries' }, catalog: { eq: 'LEAVE' }, activity: { eq: 'TIME_OFF' } }] }, fields: ['source_basis', 'company_id', 'employment_id', 'catalog', 'catalogue_id', 'reference', 'occurred_on', 'values', 'input_proofs', 'input_files'], approval: [
+    { ...CLAIM_APPROVAL, match: { record: { catalog: { eq: 'CLAIM' } } } },
+    { ...LEAVE_APPROVAL, match: { record: { catalog: { eq: 'LEAVE' }, activity: { eq: 'TIME_OFF' } } } }
+   ] }
+  },
+		entities: { read: true },
 		leave_catalogue: { read: true },
-		jurisdiction_holidays: { read: true },
-		jurisdiction_settings: { read: true },
+		holidays: { read: true },
+		rule_sets: { read: { where: { scope: { ne: "GLOBAL" } } } },
+		jurisdiction_settings: { read: { fields: jurisdictionReadFields(false, false) } },
 		statutory_contributions: { read: true },
 		employees: { read: true },
-		employments: { read: true },
-		employment_terms: { read: true },
-		employment_statutory_facts: { read: true },
-		person_facts: { read: true },
-		employment_history: { read: true },
-		employment_wage_periods: { read: true },
-		presence_periods: { read: true },
-		payment_holds: { read: true },
+		employee_profiles: { read: true },
 		payroll_runs: {
 			read: { fields: ['company_id', 'period', 'attendance_from', 'attendance_to'] }
 		},
 		payslips: { read: OWN },
-		work_days: {
+		roster_entries: {
 			read: true,
 			// attendance, never the schedule; every write it admits touches the clock and is reviewed
-			create: { fields: WORK_DAY_ATTENDANCE_FIELDS, approval: WORK_DAY_CREATE_APPROVAL },
-			update: { fields: WORK_DAY_ATTENDANCE_FIELDS, approval: WORK_DAY_UPDATE_APPROVAL }
-		},
-		rosters: { read: true },
-		leave_entries: {
-			read: true,
-			create: { where: { activity: { eq: 'TIME_OFF' } }, approval: LEAVE_APPROVAL },
-			queries: ['leave_balances', 'preview_leave']
-		},
-		claim_requests: { read: true, create: { where: OWN, approval: CLAIM_APPROVAL } },
-		adhoc_requests: { read: true }
+					},
+		rosters: { read: true }
 	},
 	limits: MEMBER_LIMITS
 });

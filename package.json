@@ -14,7 +14,8 @@
 		"test:differential": "pnpm build && vitest run tests/e2e/differential.integration.test.ts",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
-		"generate:import-templates": "node scripts/generate-import-templates.mjs"
+		"generate:import-templates": "node scripts/generate-import-templates.mjs",
+		"test:smoke": "pnpm build && vitest run tests/e2e/boot.test.ts"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",

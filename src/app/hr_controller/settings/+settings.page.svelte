@@ -6,12 +6,11 @@
 	 * statutory contributions, the five money catalogues, and the comparison of two snapshots. A sealed version is law
 	 * that has frozen: no table under it offers a create.
 	 */
-	import { t } from '../../../lib/ui/t.js';
+	import { t } from '../../../lib/ui/i18n/t.js';
 	import { Toaster } from 'svelte-sonner';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Combobox, EmptyState, RecordShell, Table, Tabs } from '@norbital-ai/ui';
-	import Loading from '../../../lib/ui/Loading.svelte';
 	import { newestFirst } from '../../../lib/jurisdiction_settings.js';
 	import {
 		jurisdictionOptions,
@@ -20,7 +19,7 @@
 	} from './jurisdiction-scope.svelte.js';
 	import SnapshotChanges from './SnapshotChanges.svelte';
 	import { setContext } from 'svelte';
-	import { CHOOSE_SETTINGS_VERSION } from '../../../lib/ui/settings-version-lifecycle.svelte';
+	import { CHOOSE_SETTINGS_VERSION } from '../../../lib/ui/scopes/settings-version-lifecycle.svelte';
 
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
@@ -152,7 +151,7 @@
 		/>
 	{/snippet}
 	{#if all.current === undefined}
-		<Loading />
+		
 	{:else if scope == null}
 		<EmptyState title={t('app.settings.choose_jurisdiction_empty')} />
 	{:else}
