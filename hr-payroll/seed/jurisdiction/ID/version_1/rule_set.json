@@ -1,0 +1,661 @@
+[
+	{
+		"id": "42ae4a62-3770-5cda-b427-03d6cfd7f1d8",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "minimum_wage",
+		"name": "Regional minimum wage (UMP/UMK)",
+		"rules": {
+			"by_region": {
+				"Provinsi DKI Jakarta": 5396761,
+				"Provinsi Bali": 2996561,
+				"Provinsi Bali/Kabupaten Badung": 3534338.88,
+				"Provinsi Bali/Kota Denpasar": 3298116.5,
+				"Provinsi Bali/Kabupaten Gianyar": 3119080,
+				"Provinsi Bali/Kabupaten Tabanan": 3102520.45,
+				"Provinsi Bali/Kabupaten Bangli": 2996561,
+				"Provinsi Bali/Kabupaten Buleleng": 2996561,
+				"Provinsi Bali/Kabupaten Jembrana": 2996561,
+				"Provinsi Bali/Kabupaten Karangasem": 2996561,
+				"Provinsi Bali/Kabupaten Klungkung": 2996561,
+				"Provinsi Lampung": 2893070,
+				"Provinsi Lampung/Kota Bandar Lampung": 3305367,
+				"Provinsi Lampung/Kota Metro": 2903301,
+				"Provinsi Lampung/Kabupaten Lampung Selatan": 3076990,
+				"Provinsi Lampung/Kabupaten Way Kanan": 3072655,
+				"Provinsi Lampung/Kabupaten Mesuji": 3092026,
+				"Provinsi Lampung/Kabupaten Pesawaran": 2893070,
+				"Provinsi Lampung/Kabupaten Pringsewu": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Pesisir Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Tengah": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Timur": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Utara": 2893070,
+				"Provinsi Lampung/Kabupaten Tanggamus": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Barat": 2893070,
+				"Provinsi Jawa Barat/Kabupaten Bekasi": 5558515.1,
+				"Provinsi Jawa Barat/Kota Bekasi": 5690752.95,
+				"Provinsi Jawa Barat/Kabupaten Karawang": 5599593.21,
+				"Provinsi Jawa Barat/Kabupaten Purwakarta": 4792252.92,
+				"Provinsi Jawa Barat/Kabupaten Subang": 3508626.53,
+				"Provinsi Jawa Barat/Kota Depok": 5195721.78,
+				"Provinsi Jawa Barat/Kota Bogor": 5126897.22,
+				"Provinsi Jawa Barat/Kabupaten Bogor": 4877211.17,
+				"Provinsi Jawa Barat/Kabupaten Sukabumi": 3604482.92,
+				"Provinsi Jawa Barat/Kabupaten Cianjur": 3104583.63,
+				"Provinsi Jawa Barat/Kota Sukabumi": 3018634.94,
+				"Provinsi Jawa Barat/Kota Bandung": 4482914.09,
+				"Provinsi Jawa Barat/Kota Cimahi": 3863692,
+				"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3736741,
+				"Provinsi Jawa Barat/Kabupaten Sumedang": 3732088.02,
+				"Provinsi Jawa Barat/Kabupaten Bandung": 3757284.86,
+				"Provinsi Jawa Barat/Kabupaten Indramayu": 2794237,
+				"Provinsi Jawa Barat/Kota Cirebon": 2697685.47,
+				"Provinsi Jawa Barat/Kabupaten Cirebon": 2681382.45,
+				"Provinsi Jawa Barat/Kabupaten Majalengka": 2404632.62,
+				"Provinsi Jawa Barat/Kabupaten Kuningan": 2209519.29,
+				"Provinsi Jawa Barat/Kota Tasikmalaya": 2801962.82,
+				"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2699992.26,
+				"Provinsi Jawa Barat/Kabupaten Garut": 2328555.41,
+				"Provinsi Jawa Barat/Kabupaten Ciamis": 2225279.16,
+				"Provinsi Jawa Barat/Kabupaten Pangandaran": 2221724.19,
+				"Provinsi Jawa Barat/Kota Banjar": 2204754.48,
+				"Provinsi Jawa Tengah/Kabupaten Cilacap": 2640248,
+				"Provinsi Jawa Tengah/Kabupaten Banyumas": 2338410,
+				"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2338283.12,
+				"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2170475.32,
+				"Provinsi Jawa Tengah/Kabupaten Kebumen": 2259873.55,
+				"Provinsi Jawa Tengah/Kabupaten Purworejo": 2265937.67,
+				"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2299521.38,
+				"Provinsi Jawa Tengah/Kabupaten Magelang": 2467488,
+				"Provinsi Jawa Tengah/Kabupaten Boyolali": 2396598,
+				"Provinsi Jawa Tengah/Kabupaten Klaten": 2389872.78,
+				"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2359488,
+				"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2180587.5,
+				"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2437110,
+				"Provinsi Jawa Tengah/Kabupaten Sragen": 2182200,
+				"Provinsi Jawa Tengah/Kabupaten Grobogan": 2254090,
+				"Provinsi Jawa Tengah/Kabupaten Blora": 2238430.85,
+				"Provinsi Jawa Tengah/Kabupaten Rembang": 2236168.78,
+				"Provinsi Jawa Tengah/Kabupaten Pati": 2332350,
+				"Provinsi Jawa Tengah/Kabupaten Kudus": 2680485.72,
+				"Provinsi Jawa Tengah/Kabupaten Jepara": 2610224,
+				"Provinsi Jawa Tengah/Kabupaten Demak": 2940716,
+				"Provinsi Jawa Tengah/Kabupaten Semarang": 2750136,
+				"Provinsi Jawa Tengah/Kabupaten Temanggung": 2246850,
+				"Provinsi Jawa Tengah/Kabupaten Kendal": 2783455.25,
+				"Provinsi Jawa Tengah/Kabupaten Batang": 2534383,
+				"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2486653.59,
+				"Provinsi Jawa Tengah/Kabupaten Pemalang": 2296140,
+				"Provinsi Jawa Tengah/Kabupaten Tegal": 2333586.46,
+				"Provinsi Jawa Tengah/Kabupaten Brebes": 2239801.5,
+				"Provinsi Jawa Tengah/Kota Magelang": 2281230,
+				"Provinsi Jawa Tengah/Kota Surakarta": 2416560,
+				"Provinsi Jawa Tengah/Kota Salatiga": 2533583,
+				"Provinsi Jawa Tengah/Kota Semarang": 3454827,
+				"Provinsi Jawa Tengah/Kota Pekalongan": 2545138,
+				"Provinsi Jawa Tengah/Kota Tegal": 2376683.82,
+				"Provinsi Jawa Timur/Kota Surabaya": 4961753,
+				"Provinsi Jawa Timur/Kabupaten Gresik": 4874133,
+				"Provinsi Jawa Timur/Kabupaten Sidoarjo": 4870511,
+				"Provinsi Jawa Timur/Kabupaten Pasuruan": 4866890,
+				"Provinsi Jawa Timur/Kabupaten Mojokerto": 4856026,
+				"Provinsi Jawa Timur/Kabupaten Malang": 3553530,
+				"Provinsi Jawa Timur/Kota Malang": 3507693,
+				"Provinsi Jawa Timur/Kota Batu": 3360466,
+				"Provinsi Jawa Timur/Kota Pasuruan": 3358557,
+				"Provinsi Jawa Timur/Kabupaten Jombang": 3137004,
+				"Provinsi Jawa Timur/Kabupaten Tuban": 3050400,
+				"Provinsi Jawa Timur/Kota Mojokerto": 3031000,
+				"Provinsi Jawa Timur/Kabupaten Lamongan": 3012164,
+				"Provinsi Jawa Timur/Kabupaten Probolinggo": 2989407,
+				"Provinsi Jawa Timur/Kota Probolinggo": 2876657,
+				"Provinsi Jawa Timur/Kabupaten Jember": 2838642,
+				"Provinsi Jawa Timur/Kabupaten Banyuwangi": 2810139,
+				"Provinsi Jawa Timur/Kota Kediri": 2572361,
+				"Provinsi Jawa Timur/Kabupaten Bojonegoro": 2525132,
+				"Provinsi Jawa Timur/Kabupaten Kediri": 2492811,
+				"Provinsi Jawa Timur/Kota Blitar": 2481450,
+				"Provinsi Jawa Timur/Kabupaten Tulungagung": 2470800,
+				"Provinsi Jawa Timur/Kabupaten Lumajang": 2429764,
+				"Provinsi Jawa Timur/Kota Madiun": 2422105,
+				"Provinsi Jawa Timur/Kabupaten Blitar": 2413974,
+				"Provinsi Jawa Timur/Kabupaten Magetan": 2406719,
+				"Provinsi Jawa Timur/Kabupaten Sumenep": 2406551,
+				"Provinsi Jawa Timur/Kabupaten Nganjuk": 2405255,
+				"Provinsi Jawa Timur/Kabupaten Ponorogo": 2402959,
+				"Provinsi Jawa Timur/Kabupaten Madiun": 2400321,
+				"Provinsi Jawa Timur/Kabupaten Ngawi": 2397928,
+				"Provinsi Jawa Timur/Kabupaten Bangkalan": 2397550,
+				"Provinsi Jawa Timur/Kabupaten Trenggalek": 2378784,
+				"Provinsi Jawa Timur/Kabupaten Pamekasan": 2376614,
+				"Provinsi Jawa Timur/Kabupaten Pacitan": 2364287,
+				"Provinsi Jawa Timur/Kabupaten Bondowoso": 2347359,
+				"Provinsi Jawa Timur/Kabupaten Sampang": 2335661,
+				"Provinsi Jawa Timur/Kabupaten Situbondo": 2335209,
+				"Provinsi Sumatera Utara": 2992559,
+				"Provinsi Kepulauan Riau": 3623654,
+				"Provinsi Kepulauan Riau/Kota Tanjungpinang": 3623654,
+				"Provinsi Kepulauan Riau/Kota Batam": 4989600,
+				"Provinsi Kepulauan Riau/Kabupaten Bintan": 4207762,
+				"Provinsi Kepulauan Riau/Kabupaten Karimun": 3956475,
+				"Provinsi Kepulauan Riau/Kabupaten Lingga": 3623654,
+				"Provinsi Kepulauan Riau/Kabupaten Natuna": 3628002,
+				"Provinsi Kepulauan Riau/Kabupaten Kepulauan Anambas": 4084919,
+				"Provinsi Kepulauan Bangka Belitung": 3876600,
+				"Provinsi Banten": 2905119.9,
+				"Provinsi Banten/Kabupaten Pandeglang": 3206640.32,
+				"Provinsi Banten/Kabupaten Lebak": 3172384.39,
+				"Provinsi Banten/Kabupaten Tangerang": 4901117,
+				"Provinsi Banten/Kabupaten Serang": 4857353.01,
+				"Provinsi Banten/Kota Tangerang": 5069708.36,
+				"Provinsi Banten/Kota Cilegon": 5128084.48,
+				"Provinsi Banten/Kota Serang": 4418261.13,
+				"Provinsi Banten/Kota Tangerang Selatan": 4974392.42,
+				"Provinsi Riau/Kota Dumai": 4118659.61,
+				"Provinsi Riau/Kabupaten Bengkalis": 3933620.36,
+				"Provinsi Riau/Kabupaten Indragiri Hulu": 3703206.19,
+				"Provinsi Riau/Kota Pekanbaru": 3675937.97,
+				"Provinsi Riau/Kabupaten Rokan Hulu": 3579380.61,
+				"Provinsi Riau/Kabupaten Kampar": 3634593.72,
+				"Provinsi Riau/Kabupaten Siak": 3691216.25,
+				"Provinsi Riau/Kabupaten Pelalawan": 3616057.35,
+				"Provinsi Riau/Kabupaten Kuantan Singingi": 3692796.76,
+				"Provinsi Riau/Kabupaten Rokan Hilir": 3548818.47,
+				"Provinsi Riau/Kabupaten Indragiri Hilir": 3508776.22,
+				"Provinsi Riau/Kabupaten Kepulauan Meranti": 3508776.22,
+				"Provinsi DI Yogyakarta/Kabupaten Gunungkidul": 2330263.67,
+				"Provinsi DI Yogyakarta/Kabupaten Kulon Progo": 2351239.85,
+				"Provinsi DI Yogyakarta/Kabupaten Bantul": 2360533,
+				"Provinsi DI Yogyakarta/Kabupaten Sleman": 2466514.86,
+				"Provinsi DI Yogyakarta/Kota Yogyakarta": 2655041.81,
+				"Provinsi Sulawesi Tengah": 2915000,
+				"Provinsi Sulawesi Tenggara": 3073551.7,
+				"Provinsi Gorontalo": 3221731,
+				"Provinsi Papua": 4285850,
+				"Provinsi Papua Barat": 3615000,
+				"Provinsi Nusa Tenggara Timur": 2328969.69,
+				"Provinsi Kalimantan Barat": 2878286,
+				"Provinsi Kalimantan Barat/Kota Pontianak": 3024820
+			},
+			"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. the 2025 UMP, each in force from 1 January 2025, for the provinces whose own decree or government publication states it: Provinsi Kepulauan Bangka Belitung Rp3,876,600 — Kep. Gubernur Babel 188.44/628/DISNAKER/2024, signed copy on Disnaker Babel (diktum KEDUA, KEENAM); Provinsi Sulawesi Tenggara Rp3,073,551.70 — Kep. Gubernur Sultra 100.3.3.1/470 Tahun 2024, per the Pemprov Sultra portal; Provinsi Banten Rp2,905,119.90, Provinsi Sumatera Utara Rp2,992,559, Provinsi Kepulauan Riau Rp3,623,654 and Provinsi Gorontalo Rp3,221,731 — each the 2025 figure the provincial government states in its own 2026 announcement; Provinsi Papua Barat Rp3,615,000 — Pemprov Papua Barat announcement of 17 Dec 2024 (from 1 January 2025); Provinsi Sulawesi Tengah Rp2,915,000 — Pemprov Sulteng announcement of the 2025 wage council decision; Provinsi Papua Rp4,285,850 — the Pemprov Papua 2026 announcement’s Rp4,436,283 less its stated Rp150,433 rise, matching the Kemnaker 2025 compilation. A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency with no UMK (Perpres 82/2018 art.32(3); Permenaker 16/2024 art.12); a province not listed, or a city or regency with its own UMK, refuses rather than falls back. Provinsi Nusa Tenggara Timur Rp2,328,969.69 — Kep. Gubernur NTT 430/KEP/HK/2024 of 11 Dec 2024, 1 January–31 December 2025, per the Biro Administrasi Pimpinan Setda NTT announcement of 12 Dec 2024 (Kota Kupang has its own UMK and refuses). The other 2025 provincial decrees were not read. `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, read at the worksite the terms record (`employment_terms.worksite`), else the company’s region; a locality key overrides its province and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). Bali from 1 January 2025: UMP Rp2,996,561 (Kep.939/03-M/HK/2024, Bali Disnaker announcement B.21.500.15/17565/IV/DISNAKER.ESDM); UMKs Badung Rp3,534,338.88, Denpasar Rp3,298,116.50, Gianyar Rp3,119,080, Tabanan Rp3,102,520.45 (Kep.946/03-M/HK/2024, Disnaker announcement B.21.500.15/18055/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2025: all eight city/regency UMKs of Kep. Gubernur Banten 471 Tahun 2024 (17 Dec 2024), as enumerated by the provincial government on 18 Dec 2024; their exact values are also the 2025 comparison column in signed Kep.703 Tahun 2025 Lampiran. All eight localities have their own UMK; UMSP/UMSK selectors remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. From official provincial instruments, effective 1 January 2025 unless specified: Kepri seven named locality floors from the province's 2025 comparison table (Tanjungpinang and Lingga equal the UMP); Jawa Timur all 38 UMKs from signed Kep.775/2024; Jawa Tengah all 35 UMKs and Semarang UMSK from signed Kep.561/45/2024, plus the Jepara large-business UMSK amendment Kep.100.3.3.1/45/2025 effective 10 February 2025; Riau all 12 locality floors from Pemprov Media Center's exact-sen 2025 comparison; DIY all five UMKs from Disnakertrans; Lampung UMP Rp2,893,070, five UMKs and ten named UMP-floor regencies from Lampung JDIH and Disnakertrans. Bali 2025 UMSP is KBLI-2020 category I at Rp3,052,834; Badung five-star hotel KBLI 55110 UMSK is Rp3,569,682.27. Applicability of hotel star and Jepara large-business conditions must be affirmatively classified; an unknown fact cannot default to a nonbinding condition."
+		}
+	},
+	{
+		"id": "bb49c261-91e8-5e43-b894-4c81911fc824",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
+		"rules": {
+			"description": "Withhold the employee JHT and JP shares and pay them with the employer JHT, JKK, JKM and JP contributions of the wage month by the 15th of the following month; late payment carries a 2% fine per month late, borne by the employer. A 15th on a Saturday, Sunday or published holiday rolls to the next working day (PP 44/2015 art.21(3)).",
+			"authority": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)",
+			"schemes": ["JHT", "JP", "JKK", "JKM"],
+			"due": "next_working_day(add_days(period.to, 15), holidays)"
+		}
+	},
+	{
+		"id": "216594d4-451a-5b7e-b233-6ecc46ff1b87",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "BPJS_KESEHATAN_REMITTANCE",
+		"name": "BPJS Kesehatan contribution",
+		"rules": {
+			"description": "Collect the worker's 1% (and any elected extra-member 1%) and pay it with the 4% employer contribution by the 10th of each month; unpaid by month end suspends cover from the 1st of the next month. A 10th on a Saturday, Sunday or published holiday rolls to the next working day (art.39(4)).",
+			"authority": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+			"schemes": ["KESEHATAN"],
+			"due": "next_working_day(add_days(period.from, 9), holidays)"
+		}
+	},
+	{
+		"id": "47e690f8-1783-50e9-bf64-175a22f1050a",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "PPH21_PAYMENT",
+		"name": "PPh 21/26 deposit",
+		"rules": {
+			"description": "Deposit the PPh 21 and PPh 26 withheld in the tax period by the 15th of the following month. A due day on a Saturday, Sunday or published holiday rolls to the next working day.",
+			"authority": "PMK 81/2024 art.94(2) (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024)",
+			"schemes": ["PPH21", "PPH21_FINAL_SEVERANCE", "PPH26"],
+			"due": "next_working_day(add_days(period.to, 15), holidays)"
+		}
+	},
+	{
+		"id": "b9f0b858-7df5-588b-8739-a5956bcce1ca",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PPH21_SPT_MASA",
+		"name": "SPT Masa PPh 21/26",
+		"rules": {
+			"description": "File the SPT Masa PPh 21/26 with the month's withholding slips (bukti potong) within 20 days after the tax period ends; late filing Rp100,000 per SPT Masa. A due day on a Saturday, Sunday or published holiday rolls to the next working day.",
+			"authority": "UU KUP art.3(3)(a) and art.7(1); PMK 81/2024; PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(period.to, 20), holidays)"
+		}
+	},
+	{
+		"id": "4083c92a-ddb3-5b81-a6da-f2c40783e003",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PPH21_BPA1_YEAR_END",
+		"name": "Bukti potong 1721-A1 (BPA1) for the tax year",
+		"rules": {
+			"description": "Give each permanent employee the annual withholding slip (formulir 1721-A1 / BPA1) for the tax year within one month after December, the last tax period.",
+			"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "77d09e2a-2710-5434-9492-d6c0b0ba6ccd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PTKP_STATUS_ANNUAL",
+		"name": "PTKP status as at 1 January",
+		"rules": {
+			"description": "Fix each employee's PTKP status (marital status and dependants) on the circumstances at the start of the calendar year and record it before the January withholding; the TER category follows it.",
+			"authority": "PMK 168/2023 art.9; UU PPh art.7(2)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "period.from"
+		}
+	},
+	{
+		"id": "80597c50-f840-561d-87cf-d4233043019c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_COMPLIANCE",
+		"name": "New provincial and city minimum wages in force",
+		"rules": {
+			"description": "Apply the governor's UMP/UMK decree for the year from its commencement on 1 January: no basic plus fixed allowances below the workplace minimum.",
+			"authority": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025 (https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "period.from"
+		}
+	},
+	{
+		"id": "4fee1e33-2887-5847-9896-ffd30e2a8209",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PAYSLIP_ISSUE",
+		"name": "Wage slip",
+		"rules": {
+			"description": "Give each worker a wage slip (\"bukti pembayaran Upah\") at the time the wage is paid. Raised per payslip when it is marked paid, due that day.",
+			"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
+			"trigger": {
+				"collection": "payslip",
+				"event": "updated"
+			},
+			"when": "has(row.paid_on) && row.paid_on != null",
+			"due": "row.paid_on"
+		}
+	},
+	{
+		"id": "dea8c96b-bd89-5ee5-a611-48f532ea6948",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
+		"name": "BPJS Ketenagakerjaan registration of a new worker",
+		"rules": {
+			"description": "Register the new worker for JKK, JKM, JHT and JP (JKP follows) within 30 days of the first day of work, with the worker's and family data; the participant card goes to the worker within 3 working days of receipt.",
+			"authority": "PP 45/2015 art.4(1)–(2) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 44/2015 arts.6–7 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15(1)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "3f86cdf0-c0dd-5443-aefe-7f5205014d6b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "BPJS_KESEHATAN_REGISTRATION",
+		"name": "BPJS Kesehatan registration of a new worker",
+		"rules": {
+			"description": "Register the new worker and family (spouse and up to three children) with BPJS Kesehatan on employment; a foreigner once working six months in Indonesia.",
+			"authority": "Perpres 82/2018 arts.13–14, 17 as amended (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "5e100fd9-a6b7-5179-939e-e086971f5ed7",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PTKP_STATUS_AT_HIRE",
+		"name": "PTKP status and tax identity of a new employee",
+		"rules": {
+			"description": "Record the new employee's NIK/NPWP and PTKP status (marital status, dependants) before the first withholding.",
+			"authority": "PMK 168/2023 art.9; UU PPh art.21(5a)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "b6446b3c-752a-56df-bf81-c6e9df3e5a92",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PKWT_REGISTRATION",
+		"name": "PKWT registration with the ministry",
+		"rules": {
+			"description": "Register a fixed-term contract (PKWT) online within 3 working days of signing (in writing at the regency/city manpower office within 7 working days where the online service is unavailable). Three working days (no Saturday, Sunday or published holiday). Waive it for a PKWTT (open-ended) hire.",
+			"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "!has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, t.employment_type == \"CONTRACT\")",
+			"due": "add_working_days(hired_on, 3, holidays)"
+		}
+	},
+	{
+		"id": "29172e4d-a712-59b0-9ad5-77b696cb667b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+		"name": "RPTKA approval and DKPTKA payment for a foreign worker",
+		"rules": {
+			"description": "Before a foreign worker starts, hold the approved RPTKA and pay the DKPTKA compensation fund for the period worked in Indonesia. Raised for a hire whose nationality is not ID (ISO 3166-1 alpha-2).",
+			"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "c03e3758-b896-5945-8c5e-3bd9b92d8530",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PPH21_BPA1_EXIT",
+		"name": "Bukti potong 1721-A1 (BPA1) for a leaver",
+		"rules": {
+			"description": "Give a permanent employee who stops working the annual withholding slip for the part year within one month after the exit month, the last tax period. Waive it for a non-permanent recipient, who takes a BPMP instead.",
+			"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "month_end(add_months(exit_on, 1))"
+		}
+	},
+	{
+		"id": "d5bf7214-917f-5163-9d5d-1e6c47456efb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "JKP_PHK_NOTIFICATION",
+		"name": "Termination notice to BPJS Ketenagakerjaan (JKP)",
+		"rules": {
+			"description": "Report a JKP participant's termination of employment (PHK) to BPJS Ketenagakerjaan through SIAPkerja within 7 working days; seven working days (no Saturday, Sunday or published holiday). Raised only for a termination cause JKP covers (not resignation, retirement, total permanent disability or death; the end of a PKWT records no cause) of an Indonesian national; waive it for a worker never enrolled (54 or over at registration).",
+			"authority": "Permenaker 2/2025 art.9 (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 art.20 as amended by PP 6/2025",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.termination_cause) && !(contract.exit_facts.termination_cause in [\"VOLUNTARY_RESIGNATION\", \"RETIREMENT\", \"DEATH\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\"]) && !(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
+			"due": "add_working_days(exit_on, 7, holidays)"
+		}
+	},
+	{
+		"id": "51d23091-a1b2-5790-841a-e1fb315f9b14",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TERMINATION_REPORT",
+		"name": "Report of a termination of employment",
+		"rules": {
+			"description": "Report the termination to the ministry and the provincial/regency manpower office once the worker received the notice and did not reject it. Raised for an employer-initiated termination cause (not a resignation or death).",
+			"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.termination_cause) && !(contract.exit_facts.termination_cause in [\"VOLUNTARY_RESIGNATION\", \"DEATH\"])",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "afa23772-f30d-5f6a-8ceb-3d23be4d755a",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WLKP_ESTABLISHMENT_REPORT",
+		"name": "Compulsory employment report (WLKP) on establishment",
+		"rules": {
+			"description": "Report the company's employment data to the manpower ministry (Wajib Lapor Ketenagakerjaan di Perusahaan, online) within 30 days of establishing, reopening or moving the company. Raised when the entity is created; the due day counts from the first day of that month, never later than the deadline. The annual report thereafter is not raised (its anniversary is not on the duty context).",
+			"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "add_days(period.from, 30)"
+		}
+	},
+	{
+		"id": "8b24bb14-8769-52bf-a48b-fe644732b60f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_FLOOR",
+		"name": "Wage at least the workplace minimum wage",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && company.region in rules.minimum_wage.by_region && term.monthly_wage < rules.minimum_wage.by_region[company.region] && employment.service_months < 12.0",
+			"message": "The basic wage plus fixed allowances of a worker with less than one year of service is below the workplace minimum wage (rules.minimum_wage.by_region[company.region]); UU 13/2003 art.88E bars paying less.",
+			"authority": "UU 13/2003 art.88E(2) as amended by UU 6/2023 (\"Pengusaha dilarang membayar Upah lebih rendah dari Upah minimum\"); PP 36/2021 arts.23, 25 as amended by PP 51/2023 and PP 49/2025 — the UMK of the workplace, else the UMP. Micro and small enterprises are outside the minimum wage (PP 36/2021 art.36); a part-time or daily wage is not a monthly wage and is not compared here. The governor's sector minimum wages (UMSK/UMSP, e.g. DKI Kep. Gubernur 33/2026) are not seeded: their official text could not be read. The minimum wage binds a worker with less than one year of service with the employer (UU 13/2003 art.88E(1) as amended by UU 6/2023; Kep. Gubernur Jawa Barat 561.7/Kep.862-Kesra/2025 diktum KETIGA; Kep. Gubernur DKI 1142/2025); service of a year or more is paid by the wage structure and scale (PP 36/2021 art.21)."
+		}
+	},
+	{
+		"id": "197857a6-f05c-5053-9804-4bd8d6531337",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "BASIC_WAGE_SHARE",
+		"name": "Basic wage at least 75% of basic plus fixed allowances",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.monthly_wage > 0.0 && term.base_salary < 0.75 * term.monthly_wage",
+			"message": "The basic wage is below 75% of basic wage plus fixed allowances (PP 36/2021 art.7(2)).",
+			"authority": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)."
+		}
+	},
+	{
+		"id": "62615c8a-ef13-5a37-ba7b-bb24af9d6c0c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_DAILY_LIMIT",
+		"name": "Overtime at most 4 hours a day",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, (d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" && d.overtime_hours > 4.0)",
+			"message": "Overtime above 4 hours on a working day (PP 35/2021 art.26(1)); the hours are paid, the limit is breached.",
+			"authority": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 hours a week, not counting overtime on the weekly rest day or an official holiday (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf). The hours worked are still paid (art.31), so the run warns rather than refuses."
+		}
+	},
+	{
+		"id": "2f3acb44-1ada-5f5a-baf2-2ef96c69f4c2",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_WEEKLY_LIMIT",
+		"name": "Overtime at most 18 hours a week",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, sum(work.days.filter(x, (x.day_type == \"WORK\" || x.day_type == \"\") && x.holiday_kind == \"\" && calendar_distance_days(x.date, d.date) >= 0.0 && calendar_distance_days(x.date, d.date) <= 6.0).map(x, x.overtime_hours)) > 18.0)",
+			"message": "Overtime above 18 hours in seven consecutive days (PP 35/2021 art.26(1)); the hours are paid, the limit is breached.",
+			"authority": "PP 35/2021 art.26(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf). The week is read as any seven consecutive days of the attendance window, which never misses a calendar week over the limit; rest-day and holiday overtime is outside the limit (art.26(2))."
+		}
+	},
+	{
+		"id": "31aca744-c7ed-5b99-b039-815155514f8f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_DEDUCTION_CEILING",
+		"name": "Wage deductions at most 50% of the wage paid",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "payslip.gross + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0) > 0.0 && (has(payslip.lines.STAFF_LOAN) ? -payslip.lines.STAFF_LOAN : 0.0) + (has(payslip.lines.DEDUCTION) ? -payslip.lines.DEDUCTION : 0.0) + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0) > 0.5 * (payslip.gross + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0))",
+			"message": "Loan instalments, deductions and recovered overpayments exceed 50% of this wage payment (PP 36/2021 art.65); the payslip is held.",
+			"authority": "PP 36/2021 arts.63–65: fines, damages, wage advances, rent, debts and their instalments, and recovered overpaid wages may together take at most 50% of each wage payment (art.65); contributions to the state and social security (BPJS, PPh 21) are outside it (art.64), and so is the pension offset against separation pay (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021). Here: STAFF_LOAN, DEDUCTION and CLAWBACK_OVERTIME against the gross before the clawback."
+		}
+	},
+	{
+		"id": "1379e7c0-3a95-5550-a56d-c3088400683d",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WLKP_ANNUAL_REPORT",
+		"name": "Annual compulsory employment report (WLKP)",
+		"rules": {
+			"description": "Report the company's employment data to the manpower ministry (WLKP online) every year, on the anniversary of its first report (`company.facts.wlkp_first_reported_on`). Raised once a year with that month's payroll run (one per company); a company without the date recorded raises nothing — record it.",
+			"authority": "UU 7/1981 art.8(1): the report is repeated every year (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"when": "has(company.facts.wlkp_first_reported_on) && months_through(company.facts.wlkp_first_reported_on, period.from) > 1.0 && int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0) % 12 == 0",
+			"due": "add_months(company.facts.wlkp_first_reported_on, int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0))"
+		}
+	},
+	{
+		"id": "d0ce5d24-a8a3-5626-9e36-ca765f42eb70",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to BPJS Ketenagakerjaan (stage I)",
+		"rules": {
+			"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the manpower office within 2 × 24 hours of it (stage I); stage II follows within 2 × 24 hours of the doctor's certificate (not raised: no record carries that day). Raised when a WORK_ACCIDENT_LEAVE absence is recorded, counted from its first day.",
+			"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\"",
+			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, 2)"
+		}
+	},
+	{
+		"id": "0611bbab-0b3b-5b0f-861f-c775ae5df9d8",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "COMPANY_REGULATION_RENEWAL",
+		"name": "Renewal of the company regulations (Peraturan Perusahaan)",
+		"rules": {
+			"description": "An employer of 10 or more workers must have company regulations ratified by the minister or official; they are valid for at most 2 years and must be renewed. Raised with the payroll run of the month the recorded validity ends (`company.facts.company_regulation_valid_until`), for a company of 10 or more workers.",
+			"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); Permenaker 28/2014",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"applies_when": "headcount >= 10.0",
+			"when": "has(company.facts.company_regulation_valid_until) && company.facts.company_regulation_valid_until >= period.from && company.facts.company_regulation_valid_until <= period.to",
+			"due": "company.facts.company_regulation_valid_until"
+		}
+	},
+	{
+		"id": "70cecacc-d582-56ab-b91d-297d5d96fda7",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_WRITTEN_ORDER",
+		"name": "Written overtime order and consent",
+		"rules": {
+			"description": "Overtime needs the employer's order and the worker's written or digital consent, and the employer keeps a list of the overtime worked (art.28). Raised for an attendance day carrying approved overtime hours with no recorded consent (`overtime_consented_at`), due that day; meals of 1,400 kcal for 4 hours or more (art.29(1)(c)) are not tracked.",
+			"authority": "PP 35/2021 arts.28–29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
+			"trigger": {
+				"collection": "roster_entry",
+				"event": "updated"
+			},
+			"when": "has(row.approved_overtime_hours) && row.approved_overtime_hours != null && row.approved_overtime_hours > 0.0 && (!has(row.overtime_consented_at) || row.overtime_consented_at == null)",
+			"due": "row.work_date"
+		}
+	},
+	{
+		"id": "67c3e02b-1a89-5de5-84be-feeb880f0495",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "THR_PAYMENT",
+		"name": "THR before the religious holiday",
+		"rules": {
+			"description": "Pay the religious holiday allowance (THR) at the latest 7 days before each worker's own religious holiday — Idul Fitri (Islam), Christmas (Catholic and Protestant), Nyepi (Hindu), Waisak (Buddhist), Imlek (Konghucu); a late THR carries a 5% fine. Raised with the payroll run of the month the 7-day deadline falls in, from the company's published holidays (by name); waive it where no worker's holiday is the one named.",
+			"authority": "Permenaker 6/2016 arts.1(2), 2, 5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf); SE Menaker M/3/HK.04.00/III/2026",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"when": "holidays_named.exists(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from && add_days(h.date, -7) <= period.to)",
+			"due": "add_days(first(holidays_named.filter(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from)).date, -7)"
+		}
+	},
+	{
+		"id": "ef310140-7e12-53f7-bbe9-7bee54cfd7e4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "SECTOR_MINIMUM_WAGE",
+		"name": "Sector minimum wage at least the governor's UMSP",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && employment.service_months < 12.0 && has(rules.minimum_wage.by_sector) && company.region in rules.minimum_wage.by_sector && has(term.facts.worksite_kbli) && rules.minimum_wage.by_sector[company.region].exists(r, r.kbli == term.facts.worksite_kbli && (r.condition == \"\" || (r.condition == \"EXPORT\" && (has(company.facts.umsp_export_oriented) && company.facts.umsp_export_oriented == true)) || (r.condition == \"ASSETS_1T\" && (has(company.facts.umsp_assets_over_1_trillion) && company.facts.umsp_assets_over_1_trillion == true)) || (r.condition == \"ASTRA\" && (has(company.facts.umsp_astra_group) && company.facts.umsp_astra_group == true)) || (r.condition == \"HOTEL_4_5\" && has(company.facts.umsp_hotel_star) && company.facts.umsp_hotel_star >= 4.0) || (r.condition == \"BUS_DRIVER_MECHANIC\" && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") == \"BUS_DRIVER_MECHANIC\") || (r.condition == \"CLASS_A_HOSPITAL_CARE\" && (has(company.facts.umsp_class_a_private_hospital) && company.facts.umsp_class_a_private_hospital == true) && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") in [\"NURSING_MIDWIFERY\", \"MEDICAL_SUPPORT\"])) && term.monthly_wage < r.monthly)",
+			"message": "The monthly wage is below the governor's sector minimum wage for this worksite's KBLI (rules.minimum_wage.by_sector); a worker with less than one year of service may not be paid less.",
+			"authority": "PP 36/2021 art.35D(1) as amended by PP 49/2025; Kep. Gubernur DKI Jakarta 33/2026 (20 Jan 2026, in force from 1 January 2026), diktum KETIGA and KELIMA and its Lampiran of 61 KBLI rows, read from the signed original (https://jdih.jakarta.go.id/dokumenPeraturanDirectory/0031/2026KEPGUB003133.pdf). Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, 4- or 5-star hotel, class-A private hospital (company.facts), and the job category for the bus and hospital rows (terms.facts.umsp_job_category)."
+		}
+	}
+]

@@ -61,8 +61,8 @@
 						{t('component.suspicion_resolved_at', {
 							instant:
 								format({ kind: 'instant' }, record.resolved_at ?? null, {
-									...kinds,
-									locale: kinds.locale ?? bolt.locale
+									locale: kinds.locale ?? bolt.locale,
+									...(kinds.zone == null ? {} : { zone: kinds.zone })
 								}) || '—'
 						})}
 					</p>

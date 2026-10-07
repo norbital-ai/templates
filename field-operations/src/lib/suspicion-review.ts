@@ -1,4 +1,5 @@
-import type { AutomationCtx, FileRef, Id, Point } from '@norbital-ai/bolt';
+import type { AutomationCtx, FileRef, Id, Instant, Point } from '@norbital-ai/bolt';
+import { Instant as instantOf } from '@norbital-ai/std/date';
 import { sha256Text } from './sha256.js';
 import {
 	hexToBinaryEmbedding,
@@ -18,16 +19,12 @@ import * as Predicate from './guards.js';
 
 type Ctx = AutomationCtx;
 /** A thrown facility error is its typed value (`{ kind, message | reason }`), not an `Error`. */
-export const messageOf = (error: unknown): string =>
-	error instanceof Error
-		? error.message
-		: Predicate.isObjectOrArray(error)
-			? String(
-					(error as { message?: unknown; reason?: unknown }).message ??
-						(error as { reason?: unknown }).reason ??
-						JSON.stringify(error)
-				)
-			: String(error);
+export const messageOf = (error: unknown): string => {
+	if (error instanceof Error) return error.message;
+	if (!Predicate.isObjectOrArray(error) || Array.isArray(error)) return String(error);
+	const message = error['message'] ?? error['reason'];
+	return message != null ? String(message) : JSON.stringify(error);
+};
 const HIT = {
 	photo: true,
 	sha256: true,
@@ -86,7 +83,7 @@ const SIGNAL_WEIGHT: Readonly<Record<PhotoFlag, number>> = {
 };
 
 export type ReviewPhoto = {
-	readonly id: string;
+	readonly id: Id<'photo_evidence'>;
 	readonly photo: FileRef;
 	/** Byte size, for the attachment budget; `-1` when unknown (then it takes no visual slot). */
 	readonly bytes: number;
@@ -103,12 +100,12 @@ export type ReviewCandidate = Omit<
 	'matched_evidence_ids' | 'created_at' | 'scene_embedding' | 'inspection_failed_at'
 > & {
 	readonly distance: number;
-	readonly matched_photo_ids: readonly string[];
+	readonly matched_photo_ids: readonly Id<'photo_evidence'>[];
 };
 export type ReviewFacts = {
 	readonly assignment: {
-		readonly id: string;
-		readonly site_id: string;
+		readonly id: Id<'job_assignments'>;
+		readonly site_id: Id<'sites'>;
 		readonly title: string;
 		readonly nature: string | null;
 		readonly scheduled_for: string;
@@ -118,7 +115,7 @@ export type ReviewFacts = {
 		readonly location: Point | null;
 	};
 	readonly site: {
-		readonly id: string;
+		readonly id: Id<'sites'>;
 		readonly name: string;
 		readonly location: Point | null;
 		readonly house_type: string | null;
@@ -149,9 +146,14 @@ export const gpsMetadataStatus = (flags: readonly string[]) =>
 const photoOrder = (photo: ReviewPhoto) => `${photo.created_at ?? ''}\u0000${photo.id}`;
 const byOrder = (left: ReviewPhoto, right: ReviewPhoto) =>
 	photoOrder(left).localeCompare(photoOrder(right));
+function isPhotoFlag(flag: string): flag is PhotoFlag {
+	for (const allowed of PHOTO_FLAGS) if (allowed === flag) return true;
+	return false;
+}
+
 const photoSignal = (photo: ReviewPhoto) =>
 	photo.matched_evidence_ids.length * 8 +
-	photo.flags.reduce((total, flag) => total + (SIGNAL_WEIGHT[flag as PhotoFlag] ?? 0), 0);
+	photo.flags.reduce((total, flag) => total + (isPhotoFlag(flag) ? SIGNAL_WEIGHT[flag] : 0), 0);
 
 /**
  * A small deterministic visual sample: preferred photos (a candidate's probe), up to two signalled ones, then first,
@@ -160,7 +162,7 @@ const photoSignal = (photo: ReviewPhoto) =>
  */
 export function selectInferencePhotos(
 	photos: readonly ReviewPhoto[],
-	preferred: readonly string[] = []
+	preferred: readonly Id<'photo_evidence'>[] = []
 ): ReviewPhoto[] {
 	const chronological = [...photos]
 		.filter((photo) => photo.inspection_failed_at == null)
@@ -447,14 +449,14 @@ export function judge(
  * of look-alike doors nominates nothing), and keep the closest `MAX_CANDIDATES`.
  */
 export function nominate(
-	probes: readonly string[],
+	probes: readonly Id<'photo_evidence'>[],
 	hits: readonly {
-		readonly probe: string;
+		readonly probe: Id<'photo_evidence'>;
 		readonly distance: number;
 		readonly candidate: Omit<ReviewCandidate, 'distance' | 'matched_photo_ids'>;
 	}[]
 ): ReviewCandidate[] {
-	const winners = new Map<string, ReviewCandidate>();
+	const winners = new Map<Id<'photo_evidence'>, ReviewCandidate>();
 	for (const probe of probes) {
 		const ranked = hits
 			.filter((hit) => hit.probe === probe)
@@ -488,9 +490,9 @@ const bytesOf = async (ctx: Ctx, ref: FileRef) => {
 async function assignmentsOf(
 	ctx: Ctx,
 	photos: readonly {
-		readonly id: string;
-		readonly job_assignment_id: string | null;
-		readonly variation_request_id: string | null;
+		readonly id: Id<'photo_evidence'>;
+		readonly job_assignment_id: Id<'job_assignments'> | null;
+		readonly variation_request_id: Id<'variation_requests'> | null;
 	}[]
 ) {
 	const variationIds = photos.flatMap((p) =>
@@ -498,18 +500,17 @@ async function assignmentsOf(
 	);
 	const variations = variationIds.length
 		? await ctx.read('variation_requests', {
-				where: { id: { in: variationIds as Id<'variation_requests'>[] } },
+				where: { id: { in: variationIds } },
 				select: { job_assignment_id: true },
 				all: true
 			})
 		: { rows: [] };
-	const byVariation = new Map(
-		variations.rows.map((v) => [String(v.id), String(v.job_assignment_id)])
-	);
+	const byVariation = new Map(variations.rows.map((v) => [v.id, v.job_assignment_id]));
 	return new Map(
 		photos.map((p) => [
 			p.id,
-			p.job_assignment_id ?? byVariation.get(String(p.variation_request_id)) ?? null
+			p.job_assignment_id ??
+				(p.variation_request_id == null ? null : (byVariation.get(p.variation_request_id) ?? null))
 		])
 	);
 }
@@ -526,24 +527,24 @@ export async function inspectPendingPhotos(ctx: Ctx) {
 		select: { photo: true, job_assignment_id: true, variation_request_id: true },
 		limit: INSPECTIONS_PER_RUN
 	});
-	const failures: { photo_id: string; reason: string }[] = [];
+	const failures: { photo_id: Id<'photo_evidence'>; reason: string }[] = [];
 	if (pending.rows.length === 0) return { inspected: 0, failures };
 	const rows = pending.rows.map((p) => ({
-		id: String(p.id),
+		id: p.id,
 		photo: p.photo,
-		job_assignment_id: p.job_assignment_id == null ? null : String(p.job_assignment_id),
-		variation_request_id: p.variation_request_id == null ? null : String(p.variation_request_id)
+		job_assignment_id: p.job_assignment_id,
+		variation_request_id: p.variation_request_id
 	}));
 	const owner = await assignmentsOf(ctx, rows);
 	const jobIds = [...new Set([...owner.values()].flatMap((id) => (id == null ? [] : [id])))];
 	const jobs = jobIds.length
 		? await ctx.read('job_assignments', {
-				where: { id: { in: jobIds as Id<'job_assignments'>[] } },
+				where: { id: { in: jobIds } },
 				select: { site_id: { select: { location: true } } },
 				all: true
 			})
 		: { rows: [] };
-	const siteOf = new Map(jobs.rows.map((job) => [String(job.id), job.site_id?.location ?? null]));
+	const siteOf = new Map(jobs.rows.map((job) => [job.id, job.site_id?.location ?? null]));
 	let inspected = 0;
 	for (const photo of rows) {
 		const facts = await ctx.files.image.try(photo.photo);
@@ -554,7 +555,7 @@ export async function inspectPendingPhotos(ctx: Ctx) {
 			);
 			failures.push({ photo_id: photo.id, reason });
 			await ctx.act('photo_evidence.update', {
-				target: photo.id as Id<'photo_evidence'>,
+				target: photo.id,
 				set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
 			});
 			continue;
@@ -568,16 +569,13 @@ export async function inspectPendingPhotos(ctx: Ctx) {
 		const hits = near
 			.filter(
 				(hit) =>
-					hit.$distance <= VISUAL_DUPLICATE_MAX_L2 &&
-					String(hit.id) !== photo.id &&
-					hit.sha256 !== ''
+					hit.$distance <= VISUAL_DUPLICATE_MAX_L2 && hit.id !== photo.id && hit.sha256 !== ''
 			)
 			.map((hit) => ({
-				id: String(hit.id),
+				id: hit.id,
 				sha256: hit.sha256,
-				job_assignment_id: hit.job_assignment_id == null ? null : String(hit.job_assignment_id),
-				variation_request_id:
-					hit.variation_request_id == null ? null : String(hit.variation_request_id)
+				job_assignment_id: hit.job_assignment_id,
+				variation_request_id: hit.variation_request_id
 			}));
 		const hitOwner = await assignmentsOf(ctx, hits);
 		const foreign = hits.filter((hit) => hitOwner.get(hit.id) !== own);
@@ -591,7 +589,7 @@ export async function inspectPendingPhotos(ctx: Ctx) {
 		const scene_embedding =
 			'kind' in scene || scene[0]?.length !== SCENE_DIMENSIONS ? null : [...scene[0]];
 		await ctx.act('photo_evidence.update', {
-			target: photo.id as Id<'photo_evidence'>,
+			target: photo.id,
 			set: {
 				sha256: facts.sha256,
 				perceptual_embedding: embedding,
@@ -648,11 +646,11 @@ export async function backfillScenes(ctx: Ctx) {
 }
 
 /** The unchecked worklist, materialised before reviewing (stamps shrink it as reviews succeed). */
-export async function uncheckedAssignments(ctx: Ctx, only?: readonly string[]) {
+export async function uncheckedAssignments(ctx: Ctx, only?: readonly Id<'job_assignments'>[]) {
 	const { rows } = await ctx.read('job_assignments', {
 		where: {
 			suspicion_checked_at: { isNull: true },
-			...(only === undefined ? {} : { id: { in: only as Id<'job_assignments'>[] } })
+			...(only === undefined ? {} : { id: { in: only } })
 		},
 		select: {
 			site_id: true,
@@ -667,8 +665,8 @@ export async function uncheckedAssignments(ctx: Ctx, only?: readonly string[]) {
 		all: true
 	});
 	return rows.map((row) => ({
-		id: String(row.id),
-		site_id: String(row.site_id),
+		id: row.id,
+		site_id: row.site_id,
 		title: row.title,
 		nature: row.nature,
 		scheduled_for: String(row.scheduled_for),
@@ -681,15 +679,15 @@ export async function uncheckedAssignments(ctx: Ctx, only?: readonly string[]) {
 
 /** A photo on the assignment has no facts yet and no durable failure: the assignment waits for the next inspection. */
 export class AwaitingInspection extends Error {
-	constructor(readonly photoId: string) {
+	constructor(readonly photoId: Id<'photo_evidence'>) {
 		super(`Photo evidence ${photoId} has not been inspected yet.`);
 	}
 }
 
 async function loadFacts(ctx: Ctx, assignment: ReviewFacts['assignment']): Promise<ReviewFacts> {
-	const job = assignment.id as Id<'job_assignments'>;
+	const job = assignment.id;
 	const [site, variations, messages] = await Promise.all([
-		ctx.get('sites', assignment.site_id as Id<'sites'>, {
+		ctx.get('sites', assignment.site_id, {
 			select: { name: true, location: true, house_type: true }
 		}),
 		ctx.read('variation_requests', {
@@ -722,21 +720,21 @@ async function loadFacts(ctx: Ctx, assignment: ReviewFacts['assignment']): Promi
 	const waiting = photos.rows.find(
 		(photo) => photo.sha256 === '' && photo.inspection_failed_at == null
 	);
-	if (waiting !== undefined) throw new AwaitingInspection(String(waiting.id));
+	if (waiting !== undefined) throw new AwaitingInspection(waiting.id);
 	return {
 		assignment,
 		site:
 			site == null
 				? null
 				: {
-						id: String(site.id),
+						id: site.id,
 						name: site.name,
 						location: site.location,
 						house_type: site.house_type
 					},
 		photos: await Promise.all(
 			photos.rows.map(async (photo) => ({
-				id: String(photo.id),
+				id: photo.id,
 				photo: photo.photo,
 				bytes: await bytesOf(ctx, photo.photo),
 				sha256: photo.sha256,
@@ -773,13 +771,12 @@ async function sceneCandidates(ctx: Ctx, facts: ReviewFacts): Promise<ReviewCand
 		if (probe.scene_embedding == null || probe.scene_embedding.length === 0) continue;
 		const near = await nearest(ctx, 'scene', probe.scene_embedding, 12);
 		const rows = near
-			.filter((hit) => hit.$distance <= SCENE_MAX_COSINE && String(hit.id) !== probe.id)
+			.filter((hit) => hit.$distance <= SCENE_MAX_COSINE && hit.id !== probe.id)
 			.map((hit) => ({
 				hit,
-				id: String(hit.id),
-				job_assignment_id: hit.job_assignment_id == null ? null : String(hit.job_assignment_id),
-				variation_request_id:
-					hit.variation_request_id == null ? null : String(hit.variation_request_id)
+				id: hit.id,
+				job_assignment_id: hit.job_assignment_id,
+				variation_request_id: hit.variation_request_id
 			}));
 		const owners = await assignmentsOf(ctx, rows);
 		for (const { hit, id } of rows) {
@@ -838,15 +835,14 @@ export async function reviewAssignment(
 			prompt: suspicionPrompt(facts, representatives),
 			files: await Promise.all(representatives.map((p) => visible(ctx, p.photo))),
 			output: DECISION
-		}) as Promise<Decision>,
-		...attachedPairs.map(
-			async ({ own, candidate }) =>
-				ctx.ai.sys_2.infer({
-					model: SUSPICION_REVIEW_MODEL,
-					prompt: PAIR_PROMPT,
-					files: await Promise.all([visible(ctx, own.photo), visible(ctx, candidate.photo)]),
-					output: PAIR_DECISION
-				}) as Promise<{ readonly same_scene: boolean }>
+		}),
+		...attachedPairs.map(async ({ own, candidate }) =>
+			ctx.ai.sys_2.infer({
+				model: SUSPICION_REVIEW_MODEL,
+				prompt: PAIR_PROMPT,
+				files: await Promise.all([visible(ctx, own.photo), visible(ctx, candidate.photo)]),
+				output: PAIR_DECISION
+			})
 		)
 	]);
 	if (decision.status === 'rejected') throw decision.reason;
@@ -856,7 +852,7 @@ export async function reviewAssignment(
 		decision.value,
 		attachedPairs.filter((_, i) => sameScene[i])
 	);
-	const job = assignment.id as Id<'job_assignments'>;
+	const job = assignment.id;
 	// a retried run with the same basis finds its review by the unique key instead of writing a second
 	const written = await ctx.act.try('suspicion_reviews.create', {
 		job_assignment_id: job,
@@ -864,7 +860,7 @@ export async function reviewAssignment(
 		basis,
 		suspicious: verdict.suspicious,
 		reason: verdict.reason,
-		evidence_id: verdict.evidence_id as Id<'photo_evidence'> | null,
+		evidence_id: verdict.evidence_id,
 		model: SUSPICION_REVIEW_MODEL,
 		reviewed_at: ctx.now,
 		source_key: reviewSourceKey(assignment.id, basisHash)
@@ -915,9 +911,9 @@ export async function reviewAssignment(
 }
 
 /** The next two-hour slot (00:00, 02:00, … UTC), when a review that did not complete is tried again. */
-export const nextRetrySlot = <T extends string>(now: T): T => {
+export const nextRetrySlot = (now: Instant): Instant => {
 	const at = new Date(now);
 	at.setUTCMinutes(0, 0, 0);
 	at.setUTCHours(at.getUTCHours() - (at.getUTCHours() % 2) + 2);
-	return at.toISOString() as T;
+	return instantOf(at.toISOString());
 };

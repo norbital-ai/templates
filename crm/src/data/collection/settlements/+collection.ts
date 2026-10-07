@@ -40,26 +40,47 @@ export default c;
 
 c.transform(async (inputs, ctx: TransformCtx<'settlements'>) => {
 	const rows = inputs.map((input, i) => ({ ...ctx.existing[i], ...input }));
-	const types = Object.keys(DOCUMENTS) as DocumentType[];
-	const found = await Promise.all(
-		types.map((type) =>
-			ctx.db.read(type, {
-				where: {
-					id: {
-						in: rows.flatMap((r) => (r.regarding?.collection === type ? [r.regarding.id] : []))
-					}
-				} as never,
-				all: true
-			})
-		)
+	const quoteIds = rows.flatMap((r) =>
+		r.regarding?.collection === 'quotes' ? [r.regarding.id] : []
 	);
+	const purchaseOrderIds = rows.flatMap((r) =>
+		r.regarding?.collection === 'purchase_orders' ? [r.regarding.id] : []
+	);
+	const purchaseInvoiceIds = rows.flatMap((r) =>
+		r.regarding?.collection === 'purchase_invoices' ? [r.regarding.id] : []
+	);
+	const [quotes, purchase_orders, purchase_invoices] = await Promise.all([
+		quoteIds.length
+			? ctx.db.read('quotes', { where: { id: { in: quoteIds } }, all: true })
+			: { rows: [] },
+		purchaseOrderIds.length
+			? ctx.db.read('purchase_orders', { where: { id: { in: purchaseOrderIds } }, all: true })
+			: { rows: [] },
+		purchaseInvoiceIds.length
+			? ctx.db.read('purchase_invoices', { where: { id: { in: purchaseInvoiceIds } }, all: true })
+			: { rows: [] }
+	]);
+	const documentFor = (ref: { readonly collection: DocumentType; readonly id: unknown }) => {
+		switch (ref.collection) {
+			case 'quotes':
+				return quotes.rows.find((d) => d.id === ref.id);
+			case 'purchase_orders':
+				return purchase_orders.rows.find((d) => d.id === ref.id);
+			case 'purchase_invoices':
+				return purchase_invoices.rows.find((d) => d.id === ref.id);
+			default: {
+				const _exhaustive: never = ref.collection;
+				return _exhaustive;
+			}
+		}
+	};
 	return inputs.map((input, i) => {
 		const ref = rows[i]!.regarding;
 		if (ref == null)
 			ctx.refuse('A settlement must reference a quote, purchase order, or purchase invoice.');
 		const label = DOCUMENTS[ref.collection];
 		if (!(num(rows[i]!.amount) > 0)) ctx.refuse('Settlement amount must be greater than zero.');
-		const document = found[types.indexOf(ref.collection)]!.rows.find((d) => d.id === ref.id);
+		const document = documentFor(ref);
 		if (!document) ctx.refuse(`Referenced ${label} does not exist.`);
 		if (document.status !== 'confirmed')
 			ctx.refuse(`Settlements can only be recorded against a confirmed ${label}.`);
@@ -76,10 +97,21 @@ c.transform(async (inputs, ctx: TransformCtx<'settlements'>) => {
 
 /** Paid-to-date per document of one type, so a surface derives paid / partial / unpaid against the document gross. */
 c.query('settlement_summary', async ({ regarding_type }, ctx) => {
-	const rows = await ctx.read('settlements', {
-		where: { regarding: { [regarding_type]: { isNull: false } } } as never,
-		all: true
-	});
+	const rows =
+		regarding_type === 'quotes'
+			? await ctx.read('settlements', {
+					where: { regarding: { quotes: { isNull: false } } },
+					all: true
+				})
+			: regarding_type === 'purchase_orders'
+				? await ctx.read('settlements', {
+						where: { regarding: { purchase_orders: { isNull: false } } },
+						all: true
+					})
+				: await ctx.read('settlements', {
+						where: { regarding: { purchase_invoices: { isNull: false } } },
+						all: true
+					});
 	const summaries: { [id: string]: { paid: number; currency: string } } = {};
 	for (const row of rows.rows) {
 		const id = String(row.regarding.id);

@@ -1,0 +1,106 @@
+[
+	{
+		"id": "46d04448-0e83-55ed-969c-0eb2c620c130",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"code": "BONUS",
+		"name": "賞与 (bonus)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"HEALTH.BONUS",
+			"CHILD_SUPPORT.BONUS",
+			"PENSION.BONUS",
+			"CHILD_CONTRIBUTION.BONUS",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX.BONUS"
+		],
+		"authority": "健康保険法 art.3(6) and 厚生年金保険法 art.3(1)(iv): a bonus paid three times a year or less is 賞与, assessed on the standard bonus amount (健保法 art.45, 厚年法 art.24の4), not the monthly grade; wages for labour insurance; withheld by the bonus rate table (所得税法 art.186(1)(ii)). The 賞与支払届 is due within 5 days (健保則 art.27, 厚年則 art.19の5).",
+		"evidence": "NONE",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "a7dffc00-6028-580f-b001-52a7b8e0710a",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"code": "SHUTDOWN_ALLOWANCE",
+		"name": "休業手当 (shutdown allowance)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"HEALTH",
+			"CHILD_SUPPORT",
+			"PENSION",
+			"CHILD_CONTRIBUTION",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX",
+			"RESIDENT_TAX"
+		],
+		"authority": "労働基準法 art.26: for a shutdown attributable to the employer, at least 60% of the average wage (art.12; entry.facts.average_daily_wage) for each day (entry.quantity days); the larger of the amount entered and that minimum is paid. It is a wage: remuneration, labour insurance wages and salary income.",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "has(entry.facts.average_daily_wage)",
+				"amount": "max(entry.amount, round(0.6 * double(entry.facts.average_daily_wage) * entry.quantity, 1.0, \"UP\"))"
+			}
+		]
+	},
+	{
+		"id": "09f79688-c0d6-5979-ae14-ce3ee620a085",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"code": "INJURY_WAITING_COMPENSATION",
+		"name": "休業補償 待期3日間 (injury absence compensation, first 3 days)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"authority": "労働基準法 art.76(1): for an occupational injury the employer pays 60% of the average wage for each day of absence; from the fourth day 労働者災害補償保険法 art.14 pays the 休業補償給付, so the employer's own liability is the first three days (entry.quantity, at most 3). Compensation is not a wage (not remuneration, not labour insurance wages) and not taxable (所得税法 art.9(1)(iii)(イ), 施行令 art.20(1)(ii)).",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "has(entry.facts.average_daily_wage)",
+				"amount": "max(entry.amount, round(0.6 * double(entry.facts.average_daily_wage) * min(entry.quantity, 3.0), 1.0, \"UP\"))"
+			}
+		]
+	},
+	{
+		"id": "da418daa-5cf1-56d6-9614-e9b5d707293c",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"code": "DISMISSAL_NOTICE_ALLOWANCE",
+		"name": "解雇予告手当 (pay in lieu of dismissal notice)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["RETIREMENT_TAX.RETIREMENT"],
+		"authority": "労働基準法 art.20(1)–(2): a dismissal needs 30 days' notice or the average wage (art.12; entry.facts.average_daily_wage) for each day of notice short of 30 (entry.facts.notice_days_given); paid at the latest on the dismissal day (昭和23年3月17日 基発464号). Taxed as retirement income (所得税基本通達30-5), outside social and labour insurance.",
+		"evidence": "REQUIRED",
+		"raised_by": "SEPARATION",
+		"bands": [
+			{
+				"when": "has(entry.facts.average_daily_wage)",
+				"amount": "max(entry.amount, round(double(entry.facts.average_daily_wage) * max(0.0, 30.0 - (has(entry.facts.notice_days_given) ? double(entry.facts.notice_days_given) : 0.0)), 1.0, \"UP\"))"
+			}
+		]
+	},
+	{
+		"id": "a34c7a67-ba3c-5c78-853c-76073a9186a9",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"code": "RETIREMENT_ALLOWANCE",
+		"name": "退職手当 (retirement allowance)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["RETIREMENT_TAX.RETIREMENT"],
+		"authority": "No statute requires a retirement allowance; where the work rules provide one (労働基準法 art.89(iii)の2) it is paid as they state. Retirement income (所得税法 art.30), withheld by RETIREMENT_TAX; not remuneration for social insurance or wages for labour insurance.",
+		"evidence": "NONE",
+		"raised_by": "SEPARATION",
+		"bands": []
+	}
+]

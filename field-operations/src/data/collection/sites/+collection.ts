@@ -1,4 +1,4 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection } from '@norbital-ai/bolt';
 import { dispatchFacts, searchTextFor } from '../../../lib/dispatch.js';
 import { siteKey } from '../../../lib/site-key.js';
 
@@ -48,7 +48,7 @@ sites.transform(async (inputs, ctx) => {
 		linked.length === 0
 			? { rows: [] }
 			: ctx.db.read('job_assignments', {
-					where: { id: { in: [...linked] as Id<'job_assignments'>[] } },
+					where: { id: { in: [...linked] } },
 					all: true
 				})
 	]);

@@ -1,197 +1,185 @@
-import { Effect, Schema } from 'effect';
+import type { Context as CelContext } from '@marcbachmann/cel-js';
+import type { Act, ActInput, CollectionName } from '@norbital-ai/bolt';
+import { Schema } from 'effect';
 import { evaluateConfigured } from './expressions.js';
-import { readAll, Refusal, stableJson } from './foundation.js';
+import { type Json, isJsonObject, Refusal } from './foundation.js';
 
-/** A stored configuration step. Behaviour and computation live in these records, never in source. */
-export type ConfiguredStep = {
-	readonly when?: string;
-	readonly bind?: string;
-	readonly expression?: string;
-	readonly emit?: unknown;
-	readonly each?: string;
-	readonly as?: string;
-	readonly steps?: readonly ConfiguredStep[];
-	readonly invoke?: string;
+/** Collections a CEL effect is allowed to write: the pin targets, leave encashment, holds, obligations and tasks. */
+const WRITE_COLLECTIONS = [
+	'adhoc_catalog_entry',
+	'payslip',
+	'claim_catalog_entry',
+	'leave_catalog_entry',
+	'loan_catalog_entry',
+	'obligation',
+	'regulatory_task',
+	'roster_entry'
+] as const satisfies readonly CollectionName[];
+const WRITE_OPERATIONS = ['create', 'update'] as const;
+type WriteCollection = (typeof WRITE_COLLECTIONS)[number];
+type WriteOperation = (typeof WRITE_OPERATIONS)[number];
+type WriteCallable = `${WriteCollection}.${WriteOperation}`;
+
+/** Authored collections a behaviour may name in a declared read. */
+const READ_COLLECTIONS = [
+	'adhoc_catalog',
+	'adhoc_catalog_entry',
+	'allowance_catalog',
+	'claim_catalog',
+	'claim_catalog_entry',
+	'employment_contract',
+	'employment_profile',
+	'entity',
+	'holiday',
+	'jurisdiction_settings',
+	'leave_catalog',
+	'leave_catalog_entry',
+	'loan_catalog',
+	'loan_catalog_entry',
+	'obligation',
+	'payslip',
+	'payroll_run',
+	'regulatory_task',
+	'roster',
+	'roster_entry',
+	'rule_set',
+	'shift_definition',
+	'shift_pattern',
+	'statutory_contribution_catalog',
+	'work_catalog'
+] as const satisfies readonly CollectionName[];
+
+/**
+ * One declared read: a collection, a `where` whose every string leaf is a CEL expression over the event context, and
+ * the fields beyond the scalar default to select (a stored `json` field must be named to come back).
+ */
+export const BehaviourRead = Schema.Struct({
+	collection: Schema.Literals(READ_COLLECTIONS),
+	where: Schema.optional(Schema.Json),
+	select: Schema.optional(Schema.Array(Schema.String))
+});
+export type BehaviourRead = typeof BehaviourRead.Type;
+
+/**
+ * One jurisdiction behaviour rule: which trigger it answers (`catalog` for an engine event, `target_collection` for a
+ * row event), its CEL `when`, the rows it reads and the CEL `effect` that returns its writes. The effect is the whole
+ * behaviour: it maps the context — the trigger row, its declared reads — to act-shaped writes; nothing here names a
+ * function.
+ */
+export const Behaviour = Schema.Struct({
+	id: Schema.String,
+	catalog: Schema.optional(Schema.String),
+	target_collection: Schema.optional(Schema.String),
+	events: Schema.Array(Schema.String),
+	when: Schema.optional(Schema.String),
+	/** Extra fields beyond the scalar default to read on the trigger row (a stored `json` field must be named). */
+	fields: Schema.optional(Schema.Array(Schema.String)),
+	reads: Schema.optional(Schema.Record(Schema.String, BehaviourRead)),
+	effect: Schema.optional(Schema.String)
+});
+export type Behaviour = typeof Behaviour.Type;
+
+/** A version's behaviours record: its ordered rules. */
+export const Behaviours = Schema.Struct({
+	version: Schema.Literal(1),
+	rules: Schema.Array(Behaviour)
+});
+export type Behaviours = typeof Behaviours.Type;
+
+/** The stored JSON behaviours field: `undefined` when the value is not a version-1 rule set. */
+export const behavioursOf = (value: unknown): Behaviours | undefined =>
+	Schema.is(Behaviours)(value) ? value : undefined;
+
+/** One write an effect returned: the target collection, a native verb, and the act input verbatim. */
+export type BehaviourWrite = {
+	readonly callable: WriteCallable;
+	readonly collection: WriteCollection;
+	readonly operation: WriteOperation;
+	readonly data: ActInput<WriteCallable>;
 };
 
-export type ConfiguredProgram = readonly ConfiguredStep[];
+/** Which trigger a rule set is planned for: an engine event or a row event. */
+export type BehaviourTrigger =
+	| { readonly kind: 'catalog'; readonly catalog: string; readonly event: string }
+	| { readonly kind: 'row'; readonly collection: string; readonly event: string };
 
-export type Behaviour = {
-	readonly id: string;
-	readonly catalog: string;
-	readonly events: readonly string[];
-	readonly when?: string;
-	readonly inputs?: Readonly<Record<string, unknown>>;
-	readonly operations: readonly Readonly<Record<string, unknown>>[];
-};
-
-export type Behaviours = {
-	readonly version: 1;
-	readonly rules: readonly Behaviour[];
-	readonly programs?: Readonly<Record<string, ConfiguredProgram>>;
-	readonly program_refs?: Readonly<Record<string, string>>;
-	readonly program_library?: string;
-};
-
-const asRecord = (value: unknown, context: string): Record<string, unknown> => {
-	if (!Schema.is(Schema.Record(Schema.String, Schema.Unknown))(value)) throw new Refusal({ message: `${context} requires its actual stored record.` });
-	return value;
-};
-
-const materialize = (value: unknown, context: Record<string, unknown>): unknown => {
-	if (Array.isArray(value)) return value.map((entry) => materialize(entry, context));
-	if (Schema.is(Schema.Record(Schema.String, Schema.Unknown))(value)) {
-		const record = value as Record<string, unknown>;
-		if (Object.hasOwn(record, 'expr') && Object.keys(record).length === 1) return evaluateConfigured(String(record.expr), context);
-		return Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, materialize(entry, context)]));
-	}
-	return value;
-};
-
-const pathValue = (path: string, context: Record<string, unknown>): unknown =>
-	path.split('.').reduce<unknown>((value, key) => (Schema.is(Schema.Record(Schema.String, Schema.Unknown))(value) ? (value as Record<string, unknown>)[key] : undefined), context);
-
-/** Execute one configured programme; bindings accumulate, emitted values collect in order. */
-export function evaluateConfiguredProgram(
-	program: ConfiguredProgram,
-	context: Record<string, unknown>,
-	resolve?: (reference: string) => ConfiguredProgram | undefined
-): unknown[] {
-	const outputs: unknown[] = [];
-	const run = (steps: readonly ConfiguredStep[], scope: Record<string, unknown>): void => {
-		for (const step of steps) {
-			if (step.when !== undefined && evaluateConfigured(step.when, scope) !== true) continue;
-			if (step.invoke !== undefined) {
-				const invoked = resolve?.(step.invoke);
-				if (invoked === undefined) throw new Refusal({ message: 'A configured programme invocation requires its actual stored body.' });
-				run(invoked, scope);
-				continue;
-			}
-			if (step.each !== undefined) {
-				const items = pathValue(step.each, scope);
-				if (!Array.isArray(items)) throw new Refusal({ message: 'A configured iteration requires its actual stored list.' });
-				const name = step.as ?? (() => { throw new Refusal({ message: 'A configured iteration requires its actual binding name.' }); })();
-				for (const item of items) run(step.steps ?? [], { ...scope, [name]: item });
-				continue;
-			}
-			if (step.bind !== undefined) {
-				if (step.expression === undefined) throw new Refusal({ message: 'A configured binding requires its actual expression.' });
-				scope[step.bind] = evaluateConfigured(step.expression, scope);
-				continue;
-			}
-			if (step.emit !== undefined) outputs.push(materialize(step.emit, scope));
-		}
-	};
-	run(program, context);
-	return outputs;
+/**
+ * Whether one rule answers one trigger, before its `when` — what the executor reads the trigger row's fields for. A
+ * row rule without `target_collection` answers its events on every collection the taps fire for.
+ */
+export function triggerMatches(rule: Behaviour, trigger: BehaviourTrigger): boolean {
+	if (!rule.events.includes(trigger.event)) return false;
+	return trigger.kind === 'catalog'
+		? rule.catalog === trigger.catalog
+		: rule.catalog === undefined &&
+				(rule.target_collection ?? trigger.collection) === trigger.collection;
 }
 
-/** Expand one stored programme's own invocations into its full step list. */
-export function expandStoredProgramme(registry: unknown, reference: string): ConfiguredProgram {
-	const programs = asRecord(registry, 'Stored programme registry');
-	const program = programs[reference];
-	if (!Array.isArray(program)) throw new Refusal({ message: `Stored programme is absent: ${reference}` });
-	return program as ConfiguredProgram;
-}
-
-/** Resolve one programme by name or hash from the behaviours record, its library, or the seeded programme bank. */
-export const resolveStoredProgramme = (
-	behaviours: unknown,
-	reference: string
-): Effect.Effect<ConfiguredProgram, Refusal> =>
-	Effect.gen(function* () {
-		const value = asRecord(behaviours, 'Behaviours') as Behaviours;
-		const programs = value.programs ?? {};
-		if (programs[reference] !== undefined) return programs[reference];
-		const hash = /^[a-f0-9]{64}$/.test(reference) ? reference : value.program_refs?.[reference];
-		if (hash === undefined) return yield* Effect.fail(new Refusal({ message: `A stored programme reference is absent: ${reference}` }));
-		if (value.program_library !== undefined) {
-			const rows = yield* readAll<{ code: string; rules: unknown }>('rule_set', { code: { eq: hash } }, undefined, { code: true, rules: true });
-			if (rows.length !== 1 || !Array.isArray(rows[0]!.rules)) return yield* Effect.fail(new Refusal({ message: `A programme library row is absent: ${hash}` }));
-			return rows[0]!.rules as ConfiguredProgram;
-		}
-		const held = programs[hash];
-		if (held === undefined) return yield* Effect.fail(new Refusal({ message: `A stored programme body is absent: ${hash}` }));
-		return held;
-	});
-
-/** Resolve one named behaviour programme. */
-export const resolveBehaviourProgram = (behaviours: unknown, name: string): Effect.Effect<ConfiguredProgram, Refusal> =>
-	resolveStoredProgramme(behaviours, name);
-
-export type BehaviourPlan = readonly {
-	readonly behaviour: Behaviour;
-	readonly context: Record<string, unknown>;
-}[];
-
-/** Plan the behaviours one event selects, in their declared order. */
-export function planBehaviours(behaviours: Behaviours, catalog: string, event: string, context: Record<string, unknown>): BehaviourPlan {
+/** The behaviours one trigger selects, in their declared order, whose `when` holds against the context. */
+export function planBehaviours(
+	behaviours: Behaviours,
+	trigger: BehaviourTrigger,
+	context: CelContext
+): readonly Behaviour[] {
 	return behaviours.rules
-		.filter((behaviour) => behaviour.catalog === catalog && behaviour.events.includes(event))
-		.filter((behaviour) => behaviour.when === undefined || evaluateConfigured(behaviour.when, context) === true)
-		.map((behaviour) => ({ behaviour, context }));
+		.filter((rule) => triggerMatches(rule, trigger))
+		.filter((rule) => rule.when === undefined || evaluateConfigured(rule.when, context) === true);
 }
 
-export type BehaviourExecution = {
-	readonly plan: readonly { readonly operation: Readonly<Record<string, unknown>>; readonly args: Record<string, unknown> }[];
-	readonly key: string;
-	readonly hash: string;
-};
-
-/** Prepare one configured behaviour execution: the plan plus its exact identity. */
-export function prepareBehaviourExecution(behaviours: Behaviours, catalog: string, event: string, context: Record<string, unknown>): BehaviourExecution {
-	const plan = planBehaviours(behaviours, catalog, event, context).flatMap((row) =>
-		row.behaviour.operations.map((operation) => ({ operation, args: materialize(row.behaviour.inputs ?? {}, row.context) as Record<string, unknown> }))
-	);
-	return { plan, key: `${catalog}:${event}`, hash: stableJson(plan.map((row) => row.operation)) };
+/** Resolve one declared read's `where`: every string leaf is CEL over the event context; everything else is literal. */
+export function resolveWhere(where: Json | undefined, context: CelContext): Json | undefined {
+	if (where === undefined) return undefined;
+	const walk = (value: Json): Json => {
+		if (Schema.is(Schema.String)(value)) return evaluateConfigured(value, context);
+		if (Schema.is(Schema.Array(Schema.Json))(value)) return value.map(walk);
+		if (isJsonObject(value))
+			return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, walk(entry)]));
+		return value;
+	};
+	return walk(where);
 }
 
-export type ConfiguredObservation = { readonly expression: string; readonly context: Record<string, unknown>; readonly value: unknown };
-export type ConfiguredObserver = (observation: ConfiguredObservation) => void;
-
-let configuredObserver: ConfiguredObserver | null = null;
-
-export const observeConfiguredEvaluation = (observation: ConfiguredObservation): void => {
-	configuredObserver?.(observation);
-};
-
-export const withConfiguredObserver = <T>(observer: ConfiguredObserver | null, run: () => T): T => {
-	const previous = configuredObserver;
-	configuredObserver = observer;
-	try {
-		return run();
-	} finally {
-		configuredObserver = previous;
-	}
-};
-
-/** One configured programme frame: the emitted outputs for a caller-owned evaluation. */
-export const evaluateConfiguredProgramFrame = (program: ConfiguredProgram, context: Record<string, unknown>): { output: unknown[] } => ({
-	output: evaluateConfiguredProgram(program, context)
+/** One returned write before it is judged: the collection, the native verb and the act input. */
+const Write = Schema.Struct({
+	collection: Schema.Literals(WRITE_COLLECTIONS),
+	operation: Schema.Literals(WRITE_OPERATIONS),
+	data: Schema.Record(Schema.String, Schema.Json)
 });
 
-/** One catalog source event the dispatcher may execute. */
-export type CatalogEffectSource = {
-	readonly source_collection: string;
-	readonly source_id: string;
-	readonly source_revision?: number;
-	readonly source_family?: string;
-	readonly source_record_id?: string;
-	readonly event_kind: string;
-	readonly catalog: string;
-	readonly profile_id?: string;
+/** CEL JSON as the act input of a write the schema already named. Insert schemas are type-only. */
+const actInputOf = <N extends WriteCallable>(
+	_callable: N,
+	data: (typeof Write.Type)['data']
+): ActInput<N> => data as ActInput<N>;
+
+const writeFrom = (entry: typeof Write.Type): BehaviourWrite => {
+	const callable: WriteCallable = `${entry.collection}.${entry.operation}`;
+	return {
+		callable,
+		collection: entry.collection,
+		operation: entry.operation,
+		data: actInputOf(callable, entry.data)
+	};
 };
 
-/** Prepare one catalog source event against its governing jurisdiction snapshot. */
-export const prepareNativeCatalogSourceEvent = (
-	reads: unknown,
-	source: CatalogEffectSource,
-	now: string
-): Effect.Effect<{ event: { id: string; kind: string; data: Record<string, unknown>; subject: { collection: string; id: string } }; snapshot_id: string; configuration_hash: string; day: string | null; observation: { observedAt: string; timezone: string } }, Refusal> =>
-	Effect.succeed({
-		event: { id: `${source.source_collection}:${source.source_id}:${source.event_kind}`, kind: source.event_kind, data: {}, subject: { collection: 'employment_contract', id: source.profile_id ?? source.source_id } },
-		snapshot_id: '',
-		configuration_hash: '',
-		day: null,
-		observation: { observedAt: now, timezone: 'UTC' }
-	});
+/** One effect value as writes: null/false is a no-op, an object is one write, a list is many, in order. */
+export function effectWrites(rule: Behaviour, context: CelContext): readonly BehaviourWrite[] {
+	if (rule.effect === undefined) return [];
+	const value = evaluateConfigured(rule.effect, context);
+	if (value === null || value === false) return [];
+	const list = Schema.is(Schema.Array(Schema.Json))(value) ? value : [value];
+	return list.map((entry) =>
+		Schema.is(Write)(entry)
+			? writeFrom(entry)
+			: refuse(rule, 'a write whose collection, operation or data is not actual')
+	);
+}
+
+/** One behaviour write through the automation act surface. */
+export async function actBehaviourWrite(act: Act, write: BehaviourWrite): Promise<void> {
+	await act(write.callable, write.data);
+}
+
+const refuse = (rule: Behaviour, message: string): never => {
+	throw new Refusal({ message: `Behaviour ${rule.id} returned ${message}.` });
+};

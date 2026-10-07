@@ -1,0 +1,30 @@
+[
+	{
+		"id": "149d0617-cdea-5411-91fe-8805ae251a48",
+		"settings_id": "594da0e0-dba6-55ea-b507-b51b34fd3ba8",
+		"code": "EXPENSE_REIMBURSEMENT",
+		"name": "立替経費精算 (expense reimbursement)",
+		"destination": "NET",
+		"direction": "ADD",
+		"eligibility": "",
+		"qualifies_when": "",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"bands": [],
+		"authority": "A reimbursement of a business expense the employee paid is not remuneration (健康保険法 art.3(5): 労働の対償), not a wage and not salary income; it is paid outside gross pay against receipts."
+	},
+	{
+		"id": "301fb8a1-2370-590b-8643-2cd89eaab348",
+		"settings_id": "594da0e0-dba6-55ea-b507-b51b34fd3ba8",
+		"code": "BUSINESS_TRAVEL",
+		"name": "出張旅費 (business travel expenses)",
+		"destination": "NET",
+		"direction": "ADD",
+		"eligibility": "",
+		"qualifies_when": "",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"bands": [],
+		"authority": "所得税法 art.9(1)(iv): travel expenses for business travel within what is ordinarily necessary are not taxable; not remuneration or wages."
+	}
+]

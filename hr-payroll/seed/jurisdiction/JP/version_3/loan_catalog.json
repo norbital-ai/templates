@@ -1,0 +1,30 @@
+[
+	{
+		"id": "36ee5a77-5530-5300-92ab-c17a393fbec6",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "SALARY_ADVANCE",
+		"name": "給与の前払 (salary advance recovery)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(company.facts.wage_deduction_agreement) && company.facts.wage_deduction_agreement == true",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": [],
+		"order_authority": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; company.facts.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request."
+	},
+	{
+		"id": "af1d94ee-bee0-52d2-8253-fc3594b27941",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "STAFF_LOAN",
+		"name": "社内貸付金 (staff loan repayment)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(company.facts.wage_deduction_agreement) && company.facts.wage_deduction_agreement == true",
+		"evidence": "OPTIONAL",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": [],
+		"order_authority": "労働基準法 art.24(1) proviso (賃金控除協定 required) and art.17: a loan may not be set off against wages as a condition of work (前借金相殺の禁止); recovery by deduction is only the employee's voluntary repayment under the agreement."
+	}
+]

@@ -1,4 +1,4 @@
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
 import * as Predicate from '../lib/guards.js';
 
 const SCHEMA = 'norbital.field_operations.interoperability.v2';
@@ -64,9 +64,7 @@ site_handover.run(async ({ ids }, ctx) => {
 				where: {
 					or: [
 						{ job_assignment_id: { in: jobIds } },
-						...(variationIds.length
-							? [{ variation_request_id: { in: variationIds as Id<'variation_requests'>[] } }]
-							: [])
+						...(variationIds.length ? [{ variation_request_id: { in: variationIds } }] : [])
 					]
 				},
 				// a read returns a file field only when selected: the bundle carries each photo

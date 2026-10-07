@@ -30,21 +30,12 @@ export default messages({
 	'summary.not_started': 'Not started',
 	'summary.sent': 'Sent {at}',
 	'summary.not_sent': 'Not sent',
-	'app.helper.location_gate_title': 'Location required',
-	'app.helper.location_always_body':
-		'To use the employee portal, enable Location Services and choose Always (iOS) or Allow all the time (Android) in this app’s permissions. Your location is shared with dispatch while the app is running, including in the background. The portal stays locked while required location access is unavailable.',
-	'app.helper.location_settings': 'Open location settings',
-	'app.helper.location_unavailable':
-		'Location is unavailable. Enable device location services and try again.',
-	'app.helper.location_gate_body':
-		'Dispatch uses your position to keep customers updated on your arrival. Your day opens once location is on.',
-	'app.helper.location_blocked':
-		'Location is blocked for this app. Allow it in your browser or phone settings for this site, then try again.',
-	'app.helper.location_unsupported':
-		'This browser cannot share your location. Open My Day in Chrome or Safari on your phone.',
 	'app.helper.location_turn_on': 'Turn on location',
-	'app.helper.location_try_again': 'Try again',
 	'app.helper.sharing_on': 'Sharing your location with dispatch.',
+	'app.helper.away_today':
+		'You’re off this day. Dispatch is arranging cover for your visits; they leave your route once reassigned.',
+	'app.helper.declined':
+		'Thanks for letting us know. Dispatch is arranging cover for your visits today.',
 	'app.helper.day_confirmed': 'You confirmed your day.',
 	'app.schedule.nothing_under_way': 'No visit is under way or starting in the next four hours.',
 	'component.customer': 'Customer',
@@ -106,7 +97,7 @@ export default messages({
 	'app.schedule.warning_letters': 'Warning letters',
 	'app.schedule.live_title': 'Live map',
 	'app.schedule.live_description':
-		'Where each helper last reported from, and the visits under way or starting soon.',
+		"Each helper's last reported position (named), a dashed line to where they go next, and the visits under way or starting soon.",
 	'app.schedule.helper_positions': 'Helper positions',
 	'app.schedule.under_way': 'Under way and next',
 	'app.schedule.bookings_title': 'Bookings',
@@ -141,6 +132,13 @@ export default messages({
 	'app.customers.title': 'Customer profiles',
 	'app.customers.description': 'Customers, their addresses, bookings and the notices sent to them.',
 	'app.customers.tab_profiles': 'Customers',
+	'app.customers.upcoming': 'Upcoming',
+	'app.customers.history': 'History',
+	'app.customers.next_visit':
+		'Next: {when}, {service} with {cleaner} · {count} visits planned (projected from their bookings; cleaners can change until the day).',
+	'app.customers.nothing_ahead': 'Nothing booked ahead.',
+	'app.customers.cleaner_tbc': 'a cleaner to be confirmed',
+	'app.customers.history_summary': 'Done: {done} · Cancelled: {cancelled}',
 	'app.customers.bookings': 'Bookings',
 	'app.customers.notices': 'Notices',
 	'app.configurations.title': 'Configurations',
@@ -190,6 +188,8 @@ export default messages({
 	'app.helper.route_title': 'Your route',
 	'app.helper.route_description':
 		'Assignments in visit order. New assignments appear here and in your notifications.',
+	'app.helper.timeline_drive': '{minutes} min drive',
+	'app.helper.timeline_spare': '{minutes} min spare',
 	'app.helper.route_stop': 'Stop {number}',
 	'app.helper.route_drive': 'Estimated drive from previous stop: {minutes} min',
 	'app.helper.route_gap': '{minutes} min between visits, including travel',
@@ -258,6 +258,7 @@ export default messages({
 	'app.portal.morning': 'Morning',
 	'app.portal.afternoon': 'Afternoon',
 	'app.portal.evening': 'Evening',
+	'app.portal.starts_count': '{count} open',
 	'app.portal.your_visit': 'Your visit',
 	'app.portal.row_service': 'Service',
 	'app.portal.row_when': 'When',

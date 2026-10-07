@@ -1,0 +1,651 @@
+[
+	{
+		"id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "VN",
+		"jurisdiction_code": "VN",
+		"name": "Vietnam — 1 January 2026",
+		"sealed_at": "2026-09-26T12:08:42.903Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-05-15"
+		},
+		"payroll": {
+			"currency": "VND",
+			"timezone": "Asia/Ho_Chi_Minh",
+			"tax_year_start_month": 1
+		},
+		"sources": {
+			"urls": [
+				"https://congbao.chinhphu.vn/van-ban/luat-so-50-2024-qh15-43589.htm",
+				"https://vanban.chinhphu.vn/?classid=1&docid=169566&pageid=27160",
+				"https://vanban.chinhphu.vn/default.aspx?docid=200108&pageid=27160",
+				"https://congbao.chinhphu.vn/van-ban/luat-so-88-2015-qh13-18393.htm",
+				"https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-174-2016-nd-cp-21879.htm",
+				"https://vanban.chinhphu.vn/?docid=215832&pageid=27160",
+				"https://vanban.chinhphu.vn/?classid=1&docid=216495&pageid=27160",
+				"https://vanban.chinhphu.vn/?docid=217002&pageid=27160",
+				"https://vanban.chinhphu.vn/?docid=214560&pageid=27160",
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=26585&CateID=168",
+				"https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
+				"https://vanban.chinhphu.vn/?docid=218107&pageid=27160",
+				"https://vanban.chinhphu.vn/?classid=1&docid=218684&pageid=27160",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=211199",
+				"https://vanban.chinhphu.vn/he-thong-van-ban?mode=0",
+				"https://vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2",
+				"https://vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&typegroupid=3",
+				"https://congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss",
+				"https://congbao.chinhphu.vn/cac-so-cong-bao-moi-dang.rss",
+				"https://congbao.chinhphu.vn/van-ban-dang-cong-bao/bo-noi-vu-c5.htm",
+				"https://congbao.chinhphu.vn/van-ban-dang-cong-bao/bo-tai-chinh-c10.htm",
+				"https://xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss",
+				"https://baochinhphu.vn/chinh-sach-moi.rss",
+				"https://baochinhphu.vn/nghi-tet-nguyen-dan-2027.html",
+				"https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx",
+				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214515",
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=214189",
+				"https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-12-2025-tt-bnv-quy-dinh-chi-tiet-mot-so-dieu-cua-luat-bhxh-ve-bhxh-bat-buoc-11925070415595016.htm",
+				"https://vanban.chinhphu.vn/?docid=215927&pageid=27160"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nvanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403).\n\nFinding changes (read these before comparing, every run):\nEvery month open vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&orggroupid=2 (decrees) and ...&typegroupid=3 (laws). Rows are 'số ký hiệu | ngày ban hành | trích yếu', newest first. Flag anything whose title mentions lương tối thiểu, lương cơ sở, mức tham chiếu, bảo hiểm xã hội/y tế/thất nghiệp, thuế thu nhập cá nhân, giảm trừ gia cảnh, công đoàn, nghỉ lễ/Tết, or Bộ luật Lao động. Open the item page (?pageid=27160&docid=N) for the effective date. The site search does not work through the URL (keyword params are ignored), so scan the lists. Next read congbao.chinhphu.vn/cac-van-ban-moi-ban-hanh.rss and the Bộ Nội vụ (c5) and Bộ Tài chính (c10) gazette lists for MOHA/MOF circulars. Congbao item pages link a .docx, so use it when the vanban PDF is a scan. For VSS rules read baohiemxahoi.gov.vn/vanban/Pages/default.aspx. For readable wording and the Tết/holiday decisions read xaydungchinhsach.chinhphu.vn/chinh-sach-moi.rss and baochinhphu.vn topic pages. gdt.gov.vn, mof.gov.vn, moha.gov.vn and phapluat.gov.vn listings cannot be read, so do not use them. Discovery only (always cite the vanban/congbao instrument): kpmg.com/vn insights. Treat a Bộ Nội vụ 'đề xuất' or a National Wage Council recommendation as pending until the Nghị định exists."
+		},
+		"cloned_from_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"change_summary": "1 January 2026: Decree 293/2025 raises regional minimum wages 7.2% (Region I 5,310,000), retaining the 31 December 2025 floor for workers hired by then whose locality reassignment lowers it (art. 5(5)); the 2026 tax period applies the five-rung PIT table of Law 109/2025 (art.29(2)) with Resolution 110/2025’s 186,000,000/74,400,000 deductions; Law 74/2025 replaces the Law on Employment.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": ["nationality", "gender", "date_of_birth", "marital_status", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"eq": "event.day"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && !raised.exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id) } })",
+					"events": ["created", "updated", "daily"]
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "VN employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "VND"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "VND"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "VND"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PROBATION", "PART_TIME", "INTERN", "DOMESTIC"],
+								"description": "Labour Code 45/2019/QH14 art.20: PERMANENT is an indefinite-term contract, CONTRACT a fixed term of at most 36 months; PROBATION (art.24–27), PART_TIME (art.32), INTERN (art.61) and DOMESTIC (art.161, outside unemployment insurance)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "MANAGERIAL", "ARDUOUS", "ESPECIALLY_ARDUOUS"],
+								"description": "Labour Code art.113(1): 12 days of annual leave for ordinary work, 14 for heavy, hazardous or dangerous (ARDUOUS) and 16 for especially heavy, hazardous or dangerous work."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "PERMANENT_RESIDENT", "RESIDENT", "NON_RESIDENT"],
+								"description": "CITIZEN: a Vietnamese citizen resident for PIT (also in unemployment insurance). PERMANENT_RESIDENT: a foreigner with a permanent residence card (PIT resident). RESIDENT: another foreigner resident for PIT (183 days in the year or a home for 183 days). NON_RESIDENT: taxed at 20% with no deductions. PIT refuses any other value: the law presumes neither."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pass_type": {
+								"type": "string",
+								"enum": ["WORK_PERMIT", "INTRA_COMPANY_TRANSFER", "OTHER"]
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"prior_floor_region": {
+										"type": "string",
+										"enum": ["I", "II", "III", "IV"],
+										"title": "Worksite region on 31 December 2025",
+										"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+									},
+									"prior_floor_reclassified": {
+										"type": "boolean",
+										"title": "Area reclassified lower in 2026",
+										"description": "True only when the same worksite was assigned a lower 2026 region by the decree."
+									},
+									"probation_class": {
+										"type": "string",
+										"enum": [
+											"ENTERPRISE_MANAGER",
+											"COLLEGE_OR_ABOVE",
+											"INTERMEDIATE_OR_TECHNICAL",
+											"OTHER"
+										],
+										"title": "Probation job class (Labour Code art.25)",
+										"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
+									},
+									"probation_job_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Wage of the job on probation",
+										"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
+									},
+									"normal_hours_arrangement": {
+										"type": "string",
+										"enum": ["DAILY", "WEEKLY"],
+										"title": "Normal working-time arrangement",
+										"description": "Labour Code 45/2019/QH14 art.105(1)–(2): daily arrangement allows at most eight normal hours a day; weekly arrangement allows at most ten, both at most 48 a week. Unrecorded arrangement defaults to DAILY."
+									},
+									"normal_hours_notified_on": {
+										"type": "string",
+										"format": "date",
+										"title": "Working-time arrangement notified on",
+										"description": "Labour Code 45/2019/QH14 art.105(2): record when the worker was notified of the selected daily or weekly arrangement. A date records the notification; retain delivery evidence separately."
+									}
+								}
+							}
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"pension_eligible": {
+							"type": "boolean",
+							"title": "Qualifies for a pension on leaving",
+							"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64)."
+						},
+						"absent_five_days": {
+							"type": "boolean",
+							"title": "Dismissed for five days' unexcused absence",
+							"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance."
+						},
+						"final_settlement_extended": {
+							"type": "boolean",
+							"default": false,
+							"title": "Settlement period extended to 30 days",
+							"description": "Labour Code 2019 art.48(1): settlement within 14 working days of termination; only art.48(1)(a), (c), (d) — the employer ceased operating; a merger, division, sale or transfer; natural disaster, fire, enemy action or epidemic — allow up to 30 days. Unrecorded is the 14-day rule."
+						}
+					},
+					"description": "Stored on employment_contract.exit_facts when the contract closes."
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"description": "The standing in the scheme, e.g. MEMBER or EXEMPT."
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The scheme registration number (SI book number, tax code)."
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"union_member": {
+												"type": "boolean",
+												"default": false,
+												"title": "Trade union member",
+												"description": "UNION_DUES standing: a member pays 0.5% of the insurance salary, at most 10% of the reference level (Law 50/2024 art.29(1)(a); Decision 61/QĐ-TLĐ)."
+											},
+											"dependants": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "Registered dependants",
+												"description": "PIT standing: each dependant registered with the tax authority is a monthly family deduction of 6,200,000 (Resolution 110/2025)."
+											},
+											"finalisation_authorised": {
+												"type": "boolean",
+												"default": false,
+												"title": "Authorises the employer PIT finalisation",
+												"description": "PIT standing: the employer finalises the year only for an employee who authorised it (Decree 126/2020 art.8(6)(d); Decree 253/2026 art.51 from 2026)."
+											},
+											"unpaid_leave_continuation": {
+												"type": "boolean",
+												"default": false,
+												"title": "SI continued through unpaid leave by agreement",
+												"description": "SI standing: the parties agreed to keep paying compulsory SI for a month with 14 or more unpaid working days (Law 41/2024/QH15 arts.33(5), 34(3)). Unrecorded is the exemption."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts: the other keys of employment_profile.facts (CEL employee.facts.*).",
+					"properties": {
+						"si_contribution_years": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Years of social-insurance contribution",
+							"description": "SICK_LEAVE: 30 working days a year under 15 years of compulsory SI contribution, 40 from 15 to under 30, 60 from 30 — 10 more for arduous or especially arduous work (Law 41/2024/QH15 art.43(1)). Unrecorded meters the 60-day band, so no lawful day is refused."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "VN entity inputs",
+			"additionalProperties": false,
+			"properties": {
+				"overtime_300h_sector": {
+					"type": "boolean",
+					"default": false,
+					"title": "Eligible for 300 annual overtime hours",
+					"description": "Labour Code 2019 art.107(2)(b): at most 200 overtime hours a year; art.107(3) allows 300 only in the listed sectors and cases (Decree 145/2020 art.61), and art.107(4) only after notifying the provincial labour authority. Unrecorded is the general 200-hour limit."
+				},
+				"rest_averaged_monthly": {
+					"type": "boolean",
+					"default": false,
+					"title": "Rest averaged monthly",
+					"description": "Labour Code 2019 art.111(1): at least 24 consecutive hours of rest each week; only where the work cycle cannot allow weekly rest may the employer average it to at least four days a month. Unrecorded is the weekly rule."
+				},
+				"occupational_accident_reduced": {
+					"type": "boolean",
+					"default": false,
+					"title": "Approved reduced occupational accident rate",
+					"description": "Decree 58/2020/NĐ-CP art.4(1): the occupational accident and disease fund rate is 0.5% of the salary; the reduced 0.3% applies only to an employer the Ministry approved on application (art.4(1)(b), art.5). Unrecorded is the 0.5% rate."
+				},
+				"pit_quarterly_filer": {
+					"type": "boolean",
+					"default": false,
+					"title": "Declares salary PIT quarterly (quarterly VAT filer)",
+					"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
+				},
+				"stoppage_pay_percent": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 100,
+					"title": "Agreed stoppage pay (% of the contract wage)",
+					"description": "Labour Code 2019 art.99(2)–(3): for a stoppage caused by a co-worker or an objective cause the parties agree the stoppage wage, not below the regional minimum wage (for a longer stoppage, the first 14 working days). STOPPAGE_REDUCTION deducts the difference between the contract day wage and the larger of this share and the regional minimum day wage (company.region). Unrecorded is full pay."
+				},
+				"six_monthly_health_checks": {
+					"type": "boolean",
+					"default": false,
+					"title": "Six-monthly health checks",
+					"description": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1): health checks at least once a year, every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly. Set when the entity employs any of them; unrecorded raises the yearly check only."
+				},
+				"vss_unit_code": {
+					"type": "string",
+					"title": "Vietnam Social Security unit code",
+					"description": "The employer’s SI/HI/UI unit code (mã đơn vị) with Vietnam Social Security (Law 41/2024 art.28)."
+				},
+				"tax_code": {
+					"type": "string",
+					"title": "Enterprise tax code",
+					"description": "The employer’s tax identification number for PIT withholding returns."
+				},
+				"pdpl_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempt from PDPL dossier and personnel duties",
+					"description": "Law on Personal Data Protection 91/2025/QH15 art.38(2)–(3): a household business or micro-enterprise is exempt, and a small enterprise or startup may opt out for 5 years from 1 January 2026, from the impact assessment (arts.21–22) and the data-protection personnel (art.33(2)) duties — unless it processes sensitive data or the data of a large number of subjects, or provides data-processing services. Unrecorded is not exempt."
+				},
+				"state_owned_enterprise": {
+					"type": "boolean",
+					"default": false,
+					"title": "State-owned enterprise",
+					"description": "UNION_DUES: in a State enterprise members pay 0.5% of the take-home salary after SI, HI, UI and PIT, at most 10% of the base salary (Decision 61/QĐ-TLĐ); elsewhere 0.5% of the SI salary."
+				}
+			}
+		},
+		"reference_tables": {
+			"TERMINATION_GROUND": [
+				"DEATH",
+				"DISMISSAL",
+				"END_OF_CONTRACT",
+				"MUTUAL",
+				"REDUNDANCY",
+				"RESIGNATION",
+				"RETIREMENT",
+				"RETRENCHMENT",
+				"UNILATERAL"
+			]
+		}
+	}
+]

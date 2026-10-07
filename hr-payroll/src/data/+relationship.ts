@@ -1,32 +1,25 @@
 import { relationship } from '@norbital-ai/bolt';
 
-/** Native links between the target collection roles. Original retired links remain in migration fixtures. */
+/** Native links between the collection roles; the folder nesting under `data/model` names the owner. */
 export default relationship({
-	'employees.user_id': { to: 'sys_user', optional: true, onDelete: 'setNull' },
+	'employment_profile.user_id': { to: 'sys_user', optional: true, onDelete: 'setNull' },
+	'employment_contract.employee_id': { to: 'employment_profile', inverse: 'employment_contract' },
+	'employment_contract.company_id': { to: 'entity', inverse: 'employment_contract' },
 	'jurisdiction_settings.cloned_from_id': {
 		to: 'jurisdiction_settings',
 		inverse: 'clones',
 		optional: true,
 		onDelete: 'setNull'
 	},
-	'statutory_contributions.settings_id': {
+	'rule_set.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'rule_set',
+		owned: true,
+		optional: true
+	},
+	'statutory_contribution_catalog.settings_id': {
 		to: 'jurisdiction_settings',
 		inverse: 'statutory_contribution_catalog',
-		owned: true
-	},
-	'leave_catalog.settings_id': {
-		to: 'jurisdiction_settings',
-		inverse: 'leave_catalog',
-		owned: true
-	},
-	'loan_catalog.settings_id': {
-		to: 'jurisdiction_settings',
-		inverse: 'loan_catalog',
-		owned: true
-	},
-	'claim_catalog.settings_id': {
-		to: 'jurisdiction_settings',
-		inverse: 'claim_catalog',
 		owned: true
 	},
 	'adhoc_catalog.settings_id': {
@@ -39,40 +32,92 @@ export default relationship({
 		inverse: 'allowance_catalog',
 		owned: true
 	},
-	'holidays.company_id': { to: 'entity', inverse: 'holiday' },
-	'employee_profiles.employee_id': { to: 'employment_profile', inverse: 'employment_contract' },
-	'employee_profiles.company_id': { to: 'entity', inverse: 'employment_contract' },
-	'rosters.employment_id': { to: 'employment_contract', inverse: 'rosters' },
-	'roster_entries.employment_id': { to: 'employment_contract', inverse: 'roster_entry' },
-	'roster_entries.payslip_id': {
-		to: 'payslips',
+	'claim_catalog.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'claim_catalog',
+		owned: true
+	},
+	'leave_catalog.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'leave_catalog',
+		owned: true
+	},
+	'loan_catalog.settings_id': { to: 'jurisdiction_settings', inverse: 'loan_catalog', owned: true },
+	'work_catalog.settings_id': { to: 'jurisdiction_settings', inverse: 'work_catalog', owned: true },
+	'adhoc_catalog_entry.catalog_id': { to: 'adhoc_catalog', inverse: 'entry' },
+	'adhoc_catalog_entry.company_id': { to: 'entity', inverse: 'adhoc_catalog_entry' },
+	'adhoc_catalog_entry.employment_id': {
+		to: 'employment_contract',
+		inverse: 'adhoc_catalog_entry',
+		optional: true
+	},
+	'adhoc_catalog_entry.payslip_id': {
+		to: 'payslip',
+		inverse: 'adhoc_catalog_entry',
+		optional: true,
+		onDelete: 'setNull'
+	},
+	'claim_catalog_entry.catalog_id': { to: 'claim_catalog', inverse: 'entry' },
+	'claim_catalog_entry.company_id': { to: 'entity', inverse: 'claim_catalog_entry' },
+	'claim_catalog_entry.employment_id': {
+		to: 'employment_contract',
+		inverse: 'claim_catalog_entry',
+		optional: true
+	},
+	'claim_catalog_entry.payslip_id': {
+		to: 'payslip',
+		inverse: 'claim_catalog_entry',
+		optional: true,
+		onDelete: 'setNull'
+	},
+	'leave_catalog_entry.catalog_id': { to: 'leave_catalog', inverse: 'entry' },
+	'leave_catalog_entry.company_id': { to: 'entity', inverse: 'leave_catalog_entry' },
+	'leave_catalog_entry.employment_id': {
+		to: 'employment_contract',
+		inverse: 'leave_catalog_entry',
+		optional: true
+	},
+	'leave_catalog_entry.payslip_id': {
+		to: 'payslip',
+		inverse: 'leave_catalog_entry',
+		optional: true,
+		onDelete: 'setNull'
+	},
+	'loan_catalog_entry.catalog_id': { to: 'loan_catalog', inverse: 'entry' },
+	'loan_catalog_entry.company_id': { to: 'entity', inverse: 'loan_catalog_entry' },
+	'loan_catalog_entry.employment_id': {
+		to: 'employment_contract',
+		inverse: 'loan_catalog_entry',
+		optional: true
+	},
+	'loan_catalog_entry.payslip_id': {
+		to: 'payslip',
+		inverse: 'loan_catalog_entry',
+		optional: true,
+		onDelete: 'setNull'
+	},
+	'obligation.company_id': { to: 'entity', inverse: 'obligation', owned: true },
+	'obligation.settings_id': { to: 'jurisdiction_settings', inverse: 'obligation' },
+	'regulatory_task.company_id': { to: 'entity', inverse: 'regulatory_task', owned: true },
+	'regulatory_task.settings_id': { to: 'jurisdiction_settings', inverse: 'regulatory_task' },
+	'holiday.company_id': { to: 'entity', inverse: 'holiday' },
+	'shift_pattern.company_id': { to: 'entity', inverse: 'shift_pattern' },
+	'shift_definition.company_id': { to: 'entity', inverse: 'shift_definition' },
+	'roster.employment_id': { to: 'employment_contract', inverse: 'roster' },
+	'roster_entry.employment_id': { to: 'employment_contract', inverse: 'roster_entry' },
+	'roster_entry.shift_definition_id': {
+		to: 'shift_definition',
+		inverse: 'roster_entry',
+		optional: true
+	},
+	'roster_entry.payslip_id': {
+		to: 'payslip',
 		inverse: 'roster_entry',
 		optional: true,
 		onDelete: 'setNull'
 	},
-	'payroll_runs.company_id': { to: 'entity', inverse: 'payroll_run' },
-	'payroll_runs.settings_id': { to: 'jurisdiction_settings', inverse: 'payroll_run' },
-	'payroll_runs.early_for_id': {
-		to: 'payroll_run',
-		inverse: 'early_settlements',
-		optional: true,
-		onDelete: 'setNull'
-	},
-	'payslips.payroll_run_id': { to: 'payroll_run', inverse: 'payslips', owned: true },
-	'payslips.employment_id': { to: 'employment_contract', inverse: 'payslips' },
-	'obligations.company_id': {
-		to: 'entity',
-		inverse: 'obligation',
-		owned: true
-	},
-	'obligations.source_obligation_id': { to: 'obligation', inverse: 'source_dependents', optional: true },
-	'obligations.settings_id': {
-		to: 'jurisdiction_settings',
-		inverse: 'obligation_instances'
-	},
-	'work_catalog.settings_id': { to: 'jurisdiction_settings', inverse: 'work_catalog', owned: true },
- 'rule_sets.settings_id': { to: 'jurisdiction_settings', inverse: 'rule_set', owned: true, optional: true },
-	'catalogue_entries.company_id': { to: 'entity', inverse: 'catalogue_entries' },
-	'catalogue_entries.employment_id': { to: 'employment_contract', inverse: 'catalogue_entries', optional: true },
-	'catalogue_entries.payslip_id': { to: 'payslips', inverse: 'catalogue_entries', optional: true, onDelete: 'setNull' }
+	'payroll_run.company_id': { to: 'entity', inverse: 'payroll_run' },
+	'payroll_run.settings_id': { to: 'jurisdiction_settings', inverse: 'payroll_run' },
+	'payslip.payroll_run_id': { to: 'payroll_run', inverse: 'payslip', owned: true },
+	'payslip.employment_id': { to: 'employment_contract', inverse: 'payslip' }
 });

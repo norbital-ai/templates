@@ -54,5 +54,12 @@ export default model({
 		late_cancellation: { kind: 'bool', default: false }
 	},
 	index: ['attention', 'shift_check'],
-	noOverlap: [{ key: ['helper'], period: 'slot', where: { status: { ne: 'cancelled' } } }]
+	noOverlap: [
+		{
+			key: ['helper'],
+			period: 'slot',
+			// unassigned visits (helper null) may overlap: Bolt counts null as a key value
+			where: { status: { ne: 'cancelled' }, helper: { isNull: false } }
+		}
+	]
 });

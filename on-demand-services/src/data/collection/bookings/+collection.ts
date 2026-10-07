@@ -1,4 +1,4 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection } from '@norbital-ai/bolt';
 import { loadPool, settingsOf, when } from '../../../lib/dispatch.js';
 import { addDays } from '@norbital-ai/std/date';
 import { utcOf } from '@norbital-ai/std/zone';
@@ -182,7 +182,7 @@ bookings.action('book', async (input, ctx) => {
 		);
 	const visits = plan.visits.map((v) => ({
 		...v,
-		helper: v.helper as Id<'helpers'>,
+		helper: v.helper,
 		address,
 		location,
 		area,
@@ -209,7 +209,7 @@ bookings.action('book', async (input, ctx) => {
 		body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${address}. We will message you if anything changes.`
 	});
 	return {
-		booking: records.find((r) => r.collection === 'bookings')!.id as Id<'bookings'>,
+		booking: records.find((r) => r.collection === 'bookings')!.id,
 		assigned: visits.length,
 		unassigned: 0
 	};

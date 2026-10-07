@@ -101,8 +101,8 @@
 				<p class="text-meta">
 					{t('component.requested_at_instant', {
 						instant: format({ kind: 'instant' }, variation.requested_at ?? null, {
-							...kinds,
-							locale: kinds.locale ?? bolt.locale
+							locale: kinds.locale ?? bolt.locale,
+							...(kinds.zone == null ? {} : { zone: kinds.zone })
 						})
 					})}
 				</p>

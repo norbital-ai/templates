@@ -1,0 +1,991 @@
+[
+	{
+		"id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "ID",
+		"jurisdiction_code": "ID",
+		"name": "Indonesia — 2026-03-01",
+		"sealed_at": "2026-03-01T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"payroll": {
+			"currency": "IDR",
+			"timezone": "Asia/Jakarta",
+			"tax_year_start_month": 1
+		},
+		"sources": {
+			"urls": [
+				"https://disnakertrans.kalbarprov.go.id/peraturan/sk-ump-dan-umk-tahun-2026/",
+				"https://drive.google.com/file/d/13O9_R9jDryeVCPUlJbW4J3UbIAHzguaB/view?usp=sharing",
+				"https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-provinsi-banten-tahun-2026-202512241556.pdf",
+				"https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-kabupaten-dan-kota-tahun-2026-202512241555.pdf",
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf",
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/608/peraturan-pemerintah-nomor-46-tahun-2015",
+				"https://jdih.kemnaker.go.id/peraturan/detail/1725/peraturan-pemerintah-nomor-37-tahun-2021",
+				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf",
+				"https://web.archive.org/web/20240924205708id_/https://peraturan.bpk.go.id/Download/127554/Perpres%20Nomor%2064%20Tahun%202020.pdf",
+				"https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf",
+				"https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf",
+				"https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003",
+				"https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
+				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf",
+				"https://jdih.jakarta.go.id/dokumen/detail/14763",
+				"https://cloud-ng.baliprov.go.id/disnakeresdm/2025/12/PENGUMUMAN-DAN-SK-UMP-UMSP-2026.pdf",
+				"https://cloud-ng.baliprov.go.id/disnakeresdm/2025/12/PENGUMUMAN-DAN-SK-UMK-UMSK-TAHUN-2026.pdf",
+				"https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-kabupaten-dan-kota-tahun-2026-202512241557.pdf",
+				"https://www.kepriprov.go.id/siaran-pers/832-rilis-diskominfo-xii-2025",
+				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf",
+				"https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023",
+				"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2302/undang-undang-nomor-6-tahun-2023",
+				"https://jdih.kemnaker.go.id/peraturan/detail/3043/undang-undang-nomor-2-tahun-2026",
+				"https://jdih.kemenkeu.go.id/dok/uu-7-tahun-1983",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=&nomor=&tahun=&status=&terjemahan=&sort=terbaru",
+				"https://jdih.kemnaker.go.id/peraturan?keyword=upah&sort=terbaru",
+				"https://www.pajak.go.id/id/peraturan",
+				"https://jdih.kemenkeu.go.id/search?order=desc&bentuk=Peraturan+Menteri",
+				"https://www.bpjsketenagakerjaan.go.id/berita.html",
+				"https://jdih.jakarta.go.id/",
+				"https://www.kemenkopmk.go.id/pengumuman",
+				"https://lamongankab.go.id/beranda/documents/disnaker/UMK_JATIM_2026_bc9d907c6ebccd3ff835087242cbb0e6.pdf",
+				"https://files.jdih.jatimprov.go.id/jdih-prod/uploads/topics/2025kg00350935.pdf",
+				"https://files.jdih.jatimprov.go.id/jdih-prod/uploads/topics/2025kg00350938.pdf",
+				"https://gunungkidulkab.go.id/umk-gunungkidul-tahun-2026-ditetapkan-rp-246-juta-naik-dibanding-tahun-sebelumnya/",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11560/pdf/penetapan-upah-minimum-provinsi-lampung-dan-upah-minimum-sektoral-provinsi-lampung-tahun-2026",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11562/pdf/penetapan-upah-minimum-kota-bandar-lampung-tahun-2026",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11563/pdf/penetapan-upah-minimum-kabupaten-mesuji-tahun-2026",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11564/pdf/penetapan-upah-minimum-kabupaten-lampung-selatan",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11565/pdf/penetapan-upah-minimum-kabupaten-way-kanan",
+				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11566/pdf/penetapan-upah-minimum-kota-metro-tahun-2026",
+				"https://www.setneg.go.id/"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
+		},
+		"cloned_from_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"change_summary": "SE BPJS Ketenagakerjaan B/1226/022026 (25 February 2026): the Jaminan Pensiun wage ceiling rises to 11,086,300 from 1 March 2026, so the capped charge becomes 110,863 / 221,726.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": ["nationality", "gender", "date_of_birth", "marital_status", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"eq": "event.day"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && !raised.exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id) } })",
+					"events": ["created", "updated", "daily"]
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "ID employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "IDR"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "IDR"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string",
+											"enum": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"]
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "IDR"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								},
+								"description": "Tunjangan tetap: fixed allowances paid with the basic wage; with it they make the monthly wage (terms.monthly_wage) for BPJS, overtime, THR and severance (PP 36/2021 art.7; PP 35/2021 art.32(2))."
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PART_TIME", "DAILY"],
+								"description": "PERMANENT: PKWTT (open-ended); CONTRACT: PKWT (fixed term, UU 13/2003 art.56 as amended by UU 6/2023; PP 35/2021 arts.4–16 — compensation on expiry, no pesangon); PART_TIME: PKWTT or PKWT under 35 hours a week (PP 35/2021 art.21(3)); DAILY: a pegawai tidak tetap paid by the day (PP 35/2021 art.10; PMK 168/2023 art.12(2) TER harian)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "MANAGERIAL"],
+								"description": "MANAGERIAL: a golongan jabatan tertentu under PP 35/2021 art.27(2) — no overtime wage."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+								"description": "How the wage is set: by time, by output (satuan hasil, PP 36/2021 art.15) or by task."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "RESIDENT_FOREIGNER", "NON_RESIDENT"],
+								"description": "Tax residency (UU PPh art.2(3)–(4)) with nationality: CITIZEN is an Indonesian national resident for tax (PPh 21; JP and PKWT compensation apply); RESIDENT_FOREIGNER a foreigner present more than 183 days in 12 months or intending to reside (PPh 21; no JP); NON_RESIDENT is withheld PPh 26 at 20%. PPh 21 refuses any other value."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"description": "Stored on the term; CEL reads them as terms.facts.*.",
+								"properties": {
+									"daily_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Agreed daily wage",
+										"description": "For a DAILY worker: the day's wage. PPh 21 TER harian is priced on it (PMK 168/2023 art.12(2)), and JHT, JKK and JKM take the month as 25 days of it (PP 44/2015 art.19(3); PP 46/2015 art.17(3))."
+									},
+									"working_days_per_week": {
+										"type": "integer",
+										"enum": [5, 6],
+										"title": "Working days a week",
+										"description": "The working-time system of PP 35/2021 art.21(2): 6 days of 7 hours (40 a week) or 5 days of 8 hours. Prices rest-day and holiday overtime (art.31(2)–(3)); required before such hours are paid."
+									},
+									"worksite_kbli": {
+										"type": "string",
+										"pattern": "^[0-9]{5}$",
+										"title": "Worksite KBLI",
+										"description": "The five-digit KBLI of the worksite's activity; selects the governor's sector minimum wage."
+									},
+									"umsp_job_category": {
+										"type": "string",
+										"enum": ["BUS_DRIVER_MECHANIC", "NURSING_MIDWIFERY", "MEDICAL_SUPPORT"],
+										"title": "Job category (sector minimum wage)",
+										"description": "DKI Kep. Gubernur 33/2026 rows 58–59 (bus drivers and mechanics of private companies) and 61 (nursing and midwifery, medical support at a class A private hospital)."
+									},
+									"tax_subject_from": {
+										"type": "string",
+										"format": "date",
+										"title": "Resident tax subject from",
+										"description": "The day this person became an Indonesian resident tax subject, where that is in the current year (PMK 168/2023 art.15(3))."
+									},
+									"tax_subject_until": {
+										"type": "string",
+										"format": "date",
+										"title": "Resident tax subject until",
+										"description": "The last day as an Indonesian resident tax subject, where it ends in the current year (leaving Indonesia for good); that month is the last tax period."
+									},
+									"non_fixed_allowances_monthly": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Non-fixed allowances a month",
+										"description": "Allowances that vary with attendance or output; with basic plus fixed allowances below 75% of the whole wage, overtime is priced on 75% of the whole (PP 35/2021 art.32(4))."
+									}
+								}
+							}
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts; CEL reads them as employment.exit_facts.*.",
+					"properties": {
+						"termination_cause": {
+							"type": "string",
+							"enum": [
+								"MERGER_CONSOLIDATION_SEPARATION",
+								"ACQUISITION",
+								"ACQUISITION_TERMS_CHANGE_REJECTED",
+								"EFFICIENCY_ACTUAL_LOSS",
+								"EFFICIENCY_PREVENT_LOSS",
+								"CLOSURE_LOSS",
+								"CLOSURE_NO_LOSS",
+								"FORCE_MAJEURE_CLOSURE",
+								"FORCE_MAJEURE_NO_CLOSURE",
+								"DEBT_SUSPENSION_LOSS",
+								"DEBT_SUSPENSION_NO_LOSS",
+								"BANKRUPTCY",
+								"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
+								"EMPLOYEE_REQUEST_REJECTED",
+								"VOLUNTARY_RESIGNATION",
+								"UNEXCUSED_ABSENCE",
+								"VIOLATION_AFTER_WARNINGS",
+								"URGENT_VIOLATION",
+								"DETENTION_CAUSED_LOSS",
+								"DETENTION_NO_LOSS",
+								"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
+								"RETIREMENT",
+								"DEATH"
+							],
+							"title": "PP 35/2021 termination cause",
+							"description": "The statutory ground (PP 35/2021 arts.41–57); it chooses the pesangon multiplier and whether UPMK or uang pisah is owed. Required for a PKWTT exit."
+						},
+						"separation_wage_basis": {
+							"type": "string",
+							"enum": ["MONTHLY", "DAILY", "OUTPUT"],
+							"title": "Separation wage basis",
+							"description": "PP 35/2021 art.157 basis: the monthly wage (basic plus fixed allowances), 30 × a daily wage, or the 12-month output average floored at the regional minimum wage (rules.minimum_wage.by_region[company.region])."
+						},
+						"separation_daily_wage": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Daily wage for separation",
+							"description": "Art.157(2): the separation month is 30 times this daily wage."
+						},
+						"output_average_12m": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Average output-paid income, last 12 months",
+							"description": "Art.157(3)–(4)."
+						},
+						"micro_small_enterprise": {
+							"type": "boolean",
+							"title": "Micro or small enterprise",
+							"description": "PP 35/2021 art.59: a micro or small enterprise pays the severance agreed with the worker instead of the statutory formula."
+						},
+						"micro_small_agreement_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Micro/small-enterprise agreement reference"
+						},
+						"agreed_pesangon_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed pesangon amount",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"agreed_upmk_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed service-award amount",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"agreed_pkwt_compensation_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed fixed-term compensation",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"separation_pay_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Contract-defined separation pay (uang pisah)",
+							"description": "PP 35/2021 arts.50–54: the amount the agreement, company regulation or collective agreement fixes."
+						},
+						"separation_pay_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Separation-pay agreement reference"
+						},
+						"pension_offset_applies": {
+							"type": "boolean",
+							"title": "Employer-funded pension offset applies",
+							"description": "PP 35/2021 art.58: an employer pension programme's benefit is set against the separation pay."
+						},
+						"employer_funded_pension_benefit": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Employer-funded pension benefit",
+							"description": "PP 35/2021 art.58(2)."
+						},
+						"pension_offset_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Pension offset agreement reference"
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["REGISTERED", "NOT_REGISTERED"],
+										"description": "The participant registration with the scheme (BPJS Ketenagakerjaan or Kesehatan). A missing registration does not waive a contribution (UU 24/2011 art.19)."
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The KPJ (BPJS Ketenagakerjaan) or JKN card number."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"extra_members": {
+												"type": "integer",
+												"minimum": 0,
+												"title": "Extra BPJS Kesehatan family members",
+												"description": "KESEHATAN: family members beyond the spouse and three children the worker enrols (Perpres 82/2018 arts.30(1)(b), 36): 1% of the capped wage each, deducted from the worker."
+											}
+										}
+									},
+									"reason": {
+										"type": "string",
+										"description": "Why the standing is what it is (e.g. the source evidence for a missing registration)."
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as the other keys of employment_profile.facts; CEL reads them as employee.facts.*. PTKP reads the profile columns marital_status and dependents_count (at most three) and gender: MARRIED is status K; with the dependants it fixes the TER category (A = TK/0, TK/1, K/0; B = TK/2, TK/3, K/1, K/2; C = K/3).",
+					"properties": {
+						"husband_no_income_certified": {
+							"type": "boolean",
+							"default": false,
+							"title": "Husband has no income (kelurahan statement)",
+							"description": "A married female employee takes PTKP TK/0 unless she holds a statement from the kelurahan/desa that her husband receives no income; then she takes K plus her dependants (PMK 168/2023; UU PPh art.8(1))."
+						},
+						"zakat_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Zakat paid through the employer a month",
+							"description": "Zakat or a compulsory religious contribution paid through the employer to a recognised body; deducted from gross income (PMK 168/2023 art.10(1)(c))."
+						},
+						"pph26_treaty_rate": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 0.2,
+							"title": "PPh 26 treaty rate",
+							"description": "The tax-treaty rate for a non-resident who has given the certificate of domicile (PMK 168/2023 art.14(1)–(2))."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "ID entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts; CEL reads them as company.facts.*. The entity columns region (a key of rules.minimum_wage.by_region: the BPJS Kesehatan floor and the art.157 output floor) and risk_class (JKK group I–V, PP 44/2015 art.16(1)) are read beside them.",
+			"properties": {
+				"leave_cash_out_day_divisor": {
+					"type": "number",
+					"minimum": 1,
+					"maximum": 31,
+					"title": "Leave cash-out daily divisor",
+					"description": "The number of days the basic wage is divided by to value one day of unused annual leave (owner ruling: basic ÷ this divisor; KDIT pays ÷ 20). Required before any annual leave is cashed out (UU 13/2003 art.79; PP 35/2021 art.40(4)(a))."
+				},
+				"enterprise_size_class": {
+					"type": "string",
+					"enum": ["OTHER", "MICRO_OR_SMALL"],
+					"title": "Enterprise size for BPJS Kesehatan",
+					"description": "Perpres 82/2018 art.32(4)–(5) as amended by Perpres 59/2024: micro and small enterprises are outside the ordinary UMP/UMK contribution floor."
+				},
+				"pph21_dtp_sector": {
+					"type": "boolean",
+					"default": false,
+					"title": "Eligible PPh 21 DTP sector",
+					"description": "The employer meets the principal KLU and registration conditions of PMK 10/2025 as amended by PMK 72/2025 (2025) or PMK 105/2025 art.3 (2026), from the DJP record."
+				},
+				"npwp": {
+					"type": "string",
+					"pattern": "^[0-9]{15,16}$",
+					"title": "Employer NPWP",
+					"description": "The withholder's tax identity on SPT Masa PPh 21/26 and BPA1 (16 digits from 2024; PMK 112/2022)."
+				},
+				"nib": {
+					"type": "string",
+					"title": "Nomor Induk Berusaha",
+					"description": "The OSS business identity (PP 5/2021); WLKP and PKWT registration key on it."
+				},
+				"bpjs_ketenagakerjaan_npp": {
+					"type": "string",
+					"title": "BPJS Ketenagakerjaan NPP",
+					"description": "Employer registration number (nomor pendaftaran perusahaan) for JHT, JKK, JKM, JP and JKP."
+				},
+				"bpjs_kesehatan_kode_badan_usaha": {
+					"type": "string",
+					"title": "BPJS Kesehatan employer code",
+					"description": "The badan usaha code of the employer's BPJS Kesehatan registration."
+				},
+				"wlkp_registration": {
+					"type": "string",
+					"title": "WLKP registration number",
+					"description": "Wajib Lapor Ketenagakerjaan di Perusahaan registration (UU 7/1981; Permenaker 18/2017)."
+				},
+				"wlkp_first_reported_on": {
+					"type": "string",
+					"format": "date",
+					"title": "First WLKP report",
+					"description": "The day the company first reported under UU 7/1981 art.6; the annual report falls on its anniversary (art.8)."
+				},
+				"company_regulation_valid_until": {
+					"type": "string",
+					"format": "date",
+					"title": "Company regulations valid until",
+					"description": "The last day of the ratified Peraturan Perusahaan (at most 2 years, UU 13/2003 art.111(3))."
+				},
+				"umsp_export_oriented": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exporter (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_assets_over_1_trillion": {
+					"type": "boolean",
+					"default": false,
+					"title": "Assets above Rp1 trillion (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_astra_group": {
+					"type": "boolean",
+					"default": false,
+					"title": "Astra group member (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_class_a_private_hospital": {
+					"type": "boolean",
+					"default": false,
+					"title": "Class A private hospital (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_hotel_star": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5,
+					"default": 0,
+					"title": "Hotel star class (sector minimum wage)",
+					"description": "DKI Kep. Gubernur 33/2026 Lampiran row 60: star hotels of 4 and 5 stars."
+				}
+			}
+		},
+		"reference_tables": {
+			"payroll": {
+				"vocabularies": {
+					"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+					"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+					"pass_type": [],
+					"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+				},
+				"allowance_npl_prorates": true,
+				"trailing_wage_short_months": 3,
+				"trailing_wage_long_months": 12,
+				"final_pay_deadlines": [
+					{
+						"when": "",
+						"days": 0,
+						"basis": "NEXT_PAYDAY",
+						"authority": "PP 36/2021 art.55(1): wages are paid at the time agreed between employer and worker, the interval at most one month (art.55(4)); a final wage is still a wage, so it falls due on the agreed payday of the period the exit falls in. No instrument sets a shorter post-exit deadline (UU 13/2003 art.156(1) owes severance on termination without a day count); the late-wage fine of art.61(1) runs from the fourth day after the agreed date."
+					}
+				],
+				"deduction_ceiling": {
+					"share": 0.5,
+					"basis": "GROSS",
+					"counts_statutory": false,
+					"counts_loans": true,
+					"exempt_codes": ["KESEHATAN_TERMINATION_MONTH_EMPLOYEE", "PENSION_OFFSET"],
+					"final_pay_exempt": false,
+					"authority": "PP 36/2021 art.65: the deductions of art.63(1) — fines, damages, wage advances, rent, debts or their instalments, overpaid wages — may total at most 50% of each wage payment; contributions to the state and to social-security bodies are deducted under art.64(3), outside art.63, so the employee's BPJS share and PPh 21 are not counted, nor is the pension offset against separation pay (not a wage deduction). No final-payment exception."
+				}
+			},
+			"work_rules": {
+				"proration": {
+					"by": "CALENDAR_DAYS"
+				},
+				"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
+				"rate_conversions": {
+					"weekly_to_monthly": "52.0 / 12.0",
+					"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+					"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+				},
+				"overtime_when": "employment.classification != \"MANAGERIAL\"",
+				"bands": [
+					{
+						"label": "OT-1.5X",
+						"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
+						"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+						"price_amount": "hours * ordinary_hour * 1.5"
+					},
+					{
+						"label": "OT-2.0X",
+						"when": "day_type == \"ORDINARY\" && requested_by == \"EMPLOYER\"",
+						"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+						"price_amount": "hours * ordinary_hour * 2.0"
+					},
+					{
+						"label": "OT-1.5X",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+						"price_amount": "hours * ordinary_hour * 1.5"
+					},
+					{
+						"label": "OT-2.0X",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+						"price_amount": "hours * ordinary_hour * 2.0"
+					},
+					{
+						"label": "OT-2.0X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "person.terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
+						"price_amount": "hours * ordinary_hour * 2.0"
+					},
+					{
+						"label": "OT-3.0X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "1.0",
+						"price_amount": "hours * ordinary_hour * 3.0"
+					},
+					{
+						"label": "OT-4.0X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "overtime_hours",
+						"price_amount": "hours * ordinary_hour * 4.0"
+					},
+					{
+						"label": "OT-2.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * 2.0"
+					},
+					{
+						"label": "OT-3.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+						"price_amount": "hours * ordinary_hour * 3.0"
+					},
+					{
+						"label": "OT-4.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+						"price_amount": "hours * ordinary_hour * 4.0"
+					}
+				],
+				"limits": [
+					{
+						"key": "daily_ot",
+						"period": "DAY",
+						"measure": "OVERTIME_HOURS",
+						"max_hours": 4,
+						"unit": "WORKED_HOURS"
+					},
+					{
+						"key": "weekly_ot",
+						"period": "WEEK",
+						"measure": "OVERTIME_HOURS",
+						"max_hours": 18,
+						"unit": "WORKED_HOURS"
+					},
+					{
+						"key": "weekly_rest",
+						"measure": "CONSECUTIVE_WORK_DAYS",
+						"max_days": 6,
+						"discharged_by": "REST_OR_OFF"
+					}
+				],
+				"breaks": [
+					{
+						"when": "consecutive_hours > 4.0",
+						"owed_minutes": "30.0",
+						"counts_as_worked_time": false
+					}
+				],
+				"overtime_unit_hours": 0.5,
+				"holiday_rest_precedence": "REST_DAY",
+				"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28: no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
+				"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
+				"ordinary_rate": {
+					"hour": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : (terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 25.0 : 21.0) : terms.pay_frequency == \"WEEKLY\" ? 52.0 / 12.0 : 1.0) * terms.monthly_wage / 173.0",
+					"day": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? 52.0 / 12.0 : 1.0) * terms.ordinary_hours_per_week / terms.working_days_per_week * terms.monthly_wage / 173.0"
+				},
+				"encashment": {
+					"reference": "EVENT_DATE",
+					"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "DAILY", "HOURLY"],
+					"preserve_year_end_rate": false,
+					"day_amount": "terms.pay_frequency == \"DAILY\" ? terms.basic_salary + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week + (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? 0.0 : terms.fixed_allowances / company.facts.leave_cash_out_day_divisor) : (company.facts.leave_cash_out_wage_basis == \"BASIC\" ? terms.basic_salary : terms.monthly_wage) / company.facts.leave_cash_out_day_divisor",
+					"include_allowances": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+					"exclude_allowances": [],
+					"required_facts": ["leave_cash_out_day_divisor", "leave_cash_out_wage_basis"],
+					"authority": "UU 13/2003 art.156(4)(a) as amended by UU 6/2023 art.81 and PP 35/2021 art.40(4)(a): uang penggantian hak includes annual leave not yet taken and not yet expired, with no amount or divisor. UU 13/2003 art.79(4) as amended: the implementation of annual leave is regulated in the employment agreement, company regulation or collective agreement. Art.157(1) as amended fixes the wage components (basic wage and fixed allowances) only for uang pesangon and UPMK, no longer for uang penggantian hak, and PP 36/2021 art.17 (monthly wage ÷25 on a six-day week, ÷21 on a five-day week) sets the daily wage only where wages are fixed daily. The Kemnaker JDIH item of 5 November 2014 (1/30 of the monthly wage) is an explanatory news item, not a regulation. The day is therefore priced from the entity's declared PK/PP/PKB basis: `leave_cash_out_wage_basis` (basic wage, or basic wage plus the contract's fixed allowances) divided by `leave_cash_out_day_divisor`; an entity that records neither stops the cash-out by name. Contract-listed allowances are paid regularly irrespective of attendance, so they are fixed allowances when the declared basis includes them. PP 36/2021 art.15 fixes time-unit wages only per jam, harian or bulanan: a daily wage is itself the day (art.17 converts a month into a day only where wages are fixed daily, and the day here is already fixed); a per-hour wage (art.16(1), part-time only) is the hour times the contract's normal hours of the day; a monthly fixed allowance adds its declared-divisor day share when the declared basis includes it. A weekly wage is not a time unit PP 36/2021 art.15 recognises, so a WEEKLY contract has no valuation rule. Source: https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf (signed SALINAN, linked from https://jdih.kemnaker.go.id/peraturan/detail/1724; arts 15–17 read from the page images, pp. 10–11)."
+				}
+			},
+			"tables": [
+				{
+					"name": "TERMINATION_GROUND",
+					"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+					"keys": ["code"],
+					"columns": []
+				},
+				{
+					"name": "RELIGION",
+					"label": "Religion (employees.religion; jurisdiction_holidays.religion, comma-separated): the religion whose own holiday dates the THR (Permenaker 6/2016 art.1(2)). Spelled as the THR authority names them.",
+					"keys": ["code"],
+					"columns": []
+				},
+				{
+					"name": "RISK_CLASS",
+					"label": "JKK work-risk group (companies.risk_class): PP 44/2015 art.16(1), groups I (very low) to V (very high).",
+					"keys": ["code"],
+					"columns": []
+				}
+			],
+			"checks": [
+				{
+					"code": "PROBATION_OVER_THREE_MONTHS",
+					"at": "TERMS_CHANGE",
+					"severity": "REFUSE",
+					"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
+					"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
+					"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+				},
+				{
+					"code": "PKWT_PROBATION_VOID",
+					"at": "TERMS_CHANGE",
+					"severity": "REFUSE",
+					"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
+					"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
+					"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+				},
+				{
+					"code": "PKWT_TERM_OVER_FIVE_YEARS",
+					"at": "PAYSLIP",
+					"severity": "REFUSE",
+					"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
+					"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
+					"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension)"
+				},
+				{
+					"code": "YOUNG_WORKER_CONDITIONS",
+					"at": "PAYSLIP",
+					"severity": "WARN",
+					"when": "employee.age < 18",
+					"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
+					"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); configured default: the exceptions are lawful, so the run warns rather than refuses"
+				}
+			]
+		}
+	}
+]

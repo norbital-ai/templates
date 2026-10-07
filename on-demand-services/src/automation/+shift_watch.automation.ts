@@ -24,7 +24,7 @@ const shift_watch = automation({
 });
 export default shift_watch;
 
-shift_watch.run(async (input, ctx) => {
+shift_watch.run(async (_, ctx) => {
 	const now = Date.parse(ctx.now);
 	const at = (m: number) => Instant(new Date(now + m * MINUTE).toISOString());
 	const settings = await settingsOf(ctx);
@@ -94,20 +94,16 @@ shift_watch.run(async (input, ctx) => {
 		select: { helper: true, slot: true, mc: true },
 		all: true
 	});
-	const declined =
-		'ids' in input && input.ids !== undefined && input.ids.length > 0
-			? (
-					await ctx.read('visits', {
-						where: {
-							id: { in: input.ids },
-							helper: { isNull: false },
-							shift_check: { eq: 'declined' }
-						},
-						select: { helper: true, slot: true, mc: true },
-						all: true
-					})
-				).rows
-			: [];
+	// declined and still held: every run picks these up, so a decline is handled even if its own trigger was skipped
+	const { rows: declined } = await ctx.read('visits', {
+		where: {
+			status: { eq: 'scheduled' },
+			helper: { isNull: false },
+			shift_check: { eq: 'declined' }
+		},
+		select: { helper: true, slot: true, mc: true },
+		all: true
+	});
 
 	// one warning and one recovery plan per helper's day
 	const days = new Map<

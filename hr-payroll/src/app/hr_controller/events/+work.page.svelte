@@ -1,733 +1,229 @@
 <script lang="ts">
-	import ScopeGate from '../../../lib/ui/scopes/ScopeGate.svelte';
-	import { t } from '../../../lib/ui/i18n/t.js';
-	import { everyField } from '../../../lib/every-field.js';
 	/**
-	 * The roster board for one legal entity and one pay period (a month, a half or a week in the entity's grammar): every
-	 * employed person's days, the plan and the attendance side by side, drawn from one derivation (`buildRosterMonth`).
-	 * A cell opens its person-day's record sheet, or a create sheet with the person and the day when no row exists yet;
-	 * two cells swap their plans in one write the server judges whole. The month workbook imports the roster, the time
-	 * entries and the overtime in one act (`work_days.import_month`), and its template downloads from here.
-	 *
-	 * Locks are drawn from the entity's payroll runs and payslips (a paid payslip freezes that person's days) and from
-	 * each person-day's own `payslip_id` (a run took this record). Holidays are the entity's published calendar,
-	 * resolved per person as payroll resolves them.
+	 * The roster board of one legal entity for one pay period: every person employed in the period against its days,
+	 * the plan and the clock side by side. A cell opens the day's clock; the kiosk punches the day.
 	 */
 	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
-	import { PlainDate } from '@norbital-ai/std/date';
+	import type { ActInput, Id } from '@norbital-ai/bolt';
+	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { toast, Toaster } from 'svelte-sonner';
-	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { Alert, CustomView, EmptyState, Sheet, type ToolbarItem } from '@norbital-ai/ui';
-	import { openRecord, RecordShell } from '@norbital-ai/ui';
-	import { addDays, monthBounds, periodMonth } from '../../../lib/payroll/run/dates.js';
-	import { resolveWindow } from '../../../lib/payroll_engine/foundation/time.js';
-	import {
-		holidayWorkedRows,
-		schedulingImportDays,
-		schedulingImportPayload
-	} from '../../../data/collection/work_days/lib/import-workbook.js';
-	import {
-		schedulingTemplateWorkbook,
-		XLSX_MEDIA_TYPE
-	} from '../../../data/collection/work_days/lib/import-template.js';
-	import { resolveEmployment } from '../../../lib/employment-contract.js';
-	import { dateKey, isSettledId } from '../../../lib/payroll_engine/foundation/time.js';
-	import {
-		dayLockKey,
-		lockMap,
-		payrollWindows,
-		sourceLockReason
-	} from '../../../lib/scheduling/lock.js';
-	import {
-		observedDays,
-		observedHolidays,
-		overtimeEntitled
-	} from '../../../lib/scheduling/work-limits.js';
-	import {
-		patternAnchor,
-		patternRosterCodeId,
-		termPatternRow
-	} from '../../../lib/scheduling/work-pattern.js';
-	import { periodInCompanyGrammar, todayKey } from '../../../lib/ui/format/calendar.js';
-	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
-	import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
-	import { saveBlob } from '../../../lib/ui/format/export-download.js';
+	import { t } from '../../../lib/ui/i18n/t.js';
+	import { AppShell } from '@norbital-ai/ui/layout';
+	import { CustomView, EmptyState } from '@norbital-ai/ui';
+	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
+	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
+	import { employmentLabel, entityTimeZone } from '../../../lib/ui/scopes/create_scope.js';
+	import MonthPeriodPicker from '../../../lib/ui/components/month_period_picker.svelte';
+	import { createPayPeriodScope } from '../../../lib/ui/scopes/pay_period_scope.svelte.js';
+	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
-	import { captureClaims } from '../../../lib/ui/roster/capture-claims.js';
-	import { monthSources } from '../../../lib/ui/roster/month-sources.svelte.js';
-	import MonthPeriodPicker from '../../../lib/ui/components/month-period-picker.svelte';
-	import RosterMonthBoard, {
-		type BoardCell
-	} from '../../../lib/ui/roster/roster-month-board.svelte';
-	import { unresolvedClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
+	import MonthBoard from '../../../lib/ui/roster/month_board.svelte';
+	import { datesBetween, intervalsFrom } from '../../../lib/ui/roster/month_board.js';
 	import {
-		buildRosterMonth,
-		employmentMonthEmptyReason,
-		employmentOverlapsMonth,
-		holidaysByDate,
-		lockRung,
-		lockRungFreezes,
-		lockRungSourceLock,
-		monthDays,
-		personDayKey,
-		termCovers
-	} from '../../../lib/ui/roster/roster-month.js';
-	import { runWorkbookImport } from '../../../lib/ui/workbook/workbook-import.js';
-	import WorkbookImportDetails from '../../../lib/ui/workbook/workbook-import-details.svelte';
+		downloadAttendanceTemplate,
+		parseAttendanceWorkbook
+	} from '../../../lib/ui/roster/attendance_workbook.js';
 
 	const scope = companyScope();
-	const company = $derived(scope.company);
+	const pay = createPayPeriodScope(() => scope.company);
 	const today = todayKey();
-	const approved = { approval_id: { isNull: true } } as const;
+	const timeZone = $derived(entityTimeZone(scope.company));
 
-	let month = $state(todayKey().slice(0, 7));
-	/** The board's period in the entity's pay grammar; the calendar month only scopes the reads that fetch a superset. */
-	const period = $derived(periodInCompanyGrammar(month, company?.pay_frequency, today));
-	const calendarMonth = $derived(periodMonth(period));
-	const monthStart = $derived(PlainDate(`${calendarMonth}-01`));
-	const monthEnd = $derived(PlainDate(monthBounds(calendarMonth).end));
-	const monthDateKeys = $derived(monthDays(period));
-	const settingsCode = $derived(company?.settings_code ?? null);
+	let fileInput = $state<HTMLInputElement>();
+	let importing = $state(false);
+	const days = $derived(pay.window == null ? [] : datesBetween(pay.window.start, pay.window.end));
 
-	/* ── the entity's payroll: its runs and payslips lock days (a paid payslip freezes that person's period) ── */
-	const runs = liveRows(() =>
-		scope.id == null
-			? null
-			: bolt.read('payroll_runs', {
-					where: { ...approved, company_id: { eq: scope.id } },
-					select: { period: true, kind: true, attendance_from: true, attendance_to: true },
-					all: true
-				})
-	);
-	const payslips = liveRows(() =>
-		scope.id == null
-			? null
-			: bolt.read('payslips', {
-					where: { payroll_run_id: { is: { company_id: { eq: scope.id } } } },
-					select: {
-						payroll_run_id: true,
-						employment_id: true,
-						paid_at: true,
-						funding_received: true,
-						funding_received_on: true,
-						funding_reference: true
-					},
-					all: true
-				})
-	);
-	const windows = $derived(payrollWindows(runs.current ?? [], payslips.current ?? []));
-	/** The attendance window the next run settles: the stored run's, else the entity's cutoff rule. */
-	const cutoff = $derived.by(() => {
-		const run = (runs.current ?? []).find((row) => row.period === period);
-		if (run?.attendance_from != null && run.attendance_to != null)
-			return { start: dateKey(run.attendance_from), end: dateKey(run.attendance_to) };
-		if (company == null) return null;
+	/** One roster_entry per imported person-day: the clock as intervals in the entity's zone, overtime and incentive. */
+	async function importWorkbook() {
+		const input = fileInput;
+		if (input == null) return;
+		const file = input.files?.[0];
+		input.value = '';
+		if (file == null || scope.id == null) return;
+		importing = true;
 		try {
-			return resolveWindow(period, {
-				pay_cutoff_day: company.pay_cutoff_day ?? 0,
-				pay_frequency: company.pay_frequency
-			}).attendance;
-		} catch {
-			return null;
+			const rows = await parseAttendanceWorkbook(await file.arrayBuffer());
+			if (rows.length === 0) {
+				toast.error(t('attendance_import.empty'));
+				return;
+			}
+			const numbers = [...new Set(rows.map((row) => row.employee_number))];
+			const { rows: contracts } = await bolt.read('employment_contract', {
+				where: {
+					company_id: { eq: scope.id },
+					employee_number: { in: numbers },
+					approval_id: { isNull: true }
+				},
+				select: { id: true, employee_number: true },
+				all: true
+			});
+			const byNumber = new Map(contracts.map((row) => [row.employee_number, row.id]));
+			const unknown = numbers.filter((number) => !byNumber.has(number));
+			if (unknown.length > 0) {
+				toast.error(t('attendance_import.unknown_people', { count: unknown.length }));
+				return;
+			}
+			type Entry = {
+				readonly employment_id: Id<'employment_contract'>;
+				readonly work_date: PlainDate;
+				worked_intervals?: { readonly start: Instant; readonly end: Instant | null }[];
+				approved_overtime_hours?: number;
+				overtime_consented_at?: Instant;
+				incentive_hours?: number;
+			};
+			const seen = new Map<string, Entry>();
+			for (const row of rows) {
+				const employment_id = byNumber.get(row.employee_number)!;
+				const hasClock = row.clock_in != null && row.clock_out != null;
+				const hasOvertime = row.overtime_hours != null && row.overtime_hours > 0;
+				const hasIncentive = row.incentive_hours != null && row.incentive_hours > 0;
+				if (!hasClock && !hasOvertime && !hasIncentive) continue;
+				const entry: Entry = { employment_id, work_date: PlainDate(row.work_date) };
+				if (hasClock) {
+					const draft = intervalsFrom(
+						row.work_date,
+						[{ start: row.clock_in, end: row.clock_out }],
+						timeZone
+					);
+					if ('problem' in draft) continue;
+					entry.worked_intervals = draft.intervals.map((interval) => ({
+						start: Instant(interval.start),
+						end: interval.end == null ? null : Instant(interval.end)
+					}));
+				}
+				if (hasOvertime) {
+					entry.approved_overtime_hours = row.overtime_hours!;
+					entry.overtime_consented_at = Instant(new Date().toISOString());
+				}
+				if (hasIncentive) entry.incentive_hours = row.incentive_hours!;
+				seen.set(`${employment_id}:${row.work_date}`, entry);
+			}
+			const payload: ActInput<'roster_entry.create'> = [...seen.values()];
+			if (!Array.isArray(payload) || payload.length === 0) {
+				toast.error(t('attendance_import.empty'));
+				return;
+			}
+			const outcome = await bolt.act('roster_entry.create', payload);
+			if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval')
+				toast.success(t('attendance_import.imported', { count: payload.length }));
+			else toast.error(outcome.kind === 'refused' ? outcome.message : t('component.error'));
+		} finally {
+			importing = false;
 		}
-	});
+	}
 
-	/* ── the people of the period ── */
-	const employmentRows = liveRows(() =>
+	async function downloadTemplate() {
+		await downloadAttendanceTemplate({
+			people: people.map((person) => ({ employee_number: person.number, name: person.name })),
+			days
+		});
+	}
+
+	const contracts = liveRows(() =>
 		scope.id == null
 			? null
-			: bolt.read('employments', {
-					select: everyField('employments'),
-					where: { ...approved, company_id: { eq: scope.id } },
+			: bolt.read('employment_contract', {
+					where: { company_id: { eq: scope.id }, approval_id: { isNull: true } },
+					select: {
+						employee_number: true,
+						employee_id: { select: { name: true } },
+						effective_range: true
+					},
 					orderBy: { employee_number: 'asc' },
 					all: true
 				})
 	);
-	const employments = $derived((employmentRows.current ?? []).map(resolveEmployment));
-	const monthEmployments = $derived(
-		employments.filter((row) => employmentOverlapsMonth(row, period))
-	);
-	const ids = $derived(monthEmployments.map((row) => row.id));
-	const employees = liveRows(() =>
-		ids.length === 0
-			? null
-			: bolt.read('employees', {
-					where: {
-						...approved,
-						id: { in: [...new Set(monthEmployments.map((row) => row.employee_id))] }
-					},
-					select: { name: true },
-					all: true
-				})
-	);
-	const names = $derived(new Map((employees.current ?? []).map((row) => [row.id, row.name])));
+	/** The people employed at any time in the period. */
 	const people = $derived(
-		monthEmployments.map((row) => ({
-			id: row.id,
-			number: row.employee_number,
-			name: names.get(row.employee_id) ?? '—'
-		}))
-	);
-	const locks = $derived(lockMap(windows, monthDateKeys, ids));
-	/** People whose salary an EARLY run settled: what is recorded on their days now settles in a later period. */
-	const settlesLater = $derived.by(() => {
-		const later = new Map<string, string>();
-		for (const person of people)
-			for (const date of monthDateKeys) {
-				const lock = locks.get(dayLockKey(person.id, date));
-				if (lock?.kind === 'IN_WINDOW' && lock.settlesIn != null)
-					later.set(person.name, lock.settlesIn);
-			}
-		return [...later];
-	});
-
-	/* ── the plan's sources, the month's person-days, time off and calendar: the reads an employee's month shares ── */
-	const reads = monthSources({
-		companyId: () => scope.id,
-		settingsCode: () => settingsCode,
-		employmentIds: () => ids,
-		start: () => monthStart,
-		end: () => monthEnd,
-		rosterPeriods: () => [
-			addDays(monthStart, -1).slice(0, 7),
-			period,
-			addDays(monthEnd, 1).slice(0, 7)
-		],
-		held: false
-	});
-	const terms = $derived(reads.terms);
-	const termsByEmployment = $derived(Map.groupBy(terms, (row) => row.employment_id));
-	const activeTerm = (employmentId: string, date: string) =>
-		(termsByEmployment.get(employmentId as Id<'employments'>) ?? []).find((row) =>
-			termCovers(row, date)
-		) ?? null;
-	const allowanceIds = $derived([
-		// a contract's allowance lines are its `json` value: each class id is asserted where it enters
-		...new Set(
-			terms.flatMap((row) => row.allowances.map((a) => a.catalogue_id as Id<'allowance_catalogue'>))
-		)
-	]);
-	const allowanceClasses = liveRows(() =>
-		allowanceIds.length === 0
-			? null
-			: bolt.read('allowance_catalogue', {
-					where: { id: { in: allowanceIds } },
-					select: { destination: true, direction: true, counts_toward: true },
-					all: true
-				})
-	);
-	const workDays = $derived(reads.workDays.current ?? []);
-	const workDayByKey = $derived(
-		new Map(workDays.map((row) => [personDayKey(row.employment_id, dateKey(row.work_date)), row]))
-	);
-	const capturedSlipIds = $derived([
-		...new Set(workDays.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))
-	]);
-	const captureTranches = liveRows(() =>
-		capturedSlipIds.length === 0
-			? null
-			: bolt.read('payable_tranches', {
-					where: { settlement: { payslips: { in: capturedSlipIds } } },
-					select: { settlement: true },
-					all: true
-				})
-	);
-	const captureTrancheIds = $derived((captureTranches.current ?? []).map((row) => row.id));
-	const captureAllocations = liveRows(() =>
-		captureTrancheIds.length === 0
-			? null
-			: bolt.read('payment_allocations', {
-					where: { payable_tranche_id: { in: captureTrancheIds } },
-					select: { payable_tranche_id: true },
-					all: true
-				})
-	);
-	const allocatedTrancheIds = $derived(
-		new Set((captureAllocations.current ?? []).map((row) => row.payable_tranche_id))
-	);
-	const allocatedSlipIds = $derived(
-		new Set(
-			(captureTranches.current ?? [])
-				.filter((row) => allocatedTrancheIds.has(row.id))
-				.map((row) => String(row.settlement.id))
-		)
-	);
-	const settlementClaims = $derived(
-		captureClaims(workDays, payslips.current ?? [], allocatedSlipIds)
-	);
-	const calendar = $derived(reads.calendar);
-	const versionInForce = $derived(reads.versionInForce);
-	const timeZone = $derived(reads.timeZone);
-	const patternOn = (employmentId: string) => (date: string) => {
-		const term = activeTerm(employmentId, date);
-		const row = term == null ? null : termPatternRow(term);
-		return row == null ? null : { pattern: row.pattern, anchor: patternAnchor(row) };
-	};
-	/** Each person's observed holidays, as payroll resolves them; a person whose schedule cannot resolve keeps the overlay. */
-	const observed = $derived.by(() => {
-		if (company == null || scope.id == null || reads.rosters.current === undefined)
-			return undefined;
-		const byPerson = new Map<string, ReturnType<typeof observedHolidays>>();
-		for (const employment of monthEmployments)
-			try {
-				byPerson.set(
-					employment.id,
-					observedHolidays({
-						dates: monthDateKeys,
-						cutoffDay: company.pay_cutoff_day ?? 1,
-						companyId: scope.id,
-						holidays: reads.holidays.current ?? [],
-						codes: reads.shifts.current ?? [],
-						work: versionInForce?.work_rules,
-						plans: workDays
-							.filter((day) => day.employment_id === employment.id)
-							.map((day) => ({
-								work_date: dateKey(day.work_date),
-								shift_definition_id: day.shift_definition_id
-							})),
-						rosterPeriods: reads.rosters.current
-							.filter((row) => row.employment_id === employment.id)
-							.map((row) => row.period),
-						patternOn: patternOn(employment.id),
-						worksiteOn: (date) => activeTerm(employment.id, date)?.worksite
-					})
-				);
-			} catch {
-				// a plan the schedule cannot resolve: this person's cells keep the calendar overlay
-			}
-		return byPerson;
-	});
-	const facts = $derived(
-		buildRosterMonth({
-			month: period,
-			timeZone,
-			employments: monthEmployments,
-			employmentTerms: terms,
-			workDays,
-			leaveRequests: (reads.leave.current ?? []).filter((row) => row.approval_id == null),
-			pendingLeaveRequests: (reads.leave.current ?? []).filter((row) => row.approval_id != null),
-			holidays: calendar.holidays,
-			rosterCodesById: reads.shiftsById,
-			leaveCodeById: reads.leaveCodeById,
-			cutoff,
-			locks,
-			today,
-			...(observed == null ? {} : { observedHolidays: observed })
-		})
-	);
-
-	/* ── state of the board ── */
-	const sources = $derived([
-		['person-days', reads.workDays],
-		['capture tranches', captureTranches],
-		['capture allocations', captureAllocations],
-		['leave', reads.leave],
-		['holiday calendar settings', reads.settings],
-		['holidays', reads.holidays],
-		['employments', employmentRows],
-		['employees', employees],
-		['employment schedules', reads.termRows],
-		['shift patterns', reads.patterns],
-		['roster codes', reads.shifts],
-		['leave catalogue entries', reads.leaveCodes],
-		['payroll runs', runs],
-		['payslips', payslips]
-	] as const);
-	const errors = $derived([
-		...(calendar.error == null ? [] : [calendar.error]),
-		...sources.flatMap(([label, source]) =>
-			source.error == null ? [] : [`${label}: ${source.error}`]
-		)
-	]);
-	/** The matrix paints once its identity is known; overlays (names, leave, holidays, locks) fill in after. */
-	const loading = $derived(
-		errors.length === 0 &&
-			(scope.id == null ||
-				employmentRows.current === undefined ||
-				(ids.length > 0 && reads.workDays.current === undefined))
-	);
-	const editable = $derived(
-		reads.workDays.current !== undefined &&
-			reads.workDays.error == null &&
-			payslips.current !== undefined &&
-			!payslips.loading &&
-			payslips.error == null &&
-			runs.current !== undefined &&
-			!runs.loading &&
-			runs.error == null &&
-			(capturedSlipIds.length === 0 ||
-				(captureTranches.current !== undefined &&
-					!captureTranches.loading &&
-					captureTranches.error == null)) &&
-			(captureTrancheIds.length === 0 ||
-				(captureAllocations.current !== undefined &&
-					!captureAllocations.loading &&
-					captureAllocations.error == null))
-	);
-	/** The eye filter: only people with an unresolved clock-out, read from the facts the cells render. */
-	let unresolvedOnly = $state(false);
-	const unresolved = $derived(
-		unresolvedOnly ? unresolvedClockOutEmploymentIds(facts.values()) : null
-	);
-	/** The toolbar searches, filters and sorts the people; the eye filter narrows what is left. */
-	const onBoard = (shown: readonly (typeof people)[number][]) =>
-		shown.filter((person) => unresolved == null || unresolved.has(person.id));
-	const emptyReason = $derived(employmentMonthEmptyReason(employments, period));
-
-	/* ── opening a day: its record sheet, or the create sheet with the person and the day ── */
-	const create = $state<{
-		open: boolean;
-		employmentId: Id<'employments'> | null;
-		date: PlainDate | null;
-	}>({ open: false, employmentId: null, date: null });
-	function openDay(employmentId: Id<'employments'>, date: PlainDate): void {
-		const stored = workDayByKey.get(personDayKey(employmentId, date));
-		if (stored != null && isSettledId(stored.id)) return openRecord('work_days', stored.id);
-		create.employmentId = employmentId;
-		create.date = date;
-		create.open = true;
-	}
-
-	/* ── the swap: two cells, one write where both are rows or neither, and the server is the judge ── */
-	const swap = $state({ source: null as BoardCell | null });
-	const claimFor = (day: { readonly workDayId: string | null }) =>
-		day.workDayId == null ? null : (settlementClaims.get(day.workDayId) ?? null);
-	/** The one refusal the board itself can state: which payroll holds the day. */
-	function swapRefusal(from: BoardCell, to: BoardCell): string | null {
-		for (const cell of [from, to]) {
-			const day = facts.get(personDayKey(cell.employmentId, cell.date));
-			if (day == null) return t('roster.swap_refused_unknown');
-			if (!lockRungFreezes(lockRung(day, claimFor(day)))) continue;
-			return (
-				sourceLockReason(lockRungSourceLock(day, claimFor(day)) ?? { kind: 'NONE' }, t) ??
-				t('roster.swap_refused_locked', { date: day.date })
-			);
-		}
-		return null;
-	}
-	/** The code a person-day resolves to: its explicit plan, else the pattern's projection (`buildRosterMonth`'s precedence). */
-	function effectiveCodeId(employmentId: string, date: string): Id<'shift_definitions'> | null {
-		const explicit = workDayByKey.get(personDayKey(employmentId, date))?.shift_definition_id;
-		if (explicit != null) return explicit;
-		const term = activeTerm(employmentId, date);
-		const row = term == null ? null : termPatternRow(term);
-		// a pattern's days are its `json` value: the code it names is asserted where it enters
-		const projected = patternRosterCodeId(row?.pattern ?? null, date, patternAnchor(row));
-		return projected as Id<'shift_definitions'> | null;
-	}
-	async function swapDays(from: BoardCell, to: BoardCell): Promise<void> {
-		const refusal = swapRefusal(from, to);
-		if (refusal != null) {
-			toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-				description: refusal
-			});
-			return;
-		}
-		const fromCode = effectiveCodeId(from.employmentId, from.date);
-		const toCode = effectiveCodeId(to.employmentId, to.date);
-		if (fromCode == null || toCode == null) return;
-		const cells = [
-			{ cell: from, code: toCode },
-			{ cell: to, code: fromCode }
-		].map(({ cell, code }) => ({
-			cell,
-			code,
-			existing: workDayByKey.get(personDayKey(cell.employmentId, cell.date))
-		}));
-		const creates = cells
-			.filter((x) => x.existing == null)
-			.map((x) => ({
-				employment_id: x.cell.employmentId,
-				work_date: x.cell.date,
-				shift_definition_id: x.code
-			}));
-		const updates = cells.flatMap((x) =>
-			x.existing == null ? [] : [{ target: x.existing.id, set: { shift_definition_id: x.code } }]
-		);
-		// ponytail: a mixed pair is two writes (a create and an update); a both-sides batch needs a create+update graph
-		let outcome = creates.length === 0 ? null : await bolt.act('work_days.create', creates);
-		if (
-			updates.length > 0 &&
-			(outcome == null || outcome.kind === 'committed' || outcome.kind === 'pendingApproval')
-		)
-			outcome = await bolt.act('work_days.update', updates);
-		if (outcome == null) return;
-		if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') {
-			swap.source = null;
-			toast.success(
-				outcome.kind === 'pendingApproval'
-					? t('roster.day_sheet_pending_approval')
-					: t('roster.swap_done')
-			);
-		} else
-			toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-				description: outcome.kind === 'refused' ? outcome.message : t('component.error')
-			});
-	}
-
-	/* ── the month workbook ── */
-	/**
-	 * After an import: a company holiday worked by someone the overtime rule does not cover earns no overtime, so HR
-	 * grants an off-in-lieu day. Read on the board's own data and payroll's own calendar; a run states it again.
-	 */
-	function warnHolidaysWithoutOvertime(payload: ReturnType<typeof schedulingImportPayload>): void {
-		if (company == null || scope.id == null) return;
-		const companyId = scope.id;
-		const byNumber = new Map(people.map((person) => [person.number, person]));
-		const codeIdByCode = new Map((reads.shifts.current ?? []).map((code) => [code.code, code.id]));
-		const rows = holidayWorkedRows(
-			payload,
-			(number) => {
-				const person = byNumber.get(number);
-				if (person == null) return new Set();
-				const filed = (payload.roster ?? []).filter((row) => row.employee_number === number);
-				try {
-					return observedDays({
-						dates: monthDays(calendarMonth),
-						cutoffDay: company.pay_cutoff_day ?? 1,
-						companyId,
-						holidays: reads.holidays.current ?? [],
-						codes: reads.shifts.current ?? [],
-						work: versionInForce?.work_rules,
-						plans:
-							payload.roster === undefined
-								? workDays
-										.filter((day) => day.employment_id === person.id)
-										.map((day) => ({
-											work_date: dateKey(day.work_date),
-											shift_definition_id: day.shift_definition_id
-										}))
-								: filed.map((row) => ({
-										work_date: row.work_date,
-										shift_definition_id: codeIdByCode.get(row.shift_code) ?? null
-									})),
-						rosterPeriods: filed.length > 0 ? [calendarMonth] : [],
-						patternOn: patternOn(person.id),
-						worksiteOn: (date) => activeTerm(person.id, date)?.worksite
-					}).holidays;
-				} catch {
-					return new Set();
-				}
-			},
-			(number, date) => {
-				const person = byNumber.get(number);
-				return (
-					person == null ||
-					overtimeEntitled(
-						versionInForce?.work_rules?.overtime_when,
-						{
-							employee: null,
-							employment: { service_start: '' },
-							terms: activeTerm(person.id, date),
-							company: { region: company.region, facts: company.facts },
-							asOf: date
-						},
-						(id) => (allowanceClasses.current ?? []).find((row) => row.id === id)
+		pay.window == null
+			? []
+			: (contracts.current ?? [])
+					.filter(
+						(row) =>
+							row.effective_range.from <= pay.window!.end &&
+							(row.effective_range.to == null || row.effective_range.to >= pay.window!.start)
 					)
-				);
-			}
-		);
-		if (rows.length === 0) return;
-		toast.warning<typeof WorkbookImportDetails>(
-			t('app.scheduling.import_holiday_without_overtime', { count: rows.length }),
-			{
-				closeButton: true,
-				description: WorkbookImportDetails,
-				componentProps: {
-					label: t('component.work_days'),
-					details: rows
-						.map((row) =>
-							t('roster.day_sheet_holiday_without_overtime', {
-								person: [row.employee_number, byNumber.get(row.employee_number)?.name]
-									.filter(Boolean)
-									.join(' '),
-								date: row.work_date
-							})
-						)
-						.join('\n')
-				},
-				duration: Number.POSITIVE_INFINITY
-			}
-		);
-	}
-	let importing = $state(false);
-	async function importWorkbook(): Promise<void> {
-		importing = true;
-		await runWorkbookImport({
-			action: 'work_days.import_month',
-			recordLabel: t('component.work_days'),
-			buildPayload: schedulingImportPayload,
-			importedCount: schedulingImportDays,
-			overwritten: (output) => output.overwritten,
-			warnings: (output) => output.warnings ?? [],
-			afterImport: warnHolidaysWithoutOvertime
-		});
-		importing = false;
-	}
-	/** The sheet the import expects, built in the browser: the entity and month prefilled. */
-	async function downloadTemplate(): Promise<void> {
-		if (company == null) return;
-		const workbook = schedulingTemplateWorkbook({
-			legalEntity: company.name,
-			month: calendarMonth,
-			timezone: timeZone,
-			overtimeConsent: versionInForce?.work_rules?.overtime_consent != null,
-			factColumns: (versionInForce?.work_day_facts ?? [])
-				.filter((field) => field.import === true)
-				.map((field) => field.key)
-		});
-		saveBlob(
-			new Blob([await workbook.xlsx.writeBuffer()], { type: XLSX_MEDIA_TYPE }),
-			`scheduling-${calendarMonth}.xlsx`
-		);
-	}
-	/** The toolbar's actions menu: the month workbook's import and template, and the eye filter. */
-	const boardActions = $derived<ToolbarItem[]>([
-		{
-			run: importWorkbook,
-			group: 'import',
-			icon: 'lucide:upload',
-			label: t('app.scheduling.import'),
-			description: t('app.scheduling.import_title', { month: calendarMonth }),
-			disabled: () =>
-				importing
-					? t('component.loading')
-					: company == null
-						? t('app.scheduling.empty_board')
-						: null
-		},
-		{
-			run: downloadTemplate,
-			group: 'import',
-			icon: 'lucide:file-down',
-			label: t('app.scheduling.import_template'),
-			description: t('app.scheduling.import_template_description', { month: calendarMonth }),
-			disabled: () => (company == null ? t('app.scheduling.empty_board') : null)
-		},
-		{
-			run: () => (unresolvedOnly = !unresolvedOnly),
-			icon: unresolvedOnly ? 'lucide:eye-off' : 'lucide:eye',
-			label: unresolvedOnly
-				? t('app.scheduling.show_all_people')
-				: t('app.scheduling.show_unresolved_clock_outs'),
-			description: t('app.scheduling.unresolved_hint')
-		}
-	]);
+					.map((row) => ({
+						id: row.id,
+						number: row.employee_number,
+						name: employmentLabel(row),
+						from: String(row.effective_range.from),
+						to: row.effective_range.to == null ? null : String(row.effective_range.to)
+					}))
+	);
 </script>
 
 {#snippet periodPicker()}
 	<MonthPeriodPicker
-		month={period}
-		halves={company?.pay_frequency === 'SEMI_MONTHLY'}
-		weeks={company?.pay_frequency === 'WEEKLY'}
-		onMonthChange={(next) => (month = next)}
+		month={pay.period}
+		halves={pay.halves}
+		weeks={pay.weeks}
+		ariaLabel={t('app.events.pay_period')}
+		onMonthChange={(next) => pay.select(next)}
 	/>
 {/snippet}
 
+{#snippet workTools()}
+	{@render periodPicker()}
+{/snippet}
+
 <Toaster />
+<input
+	bind:this={fileInput}
+	type="file"
+	accept=".xlsx,.xlsm"
+	class="hidden"
+	onchange={importWorkbook}
+/>
 <AppShell
 	icon="lucide:calendar-clock"
 	title={t('app.work.title')}
 	description={t('app.work.description')}
 >
-	{#snippet actions()}
-		<Cluster gap="sm">
-			{@render periodPicker()}
-			<CompanyScope {scope} />
-		</Cluster>
-	{/snippet}
-	<ScopeGate {scope} empty={t('app.scheduling.empty_board')}>
-		{#snippet children(id)}
-			<CustomView
-				of={people}
-				key="work"
-				fields={[
-					{ field: 'number', label: t('component.employee_number') },
-					{ field: 'name', label: t('component.name') }
-				]}
-				toolbar={{
-					title: t('app.scheduling.board_title'),
-					actions: boardActions
-				}}
-			>
-				{#snippet children(shown)}
-					{@const boardPeople = onBoard(shown as readonly (typeof people)[number][])}
-					{#if errors.length > 0}
-						<Alert.Root variant="destructive">
-							<Alert.Title>{t('app.scheduling.board_load_failed', { month: period })}</Alert.Title>
-							<Alert.Description>
-								<Stack as="ul" gap="xs" class="list-disc pl-4">
-									{#each errors as error (error)}<li>{error}</li>{/each}
-								</Stack>
-							</Alert.Description>
-						</Alert.Root>
-					{:else if !loading && people.length > 0 && boardPeople.length === 0}
-						<EmptyState
-							variant="inset"
-							title={unresolvedOnly
-								? t('app.scheduling.no_unresolved_clock_outs', { month: period })
-								: t('app.scheduling.no_matches')}
-						/>
-					{:else if !loading && people.length === 0}
-						<EmptyState
-							variant="inset"
-							title={emptyReason === 'NONE'
-								? t('app.scheduling.no_company_employments')
-								: emptyReason === 'ENDED'
-									? t('app.scheduling.employments_ended_before', { month: period })
-									: emptyReason === 'NOT_STARTED'
-										? t('app.scheduling.employments_start_after', { month: period })
-										: t('app.scheduling.employments_outside_month', { month: period })}
-						/>
-					{:else}
-						<p class="text-sm text-muted-foreground">{t('roster.board_layers_legend')}</p>
-						{#each settlesLater as [name, next] (name)}
-							<Alert.Root>
-								<Alert.Description
-									>{t('app.scheduling.settles_in_next_period', {
-										name,
-										period: next
-									})}</Alert.Description
-								>
-							</Alert.Root>
-						{/each}
-						<RosterMonthBoard
-							month={period}
-							people={boardPeople}
-							{loading}
-							{facts}
-							{today}
-							holidayNames={holidaysByDate(calendar.holidays)}
-							{locks}
-							{settlementClaims}
-							{cutoff}
-							{editable}
-							swappable={editable}
-							bind:swapSource={swap.source}
-							onSwapDays={(from, to) => void swapDays(from, to)}
-							onSelectDay={openDay}
-						/>
-					{/if}
-				{/snippet}
-			</CustomView>
-		{/snippet}
-	</ScopeGate>
-</AppShell>
-
-<!-- A cell with no stored person-day: the collection's record view in create mode, with the person and the day. -->
-<Sheet bind:open={create.open} title={t('component.create_work_day')}>
-	{#if create.open && create.employmentId != null && create.date != null}
-		{#key `${create.employmentId}:${create.date}`}
-			<RecordShell
-				of="work_days"
-				mode="create"
-				values={{ employment_id: create.employmentId, work_date: create.date }}
-				onDone={(outcome) => {
-					if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval')
-						create.open = false;
-				}}
-			/>
-		{/key}
+	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#if scope.unknown}
+		<p class="text-meta">{t('component.loading')}</p>
+	{:else if scope.id == null}
+		<EmptyState title={t('app.scheduling.empty_board')} />
+	{:else if pay.window != null}
+		{@const companyId = scope.id}
+		{@const window = pay.window}
+		<CustomView
+			of={people}
+			key="work"
+			fields={[
+				{ field: 'number', label: t('component.employee_number') },
+				{ field: 'name', label: t('component.name') }
+			]}
+			toolbar={{
+				title: t('app.scheduling.board_title'),
+				controls: workTools,
+				actions: [
+					{
+						label: t('attendance_import.import'),
+						icon: 'lucide:upload',
+						group: 'import',
+						run: () => fileInput?.click()
+					},
+					{
+						label: t('attendance_import.template'),
+						icon: 'lucide:download',
+						group: 'import',
+						run: () => void downloadTemplate()
+					}
+				]
+			}}
+		>
+			{#snippet children(shown)}
+				<MonthBoard
+					people={shown}
+					{companyId}
+					from={window.start}
+					to={window.end}
+					{timeZone}
+					{today}
+				/>
+			{/snippet}
+		</CustomView>
 	{/if}
-</Sheet>
+</AppShell>

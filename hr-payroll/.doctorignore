@@ -3,4 +3,4 @@ inherit: .gitignore .prettierignore
 
 # The CEL bindings take CEL's int (a bigint) and double values: `Number` there converts between the two runtimes'
 # numbers, it decodes no input.
-src/lib/expressions/ COERCE1
+src/lib/payroll_engine/ COERCE1

@@ -1,0 +1,14 @@
+[
+	{
+		"id": "fc9a212c-9211-5c59-9aeb-85a201239776",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"code": "FIXED_ALLOWANCE",
+		"name": "Fixed monthly allowance",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSO", "WCF", "PND1"],
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
+		"authority": "Labour Protection Act B.E. 2541 (1998) s.5 and Social Security Act B.E. 2533 (1990) s.5: a fixed allowance paid every month for work in normal time is wage, so it enters the SSO and WCF bases; employment income under Revenue Code s.40(1)."
+	}
+]

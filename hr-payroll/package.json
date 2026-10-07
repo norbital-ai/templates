@@ -10,20 +10,16 @@
 		"dev": "bolt dev",
 		"test": "bolt build --bank=${SEED_BANK:-../../seed_bank} && bolt test && pnpm test:node",
 		"test:node": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'",
-		"test:probe": "pnpm build && vitest run tests/e2e/payroll-probe.integration.test.ts",
-		"test:differential": "pnpm build && vitest run tests/e2e/differential.integration.test.ts",
 		"format": "prettier --write .",
-		"lint": "prettier --check .",
-		"generate:import-templates": "node scripts/generate-import-templates.mjs",
-		"test:smoke": "pnpm build && vitest run tests/e2e/boot.test.ts"
+		"lint": "prettier --check ."
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@internationalized/date": "^3.12.3",
+		"@internationalized/date": "^3.12.4",
 		"@marcbachmann/cel-js": "8.0.0",
-		"@norbital-ai/bolt": "0.0.165",
-		"@norbital-ai/std": "0.0.165",
-		"@norbital-ai/ui": "0.0.165",
+		"@norbital-ai/bolt": "0.0.166",
+		"@norbital-ai/std": "0.0.166",
+		"@norbital-ai/ui": "0.0.166",
 		"@vladmandic/human": "3.3.6",
 		"effect": "4.0.0-rc.112",
 		"exceljs": "4.4.0",
@@ -31,23 +27,22 @@
 		"runed": "^0.37.1",
 		"svelte": "^5.57.1",
 		"svelte-sonner": "^1.2.1",
-		"vite": "^8.2.2",
+		"vite": "^8.3.2",
 		"pdf-lib": "1.17.1",
 		"@pdf-lib/fontkit": "1.1.1"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.165",
-		"@norbital-ai/doctor": "0.0.165",
+		"@norbital-ai/bolt-server": "0.0.166",
+		"@norbital-ai/doctor": "0.0.166",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
-		"@types/node": "^26.4.0",
+		"@types/node": "^26.6.4",
 		"@typescript/native": "npm:typescript@7.0.2",
-		"happy-dom": "^20.11.6",
-		"playwright": "1.62.1",
-		"prettier": "^3.9.6",
+		"happy-dom": "^20.14.5",
+		"prettier": "^3.9.9",
 		"prettier-plugin-svelte": "^4.1.1",
 		"svelte-check": "^4.7.6",
 		"typescript": "6.0.3",
 		"vitest": "4.1.11",
-		"pdfjs-dist": "5.4.624"
+		"pdfjs-dist": "6.4.299"
 	}
 }

@@ -15,11 +15,9 @@ import * as Predicate from './guards.js';
 export function num(value: unknown): number {
 	if (value == null) return Number.NaN;
 	if (Predicate.isNumber(value)) return value;
-	const text = Predicate.isObjectOrArray(value)
-		? '$dec' in value
-			? (value as { $dec: string }).$dec
-			: String(value)
-		: String(value);
+	const tagged =
+		Predicate.isObjectOrArray(value) && !Array.isArray(value) ? value['$dec'] : undefined;
+	const text = Predicate.isString(tagged) ? tagged : String(value);
 	// repository-health:allow COERCE1 -- the workspace's one decimal-text decode: blank is NaN, text is Number's
 	return /\S/.test(text) ? Number(text) : Number.NaN;
 }

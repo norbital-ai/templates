@@ -1,0 +1,19 @@
+[
+	{
+		"id": "95102dca-231e-4881-a846-1156ed32fecb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"destination": "NET",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Swab test reimbursement",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE"
+	}
+]

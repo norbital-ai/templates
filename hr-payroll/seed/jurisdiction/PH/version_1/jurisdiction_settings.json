@@ -1,0 +1,4725 @@
+[
+	{
+		"id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "PH",
+		"jurisdiction_code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2026-09-26T12:42:21.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2026-01-05"
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1
+		},
+		"sources": {
+			"urls": [
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-26.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVI-29.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RX-23_compressed.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/02/Wage-Order-No.-RB-XI-23.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RB-MIMAROPA-DW-05_compressed.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RBX-DW-05_compressed.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RXIII-DW-05-1.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/03/Wage-Order-No.-RBV-22.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/12/Wage-Order-No.-RXIII-19-1.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-1-DW-06.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-1-24.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RTWPB-2-24.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-02-DW-07.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-DW-05.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/02/Wage-Order-No.-RB-IVA-DW-05.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/03/Wage-Order-No.-RBV-DW-04.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVI-DW-07.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RB-XII-DW-05.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-DW-05.pdf",
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf",
+				"https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://www.sss.gov.ph/employees/",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+				"https://nwpc.dole.gov.ph/summary-of-current-regional-daily-minimum-wage-rates-non-agriculture-agriculture-and-other-wage-categories/",
+				"https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333",
+				"https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86567",
+				"https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"https://www.sss.gov.ph/wp-content/uploads/2024/12/CI-2024-006-Publication.pdf",
+				"https://www.sss.gov.ph/wp-content/uploads/2024/12/CI-2024-007-Publication.pdf",
+				"https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86448",
+				"https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155",
+				"https://nwpc.dole.gov.ph/feed/",
+				"https://nwpc.dole.gov.ph/statistics/summary-of-latest-wage-orders-issued-by-the-regional-boards/",
+				"https://www.sss.gov.ph/news-and-updates/",
+				"https://www.philhealth.gov.ph/advisories/2026/",
+				"https://www.philhealth.gov.ph/circulars/2026/",
+				"https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+				"https://www.sss.gov.ph/wp-content/uploads/2022/04/IRR-RA11199-SS-Act-of-2018_2.pdf",
+				"https://www.sss.gov.ph/employer-er/",
+				"https://www.philhealth.gov.ph/partners/employers/",
+				"https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf",
+				"https://www.sss.gov.ph/wp-content/uploads/2022/03/20190207-RA-11199-RRD.pdf",
+				"https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/06/01.-Wage-Order-No.-NCR-26.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVIII-DW-06.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-27.pdf",
+				"https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-DW-06.pdf"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nofficialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). the premium schedule is PhilHealth Circular 2020-0005 (Revision 1), /circulars/2020/circ2020-0005.pdf (5 scanned pages, no text layer: §V.A the table, §V.B the equal employee/employer split), which each CY advisory cites; /partners/employers/ContributionTable_v2.pdf is the superseded 2019-0009 infographic and is not an authority.\npagibigfund.gov.ph serves a reCAPTCHA page, not the PDF: cite Circular 460 (15 January 2024, from February 2024; the 1%/2% tiers and the ₱10,000 fund salary cap) from its copy annexed to DMW Advisory 37-2025 (https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf, 6 scanned pages, Circular 460 on pp.2–6), and Circular 275 from the Wayback copy (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf).\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette.\n\nFinding changes (read these before comparing, every run):\nWage orders: read https://nwpc.dole.gov.ph/feed/ (RSS) for new RTWPB orders, then open https://nwpc.dole.gov.ph/statistics/summary-of-latest-wage-orders-issued-by-the-regional-boards/ and follow its 'Download PDF' (Latest-Wage-Order-Matrix-<date>.pdf, a text PDF with issue/publication/effectivity per region). Effectivity is 15 days after publication when the matrix leaves it blank. The regional pages (/ncr/, /region-iva/ …) link the signed wage-order PDFs. These are scans with no text layer, so take the figures from the matrix. SSS: newest CI number on /sss-circulars/, and the rate table on /pay-contribution/. PhilHealth: /advisories/<YYYY>/ and /circulars/<YYYY>/; premium changes are 'Premium Contribution … for CY<YYYY>' advisories. BIR: every www.bir.gov.ph listing (RR, RMC, WithHoldingTax) is a client-rendered shell ('Loading…'), so it cannot be read. Discover RR/RMC numbers from a big-4 alert list (PwC PH Tax Alerts, SGV/EY Tax Bulletin), then open the PDF at https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%20<n>-<yyyy>.pdf. Holidays: lawphil proclamation index for discovery only (officialgazette.gov.ph returns 403). Pag-IBIG and DOLE/BWC labor advisories are bot-walled: use news only to discover, and do not cite them."
+		},
+		"change_summary": "The law in force on 1 December 2025: SSS 15% under RA 11199 with Circular 2024-006, SSS_EC ₱30, PhilHealth 5% between ₱10,000 and ₱100,000, HDMF 2%/2% on a ₱10,000 fund salary, the TRAIN withholding table under RR 11-2018, the regional wage orders then in force, the Labor Code working-time rules and the statutory leave types. The regional wage orders of December 2025 and early January 2026 are dated entries of the PAYROLL rule `minimum_wage`, not versions of their own.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": ["nationality", "gender", "date_of_birth", "marital_status", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"eq": "event.day"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && !raised.exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id) } })",
+					"events": ["created", "updated", "daily"]
+				}
+			]
+		},
+		"reference_tables": {
+			"payroll": {
+				"vocabularies": {
+					"statutory_work_category": ["NON_MANUAL", "FIELD_PERSONNEL", "PIECE_RATE", "TASK_BASIS"],
+					"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+					"pass_type": [],
+					"tax_residency": ["RESIDENT", "NON_RESIDENT", "NON_RESIDENT_NETB"]
+				},
+				"allowance_npl_prorates": true,
+				"final_pay_deadlines": [
+					{
+						"when": "",
+						"days": 30,
+						"basis": "EVENT_DATE",
+						"authority": "DOLE Labor Advisory No.06-20 §II"
+					}
+				],
+				"special_holiday_unworked_unpaid": true,
+				"regular_holiday_prior_workday": true,
+				"benefit_cases": [
+					{
+						"case_type": "MATERNITY_LEAVE",
+						"facts": [
+							{
+								"key": "solo_parent_claimed",
+								"type": "boolean",
+								"label": "Solo-parent extension claimed for this birth",
+								"description": "Declared per event: a current employee flag is not historical proof (RA 11210 s.3; RA 11861 ss.15 and 20).",
+								"required_when": "case.event_kind == 'BIRTH'",
+								"valid_when": "!case.facts.solo_parent_claimed || case.event_kind in ['', 'BIRTH']",
+								"validation_message": "The additional solo-parent days apply to live birth only."
+							},
+							{
+								"key": "solo_parent_document_kind",
+								"type": "string",
+								"label": "Solo-parent document",
+								"options": ["SOLO_PARENT_ID", "ELIGIBILITY_CERTIFICATE"],
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_document_issued_on",
+								"type": "date",
+								"label": "Solo-parent document issued on",
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_document_valid_from",
+								"type": "date",
+								"label": "Solo-parent document valid from",
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_document_valid_through",
+								"type": "date",
+								"label": "Solo-parent document valid through",
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_document_reference",
+								"type": "string",
+								"label": "Solo-parent document reference",
+								"min_length": 1,
+								"evidence": {
+									"kind": "FILE"
+								},
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_document_issuer_lgu",
+								"type": "string",
+								"label": "Issuing LGU",
+								"min_length": 1,
+								"valid_when": "case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked)",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_social_worker_signature_seen",
+								"type": "boolean",
+								"label": "Social worker's signature seen",
+								"valid_when": "!case.facts.solo_parent_social_worker_signature_seen || (case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked))",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_mayor_signature_seen",
+								"type": "boolean",
+								"label": "Mayor's signature seen",
+								"valid_when": "!case.facts.solo_parent_mayor_signature_seen || (case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked))",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_certificate_details_checked",
+								"type": "boolean",
+								"label": "Eligibility-certificate details checked",
+								"valid_when": "!case.facts.solo_parent_certificate_details_checked || (case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked))",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "solo_parent_first_time",
+								"type": "boolean",
+								"label": "First-time solo-parent applicant",
+								"valid_when": "!case.facts.solo_parent_first_time || (case.facts.solo_parent_claimed == true && case.facts.solo_parent_document_kind != '' && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked))",
+								"validation_message": "A solo-parent extension needs the LGU document type, issue and validity dates, issuer, reference and checked signatures/details."
+							},
+							{
+								"key": "exemption_kind",
+								"type": "string",
+								"label": "Claimed differential exemption",
+								"options": [
+									"DISTRESSED",
+									"SMALL_RETAIL_SERVICE",
+									"MICRO_ENTERPRISE",
+									"EQUAL_OR_BETTER"
+								],
+								"valid_when": "case.facts.exemption_kind != '' && case.facts.exemption_effective_from != '' && case.facts.exemption_effective_through != '' && case.facts.exemption_effective_from <= case.facts.exemption_effective_through && case.facts.exemption_approved_on != '' && case.facts.exemption_reference != ''",
+								"validation_message": "A claimed DOLE exemption needs its category, finite ordered dates, approval and reference."
+							},
+							{
+								"key": "exemption_effective_from",
+								"type": "date",
+								"label": "Exemption effective from",
+								"valid_when": "case.facts.exemption_kind != '' && case.facts.exemption_effective_from != '' && case.facts.exemption_effective_through != '' && case.facts.exemption_effective_from <= case.facts.exemption_effective_through && case.facts.exemption_approved_on != '' && case.facts.exemption_reference != ''",
+								"validation_message": "A claimed DOLE exemption needs its category, finite ordered dates, approval and reference."
+							},
+							{
+								"key": "exemption_effective_through",
+								"type": "date",
+								"label": "Exemption effective through",
+								"valid_when": "case.facts.exemption_kind != '' && case.facts.exemption_effective_from != '' && case.facts.exemption_effective_through != '' && case.facts.exemption_effective_from <= case.facts.exemption_effective_through && case.facts.exemption_approved_on != '' && case.facts.exemption_reference != ''",
+								"validation_message": "A claimed DOLE exemption needs its category, finite ordered dates, approval and reference."
+							},
+							{
+								"key": "exemption_approved_on",
+								"type": "date",
+								"label": "Exemption approved on",
+								"valid_when": "case.facts.exemption_kind != '' && case.facts.exemption_effective_from != '' && case.facts.exemption_effective_through != '' && case.facts.exemption_effective_from <= case.facts.exemption_effective_through && case.facts.exemption_approved_on != '' && case.facts.exemption_reference != ''",
+								"validation_message": "A claimed DOLE exemption needs its category, finite ordered dates, approval and reference."
+							},
+							{
+								"key": "exemption_reference",
+								"type": "string",
+								"label": "Exemption approval reference",
+								"min_length": 1,
+								"evidence": {
+									"kind": "FILE"
+								},
+								"valid_when": "case.facts.exemption_kind != '' && case.facts.exemption_effective_from != '' && case.facts.exemption_effective_through != '' && case.facts.exemption_effective_from <= case.facts.exemption_effective_through && case.facts.exemption_approved_on != '' && case.facts.exemption_reference != ''",
+								"validation_message": "A claimed DOLE exemption needs its category, finite ordered dates, approval and reference."
+							}
+						],
+						"qualifications": [
+							{
+								"key": "solo_parent_documented",
+								"claim": "solo_parent_claimed",
+								"when": "case.event_kind == 'BIRTH' && case.event_on != '' && case.facts.solo_parent_claimed && case.facts.solo_parent_document_kind in ['SOLO_PARENT_ID', 'ELIGIBILITY_CERTIFICATE'] && case.facts.solo_parent_document_reference != '' && case.facts.solo_parent_document_issuer_lgu != '' && 'solo_parent_document_reference' in case.evidenced && case.facts.solo_parent_social_worker_signature_seen && case.facts.solo_parent_mayor_signature_seen && (case.facts.solo_parent_document_kind != 'ELIGIBILITY_CERTIFICATE' || case.facts.solo_parent_certificate_details_checked) && case.facts.solo_parent_document_issued_on != '' && case.facts.solo_parent_document_valid_from != '' && case.facts.solo_parent_document_valid_through != '' && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_valid_through && case.facts.solo_parent_document_valid_from <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= case.facts.solo_parent_document_valid_through && ((case.facts.solo_parent_document_issued_on <= case.event_on && case.facts.solo_parent_document_valid_from <= case.event_on && case.event_on <= case.facts.solo_parent_document_valid_through) || (case.facts.solo_parent_first_time && case.event_on <= case.facts.solo_parent_document_issued_on && case.facts.solo_parent_document_issued_on <= add_months(case.event_on, 6)))",
+								"message": "The solo-parent extension needs event-valid LGU document evidence."
+							}
+						],
+						"event_kinds": ["BIRTH", "MISCARRIAGE", "EMERGENCY_TERMINATION"],
+						"movement_kinds": [
+							{
+								"code": "SSS_ADVANCE",
+								"direction": "EMPLOYEE_PAYMENT",
+								"component": "SSS_AWARD"
+							},
+							{
+								"code": "SALARY_DIFFERENTIAL",
+								"direction": "EMPLOYEE_PAYMENT",
+								"component": "EMPLOYER_DIFFERENTIAL"
+							},
+							{
+								"code": "SSS_REIMBURSEMENT",
+								"direction": "EMPLOYER_RECEIPT",
+								"component": "SSS_AWARD"
+							}
+						],
+						"components": {
+							"award": "SSS_AWARD",
+							"differential": "EMPLOYER_DIFFERENTIAL"
+						},
+						"min_event_on": "2019-03-11",
+						"min_days_after_event": 60,
+						"premium_schemes": ["SSS", "PHIC", "HDMF"],
+						"differential_exemption_facts": [
+							"exemption_kind",
+							"exemption_effective_from",
+							"exemption_effective_through",
+							"exemption_approved_on",
+							"exemption_reference"
+						],
+						"authority": "RA 11210 ss.3 and 5 and its IRR: 105 days' maternity leave with full pay for a live birth, 60 for a miscarriage or emergency termination, 15 more for a qualified solo parent, at least 60 days after delivery; the SSS maternity benefit is the average daily salary credit (the six highest of the twelve monthly salary credits, capped at PHP 20,000, before the semester of contingency, divided by 180) times the compensable days, with at least three monthly contributions paid in that twelve-month window, for a contingency on or after 11 March 2019; the employer advances it within 30 days of the application and SSS reimburses it. DOLE Department Advisory 01-2019 ss.II–IV: the salary differential is full pay (monthly salary × days ÷ 30) less the employee's SSS, PhilHealth and Pag-IBIG shares and the SSS benefit, never negative; the exemption categories need DOLE approval. BIR RMC 105-2019: both are exempt from withholding. RA 11861 ss.15 and 20: the solo-parent identification card or eligibility certificate, first-time applicants within six months of the event.",
+						"credits": {
+							"scheme": "SSS",
+							"cap": 20000,
+							"months": 12,
+							"closes_months_before_event": "3 + (int(case.event_month) - 1) % 3"
+						},
+						"phases": [
+							{
+								"code": "MATERNITY",
+								"days": "case.event_kind == 'BIRTH' ? (case.facts.solo_parent_documented ? 120 : 105) : 60",
+								"award": "credits.size() >= 3 ? round(sum(credits.map(c, c.amount).top(6)) * phase.days / 180.0, 0.01, 'HALF_UP') : 0.0",
+								"wage": "round(case.salary * phase.days / 30.0, 0.01, 'HALF_UP')",
+								"employer_pays": "round(case.salary * phase.days / 30.0 - case.premiums - case.award, 0.01, 'HALF_UP')",
+								"reimbursable": "phase.award"
+							}
+						],
+						"advance_due": "add_days(case.application_on, 30)"
+					}
+				]
+			},
+			"work_rules": {
+				"proration": {
+					"by": "FIXED_DAYS",
+					"days": 21.75
+				},
+				"ordinary_divisor_days": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)) : terms.paid_rest_days ? (365.0 / 12.0) : terms.ordinary_hours_per_week > 40.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+				"rate_conversions": {
+					"weekly_to_monthly": "52.0 / 12.0",
+					"daily_to_monthly": "terms.working_days_per_week >= 6.0 ? (313.0 / 12.0) : (261.0 / 12.0)",
+					"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+				},
+				"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"PIECE_RATE\", \"TASK_BASIS\"])",
+				"bands": [
+					{
+						"label": "DOUBLE-HOLIDAY-UNWORKED",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" && !rest_day && worked_hours == 0.0 && holiday.prior_day_present",
+						"take_hours": "0.0",
+						"price_amount": "day_wage"
+					},
+					{
+						"label": "OT-3.9X-REST",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" && rest_day",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * (person.terms.paid_rest_days ? 2.9 : 3.9)"
+					},
+					{
+						"label": "OT-5.07X-REST",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" && rest_day",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 5.07"
+					},
+					{
+						"label": "OT-3.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" && !rest_day",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * 2.0"
+					},
+					{
+						"label": "OT-3.9X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" && !rest_day",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 3.9"
+					},
+					{
+						"label": "OT-2.6X-REST",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * (person.terms.paid_rest_days ? 1.6 : 2.6)"
+					},
+					{
+						"label": "OT-3.38X-REST",
+						"when": "day_type == \"PUBLIC_HOLIDAY\" && rest_day",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 3.38"
+					},
+					{
+						"label": "OT-1.5X-REST",
+						"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * (person.terms.paid_rest_days ? 0.5 : 1.5)"
+					},
+					{
+						"label": "OT-1.95X-REST",
+						"when": "day_type == \"SPECIAL_HOLIDAY\" && rest_day",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 1.95"
+					},
+					{
+						"label": "OT-1.25X",
+						"when": "day_type == \"ORDINARY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 1.25"
+					},
+					{
+						"label": "OT-1.3X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * (person.terms.paid_rest_days ? 0.3 : 1.3)"
+					},
+					{
+						"label": "OT-1.69X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 1.69"
+					},
+					{
+						"label": "OT-2.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * 1.0"
+					},
+					{
+						"label": "OT-2.6X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 2.6"
+					},
+					{
+						"label": "OT-1.3X",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "hours * ordinary_hour * 0.3"
+					},
+					{
+						"label": "OT-1.69X",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * ordinary_hour * 1.69"
+					}
+				],
+				"limits": [
+					{
+						"key": "normal_day",
+						"period": "DAY",
+						"measure": "NORMAL_HOURS",
+						"max_hours": 8,
+						"unit": "WORKED_HOURS",
+						"authority": "Labor Code of the Philippines art.83"
+					},
+					{
+						"key": "weekly_rest",
+						"measure": "CONSECUTIVE_WORK_DAYS",
+						"max_days": 6,
+						"discharged_by": "REST_OR_OFF"
+					},
+					{
+						"key": "kasambahay_daily_rest",
+						"period": "DAY",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 16,
+						"unit": "WORKED_HOURS",
+						"when": "employment.type == \"DOMESTIC\"",
+						"authority": "RA 10361 s.20: \"an aggregate daily rest period of eight (8) hours per day\", so at most sixteen worked hours in a day; a break is rest (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514). The weekly rest (s.21, 24 consecutive hours a week) is met by `weekly_rest`, a rest after six consecutive work days (Labor Code art.91), which leaves no calendar week without one."
+					},
+					{
+						"key": "minor_daily_hours",
+						"period": "DAY",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 8,
+						"unit": "WORKED_HOURS",
+						"when": "employee.age >= 15 && employee.age < 18",
+						"authority": "RA 9231 s.12-A(2) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/1388): a child fifteen but below eighteen works at most eight hours a day"
+					},
+					{
+						"key": "minor_weekly_hours",
+						"period": "WEEK",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 40,
+						"unit": "WORKED_HOURS",
+						"when": "employee.age >= 15 && employee.age < 18",
+						"authority": "RA 9231 s.12-A(2) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/1388): and at most forty hours a week"
+					},
+					{
+						"key": "trainee_daily_hours",
+						"period": "DAY",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 10,
+						"unit": "WORKED_HOURS",
+						"when": "employment.type in [\"INTERN\", \"APPRENTICE\"] && employee.age >= 18",
+						"authority": "RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) s.13 and IRR IV.7: training is at most eight hours a day, and an adult trainee’s extra training at most two hours a day more"
+					},
+					{
+						"key": "minor_trainee_daily_hours",
+						"period": "DAY",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 8,
+						"unit": "WORKED_HOURS",
+						"when": "employment.type in [\"INTERN\", \"APPRENTICE\"] && employee.age < 18",
+						"authority": "RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) s.13 and IRR IV.7: a minor trainee trains at most eight hours a day, with no extra training"
+					}
+				],
+				"breaks": [
+					{
+						"when": "continuous_attendance",
+						"owed_minutes": "20.0",
+						"counts_as_worked_time": true
+					},
+					{
+						"when": "true",
+						"owed_minutes": "60.0",
+						"counts_as_worked_time": false
+					}
+				],
+				"overtime_unit_hours": 0.5,
+				"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+				"night_premium": {
+					"from": "22:00",
+					"to": "06:00",
+					"ordinary_add": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" ? (rest_day ? 39.0 : 30.0) : rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 15.0 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 13.0 : day_type == \"PUBLIC_HOLIDAY\" ? 20.0 : 10.0",
+					"overtime_add": "day_type == \"PUBLIC_HOLIDAY\" && holiday.kind == \"DOUBLE_HOLIDAY\" ? (rest_day ? 50.7 : 39.0) : rest_day && day_type == \"PUBLIC_HOLIDAY\" ? 33.8 : rest_day && day_type == \"SPECIAL_HOLIDAY\" ? 19.5 : rest_day || day_type == \"SPECIAL_HOLIDAY\" ? 16.9 : day_type == \"PUBLIC_HOLIDAY\" ? 26.0 : 12.5"
+				},
+				"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. art.86 and Handbook ch.5: the night shift differential is 10% of the hour’s own rate, so 13 on a rest day or a special day, 20 on a regular holiday, 26 on a regular holiday falling on the rest day, 15 on a special day on the rest day, and on the overtime hours of each 12.5, 16.9, 26, 33.8 and 19.5 (`night_premium` adds as expressions over the day; the first eight night hours of a rest day or holiday are its ordinary ones). Handbook ch.2 §D–E: a monthly-paid employee — one \"paid every day of the month, including unworked rest days, special days, and regular holidays\", declared on the contract as `terms.paid_rest_days` (applied 2026-09-23, round 4: the payroll group is the employer’s own label and states no law) — is prorated and has an absence deducted on the 365 factor, 30.4167 a month (`proration_by`); the daily-paid keep 21.75 or 26.0833. The night-differential ladder reads the day type (`day_type`, which the holiday takes under `holiday_rest_precedence: PUBLIC_HOLIDAY`); `holiday.kind` is the published row’s kind (PUBLIC | SPECIAL | SUBSTITUTE), and a day-type literal against it never matched. Handbook ch.2 §D, ch.3 §C, ch.4 §D state each day's pay as a total — a regular holiday worked 200%, a special day 130%, a rest day 130%, a regular holiday on the rest day 260%, a special day on the rest day 150%. The salary (261, 313 and 365 factors alike) and the daily-paid roster already pay a working holiday at 100%, so its first eight hours add the rest: 100% and 30% (`OT-2.0X`, `OT-1.3X`). The 365 factor (`terms.paid_rest_days`) also pays the rest day in the salary, so on it the rest-day rows add 30%, 160% and 50%; every other employee's rest day is unpaid and the rows carry the whole 130%, 260% and 150%. Hours beyond eight are paid by no base and keep their whole 169%, 260%, 338% and 195%. DOLE Handbook (2022) ch.2 §C: where two regular holidays fall on one day (a `DOUBLE_HOLIDAY` calendar row), the day is at least 200% of the daily wage unworked (`DOUBLE-HOLIDAY-UNWORKED`: a second day’s wage) and 300% worked (`OT-3.0X`: two more days on top of the day the wage pays); the guide computations (ch.4 §D) give 390% on a rest day (`OT-3.9X-REST`, 290% for the 365-factor employee, `terms.paid_rest_days`, whose salary pays the rest day), overtime 3 × 1.3 = 390% (`OT-3.9X`) and 3.9 × 1.3 = 507% on a rest day (`OT-5.07X-REST`), and night shift 10% of those rates (30, 39; overtime 39, 50.7). Ch.2 §D–E: an unworked regular holiday is paid only to an employee present, or on leave with pay, on the workday immediately preceding it (a rest or non-work day looks back further; two successive holidays pass the test through the first); `payroll.regular_holiday_prior_workday` applies it to the daily-paid wage and `holiday.prior_day_present` to the double holiday’s second day.",
+				"normal_hours": "8.0",
+				"proration_by": [
+					{
+						"when": "terms.paid_rest_days",
+						"basis": {
+							"by": "FIXED_DAYS",
+							"days": 30.416666666666668
+						}
+					},
+					{
+						"when": "terms.pay_frequency != \"DAILY\" && !terms.paid_rest_days && terms.ordinary_hours_per_week > 40.0",
+						"basis": {
+							"by": "FIXED_DAYS",
+							"days": 26.083333333333332
+						}
+					}
+				],
+				"wages": {
+					"applies_when": "(employment.type != \"INTERN\" || (\"ebet_program\" in terms.fact_keys && terms.facts.ebet_program == \"UPSKILLING\")) && (employment.type == \"DOMESTIC\" || company.facts.bmbe_certificate_of_authority == false)",
+					"scale": "employment.type == \"DOMESTIC\" ? 1.0 : (employment.type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.paid_rest_days ? 365.0 / 313.0 : terms.working_days_per_week >= 6.0 ? 1.0 : 261.0 / 313.0) * (employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.ordinary_hours_per_week < (terms.working_days_per_week >= 6.0 ? 48.0 : 40.0) ? terms.ordinary_hours_per_week / (terms.working_days_per_week >= 6.0 ? 48.0 : 40.0) : 1.0)",
+					"block_below_when": "employment.type == \"DOMESTIC\" || company.facts.minimum_wage_exemption_approved == false",
+					"classified_by_worksite": {
+						"single_establishment_fact": "ph_wage_one_establishment",
+						"headcount_fact": "ph_wage_worker_count",
+						"rows": [
+							{
+								"worksite": "NCR/Caloocan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Caloocan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Las Piñas",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Makati",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Makati",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Malabon",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Mandaluyong",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Manila",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Manila",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Marikina",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Muntinlupa",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Navotas",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Parañaque",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasay",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pasig",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Quezon City",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/San Juan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Taguig",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Valenzuela",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"employment_type": "DOMESTIC",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "AGRICULTURE",
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 15,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 16,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "NCR-AGRI-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "NCR/Pateros",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "NCR"
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Bacoor",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Rosario",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Rosario",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-RECLASSIFIED-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A-RECLASSIFIED-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A-RECLASSIFIED-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Noveleta",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A-RECLASSIFIED-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-2ND-5TH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A-2ND-5TH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A-2ND-5TH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Cavite/Amadeo",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A-2ND-5TH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Laguna/Calamba",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Batangas/Santo Tomas",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-A-AGRI-COMPONENT-1ST",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "IV-A-RETAIL-SMALL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "Rizal/Cainta",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-A"
+							},
+							{
+								"worksite": "II/Tuguegarao",
+								"employment_type": "DOMESTIC",
+								"rate_key": "II"
+							},
+							{
+								"worksite": "II/Tuguegarao",
+								"sector": "AGRICULTURE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Tuguegarao",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Tuguegarao",
+								"sector": "MANUFACTURING",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Tuguegarao",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Cauayan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "II"
+							},
+							{
+								"worksite": "II/Cauayan",
+								"sector": "AGRICULTURE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Cauayan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Cauayan",
+								"sector": "MANUFACTURING",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Cauayan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Ilagan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "II"
+							},
+							{
+								"worksite": "II/Ilagan",
+								"sector": "AGRICULTURE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Ilagan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Ilagan",
+								"sector": "MANUFACTURING",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Ilagan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Santiago",
+								"employment_type": "DOMESTIC",
+								"rate_key": "II"
+							},
+							{
+								"worksite": "II/Santiago",
+								"sector": "AGRICULTURE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Santiago",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Santiago",
+								"sector": "MANUFACTURING",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "II/Santiago",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "CAR/Baguio",
+								"employment_type": "DOMESTIC",
+								"rate_key": "CAR"
+							},
+							{
+								"worksite": "CAR/Baguio",
+								"sector": "AGRICULTURE",
+								"rate_key": "CAR",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "CAR/Baguio",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "CAR",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "CAR/Baguio",
+								"sector": "MANUFACTURING",
+								"rate_key": "CAR",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "CAR/Baguio",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "CAR",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Calapan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-B"
+							},
+							{
+								"worksite": "IV-B/Calapan",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Calapan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Calapan",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Calapan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Puerto Princesa",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IV-B"
+							},
+							{
+								"worksite": "IV-B/Puerto Princesa",
+								"sector": "AGRICULTURE",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Puerto Princesa",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Puerto Princesa",
+								"sector": "MANUFACTURING",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IV-B/Puerto Princesa",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IV-B",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Iriga",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Iriga",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Iriga",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Iriga",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Iriga",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Legazpi",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Legazpi",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Legazpi",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Legazpi",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Legazpi",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Ligao",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Ligao",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Ligao",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Ligao",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Ligao",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Masbate",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Masbate",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Masbate",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Masbate",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Masbate",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Naga",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Naga",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Naga",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Naga",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Naga",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Sorsogon",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Sorsogon",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Sorsogon",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Sorsogon",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Sorsogon",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Tabaco",
+								"employment_type": "DOMESTIC",
+								"rate_key": "V"
+							},
+							{
+								"worksite": "V/Tabaco",
+								"sector": "AGRICULTURE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Tabaco",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Tabaco",
+								"sector": "MANUFACTURING",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "V/Tabaco",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "V",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bayugan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Bayugan",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bayugan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bayugan",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bayugan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bislig",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Bislig",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bislig",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bislig",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Bislig",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Butuan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Butuan",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Butuan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Butuan",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Butuan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Cabadbaran",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Cabadbaran",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Cabadbaran",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Cabadbaran",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Cabadbaran",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Surigao",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Surigao",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Surigao",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Surigao",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Surigao",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Tandag",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XIII"
+							},
+							{
+								"worksite": "XIII/Tandag",
+								"sector": "AGRICULTURE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Tandag",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Tandag",
+								"sector": "MANUFACTURING",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XIII/Tandag",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XIII",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Pampanga/San Fernando",
+								"employment_type": "DOMESTIC",
+								"rate_key": "III"
+							},
+							{
+								"worksite": "Pampanga/San Fernando",
+								"sector": "AGRICULTURE",
+								"rate_key": "III-CORE-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Pampanga/San Fernando",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "III-CORE-RETAIL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Pampanga/San Fernando",
+								"sector": "MANUFACTURING",
+								"rate_key": "III-CORE-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "Pampanga/San Fernando",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "III-CORE-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Alaminos",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Batac",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Candon",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Dagupan",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Laoag",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Carlos",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/San Fernando",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Urdaneta",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "I"
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "AGRICULTURE",
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "MANUFACTURING",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "I-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "I/Vigan",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 10,
+								"rate_key": "I-NONAGRI-10PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/General Santos",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XII"
+							},
+							{
+								"worksite": "XII/General Santos",
+								"sector": "AGRICULTURE",
+								"rate_key": "XII-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/General Santos",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/General Santos",
+								"sector": "MANUFACTURING",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/General Santos",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Kidapawan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XII"
+							},
+							{
+								"worksite": "XII/Kidapawan",
+								"sector": "AGRICULTURE",
+								"rate_key": "XII-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Kidapawan",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Kidapawan",
+								"sector": "MANUFACTURING",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Kidapawan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Koronadal",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XII"
+							},
+							{
+								"worksite": "XII/Koronadal",
+								"sector": "AGRICULTURE",
+								"rate_key": "XII-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Koronadal",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Koronadal",
+								"sector": "MANUFACTURING",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Koronadal",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Tacurong",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XII"
+							},
+							{
+								"worksite": "XII/Tacurong",
+								"sector": "AGRICULTURE",
+								"rate_key": "XII-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Tacurong",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Tacurong",
+								"sector": "MANUFACTURING",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XII/Tacurong",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XII-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Davao",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Davao",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Davao",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Davao",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Davao",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Digos",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Digos",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Digos",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Digos",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Digos",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Island Garden of Samal",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Island Garden of Samal",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Island Garden of Samal",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Island Garden of Samal",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Island Garden of Samal",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Mati",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Mati",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Mati",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Mati",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Mati",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Panabo",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Panabo",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Panabo",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Panabo",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Panabo",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Tagum",
+								"employment_type": "DOMESTIC",
+								"rate_key": "XI"
+							},
+							{
+								"worksite": "XI/Tagum",
+								"sector": "AGRICULTURE",
+								"rate_key": "XI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Tagum",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Tagum",
+								"sector": "MANUFACTURING",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "XI/Tagum",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "XI-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Calbayog",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Catbalogan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Baybay",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Borongan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Maasin",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Ormoc",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"sector": "AGRICULTURE",
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VIII-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VIII"
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"sector": "MANUFACTURING",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VIII/Tacloban",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VIII-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Cagayan de Oro",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Iligan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Iligan",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Iligan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Iligan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Iligan",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Iligan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Malaybalay",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Valencia",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Valencia",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Valencia",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Valencia",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Valencia",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Valencia",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Gingoog",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Gingoog",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Gingoog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Gingoog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Gingoog",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Gingoog",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/El Salvador",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/El Salvador",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/El Salvador",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/El Salvador",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/El Salvador",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/El Salvador",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Ozamiz",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Tagoloan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Villanueva",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Villanueva",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Villanueva",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Villanueva",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Villanueva",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Villanueva",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Jasaan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Jasaan",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Jasaan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Jasaan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Jasaan",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Jasaan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Opol",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Opol",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Opol",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Opol",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Opol",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Opol",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Maramag",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Maramag",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Maramag",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Maramag",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Maramag",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Maramag",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Quezon",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Quezon",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Quezon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Quezon",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Quezon",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Quezon",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Manolo Fortich",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Lugait",
+								"employment_type": "DOMESTIC",
+								"rate_key": "X"
+							},
+							{
+								"worksite": "X/Lugait",
+								"sector": "AGRICULTURE",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Lugait",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "X-CAT-II",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Lugait",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Lugait",
+								"sector": "MANUFACTURING",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "X/Lugait",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "X-CAT-I",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IX"
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"sector": "AGRICULTURE",
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"sector": "MANUFACTURING",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dapitan",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IX"
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"sector": "AGRICULTURE",
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"sector": "MANUFACTURING",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Dipolog",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Isabela",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IX"
+							},
+							{
+								"worksite": "IX/Isabela",
+								"sector": "AGRICULTURE",
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Isabela",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Isabela",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Isabela",
+								"sector": "MANUFACTURING",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Isabela",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IX"
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"sector": "AGRICULTURE",
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"sector": "MANUFACTURING",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Pagadian",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"employment_type": "DOMESTIC",
+								"rate_key": "IX"
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"sector": "AGRICULTURE",
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 9,
+								"rate_key": "IX-LOW",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 10,
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"sector": "MANUFACTURING",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "IX/Zamboanga",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "IX-HIGH",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VI"
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "AGRICULTURE",
+								"rate_key": "VI-AGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VI-NONAGRI-10ORLESS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "RETAIL_SERVICE",
+								"min_workers": 11,
+								"rate_key": "VI-NONAGRI-11PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "MANUFACTURING",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VI-NONAGRI-10ORLESS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "MANUFACTURING",
+								"min_workers": 11,
+								"rate_key": "VI-NONAGRI-11PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 0,
+								"max_workers": 10,
+								"rate_key": "VI-NONAGRI-10ORLESS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VI/Iloilo City",
+								"sector": "OTHER_NONAGRI",
+								"min_workers": 11,
+								"rate_key": "VI-NONAGRI-11PLUS",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VII/Cebu",
+								"employment_type": "DOMESTIC",
+								"rate_key": "VII"
+							},
+							{
+								"worksite": "VII/Cebu",
+								"sector": "AGRICULTURE",
+								"rate_key": "VII-A",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VII/Cebu",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "VII-A",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VII/Cebu",
+								"sector": "MANUFACTURING",
+								"rate_key": "VII-A",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "VII/Cebu",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "VII-A",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "BARMM/Cotabato City",
+								"employment_type": "DOMESTIC",
+								"rate_key": "BARMM"
+							},
+							{
+								"worksite": "BARMM/Cotabato City",
+								"sector": "AGRICULTURE",
+								"rate_key": "BARMM-CITY-AGRI-RETAIL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "BARMM/Cotabato City",
+								"sector": "RETAIL_SERVICE",
+								"rate_key": "BARMM-CITY-AGRI-RETAIL",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "BARMM/Cotabato City",
+								"sector": "MANUFACTURING",
+								"rate_key": "BARMM-CITY-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							},
+							{
+								"worksite": "BARMM/Cotabato City",
+								"sector": "OTHER_NONAGRI",
+								"rate_key": "BARMM-CITY-NONAGRI",
+								"requires_evidence": ["wage_worksite_source", "wage_sector_source"]
+							}
+						]
+					}
+				},
+				"encashment": {
+					"reference": "EVENT_DATE",
+					"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+					"preserve_year_end_rate": false,
+					"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / (terms.paid_rest_days ? 7.0 : terms.working_days_per_week) : terms.pay_frequency == \"DAILY\" ? terms.basic_salary : terms.pay_frequency == \"HOURLY\" ? terms.basic_salary * terms.ordinary_hours_per_week / terms.working_days_per_week : terms.basic_salary / (terms.paid_rest_days ? 365.0 / 12.0 : (terms.working_days_per_week >= 6.0 ? 313.0 : 261.0) / 12.0)",
+					"include_allowances": [],
+					"exclude_allowances": [],
+					"authority": "DOLE Handbook on Workers Statutory Monetary Benefits, Service Incentive Leave, Conversion: salary rate on the conversion date, with pro-rata conversion. A daily contract supplies its daily salary; an hourly contract uses its normal scheduled hours per workday. Monthly equivalent factors follow paid-day coverage. Standing allowances require express basic-salary classification. https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf a weekly contract converts at the same salary rate on the conversion date — its week's wage over the days that wage pays: the working days of the week, or all seven where the contract pays the rest day too (the Handbook's monthly-paid/daily-paid distinction, Rules on EEMR factors 365 and 313/261, applied to a week)."
+				}
+			},
+			"tables": [
+				{
+					"name": "TERMINATION_GROUND",
+					"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+					"keys": ["code"],
+					"columns": []
+				},
+				{
+					"name": "EBET_PROGRAM",
+					"label": "Enterprise-based education and training programs (RA 12063 s.4)",
+					"keys": ["code"],
+					"columns": []
+				}
+			],
+			"checks": [
+				{
+					"code": "PROBATION_BEYOND_SIX_MONTHS",
+					"at": "PAYSLIP",
+					"severity": "REFUSE",
+					"when": "employment.type == \"PROBATION\" && check.date >= add_months(employment.service_start, 6)",
+					"message": "Still recorded as probationary six months after starting work: an employee allowed to work after the probationary period is regular, so record regular terms from the day the sixth month ends.",
+					"authority": "Omnibus Rules Implementing the Labor Code (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819) Book VI Rule I s.6(a), (d): probationary employment shall not exceed six months from the date the employee actually started working; an employee allowed to work after it is regular (Labor Code art.296, formerly art.281)"
+				},
+				{
+					"code": "EBET_PROGRAM_UNRECORDED",
+					"at": "TERMS_CHANGE",
+					"severity": "REFUSE",
+					"when": "employment.type in [\"INTERN\", \"APPRENTICE\"] && !(\"ebet_program\" in terms.fact_keys)",
+					"message": "Contracted as a trainee without a registered EBET program: record ebet_program (general training, apprenticeship or upskilling) before a trainee label changes any wage rule.",
+					"authority": "RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) s.4 and its IRR: enterprise-based trainees are classified by registered program; a blanket INTERN label does not remove the minimum wage"
+				},
+				{
+					"code": "EBET_PROGRAM_MISMATCH",
+					"at": "TERMS_CHANGE",
+					"severity": "REFUSE",
+					"when": "employment.type in [\"INTERN\", \"APPRENTICE\"] && \"ebet_program\" in terms.fact_keys && ((employment.type == \"APPRENTICE\") != (terms.facts.ebet_program == \"APPRENTICESHIP\"))",
+					"message": "The trainee type does not match the EBET program: an apprenticeship is contracted as APPRENTICE, and a general or upskilling program is not.",
+					"authority": "RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) s.13(b): only an apprenticeship trainee is paid on the 75% floor; s.13(a): a general trainee receives an allowance; s.12: an upskilling trainee keeps full wages"
+				},
+				{
+					"code": "EBET_GENERAL_BEYOND_SIX_MONTHS",
+					"at": "PAYSLIP",
+					"severity": "REFUSE",
+					"when": "employment.type == \"INTERN\" && \"ebet_program\" in terms.fact_keys && terms.facts.ebet_program == \"GENERAL\" && check.date >= add_months(employment.service_start, 6)",
+					"message": "Still recorded as a general EBET trainee six months after starting: general training lasts at most six months and training beyond it makes the trainee a regular employee, so record employment terms from the day the sixth month ends.",
+					"authority": "RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) ss.4(f), 22"
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "PHP"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "PHP"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "PHP"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": [
+									"PERMANENT",
+									"PROBATION",
+									"FIXED_TERM",
+									"PROJECT",
+									"SEASONAL",
+									"CASUAL",
+									"PART_TIME",
+									"APPRENTICE",
+									"INTERN",
+									"DOMESTIC"
+								],
+								"description": "Labor Code arts.295–296 (regular, project, seasonal, casual, probationary), fixed-term employment, arts.58–72 apprentices, RA 12063 trainees and RA 10361 (Batas Kasambahay) DOMESTIC: a kasambahay takes ANNUAL_LEAVE_DOMESTIC, no company loan, the domestic wage floor and the household contribution rules."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["RANK_AND_FILE", "SUPERVISORY", "MANAGERIAL"],
+								"description": "Labor Code arts.82 and 219(m): managerial employees are outside service incentive leave and PD 851 13th-month pay."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_FIELD", "FIELD_PERSONNEL", "TASK_BASIS", "PIECE_RATE"],
+								"description": "Labor Code art.82 field personnel and task-basis workers are outside service incentive leave; task-basis workers outside 13th-month pay, piece-rate workers inside it (PD 851 Revised Guidelines)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": [
+									"CITIZEN",
+									"PERMANENT_RESIDENT",
+									"RESIDENT_ALIEN",
+									"NON_RESIDENT_ALIEN_ETB",
+									"NON_RESIDENT_ALIEN_NETB"
+								],
+								"description": "NIRC ss.22(E)–(G), 24(A), 25(A)–(B). SSS refuses a citizen or permanent resident without a date of birth."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"days_per_year": {
+										"type": "integer",
+										"enum": [253, 261, 305, 313, 365],
+										"default": 313,
+										"title": "Days-per-year factor",
+										"description": "The factor that turns the monthly basic into a daily rate (DOLE Handbook 2024 ch.2 §D–E): 365 when rest days, special days and regular holidays are paid; 313 on a six-day week; 261 on a five-day week; 305 / 253 where the special days are unpaid. Read by every day- and hour-rated line, retirement pay, the kasambahay pay, the WTAX leave ceiling and the minimum-wage-earner floor. Unrecorded is 313."
+									},
+									"ebet_program": {
+										"type": "string",
+										"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
+										"title": "Registered EBET programme",
+										"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
+									}
+								}
+							}
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Stored on employment_contract.exit_facts when the contract closes (with the offboarding ground, last_day and note).",
+					"properties": {
+						"termination_cause": {
+							"type": "string",
+							"enum": [
+								"LABOR_SAVING_DEVICES",
+								"REDUNDANCY",
+								"RETRENCHMENT",
+								"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES",
+								"CLOSURE_DUE_TO_SERIOUS_LOSSES",
+								"DISEASE",
+								"SECURITY_GUARD_NO_ASSIGNMENT",
+								"CONTRACTOR_NO_ASSIGNMENT",
+								"IMPOSSIBLE_REINSTATEMENT"
+							],
+							"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none."
+						},
+						"terminated_for_disease": {
+							"type": "boolean",
+							"description": "Labor Code art.299: separation pay of one month or half a month a year, whichever is greater."
+						},
+						"kasambahay_unjust_dismissal": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
+						},
+						"kasambahay_unjustified_departure": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The member number for the scheme: SSS number, PhilHealth Identification Number, Pag-IBIG MID number or BIR TIN."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"covered_before_60": {
+												"type": "boolean",
+												"default": false,
+												"title": "SSS member covered before sixty",
+												"description": "SSS standing election (RA 11199 s.9(a)): a member first covered before sixty keeps contributing while employed past sixty; unrecorded, no SSS, MPF or EC is charged from the sixtieth birthday."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts on employment_profile.facts (CEL employee.facts.*); the PH records read none.",
+					"properties": {}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH entity inputs",
+			"description": "entity.facts (CEL company.facts.*). The entity `region` column names the wage-order floor key of the PAYROLL rule `minimum_wage` (by_region, or by_employment_type.DOMESTIC for a household employer).",
+			"additionalProperties": false,
+			"properties": {
+				"small_establishment": {
+					"type": "boolean",
+					"title": "Regularly fewer than ten employees",
+					"description": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1(e): outside service incentive leave."
+				},
+				"retirement_exempt_establishment": {
+					"type": "boolean",
+					"title": "Retail, service or agricultural establishment of ten or fewer",
+					"description": "Labor Code art.302 (RA 7641): outside retirement pay."
+				},
+				"bmbe_certificate_of_authority": {
+					"type": "boolean",
+					"default": false,
+					"title": "Certified BMBE",
+					"description": "RA 9178 s.8: a Barangay Micro Business Enterprise with a current Certificate of Authority is exempt from the Minimum Wage Law, so its non-household employees are not minimum wage earners for WTAX."
+				},
+				"sss_employer_number": {
+					"type": "string",
+					"title": "SSS employer number",
+					"description": "RA 11199 s.24."
+				},
+				"philhealth_employer_number": {
+					"type": "string",
+					"title": "PhilHealth Employer Number (PEN)",
+					"description": "RA 11223 s.10; its last digit picks the remittance window (PhilHealth Circular 0001 s.2014)."
+				},
+				"hdmf_employer_id": {
+					"type": "string",
+					"title": "Pag-IBIG employer ID",
+					"description": "RA 9679 s.6; HDMF Circular 275."
+				},
+				"bir_tin": {
+					"type": "string",
+					"title": "BIR TIN of the withholding agent",
+					"description": "NIRC s.236."
+				},
+				"bir_rdo_code": {
+					"type": "string",
+					"title": "BIR Revenue District Office"
+				},
+				"hdmf_remittance_group": {
+					"type": "integer",
+					"enum": [1, 2, 3, 4],
+					"title": "Pag-IBIG remittance group",
+					"description": "HDMF Circular 275 §E.2: the first letter of the employer’s registered name picks the window in the month after the period — 1 = A–D (10th–14th), 2 = E–L (15th–19th), 3 = M–Q (20th–24th), 4 = R–Z or a numeral (25th to month-end). Unrecorded, the earliest window governs."
+				},
+				"nsd_small_retail_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment of five workers or fewer",
+					"description": "DOLE Handbook 2024 ch.5 §B.2 (Labor Code art.86; Omnibus Rules Book III Rule II s.1): outside the night-shift differential. Unrecorded, the differential is paid."
+				},
+				"minimum_wage_exemption_approved": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempted from the wage order by the regional board",
+					"description": "RA 6727 s.4(c): an establishment the regional wages board exempted from the wage order in force. Unrecorded, no exemption."
+				}
+			}
+		}
+	}
+]

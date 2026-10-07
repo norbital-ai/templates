@@ -1,5 +1,5 @@
 import { automation, type Id } from '@norbital-ai/bolt';
-import { googleMinutes, loadPool, reassign, VISIT } from '../lib/dispatch.js';
+import { googleMinutes, loadPool, optimise, reassign, VISIT } from '../lib/dispatch.js';
 import {
 	cellOf,
 	driveMinutes,
@@ -22,11 +22,13 @@ const MAX_CALLS = 25;
  * Keeps every planned drive real. Each leg a helper's next two weeks will be driven (home to the first visit, then visit
  * to visit) that the cache lacks is timed by Google and cached for matching. Then each day is walked in order: a visit
  * its helper can no longer reach from the one before, drive and settling in counted, is handed to the best match.
- * Without a Google key nothing is fetched, and the walk still catches two bookings that raced for one helper.
+ * Without a Google key nothing is fetched, and the walk still catches two bookings that raced for one helper. Last, the
+ * schedule is brought back to a local optimum (`optimise`): booking places each visit as it arrives, and this undoes the
+ * choices later bookings, cancellations and new cleaners made poor. A move re-triggers this run, which then finds none.
  */
 const check_drives = automation({
 	description:
-		'Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match.',
+		'Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match; then movable visits are rebalanced to a local optimum of workload and driving.',
 	on: [
 		{ cron: '*/15 * * * *' },
 		{ created: 'bookings' },
@@ -73,14 +75,18 @@ check_drives.run(async (_, ctx) => {
 	if (learned.length > 0) await ctx.act('drive_times.create', learned);
 
 	// walk each day: a visit too close to the last one kept moves, and the next is checked against that one
-	const late = new Map<string, Id<'visits'>[]>();
+	const late = new Map<Id<'helpers'>, Id<'visits'>[]>();
 	for (const day of days) {
 		let last: Busy = day[0]!;
 		for (const b of day.slice(1)) {
 			const gap = Date.parse(b.slot.start) - Date.parse(last.slot.end);
 			const need = (driveMinutes(last.location, b.location, drive) + SETTLE_MINUTES) * MINUTE;
+			if (b.planned === true) {
+				last = b;
+				continue;
+			}
 			if (gap >= need || Date.parse(b.slot.start) <= now) last = b;
-			else late.set(b.helper, [...(late.get(b.helper) ?? []), b.id as Id<'visits'>]);
+			else late.set(b.helper, [...(late.get(b.helper) ?? []), b.id]);
 		}
 	}
 	for (const [helper, ids] of late) {
@@ -91,4 +97,5 @@ check_drives.run(async (_, ctx) => {
 		});
 		await reassign(ctx, rows, helper);
 	}
+	await optimise(ctx);
 });

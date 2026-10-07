@@ -1,0 +1,115 @@
+[
+	{
+		"id": "a702a239-75aa-51e6-b5f2-cc5decd493d1",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "leader",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Leader allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "b6ff44af-1156-5539-b718-8d27b4c4f101",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "meal",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.RICE"],
+		"name": "Meal allowance (rice subsidy)",
+		"authority": "Not fixed: a meal allowance is paid for the days it is earned.",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "5b44b99d-bb32-5253-b377-8d027fa64330",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "transport",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Transport allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "580b0bf8-275c-5348-94dc-fb022b2c537c",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "corporate_duty_allowance",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Corporate duty allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "53712bba-2b43-59f2-996e-d919d238067d",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "allowance",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "cac5ac69-6463-529a-b367-1a7fbe6189b8",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "communication",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Communication allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "03299e58-0de8-5fb3-9756-c2074cb737be",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "duty_allowance",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Duty allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "d0f845dc-fa4f-58f4-87ac-d9755318ab79",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "position",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Position allowance",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "3185db64-8ed8-5523-b1e0-850532213a21",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "LAUNDRY_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.LAUNDRY"],
+		"name": "Laundry allowance",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (g): laundry allowance to ₱300 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the WTAX part `LAUNDRY`.",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	},
+	{
+		"id": "df91ffe3-47fc-51a8-961b-7ad5791d81f8",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "DEPENDANT_MEDICAL_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.DEP_MEDICAL"],
+		"name": "Medical cash allowance to dependants",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (c): medical cash allowance to dependants to ₱1,500 a semester (₱250 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the WTAX part `DEP_MEDICAL`. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence.",
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
+	}
+]

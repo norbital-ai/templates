@@ -1,113 +1,18 @@
-# Jurisdiction obligation trackers
+# Jurisdiction trackers
 
-Current reconciled checkpoint: [CURRENT.md](CURRENT.md).
+One CSV per jurisdiction, `docs/inventory/<CODE>.csv` (`SG`, `MY`, `PH`, `ID`, `VN`, `TW`, `CN`, `JP`, `TH`), describing
+what the public seed at `seed/jurisdiction/<CODE>/version_*/` configures today. The earlier obligation
+registers and capability ledger were deleted on 2026-10-06; they tracked purged models and are not restored.
 
-One CSV tracker per jurisdiction, `docs/inventory/<jurisdiction>.csv`:
+Columns: `id,area,provision,citation,url,status,config,evidence`.
 
-| Jurisdiction              | Tracker           |
-| ------------------------- | ----------------- |
-| Malaysia                  | `malaysia.csv`    |
-| Indonesia                 | `indonesia.csv`   |
-| Thailand                  | `thailand.csv`    |
-| Philippines               | `philippines.csv` |
-| Singapore                 | `singapore.csv`   |
-| China (Shanghai, Kunming) | `china.csv`       |
-| Taiwan                    | `taiwan.csv`      |
-| Vietnam                   | `vietnam.csv`     |
-| Japan                     | `japan.csv`       |
+- `id` — `<CODE>-<AREA>-<n>`, stable once written.
+- `area` — `contribution`, `tax`, `leave`, `claim`, `adhoc`, `loan`, `allowance`, `work`, `obligation`,
+  `settings`.
+- `status` — `CONFIGURED` (seeded and asserted by a test), `SEEDED` (seeded, not asserted), `GAP` (the law
+  applies and nothing is seeded), `OUT_OF_SCOPE` (deliberately not modelled; say why in `evidence`).
+- `config` — the seed row it lives in, `<table>:<code>` (for example `statutory_contribution_catalog:CPF`).
+- `evidence` — the test name that asserts it, or the reason for a gap.
 
-Scope: every payroll and HR statutory/compliance obligation applicable from 1 December 2025,
-plus earlier facts that decide an opening balance, eligibility, entitlement, rate or deadline.
-One row = one operative provision or decision branch. A broad statute heading is an index, not a
-row. A missing profile or instrument is an explicit row, never an omitted one. Amendments reopen
-affected rows. The `<jurisdiction>.md` registers are the legacy form until converted.
-
-`tests/inventory-csv.test.ts` enforces this contract on every tracker.
-
-## Owner rule (2026-09-28)
-
-Law states it → follow it exactly. Law silent → a lawful, consistent default, recorded in the
-row's `reason` (and its `config_path`).
-
-## Format
-
-RFC 4180 CSV, UTF-8, comma-separated, `"`-quoted fields where a value holds a comma, quote or
-newline (`""` escapes a quote). The first line is the header, exactly these columns in this order:
-
-`id,profile,area,provision,citation,url,source_checked,effective_from,effective_to,status,reason,config_path,golden,probe,verified_at`
-
-| Column           | Content                                                                                                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`             | Stable row id, unique across **all** trackers (e.g. `MY-EPF-001`). Never reused or renumbered.                                                               |
-| `profile`        | Jurisdiction or locality/employer/worker profile the row applies to (`MY`, `CN-shanghai`, `CN-kunming`, …).                                                  |
-| `area`           | One of the areas below.                                                                                                                                      |
-| `provision`      | The legal result in one sentence: amount, entitlement, deadline, report, or sourced exclusion.                                                               |
-| `citation`       | Instrument and section (e.g. `Employment Act 1955 s.60A(3)`).                                                                                                |
-| `url`            | Official primary source. Required unless `SOURCE-BLOCKED`.                                                                                                   |
-| `source_checked` | ISO date the official source was last read.                                                                                                                  |
-| `effective_from` | ISO date the provision takes effect.                                                                                                                         |
-| `effective_to`   | ISO date it ceases; empty while in force.                                                                                                                    |
-| `status`         | One of the statuses below.                                                                                                                                   |
-| `reason`         | The actual missing evidence or failure, or the recorded default where law is silent. Required unless `VERIFIED` or `NOT-APPLICABLE`.                         |
-| `config_path`    | Where it is configured: settings key, catalogue code, or fact key (e.g. `payroll.allowance_npl_prorates`, `statutory_contributions:EPF`). Never a code path. |
-| `golden`         | Exact `test(...)` title of the hand-computed golden in `tests/*.test.ts`; several are `;`-separated.                                                         |
-| `probe`          | Exact case id(s) of the production-path probe in `tests/e2e/probes/*.ts`, `; `-separated.                                                                    |
-| `verified_at`    | ISO date the probe last matched.                                                                                                                             |
-
-### Areas
-
-`wages`, `minimum_wage`, `hours`, `overtime`, `rest_holiday`, `leave`, `proration`,
-`contribution`, `tax`, `rounding`, `severance`, `notice`, `final_pay`, `bonus`, `levy`, `filing`,
-`records`, `other`.
-
-### Statuses
-
-| Status              | Meaning                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VERIFIED`          | A production-path probe — saved inputs through the real workspace write path → payroll run → a saved payslip, refusal, obligation instance or generated file (owner decision 2026-09-30) — matches a hand-computed, cited result, and its `config_path` resolves against the seeds (`tests/inventory-inputs.test.ts`). Needs `probe` and `verified_at`. |
-| `TESTED`            | A hand-computed golden passes against the engine; no probe yet. Needs `golden`.                                                                                                                                                                                                                                                                         |
-| `IMPLEMENTED`       | The row’s full stated scope is implemented and integrated in application source, but not yet production-path verified. `reason` records the implementation evidence and any verification still due. Frozen candidates and partial subbranches do not qualify.                                                                                                                                                                                                                                                                                                                         |
-| `PARTIAL`           | Some branches proven; `reason` names the branches that are not.                                                                                                                                                                                                                                                                                         |
-| `GAP`               | A missing engine, profile or input feature that changes a payslip or HR result.                                                                                                                                                                                                                                                                         |
-| `EXTERNAL`          | An employer duty outside the calculator (filing, remittance, registration).                                                                                                                                                                                                                                                                             |
-| `EXTERNAL-RECORDED` | Such a duty whose evidence (date, reference) the product captures.                                                                                                                                                                                                                                                                                      |
-| `AWAITING-LAW`      | Announced but not yet published or gazetted.                                                                                                                                                                                                                                                                                                            |
-| `SOURCE-BLOCKED`    | The official text is unreachable; `reason` names what was tried.                                                                                                                                                                                                                                                                                        |
-| `NOT-APPLICABLE`    | A sourced exclusion; `citation`/`url` carry the source.                                                                                                                                                                                                                                                                                                 |
-
-### Wave 1 implementation tracking
-
-During implementation, change a fully integrated row to `IMPLEMENTED` without waiting for a probe. Keep incomplete rows as `GAP` or `PARTIAL`, with the exact unimplemented branch in `reason`. Preserve existing `VERIFIED` evidence; implementation is not verification. Documentary, source, future-law and external-action blockers retain their distinct statuses. Source adoption receipts and relevant application paths support implementation decisions; Wave 2 supplies production-path verification.
-
-## Runtime-schema rule
-
-Trackers are local authoring evidence. Do not import these CSVs or their parser into `src`,
-bundle them into the tenant UI, or copy tracker statuses, test titles, probe IDs or verification
-notes into jurisdiction snapshots or their downstream collections. The snapshot holds input
-schemas and descriptions, behaviours, calculation/eligibility catalogues, employer obligation
-notes and primary sources. Runtime explanations use those published definitions and saved
-calculation traces. `tests/tracker-boundary.test.ts` enforces this separation.
-
-Jurisdiction-specific behaviour and captured data are **configuration**: settings versions,
-catalogues, rule expressions and declared FactKey schemas. They are never `src` code branches on a
-jurisdiction and never jurisdiction-named collections. Adding a jurisdiction is seed/config only —
-no `src` change, no new collection, no migration. A row whose behaviour cannot be expressed that
-way is a `GAP` in the generic engine, not a licence for a jurisdiction branch.
-
-`tests/no-jurisdiction-code.test.ts` enforces this rule, with codes read from `seed/jurisdiction`
-(lineage directories, their first segment, and every seeded `jurisdiction_code`). It fails on a
-`src` string equal to a code, a country or locality name in `src` outside `src/i18n`, a
-jurisdiction-named collection, model, custom field, `src/lib` or `src/app` entry, a model field
-with a jurisdiction prefix or scheme name, a jurisdiction-scoped i18n key, and a `HARDCODED:`
-`config_path`. There is no exception list.
-
-## Calculation rule
-
-Every statutory calculation lives in the runtime objects — the stored rule expressions, band
-rows, rates, caps, floors, divisors, thresholds and rounding modes of the settings versions and
-catalogues — never in the engine's flow. The engine evaluates what is stored; it does not know a
-rate, a band edge, a ceiling, a divisor, a rounding step or an age. A statutory figure or band
-written as a literal in `src` (a `0.2`, `20000`, `26`, `× 1.5`, a band table, a rounding to 50 sen)
-is a defect: move it into the version's configuration and give the engine only the generic
-operation that evaluates it. A calculation the expression language cannot state is a `GAP` for a
-generic expression primitive, not a licence for a literal.
+One row per operative provision. A row that does not say where the provision is configured, or why it is not,
+does not belong here.

@@ -23,7 +23,6 @@ node_modules/
 /dist/
 coverage/
 test-results/
-playwright-report/
 
 # Local yalc overlay. Committed package.json keeps an exact @norbital-ai/bolt pin.
 **/.yalc/

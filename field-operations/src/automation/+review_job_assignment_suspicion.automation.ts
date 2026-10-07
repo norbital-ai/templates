@@ -93,7 +93,7 @@ review.run(async (input, ctx) => {
 		await ctx.schedule(
 			'review_job_assignment_suspicion',
 			{},
-			{ at: nextRetrySlot(String(ctx.now)) as never, key: 'suspicion_retry' }
+			{ at: nextRetrySlot(ctx.now), key: 'suspicion_retry' }
 		);
 	if (failures.length > 0)
 		throw new Error(

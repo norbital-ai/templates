@@ -1,0 +1,15 @@
+[
+	{
+		"id": "a966edce-cc46-598d-8692-924741bc6b61",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "SALARY_ADVANCE",
+		"name": "Salary advance (預借工資)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	}
+]

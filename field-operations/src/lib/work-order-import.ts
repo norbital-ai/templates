@@ -1,4 +1,5 @@
-import type { ActionCtx, Id, InputOf, PlainDate } from '@norbital-ai/bolt';
+import type { ActionCtx, Id, InputOf } from '@norbital-ai/bolt';
+import { PlainDate } from '@norbital-ai/std/date';
 import { siteKey } from './site-key.js';
 
 /** One sheet row, keyed by the lower-cased header (`csv.ts`, `xlsx.ts`). */
@@ -46,6 +47,9 @@ const isDay = (day: string) => {
 	const at = Date.parse(`${day}T00:00:00Z`);
 	return DAY.test(day) && !Number.isNaN(at) && new Date(at).toISOString().startsWith(day);
 };
+function isUserId(value: string): value is Id<'sys_user'> {
+	return UUID.test(value);
+}
 /** A job with no dispatch reference is the same job when it is the same work, day and site. */
 const sameWork = (siteId: string, day: string, title: string) =>
 	`${siteId}|${day}|${title.trim().replace(/\s+/g, ' ').toLowerCase()}`;
@@ -63,7 +67,8 @@ export async function importWorkOrders(rows: readonly Row[], ctx: Ctx) {
 		if (text(row.title) === '') problems.push(`${where}: title is empty.`);
 		if (!isDay(scheduledDay(row)))
 			problems.push(`${where}: scheduled_for must be a calendar day (YYYY-MM-DD).`);
-		if (text(row.assignee_user_id) !== '' && !UUID.test(text(row.assignee_user_id)))
+		const assignee = text(row.assignee_user_id);
+		if (assignee !== '' && !isUserId(assignee))
 			problems.push(`${where}: assignee_user_id must be a user id.`);
 		if (siteKey(addressOf(row)) === '') problems.push(`${where}: site has no address.`);
 		const ref = text(row.external_ref);
@@ -110,16 +115,17 @@ export async function importWorkOrders(rows: readonly Row[], ctx: Ctx) {
 		...work.rows.map((job) => sameWork(String(job.site_id), String(job.scheduled_for), job.title))
 	]);
 
-	const job = (row: Row) => ({
-		title: text(row.title),
-		nature: text(row.nature) || null,
-		scheduled_for: scheduledDay(row) as PlainDate & string,
-		description: text(row.description),
-		...(text(row.assignee_user_id) === ''
-			? {}
-			: { assignee_user_id: text(row.assignee_user_id) as Id<'sys_user'> }),
-		...(text(row.external_ref) === '' ? {} : { external_ref: text(row.external_ref) })
-	});
+	const job = (row: Row) => {
+		const assignee = text(row.assignee_user_id);
+		return {
+			title: text(row.title),
+			nature: text(row.nature) || null,
+			scheduled_for: PlainDate(scheduledDay(row)),
+			description: text(row.description),
+			...(assignee === '' || !isUserId(assignee) ? {} : { assignee_user_id: assignee }),
+			...(text(row.external_ref) === '' ? {} : { external_ref: text(row.external_ref) })
+		};
+	};
 	const onSites: (ReturnType<typeof job> & { site_id: Id<'sites'> })[] = [];
 	const fresh = new Map<string, { name: string; jobs: ReturnType<typeof job>[] }>();
 	let skipped = 0;

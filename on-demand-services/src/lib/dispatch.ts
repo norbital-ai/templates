@@ -7,6 +7,7 @@ import { addDays, Instant } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
 import {
 	DEFAULTS,
+	improve,
 	lookups,
 	rank,
 	type Point,
@@ -50,7 +51,7 @@ export async function loadPool(
 	const nextMonday = addDays(last, 7 - weekday(last));
 	const start = iso(utcOf(addDays(monday, -1), 0, ctx.tz)),
 		end = iso(utcOf(addDays(nextMonday, 1), 0, ctx.tz));
-	const [helpers, visits, off] = await Promise.all([
+	const [helpers, visits, proposed, off] = await Promise.all([
 		ctx.read('helpers', {
 			where: { status: { eq: 'active' } },
 			select: {
@@ -74,6 +75,16 @@ export async function loadPool(
 			select: { helper: true, slot: true, location: true },
 			all: true
 		}),
+		// a replacement awaiting approval holds its cleaner, so one cleaner is not proposed twice for one time
+		ctx.read('visits', {
+			where: {
+				attention: { eq: 'awaiting_approval' },
+				proposed_helper: { isNull: false },
+				proposed_slot: { overlaps: { start, end } }
+			},
+			select: { proposed_helper: true, proposed_slot: true, location: true },
+			all: true
+		}),
 		ctx.read('helper_time_off', {
 			where: {
 				period: {
@@ -86,12 +97,20 @@ export async function loadPool(
 	]);
 	const pool = {
 		helpers: helpers.rows,
-		busy: visits.rows.map((v) => ({
-			id: v.id,
-			helper: v.helper!,
-			slot: { start: v.slot.start, end: v.slot.end! },
-			location: v.location
-		})),
+		busy: [
+			...visits.rows.map((v) => ({
+				id: v.id,
+				helper: v.helper!,
+				slot: { start: v.slot.start, end: v.slot.end! },
+				location: v.location
+			})),
+			...proposed.rows.map((v) => ({
+				id: v.id,
+				helper: v.proposed_helper!,
+				slot: { start: v.proposed_slot!.start, end: v.proposed_slot!.end! },
+				location: v.location
+			}))
+		],
 		off: off.rows
 	};
 	const legs = lookups(pool, spots, ctx.tz);
@@ -192,7 +211,7 @@ export const when = (instant: string, zone: string) =>
 export async function reassign(
 	ctx: Writes,
 	visits: readonly Visit[],
-	away: string
+	away: Id<'helpers'>
 ): Promise<{ assigned: number; unassigned: number }> {
 	if (visits.length === 0) return { assigned: 0, unassigned: 0 };
 	const starts = visits.map((v) => v.slot.start).sort();
@@ -217,7 +236,7 @@ export async function reassign(
 		updates.push({
 			target: v.id,
 			set: {
-				helper: (best?.helper ?? null) as Id<'helpers'> | null,
+				helper: best?.helper ?? null,
 				shift_check: 'not_due' as const,
 				shift_asked_at: null,
 				eta_minutes: null,
@@ -245,7 +264,7 @@ export async function reassign(
 }
 
 /** Plan recovery in appointment order, reserving each recommendation only in this provisional plan. */
-export async function recommend(ctx: Writes, visits: readonly Visit[], away: string) {
+export async function recommend(ctx: Writes, visits: readonly Visit[], away: Id<'helpers'>) {
 	if (visits.length === 0) return;
 	const ordered = [...visits].sort((a, b) => a.slot.start.localeCompare(b.slot.start));
 	const pool = await loadPool(
@@ -269,8 +288,8 @@ export async function recommend(ctx: Writes, visits: readonly Visit[], away: str
 			target: v.id,
 			set: {
 				helper: null,
-				unavailable_helper: away as Id<'helpers'>,
-				proposed_helper: (best?.helper ?? null) as Id<'helpers'> | null,
+				unavailable_helper: away,
+				proposed_helper: best?.helper ?? null,
 				proposed_slot: best === undefined ? null : slot,
 				attention: best === undefined ? ('unassigned' as const) : ('awaiting_approval' as const),
 				eta_minutes: null,
@@ -284,5 +303,62 @@ export async function recommend(ctx: Writes, visits: readonly Visit[], away: str
 		title: 'Approve replacement cleaners',
 		body: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
 		link: { collection: 'visits', id: ordered[0]!.id }
+	});
+}
+
+/**
+ * Keeps the committed schedule at a local optimum: every visit of the next two weeks that may still move (outside the
+ * free-change window, its customer named no cleaner, nothing pending on it) is relocated between cleaners while a single
+ * move lowers the matching objective (load balance, then added drive) by more than the continuity bonus. Hard
+ * requirements hold for every move. The desk is told what changed; each cleaner is told by `helper_alerts`.
+ */
+export async function optimise(ctx: Writes) {
+	const HOUR = 3_600_000;
+	const { free_change_hours } = await settingsOf(ctx);
+	const from = iso(Date.parse(ctx.now) + free_change_hours * HOUR);
+	const to = iso(Date.parse(ctx.now) + 14 * 24 * HOUR);
+	const { rows } = await ctx.read('visits', {
+		where: {
+			status: { eq: 'scheduled' },
+			helper: { isNull: false },
+			attention: { eq: 'none' },
+			slot: { overlaps: { start: from, end: to } }
+		},
+		select: {
+			slot: true,
+			location: true,
+			area: true,
+			skill: true,
+			booking: { select: { preference: true } }
+		},
+		all: true
+	});
+	const movable = rows
+		.filter((v) => v.booking.preference === 'any' && v.slot.start >= from)
+		.map((v) => ({
+			visit: v.id,
+			skill: v.skill,
+			slot: { start: v.slot.start, end: v.slot.end! },
+			location: v.location,
+			area: v.area
+		}));
+	if (movable.length === 0) return;
+	const pool = await loadPool(
+		ctx,
+		from,
+		to,
+		movable.map((m) => m.location)
+	);
+	const result = improve(pool, movable, ctx.tz);
+	if (result.moves.length === 0) return;
+	await ctx.act(
+		'visits.update',
+		result.moves.map((m) => ({ target: m.visit as Id<'visits'>, set: { helper: m.to } }))
+	);
+	await ctx.notify({
+		to: { team: 'Operations' },
+		title: `Schedule optimised: ${result.moves.length} reassignment${result.moves.length === 1 ? '' : 's'}`,
+		body: `Planned driving over the next two weeks is ${result.after} minutes, down from ${result.before}. Workload is spread more evenly; every move kept skills, hours, leave and travel buffers.`,
+		once: `optimise-${ctx.now}`
 	});
 }

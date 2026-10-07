@@ -1,0 +1,18 @@
+[
+	{
+		"id": "b0e2cf0d-ba65-4d4f-97bb-1128929942cd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "STAFF_LOAN",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Staff loan",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE"
+	}
+]

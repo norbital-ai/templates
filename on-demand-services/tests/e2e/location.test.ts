@@ -144,8 +144,27 @@ it.each(['native', 'browser'] as const)(
 				return 7;
 			}),
 			clearWatch: vi.fn(),
-			getCurrentPosition: vi.fn()
+			getCurrentPosition: vi.fn((ok: PositionCallback) => {
+				asked = true;
+				ok({
+					coords: { latitude: 1.301, longitude: 103.801 },
+					timestamp: Date.now()
+				} as GeolocationPosition);
+			})
 		} as unknown as Geolocation;
+		// a browser that has not been asked yet: geolocation is `prompt` until the wall's Allow takes a position
+		let asked = false;
+		const permissions = Object.getOwnPropertyDescriptor(navigator, 'permissions');
+		Object.defineProperty(navigator, 'permissions', {
+			configurable: true,
+			value: { query: async () => ({ state: asked ? 'granted' : 'prompt' }) }
+		});
+		// notifications are the other half of the helper app's `requires`: granted here, so location decides the wall
+		const notifications = {
+			status: vi.fn(async () => 'granted' as const),
+			request: vi.fn(async () => 'granted' as const),
+			openSettings: vi.fn(async () => undefined)
+		};
 		const browser = { watchPosition: vi.fn() };
 		const original = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
 		Object.defineProperty(navigator, 'geolocation', {
@@ -162,9 +181,10 @@ it.each(['native', 'browser'] as const)(
 			sessions: { helper: EmployeeSession },
 			pages: { 'helper/today': () => import('../../src/app/helper/+today.page.svelte') },
 			fetch,
-			...(source === 'native'
-				? { facilities: { geolocation: { source: 'native' as const, api: native, background } } }
-				: {}),
+			facilities:
+				source === 'native'
+					? { geolocation: { source: 'native' as const, api: native, background }, notifications }
+					: { notifications },
 			openStream
 		});
 		try {
@@ -177,11 +197,6 @@ it.each(['native', 'browser'] as const)(
 			}
 			expect(browser.watchPosition).not.toHaveBeenCalled();
 			expect(bolt.facilities.geolocation?.source).toBe(source);
-			const gate = target.querySelector('dialog.location-gate') as HTMLDialogElement;
-			expect(gate.open).toBe(true);
-			const escape = new Event('cancel', { cancelable: true });
-			gate.dispatchEvent(escape);
-			expect(escape.defaultPrevented).toBe(true);
 			success!({
 				coords: { latitude: 1.301, longitude: 103.801 },
 				timestamp: Date.now()
@@ -189,29 +204,36 @@ it.each(['native', 'browser'] as const)(
 			await vi.waitFor(() =>
 				expect(mutations).toContainEqual(expect.objectContaining({ kind: 'committed' }))
 			);
-			if (source === 'native') {
-				// A foreground fix must not unlock a native employee portal.
-				expect(gate.open).toBe(true);
-				always = true;
-				await vi.waitFor(() => expect(gate.open).toBe(false), { timeout: 5000 });
-				always = false;
-				await vi.waitFor(() => expect(gate.open).toBe(true), { timeout: 5000 });
-			} else {
-				await vi.waitFor(() => expect(gate.open).toBe(false));
-			}
-			always = true;
-			if (source === 'native')
-				await vi.waitFor(() => expect(gate.open).toBe(false), { timeout: 5000 });
+			// the app itself waits behind the shell's device wall until its `requires` are met
 			history.pushState(null, '', '/app/helper/today');
 			window.dispatchEvent(new PopStateEvent('popstate'));
-			await vi.waitFor(() => expect(target.querySelector('#route-date')).not.toBeNull());
+			const wall = () => target.querySelector('[data-device-wall]');
+			await vi.waitFor(() => expect(wall()).not.toBeNull(), { timeout: 5000 });
+			expect(target.querySelector('#route-date')).toBeNull();
+			if (source === 'native') {
+				// a foreground fix is not enough: background tracking needs "Always"
+				expect(
+					wall()!
+						.querySelector('[data-requirement="location:background"]')!
+						.getAttribute('data-state')
+				).toBe('denied');
+				always = true;
+				await vi.waitFor(() => expect(wall()).toBeNull(), { timeout: 5000 });
+				always = false;
+				await vi.waitFor(() => expect(wall()).not.toBeNull(), { timeout: 5000 });
+				always = true;
+			} else {
+				// a browser asks: Allow takes a position, and the app opens
+				(
+					wall()!.querySelector(
+						'[data-requirement="location:background"] button'
+					) as HTMLButtonElement
+				).click();
+			}
+			await vi.waitFor(() => expect(target.querySelector('#route-date')).not.toBeNull(), {
+				timeout: 5000
+			});
 			expect(native.clearWatch).not.toHaveBeenCalled();
-			failure!({
-				code: 2,
-				PERMISSION_DENIED: 1,
-				message: 'Device location disabled'
-			} as GeolocationPositionError);
-			await vi.waitFor(() => expect(gate.open).toBe(true));
 			const row = await t.as(member).get('helpers', helper);
 			expect(row).toMatchObject({
 				last_location: { lat: 1.301, lng: 103.801 },
@@ -230,6 +252,8 @@ it.each(['native', 'browser'] as const)(
 			target.remove();
 			if (iconFetch) icons.setFetch(iconFetch);
 			vi.unstubAllGlobals();
+			if (permissions) Object.defineProperty(navigator, 'permissions', permissions);
+			else Reflect.deleteProperty(navigator, 'permissions');
 			if (original) Object.defineProperty(navigator, 'geolocation', original);
 			else Reflect.deleteProperty(navigator, 'geolocation');
 		}

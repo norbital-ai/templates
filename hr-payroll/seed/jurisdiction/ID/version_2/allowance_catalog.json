@@ -1,0 +1,35 @@
+[
+	{
+		"id": "3dd7a56d-7bad-4c80-b552-b931af25192f",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "HOUSE_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
+		"name": "House allowance",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "6759dc65-0c5f-4402-9983-419278c9805f",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "CAR_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
+		"name": "Car allowance",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "5b47d1b1-b1b5-4c04-87db-47805c7080cc",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "SPECIAL_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
+		"name": "Special allowance",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	}
+]

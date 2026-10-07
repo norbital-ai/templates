@@ -1,0 +1,65 @@
+[
+	{
+		"id": "772412a4-c1a8-442c-8291-d73dea108e85",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Air ticket loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "75e4facd-4324-491b-8379-97f9c26c61ec",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Hari Raya (festive) advance recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "6380dcfe-531e-46d8-9f36-43b4c9e34d11",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "AIR_TICKET_DEDUCTION",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Air ticket deduction",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "REQUIRED"
+	},
+	{
+		"id": "5f70bf62-b5ba-4d1b-b963-27cd7b314db8",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "APPROVED_HOUSING_LOAN",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Housing loan with Director General approval",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"loan_type": "STAFF"
+	}
+]

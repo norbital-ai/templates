@@ -12,6 +12,3 @@ export const meanEmbedding = (vectors: ReadonlyArray<readonly number[]>): number
 };
 /** Conservative cosine operating points; validate on the enrolled population and camera. */
 export const KIOSK_MATCH_THRESHOLD = 0.25;
-export const KIOSK_MATCH_MARGIN = 0.05;
-/** Human faceres descriptor width. */
-export const KIOSK_EMBEDDING_DIMENSIONS = 1024;

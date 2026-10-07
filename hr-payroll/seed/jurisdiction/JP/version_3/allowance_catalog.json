@@ -1,0 +1,86 @@
+[
+	{
+		"id": "96a088f5-3e00-5fe7-8d88-ba32c2df3bdb",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "FIXED_ALLOWANCE",
+		"name": "役職手当・固定手当 (fixed allowance)",
+		"authority": "健康保険法 art.3(5) and 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金) and 所得税法 art.28 (給与所得): a fixed allowance is remuneration, salary income and in the overtime base.",
+		"eligibility": "",
+		"amount": "allowance.amount * period.paid_days / period.days",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [
+			"HEALTH",
+			"PENSION",
+			"CHILD_CONTRIBUTION",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX",
+			"RESIDENT_TAX"
+		]
+	},
+	{
+		"id": "89026d2b-27a8-51a5-ba06-f86bc96cc102",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "FAMILY_ALLOWANCE",
+		"name": "家族手当 (family allowance)",
+		"authority": "Remuneration for social insurance (健保法 art.3(5)), wages for employment insurance and salary income; excluded from the overtime base (労働基準法 art.37(5)) — the lineage's overtime base includes it, over-paying rather than under-paying.",
+		"eligibility": "",
+		"amount": "allowance.amount * period.paid_days / period.days",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [
+			"HEALTH",
+			"PENSION",
+			"CHILD_CONTRIBUTION",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX",
+			"RESIDENT_TAX"
+		]
+	},
+	{
+		"id": "e37316b7-3a5a-5dad-bcbf-472780e73378",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "HOUSING_ALLOWANCE",
+		"name": "住宅手当 (housing allowance)",
+		"authority": "Remuneration, wages and salary income; excluded from the overtime base only where it varies with the housing cost (労働基準法施行規則 art.21(iii), 平成11年3月31日 基発170号).",
+		"eligibility": "",
+		"amount": "allowance.amount * period.paid_days / period.days",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [
+			"HEALTH",
+			"PENSION",
+			"CHILD_CONTRIBUTION",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX",
+			"RESIDENT_TAX"
+		]
+	},
+	{
+		"id": "40575150-c92e-5db4-9aed-57a0bab5d737",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"code": "COMMUTING_ALLOWANCE",
+		"name": "通勤手当 (commuting allowance)",
+		"authority": "所得税法 art.9(1)(v) with 施行令 art.20の2: up to 150,000 yen a month is not taxable for public transport (INCOME_TAX.COMMUTING: only the excess is taxed); it is remuneration for social insurance (健保法 art.3(5)) and wages for labour insurance. The distance-based limits for car commuters (施行令 art.20の2(ii), revised from 20 November 2025) are not modelled.",
+		"eligibility": "",
+		"amount": "allowance.amount * period.paid_days / period.days",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [
+			"HEALTH",
+			"PENSION",
+			"CHILD_CONTRIBUTION",
+			"EI",
+			"WORKERS_ACCIDENT",
+			"ASBESTOS_LEVY",
+			"INCOME_TAX.COMMUTING",
+			"RESIDENT_TAX"
+		]
+	}
+]

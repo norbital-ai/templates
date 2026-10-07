@@ -10,8 +10,6 @@ evidence whose integrity is checked mechanically. It is deliberately focused —
 project costing, payroll, or portfolio management, and the platform's native approval system owns the
 variation approval lifecycle.
 
-
-
 ## 1. What this workspace is
 
 The problem: field-service work needs the right people at the right site on the right day, and the
@@ -259,8 +257,7 @@ what it files on the assignment. The reply goes back over the same transport.
 ## 5. Verification
 
 Product template-suite acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
-`@norbital-ai/test-utilities`. No Colony, no `seed_bank`, no `:5173`. See
-[`RFC/testing.md`](../../RFC/testing.md) §4–§5.
+`@norbital-ai/bolt/test`. No Colony, no `seed_bank`, no `:5173`.
 
 ```bash
 node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test \

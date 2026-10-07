@@ -1,0 +1,1390 @@
+[
+	{
+		"id": "eb56899c-3062-5c86-81cd-f3024d322a50",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "minimum_wage",
+		"name": "地域別最低賃金 (regional minimum wage, hourly)",
+		"rules": {
+			"authority": "最低賃金法 arts.9–14: each prefecture's 地域別最低賃金 (hourly, yen) with the day its order took effect, newest first: the 令和6年度 amount where it still governed on 1 December 2025, the 令和7年度 amount and the decided 令和8年度 amount (in force from its own day; 最低賃金法 art.14(2)). A line reads the amount in force on the last day of the pay period, which pays the higher amount for a whole month in which it took effect. Source: 厚生労働省「地域別最低賃金の全国一覧」 and 「平成14年度から令和8年度までの地域別最低賃金改定状況」 https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/minimumichiran/index.html (令和8年度 list https://www.mhlw.go.jp/content/11200000/001753404.pdf). Industry-specific minimum wages (特定最低賃金, art.15) are not modelled.",
+			"by_region": {
+				"HOKKAIDO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1131
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1075
+					}
+				],
+				"AOMORI": [
+					{
+						"from": "2026-10-29",
+						"amount": 1090
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1029
+					}
+				],
+				"IWATE": [
+					{
+						"from": "2026-12-01",
+						"amount": 1090
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1031
+					}
+				],
+				"MIYAGI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1098
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1038
+					}
+				],
+				"AKITA": [
+					{
+						"from": "2026-10-14",
+						"amount": 1090
+					},
+					{
+						"from": "2026-03-31",
+						"amount": 1031
+					},
+					{
+						"from": "2024-10-01",
+						"amount": 951
+					}
+				],
+				"YAMAGATA": [
+					{
+						"from": "2026-10-30",
+						"amount": 1092
+					},
+					{
+						"from": "2025-12-23",
+						"amount": 1032
+					},
+					{
+						"from": "2024-10-19",
+						"amount": 955
+					}
+				],
+				"FUKUSHIMA": [
+					{
+						"from": "2026-10-16",
+						"amount": 1094
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1033
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 955
+					}
+				],
+				"IBARAKI": [
+					{
+						"from": "2026-10-18",
+						"amount": 1136
+					},
+					{
+						"from": "2025-10-12",
+						"amount": 1074
+					}
+				],
+				"TOCHIGI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1125
+					},
+					{
+						"from": "2025-10-01",
+						"amount": 1068
+					}
+				],
+				"GUNMA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1120
+					},
+					{
+						"from": "2026-03-01",
+						"amount": 1063
+					},
+					{
+						"from": "2024-10-04",
+						"amount": 985
+					}
+				],
+				"SAITAMA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1196
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1141
+					}
+				],
+				"CHIBA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1195
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1140
+					}
+				],
+				"TOKYO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1280
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1226
+					}
+				],
+				"KANAGAWA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1279
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1225
+					}
+				],
+				"NIIGATA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1108
+					},
+					{
+						"from": "2025-10-02",
+						"amount": 1050
+					}
+				],
+				"TOYAMA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1119
+					},
+					{
+						"from": "2025-10-12",
+						"amount": 1062
+					}
+				],
+				"ISHIKAWA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1113
+					},
+					{
+						"from": "2025-10-08",
+						"amount": 1054
+					}
+				],
+				"FUKUI": [
+					{
+						"from": "2026-10-04",
+						"amount": 1112
+					},
+					{
+						"from": "2025-10-08",
+						"amount": 1053
+					}
+				],
+				"YAMANASHI": [
+					{
+						"from": "2026-11-01",
+						"amount": 1113
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1052
+					}
+				],
+				"NAGANO": [
+					{
+						"from": "2026-10-02",
+						"amount": 1117
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1061
+					}
+				],
+				"GIFU": [
+					{
+						"from": "2026-10-01",
+						"amount": 1121
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1065
+					}
+				],
+				"SHIZUOKA": [
+					{
+						"from": "2026-10-15",
+						"amount": 1154
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1097
+					}
+				],
+				"AICHI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1195
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1140
+					}
+				],
+				"MIE": [
+					{
+						"from": "2026-10-01",
+						"amount": 1143
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1087
+					}
+				],
+				"SHIGA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1136
+					},
+					{
+						"from": "2025-10-05",
+						"amount": 1080
+					}
+				],
+				"KYOTO": [
+					{
+						"from": "2026-11-16",
+						"amount": 1180
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1122
+					}
+				],
+				"OSAKA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1231
+					},
+					{
+						"from": "2025-10-16",
+						"amount": 1177
+					}
+				],
+				"HYOGO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1172
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1116
+					}
+				],
+				"NARA": [
+					{
+						"from": "2026-10-04",
+						"amount": 1107
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1051
+					}
+				],
+				"WAKAYAMA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1101
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1045
+					}
+				],
+				"TOTTORI": [
+					{
+						"from": "2026-10-03",
+						"amount": 1090
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1030
+					}
+				],
+				"SHIMANE": [
+					{
+						"from": "2026-10-10",
+						"amount": 1092
+					},
+					{
+						"from": "2025-11-17",
+						"amount": 1033
+					}
+				],
+				"OKAYAMA": [
+					{
+						"from": "2026-10-02",
+						"amount": 1104
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1047
+					}
+				],
+				"HIROSHIMA": [
+					{
+						"from": "2026-10-11",
+						"amount": 1141
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1085
+					}
+				],
+				"YAMAGUCHI": [
+					{
+						"from": "2026-10-08",
+						"amount": 1101
+					},
+					{
+						"from": "2025-10-16",
+						"amount": 1043
+					}
+				],
+				"TOKUSHIMA": [
+					{
+						"from": "2026-11-01",
+						"amount": 1103
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1046
+					},
+					{
+						"from": "2024-11-01",
+						"amount": 980
+					}
+				],
+				"KAGAWA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1092
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1036
+					}
+				],
+				"EHIME": [
+					{
+						"from": "2026-11-01",
+						"amount": 1093
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1033
+					}
+				],
+				"KOCHI": [
+					{
+						"from": "2026-10-29",
+						"amount": 1086
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1023
+					}
+				],
+				"FUKUOKA": [
+					{
+						"from": "2026-10-04",
+						"amount": 1114
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1057
+					}
+				],
+				"SAGA": [
+					{
+						"from": "2026-11-15",
+						"amount": 1095
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1030
+					}
+				],
+				"NAGASAKI": [
+					{
+						"from": "2026-11-02",
+						"amount": 1087
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1031
+					}
+				],
+				"KUMAMOTO": [
+					{
+						"from": "2026-12-01",
+						"amount": 1092
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1034
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 952
+					}
+				],
+				"OITA": [
+					{
+						"from": "2026-11-01",
+						"amount": 1096
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1035
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 954
+					}
+				],
+				"MIYAZAKI": [
+					{
+						"from": "2026-10-24",
+						"amount": 1085
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1023
+					}
+				],
+				"KAGOSHIMA": [
+					{
+						"from": "2026-10-25",
+						"amount": 1090
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1026
+					}
+				],
+				"OKINAWA": [
+					{
+						"from": "2026-12-02",
+						"amount": 1086
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1023
+					}
+				]
+			},
+			"unit": "HOUR"
+		}
+	},
+	{
+		"id": "76f68279-357f-5141-93b4-93d06e25465f",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "night_work",
+		"name": "深夜の時間帯 (late-night window)",
+		"rules": {
+			"from": "22:00",
+			"to": "05:00",
+			"authority": "労働基準法 art.37(4): \"午後十時から午前五時まで\" (the ministry may set 23:00–06:00 for a region or period; no such order is in force)."
+		}
+	},
+	{
+		"id": "f4e42a39-4462-56f3-8ea8-fab1592c5e05",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "SOCIAL_INSURANCE_PAYMENT",
+		"name": "健康保険・厚生年金保険料の納付 (social insurance premium payment)",
+		"rules": {
+			"description": "Pay the month's health, nursing care, child support levy, welfare pension premiums and the child contribution (employer and employee shares) on the pension office's 納入告知書.",
+			"authority": "健康保険法 art.164(1) and 厚生年金保険法 art.83(1): the premium of each month is due by the end of the following month; 子ども・子育て支援法 art.71(1) (拠出金). A due day on a holiday moves to the next business day (国税通則法 art.10(2) applied by 健保法 art.180). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"schemes": ["HEALTH", "CHILD_SUPPORT", "PENSION", "CHILD_CONTRIBUTION"],
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays)"
+		}
+	},
+	{
+		"id": "6ecd1a8b-f8d1-5da0-b9e3-94fa342a9fe3",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_TAX_PAYMENT",
+		"name": "源泉所得税の納付 (withholding tax payment)",
+		"rules": {
+			"description": "Pay the income tax and reconstruction surtax withheld from the month's salaries and bonuses with the 給与所得・退職所得等の所得税徴収高計算書.",
+			"authority": "所得税法 art.183(1): by the 10th of the month after payment; an employer under the semi-annual special rule (art.216) pays by WITHHOLDING_TAX_SEMIANNUAL instead. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"schemes": ["INCOME_TAX", "RETIREMENT_TAX"],
+			"applies_when": "!(has(company.facts.withholding_semiannual_special) && company.facts.withholding_semiannual_special == true)",
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays)"
+		}
+	},
+	{
+		"id": "582262a4-cf9a-5765-beed-0f0ed966d30b",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "RESIDENT_TAX_PAYMENT",
+		"name": "住民税特別徴収税額の納入 (resident tax payment)",
+		"rules": {
+			"description": "Pay each municipality the resident tax specially collected from the month's salaries.",
+			"authority": "地方税法 art.321の5(1): by the 10th of the following month; an employer under the semi-annual special rule (art.321の5の2) pays by RESIDENT_TAX_SEMIANNUAL instead. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"schemes": ["RESIDENT_TAX"],
+			"applies_when": "!(has(company.facts.resident_tax_semiannual_special) && company.facts.resident_tax_semiannual_special == true)",
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays)"
+		}
+	},
+	{
+		"id": "fa21ba3c-41d0-54e3-bb8c-8084c4326462",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_LEDGER",
+		"name": "賃金台帳の記入 (wage ledger entry)",
+		"rules": {
+			"description": "Enter each employee's wage calculation (days and hours worked, overtime, each wage item and deduction) in the wage ledger at each payment; keep it 5 years (3 for now).",
+			"authority": "労働基準法 art.108 with 施行規則 arts.54–55; art.109 and 附則 art.143 (retention).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "0f1781f2-aa8c-5465-bdbf-dc9d0def16d8",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_INSURANCE_ANNUAL_DECLARATION",
+		"name": "労働保険 年度更新 (labour insurance annual declaration and payment)",
+		"rules": {
+			"description": "Declare the fiscal year's confirmed wages and the new year's estimate, and pay the workers' accident and employment insurance premiums and the asbestos levy, between 1 June and 10 July.",
+			"authority": "労働保険の保険料の徴収等に関する法律 arts.15 and 19 with 施行規則 art.38; 石綿による健康被害の救済に関する法律 art.38. Instalments (延納, 徴収法 art.18) are not raised. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["06"],
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays)"
+		}
+	},
+	{
+		"id": "98d7cd69-a7ea-5b19-b773-cc98380e0742",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SANTEI_KISO_REPORT",
+		"name": "算定基礎届 (standard remuneration annual report)",
+		"rules": {
+			"description": "Report each insured person's April–June remuneration for the 定時決定 of the standard monthly remuneration from September.",
+			"authority": "健康保険法 art.41 with 健康保険法施行規則 art.25 and 厚生年金保険法 art.21 with 施行規則 art.18: between 1 and 10 July. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["07"],
+			"due": "next_working_day(add_days(period.from, 9), holidays)"
+		}
+	},
+	{
+		"id": "2f8826cc-4dde-5d19-918b-fb86d480d117",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "YEAR_END_ADJUSTMENT",
+		"name": "年末調整 (year-end adjustment)",
+		"rules": {
+			"description": "Settle each employee's income tax for the year at the last salary payment of December against the declared deductions, refunding or collecting the difference.",
+			"authority": "所得税法 arts.190–193 (the 扶養控除等申告書, 保険料控除申告書 and 基礎控除申告書 filed by then, arts.194–196).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "c8f81596-0144-59b5-aaa2-13571f44bbc8",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_SLIPS_TO_EMPLOYEES",
+		"name": "源泉徴収票の交付 (withholding slips to employees)",
+		"rules": {
+			"description": "Give every employee the previous year's 給与所得の源泉徴収票.",
+			"authority": "所得税法 art.226(1) with 所得税法施行規則 art.93: the 給与所得の源泉徴収票 of the previous year to each employee by 31 January.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "add_days(period.from, 30)"
+		}
+	},
+	{
+		"id": "110abba3-d9a3-5fa8-9181-0276d0bf25d9",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "STATUTORY_RETURNS_SUMMARY",
+		"name": "法定調書合計表の提出 (statutory returns to the tax office)",
+		"rules": {
+			"description": "File the 給与所得の源泉徴収票等の法定調書合計表 with the withholding slips over the thresholds, the retirement income slips of officers and the other statutory returns.",
+			"authority": "所得税法 arts.225 and 226(1) with 所得税法施行規則 art.93: the 法定調書合計表 and the slips over the thresholds by 31 January. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "next_working_day(add_days(period.from, 30), holidays)"
+		}
+	},
+	{
+		"id": "76bedad8-c341-58da-99cb-c6e78504236e",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SALARY_PAYMENT_REPORT",
+		"name": "給与支払報告書の提出 (salary payment reports to municipalities)",
+		"rules": {
+			"description": "Send each municipality where an employee lived on 1 January the 給与支払報告書 for the previous year, with the 総括表.",
+			"authority": "地方税法 art.317の6(1): by 31 January, to the municipality of the employee's 1 January address (art.317の6(1), 総括表 with it). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "next_working_day(add_days(period.from, 30), holidays)"
+		}
+	},
+	{
+		"id": "3baf4f98-e7b0-529c-a56f-94a6e654f322",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SOCIAL_INSURANCE_ACQUISITION",
+		"name": "健康保険・厚生年金保険 被保険者資格取得届 (social insurance enrolment)",
+		"rules": {
+			"description": "Notify the pension office of the acquisition of health and welfare pension insurance (with the 被扶養者(異動)届 for dependants) for an insured hire.",
+			"authority": "健康保険法 art.48 with 施行規則 art.24 and 厚生年金保険法 art.27 with 施行規則 art.15: \"当該事実があった日から五日以内\" of the acquisition (the hire day); the due day counts the hire day itself (the earliest reading; a 民法 art.140 count would allow one day more). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= hired_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= hired_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"])",
+			"due": "next_working_day(add_days(hired_on, 4), holidays)"
+		}
+	},
+	{
+		"id": "1d2dd02d-f30b-5fc2-b45a-fcdfd050255c",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYMENT_INSURANCE_ACQUISITION",
+		"name": "雇用保険 被保険者資格取得届 (employment insurance enrolment)",
+		"rules": {
+			"description": "File the employment insurance acquisition for an insured hire with Hello Work.",
+			"authority": "雇用保険法 art.7 with 雇用保険法施行規則 art.6(1): by the 10th of the month after the month the person became insured. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= hired_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= hired_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"])",
+			"due": "next_working_day(add_days(month_end(hired_on), 10), holidays)"
+		}
+	},
+	{
+		"id": "a7a8ee1d-b0c3-562c-b11b-b38858f9281c",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORKING_CONDITIONS_NOTICE",
+		"name": "労働条件通知書の明示 (written working conditions)",
+		"rules": {
+			"description": "Give the written terms: contract period and renewal standard, workplace and duties and their scope of change, hours, wages, retirement and dismissal.",
+			"authority": "労働基準法 art.15(1) with 施行規則 art.5 (as amended from 1 April 2024): at the conclusion of the contract.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "4ccb73cf-49c8-502a-afad-443cc248ed6c",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORKER_REGISTER",
+		"name": "労働者名簿の調製 (worker register)",
+		"rules": {
+			"description": "Enter the new worker in the worker register.",
+			"authority": "労働基準法 art.107 with 施行規則 art.53: without delay; kept 5 years (3 for now) from the exit (art.109, 附則 art.143).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "008b40f1-35a2-5e23-bb20-2e13cbd9b782",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SOCIAL_INSURANCE_LOSS",
+		"name": "健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)",
+		"rules": {
+			"description": "Notify the loss of health and welfare pension insurance and return the health insurance card or certificate.",
+			"authority": "健康保険法 art.48 with 施行規則 art.29 and 厚生年金保険法 art.27 with 施行規則 art.22: within 5 days of the loss counting the loss day (the earliest reading), which is the day after the last day of employment (健保法 art.36(ii), 厚年法 art.14(ii)). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= exit_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= exit_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"])",
+			"due": "next_working_day(add_days(exit_on, 5), holidays)"
+		}
+	},
+	{
+		"id": "6f21055a-be73-5270-996d-c69cc288f79f",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYMENT_INSURANCE_LOSS",
+		"name": "雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)",
+		"rules": {
+			"description": "File the employment insurance loss with Hello Work and, where the leaver wants the 離職票 (always for a leaver aged 59 or over), the 離職証明書 from which the 離職票 is issued.",
+			"authority": "雇用保険法 art.7 with 雇用保険法施行規則 art.7(1)–(2): within 10 days counted from the day after the loss day (the day after the last day of employment); art.17 (離職票 delivered to the leaver). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= exit_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= exit_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"])",
+			"due": "next_working_day(add_days(exit_on, 11), holidays)"
+		}
+	},
+	{
+		"id": "7d253d5c-39f0-5c8a-87df-b38fd36bee8f",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RESIDENT_TAX_TRANSFER",
+		"name": "給与所得者異動届出書 (resident tax special collection change)",
+		"rules": {
+			"description": "Notify each municipality that special collection stops, collecting the remaining annual amount in a lump sum where the exit falls in January–May or the employee asks.",
+			"authority": "地方税法 art.321の7(1) and art.321の5(2): by the 10th of the month after the exit. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "next_working_day(add_days(month_end(exit_on), 10), holidays)"
+		}
+	},
+	{
+		"id": "2c6e5db7-f8a8-56bc-b8f6-f706313f8b32",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LEAVER_WITHHOLDING_SLIP",
+		"name": "退職者の源泉徴収票の交付 (leaver's withholding slip)",
+		"rules": {
+			"description": "Give the leaver the 給与所得の源泉徴収票 for the year, and the 退職所得の源泉徴収票 where a retirement allowance was paid.",
+			"authority": "所得税法 art.226(1)–(2): the 源泉徴収票 (and the 退職所得の源泉徴収票) within one month after the exit.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_months(exit_on, 1)"
+		}
+	},
+	{
+		"id": "8f5065ea-5ebe-5bc0-91b9-d06e50c4e6d4",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FINAL_WAGES_ON_REQUEST",
+		"name": "退職時の賃金の支払・金品の返還 (final wages on request)",
+		"rules": {
+			"description": "Where the leaver (or, on death, the heir) asks, pay the wages due and return any money or property belonging to the worker within 7 days of the request; a 退職証明書 is issued without delay on request (art.22).",
+			"authority": "労働基準法 art.23(1) (7 days after the request; the due day assumes a request on the last day) and art.22.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "35393600-bb61-517d-be0f-21a7bbaf2dd3",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "DISABILITY_EMPLOYMENT_REPORT",
+		"name": "障害者雇用状況報告 (disability employment status report)",
+		"rules": {
+			"description": "Report the 1 June employment of persons with disabilities to Hello Work.",
+			"authority": "障害者の雇用の促進等に関する法律 art.43(7) with 施行規則 art.8: by 15 July, an employer bound by the employment quota — 40.0 or more regular employees at the statutory rate of 2.5% (from 1 April 2024) (施行令 art.9 as amended by 令和5年政令第239号; company.facts.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["06"],
+			"applies_when": "(has(company.facts.regular_employee_count) ? double(company.facts.regular_employee_count) : double(headcount)) >= 40.0",
+			"due": "next_working_day(add_days(month_end(period.from), 15), holidays)"
+		}
+	},
+	{
+		"id": "9ccab6f2-1bc9-579e-ae5e-89e3fe3e6fe4",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ELDERLY_EMPLOYMENT_REPORT",
+		"name": "高年齢者雇用状況等報告 (older workers employment report)",
+		"rules": {
+			"description": "Report the 1 June retirement age, continued employment and employment-security measures to Hello Work.",
+			"authority": "高年齢者等の雇用の安定等に関する法律 art.52(1): every employer reports once a year; 施行規則 art.33: the 1 June status by the 15th of the next month (15 July). The 21-employee figure is the ministry's survey scope, not the statute. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["06"],
+			"due": "next_working_day(add_days(month_end(period.from), 15), holidays)"
+		}
+	},
+	{
+		"id": "9fb0ec1e-4c7a-5d52-93b6-a689fa277e60",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "DISABILITY_LEVY_DECLARATION",
+		"name": "障害者雇用納付金申告 (disability employment levy declaration)",
+		"rules": {
+			"description": "Declare (and, where short of the quota, pay) the disability employment levy for the previous fiscal year between 1 April and 15 May.",
+			"authority": "障害者の雇用の促進等に関する法律 arts.53, 56(1) with 施行規則 art.18: an employer of more than 100 regular employees (附則 art.4; company.facts.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["05"],
+			"applies_when": "(has(company.facts.regular_employee_count) ? double(company.facts.regular_employee_count) : double(headcount)) > 100.0",
+			"due": "next_working_day(add_days(period.from, 14), holidays)"
+		}
+	},
+	{
+		"id": "1062ab4a-bac0-51e8-96b4-c07cda8ccef9",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_HIRE_NOTIFICATION",
+		"name": "外国人雇用状況の届出（雇入れ） (foreign worker hire notification)",
+		"rules": {
+			"description": "Notify Hello Work of a foreign national's name, residence status and period. For an employment-insurance-insured worker it is made on the 雇用保険被保険者資格取得届 (by the 10th of the following month, EMPLOYMENT_INSURANCE_ACQUISITION); otherwise on the separate form by the end of the following month (the due day shown).",
+			"authority": "労働施策総合推進法 art.28(1) with 施行規則 arts.10–12: a person without Japanese nationality other than a special permanent resident (employee.nationality); an employment-insurance-insured foreigner is reported on the EI form instead (施行規則 art.12(1)). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && has(employee.nationality) && employee.nationality != null && !(employee.nationality in [\"\", \"JP\", \"JPN\"]) && !(contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= hired_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= hired_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"]))",
+			"due": "next_working_day(month_end(add_months(hired_on, 1)), holidays)"
+		}
+	},
+	{
+		"id": "a5a32512-a1cc-55d9-925a-f85568c9d2e5",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_EXIT_NOTIFICATION",
+		"name": "外国人雇用状況の届出（離職） (foreign worker separation notification)",
+		"rules": {
+			"description": "Notify Hello Work of a foreign national's separation: on the 資格喪失届 for an insured worker (EMPLOYMENT_INSURANCE_LOSS), otherwise on the separate form by the end of the following month (the due day shown).",
+			"authority": "労働施策総合推進法 art.28(1) with 施行規則 arts.10–12 (employee.nationality); an employment-insurance-insured foreigner is reported on the EI form instead (施行規則 art.12(1)). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "employee != null && has(employee.nationality) && employee.nationality != null && !(employee.nationality in [\"\", \"JP\", \"JPN\"]) && !(contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= exit_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= exit_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"]))",
+			"due": "next_working_day(month_end(add_months(exit_on, 1)), holidays)"
+		}
+	},
+	{
+		"id": "7d87e238-59a6-51c4-9a79-ca9e96479606",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "DISMISSAL_NOTICE",
+		"name": "解雇予告 (dismissal notice or pay in lieu)",
+		"rules": {
+			"description": "Give 30 days' notice of dismissal, or pay the average wage for each day short (DISMISSAL_NOTICE_ALLOWANCE), unless the labour standards office certifies an exception (解雇予告除外認定); give the 解雇理由証明書 on request (art.22(2)).",
+			"authority": "労働基準法 arts.20 and 22(2): a dismissal by the employer (contract.exit_ground DISMISSAL, DISCIPLINARY_DISMISSAL or REDUNDANCY).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_ground) && contract.exit_ground in [\"DISMISSAL\", \"DISCIPLINARY_DISMISSAL\", \"REDUNDANCY\"]",
+			"due": "add_days(exit_on, -30)"
+		}
+	},
+	{
+		"id": "27539cc2-396b-5dde-9eac-efc16afa19b6",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_TAX_SEMIANNUAL",
+		"name": "源泉所得税の納期の特例による納付 (semi-annual withholding payment)",
+		"rules": {
+			"description": "Pay the income tax withheld from each month's salaries and retirement allowances with the half-year's payment: January–June by 10 July, July–December by 20 January.",
+			"authority": "所得税法 art.216: an office paying fewer than 10 employees (常時十人未満) approved by the tax office (company.facts.withholding_semiannual_special) pays January–June withholding by the 10th of the month after June and July–December by 20 January (NTA タックスアンサー No.2505 https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2505.htm). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"schemes": ["INCOME_TAX", "RETIREMENT_TAX"],
+			"applies_when": "has(company.facts.withholding_semiannual_special) && company.facts.withholding_semiannual_special == true",
+			"due": "next_working_day((int(period.key.substring(5, 7)) <= 6 ? add_days(add_months(period.from, 7 - int(period.key.substring(5, 7))), 9) : add_days(add_months(period.from, 13 - int(period.key.substring(5, 7))), 19)), holidays)"
+		}
+	},
+	{
+		"id": "87962dab-cf8d-55e0-a7ca-46aa3500f254",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "RESIDENT_TAX_SEMIANNUAL",
+		"name": "住民税特別徴収の納期の特例による納入 (semi-annual resident tax payment)",
+		"rules": {
+			"description": "Pay the resident tax specially collected from each month's salaries with the half-year's payment: June–November by 10 December, December–May by 10 June.",
+			"authority": "地方税法 art.321の5の2(1): an office paying fewer than 10 employees (常時十人未満) approved by the mayor (company.facts.resident_tax_semiannual_special) pays the June–November and December–May collections by the 10th of the month after each period. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"schemes": ["RESIDENT_TAX"],
+			"applies_when": "has(company.facts.resident_tax_semiannual_special) && company.facts.resident_tax_semiannual_special == true",
+			"due": "next_working_day((int(period.key.substring(5, 7)) >= 6 && int(period.key.substring(5, 7)) <= 11 ? add_days(add_months(period.from, 12 - int(period.key.substring(5, 7))), 9) : add_days(add_months(period.from, (int(period.key.substring(5, 7)) == 12 ? 18 : 6) - int(period.key.substring(5, 7))), 9)), holidays)"
+		}
+	},
+	{
+		"id": "423583fb-b6e7-50c8-abc5-f32427253759",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SOCIAL_INSURANCE_NEW_ESTABLISHMENT",
+		"name": "新規適用届 (social insurance establishment notification)",
+		"rules": {
+			"description": "Notify the pension office that the establishment has become an applicable office of health and welfare pension insurance.",
+			"authority": "健康保険法施行規則 art.19 and 厚生年金保険法施行規則 art.13: \"当該事実があった日から五日以内\" — the due day counts the first day (the earliest reading). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(has(row.effective_range) && row.effective_range != null ? row.effective_range[\"from\"] : period.from, 4), holidays)"
+		}
+	},
+	{
+		"id": "87d4df6e-bc58-57e6-9305-08c9488d179d",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_INSURANCE_ESTABLISHMENT",
+		"name": "保険関係成立届 (labour insurance relationship notification)",
+		"rules": {
+			"description": "Notify the labour standards office that the labour insurance relationship came into being.",
+			"authority": "労働保険の保険料の徴収等に関する法律 art.4の2(1): \"その成立した日から十日以内\", counted from the next day (民法 art.140). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(has(row.effective_range) && row.effective_range != null ? row.effective_range[\"from\"] : period.from, 10), holidays)"
+		}
+	},
+	{
+		"id": "153ad550-bce7-5240-8e9a-88d433b7a1d7",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_INSURANCE_PROVISIONAL_DECLARATION",
+		"name": "概算保険料申告 (provisional labour insurance premium declaration)",
+		"rules": {
+			"description": "Declare and pay the provisional labour insurance premium (and the asbestos levy) for the rest of the insurance year.",
+			"authority": "労働保険の保険料の徴収等に関する法律 art.15(1): within 50 days of the day the relationship came into being; 石綿による健康被害の救済に関する法律 art.38. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(has(row.effective_range) && row.effective_range != null ? row.effective_range[\"from\"] : period.from, 50), holidays)"
+		}
+	},
+	{
+		"id": "a867e468-6e86-5196-b475-53c6f12bb8f0",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYMENT_INSURANCE_ESTABLISHMENT",
+		"name": "雇用保険適用事業所設置届 (employment insurance establishment notification)",
+		"rules": {
+			"description": "Notify Hello Work that an employment insurance establishment was set up.",
+			"authority": "雇用保険法施行規則 art.141(1): \"その設置…の日の翌日から起算して十日以内\". A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(has(row.effective_range) && row.effective_range != null ? row.effective_range[\"from\"] : period.from, 10), holidays)"
+		}
+	},
+	{
+		"id": "870fe1b2-d2e2-515f-b496-ffb3bf03f9f9",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PAYROLL_OFFICE_OPENING",
+		"name": "給与支払事務所等の開設届出書 (payroll office opening notification)",
+		"rules": {
+			"description": "Notify the tax office that a payroll office was opened.",
+			"authority": "所得税法 art.230: \"その事実があつた日から一月以内\". A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "next_working_day(add_months(has(row.effective_range) && row.effective_range != null ? row.effective_range[\"from\"] : period.from, 1), holidays)"
+		}
+	},
+	{
+		"id": "a8e608e1-31bd-5f15-95b1-c41c57bd0c58",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_MONTHLY_45H",
+		"name": "時間外労働の限度時間 45時間 (monthly overtime limit)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && work.overtime_hours - sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.overtime_hours)) > 45.0",
+			"message": "Overtime above 45 hours this month: lawful only under the special clause of the 36 agreement, and in at most six months a year (労働基準法 art.36(4)–(5)).",
+			"description": "Statutory overtime other than rest-day work beyond the 45-hour monthly limit.",
+			"authority": "労働基準法 art.36(3)–(5): the limit is 45 hours a month and 360 hours a year; a special clause may exceed 45 hours in at most six months a year (働き方改革関連法, in force for all employers since April 2020). The yearly 360/720-hour totals and the 2–6 month 80-hour average need hours of earlier months, which no root carries."
+		}
+	},
+	{
+		"id": "d69f2542-215b-580a-a397-dcddd20eb308",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_REST_DAY_100H",
+		"name": "時間外・休日労働 100時間未満 (absolute monthly cap)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && (work.overtime_hours - sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.overtime_hours))) + sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours)) >= 100.0",
+			"message": "Overtime and statutory rest-day work reached 100 hours this month; the law requires under 100 even under a special clause (労働基準法 art.36(6)(ii)).",
+			"description": "The absolute cap on overtime plus rest-day work in one month.",
+			"authority": "労働基準法 art.36(6)(ii): overtime and rest-day work together must be under 100 hours in each month; art.119 (penalty). The wages are still owed, so the slip warns rather than refuses."
+		}
+	},
+	{
+		"id": "01b80c98-ec9a-58b4-96d3-b988ee88ce99",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_CONTRACT",
+		"name": "最低賃金を下回る労働契約 (contract below the regional minimum wage)",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "terms.work_classification != \"OFFICER\" && has(company.facts.monthly_average_scheduled_hours) && company.region in rules.minimum_wage.by_region && terms.base_salary > 0.0 && terms.base_salary / double(company.facts.monthly_average_scheduled_hours) < double(rules.minimum_wage.by_region[company.region][size(rules.minimum_wage.by_region[company.region]) - 1].amount)",
+			"message": "The base salary is below the prefecture's regional minimum wage per scheduled hour; such a term is void (最低賃金法 art.4(2)).",
+			"description": "A term whose hourly base is below the lowest regional minimum wage the lineage carries for the prefecture.",
+			"authority": "最低賃金法 art.4(1)–(2) with 施行規則 art.2: a contract wage below the minimum is void to that extent. The check compares with the lowest amount the lineage lists for the region (the term's own day is not in the contract context); the payslip top-up (MINIMUM_WAGE_TOP_UP) pays the amount in force on the period."
+		}
+	},
+	{
+		"id": "c2346a33-6975-5393-8275-b4dd30b3d6c6",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "BONUS_PAYMENT_REPORT",
+		"name": "賞与支払届 (bonus payment report)",
+		"rules": {
+			"description": "Report the bonus paid to an insured person, for the standard bonus amount.",
+			"authority": "健康保険法 art.48 with 施行規則 art.27 and 厚生年金保険法 art.27 with 施行規則 art.19の5: \"賞与を支払った日から五日以内\" — raised when a payslip carrying a BONUS line is paid (row.line_codes, row.paid_on); the due day counts the payment day (the earliest reading). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "payslip",
+				"event": "updated"
+			},
+			"when": "has(row.line_codes) && \"BONUS\" in row.line_codes && has(row.paid_on) && row.paid_on != null",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= row.paid_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= row.paid_on) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"])",
+			"due": "next_working_day(add_days(row.paid_on, 4), holidays)"
+		}
+	},
+	{
+		"id": "83425816-cc97-5a4e-b2cd-f825c5cc4105",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "MATERNITY_PREMIUM_EXEMPTION",
+		"name": "産前産後休業取得者申出書 (maternity premium exemption application)",
+		"rules": {
+			"description": "Apply to the pension office for the health and pension premium exemption during prenatal and postnatal leave (and the change notice when the leave ends early or late).",
+			"authority": "健康保険法 art.159の3 and 厚生年金保険法 art.81の2の2 with 健康保険法施行規則 art.135の2: the employer applies while the leave lasts (the leave's last day is the due day shown; 日本年金機構 guidance). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "has(row.catalog_code) && row.catalog_code in [\"PRENATAL_LEAVE\", \"POSTNATAL_LEAVE\"]",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= row.from && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= row.from) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"])",
+			"due": "next_working_day((has(row.to) && row.to != null ? row.to : row.from), holidays)"
+		}
+	},
+	{
+		"id": "903302d5-9d66-581d-a1ea-307310d38b72",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CHILDCARE_PREMIUM_EXEMPTION",
+		"name": "育児休業等取得者申出書 (childcare premium exemption application)",
+		"rules": {
+			"description": "Apply to the pension office for the health and pension premium exemption during childcare leave (including 産後パパ育休).",
+			"authority": "健康保険法 art.159 and 厚生年金保険法 art.81の2 with 健康保険法施行規則 art.135: the employer applies while the leave lasts (the leave's last day is the due day shown). A month is exempt when the leave includes its last day, or lasts 14 days or more within it; a bonus month only for a leave of more than one month. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "has(row.catalog_code) && row.catalog_code in [\"CHILDCARE_LEAVE\", \"POSTNATAL_PATERNITY_LEAVE\"]",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= row.from && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= row.from) && has(t.statutory_work_category) && t.statutory_work_category in [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"])",
+			"due": "next_working_day((has(row.to) && row.to != null ? row.to : row.from), holidays)"
+		}
+	},
+	{
+		"id": "f9070161-9018-59c6-b4ca-5cf04392b7ea",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_INJURY_REPORT",
+		"name": "労働者死傷病報告 (work-injury report, 4 days or more)",
+		"rules": {
+			"description": "Report the occupational injury to the labour standards office electronically, without delay, once the absence reaches 4 days.",
+			"authority": "労働安全衛生法 art.100 with 労働安全衛生規則 art.97(1): \"遅滞なく\" for a death or an absence of 4 days or more (electronic filing from 1 January 2025); the 4th day of absence is the due day shown. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "has(row.catalog_code) && row.catalog_code == \"OCCUPATIONAL_INJURY_ABSENCE\" && has(row.days) && row.days != null && row.days >= 4.0",
+			"due": "next_working_day(add_days(row.from, 3), holidays)"
+		}
+	},
+	{
+		"id": "efd0e80b-6321-5813-8a30-66e384c21df0",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_INJURY_REPORT_QUARTERLY",
+		"name": "労働者死傷病報告 (work-injury report, under 4 days)",
+		"rules": {
+			"description": "Report an occupational injury absence of 1 to 3 days in the quarterly report.",
+			"authority": "労働安全衛生規則 art.97(2): absences under 4 days of January–March, April–June, July–September and October–December by the end of the month after each quarter. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "has(row.catalog_code) && row.catalog_code == \"OCCUPATIONAL_INJURY_ABSENCE\" && (!has(row.days) || row.days == null || row.days < 4.0)",
+			"due": "next_working_day(month_end(add_months(month_start(row.from), ((int(row.from.substring(5, 7)) - 1) / 3 + 1) * 3 - int(row.from.substring(5, 7)) + 1)), holidays)"
+		}
+	},
+	{
+		"id": "c23eb779-7fe7-5fa0-bf30-177cf6bef127",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WOMEN_ADVANCEMENT_PUBLICATION",
+		"name": "女性の活躍に関する情報公表 (women's advancement information publication)",
+		"rules": {
+			"description": "Publish the gender wage gap, the female manager ratio and the other required items for the business year just ended.",
+			"authority": "女性の職業生活における活躍の推進に関する法律 art.20 (as amended, from 1 April 2026: the gender wage gap and the female manager ratio for an employer of 101 or more, previously the wage gap for 301 or more) with 一般事業主行動計画等に関する省令 art.19(4) (\"おおむね一年に一回以上\"); the ministry's notice places it within about three months of the business-year end. Headcount is the entity's employments in force; the business-year end month is company.facts.business_year_end_month. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"applies_when": "headcount > 100 && has(company.facts.business_year_end_month) && int(period.key.substring(5, 7)) == int(company.facts.business_year_end_month) % 12 + 1",
+			"due": "next_working_day(month_end(add_months(period.from, 2)), holidays)"
+		}
+	},
+	{
+		"id": "c83e2b0f-5e97-53d7-99cf-c78e3fe24c80",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_LEAVE_FIVE_DAY_DESIGNATION",
+		"name": "年次有給休暇の時季指定 (5-day designated annual leave)",
+		"rules": {
+			"description": "On each grant day of 10 or more days, ensure the worker takes at least 5 of them by the end of that grant year, designating the days after hearing the worker; record them in the 年次有給休暇管理簿.",
+			"authority": "労働基準法 art.39(7)–(8) with 施行規則 arts.24の5–24の7; art.120 (penalty). Raised on each grant day — 6 months after hire and every year after (the 六箇月経過日 and its anniversaries) — except for a short-week worker granted fewer than 10 days (施行規則 art.24の3).",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "hired_on != null && calendar_completed_months(hired_on, today) >= 6 && today == add_months(hired_on, 6.0 + 12.0 * double(int((calendar_completed_months(hired_on, today) - 6.0) / 12.0)))",
+			"applies_when": "!(contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, t.effective_range[\"from\"] <= today && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= today) && has(t.facts) && has(t.facts.weekly_scheduled_days) && double(t.facts.weekly_scheduled_days) <= 4.0 && (!has(t.facts.weekly_scheduled_hours) || double(t.facts.weekly_scheduled_hours) < 30.0) && !(double(t.facts.weekly_scheduled_days) >= 4.0 && calendar_completed_months(hired_on, today) >= 42)))",
+			"due": "add_days(add_months(today, 12), -1)"
+		}
+	},
+	{
+		"id": "ac8f8c9c-b08c-538c-b76c-9c3232910f30",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_YEAR_360H",
+		"name": "時間外労働の限度時間 年360時間 (yearly overtime limit)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && (has(hours.year) ? hours.year.overtime_hours - (has(hours.year.day_type) && has(hours.year.day_type.REST) ? hours.year.day_type.REST.overtime_hours : 0.0) : 0.0) > 360.0",
+			"message": "Overtime this calendar year is above 360 hours: lawful only under the special clause of the 36 agreement (労働基準法 art.36(4)–(5)).",
+			"description": "Statutory overtime other than rest-day work beyond 360 hours from 1 January (hours.year).",
+			"authority": "労働基準法 art.36(4): the limit is 360 hours a year (320 for a one-year variable schedule, not modelled). The year is the calendar year of hours.year; an agreement whose year starts on another day (company.facts.overtime_agreement_from) is counted from 1 January."
+		}
+	},
+	{
+		"id": "fa7ae8ce-2746-55e2-83c5-cd4a534347fb",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_YEAR_720H",
+		"name": "特別条項の上限 年720時間 (yearly cap under a special clause)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && (has(hours.year) ? hours.year.overtime_hours - (has(hours.year.day_type) && has(hours.year.day_type.REST) ? hours.year.day_type.REST.overtime_hours : 0.0) : 0.0) > 720.0",
+			"message": "Overtime this calendar year is above 720 hours, the absolute yearly cap even under a special clause (労働基準法 art.36(5)).",
+			"description": "Statutory overtime other than rest-day work beyond 720 hours from 1 January.",
+			"authority": "労働基準法 art.36(5): under a special clause, overtime (rest-day work excluded) at most 720 hours a year; art.119 (penalty)."
+		}
+	},
+	{
+		"id": "1bf7bfe6-54c0-51de-a094-87d7413bf1a7",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_AVERAGE_80H",
+		"name": "複数月平均80時間以内 (2- and 3-month average cap)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && (((has(hours.month) ? hours.month.overtime_hours - (has(hours.month.day_type) && has(hours.month.day_type.REST) ? hours.month.day_type.REST.overtime_hours : 0.0) : 0.0) + (has(hours.month) ? (has(hours.month.day_type) && has(hours.month.day_type.REST) ? hours.month.day_type.REST.worked_hours : 0.0) : 0.0) + (has(hours.previous_month) ? hours.previous_month.overtime_hours - (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.REST) ? hours.previous_month.day_type.REST.overtime_hours : 0.0) : 0.0) + (has(hours.previous_month) ? (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.REST) ? hours.previous_month.day_type.REST.worked_hours : 0.0) : 0.0)) / 2.0 > 80.0 || ((has(hours.rolling) ? hours.rolling.overtime_hours - (has(hours.rolling.day_type) && has(hours.rolling.day_type.REST) ? hours.rolling.day_type.REST.overtime_hours : 0.0) : 0.0) + (has(hours.rolling) ? (has(hours.rolling.day_type) && has(hours.rolling.day_type.REST) ? hours.rolling.day_type.REST.worked_hours : 0.0) : 0.0)) / 3.0 > 80.0)",
+			"message": "Overtime and rest-day work average more than 80 hours a month over the last two or three months (労働基準法 art.36(6)(iii)).",
+			"description": "The 2- and 3-month averages of overtime plus rest-day work (hours.month, hours.previous_month, hours.rolling).",
+			"authority": "労働基準法 art.36(6)(iii): overtime and rest-day work averaged over every 2, 3, 4, 5 and 6 month span at most 80 hours a month. The 4- to 6-month spans need hours beyond hours.rolling and are not checked."
+		}
+	},
+	{
+		"id": "49e998fa-271a-5145-b983-a1c9b90e424b",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_WITHOUT_AGREEMENT",
+		"name": "36協定の有効期間外の時間外労働 (overtime outside the 36 agreement)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && work.overtime_hours > 0.0 && has(company.facts.overtime_agreement_to) && (period.to > company.facts.overtime_agreement_to || (has(company.facts.overtime_agreement_from) && period.from < company.facts.overtime_agreement_from))",
+			"message": "Overtime falls outside the period of the 36 agreement on record (company.facts overtime_agreement_from/to); overtime needs an agreement filed with the labour standards office (労働基準法 arts.32, 36(1)).",
+			"description": "Overtime in a period the recorded agreement does not cover.",
+			"authority": "労働基準法 art.36(1): overtime and rest-day work are lawful only under a written agreement filed with the labour standards office; customer input: company.facts.overtime_agreement_from, overtime_agreement_to."
+		}
+	},
+	{
+		"id": "93250208-e0ca-5bcf-8e86-40396f3d6c10",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_AGREEMENT_RENEWAL",
+		"name": "36協定の締結・届出 (overtime agreement renewal and filing)",
+		"rules": {
+			"description": "Conclude the next overtime and rest-day work agreement and file it with the labour standards office before the current one expires.",
+			"authority": "労働基準法 art.36(1) with 施行規則 art.16–17: the agreement takes effect only once filed; its period is at most one year in practice (the yearly limit is set per year). Customer input: company.facts.overtime_agreement_to. Raised in the run of the month before the expiry month.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"applies_when": "has(company.facts.overtime_agreement_to) && company.facts.overtime_agreement_to >= month_start(add_months(period.from, 1)) && company.facts.overtime_agreement_to <= month_end(add_months(period.from, 1))",
+			"due": "next_working_day(has(company.facts.overtime_agreement_to) ? company.facts.overtime_agreement_to : period.to, holidays)"
+		}
+	},
+	{
+		"id": "9bf156ce-b9ff-58a1-8262-bc20389e4c06",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_INSURANCE_INSTALMENT_2",
+		"name": "労働保険料 延納 第2期 (labour insurance instalment 2)",
+		"rules": {
+			"description": "Pay the labour insurance premium instalment due 31 October.",
+			"authority": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January; customer input: company.facts.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["10"],
+			"applies_when": "has(company.facts.labour_insurance_instalments) && company.facts.labour_insurance_instalments == true",
+			"due": "next_working_day(month_end(period.from), holidays)"
+		}
+	},
+	{
+		"id": "69da2df4-4cdb-5982-a2e8-2f21d650fae4",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_INSURANCE_INSTALMENT_3",
+		"name": "労働保険料 延納 第3期 (labour insurance instalment 3)",
+		"rules": {
+			"description": "Pay the labour insurance premium instalment due 31 January.",
+			"authority": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January; customer input: company.facts.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"applies_when": "has(company.facts.labour_insurance_instalments) && company.facts.labour_insurance_instalments == true",
+			"due": "next_working_day(month_end(period.from), holidays)"
+		}
+	}
+]

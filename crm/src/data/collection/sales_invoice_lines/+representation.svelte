@@ -3,7 +3,6 @@
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import type { FormState, RecordView } from '@norbital-ai/ui';
 	import { Picker } from '@norbital-ai/ui';
-	import type { Id } from '@norbital-ai/bolt';
 
 	let { view }: { view: RecordView<'sales_invoice_lines'> } = $props();
 	const t = bolt.t;
@@ -11,17 +10,17 @@
 
 <!-- the billable lines are the invoice's own quote's -->
 {#snippet quoteLine(form: FormState)}
-	{@const invoice = form.get('sales_invoice_id')}
+	{@const invoice = form.id<'sales_invoices'>('sales_invoice_id')}
 	{@const chosen = form.get('quote_line_id')}
 	<Picker
 		of="quote_lines"
-		value={typeof chosen === 'string' ? (chosen as Id<'quote_lines'>) : null}
+		value={typeof chosen === 'string' ? chosen : null}
 		onChange={(id) => form.set('quote_line_id', id)}
-		{...typeof invoice === 'string'
+		{...invoice !== null
 			? {
 					where: {
 						quote_id: {
-							is: { sales_invoices: { some: { id: { eq: invoice as Id<'sales_invoices'> } } } }
+							is: { sales_invoices: { some: { id: { eq: invoice } } } }
 						}
 					}
 				}

@@ -1,5 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { DAILY_0600, digestOutput } from '../lib/digest.js';
+import { DAILY_0600, digestOutput, jsonRows } from '../lib/digest.js';
 
 const a = automation({
 	description:
@@ -16,6 +16,5 @@ a.run(async (_, ctx) => {
 		orderBy: { due_date: 'asc' },
 		limit: 25
 	});
-	// rows are typed values (instants, dates, decimals) that serialize as JSON; `json` does not admit their types
-	return { generated_at: ctx.now, count: rows.length, rows: rows as never };
+	return { generated_at: ctx.now, count: rows.length, rows: jsonRows(rows) };
 });

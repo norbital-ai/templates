@@ -1,0 +1,50 @@
+[
+	{
+		"id": "19bff8ce-5115-5a81-ac86-3f91e7a19e68",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "INSURANCE_EQUIVALENT",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PIT"],
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"authority": "Labour Code 2019 art.168(3): for an employee outside compulsory social, health and unemployment insurance the employer pays, with each wage, an amount equal to its own contribution rate on the salary it would have insured — a pensioner (Law 41/2024 art.2(7)(a)), an apprentice (art.61), a part-timer under the lowest contribution salary (art.2(1)(l)), a foreigner on a contract under twelve months (art.2(2)), any worker on a fixed-term contract under one full month (art.2(1)(a); HI Law art.12(1)(a); Law 74/2025 art.31(1)(a) from 1 January 2026). SI 17.5% (17.3% with the reduced accident rate, Decree 58/2020 art.5) and HI 3% on the SI salary — not for a pensioner, whom HI Law art.12(2)(a) and art.13(5)(d) (Law 51/2024, from 1 July 2025) insure through the SI agency, so he is not outside compulsory HI; UI 1% on the UI salary (Law 74/2025 art.31), citizens only. The class is owed: the run pays it to every such employee with no HR row, the band pricing it from the person each month. The pensioner is `employee.receiving_pension`, the transferee `terms.pass_type` INTRA_COMPANY_TRANSFER, the retirement-age hire `employee.age_months_on(employment.service_start)` against Decree 135/2020 art.4’s roadmap. Decree 135/2020/NĐ-CP art.4 with Annex I (signed text https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/11/135.signed.pdf pp.1–3, read visually) sets the retirement age by the month and year of birth — the age of the year in which the worker reaches it (a man born 7/1964 retires at 61y3m in 10/2025) — so the foreign-worker retirement exclusion compares the age at signing with the Annex I age for `employee.birth_date`, not with the age of the signing year. a citizen on a probation contract is outside UI only (Law 74/2025 art.31(2)) and stays in SI and HI, so art.168(3) owes the UI 1% alone on the UI salary, as the pensioner is owed SI + UI without HI (VN-LC168-01).",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "1aa1b502-7989-5d50-877f-5488791bada6",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "MEAL_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PIT.MEAL"],
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"authority": "Circular 111/2013/TT-BTC art.2(2)(g.5): a mid-shift meal paid in money is taxable only above the Labour Ministry cap, 730,000 a month (Circular 26/2016/TT-BLĐTBXH); Decree 253/2026 art.69(1)(b) keeps it until 30 June 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary, whatever its amount or regularity, so the class counts toward no insurance scheme: Law 41/2024/QH15 art.31(1)(b) with Decree 158/2025/NĐ-CP art.7(1)(c) brings in only the other supplements (các khoản bổ sung khác) of a stated amount agreed with the wage and paid regularly and stably each pay period, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) (in force from 1 January 2021) sets the mid-shift meal (tiền ăn giữa ca) apart from those supplements as a benefit written as a separate item of the labour contract. The earlier SI-specific list naming it (Circular 59/2015/TT-BLĐTBXH art.30(3) as amended by Circular 06/2021/TT-BLĐTBXH) was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20(2); the Circular 10/2020 text: https://storage-vnportal.vnpt.vn/gov-lan/SharePointFolders/Lists/VanBanQPPL/Attachments/207/thong-tu-10-2020-noi-dung-hdld-cong-viec-anh-huong-xau-toi-sinh-san.pdf",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "9256dfbf-de99-5b6e-9226-16924687f40c",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "HOUSING",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PIT.HOUSING"],
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"authority": "Decree 253/2026/NĐ-CP art.8(2)(h): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Rent paid to the landlord is not a wage paid to the worker, so it is outside the insurance salary of Law 41/2024/QH15 art.31(1)(b) and Decree 158/2025/NĐ-CP art.7(1); Circular 06/2021/TT-BLĐTBXH, cited here before, was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20(2).",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "b1ca3b72-6111-57eb-bdc9-5a0c54a7d9e3",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "FIXED_ALLOWANCE",
+		"name": "Phụ cấp lương (fixed wage allowance)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SI", "UNION_DUES", "HI", "UI", "UNION_FEE", "PIT"],
+		"authority": "Law on Social Insurance 41/2024/QH15 art.31(1)(b) with Decree 158/2025/NĐ-CP art.7(1): a wage allowance of a stated amount agreed in the labour contract and paid regularly each pay period is part of the insurance salary (SI, HI, UI and the union fee and dues follow that salary); it is salary income for PIT.",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	}
+]
