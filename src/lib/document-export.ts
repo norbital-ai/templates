@@ -26,8 +26,9 @@ const fileCode = (docNo: unknown, id: string) => String(docNo ?? id).replace(/[^
 /** A date or an instant as its ISO text (the wire's `{ $d }`/`{ $t }`, or the value's own text). */
 export const iso = (value: unknown) => {
 	if (value == null) return null;
-	const v = value as { $t?: string; $d?: string };
-	return Predicate.isObjectOrArray(value) ? String(v.$t ?? v.$d ?? value) : String(value);
+	if (!Predicate.isObjectOrArray(value) || Array.isArray(value)) return String(value);
+	const tagged = value['$t'] ?? value['$d'];
+	return tagged != null ? String(tagged) : String(value);
 };
 const text = (value: unknown) => (value == null ? null : String(value));
 

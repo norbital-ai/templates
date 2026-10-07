@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
+	import { idsOf } from '@norbital-ai/ui';
 
 	/**
 	 * An exclusive arc's cell (`{ collection, id }`) shows its row's label, never an id: the ids a view renders are read
@@ -16,7 +16,7 @@
 				(
 					await bolt.read('accounts', {
 						select: { name: true },
-						where: { id: { in: ids as Id<'accounts'>[] } },
+						where: { id: { in: idsOf<'accounts'>(ids) } },
 						...all
 					})
 				).rows.map((r) => ({ id: r.id, label: r.name }))
@@ -26,7 +26,7 @@
 				(
 					await bolt.read('quotes', {
 						select: { doc_no: true },
-						where: { id: { in: ids as Id<'quotes'>[] } },
+						where: { id: { in: idsOf<'quotes'>(ids) } },
 						...all
 					})
 				).rows.map((r) => ({ id: r.id, label: r.doc_no }))
@@ -36,7 +36,7 @@
 				(
 					await bolt.read('purchase_orders', {
 						select: { doc_no: true },
-						where: { id: { in: ids as Id<'purchase_orders'>[] } },
+						where: { id: { in: idsOf<'purchase_orders'>(ids) } },
 						...all
 					})
 				).rows.map((r) => ({ id: r.id, label: r.doc_no }))
@@ -46,7 +46,7 @@
 				(
 					await bolt.read('purchase_invoices', {
 						select: { doc_no: true },
-						where: { id: { in: ids as Id<'purchase_invoices'>[] } },
+						where: { id: { in: idsOf<'purchase_invoices'>(ids) } },
 						...all
 					})
 				).rows.map((r) => ({ id: r.id, label: r.doc_no }))
@@ -82,9 +82,7 @@
 	import * as Predicate from '../guards.js';
 
 	let { id: value }: { id: unknown } = $props();
-	const arc = $derived(
-		Predicate.isObjectOrArray(value) ? (value as { collection: string; id: string }) : null
-	);
+	const arc = $derived(Predicate.isExclusiveArc(value) ? value : null);
 	const collection = $derived(arc?.collection ?? '');
 	const id = $derived(arc?.id ?? value);
 	let tick = $state(0);

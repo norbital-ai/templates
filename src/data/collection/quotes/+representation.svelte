@@ -6,8 +6,7 @@
 	import { bolt } from '$bolt';
 	import { Picker, RecordShell, Table } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import type { RecordView } from '@norbital-ai/ui';
-	import type { Id } from '@norbital-ai/bolt';
+	import type { FormState, RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import ExportRun from '../../../lib/ui/export-run.svelte';
 
@@ -43,16 +42,14 @@
 	{/if}
 {/snippet}
 
-{#snippet contact(form: import('@norbital-ai/ui').FormState)}
-	{@const account = form.get('account_id')}
+{#snippet contact(form: FormState)}
+	{@const account = form.id<'accounts'>('account_id')}
 	{@const chosen = form.get('contact_id')}
 	<Picker
 		of="contacts"
 		value={typeof chosen === 'string' ? chosen : null}
 		onChange={(id) => form.set('contact_id', id)}
-		{...typeof account === 'string'
-			? { where: { account_id: { eq: account as Id<'accounts'> } } }
-			: {}}
+		{...account !== null ? { where: { account_id: { eq: account } } } : {}}
 		orderBy={{ last_name: 'asc' }}
 	/>
 {/snippet}

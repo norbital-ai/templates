@@ -29,7 +29,7 @@
 
 <Picker
 	of="products"
-	value={typeof chosen === 'string' ? (chosen as Id<'products'>) : null}
+	value={typeof chosen === 'string' ? chosen : null}
 	where={{ active: { eq: true } }}
 	onChange={pick}
 />

@@ -13,14 +13,14 @@
 {#if of === 'quotes'}
 	<Picker
 		of="quotes"
-		value={value as never}
+		{value}
 		where={{ status: { eq: 'confirmed' } }}
 		onChange={(id) => form.set(field, id)}
 	/>
 {:else}
 	<Picker
 		of="purchase_orders"
-		value={value as never}
+		{value}
 		where={{ status: { eq: 'confirmed' } }}
 		onChange={(id) => form.set(field, id)}
 	/>
