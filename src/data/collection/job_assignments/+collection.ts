@@ -1,4 +1,4 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection } from '@norbital-ai/bolt';
 import { dispatchFacts, searchTextFor } from '../../../lib/dispatch.js';
 import {
 	photoSourceKey,
@@ -60,17 +60,22 @@ export default job_assignments;
 
 job_assignments.transform(async (inputs, ctx) => {
 	const siteIds = [
-		...new Set(inputs.flatMap((input) => (input.site_id == null ? [] : [String(input.site_id)])))
+		...new Set(inputs.flatMap((input) => (input.site_id == null ? [] : [input.site_id])))
 	];
 	const sites = siteIds.length
-		? await ctx.db.read('sites', { where: { id: { in: siteIds as Id<'sites'>[] } }, all: true })
+		? await ctx.db.read('sites', { where: { id: { in: siteIds } }, all: true })
 		: { rows: [] };
-	const siteOf = new Map(sites.rows.map((site) => [String(site.id), site]));
+	const siteOf = new Map(sites.rows.map((site) => [site.id, site]));
 
 	return inputs.map((input, i) => {
 		const stored = ctx.existing[i];
 		if (stored === undefined) {
-			return { ...input, ...dispatchFacts(input, siteOf.get(String(input.site_id)), ctx.now) };
+			const siteId = input.site_id;
+			if (siteId == null) {
+				ctx.refuse('A job needs a site.', { field: 'site_id' });
+				return input;
+			}
+			return { ...input, ...dispatchFacts(input, siteOf.get(siteId), ctx.now) };
 		}
 		for (const message of input.communication_logs?.create ?? [])
 			for (const field of ['message', 'sender', 'source_message_id'] as const)
@@ -94,7 +99,7 @@ job_assignments.transform(async (inputs, ctx) => {
 				? {
 						search_text: searchTextFor(
 							String(input.title ?? stored.title),
-							siteOf.get(String(input.site_id ?? stored.site_id))
+							siteOf.get(input.site_id ?? stored.site_id)
 						)
 					}
 				: {}),

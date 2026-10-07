@@ -33,11 +33,16 @@ export const VISUAL_DUPLICATE_MAX_L2 = Math.sqrt(31);
 const PDQ_DIMENSIONS = 256;
 
 /** The facts every photo is born with, however it is filed, until the review reads it. */
-export const uninspectedPhotoFacts = () => ({
+export const uninspectedPhotoFacts = (): {
+	sha256: string;
+	perceptual_embedding: number[];
+	flags: PhotoFlag[];
+	matched_evidence_ids: string[];
+} => ({
 	sha256: '',
 	perceptual_embedding: new Array<number>(PDQ_DIMENSIONS).fill(0),
-	flags: [] as PhotoFlag[],
-	matched_evidence_ids: [] as string[]
+	flags: [],
+	matched_evidence_ids: []
 });
 
 /** A channel attachment is the same photo however often it is redelivered; an upload is its file. */

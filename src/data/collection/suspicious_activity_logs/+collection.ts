@@ -1,4 +1,4 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection } from '@norbital-ai/bolt';
 import { sha256Text } from '../../../lib/sha256.js';
 
 /**
@@ -26,19 +26,22 @@ export default logs;
 
 logs.transform(async (inputs, ctx) => {
 	const creates = inputs.filter((_, i) => ctx.existing[i] === undefined);
-	const ids = (field: 'review_id' | 'evidence_id') => [
-		...new Set(creates.flatMap((input) => (input[field] == null ? [] : [String(input[field])])))
+	const reviewIds = [
+		...new Set(creates.flatMap((input) => (input.review_id == null ? [] : [input.review_id])))
+	];
+	const evidenceIds = [
+		...new Set(creates.flatMap((input) => (input.evidence_id == null ? [] : [input.evidence_id])))
 	];
 	const [reviews, evidence] = await Promise.all([
-		ids('review_id').length
+		reviewIds.length
 			? ctx.db.read('suspicion_reviews', {
-					where: { id: { in: ids('review_id') as Id<'suspicion_reviews'>[] } },
+					where: { id: { in: reviewIds } },
 					all: true
 				})
 			: { rows: [] },
-		ids('evidence_id').length
+		evidenceIds.length
 			? ctx.db.read('photo_evidence', {
-					where: { id: { in: ids('evidence_id') as Id<'photo_evidence'>[] } },
+					where: { id: { in: evidenceIds } },
 					all: true
 				})
 			: { rows: [] }

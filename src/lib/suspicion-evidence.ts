@@ -10,11 +10,14 @@ export type ReviewCandidateEvidence = {
 
 const isCandidate = (
 	value: unknown
-): value is { id: Id<'photo_evidence'>; distance: number; matched_photo_ids: string[] } =>
-	Predicate.isObjectOrArray(value) &&
-	Predicate.isString((value as { id?: unknown }).id) &&
-	Predicate.isNumber((value as { distance?: unknown }).distance) &&
-	Array.isArray((value as { matched_photo_ids?: unknown }).matched_photo_ids);
+): value is { id: Id<'photo_evidence'>; distance: number; matched_photo_ids: string[] } => {
+	if (!Predicate.isObjectOrArray(value) || Array.isArray(value)) return false;
+	return (
+		Predicate.isString(value['id']) &&
+		Predicate.isNumber(value['distance']) &&
+		Array.isArray(value['matched_photo_ids'])
+	);
+};
 
 /**
  * The cross-assignment candidates the review showed the model, from the reviews' immutable bases, newest first: a
@@ -26,7 +29,10 @@ export function reviewCandidatesFrom(bases: readonly string[]): ReviewCandidateE
 		let candidates: unknown;
 		try {
 			const parsed: unknown = JSON.parse(basis);
-			candidates = (parsed as { candidates?: unknown })?.candidates;
+			candidates =
+				Predicate.isObjectOrArray(parsed) && !Array.isArray(parsed)
+					? parsed['candidates']
+					: undefined;
 		} catch {
 			continue;
 		}

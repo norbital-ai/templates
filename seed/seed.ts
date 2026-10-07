@@ -162,4 +162,9 @@ const source: SeedSource = {
 		} as never;
 	}
 };
-export default { ...source, async rows(bank: Parameters<SeedSource['rows']>[0]) { return { ...await source.rows(bank), sys_channel_connection, sys_envoy_channel, sys_envoy }; } } satisfies SeedSource;
+export default {
+	...source,
+	async rows(bank: Parameters<SeedSource['rows']>[0]) {
+		return { ...(await source.rows(bank)), sys_channel_connection, sys_envoy_channel, sys_envoy };
+	}
+} satisfies SeedSource;

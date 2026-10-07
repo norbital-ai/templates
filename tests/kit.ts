@@ -27,7 +27,11 @@ export async function workspace(options: Options = {}) {
 	const { sample, ...rest } = options;
 	const t = await testWorkspace(
 		typeof window === 'undefined'
-			? { root, seed: sample ? 'none' : { sys_channel_connection, sys_envoy, sys_envoy_channel }, ...rest }
+			? {
+					root,
+					seed: sample ? 'none' : { sys_channel_connection, sys_envoy, sys_envoy_channel },
+					...rest
+				}
 			: {
 					manifest: JSON.parse(built('manifest.json')) as EngineManifest,
 					guest: { source: built('guest.mjs') },

@@ -53,6 +53,14 @@ const texts = (xml: string) =>
 		.map(([, text]) => unescapeXml(text!))
 		.join('');
 
+const XML_ENTITIES: Record<string, string> = {
+	lt: '<',
+	gt: '>',
+	amp: '&',
+	quot: '"',
+	apos: "'"
+};
+
 const unescapeXml = (text: string) =>
 	text.replace(/&(#x[0-9a-f]+|#\d+|lt|gt|amp|quot|apos);/gi, (_, entity: string) =>
 		entity[0] === '#'
@@ -61,7 +69,7 @@ const unescapeXml = (text: string) =>
 						? Number.parseInt(entity.slice(2), 16)
 						: Number.parseInt(entity.slice(1), 10)
 				)
-			: ({ lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" } as Record<string, string>)[entity]!
+			: (XML_ENTITIES[entity] ?? entity)
 	);
 
 /** `C7` → 2. */
