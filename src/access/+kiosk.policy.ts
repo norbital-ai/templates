@@ -10,7 +10,13 @@ export default policy({
 		'Attendance-kiosk device access: the kiosk app only, time entries for people, and kiosk enrollments that always land pending HR review.',
 	capabilities: { apps: ['kiosk'] },
 	grants: {
-		employees: {
+		sys_file: {
+			read: {
+				where: { field: { eq: 'employment_profile.face_photo' } },
+				fields: ['id', 'field', 'size', 'sha256', 'approval_id', 'created_at']
+			}
+		},
+		employment_profile: {
 			read: {
 				fields: [
 					'id',
@@ -22,7 +28,8 @@ export default policy({
 					'face_enrollment_status',
 					'face_enrolled_at',
 					'face_match_count',
-					'face_last_match_at'
+					'face_last_match_at',
+					'approval_id'
 				]
 			},
 			create: {
@@ -35,8 +42,7 @@ export default policy({
 					'face_photo',
 					'face_enrollment_status',
 					'face_consent_at',
-					'face_enrolled_at',
-					'employments'
+					'face_enrolled_at'
 				]
 			},
 			update: {
@@ -51,15 +57,22 @@ export default policy({
 					'face_last_match_at',
 					'face_match_count'
 				]
-			},
-			queries: ['kiosk_match'],
-			actions: ['kiosk_enroll']
+			}
 		},
-		employments: {
-			read: { fields: ['id', 'employee_id', 'company_id', 'employee_number', 'effective_range'] },
+		employment_contract: {
+			read: {
+				fields: [
+					'id',
+					'employee_id',
+					'company_id',
+					'employee_number',
+					'effective_range',
+					'approval_id'
+				]
+			},
 			create: { fields: ['employee_id', 'company_id', 'employee_number', 'effective_range'] }
 		},
-		companies: { read: { fields: ['id', 'name', 'settings_code'] } },
+		entity: { read: { fields: ['id', 'name', 'settings_code'] } },
 		jurisdiction_settings: {
 			read: {
 				fields: [
@@ -74,18 +87,10 @@ export default policy({
 				]
 			}
 		},
-		employment_terms: {
-			read: { fields: ['employment_id', 'shift_pattern_id', 'effective_range'] }
-		},
-		shift_patterns: {
-			read: { fields: ['id', 'company_id', 'code', 'name', 'pattern', 'effective_range'] }
-		},
-		shift_definitions: { read: { fields: ['id', 'company_id', 'code', 'name', 'variant'] } },
-		work_days: {
+		roster_entry: {
 			read: true,
 			create: { fields: ['employment_id', 'work_date', 'worked_intervals'] },
-			update: { fields: ['worked_intervals'] },
-			actions: ['kiosk_punch']
+			update: { fields: ['worked_intervals'] }
 		}
 	},
 	limits: MEMBER_LIMITS

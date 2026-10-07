@@ -1,0 +1,1504 @@
+[
+	{
+		"id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "MY",
+		"jurisdiction_code": "MY",
+		"name": "Malaysia — 2031-06-01",
+		"sealed_at": "2026-09-26T07:19:34.024Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2031-06-01",
+			"to": null
+		},
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"tax_year_start_month": 1
+		},
+		"sources": {
+			"urls": [
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"https://web.archive.org/web/20260810072920id_/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"https://web.archive.org/web/20260108064119id_/https://www.kwsp.gov.my/en/epf-act-1991-third-schedule",
+				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf",
+				"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf",
+				"https://gajiminimum.mohr.gov.my/",
+				"https://www.johor.gov.my/rakyat/cuti-umum-2",
+				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+				"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
+				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf",
+				"https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"https://www.kwsp.gov.my/en/epf-act-1991-third-schedule",
+				"https://www.hasil.gov.my/en/majikan/jadual-pcb-dan-spesifikasi-data/",
+				"https://www.hasil.gov.my/en/individu/kadar-cukai/",
+				"https://www.hasil.gov.my/en/individu/pelepasan-cukai/",
+				"https://www.kabinet.gov.my/storage/2026/08/HKA_2027.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1742141_BI/Act%20800%20FINAL.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20612%20-%20Reprint%202017.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/11.%20Act%20732%20-%2021.08.2015.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20369%20-%20Holiday%20Act%201951.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3272166_BI/Act%20872%20-%20GIG%20WORKERS%20ACT%202025.pdf",
+				"https://lom.agc.gov.my/",
+				"https://lom.agc.gov.my/subsid.php?type=pua",
+				"https://lom.agc.gov.my/subsid.php?type=pub",
+				"https://lom.agc.gov.my/principal.php?type=amendment",
+				"https://www.hasil.gov.my/en/pengumuman-kenyataan-media/",
+				"https://www.hasil.gov.my/en/perundangan/ketetapan-umum/",
+				"https://www.perkeso.gov.my/en/about-us/source/directives-circulars.html",
+				"https://www.perkeso.gov.my/en/about-us/source/media-statement.html",
+				"https://www.kwsp.gov.my/en/corporate/news-highlights/highlights",
+				"https://jtksm.mohr.gov.my/ms/media/kenyataan-media",
+				"https://www.kabinet.gov.my/hari-kelepasan-am/",
+				"https://belanjawan.mof.gov.my/ms/",
+				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
+				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
+				"https://jtksabah.gov.my",
+				"https://www.jtkswk.gov.my",
+				"https://lawnet.sarawak.gov.my/lawnet/Law/TLnetPublicLawList.jsp",
+				"https://sag.sarawak.gov.my",
+				"https://sagc.sabah.gov.my",
+				"https://sabah.gov.my",
+				"https://www.dosh.gov.my",
+				"https://www.parlimen.gov.my"
+			],
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page.\nTerritorial and cross-law indices: jtksabah.gov.my and jtkswk.gov.my publish Sabah and Sarawak labour instruments; lawnet.sarawak.gov.my and sag.sarawak.gov.my publish Sarawak law and gazettes; sagc.sabah.gov.my and sabah.gov.my publish Sabah law and state notices. dosh.gov.my publishes occupational-safety instruments. parlimen.gov.my publishes bills and proceedings: an enacted bill alone does not establish commencement; obtain the gazetted Act and appointed-date instrument from the competent law or gazette publisher before changing a sealed rule. Record inaccessible primary material as unresolved rather than substituting commentary."
+		},
+		"cloned_from_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"change_summary": "SKBBK (LINDUNG 24 Jam) Third Phase from 1 June 2031 (P.U. (B) 196/2026 para (d)): the employee share follows Act A1788 Third Schedule Part III (first category) and Part VI (second category), about 1.25% of the band wage.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null && !(has(event.row.exit_facts.misconduct_dismissal) && event.row.exit_facts.misconduct_dismissal == true)",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": ["nationality", "gender", "date_of_birth", "marital_status", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"eq": "event.day"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && !raised.exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id) } })",
+					"events": ["created", "updated", "daily"]
+				}
+			]
+		},
+		"reference_tables": {
+			"payroll": {
+				"vocabularies": {
+					"statutory_work_category": [
+						"NON_MANUAL",
+						"MANUAL_LABOUR",
+						"MANUAL_LABOUR_SUPERVISOR",
+						"COMMERCIAL_VEHICLE_OPERATOR",
+						"VESSEL_WORK",
+						"PIECE_RATE",
+						"TASK_BASIS"
+					],
+					"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+					"pass_type": [],
+					"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+				},
+				"allowance_npl_prorates": true,
+				"worksite_coverage": {
+					"source": "facts.worksite_state",
+					"covered": [
+						"JOHOR",
+						"KEDAH",
+						"KELANTAN",
+						"MELAKA",
+						"NEGERI_SEMBILAN",
+						"PAHANG",
+						"PERAK",
+						"PERLIS",
+						"PULAU_PINANG",
+						"SELANGOR",
+						"TERENGGANU",
+						"KUALA_LUMPUR",
+						"PUTRAJAYA",
+						"LABUAN"
+					],
+					"refused": [
+						{
+							"values": ["SABAH", "SARAWAK"],
+							"message": "{value} worksite on {day} needs its Labour Ordinance payroll profile."
+						}
+					],
+					"uncovered_message": "record a supported Peninsular Malaysia or Labuan worksite state on employment terms for {day} before payroll.",
+					"spans": ["SALARY"],
+					"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode."
+				},
+				"deduction_ceiling": {
+					"share": 0.5,
+					"basis": "GROSS",
+					"counts_statutory": true,
+					"counts_loans": true,
+					"exempt_codes": [],
+					"final_pay_exempt": false,
+					"final_pay_exempts_loans": true,
+					"authority": "Employment Act 1955 s.24(8): the total deducted under s.24 in a month may not exceed 50% of the wages earned in that month — s.24(2)(d) deductions authorized by another written law (EPF, SOCSO, EIS, MTD) are deductions under the section, and s.24(2)(c)/(4)(b) advance and loan recoveries count; s.24(9)(b) excludes from the limit only “deductions from the final payment of the wages of an employee for any amount due to the employer and remaining unpaid by the employee on the termination of the employee’s contract of service” — the loan and advance recoveries; the statutory and other deductions on the final payslip stay within the half (round 5, Act 265 reprint as at 1 August 2023). Applied: s.24(9)(a) exempts deductions FROM the notice indemnity payable BY the employer TO the employee (NOTICE_IN_LIEU), up to that payment; it does not generally exempt an indemnity owed by the employee. NOTICE_INDEMNITY is lawful under s.24(2)(b) and outside the half only on final pay under s.24(9)(b); s.24(9)(c) permits up to a further 25% solely for APPROVED_HOUSING_LOAN with the Director General's written permission recorded in approval_reference. The extra room never increases ordinary deductions. EA s.2 wage exclusions are classified by basis_exempt_codes; customer-specific codes must be classified in the sealed settings. Settled 2026-09-23 (round 4) from the Act 265 reprint as at 1 August 2023: s.24(1) “No deductions shall be made by an employer from the wages of an employee otherwise than in accordance with this Act”; s.24(2) “It shall be lawful for an employer to make the following deductions: … (d) deductions authorized by any other written law”; s.24(8) “The total of any amounts deducted under this section from the wages of an employee in respect of any one month shall not exceed fifty per centum of the wages earned by that employee in that month.” A statutory deduction (EPF employee share, SOCSO, EIS, MTD/PCB) is lawful only through s.24(2)(d) — s.24(1) admits no other route — so it is deducted under this section and counts toward the half; s.24(9) exempts it nowhere. The statutory charges are never shortened: they take their room first and only the counted recoveries are dropped.",
+					"approved_loan_extension": {
+						"codes": ["APPROVED_HOUSING_LOAN"],
+						"share": 0.25
+					},
+					"basis_exempt_codes": [
+						"TRAVELLING_ALLOWANCE",
+						"EXPENSE_REIMBURSEMENT",
+						"GRATUITY",
+						"ANNUAL_BONUS",
+						"TERMINATION_BENEFIT",
+						"ACCOMMODATION_IN_KIND",
+						"NOTICE_IN_LIEU"
+					],
+					"final_pay_exempt_codes": ["NOTICE_INDEMNITY"],
+					"uncapped_payment_codes": ["NOTICE_IN_LIEU"],
+					"assessment_period": "MONTH"
+				},
+				"final_pay_deadlines": [
+					{
+						"when": "employment.exit_ground == \"RESIGNATION\" && \"terminated_without_notice\" in employment.exit_fact_keys && employment.exit_facts.terminated_without_notice == true",
+						"days": 3,
+						"basis": "EVENT_DATE",
+						"authority": "Employment Act 1955 s.21(2): an employee who terminates without notice under s.13(1)-(2) or s.14(3) is paid not later than the third day after the termination"
+					},
+					{
+						"when": "",
+						"days": 0,
+						"basis": "EVENT_DATE",
+						"authority": "Employment Act 1955 s.20 (a contract ending under s.11(1) or by notice under s.12, from either party) and s.21(1) (the employer terminating without notice): not later than the day the contract terminates"
+					}
+				],
+				"tax_clearance": {
+					"when": "employment.exit_ground == \"RETIREMENT\" || employee.citizenship != \"CITIZEN\" || (\"leaving_malaysia\" in employment.exit_fact_keys && employment.exit_facts.leaving_malaysia == true)",
+					"category": "TAX_CLEARANCE",
+					"reference_label": "CP22A/CP21",
+					"authority": "Income Tax Act 1967 s.83(3)-(5): notice one month before a retiring employee ceases (the MTD exemption in the s.83(3) proviso does not reach a retiree) or before an employee leaves Malaysia for more than three months; money withheld until ninety days after HASiL receives it; e-SPC"
+				}
+			},
+			"work_rules": {
+				"proration": {
+					"by": "CALENDAR_DAYS"
+				},
+				"ordinary_divisor_days": "employment.type != \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * terms.facts.contract_hours_per_week / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+				"rate_conversions": {
+					"weekly_to_monthly": "52.0 / 12.0",
+					"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+					"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+				},
+				"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
+				"bands": [
+					{
+						"label": "PT-1.0X",
+						"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+						"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+						"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
+					},
+					{
+						"label": "PT-1.5X",
+						"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
+						"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+						"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+					},
+					{
+						"label": "EARLIER-REST-2.0X",
+						"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+						"funnel_above_hours": "limits.daily_total"
+					},
+					{
+						"label": "WORKDAY-OT-1.5X",
+						"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
+						"funnel_above_hours": "limits.daily_total"
+					},
+					{
+						"label": "RESTDAY-2.0X",
+						"line": "REST_DAY_WORK",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+					},
+					{
+						"label": "RESTDAY-OT-2.0X",
+						"when": "day_type == \"REST_DAY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					},
+					{
+						"label": "HOLIDAY-2.0X",
+						"line": "HOLIDAY_WORK",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "normal_hours",
+						"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
+					},
+					{
+						"label": "HOLIDAY-OT-3.0X",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take_hours": "hours_beyond_normal",
+						"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 3.0"
+					}
+				],
+				"limits": [
+					{
+						"key": "daily_total",
+						"period": "DAY",
+						"measure": "TOTAL_WORK_HOURS",
+						"max_hours": 12,
+						"unit": "WORKED_HOURS",
+						"authority": "Employment Act 1955 s.60A(7): no more than twelve hours of work in any one day; s.60A(9) \"hours of work\" is the time the employee is at the employer’s disposal, so the twelve are worked hours, breaks excluded."
+					},
+					{
+						"key": "normal_day",
+						"period": "DAY",
+						"measure": "NORMAL_HOURS",
+						"max_hours": 8,
+						"unit": "WORKED_HOURS",
+						"authority": "Employment Act 1955 s.60A(1)(b)"
+					},
+					{
+						"key": "spread_day",
+						"period": "DAY",
+						"measure": "SPREAD_HOURS",
+						"max_hours": 10,
+						"unit": "WORKED_HOURS",
+						"authority": "Employment Act 1955 s.60A(1)(c)"
+					},
+					{
+						"key": "weekly_normal",
+						"period": "WEEK",
+						"measure": "NORMAL_HOURS",
+						"max_hours": 45,
+						"unit": "WORKED_HOURS",
+						"authority": "Employment Act 1955 s.60A(1)(d): not more than 45 hours of work in one week; s.60A(3) pays the hours beyond at one and a half times the hourly rate"
+					},
+					{
+						"key": "monthly_ot",
+						"period": "MONTH",
+						"measure": "OVERTIME_HOURS",
+						"max_hours": 104,
+						"unit": "WORKED_HOURS",
+						"authority": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2 sets 104 overtime hours in any one month for Employment Act 1955 s.60A(4)(a). The first proviso to s.60A(4)(a) excludes all work on a statutory rest day, a gazetted public holiday referred to in s.60D(1), or its paid substitute under s.60D. Ordinary-day and off-day overtime count; excluded days do not consume this cap. Separate daily limits and payment entitlements still apply."
+					},
+					{
+						"key": "weekly_rest",
+						"measure": "CONSECUTIVE_WORK_DAYS",
+						"max_days": 6,
+						"discharged_by": "REST",
+						"suspended_by_leave": ["MATERNITY_LEAVE", "MEDICAL_LEAVE", "HOSPITALIZATION_LEAVE"]
+					}
+				],
+				"breaks": [
+					{
+						"when": "consecutive_hours > 5.0",
+						"owed_minutes": "30.0",
+						"counts_as_worked_time": null
+					}
+				],
+				"overtime_unit_hours": 0.5,
+				"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+				"earlier_rest_day_work": "RESOLVE_AS_OFF",
+				"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Customer payroll method (agreed company terms, not a statutory formula): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Statutory floor and s.59(1): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
+				"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
+				"wages": {
+					"block_unmeasured_results_pay": true,
+					"results_pay": {
+						"task_only_time_events_refused": true,
+						"levy_scheme": "HRDF",
+						"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
+						"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+						"results_wage_codes": [
+							"TASK_MONTHLY_WAGE",
+							"TRIP_MONTHLY_WAGE",
+							"COMMISSION_MONTHLY",
+							"COMMISSION_IRREGULAR"
+						],
+						"zero_results_code": "RESULTS_ZERO_MONTH"
+					},
+					"part_time_monthly_hourly_floor": true,
+					"by_region": {
+						"Malaysia": 1700
+					},
+					"hourly_by_region": {
+						"Malaysia": 8.72
+					},
+					"applies_when": "employment.type != \"DOMESTIC\"",
+					"block_below_when": "true",
+					"scale": "terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week == 6.0 ? 65.38 : (terms.working_days_per_week == 5.0 ? 78.46 : (terms.working_days_per_week == 4.0 ? 98.08 : 1700.0 / 26.0))) * 26.0 / 1700.0 : 1.0",
+					"authority": "Minimum Wages Order 2024 para 2: a domestic employee is outside the Order. Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1) and 5(1) print a daily rate by the number of working days in a week — RM65.38 (six), RM78.46 (five), RM98.08 (four) — and RM8.72 an hour. The run compares a daily contract as the month it makes (the rate × the 26-day divisor), so `scale` restates the printed daily rate as that month over the printed monthly RM1,700; `hourly_by_region` holds an hourly rate to RM8.72 directly (the three figures are one table of the Order and move together); a monthly contract is the monthly RM1,700 (scale 1). P.U.(A) 376/2024 para 2 excludes a domestic servant only; a person recorded under a contract of service is not exempt because the role is labelled INTERN. A genuine non-employee training arrangement requires a separate employment-status finding."
+				},
+				"encashment": {
+					"reference": "EVENT_DATE",
+					"pay_frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+					"preserve_year_end_rate": false,
+					"day_amount": "terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / 6.0 + terms.fixed_allowances / 26.0 : terms.monthly_wage / 26.0",
+					"include_allowances": [
+						"SUA",
+						"ONCALL",
+						"CHILDCARE_ALLOWANCE",
+						"MEAL_ALLOWANCE",
+						"PARKING_ALLOWANCE"
+					],
+					"exclude_allowances": [],
+					"authority": "Employment Act 1955 ss.2, 60E(3A), 60I(1A)-(1B): monthly wages / 26; weekly basic / 6. Contract allowances are monthly amounts, so qualifying normal-hours allowances add their monthly amount / 26. Excluded payments do not enter the rate.; s.60I(1C) for daily/hourly rates (preceding wage period) Child care, meal and parking allowances (added 2026-09-28) are cash payments under the contract and within s.2 “wages” (AGC reprint as at 1 August 2023), none named in exclusions (a)–(f), so they enter the ordinary rate of pay as the scale-up allowance does."
+				},
+				"ordinary_rate_reference": {
+					"reference": "PREVIOUS_WAGE_PERIOD",
+					"pay_frequencies": ["DAILY", "HOURLY"],
+					"authority": "Employment Act 1955 s.60I(1C): total wages in the preceding wage period over the days actually worked"
+				}
+			},
+			"tables": [
+				{
+					"name": "EPF_PART_F",
+					"label": "EPF Act 1991 Third Schedule Part F (Act A1760): non-citizen employee and employer shares",
+					"keys": [],
+					"range": {
+						"from_inclusive": false,
+						"to_inclusive": true
+					},
+					"columns": [
+						{
+							"key": "employee_percent",
+							"type": "number",
+							"label": "Employee share (% of wages)",
+							"required": true
+						},
+						{
+							"key": "employer_percent",
+							"type": "number",
+							"label": "Employer share (% of wages)",
+							"required": true
+						}
+					]
+				},
+				{
+					"name": "TERMINATION_GROUND",
+					"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+					"keys": ["code"],
+					"columns": []
+				}
+			],
+			"checks": [
+				{
+					"code": "LABOUR_ORDINANCE_TERRITORY",
+					"at": "PAYSLIP",
+					"severity": "REFUSE",
+					"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
+					"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
+					"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode."
+				}
+			],
+			"exit_facts": [
+				{
+					"key": "terminated_without_notice",
+					"type": "boolean",
+					"label": "Left without notice",
+					"description": "The employee ended the contract without notice under Employment Act 1955 s.13(1)-(2) or s.14(3); the final wages are then due by the third day after (s.21(2)).",
+					"required_when": "employment.exit_ground == \"RESIGNATION\""
+				},
+				{
+					"key": "leaving_malaysia",
+					"type": "boolean",
+					"label": "Leaving Malaysia for more than three months",
+					"description": "Income Tax Act 1967 s.83(4): the employer gives CP21 notice and withholds money payable under s.83(5).",
+					"required_when": "employee.citizenship == \"CITIZEN\" && !(employment.exit_ground in [\"RETIREMENT\", \"DEATH\"])"
+				},
+				{
+					"key": "wages_12m",
+					"type": "number",
+					"label": "Wages of the last twelve months",
+					"description": "Termination and Lay-Off Benefits Regulations 1980 reg.6(2): the s.2 wages earned in the twelve completed months before termination, stated where earlier payslips in this workspace do not hold them (an employee brought over with history). Absent, the termination benefit reads the payslips.",
+					"minimum": 0
+				},
+				{
+					"key": "misconduct_dismissal",
+					"type": "boolean",
+					"label": "Dismissed for misconduct",
+					"description": "Dismissed for misconduct after due inquiry. Statutory consequences apply only where the relevant provision covers the worker; domestic service is excluded from s.14; s.57 and Part XVA have distinct grounds. For covered workers s.60E(3A) also governs untaken annual leave.",
+					"required_when": "employment.exit_ground == \"DISMISSAL\""
+				},
+				{
+					"key": "notice_given",
+					"type": "boolean",
+					"label": "Written termination notice given",
+					"description": "Whether written notice was given before departure. Its giving day counts in the notice period (Employment Act s.12(4)). Without notice, the whole prospective period is unserved.",
+					"required_when": "(employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\""
+				},
+				{
+					"key": "notice_given_on",
+					"type": "date",
+					"label": "Written notice date",
+					"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date.",
+					"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_given",
+					"valid_when": "(!employment.exit_facts.notice_given && employment.exit_facts.notice_given_on == \"\") || (employment.exit_facts.notice_given && employment.notice_days_remaining(0.0, employment.exit_facts.notice_given_on, 0.0) >= 0.0)",
+					"validation_message": "The written notice date requires notice to have been given and must fall within the employment through its final service day."
+				},
+				{
+					"key": "notice_waived_days",
+					"type": "number",
+					"label": "Final unserved notice days waived",
+					"description": "Calendar days at the END of the remaining notice period expressly waived by the party entitled to notice. Enter 0 where no waiver exists. Record the agreement; a waiver cannot exceed the unserved period.",
+					"minimum": 0,
+					"integer": true,
+					"required_when": "(employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\""
+				},
+				{
+					"key": "notice_termination_party",
+					"type": "string",
+					"label": "Party ending employment on the final service day",
+					"description": "The party electing to end employment on this date, including cutting short an earlier notice. EMPLOYER owes the employee; EMPLOYEE may owe the employer. NEITHER is natural expiry, death or an agreed end with no unilateral termination. The original resignation/dismissal label alone does not decide this.",
+					"options": ["EMPLOYER", "EMPLOYEE", "NEITHER"],
+					"required_when": "employment.exit_date != \"\""
+				},
+				{
+					"key": "notice_approved_apprenticeship",
+					"type": "boolean",
+					"label": "Approved and filed apprenticeship contract",
+					"description": "True only for an apprenticeship contract in a form approved by the Director General AND a copy filed with the Director General (EA s.17A). A trainee/intern label is insufficient. Sections 10–16 then do not apply; separate contractual rights still require assessment.",
+					"required_when": "employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]"
+				},
+				{
+					"key": "notice_exception",
+					"type": "string",
+					"label": "Ground permitting termination without notice indemnity",
+					"description": "NONE for ordinary notice. OTHER_PARTY_WILFUL_BREACH: s.13(2). IMMEDIATE_DANGER: employee/dependants immediately threatened by violence/disease not undertaken under the contract, s.14(3), outside domestic service. DOMESTIC_INCONSISTENT_CONDUCT: the other party's conduct contrary to the domestic-service contract, s.57. Due-inquiry misconduct is recorded separately. HARASSMENT_DISMISSAL: employer dismissal after its inquiry proves sexual harassment, s.81C(a)(i); Part XVA also applies to domestic employees and approved apprentices. This is not a complainant departure under s.81E.",
+					"options": [
+						"NONE",
+						"OTHER_PARTY_WILFUL_BREACH",
+						"IMMEDIATE_DANGER",
+						"DOMESTIC_INCONSISTENT_CONDUCT",
+						"HARASSMENT_DISMISSAL"
+					],
+					"required_when": "(employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
+					"valid_when": "(employment.exit_facts.notice_exception == \"NONE\" || (employment.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\" && !employment.exit_facts.notice_approved_apprenticeship) || (employment.exit_facts.notice_exception == \"IMMEDIATE_DANGER\" && employment.exit_facts.notice_termination_party == \"EMPLOYEE\" && employment.type != \"DOMESTIC\" && !employment.exit_facts.notice_approved_apprenticeship) || (employment.exit_facts.notice_exception == \"DOMESTIC_INCONSISTENT_CONDUCT\" && employment.type == \"DOMESTIC\")) || (employment.exit_facts.notice_exception == \"HARASSMENT_DISMISSAL\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\")",
+					"validation_message": "The notice exception does not apply to this terminating party or employment category."
+				},
+				{
+					"key": "notice_structural_ground",
+					"type": "string",
+					"label": "Section 12(3) termination ground",
+					"description": "The specified closure/reduction/ownership grounds and refusal of a transfer the contract does not require preserve the 4/6/8-week floor even where the written contract is shorter. Redundancy/retrenchment labels also retain that floor.",
+					"options": [
+						"NONE",
+						"BUSINESS_CLOSURE",
+						"WORKPLACE_CLOSURE",
+						"REDUCED_WORK",
+						"REDUCED_LOCAL_WORK",
+						"TRANSFER_REFUSAL_NOT_REQUIRED",
+						"OWNERSHIP_CHANGE"
+					],
+					"required_when": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\"",
+					"valid_when": "employment.exit_facts.notice_structural_ground == \"NONE\" || (employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && !employment.exit_facts.notice_approved_apprenticeship)",
+					"validation_message": "Section 12(3) grounds require an employer termination covered by section 12."
+				},
+				{
+					"key": "notice_exception_reference",
+					"type": "string",
+					"label": "Notice exception or approval evidence reference",
+					"description": "Reference to the breach/danger/inquiry or proven sexual-harassment dismissal record, domestic contract conduct, apprenticeship approval and filed copy, or the section 12(3) cause. Preserve the underlying evidence.",
+					"min_length": 1,
+					"required_when": "(employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (employment.exit_facts.notice_approved_apprenticeship || (employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) || (employment.exit_facts.notice_exception != \"\" && employment.exit_facts.notice_exception != \"NONE\") || (employment.exit_facts.notice_structural_ground != \"\" && employment.exit_facts.notice_structural_ground != \"NONE\"))"
+				}
+			],
+			"terms_facts": [
+				{
+					"key": "worksite_state",
+					"type": "string",
+					"label": "Worksite state or federal territory",
+					"description": "The dated Malaysian state or federal territory of the worksite. Employment Act 1955 governs Peninsular Malaysia and Labuan; Sabah and Sarawak need their Labour Ordinance profile.",
+					"options": [
+						"JOHOR",
+						"KEDAH",
+						"KELANTAN",
+						"MELAKA",
+						"NEGERI_SEMBILAN",
+						"PAHANG",
+						"PERAK",
+						"PERLIS",
+						"PULAU_PINANG",
+						"SELANGOR",
+						"TERENGGANU",
+						"KUALA_LUMPUR",
+						"PUTRAJAYA",
+						"LABUAN",
+						"SABAH",
+						"SARAWAK"
+					]
+				},
+				{
+					"key": "annual_leave_carry_max_days",
+					"type": "number",
+					"label": "Annual leave carried forward (most days)",
+					"minimum": 0,
+					"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+				},
+				{
+					"key": "contract_hours_per_week",
+					"type": "number",
+					"label": "Contract hours a week",
+					"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours.",
+					"minimum": 1,
+					"default_value": 45
+				}
+			],
+			"facts": [
+				{
+					"key": "hrd_scope",
+					"type": "string",
+					"label": "HRD employer scope",
+					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule.",
+					"required": true,
+					"options": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"]
+				},
+				{
+					"key": "hrd_registration_class",
+					"type": "string",
+					"label": "HRD employer registration class",
+					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration.",
+					"required": true,
+					"options": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
+					"valid_when": "company.facts.hrd_scope == \"PART_I\" || company.facts.hrd_registration_class != \"COMPULSORY\"",
+					"validation_message": "Only a Part I employer can have compulsory HRD registration."
+				},
+				{
+					"key": "hrd_form2_count",
+					"type": "number",
+					"label": "HRD Form 2 Malaysian employee count",
+					"description": "The Malaysian employee count declared to HRD Corp for this levy month; exclude persons outside Act 612 s.2. Date changes in company facts.",
+					"required": true,
+					"minimum": 0,
+					"integer": true
+				},
+				{
+					"key": "hrd_optional_last_high_year",
+					"type": "number",
+					"label": "Last optional HRD high-rate year",
+					"description": "Calendar year in which an optional registrant most recently exceeded its Part II class maximum; 0 if never.",
+					"required_when": "company.facts.hrd_registration_class == \"OPTIONAL\"",
+					"minimum": 0,
+					"maximum": 9999,
+					"integer": true
+				},
+				{
+					"key": "hrd_education_schedule_code",
+					"type": "string",
+					"label": "2026 HRD education exemption schedule code",
+					"description": "P.U. (A) 13/2026 Schedule MSIC code or listed 8541/8542/8549 group; NONE when the registered education industry is not scheduled. Verify against the employer's HRD registration.",
+					"options": [
+						"NONE",
+						"85102",
+						"85104",
+						"85212",
+						"85222",
+						"85302",
+						"8541",
+						"8542",
+						"8549",
+						"85500"
+					],
+					"required": false,
+					"default_value": "NONE"
+				}
+			],
+			"pcb_elections": [
+				{
+					"key": "pcb_disabled",
+					"type": "boolean",
+					"default_value": false,
+					"description": "Income Tax Act 1967 s.46(1)(e): the RM7,000 deduction is for an individual certified disabled by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
+				},
+				{
+					"key": "pcb_spouse_disabled",
+					"type": "boolean",
+					"default_value": false,
+					"description": "Income Tax Act 1967 s.47(1)(b)/(2): the further RM6,000 is for a disabled spouse living together, certified by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
+				},
+				{
+					"key": "zakat",
+					"type": "number",
+					"label": "Monthly payroll zakat",
+					"minimum": 0,
+					"description": "Zakat deducted through payroll for this month. Record payments made directly through dated TP1 rebate claims. Income Tax Act 1967 s.6A(3): the rebate is for zakat actually paid; nothing is deducted through payroll without the employee’s instruction, so the default is 0.",
+					"default_value": 0
+				},
+				{
+					"key": "tp1_home_price",
+					"type": "number",
+					"label": "First-home price",
+					"required_when": "scheme.deductions.HOME_INTEREST > 0.0"
+				},
+				{
+					"key": "tp1_home_spa_date",
+					"type": "date",
+					"label": "First-home sale agreement date",
+					"required_when": "scheme.deductions.HOME_INTEREST > 0.0"
+				},
+				{
+					"key": "tp1_home_first_interest_year",
+					"type": "number",
+					"label": "First-home first interest year",
+					"required_when": "scheme.deductions.HOME_INTEREST > 0.0"
+				},
+				{
+					"key": "tp1_home_total_interest",
+					"type": "number",
+					"label": "First-home interest paid by all owners this year",
+					"required_when": "scheme.deductions.HOME_INTEREST > 0.0"
+				},
+				{
+					"key": "tp1_departure_levy_claims_before_year",
+					"type": "number",
+					"label": "Earlier departure levy claims",
+					"integer": true,
+					"required_when": "scheme.deduction_claim_counts.DEPARTURE_LEVY > 0.0",
+					"minimum": 0,
+					"maximum": 2,
+					"description": "Number of qualifying departure levy journeys claimed before this tax year, including other employers. Corrections use the original journey reference."
+				},
+				{
+					"key": "pcb_tax_profile",
+					"type": "string",
+					"label": "PCB tax profile",
+					"description": "Select only a current approved category. C_SUITE is the relocation-company concession covered by LHDN 2026 D(5). STANDARD uses resident progressive rates.",
+					"options": ["STANDARD", "REP", "KNOWLEDGE_WORKER", "C_SUITE"],
+					"default_value": "STANDARD"
+				},
+				{
+					"key": "pcb_approval_first_year",
+					"type": "number",
+					"label": "First approved assessment year",
+					"minimum": 1900,
+					"maximum": 2100,
+					"integer": true,
+					"required_when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.pcb_tax_profile != \"STANDARD\""
+				},
+				{
+					"key": "pcb_approval_last_year",
+					"type": "number",
+					"label": "Last approved assessment year",
+					"minimum": 1900,
+					"maximum": 2100,
+					"integer": true,
+					"required_when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.pcb_tax_profile != \"STANDARD\""
+				},
+				{
+					"key": "pcb_approval_reference",
+					"type": "string",
+					"label": "Tax-profile approval reference",
+					"description": "Ministerial approval reference and employee election. For REP use the TalentCorp/Minister approval; for a knowledge worker use the Minister-through-IRDA approval for the designated company; for C-suite use the approval letter naming the approved company. Record a new dated declaration when eligibility or employer changes.",
+					"min_length": 1,
+					"required_when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.pcb_tax_profile != \"STANDARD\""
+				},
+				{
+					"key": "pcb_profile_conditions_confirmed",
+					"type": "boolean",
+					"label": "Current profile conditions confirmed",
+					"description": "Confirm the employee still meets the approval's current employment, employer, role and location conditions. REP requires approved employment with a Malaysian resident person; knowledge-worker approval requires the designated company, qualifying activity and specified region; C-suite approval requires the named approved company and C-suite role.",
+					"default_value": false,
+					"required_when": "person.terms.tax_residency == \"RESIDENT\" && scheme.elections.pcb_tax_profile != \"STANDARD\""
+				},
+				{
+					"key": "pcb_sch6_para21",
+					"type": "boolean",
+					"label": "Short-term non-resident employment (Schedule 6 para 21)",
+					"default_value": false,
+					"description": "Income Tax Act 1967 Schedule 6 para 21 (AGC online text as at 1 January 2026): the income of a non-resident from an employment exercised in Malaysia for periods together not exceeding sixty days in the basis year, or a continuous period not exceeding sixty days overlapping two basis years (with any further periods not together exceeding sixty days), is exempt. Para 22 removes the exemption where that employment's income derived from Malaysia exceeds sixty days in the period, and for a public entertainer. Declare true to claim the exemption for an employment that is not a public entertainer's (para 22(b)); default false. The days are counted, not declared: the employee's stays recorded `employment_exercised` (`presence_periods`), within the stint, in the basis year through the payroll date (`employee.employment_days`). One to sixty such days: nil MTD. Past sixty, para 22(a) applies and the exempt months are recovered (`pcb_sch6_para22_recover`). No such day recorded: the claim refuses. Physical presence alone never counts."
+				},
+				{
+					"key": "pcb_sch6_para22_recover",
+					"type": "boolean",
+					"label": "Sixty days exceeded: recover the exempt months (Schedule 6 para 22)",
+					"default_value": false,
+					"description": "Income Tax Act 1967 Schedule 6 para 22 (AGC online text as at 1 January 2026): the para 21 exemption does not apply where the non-resident's employment in Malaysia exceeds sixty days, so the months already paid with nil MTD under `pcb_sch6_para21` were taxable at the Schedule 1 para 1A 30% rate. The law does not say when the shortfall is withheld. Owner rule 2026-09-28: law silent; default — from the month the employer declares this (with `pcb_sch6_para21` false) MTD is 30% of the tax year's whole base, earlier slips and any declared opening included, less the MTD already charged this year, truncated to the cent, rounded up to five sen, nil below RM10; it may stay true for the rest of the year, each month then withholding 30% of that month. Lawful because the Income Tax (Deduction from Remuneration) Rules 1994 require the employer to deduct from remuneration and ITA s.107(3) makes it liable for any shortfall; nothing restricts recovery to the months earned. Default false."
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"description": "Stored on employment_contract.facts.contract_terms; the term in force is the CEL root `terms`.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "MYR"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "MYR"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "MYR"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PROBATION", "PART_TIME", "INTERN", "DOMESTIC"],
+								"description": "Employment Act 1955: DOMESTIC is a domestic employee (First Schedule para.2(5) excludes Part IX maternity, Part XII annual/sick leave and s.60FA); PART_TIME is under the Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+								"description": "Employment Act 1955 First Schedule (as amended by Act A1651, 1 January 2023): EA_COVERED is an employee the Act covers in full; MANAGERIAL and NON_EA earn above RM4,000 a month outside the First Schedule categories and are outside ss.60A(3), 60D(3), 60(3) and 60I overtime and holiday-pay rules."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR", "NON_MANUAL", "TASK_BASIS"],
+								"description": "Employment Act 1955 First Schedule para.1: manual labour and its supervision are covered irrespective of wages; TASK_BASIS is paid by task, trip or commission (no base salary), priced through the adhoc task classes."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+								"description": "Selects the EPF Third Schedule Part (A/E citizen, A/C permanent resident, F non-citizen), SOCSO/EIS coverage (EIS excludes foreign employees, Act 800 First Schedule para.10), the HRD levy (Malaysian citizens only, Act 612 s.2) and the default MTD residence (a FOREIGNER is non-resident unless employee.facts.tax_residency says RESIDENT)."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"worksite_state": {
+										"type": "string",
+										"enum": [
+											"JOHOR",
+											"KEDAH",
+											"KELANTAN",
+											"MELAKA",
+											"NEGERI_SEMBILAN",
+											"PAHANG",
+											"PERAK",
+											"PERLIS",
+											"PULAU_PINANG",
+											"SELANGOR",
+											"TERENGGANU",
+											"KUALA_LUMPUR",
+											"PUTRAJAYA",
+											"LABUAN",
+											"SABAH",
+											"SARAWAK"
+										],
+										"title": "Worksite state or federal territory",
+										"description": "The dated Malaysian state or federal territory of the worksite. Employment Act 1955 governs Peninsular Malaysia and Labuan; Sabah and Sarawak need their Labour Ordinance profile."
+									},
+									"annual_leave_carry_max_days": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Annual leave carried forward (most days)",
+										"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+									},
+									"contract_hours_per_week": {
+										"type": "number",
+										"minimum": 1,
+										"default": 45,
+										"title": "Contract hours a week",
+										"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours."
+									},
+									"work_pass_valid_until": {
+										"type": "string",
+										"format": "date",
+										"title": "Work pass valid until",
+										"description": "A FOREIGNER’s work pass or permit expiry. From the first wage month after it, the worker is outside EPF Part F (KWSP: “with a valid work pass”) and outside the SOCSO invalidity scheme (Act 4 First Schedule para 12A)."
+									}
+								}
+							}
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes; the CEL root `employment.exit_facts`.",
+					"properties": {
+						"terminated_without_notice": {
+							"type": "boolean",
+							"title": "Left without notice",
+							"description": "The employee ended the contract without notice under Employment Act 1955 s.13(1)-(2) or s.14(3); the final wages are then due by the third day after (s.21(2))."
+						},
+						"leaving_malaysia": {
+							"type": "boolean",
+							"title": "Leaving Malaysia for more than three months",
+							"description": "Income Tax Act 1967 s.83(4): the employer gives CP21 notice and withholds money payable under s.83(5)."
+						},
+						"wages_12m": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Wages of the last twelve months",
+							"description": "Termination and Lay-Off Benefits Regulations 1980 reg.6(2): the s.2 wages earned in the twelve completed months before termination, stated where earlier payslips in this workspace do not hold them (an employee brought over with history). Absent, the termination benefit reads the payslips."
+						},
+						"misconduct_dismissal": {
+							"type": "boolean",
+							"title": "Dismissed for misconduct",
+							"description": "Dismissed for misconduct after due inquiry. Statutory consequences apply only where the relevant provision covers the worker; domestic service is excluded from s.14; s.57 and Part XVA have distinct grounds. For covered workers s.60E(3A) also governs untaken annual leave."
+						},
+						"notice_given": {
+							"type": "boolean",
+							"title": "Written termination notice given",
+							"description": "Whether written notice was given before departure. Its giving day counts in the notice period (Employment Act s.12(4)). Without notice, the whole prospective period is unserved."
+						},
+						"notice_given_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Written notice date",
+							"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date."
+						},
+						"notice_waived_days": {
+							"type": "integer",
+							"minimum": 0,
+							"title": "Final unserved notice days waived",
+							"description": "Calendar days at the END of the remaining notice period expressly waived by the party entitled to notice. Enter 0 where no waiver exists. Record the agreement; a waiver cannot exceed the unserved period."
+						},
+						"notice_termination_party": {
+							"type": "string",
+							"enum": ["EMPLOYER", "EMPLOYEE", "NEITHER"],
+							"title": "Party ending employment on the final service day",
+							"description": "The party electing to end employment on this date, including cutting short an earlier notice. EMPLOYER owes the employee; EMPLOYEE may owe the employer. NEITHER is natural expiry, death or an agreed end with no unilateral termination. The original resignation/dismissal label alone does not decide this."
+						},
+						"notice_approved_apprenticeship": {
+							"type": "boolean",
+							"title": "Approved and filed apprenticeship contract",
+							"description": "True only for an apprenticeship contract in a form approved by the Director General AND a copy filed with the Director General (EA s.17A). A trainee/intern label is insufficient. Sections 10–16 then do not apply; separate contractual rights still require assessment."
+						},
+						"notice_exception": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"OTHER_PARTY_WILFUL_BREACH",
+								"IMMEDIATE_DANGER",
+								"DOMESTIC_INCONSISTENT_CONDUCT",
+								"HARASSMENT_DISMISSAL"
+							],
+							"title": "Ground permitting termination without notice indemnity",
+							"description": "NONE for ordinary notice. OTHER_PARTY_WILFUL_BREACH: s.13(2). IMMEDIATE_DANGER: employee/dependants immediately threatened by violence/disease not undertaken under the contract, s.14(3), outside domestic service. DOMESTIC_INCONSISTENT_CONDUCT: the other party's conduct contrary to the domestic-service contract, s.57. Due-inquiry misconduct is recorded separately. HARASSMENT_DISMISSAL: employer dismissal after its inquiry proves sexual harassment, s.81C(a)(i); Part XVA also applies to domestic employees and approved apprentices. This is not a complainant departure under s.81E."
+						},
+						"notice_structural_ground": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"BUSINESS_CLOSURE",
+								"WORKPLACE_CLOSURE",
+								"REDUCED_WORK",
+								"REDUCED_LOCAL_WORK",
+								"TRANSFER_REFUSAL_NOT_REQUIRED",
+								"OWNERSHIP_CHANGE"
+							],
+							"title": "Section 12(3) termination ground",
+							"description": "The specified closure/reduction/ownership grounds and refusal of a transfer the contract does not require preserve the 4/6/8-week floor even where the written contract is shorter. Redundancy/retrenchment labels also retain that floor."
+						},
+						"notice_exception_reference": {
+							"type": "string",
+							"title": "Notice exception or approval evidence reference",
+							"description": "Reference to the breach/danger/inquiry or proven sexual-harassment dismissal record, domestic contract conduct, apprenticeship approval and filed copy, or the section 12(3) cause. Preserve the underlying evidence."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"description": "Stored on employment_profile.facts.employment_statutory_facts: one standing per scheme per day; the standing in force on the period’s first day is the CEL root `scheme` (`scheme.standing`, `scheme.elections`).",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["REGISTERED", "RELEASED"],
+										"description": "REGISTERED for an ordinary standing. RELEASED on SKBBK only (Cabinet decision 8 July 2026; PERKESO LINDUNG 24 Jam FAQ Q9, Q11, Q25, Q28): a release filed in the opt-out window (13 July – 31 August 2026) takes effect from the July 2026 wage month — record effective_range.from 2026-07-01; June 2026 is always charged; after the window only a new employee’s Notice of Release of Liability before the first contribution is accepted (\"Once In, Always In\"). End the standing from the salary month an opt-in is submitted. Ignored for a FOREIGNER (mandatory)."
+									},
+									"reference_number": {
+										"type": "string"
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "Standing elections by scheme (the CEL roots scheme.elections and elections.<CODE>): PCB declarations and MTD residence; EPF, SOCSO and EIS liability history.",
+										"properties": {
+											"tax_residency": {
+												"type": "string",
+												"enum": ["RESIDENT", "NON_RESIDENT"],
+												"title": "MTD tax residence",
+												"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
+											},
+											"zakat_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "Monthly payroll zakat",
+												"description": "Income Tax Act 1967 s.6A(3): the zakat deducted through payroll each month while the standing is in force, rebated from MTD; earlier months of the year are taken at the same amount. Nothing is deducted without the employee’s instruction, so the default is 0."
+											},
+											"spouse_disabled": {
+												"type": "boolean",
+												"default": false,
+												"title": "Disabled spouse (certified)",
+												"description": "Income Tax Act 1967 s.47(1)(b)/(2): the further RM6,000 is for a disabled spouse living together, certified by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
+											},
+											"children_under_18_or_studying": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_under_18_or_studying_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_tertiary_or_disabled": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_tertiary_or_disabled_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_disabled_tertiary": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM16,000: a disabled child in diploma or degree study",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_disabled_tertiary_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM16,000: a disabled child in diploma or degree study — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"elected_before_1998": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: elected to contribute before 1 August 1998",
+												"description": "EPF standing only. ACT 452 Third Schedule Part A para 1(c) and Part C para 1(c): a non-citizen who elected to contribute before 1 August 1998 contributes at the Part A rates below 60 and Part C from 60, not Part F."
+											},
+											"first_insured_at_55_or_more": {
+												"type": "boolean",
+												"default": false,
+												"title": "SOCSO: first insured at 55 or more",
+												"description": "SOCSO standing only. Act 4 First Schedule para 12(i): no contribution was payable for the employee before 55, so the employee is in the Second Category (employment injury only)."
+											},
+											"first_insured_at_57_or_more": {
+												"type": "boolean",
+												"default": false,
+												"title": "EIS: first insured at 57 or more",
+												"description": "EIS standing only. Act 800 First Schedule para 9: no contribution was payable for the employee before 57, so from 57 the employee is outside EIS."
+											},
+											"domestic_servant_notice_given": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: domestic servant gave notice to be a member",
+												"description": "EPF standing only. ACT 452 First Schedule paras (2)–(3): a domestic servant is a member only after one month’s notice in the prescribed form to the Board and the employer."
+											},
+											"board_approved_other_scheme": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: Board approved another provident scheme",
+												"description": "EPF_NON_CITIZEN standing only. ACT 452 First Schedule para (8): a person domiciled outside Malaysia with the Board’s prior written approval to participate in another scheme is not an employee."
+											},
+											"designated_employer": {
+												"type": "boolean",
+												"default": true,
+												"title": "SKBBK: the employer the employee designated",
+												"description": "SKBBK standing only. PERKESO LINDUNG 24 Jam FAQ Q21: contributions are deducted through one employer only, the one the employee chose; false at every other employer."
+											},
+											"tp1_monthly_deductions": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP1 deductions for the month (LP1)",
+												"description": "Form TP1 2026 deductions the employee declared for the month (MTD Specification 2026 D, LP1)."
+											},
+											"tp3_prior_remuneration": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier remuneration this year",
+												"description": "Form TP3: remuneration paid by previous employers in the current year (part of Σ(Y − K))."
+											},
+											"tp3_prior_epf": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier EPF this year",
+												"description": "Form TP3: EPF contributions on that remuneration (part of K)."
+											},
+											"tp3_prior_mtd": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier MTD this year",
+												"description": "Form TP3: MTD deducted by previous employers in the current year (part of X)."
+											},
+											"pcb_tax_profile": {
+												"type": "string",
+												"enum": ["STANDARD", "REP", "KNOWLEDGE_WORKER", "C_SUITE"],
+												"default": "STANDARD",
+												"title": "PCB: approved tax profile",
+												"description": "MTD Specification 2026 sections 3–5: REP (Returning Expert Programme) and KNOWLEDGE_WORKER (specified region) at 15% with the RM400 rebates; C_SUITE (non-citizen in an approved company) at 15%."
+											},
+											"pcb_approval_first_year": {
+												"type": "integer",
+												"minimum": 1900,
+												"maximum": 2100,
+												"title": "PCB: first approved year of assessment"
+											},
+											"pcb_approval_last_year": {
+												"type": "integer",
+												"minimum": 1900,
+												"maximum": 2100,
+												"title": "PCB: last approved year of assessment"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as the other keys of employment_profile.facts; the CEL root `employee.facts`. Profile columns (gender, marital_status, spouse_status, disabled, children, nationality, date_of_birth) are model fields, not inputs here.",
+					"properties": {
+						"income_tax_number": {
+							"type": "string",
+							"title": "LHDN income tax number (TIN)"
+						},
+						"epf_member_number": {
+							"type": "string",
+							"title": "KWSP member number"
+						},
+						"socso_number": {
+							"type": "string",
+							"title": "PERKESO insured person number"
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts; the CEL root `company.facts`.",
+			"properties": {
+				"hrd_scope": {
+					"type": "string",
+					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
+					"title": "HRD employer scope",
+					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
+				},
+				"hrd_registration_class": {
+					"type": "string",
+					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
+					"title": "HRD employer registration class",
+					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
+				},
+				"hrd_form2_count": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "HRD Form 2 Malaysian employee count",
+					"description": "The Malaysian employee count declared to HRD Corp for this levy month; exclude persons outside Act 612 s.2. Date changes in company facts."
+				},
+				"hrd_optional_last_high_year": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 9999,
+					"title": "Last optional HRD high-rate year",
+					"description": "Calendar year in which an optional registrant most recently exceeded its Part II class maximum; 0 if never."
+				},
+				"hrd_education_schedule_code": {
+					"type": "string",
+					"enum": [
+						"NONE",
+						"85102",
+						"85104",
+						"85212",
+						"85222",
+						"85302",
+						"8541",
+						"8542",
+						"8549",
+						"85500"
+					],
+					"default": "NONE",
+					"title": "2026 HRD education exemption schedule code",
+					"description": "P.U. (A) 13/2026 Schedule MSIC code or listed 8541/8542/8549 group; NONE when the registered education industry is not scheduled. Verify against the employer's HRD registration."
+				},
+				"normal_daily_hours": {
+					"type": "number",
+					"exclusiveMinimum": 0,
+					"maximum": 9,
+					"default": 8,
+					"title": "Normal hours of work a day",
+					"description": "Employment Act 1955 s.60I(1)(b): the hourly rate of pay is the ordinary rate of pay (monthly ÷ 26, s.60I(1A)) divided by the normal hours of work; s.60A(1) allows at most 8 a day (9 under its proviso). Unrecorded is 8."
+				},
+				"epf_employer_number": {
+					"type": "string",
+					"title": "KWSP employer number"
+				},
+				"socso_employer_code": {
+					"type": "string",
+					"title": "PERKESO employer code (SOCSO, EIS and SKBBK)"
+				},
+				"lhdn_employer_number": {
+					"type": "string",
+					"title": "LHDN employer number (E number)"
+				},
+				"hrd_employer_code": {
+					"type": "string",
+					"title": "HRD Corp employer code (MyCoID)"
+				}
+			}
+		}
+	}
+]

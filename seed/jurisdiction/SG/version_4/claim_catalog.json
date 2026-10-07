@@ -1,0 +1,181 @@
+[
+	{
+		"id": "46cc0920-29ef-5b25-a2fa-2fee15f28fa3",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "MEDICAL_TREATMENT_REIMBURSEMENT",
+		"name": "Qualified medical, dental or TCM reimbursement",
+		"authority": "CPF Act 1953 s.2(1), CPF (Wages — Excluded Payments) Notification 2019 paras.2–3 https://sso.agc.gov.sg/SL/CPFA1953-N12?DocDate=20251217 ; Skills Development Levy Act 1979 s.2, SDL (Wages — Excluded Payments) Notification 2023 paras.2–3 https://sso.agc.gov.sg/SL/SDLA1979-S375-2023?DocDate=20230614",
+		"destination": "NET",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
+		"evidence": "REQUIRED",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "d9094a7f-c583-5044-af21-1ab88410ef2b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PER_DIEM_OFFICIAL_REIMBURSEMENT",
+		"name": "Per diem reimbursement of actual official expenses",
+		"authority": "CPF Board, per-diem payments: official-purpose expense reimbursements do not attract CPF only when the employer can prove the purpose and the reimbursement does not exceed actual expenditure. A lump-sum allowance remains wages. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-per-diem-payments (retrieved 2026-10-03).",
+		"destination": "NET",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.official_purpose && entry.facts.actual_expenditure >= entry.amount && entry.facts.purpose_reference != \"\"",
+		"evidence": "REQUIRED",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8d620a71-f538-56ee-037c-91be80150f70",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "ADOPTION_REIMBURSEMENT",
+		"name": "Government-paid adoption leave reimbursement",
+		"authority": "Current CDCA s9(1),(1A),(1B),12AA,12DA; CDCR7 thirteen D branches. Requires the original lawful source admission and exact statutory origin derivation. MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order). Employer-paid portion (MSF): GPAL weeks 1–4 of a 1st or 2nd child are employer-paid; customer input: entry.facts.claim_from_week (the first week the claim covers).",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3 && entry.facts[\"cdca_original_statutory_origin\"] != \"\" && entry.amount <= 2500.0 * entry.quantity && entry.amount + sum(earlier.rows.filter(r, has(r.child_id) && has(entry.child_id) && r.child_id == entry.child_id).map(r, r.amount)) <= (has(entry.child_order) && entry.child_order >= 3 ? 30000.0 : 20000.0) && (!has(entry.claim_from_week) || (has(entry.child_order) && entry.child_order >= 3) || entry.claim_from_week >= 5)",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"leave_code": "ADOPTION_LEAVE",
+		"unit_cap": "2500.0",
+		"claim_window_months": 3,
+		"employer_premium_scheme": "CPF",
+		"minimum_service_months": 3
+	},
+	{
+		"id": "c8a2ec44-2535-519e-4d76-e54a93e55b9d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "GPML_REIMBURSEMENT",
+		"name": "Government-paid maternity leave reimbursement",
+		"authority": "Current CDCA s9(1),(1A),(1B),12AA,12DA; CDCR7 thirteen D branches. Requires the original lawful source admission and exact statutory origin derivation. MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order). Employer-paid portion (MSF): GPML weeks 1–8 of a 1st or 2nd child are employer-paid; customer input: entry.facts.claim_from_week (the first week the claim covers).",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3 && entry.facts[\"cdca_original_statutory_origin\"] != \"\" && entry.amount <= 2500.0 * entry.quantity && entry.amount + sum(earlier.rows.filter(r, has(r.child_id) && has(entry.child_id) && r.child_id == entry.child_id).map(r, r.amount)) <= (has(entry.child_order) && entry.child_order >= 3 ? 40000.0 : 20000.0) && (!has(entry.claim_from_week) || (has(entry.child_order) && entry.child_order >= 3) || entry.claim_from_week >= 9)",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"leave_code": "MATERNITY_LEAVE",
+		"unit_cap": "2500.0",
+		"claim_window_months": 3,
+		"employer_premium_scheme": "CPF",
+		"minimum_service_months": 3
+	},
+	{
+		"id": "a783207e-2013-558b-7542-a8969dcbab0f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "GPPL_REIMBURSEMENT",
+		"name": "Government-paid paternity leave reimbursement",
+		"authority": "Child Development Co-Savings Act2001 ss12H,12I,12J; Child Development Co-Savings(Leave and Benefits)Regulations2017 reg8. Qualified original statutory paternity arrangements only; actual individually paid leave wages/employer CPF, original weekly index, actual allowance history and source-funded workdays. Four-week April2025 Scheme origins; two-week other/stillbirth origins. Government refund and employer cost are separately source-linked; no refund is an employee grant. https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=P13-; https://sso.agc.gov.sg/SL/CDCSA2001-S358-2017?ProvIds=pr8- MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order).",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3 && entry.facts[\"cdca_original_statutory_origin\"] != \"\" && entry.amount <= 2500.0 * entry.quantity && entry.amount + sum(earlier.rows.filter(r, has(r.child_id) && has(entry.child_id) && r.child_id == entry.child_id).map(r, r.amount)) <= 10000.0",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"leave_code": "PATERNITY_LEAVE",
+		"unit_cap": "2500.0",
+		"claim_window_months": 3,
+		"employer_premium_scheme": "CPF",
+		"minimum_service_months": 3
+	},
+	{
+		"id": "2c82ea3a-d095-52b4-3458-457d9f662b4a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WICA_MEDICAL",
+		"name": "WICA medical insurer recovery",
+		"authority": "Work Injury Compensation Act 2019 ss.2, 3, 7–12, 17 and First Schedule paras.4 and 6; MOM WICA types of compensation and medical-leave-wages calculator.",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [],
+		"eligibility": "",
+		"qualifies_when": "",
+		"evidence": "REQUIRED",
+		"counts_toward": []
+	},
+	{
+		"id": "bc7afb8a-2527-5272-8a8e-de275355ca2b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "GPSPL_REIMBURSEMENT",
+		"name": "Government-paid shared parental leave reimbursement",
+		"authority": "Child Development Co-Savings Act 2001 ss.12DA–12DD; MSF ProFamily Leave, Shared parental leave (https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave), read 2026-10-07: reimbursed at up to $2,500 a week including CPF, claimed no later than 3 months after the last day of the leave; entry.quantity is the weeks claimed (days ÷ working days a week).",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3 && entry.amount <= 2500.0 * entry.quantity",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"leave_code": "SHARED_PARENTAL_LEAVE",
+		"unit_cap": "2500.0",
+		"claim_window_months": 3,
+		"employer_premium_scheme": "CPF",
+		"minimum_service_months": 3
+	},
+	{
+		"id": "861d9412-a35b-530f-9ec4-4b5d66633367",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "GPCL_REIMBURSEMENT",
+		"name": "Government-paid childcare leave reimbursement",
+		"authority": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave), read 2026-10-07: GPCL days 4–6 and both extended childcare days are reimbursed at up to $500 a day including CPF ($1,500 / $1,000 a year), claimed no later than 3 months after the calendar year; entry.quantity is the days claimed. Employer-paid portion (MSF): GPCL days 1–3 of the year are employer-paid (ECL days are all reimbursed); customer input: entry.facts.claim_from_day (the first day the claim covers).",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3 && entry.amount <= 500.0 * entry.quantity && (!has(entry.claim_from_day) || false || entry.claim_from_day >= 4)",
+		"evidence": "REQUIRED",
+		"counts_toward": [],
+		"leave_code": "CHILDCARE_LEAVE",
+		"unit_cap": "500.0",
+		"claim_window_months": 3,
+		"employer_premium_scheme": "CPF",
+		"minimum_service_months": 3
+	}
+]

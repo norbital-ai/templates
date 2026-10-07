@@ -1,0 +1,23 @@
+[
+	{
+		"id": "468791d6-7aba-4f74-a3c7-2bf8d9a540f1",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "FIXED_ALLOWANCE",
+		"name": "Fixed allowance (固定津贴补贴)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
+		"authority": "国家统计局《关于工资总额组成的规定》第四条、第八条: 津贴和补贴是工资总额的组成部分; 个人所得税法实施条例 第六条第一项 (工资、薪金所得包括津贴、补贴). Prorated by calendar days like the basic salary.",
+		"counts_toward": [
+			"PENSION",
+			"MEDICAL",
+			"UNEMPLOYMENT",
+			"WORK_INJURY",
+			"HPF",
+			"HPF_SUPPLEMENTARY",
+			"UNION_FUND",
+			"IIT"
+		],
+		"destination": "PAY",
+		"direction": "ADD"
+	}
+]

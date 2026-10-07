@@ -5,5 +5,7 @@ export default app('hr_controller/people', {
 	description: 'app.people.description',
 	icon: 'lucide:users',
 	banner: 'app-media/people-banner.webp',
-	pages: { people: { title: 'app.people.title', icon: 'lucide:users' }, attendance: { title: 'app.scheduling.board_title', icon: 'lucide:calendar-clock' } }
+	pages: {
+		people: { title: 'app.people.title', icon: 'lucide:users' }
+	}
 });

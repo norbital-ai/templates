@@ -1,7 +1,21 @@
 import { collection } from '@norbital-ai/bolt';
 
+const columns = [
+	'code',
+	'name',
+	'authority',
+	'component_code',
+	'eligibility',
+	'quantity',
+	'rate',
+	'prorated',
+	'destination',
+	'direction',
+	'counts_toward'
+] as const;
+
 export default collection('work_catalog', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['values'] } },
-	update: { input: { columns: ['values'] } }
+	create: { input: { columns: [...columns, 'settings_id'] } },
+	update: { input: { columns } }
 });

@@ -62,13 +62,15 @@ export const KIOSK_PHRASES = {
 
 export type KioskPhraseKey = keyof typeof KIOSK_PHRASES;
 
-export const KIOSK_PHRASE_KEYS = Object.keys(KIOSK_PHRASES) as readonly KioskPhraseKey[];
-
 /** The language a locale tag speaks in this list: any Chinese locale is `zh`, everything else `en`. */
 export const kioskVoiceLanguage = (locale: string): KioskVoiceLanguage =>
 	locale.toLowerCase().replace('_', '-').split('-')[0] === 'zh' ? 'zh' : 'en';
 
 /** Narration of actual native capture refusals, shared by the camera consumer and regression tests. */
-export function kioskCaptureRefusalPhrase(reason:unknown):KioskPhraseKey {
- return reason==='not-scheduled'||reason==='not-a-work-day'?'no_shift_today':reason==='cooldown'?'too_soon':'unchanged';
+export function kioskCaptureRefusalPhrase(reason: unknown): KioskPhraseKey {
+	return reason === 'not-scheduled' || reason === 'not-a-work-day'
+		? 'no_shift_today'
+		: reason === 'cooldown'
+			? 'too_soon'
+			: 'unchanged';
 }

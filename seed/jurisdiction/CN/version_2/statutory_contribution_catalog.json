@@ -1,0 +1,221 @@
+[
+	{
+		"id": "453cccb7-758d-4341-98f2-30746efa9860",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "PENSION",
+		"name": "职工基本养老保险 (basic pension insurance)",
+		"authority": "社会保险法 第十条、第十二条; 国务院办公厅《降低社会保险费率综合方案》(国办发〔2019〕13号) 第一条: 单位缴费比例16%, 个人8% (国发〔2005〕38号). SH: 上海市人社局 单位缴费比例问答 https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html. Bases — SH: 上海市人力资源和社会保障局 2025年9月18日公告《本市调整2025年度社保缴费基数上下限》: 自2025年7月1日起缴费基数上限37302元/月、下限7460元/月 (2024年度全口径城镇单位就业人员月平均工资12434元的300%和60%). KM: 云南省人力资源和社会保障厅等四部门《关于公布2026年度全省社会保险相关参数的通知》(云人社发〔2026〕8号, 2026年8月21日): 2026年度职工基本养老保险、失业保险、工伤保险、医疗保险(含生育保险)个人缴费基数上限按7339元的300% (22017元/月)、下限按60% (4403元/月); 医疗保险上下限自2026年9月1日起执行. http://www.yn.xinhuanet.com/20260829/77b8cbc9d5d3436fae154f284755e76e/c.html Contribution base: the employee's declared monthly base on the contract terms (`terms.facts.si_contribution_base`, the prior-year monthly average wage the employer declares each contribution year; a new hire's first month's wage) or, when none is declared, the contract monthly wage (`terms.monthly_wage`), held within the city floor and ceiling (社会保险法 第十二条; 国办发〔2019〕13号 第四条). Part-time (非全日制), interns and re-hired retirees are outside the compulsory pension, medical and unemployment insurance.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0))"
+			},
+			"refuse_when": [
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				}
+			],
+			"rules": [
+				{
+					"when": "!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
+					"employee": "round(base.assessed * 0.08, 0.01, \"HALF_UP\")",
+					"employer": "round(base.assessed * 0.16, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "社会保险法 第十条、第十二条; 国务院办公厅《降低社会保险费率综合方案》(国办发〔2019〕13号) 第一条: 单位缴费比例16%, 个人8% (国发〔2005〕38号). SH: 上海市人社局 单位缴费比例问答 https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html. Bases — SH: 上海市人力资源和社会保障局 2025年9月18日公告《本市调整2025年度社保缴费基数上下限》: 自2025年7月1日起缴费基数上限37302元/月、下限7460元/月 (2024年度全口径城镇单位就业人员月平均工资12434元的300%和60%). KM: 云南省人力资源和社会保障厅等四部门《关于公布2026年度全省社会保险相关参数的通知》(云人社发〔2026〕8号, 2026年8月21日): 2026年度职工基本养老保险、失业保险、工伤保险、医疗保险(含生育保险)个人缴费基数上限按7339元的300% (22017元/月)、下限按60% (4403元/月); 医疗保险上下限自2026年9月1日起执行. http://www.yn.xinhuanet.com/20260829/77b8cbc9d5d3436fae154f284755e76e/c.html Contribution base: the employee's declared monthly base on the contract terms (`terms.facts.si_contribution_base`, the prior-year monthly average wage the employer declares each contribution year; a new hire's first month's wage) or, when none is declared, the contract monthly wage (`terms.monthly_wage`), held within the city floor and ceiling (社会保险法 第十二条; 国办发〔2019〕13号 第四条). Part-time (非全日制), interns and re-hired retirees are outside the compulsory pension, medical and unemployment insurance."
+		}
+	},
+	{
+		"id": "80ad651e-703b-4c08-aa88-f7e4be4e3f84",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "MEDICAL",
+		"name": "职工基本医疗保险 (含生育保险) (medical insurance, maternity merged)",
+		"authority": "社会保险法 第二十三条; 国务院办公厅《关于全面推进生育保险和职工基本医疗保险合并实施的意见》(国办发〔2019〕10号). SH: 沪医保规〔2025〕2号 (至2026年2月28日) 与 沪医保规〔2026〕2号《关于继续阶段性降低本市职工基本医疗保险费费率的通知》(2026年3月1日至2027年2月28日): 单位缴费9% (基本医疗保险费含生育保险8.5%, 地方附加医疗保险费0.5%), 个人2%. https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html SH base as pension: 上海市人力资源和社会保障局 2025年9月18日公告《本市调整2025年度社保缴费基数上下限》: 自2025年7月1日起缴费基数上限37302元/月、下限7460元/月 (2024年度全口径城镇单位就业人员月平均工资12434元的300%和60%). KM: 昆明市医疗保障局 昆明市财政局《关于调整昆明市医疗保障制度筹资及待遇政策实施细则相关事宜的通知》(2022年12月30日, 自2023年1月1日): \"单位缴费费率由2022年的8%（未含生育保险部分）下调至7%\" https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml (Wayback 20250319170817), unchanged in the bureau's reply of 2025-06-23 https://ybj.km.gov.cn/c/2025-06-23/4992082.shtml; 生育保险 \"由用人单位按照0.9%的费率缴纳，职工个人不缴费\" (昆明市职工生育保险政策问答, 2024-07-25) https://ybj.km.gov.cn/c/2024-07-25/4907468.shtml; employee 2%: 国发〔1998〕44号 二 \"职工缴费率一般为本人工资收入的2%\". KM medical base: 4306–21531 (2025年度 joint notice of 昆明市医疗保障局 and 国家税务总局昆明市税务局, declaration 2025-01-01 to 31), and from 2026-09-01 4403–22017 (云人社发〔2026〕8号). The per-head 大额医疗费用补助 (employer 0.6% of the provincial average monthly wage, employee 1 yuan a month; 41.44 yuan in 昆医保通〔2023〕47号) is not charged: its 2025/2026 amount was not found (GAP, KM_MAJOR_EXPENSE_NOT_COMPUTED warns). KM long-term care insurance (云政办规〔2025〕9号, in force 2026-02-05) is carved out of the medical employer rate and the medical personal account during Kunming's three-year transition, not a payroll line https://www.nhsa.gov.cn/art/2026/4/5/art_14_20122.html. SH long-term care insurance (沪府办规〔2025〕19号, 2026年1月1日至2027年12月31日) is funded by a quarterly transfer of 0.5% of the medical base from the medical fund, not a payroll contribution https://www.shanghai.gov.cn/nw12344/20251231/51cafb297f0a4397ad30afe0d91ad104.html.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4306.0), 21531.0))"
+			},
+			"refuse_when": [
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				}
+			],
+			"rules": [
+				{
+					"when": "company.region == \"SH\" && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
+					"employee": "round(base.assessed * 0.02, 0.01, \"HALF_UP\")",
+					"employer": "round(base.assessed * 0.09, 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "company.region == \"KM\" && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
+					"employee": "round(base.assessed * 0.02, 0.01, \"HALF_UP\")",
+					"employer": "round(base.assessed * 0.079, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "社会保险法 第二十三条; 国务院办公厅《关于全面推进生育保险和职工基本医疗保险合并实施的意见》(国办发〔2019〕10号). SH: 沪医保规〔2025〕2号 (至2026年2月28日) 与 沪医保规〔2026〕2号《关于继续阶段性降低本市职工基本医疗保险费费率的通知》(2026年3月1日至2027年2月28日): 单位缴费9% (基本医疗保险费含生育保险8.5%, 地方附加医疗保险费0.5%), 个人2%. https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html SH base as pension: 上海市人力资源和社会保障局 2025年9月18日公告《本市调整2025年度社保缴费基数上下限》: 自2025年7月1日起缴费基数上限37302元/月、下限7460元/月 (2024年度全口径城镇单位就业人员月平均工资12434元的300%和60%). KM: 昆明市医疗保障局 昆明市财政局《关于调整昆明市医疗保障制度筹资及待遇政策实施细则相关事宜的通知》(2022年12月30日, 自2023年1月1日): \"单位缴费费率由2022年的8%（未含生育保险部分）下调至7%\" https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml (Wayback 20250319170817), unchanged in the bureau's reply of 2025-06-23 https://ybj.km.gov.cn/c/2025-06-23/4992082.shtml; 生育保险 \"由用人单位按照0.9%的费率缴纳，职工个人不缴费\" (昆明市职工生育保险政策问答, 2024-07-25) https://ybj.km.gov.cn/c/2024-07-25/4907468.shtml; employee 2%: 国发〔1998〕44号 二 \"职工缴费率一般为本人工资收入的2%\". KM medical base: 4306–21531 (2025年度 joint notice of 昆明市医疗保障局 and 国家税务总局昆明市税务局, declaration 2025-01-01 to 31), and from 2026-09-01 4403–22017 (云人社发〔2026〕8号). The per-head 大额医疗费用补助 (employer 0.6% of the provincial average monthly wage, employee 1 yuan a month; 41.44 yuan in 昆医保通〔2023〕47号) is not charged: its 2025/2026 amount was not found (GAP, KM_MAJOR_EXPENSE_NOT_COMPUTED warns). KM long-term care insurance (云政办规〔2025〕9号, in force 2026-02-05) is carved out of the medical employer rate and the medical personal account during Kunming's three-year transition, not a payroll line https://www.nhsa.gov.cn/art/2026/4/5/art_14_20122.html. SH long-term care insurance (沪府办规〔2025〕19号, 2026年1月1日至2027年12月31日) is funded by a quarterly transfer of 0.5% of the medical base from the medical fund, not a payroll contribution https://www.shanghai.gov.cn/nw12344/20251231/51cafb297f0a4397ad30afe0d91ad104.html."
+		}
+	},
+	{
+		"id": "aa4ff577-3fe4-4f3f-8d10-d22a781e759a",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "UNEMPLOYMENT",
+		"name": "失业保险 (unemployment insurance)",
+		"authority": "社会保险法 第四十四条; 失业保险条例 第六条. Not charged from 1 January 2026: the phased 1% rate (人社部发〔2024〕40号; 沪人社规〔2024〕25号 第一条; 云人社发〔2025〕9号) ended on 31 December 2025 and no 2026 extension could be verified, so the 2026 rate is a GAP rather than a presumed figure.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0))"
+			},
+			"refuse_when": [
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				}
+			],
+			"rules": [],
+			"limitation": "社会保险法 第四十四条; 失业保险条例 第六条. Not charged from 1 January 2026: the phased 1% rate (人社部发〔2024〕40号; 沪人社规〔2024〕25号 第一条; 云人社发〔2025〕9号) ended on 31 December 2025 and no 2026 extension could be verified, so the 2026 rate is a GAP rather than a presumed figure."
+		}
+	},
+	{
+		"id": "e6b0713c-1c0c-4908-90df-4d5e59a4cafb",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "WORK_INJURY",
+		"name": "工伤保险 (work-injury insurance)",
+		"authority": "社会保险法 第三十三条、第三十四条 (职工不缴纳工伤保险费); 工伤保险条例 第八条; 人社部 财政部《关于调整工伤保险费率政策的通知》(人社部发〔2015〕71号): 一类至八类行业基准费率0.2%、0.4%、0.7%、0.9%、1.1%、1.3%、1.6%、1.9%, 用人单位费率由经办机构在基准费率上浮动确定. SH: 沪人社规〔2024〕25号 第二条 (自2025年1月1日起按全国基准费率) https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html, 2026年1月《关于调整本市工伤保险费率等问题的通知》保持一至八类基准费率 https://rsj.sh.gov.cn/tzcjd_17352_17352/20260121/t0035_1438094.html. The entity records its industry class in `risk_class` (1–8) and, once the agency notifies a floated rate, `work_injury_rate_percent`; the notified rate governs. Part-time workers are covered (劳动和社会保障部《关于非全日制用工若干问题的意见》劳社部发〔2003〕12号 第十二条). Bases as pension. SH: 沪人社规〔2025〕22号 (2025年12月1日至2030年11月30日): \"用人单位可以为其使用的超龄就业人员和实习生单险种参加工伤保险\" — an employer that elects it records `wi_voluntary_interns_and_retirees`; interns and re-hired retirees are then charged work-injury insurance only https://www.shanghai.gov.cn/nw12344/20251030/5368378d19214ffda3ddf04e2fd43ccb.html.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0))"
+			},
+			"refuse_when": [
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				},
+				{
+					"when": "!has(company.facts.work_injury_rate_percent) && !(company.risk_class in [\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\"])",
+					"message": "Work-injury insurance needs the entity industry class (risk_class 1–8) or the rate the social insurance agency notified (work_injury_rate_percent)."
+				}
+			],
+			"rules": [
+				{
+					"when": "!(terms.employment_type in [\"INTERN\", \"RETIREE_REHIRE\"]) || (company.region == \"SH\" && terms.employment_type in [\"INTERN\", \"RETIREE_REHIRE\"] && has(company.facts.wi_voluntary_interns_and_retirees) && company.facts.wi_voluntary_interns_and_retirees == true)",
+					"employee": "0.0",
+					"employer": "round(base.assessed * ((has(company.facts.work_injury_rate_percent) ? double(company.facts.work_injury_rate_percent) : {\"1\": 0.2, \"2\": 0.4, \"3\": 0.7, \"4\": 0.9, \"5\": 1.1, \"6\": 1.3, \"7\": 1.6, \"8\": 1.9}[company.risk_class]) / 100.0), 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "社会保险法 第三十三条、第三十四条 (职工不缴纳工伤保险费); 工伤保险条例 第八条; 人社部 财政部《关于调整工伤保险费率政策的通知》(人社部发〔2015〕71号): 一类至八类行业基准费率0.2%、0.4%、0.7%、0.9%、1.1%、1.3%、1.6%、1.9%, 用人单位费率由经办机构在基准费率上浮动确定. SH: 沪人社规〔2024〕25号 第二条 (自2025年1月1日起按全国基准费率) https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html, 2026年1月《关于调整本市工伤保险费率等问题的通知》保持一至八类基准费率 https://rsj.sh.gov.cn/tzcjd_17352_17352/20260121/t0035_1438094.html. The entity records its industry class in `risk_class` (1–8) and, once the agency notifies a floated rate, `work_injury_rate_percent`; the notified rate governs. Part-time workers are covered (劳动和社会保障部《关于非全日制用工若干问题的意见》劳社部发〔2003〕12号 第十二条). Bases as pension. SH: 沪人社规〔2025〕22号 (2025年12月1日至2030年11月30日): \"用人单位可以为其使用的超龄就业人员和实习生单险种参加工伤保险\" — an employer that elects it records `wi_voluntary_interns_and_retirees`; interns and re-hired retirees are then charged work-injury insurance only https://www.shanghai.gov.cn/nw12344/20251030/5368378d19214ffda3ddf04e2fd43ccb.html."
+		}
+	},
+	{
+		"id": "dff34045-a8d4-4415-98ed-d4f1801f750b",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "HPF",
+		"name": "住房公积金 (housing provident fund)",
+		"authority": "住房公积金管理条例 第十五条、第十六条、第十八条、第十九条: 单位和职工缴存比例均不得低于5%, 原则上不高于12%; 单位与职工按同一比例缴存; 缴存基数为职工本人上一年度月平均工资. SH: 上海市住房公积金管理委员会2025年度 (2025年7月至2026年6月) 缴存基数调整: 下限\"2690元\", 上限公布前按2024年度上限执行, 公布后37302元 (2024年度社平12434元×3) https://www.shanghai.gov.cn/nw17239/20250704/649d8a7b2b1b4ceab2107b8d84fe805e.html; 单位和职工缴存比例各为5%至7%, 补充住房公积金1%至5%. KM: 昆明市住房公积金管理中心2026年度缴存基数及缴存比例执行标准 (2026年1月1日至12月31日): 上限32543元; 下限一类区2270元、二类区2120元、三类区1970元, 依云人社发〔2026〕9号 (自2026年9月1日起); 2026年标准出台前按2025年下限执行 (2026年1月4日通告). The floor is read from `rules.minimum_wage` on the period start: 2170/2020/1870 to 2026-08-31, 2270/2120/1970 from 2026-09-01. Ratio 5%–12%. https://news.qq.com/rain/a/20260906A0AL8000 The entity records its rate (`hpf_rate_percent`, both shares equal) and, in Kunming, its minimum-wage class (`km_hpf_zone` 1–3; unrecorded is class 1, the main urban districts). Amounts round to the yuan (按元计算). Base as declared for social insurance, within the HPF floor and ceiling.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 2690.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), first(rules.minimum_wage.by_region[\"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\")].filter(e, e[\"from\"] <= period.from).map(e, double(e.amount)))), 32543.0))"
+			},
+			"refuse_when": [
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				},
+				{
+					"when": "!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) && !(company.region == \"SH\" ? (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) >= 5.0 && (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) <= 7.0 : (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) >= 5.0 && (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) <= 12.0)",
+					"message": "Housing provident fund needs the entity contribution rate (hpf_rate_percent): 5–7% in Shanghai, 5–12% in Kunming."
+				}
+			],
+			"rules": [
+				{
+					"when": "!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
+					"employee": "round(base.assessed * (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\")",
+					"employer": "round(base.assessed * (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "住房公积金管理条例 第十五条、第十六条、第十八条、第十九条: 单位和职工缴存比例均不得低于5%, 原则上不高于12%; 单位与职工按同一比例缴存; 缴存基数为职工本人上一年度月平均工资. SH: 上海市住房公积金管理委员会2025年度 (2025年7月至2026年6月) 缴存基数调整: 下限\"2690元\", 上限公布前按2024年度上限执行, 公布后37302元 (2024年度社平12434元×3) https://www.shanghai.gov.cn/nw17239/20250704/649d8a7b2b1b4ceab2107b8d84fe805e.html; 单位和职工缴存比例各为5%至7%, 补充住房公积金1%至5%. KM: 昆明市住房公积金管理中心2026年度缴存基数及缴存比例执行标准 (2026年1月1日至12月31日): 上限32543元; 下限一类区2270元、二类区2120元、三类区1970元, 依云人社发〔2026〕9号 (自2026年9月1日起); 2026年标准出台前按2025年下限执行 (2026年1月4日通告). The floor is read from `rules.minimum_wage` on the period start: 2170/2020/1870 to 2026-08-31, 2270/2120/1970 from 2026-09-01. Ratio 5%–12%. https://news.qq.com/rain/a/20260906A0AL8000 The entity records its rate (`hpf_rate_percent`, both shares equal) and, in Kunming, its minimum-wage class (`km_hpf_zone` 1–3; unrecorded is class 1, the main urban districts). Amounts round to the yuan (按元计算). Base as declared for social insurance, within the HPF floor and ceiling."
+		}
+	},
+	{
+		"id": "72b423e1-eee2-47f7-ba71-2a269a2a2e68",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "HPF_SUPPLEMENTARY",
+		"name": "补充住房公积金 (Shanghai supplementary housing provident fund)",
+		"authority": "Shanghai only, voluntary for the employer: 补充住房公积金 at 1%–5% for both shares, on the housing provident fund base. 上海市住房公积金管理委员会2025年度缴存基数通知 (2025年7月1日至2026年6月30日): 缴存基数上限37302元、下限2740元, 单位和职工缴存比例各为5%至7%, 补充住房公积金1%至5%. The entity records `hpf_supplementary_rate_percent`; unrecorded means no supplementary fund.",
+		"configuration": {
+			"assessable": {
+				"ordinary": "(company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 2690.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), first(rules.minimum_wage.by_region[\"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\")].filter(e, e[\"from\"] <= period.from).map(e, double(e.amount)))), 32543.0))"
+			},
+			"rules": [
+				{
+					"when": "company.region == \"SH\" && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) && (company.region == \"SH\" && has(company.facts.hpf_supplementary_rate_percent) ? double(company.facts.hpf_supplementary_rate_percent) : 0.0) >= 1.0 && (company.region == \"SH\" && has(company.facts.hpf_supplementary_rate_percent) ? double(company.facts.hpf_supplementary_rate_percent) : 0.0) <= 5.0",
+					"employee": "round(base.assessed * (company.region == \"SH\" && has(company.facts.hpf_supplementary_rate_percent) ? double(company.facts.hpf_supplementary_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\")",
+					"employer": "round(base.assessed * (company.region == \"SH\" && has(company.facts.hpf_supplementary_rate_percent) ? double(company.facts.hpf_supplementary_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Shanghai only, voluntary for the employer: 补充住房公积金 at 1%–5% for both shares, on the housing provident fund base. 上海市住房公积金管理委员会2025年度缴存基数通知 (2025年7月1日至2026年6月30日): 缴存基数上限37302元、下限2740元, 单位和职工缴存比例各为5%至7%, 补充住房公积金1%至5%. The entity records `hpf_supplementary_rate_percent`; unrecorded means no supplementary fund."
+		}
+	},
+	{
+		"id": "b357d124-4035-48dc-b6fc-1d8faf749665",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "UNION_FUND",
+		"name": "工会经费 (trade union fund)",
+		"authority": "工会法 (2021年修正) 第四十三条第一款第二项: 建立工会组织的用人单位按每月全部职工工资总额的百分之二向工会拨缴的经费. The entity records `union_established`; the base is the month's total wages paid.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "has(company.facts.union_established) && company.facts.union_established == true",
+					"employee": "0.0",
+					"employer": "round(base.assessed * 0.02, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "工会法 (2021年修正) 第四十三条第一款第二项: 建立工会组织的用人单位按每月全部职工工资总额的百分之二向工会拨缴的经费. The entity records `union_established`; the base is the month's total wages paid."
+		}
+	},
+	{
+		"id": "b6bf7e9c-6fe8-4fa9-880f-5ef9248f5859",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "IIT",
+		"name": "个人所得税 (individual income tax, wages and salaries)",
+		"authority": "个人所得税法 (2018年修正) 第二条、第三条第一项 (综合所得适用3%至45%超额累进税率) 、第六条第一款第一项 (居民个人综合所得以每一纳税年度收入额减除费用六万元以及专项扣除、专项附加扣除后的余额为应纳税所得额; 非居民个人工资薪金以每月收入额减除费用五千元后的余额为应纳税所得额) 、第六条第三款 (专项扣除: 基本养老保险、基本医疗保险、失业保险等社会保险费和住房公积金); 国家税务总局《个人所得税扣缴申报管理办法(试行)》(公告2018年第61号) 第六条: 居民个人工资薪金累计预扣法 — 本期应预扣预缴税额 = (累计预扣预缴应纳税所得额 × 预扣率 − 速算扣除数) − 累计减免税额 − 累计已预扣预缴税额; 累计减除费用按5000元/月乘以纳税人当年截至本月在本单位的任职受雇月份数; 第六条第二款 非居民个人按月换算后的综合所得税率表. 专项附加扣除: 国务院《个人所得税专项附加扣除暂行办法》(国发〔2018〕41号), 3岁以下婴幼儿照护 (国发〔2022〕8号), 国务院《关于提高个人所得税有关专项附加扣除标准的通知》(国发〔2023〕13号, 自2023年1月1日): 子女教育每个子女每月2000元、3岁以下婴幼儿照护每个婴幼儿每月2000元 (父母可选择一方100%或双方各50%), 赡养老人每月3000元 (非独生子女分摊, 每人不超过1500元); 继续教育学历(学位)每月400元; 住房贷款利息每月1000元; 住房租金直辖市、省会城市每月1500元 (上海、昆明); https://www.gov.cn/zhengce/content/202308/content_6901206.htm; 国家税务总局上海市税务局子女教育热点问答 (2026年2月25日, 每个子女每月2000元) https://shanghai.chinatax.gov.cn/zcfw/rdwd/202602/t479500.html. The employee declares the deductions as elections on their IIT standing (`children_education_children`, `children_education_split`, `infant_care_children`, `infant_care_split`, `continuing_education_degree`, `housing_loan_interest`, `housing_rent`, `elderly_support_only_child`, `elderly_support_monthly`). 全年一次性奖金: 财政部 税务总局《关于延续实施全年一次性奖金个人所得税政策的公告》(2023年第30号): 至2027年12月31日, 居民个人取得全年一次性奖金可选择不并入当年综合所得, 以奖金除以12个月得到的数额按月度税率表确定适用税率和速算扣除数, 单独计算纳税; 一个纳税年度内对每一个纳税人该计税办法只允许采用一次. Election `annual_bonus_separate`; the ANNUAL_BONUS ad hoc class pays it (part IIT.BONUS); separate taxation applies only while no bonus was taxed separately earlier in the year. Mechanics: the IIT line has three parts — `ordinary` (wages paid, plus a bonus taxed with them), `bonus` (an annual bonus taxed separately) and `deductions` (the month's 5,000 standard deduction, the employee social insurance and housing provident fund shares and the special additional deductions; BASIC opts into it so the part exists every salary month); the year to date of each part is the cumulative, so the payslip base amount is income plus deductions. Each month withholds the cumulative tax less the year's IIT already withheld by this employer (`charged.year.IIT.employee`, net of the separately taxed bonus's own tax), never below zero (累计计算为负值时暂不退税). Ceilings: a deduction declared mid-year is deducted from that month, not back to January; Kunming medical and 2026 unemployment contributions are not seeded, so they are not deducted; serious-illness medical expenses and personal pension are claimed by the employee in the annual reconciliation and are not withheld here; a non-resident's bonus is merged into the month (国家税务总局公告2019年第35号 monthly-bonus rule not modelled).",
+		"configuration": {
+			"assessable": {
+				"ordinary": "month.ordinary + (person.residency_status == \"RESIDENT\" ? (((has(scheme.elections.annual_bonus_separate) && scheme.elections.annual_bonus_separate == true) && year.bonus == 0.0) ? 0.0 : month.bonus) : (year.bonus == 0.0 ? 0.0 : month.bonus))",
+				"bonus": "person.residency_status == \"RESIDENT\" ? (((has(scheme.elections.annual_bonus_separate) && scheme.elections.annual_bonus_separate == true) && year.bonus == 0.0) ? month.bonus : 0.0) : (year.bonus == 0.0 ? month.bonus : 0.0)",
+				"deductions": "(person.residency_status == \"RESIDENT\" ? (5000.0 + (!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) ? (company.region == \"SH\" ? round((company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0)) * 0.08, 0.01, \"HALF_UP\") + round((company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0)) * 0.02, 0.01, \"HALF_UP\") : round((company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 7460.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4403.0), 22017.0)) * 0.08, 0.01, \"HALF_UP\")) : 0.0) + (!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) ? round((company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 2690.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), first(rules.minimum_wage.by_region[\"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\")].filter(e, e[\"from\"] <= period.from).map(e, double(e.amount)))), 32543.0)) * (has(company.facts.hpf_rate_percent) ? double(company.facts.hpf_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\") + round((company.region == \"SH\" ? min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 2690.0), 37302.0) : min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), first(rules.minimum_wage.by_region[\"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\")].filter(e, e[\"from\"] <= period.from).map(e, double(e.amount)))), 32543.0)) * (company.region == \"SH\" && has(company.facts.hpf_supplementary_rate_percent) ? double(company.facts.hpf_supplementary_rate_percent) : 0.0) / 100.0, 1.0, \"HALF_UP\") : 0.0) + 2000.0 * (has(scheme.elections.children_education_children) ? double(scheme.elections.children_education_children) : 0.0) * ((has(scheme.elections.children_education_split) && scheme.elections.children_education_split == true) ? 0.5 : 1.0) + 2000.0 * (has(scheme.elections.infant_care_children) ? double(scheme.elections.infant_care_children) : 0.0) * ((has(scheme.elections.infant_care_split) && scheme.elections.infant_care_split == true) ? 0.5 : 1.0) + ((has(scheme.elections.continuing_education_degree) && scheme.elections.continuing_education_degree == true) ? 400.0 : 0.0) + ((has(scheme.elections.housing_loan_interest) && scheme.elections.housing_loan_interest == true) ? 1000.0 : ((has(scheme.elections.housing_rent) && scheme.elections.housing_rent == true) ? 1500.0 : 0.0)) + ((has(scheme.elections.elderly_support_only_child) && scheme.elections.elderly_support_only_child == true) ? 3000.0 : min((has(scheme.elections.elderly_support_monthly) ? double(scheme.elections.elderly_support_monthly) : 0.0), 1500.0))) : 5000.0) + (person.residency_status == \"RESIDENT\" && company.region == \"KM\" && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) ? round(min(max((has(terms.facts.si_contribution_base) ? double(terms.facts.si_contribution_base) : terms.monthly_wage), 4306.0), 21531.0) * 0.02, 0.01, \"HALF_UP\") : 0.0) + (person.residency_status == \"RESIDENT\" && scheme.since != \"\" && scheme.since.substring(0, 7) == period.from.substring(0, 7) && scheme.since > (employment.start_date != \"\" && employment.start_date > period.from.substring(0, 4) + \"-01-01\" ? employment.start_date : period.from.substring(0, 4) + \"-01-01\") ? (2000.0 * (has(scheme.elections.children_education_children) ? double(scheme.elections.children_education_children) : 0.0) * ((has(scheme.elections.children_education_split) && scheme.elections.children_education_split == true) ? 0.5 : 1.0) + 2000.0 * (has(scheme.elections.infant_care_children) ? double(scheme.elections.infant_care_children) : 0.0) * ((has(scheme.elections.infant_care_split) && scheme.elections.infant_care_split == true) ? 0.5 : 1.0) + ((has(scheme.elections.continuing_education_degree) && scheme.elections.continuing_education_degree == true) ? 400.0 : 0.0) + ((has(scheme.elections.housing_loan_interest) && scheme.elections.housing_loan_interest == true) ? 1000.0 : ((has(scheme.elections.housing_rent) && scheme.elections.housing_rent == true) ? 1500.0 : 0.0)) + ((has(scheme.elections.elderly_support_only_child) && scheme.elections.elderly_support_only_child == true) ? 3000.0 : min((has(scheme.elections.elderly_support_monthly) ? double(scheme.elections.elderly_support_monthly) : 0.0), 1500.0))) * max(0.0, months_through((employment.start_date != \"\" && employment.start_date > period.from.substring(0, 4) + \"-01-01\" ? employment.start_date : period.from.substring(0, 4) + \"-01-01\"), scheme.since) - 1.0) : 0.0)"
+			},
+			"refuse_when": [
+				{
+					"when": "!(person.residency_status in [\"RESIDENT\", \"NON_RESIDENT\"])",
+					"message": "China IIT needs the tax residence on the contract terms: RESIDENT (domicile in China, or 183 days or more in the tax year) or NON_RESIDENT (个人所得税法 第一条)."
+				},
+				{
+					"when": "(has(scheme.elections.housing_loan_interest) && scheme.elections.housing_loan_interest == true) && (has(scheme.elections.housing_rent) && scheme.elections.housing_rent == true)",
+					"message": "The housing-loan-interest and housing-rent special additional deductions cannot both be taken in one tax year (国发〔2018〕41号 第二十二条)."
+				},
+				{
+					"when": "!(company.region in [\"SH\", \"KM\"])",
+					"message": "China payroll needs the entity region: SH (Shanghai) or KM (Kunming); the contribution bases and rates are set by the city."
+				},
+				{
+					"when": "has(base.separation) && base.separation > 0.0 && !has(company.facts.local_average_annual_wage)",
+					"message": "Termination pay is taxed above 3 × the local average annual wage (财税〔2018〕164号): record the entity fact local_average_annual_wage (the city's published figure)."
+				}
+			],
+			"rules": [
+				{
+					"when": "person.residency_status == \"RESIDENT\"",
+					"employee": "max(0.0, round(ladder(max(0.0, year.ordinary + base.ordinary - year.deductions - base.deductions), [[36000.0, 0.03], [144000.0, 0.10], [300000.0, 0.20], [420000.0, 0.25], [660000.0, 0.30], [960000.0, 0.35], [null, 0.45]]), 0.01, \"HALF_UP\") - (charged.year.IIT.employee - (year.bonus > 0.0 ? round(year.bonus * bracket(year.bonus / 12.0, [[3000.0, 0.03], [12000.0, 0.10], [25000.0, 0.20], [35000.0, 0.25], [55000.0, 0.30], [80000.0, 0.35], [null, 0.45]]) - bracket(year.bonus / 12.0, [[3000.0, 0.0], [12000.0, 210.0], [25000.0, 1410.0], [35000.0, 2660.0], [55000.0, 4410.0], [80000.0, 7160.0], [null, 15160.0]]), 0.01, \"HALF_UP\") : 0.0))) + (base.bonus > 0.0 ? round(base.bonus * bracket(base.bonus / 12.0, [[3000.0, 0.03], [12000.0, 0.10], [25000.0, 0.20], [35000.0, 0.25], [55000.0, 0.30], [80000.0, 0.35], [null, 0.45]]) - bracket(base.bonus / 12.0, [[3000.0, 0.0], [12000.0, 210.0], [25000.0, 1410.0], [35000.0, 2660.0], [55000.0, 4410.0], [80000.0, 7160.0], [null, 15160.0]]), 0.01, \"HALF_UP\") : 0.0) + (has(base.separation) && base.separation > 0.0 ? round(ladder(max(0.0, base.separation - 3.0 * (has(company.facts.local_average_annual_wage) ? double(company.facts.local_average_annual_wage) : 0.0)), [[36000.0, 0.03], [144000.0, 0.10], [300000.0, 0.20], [420000.0, 0.25], [660000.0, 0.30], [960000.0, 0.35], [null, 0.45]]), 0.01, \"HALF_UP\") : 0.0)",
+					"employer": "0.0"
+				},
+				{
+					"when": "person.residency_status == \"NON_RESIDENT\"",
+					"employee": "round(ladder(max(0.0, base.ordinary * (has(employee.facts.china_workday_share) ? double(employee.facts.china_workday_share) : 1.0) - base.deductions), [[3000.0, 0.03], [12000.0, 0.10], [25000.0, 0.20], [35000.0, 0.25], [55000.0, 0.30], [80000.0, 0.35], [null, 0.45]]), 0.01, \"HALF_UP\") + (base.bonus > 0.0 ? round(((base.bonus * (has(employee.facts.china_workday_share) ? double(employee.facts.china_workday_share) : 1.0) / 6.0) * bracket((base.bonus * (has(employee.facts.china_workday_share) ? double(employee.facts.china_workday_share) : 1.0) / 6.0), [[3000.0, 0.03], [12000.0, 0.10], [25000.0, 0.20], [35000.0, 0.25], [55000.0, 0.30], [80000.0, 0.35], [null, 0.45]]) - bracket((base.bonus * (has(employee.facts.china_workday_share) ? double(employee.facts.china_workday_share) : 1.0) / 6.0), [[3000.0, 0.0], [12000.0, 210.0], [25000.0, 1410.0], [35000.0, 2660.0], [55000.0, 4410.0], [80000.0, 7160.0], [null, 15160.0]])) * 6.0, 0.01, \"HALF_UP\") : 0.0) + (has(base.separation) && base.separation > 0.0 ? round(ladder(max(0.0, base.separation - 3.0 * (has(company.facts.local_average_annual_wage) ? double(company.facts.local_average_annual_wage) : 0.0)), [[36000.0, 0.03], [144000.0, 0.10], [300000.0, 0.20], [420000.0, 0.25], [660000.0, 0.30], [960000.0, 0.35], [null, 0.45]]), 0.01, \"HALF_UP\") : 0.0)",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "个人所得税法 (2018年修正) 第二条、第三条第一项 (综合所得适用3%至45%超额累进税率) 、第六条第一款第一项 (居民个人综合所得以每一纳税年度收入额减除费用六万元以及专项扣除、专项附加扣除后的余额为应纳税所得额; 非居民个人工资薪金以每月收入额减除费用五千元后的余额为应纳税所得额) 、第六条第三款 (专项扣除: 基本养老保险、基本医疗保险、失业保险等社会保险费和住房公积金); 国家税务总局《个人所得税扣缴申报管理办法(试行)》(公告2018年第61号) 第六条: 居民个人工资薪金累计预扣法 — 本期应预扣预缴税额 = (累计预扣预缴应纳税所得额 × 预扣率 − 速算扣除数) − 累计减免税额 − 累计已预扣预缴税额; 累计减除费用按5000元/月乘以纳税人当年截至本月在本单位的任职受雇月份数; 第六条第二款 非居民个人按月换算后的综合所得税率表. 专项附加扣除: 国务院《个人所得税专项附加扣除暂行办法》(国发〔2018〕41号), 3岁以下婴幼儿照护 (国发〔2022〕8号), 国务院《关于提高个人所得税有关专项附加扣除标准的通知》(国发〔2023〕13号, 自2023年1月1日): 子女教育每个子女每月2000元、3岁以下婴幼儿照护每个婴幼儿每月2000元 (父母可选择一方100%或双方各50%), 赡养老人每月3000元 (非独生子女分摊, 每人不超过1500元); 继续教育学历(学位)每月400元; 住房贷款利息每月1000元; 住房租金直辖市、省会城市每月1500元 (上海、昆明); https://www.gov.cn/zhengce/content/202308/content_6901206.htm; 国家税务总局上海市税务局子女教育热点问答 (2026年2月25日, 每个子女每月2000元) https://shanghai.chinatax.gov.cn/zcfw/rdwd/202602/t479500.html. The employee declares the deductions as elections on their IIT standing (`children_education_children`, `children_education_split`, `infant_care_children`, `infant_care_split`, `continuing_education_degree`, `housing_loan_interest`, `housing_rent`, `elderly_support_only_child`, `elderly_support_monthly`). 全年一次性奖金: 财政部 税务总局《关于延续实施全年一次性奖金个人所得税政策的公告》(2023年第30号): 至2027年12月31日, 居民个人取得全年一次性奖金可选择不并入当年综合所得, 以奖金除以12个月得到的数额按月度税率表确定适用税率和速算扣除数, 单独计算纳税; 一个纳税年度内对每一个纳税人该计税办法只允许采用一次. Election `annual_bonus_separate`; the ANNUAL_BONUS ad hoc class pays it (part IIT.BONUS); separate taxation applies only while no bonus was taxed separately earlier in the year. Mechanics: the IIT line has three parts — `ordinary` (wages paid, plus a bonus taxed with them), `bonus` (an annual bonus taxed separately) and `deductions` (the month's 5,000 standard deduction, the employee social insurance and housing provident fund shares and the special additional deductions; BASIC opts into it so the part exists every salary month); the year to date of each part is the cumulative, so the payslip base amount is income plus deductions. Each month withholds the cumulative tax less the year's IIT already withheld by this employer (`charged.year.IIT.employee`, net of the separately taxed bonus's own tax), never below zero (累计计算为负值时暂不退税). Ceilings: a deduction declared mid-year is deducted from that month, not back to January; Kunming medical and 2026 unemployment contributions are not seeded, so they are not deducted; serious-illness medical expenses and personal pension are claimed by the employee in the annual reconciliation and are not withheld here; a non-resident's bonus is merged into the month (国家税务总局公告2019年第35号 monthly-bonus rule not modelled)."
+		}
+	}
+]

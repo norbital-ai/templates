@@ -1,0 +1,206 @@
+[
+	{
+		"id": "bf275aa7-bd63-5d7b-8d09-56332a06f74a",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "SSS",
+		"name": "Social Security System",
+		"configuration": {
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))",
+				"covered_before_60": "has(elections.SSS) && has(elections.SSS.covered_before_60) && elections.SSS.covered_before_60",
+				"household_first_month": "terms.employment_type == \"DOMESTIC\" && employment.service_months < 1.0",
+				"household_low": "terms.employment_type == \"DOMESTIC\" && month.ordinary < 5000.0"
+			},
+			"assessable": {
+				"ordinary": "min(month.ordinary, 35000.0)"
+			},
+			"rules": [
+				{
+					"when": "has(person.household_first_month) && person.household_first_month",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "has(person.household_low) && person.household_low",
+					"employee": "0.0",
+					"employer": "round(0.15 * max(round(base.assessed, 500.0, \"HALF_UP\"), 1000.0), 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "(person.age == null || person.age < 60.0 || (has(person.covered_before_60) && person.covered_before_60))",
+					"employee": "round(min(max(round(base.assessed, 500.0, \"HALF_UP\"), 5000.0), 20000.0) * 0.05, 0.01, \"HALF_UP\")",
+					"employer": "round(min(max(round(base.assessed, 500.0, \"HALF_UP\"), 5000.0), 20000.0) * 0.10, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "RA 11199 ss.4(a)(9), 8(i), 9(a) and 18; SSS Circular 2024-006 (business employers) and Circular 2024-007 (household employers), effective January 2025. Regular SS uses the first PHP20,000 monthly salary credit at 5% employee and 10% employer; excess to PHP35,000 belongs to SSS_MPF. Initial compulsory coverage extends through the 60th birthday. The first contribution liability date includes earlier employers and is independent of current registration. Source: https://www.sss.gov.ph/employees/ . Separation and retirement payments outside remuneration for services are excluded. The payable missing-birth-date branch refuses assessment instead of reporting zero liability. Circular 2024-007 gives household compensation below PHP5,000 nine distinct MSC brackets from PHP1,000 to PHP5,000; the household employer pays the full 15% regular SS share, while the employee pays zero. From PHP5,000 compensation, the regular employer/employee split applies. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. MSC is the monthly salary credit between PHP 4,000 and PHP 35,000; 5%/10% is the 2025 regular-employer split (Circular 2024-006). RA 11199 s.9(a): compulsory coverage begins for an employee not over sixty; a member covered before sixty keeps contributing while employed — the SSS standing election `covered_before_60` (recorded default false: unrecorded, no contribution past sixty). RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered after at least one month of service — `person.household_first_month` (DOMESTIC terms, under one completed month at the start of the period) charges nothing.",
+			"warn_when": [
+				{
+					"when": "employee.date_of_birth == \"\"",
+					"message": "date of birth missing: SSS treats the employee as under 60."
+				}
+			]
+		},
+		"authority": "RA 11199 ss.4(a)(9), 8(i), 9(a) and 18; SSS Circular 2024-006 (business employers) and Circular 2024-007 (household employers), effective January 2025. Regular SS uses the first PHP20,000 monthly salary credit at 5% employee and 10% employer; excess to PHP35,000 belongs to SSS_MPF. Initial compulsory coverage extends through the 60th birthday. The first contribution liability date includes earlier employers and is independent of current registration. Source: https://www.sss.gov.ph/employees/ . Separation and retirement payments outside remuneration for services are excluded. The payable missing-birth-date branch refuses assessment instead of reporting zero liability. Circular 2024-007 gives household compensation below PHP5,000 nine distinct MSC brackets from PHP1,000 to PHP5,000; the household employer pays the full 15% regular SS share, while the employee pays zero. From PHP5,000 compensation, the regular employer/employee split applies. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. SSS Circular 2024-007 (https://www.sss.gov.ph/wp-content/uploads/2024/12/Cir-2024-007-HR-Kasambahay-scaled.jpg): household compensation below ₱5,000 takes a salary credit of ₱1,000 below ₱1,250 and ₱500 brackets to ₱5,000 (`max(round(compensation, 500, HALF_UP), 1,000)`), the household employer paying the whole 15% and the kasambahay nothing (`person.household_low`); the SSS household-employer page deducts the employee share only \"if earning more than P5,000.00\". Owner ruling (opsph, 2026-10-07): a missing date of birth is treated as under sixty — SSS, MPF and EC are charged; RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it. The payslip carries the warning (`warn_when`: date of birth missing)."
+	},
+	{
+		"id": "b9314c52-2ba7-5572-9d3c-f9823edeaa1e",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "SSS_MPF",
+		"name": "SSS Mandatory Provident Fund (WISP)",
+		"configuration": {
+			"rules": [
+				{
+					"when": "has(person.household_first_month) && person.household_first_month",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "(person.age == null || person.age < 60.0 || (has(person.covered_before_60) && person.covered_before_60)) && round(base.assessed, 500.0, \"HALF_UP\") > 20000.0",
+					"employee": "round((min(round(base.assessed, 500.0, \"HALF_UP\"), 35000.0) - 20000.0) * 0.05, 0.01, \"HALF_UP\")",
+					"employer": "round((min(round(base.assessed, 500.0, \"HALF_UP\"), 35000.0) - 20000.0) * 0.10, 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "RA 11199 s.4(a)(2); SSS Circular 2024-006 II.B.2 (business employers) and Circular 2024-007 II.B.2 (household employers), effective January 2025. Only a covered SSS member contributes to the Mandatory Provident Fund on salary credit above PHP20,000 through PHP35,000 at 5% employee and 10% employer. The Regular SS result establishes coverage, including the first-liability age test. Source: https://www.sss.gov.ph/pay-contribution/ . The payable missing-birth-date branch refuses assessment instead of reporting zero liability. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. RA 11199 s.9(a): compulsory coverage begins for an employee not over sixty; a member covered before sixty keeps contributing while employed — the SSS standing election `covered_before_60` (recorded default false: unrecorded, no contribution past sixty). RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered after at least one month of service — `person.household_first_month` (DOMESTIC terms, under one completed month at the start of the period) charges nothing.",
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))",
+				"covered_before_60": "has(elections.SSS) && has(elections.SSS.covered_before_60) && elections.SSS.covered_before_60",
+				"household_first_month": "terms.employment_type == \"DOMESTIC\" && employment.service_months < 1.0"
+			},
+			"assessable": {
+				"ordinary": "min(month.ordinary, 35000.0)"
+			}
+		},
+		"authority": "RA 11199 s.4(a)(2); SSS Circular 2024-006 II.B.2 (business employers) and Circular 2024-007 II.B.2 (household employers), effective January 2025. Only a covered SSS member contributes to the Mandatory Provident Fund on salary credit above PHP20,000 through PHP35,000 at 5% employee and 10% employer. The Regular SS result establishes coverage, including the first-liability age test. Source: https://www.sss.gov.ph/pay-contribution/ . The payable missing-birth-date branch refuses assessment instead of reporting zero liability. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. Owner ruling (opsph, 2026-10-07): a missing date of birth is treated as under sixty — SSS, MPF and EC are charged; RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it. The payslip carries the warning (`warn_when`: date of birth missing). A month with no salary credit above ₱20,000 records a zero line, so a later slip of the month (the second semi-monthly half, an off-cycle run) assesses the month’s whole wage."
+	},
+	{
+		"id": "5eb6245d-d448-5ac7-86d9-fe34badfbe48",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "SSS_EC",
+		"name": "Employees Compensation Programme premium",
+		"configuration": {
+			"rules": [
+				{
+					"when": "has(person.household_first_month) && person.household_first_month",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "(person.age == null || person.age < 60.0 || (has(person.covered_before_60) && person.covered_before_60))",
+					"employee": "0.0",
+					"employer": "round(base.assessed, 500.0, \"HALF_UP\") < 15000.0 ? 10.0 : 30.0"
+				}
+			],
+			"limitation": "Presidential Decree 626 as amended, Art.183 of the Labor Code — employer-only EC premium keyed to the SSS monthly salary credit; SSS Circulars 2024-006 and 2024-007 (effective January 2025) set EC at PHP10 through MSC PHP14,500 and PHP30 from MSC PHP15,000 RA 11199 s.8(i): compensation is remuneration for services; separation pay (Labor Code arts.298–299) and retirement pay (RA 7641) are paid for the ending of service, not for it, and are outside the contribution base. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. EC covers compulsory SSS private employees, including continued qualifying coverage after sixty; a first liability after the sixtieth birthday does not create EC cover. EC reads the validated SSS coverage result (produced.SSS.base), which already uses the first contribution liability including prior employers and refuses missing/malformed coverage-age inputs. SSS ECP coverage https://www.sss.gov.ph/employees-compensation-program/ and PD 626 Art.168 compulsory coverage https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/22503; unchanged law corrected in place. RA 11199 s.9(a): compulsory coverage begins for an employee not over sixty; a member covered before sixty keeps contributing while employed — the SSS standing election `covered_before_60` (recorded default false: unrecorded, no contribution past sixty). RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered after at least one month of service — `person.household_first_month` (DOMESTIC terms, under one completed month at the start of the period) charges nothing.",
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))",
+				"covered_before_60": "has(elections.SSS) && has(elections.SSS.covered_before_60) && elections.SSS.covered_before_60",
+				"household_first_month": "terms.employment_type == \"DOMESTIC\" && employment.service_months < 1.0"
+			},
+			"assessable": {
+				"ordinary": "min(month.ordinary, 35000.0)"
+			}
+		},
+		"authority": "Presidential Decree 626 as amended, Art.183 of the Labor Code — employer-only EC premium keyed to the SSS monthly salary credit; SSS Circulars 2024-006 and 2024-007 (effective January 2025) set EC at PHP10 through MSC PHP14,500 and PHP30 from MSC PHP15,000 RA 11199 s.8(i): compensation is remuneration for services; separation pay (Labor Code arts.298–299) and retirement pay (RA 7641) are paid for the ending of service, not for it, and are outside the contribution base. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. EC covers compulsory SSS private employees, including continued qualifying coverage after sixty; a first liability after the sixtieth birthday does not create EC cover. EC reads the validated SSS coverage result (produced.SSS.base), which already uses the first contribution liability including prior employers and refuses missing/malformed coverage-age inputs. SSS ECP coverage https://www.sss.gov.ph/employees-compensation-program/ and PD 626 Art.168 compulsory coverage https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/22503; unchanged law corrected in place. Owner ruling (opsph, 2026-10-07): a missing date of birth is treated as under sixty — SSS, MPF and EC are charged; RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it. The payslip carries the warning (`warn_when`: date of birth missing)."
+	},
+	{
+		"id": "045b7f54-ddb2-5697-8a74-2a93d24c1cd8",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "PHIC",
+		"name": "PhilHealth",
+		"configuration": {
+			"assessable": {
+				"ordinary": "month.ordinary > 0.0 ? min(terms.base_salary, 100000.0) : 0.0"
+			},
+			"rules": [
+				{
+					"when": "has(person.household_first_month) && person.household_first_month",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "has(person.household_low) && person.household_low",
+					"employee": "0.0",
+					"employer": "round(min(max(base.assessed, 10000.0), 100000.0) * 0.05, 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "true",
+					"employee": "round(round(min(max(base.assessed, 10000.0), 100000.0) * 0.05, 0.01, \"HALF_UP\") / 2.0, 0.01, \"TRUNCATE\")",
+					"employer": "round(round(min(max(base.assessed, 10000.0), 100000.0) * 0.05, 0.01, \"HALF_UP\") - round(round(min(max(base.assessed, 10000.0), 100000.0) * 0.05, 0.01, \"HALF_UP\") / 2.0, 0.01, \"TRUNCATE\"), 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2020-0005 (Revision 1) (https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf) §V.A–C and Advisory 2025-0002 ¶1 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = round(premium / 2, 0.01, 'TRUNCATE'), employer = premium - employee (PC 2020-0005 Rev.1 §V.B: “equally shared between the employee and employer”; the circular is silent on an odd centavo, so the employee half truncates and the employer carries the remainder, a recorded default; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). The base is the monthly basic salary whatever the pay frequency (`terms.monthly_basic`: a daily or hourly rate carried to the month by the person’s own factor). RA 10361 (Batas Kasambahay) s.30 and PC 2020-0005 Rev.1 §V.G: where a domestic worker earns less than ₱5,000 a month the employer pays the whole premium — the employee share is zero and the employer carries both. the contractual basic is read only for a month the employment touches — a settlement run after the exit month (separation pay, a 13th month settled late) has no monthly basic (PhilHealth: RA 11223 s.10, Advisory 2025-0002 ¶1, a premium on the monthly basic salary of an employed member; Pag-IBIG: RA 9679 s.7, HDMF Circular 460 pp.1-2, 2% of an employee’s monthly fund salary), so no premium is charged on it. the schedule is cited as PhilHealth Circular 2020-0005 (Revision 1), the circular PA2025-0002 ¶1 and PA2026-0042 name; the 50/50 split is §V.B. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing. The base is the contractual monthly basic (`terms.base_salary`) whole in any month a BASIC line is paid (PhilHealth Advisory 2025-0002 ¶3), so a part month and unpaid absences do not reduce it. RA 10361 s.30 and PC 2020-0005 Rev.1 §V.G: a domestic worker earning less than ₱5,000 a month pays nothing and the employer pays the whole premium (`person.household_low`). RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered after at least one month of service — `person.household_first_month` (DOMESTIC terms, under one completed month at the start of the period) charges nothing.",
+			"person": {
+				"household_first_month": "terms.employment_type == \"DOMESTIC\" && employment.service_months < 1.0",
+				"household_low": "terms.employment_type == \"DOMESTIC\" && terms.base_salary < 5000.0"
+			}
+		},
+		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2020-0005 (Revision 1) (https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf) §V.A–C and Advisory 2025-0002 ¶1 — one 5% premium on the monthly basic salary, floor PHP 10,000, ceiling PHP 100,000, then split: employee = round(premium / 2, 0.01, 'TRUNCATE'), employer = premium - employee (PC 2020-0005 Rev.1 §V.B: “equally shared between the employee and employer”; the circular is silent on an odd centavo, so the employee half truncates and the employer carries the remainder, a recorded default; a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48, not 395.48 twice). The base is the BASIC line, which Advisory 2025-0002 ¶3 keeps whole against undertime, tardiness, leave without pay and absences (the ABSENCE and NO_PAY_LEAVE lines are not subtracted). PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). PhilHealth Advisory 2025-0002 ¶3 keys the premium off the basic monthly salary stated in the contract, whole for a mid-month hire or leaver (`person.terms.basic_salary`). The base is the monthly basic salary whatever the pay frequency (`terms.monthly_basic`: a daily or hourly rate carried to the month by the person’s own factor). RA 10361 (Batas Kasambahay) s.30 and PC 2020-0005 Rev.1 §V.G: where a domestic worker earns less than ₱5,000 a month the employer pays the whole premium — the employee share is zero and the employer carries both. the contractual basic is read only for a month the employment touches — a settlement run after the exit month (separation pay, a 13th month settled late) has no monthly basic (PhilHealth: RA 11223 s.10, Advisory 2025-0002 ¶1, a premium on the monthly basic salary of an employed member; Pag-IBIG: RA 9679 s.7, HDMF Circular 460 pp.1-2, 2% of an employee’s monthly fund salary), so no premium is charged on it. the schedule is cited as PhilHealth Circular 2020-0005 (Revision 1), the circular PA2025-0002 ¶1 and PA2026-0042 name; the 50/50 split is §V.B. RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service — `months_through(service_start, last employed day of the period)` under 1.0 charges nothing."
+	},
+	{
+		"id": "47ab0bfd-a836-5ca5-8721-acbb69e477a7",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "HDMF",
+		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
+		"configuration": {
+			"assessable": {
+				"ordinary": "min(month.ordinary, 10000.0)"
+			},
+			"rules": [
+				{
+					"when": "has(person.household_first_month) && person.household_first_month",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "has(person.household_low) && person.household_low",
+					"employee": "0.0",
+					"employer": "round(min(base.assessed, 10000.0) * (base.assessed <= 1500.0 ? 0.01 : 0.02), 0.01, \"HALF_UP\") + round(min(base.assessed, 10000.0) * 0.02, 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "base.assessed <= 1500.0",
+					"employee": "round(base.assessed * 0.01, 0.01, \"HALF_UP\")",
+					"employer": "round(min(base.assessed, 10000.0) * 0.02, 0.01, \"HALF_UP\")"
+				},
+				{
+					"when": "true",
+					"employee": "round(min(base.assessed, 10000.0) * 0.02, 0.01, \"HALF_UP\")",
+					"employer": "round(min(base.assessed, 10000.0) * 0.02, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Republic Act 9679 ss.6–7 and HDMF Circular 460 (15 January 2024; contributions effective February 2024), pp.1–3: monthly Fund Salary is basic salary and other allowances received in the month. Employee contribution is 1% up to PHP1,500 and 2% above PHP1,500; employer contribution is 2%, with a PHP10,000 compensation ceiling. Republic Act 10361 s.30: domestic workers are covered after at least one month of service; where monthly Fund Salary is below PHP5,000, the employer pays both shares. Contributions use remuneration actually paid for the employment month, including covered allowances and deducting unpaid absence. Sources: https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf ; https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155 ; https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514 Coverage history: HDMF Circular 460 C.1–2 (official DMW annex pp.2–4); Circular 274 B and H.2–4 (certified ONAR copy https://naro.law.upd.edu.ph/issuances/5476, p.8). Private initial coverage not over 60 is distinct from continuing membership until compulsory Fund retirement at 65. Non-compulsory termination permits mandatory re-enrolment when coverage resumes; self-paying and voluntary classes have no automatic employer payroll counterpart. Membership facts require a recorded evidence reference; missing registration never establishes exemption. RA 10361 s.30: where a domestic worker’s monthly Fund Salary is below ₱5,000 the employer pays both shares (`person.household_low`). RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker is covered after at least one month of service — `person.household_first_month` (DOMESTIC terms, under one completed month at the start of the period) charges nothing.",
+			"person": {
+				"household_first_month": "terms.employment_type == \"DOMESTIC\" && employment.service_months < 1.0",
+				"household_low": "terms.employment_type == \"DOMESTIC\" && month.ordinary < 5000.0"
+			}
+		},
+		"authority": "Republic Act 9679 ss.6–7 and HDMF Circular 460 (15 January 2024; contributions effective February 2024), pp.1–3: monthly Fund Salary is basic salary and other allowances received in the month. Employee contribution is 1% up to PHP1,500 and 2% above PHP1,500; employer contribution is 2%, with a PHP10,000 compensation ceiling. Republic Act 10361 s.30: domestic workers are covered after at least one month of service; where monthly Fund Salary is below PHP5,000, the employer pays both shares. Contributions use remuneration actually paid for the employment month, including covered allowances and deducting unpaid absence. Sources: https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf ; https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155 ; https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514 Coverage history: HDMF Circular 460 C.1–2 (official DMW annex pp.2–4); Circular 274 B and H.2–4 (certified ONAR copy https://naro.law.upd.edu.ph/issuances/5476, p.8). Private initial coverage not over 60 is distinct from continuing membership until compulsory Fund retirement at 65. Non-compulsory termination permits mandatory re-enrolment when coverage resumes; self-paying and voluntary classes have no automatic employer payroll counterpart. Membership facts require a recorded evidence reference; missing registration never establishes exemption."
+	},
+	{
+		"id": "ca2430e6-0d36-59dc-b892-ff0f538464a4",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "WTAX",
+		"name": "Withholding Tax on Compensation",
+		"configuration": {
+			"person": {
+				"floor": "terms.employment_type == \"DOMESTIC\" ? (company.region in rules.minimum_wage.by_employment_type.DOMESTIC && size(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)).monthly) : -1.0) : (has(company.facts.bmbe_certificate_of_authority) && company.facts.bmbe_certificate_of_authority) ? -1.0 : company.region in rules.minimum_wage.by_region && size(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)).monthly) * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 313.0 : -1.0",
+				"contributions": "charged.month.SSS.employee + charged.month.SSS_MPF.employee + charged.month.PHIC.employee + charged.month.HDMF.employee",
+				"pool_now": "(year.special + month.special) + (year.bonus + month.bonus) + (year.ot_meal + month.ot_meal) + max(0.0, (year.rice + month.rice) - 2500.0 * double(period.month)) + max(0.0, (year.laundry + month.laundry) - 400.0 * double(period.month)) + max(0.0, (year.dep_medical + month.dep_medical) - 333.3333333333333 * double(period.month)) + max(0.0, (year.uniform + month.uniform) - 8000.0) + max(0.0, (year.medical + month.medical) - 12000.0) + max(0.0, (year.award + month.award) - 12000.0) + max(0.0, (year.gift + month.gift) - 6000.0) + max(0.0, (year.cba + month.cba) - 12000.0) + max(0.0, (year.leave + month.leave) - 12.0 * (terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)))",
+				"pool_before": "year.special + year.bonus + year.ot_meal + max(0.0, year.rice - 2500.0 * (double(period.month) - 1.0)) + max(0.0, year.laundry - 400.0 * (double(period.month) - 1.0)) + max(0.0, year.dep_medical - 333.3333333333333 * (double(period.month) - 1.0)) + max(0.0, year.uniform - 8000.0) + max(0.0, year.medical - 12000.0) + max(0.0, year.award - 12000.0) + max(0.0, year.gift - 6000.0) + max(0.0, year.cba - 12000.0) + max(0.0, year.leave - 12.0 * (terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)))"
+			},
+			"assessment": "max(0.0, (terms.base_salary > 0.0 && terms.base_salary <= person.floor ? 0.0 : month.wage - person.contributions) + month.ordinary + month.supplementary) + max(0.0, person.pool_now - 90000.0) - max(0.0, person.pool_before - 90000.0)",
+			"rules": [
+				{
+					"when": "true",
+					"employee": "base.assessed <= 20833.0 ? 0.0 : base.assessed <= 33333.0 ? round((base.assessed - 20833.0) * 0.15, 0.01, \"HALF_UP\") : base.assessed <= 66667.0 ? round(1875.0 + (base.assessed - 33333.0) * 0.20, 0.01, \"HALF_UP\") : base.assessed <= 166667.0 ? round(8541.8 + (base.assessed - 66667.0) * 0.25, 0.01, \"HALF_UP\") : base.assessed <= 666667.0 ? round(33541.8 + (base.assessed - 166667.0) * 0.30, 0.01, \"HALF_UP\") : round(183541.8 + (base.assessed - 666667.0) * 0.35, 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Not modelled: the overtime/night meal exemption (the statutory context carries no overtime dates, so the whole `ot_meal` part joins the ₱90,000 pool); the year-end annualisation and refund (RR 2-98 s.2.79(B)(5)(b)); the 25% final tax on a non-resident alien not engaged in trade or business (NIRC s.25(B)); the semi-monthly, weekly and daily columns (every payslip is assessed month to date on the monthly column)."
+		},
+		"authority": "NIRC s.24(A)(2)(a) as amended by RA 10963 (TRAIN) and s.79; RR 11-2018 Annex E, the monthly withholding table in force from 1 January 2023 (https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf): nothing to ₱20,833; 15% over 20,833; 1,875 + 20% over 33,333; 8,541.80 + 25% over 66,667; 33,541.80 + 30% over 166,667; 183,541.80 + 35% over 666,667. The month is assessed to date over every payslip of the month. Parts: `wage` (basic, overtime, holiday and no-pay lines), `ordinary` (other regular pay), `supplementary` (commission, RR 11-2018 s.2.79(B)(3)), `special` (13th-month pay) and `bonus`, `leave` (monetised leave) and one part per de minimis class. NIRC s.32(B)(7)(f) and RR 2-98 s.2.78.1(B)(12): the employee shares of SSS (Regular SS and MPF), PhilHealth and Pag-IBIG are excluded — `person.contributions` is the month's employee shares as charged so far (`charged.month.SSS/SSS_MPF/PHIC/HDMF.employee`, assessed before WTAX). NIRC s.32(B)(7)(e) as amended by RA 10963: 13th-month pay and other benefits are excluded to ₱90,000 a year; RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026; https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf): de minimis benefits are outside compensation to their ceilings — rice ₱2,500 and laundry ₱400 a month, medical cash to dependants ₱2,000 a semester, uniform ₱8,000, actual medical assistance ₱12,000, achievement awards ₱12,000, Christmas/anniversary gifts ₱6,000 and CBA/productivity benefits ₱12,000 a year, monetised unused leave to 12 days a year, overtime/night meal to 30% of the regional basic minimum wage a day; RR 11-2018 s.2.78.1(A)(3) closing paragraph: the excess over a ceiling joins the ₱90,000 pool (`person.pool_now` / `person.pool_before`, the year to date with and without this month; the month withholds on the pool's new excess). NIRC s.24(A)(2) and RR 11-2018 s.2.78.1(B)(13): a minimum wage earner is exempt on the statutory minimum wage, holiday, overtime and night pay (the `wage` part) and taxed on other pay (Soriano v. Secretary of Finance, G.R. 184450, 24 January 2017); `person.floor` is the wage order's monthly floor for `company.region` in force on the period's last day in force on the period's last day in force on the period's last day (the version's PAYROLL rule `minimum_wage`, daily rate × 313 ÷ 12, restated on the contract term fact `days_per_year` factor) or the kasambahay floor; a certified BMBE (RA 9178 s.8) has no floor and its employees are taxed on the table. Recorded defaults: a region the version does not list has no floor (taxed); a monthly ceiling is read cumulatively against the months elapsed in the year; the dependants' semester ceiling is read as a sixth a month; the daily rate for the leave ceiling is the monthly basic × 12 ÷ `days_per_year` (313 when unrecorded); a minimum wage earner's contributions are not deducted (they relate to exempt pay)."
+	}
+]

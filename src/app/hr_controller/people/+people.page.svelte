@@ -1,20 +1,20 @@
 <script lang="ts">
 	/**
 	 * Workforce health for one legal entity (headcount in force today and twelve months of turnover and hire rate,
-	 * derived from its employee_profiles' ranges, never stored) and one profile per person employed there.
+	 * derived from its employment contracts' ranges, never stored) and one profile per person employed there.
 	 */
 	import { bolt } from '$bolt';
 	import { AppShell, Columns, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
-	import CompanyScope from '../../../lib/ui/scopes/CompanyScope.svelte';
-	import { companyScope } from '../../../lib/ui/scopes/company-scope.svelte.js';
+	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
+	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import { decodeNumber } from '../../../lib/payroll_engine/foundation.js';
 
 	const scope = companyScope();
 	const today = todayKey();
-	const employee_profiles = liveRows(() =>
+	const employment_contracts = liveRows(() =>
 		scope.id == null
 			? null
 			: bolt.read('employment_contract', {
@@ -25,7 +25,7 @@
 	);
 	// an open contract runs to the end of time
 	const ranges = $derived(
-		(employee_profiles.current ?? []).map((row) => ({
+		(employment_contracts.current ?? []).map((row) => ({
 			employee: row.employee_id,
 			start: row.effective_range.from,
 			end: row.effective_range.to ?? '9999-12-31'
@@ -41,7 +41,10 @@
 		average > 0 ? Math.round((count / average) * 1000) / 10 : 0;
 	/** The last twelve payroll months: leavers and hires over the month's average headcount. */
 	const trend = $derived.by(() => {
-		const [year, month] = today.split('-').map(Number) as [number, number];
+		const parts = today.split('-');
+		if (parts.length !== 3) return [];
+		const year = decodeNumber(parts[0]);
+		const month = decodeNumber(parts[1]);
 		return Array.from({ length: 12 }, (_, offset) => {
 			const first = new Date(Date.UTC(year, month - 12 + offset, 1));
 			const key = first.toISOString().slice(0, 7);
@@ -88,7 +91,9 @@
 					<p class="text-2xl font-semibold tabular-nums" data-headcount>{current}</p>
 				</Stack>
 				<Stack gap="none" class="bg-card p-4">
-					<p class="text-xs font-medium text-muted-foreground">{bolt.t('app.people.turnover_12m')}</p>
+					<p class="text-xs font-medium text-muted-foreground">
+						{bolt.t('app.people.turnover_12m')}
+					</p>
 					<p class="text-2xl font-semibold tabular-nums">{percent(turnover)}</p>
 				</Stack>
 			</Columns>
@@ -123,13 +128,17 @@
 	{:else}
 		{#key scope.id}
 			<Table
-				of="employees"
+				of="employment_profile"
 				key={`people-${scope.id}`}
 				toolbar={{ title: bolt.t('app.people.profiles_title') }}
 				where={{
-					employee_profiles: { some: { approval_id: { isNull: true }, company_id: { eq: scope.id } } }
+					employment_contract: {
+						some: { approval_id: { isNull: true }, company_id: { eq: scope.id } }
+					}
 				}}
-				initialFilter={{ employee_profiles: { some: { effective_range: { contains: { today: '' } } } } }}
+				initialFilter={{
+					employment_contract: { some: { effective_range: { contains: { today: '' } } } }
+				}}
 				orderBy={{ name: 'asc' }}
 				columns={[
 					'name',

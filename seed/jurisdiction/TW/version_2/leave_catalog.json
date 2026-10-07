@@ -1,0 +1,485 @@
+[
+	{
+		"id": "7585af0b-f7ee-56b5-918e-b5cf4ee8e0d8",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (特別休假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": true,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 288,
+					"days": 30
+				},
+				{
+					"service_months": 276,
+					"days": 29
+				},
+				{
+					"service_months": 264,
+					"days": 28
+				},
+				{
+					"service_months": 252,
+					"days": 27
+				},
+				{
+					"service_months": 240,
+					"days": 26
+				},
+				{
+					"service_months": 228,
+					"days": 25
+				},
+				{
+					"service_months": 216,
+					"days": 24
+				},
+				{
+					"service_months": 204,
+					"days": 23
+				},
+				{
+					"service_months": 192,
+					"days": 22
+				},
+				{
+					"service_months": 180,
+					"days": 21
+				},
+				{
+					"service_months": 168,
+					"days": 20
+				},
+				{
+					"service_months": 156,
+					"days": 19
+				},
+				{
+					"service_months": 144,
+					"days": 18
+				},
+				{
+					"service_months": 132,
+					"days": 17
+				},
+				{
+					"service_months": 120,
+					"days": 16
+				},
+				{
+					"service_months": 60,
+					"days": 15
+				},
+				{
+					"service_months": 36,
+					"days": 14
+				},
+				{
+					"service_months": 24,
+					"days": 10
+				},
+				{
+					"service_months": 12,
+					"days": 7
+				},
+				{
+					"service_months": 6,
+					"days": 3
+				},
+				{
+					"service_months": 0,
+					"days": 0
+				}
+			],
+			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
+			"window": "SERVICE_YEAR"
+		}
+	},
+	{
+		"id": "4a35610b-736f-587f-b8f2-fb5c83663c65",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "SICK_LEAVE",
+		"name": "Ordinary injury or sickness leave (普通傷病假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "0.5",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years. 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. 勞工請假規則 §4(1)(1): 未住院者，一年內合計不得超過三十日 — metered by calendar year.",
+		"consumes_code": "HOSPITALISED_SICK_LEAVE",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "30.0",
+			"window": "CALENDAR_YEAR"
+		}
+	},
+	{
+		"id": "adcaf7ad-2cf1-5952-a9f6-a7a91047f7c9",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "PERSONAL_LEAVE",
+		"name": "Personal leave (事假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": true,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則 §7(1) ordinary personal leave is at most 14 unpaid days annually; the 2025-12-09 §7(2) amendment, effective 2026-01-01 under §12(2), grants an hourly unit only where the employee personally cares for a family member. Use the separate FAMILY_CARE_LEAVE row for that case; it consumes this 14-day quota. https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=7&id=FL014935 勞工請假規則 §7: 一年內合計不得超過十四日 — metered by calendar year.",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "14.0",
+			"window": "CALENDAR_YEAR"
+		}
+	},
+	{
+		"id": "18eb1495-66e2-5c32-9c64-6a95b692ad0d",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則第2條 — 8 days on full wages. 勞工請假規則 §2: 結婚者給予婚假八日 — per marriage (entry facts.event_id).",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "8.0",
+			"window": "EVENT"
+		}
+	},
+	{
+		"id": "3def30e8-7235-5104-ae51-dc9a6cc96c0f",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (喪假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship. Metered per death (facts.event_id) by facts.relationship: PARENT, ADOPTIVE_PARENT, STEP_PARENT, SPOUSE 8; GRANDPARENT, CHILD, PARENT_IN_LAW, ADOPTIVE_PARENT_IN_LAW, STEP_PARENT_IN_LAW 6; GREAT_GRANDPARENT, SIBLING, GRANDPARENT_IN_LAW 3; any other none (勞工請假規則 §3).",
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : \"\"",
+			"days": "has(entry.facts.relationship) ? (entry.facts.relationship in [\"PARENT\", \"ADOPTIVE_PARENT\", \"STEP_PARENT\", \"SPOUSE\"] ? 8.0 : (entry.facts.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\", \"STEP_PARENT_IN_LAW\"] ? 6.0 : (entry.facts.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"] ? 3.0 : 0.0))) : 0.0"
+		}
+	},
+	{
+		"id": "2ba91f88-6e03-55eb-bd15-444de7c23953",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "OCCUPATIONAL_INJURY_LEAVE",
+		"name": "Occupational injury leave (公傷病假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額."
+	},
+	{
+		"id": "624aaac1-c778-5a54-bc3f-71101c65c899",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (產假)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"MISCARRIAGE_2M\", \"MISCARRIAGE_UNDER_2M\"] ? 0.0 : (employment.service_months >= 6 ? 1.0 : 0.5)",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2); `pay_fraction`). 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay. Metered per event (facts.event_id) by facts.event_kind: BIRTH 56 days (8 weeks), MISCARRIAGE_3M 28, MISCARRIAGE_2M 7, MISCARRIAGE_UNDER_2M 5 (勞基法 §50(1), 性平法 §15(1)). The weeks run by the calendar; the cap is in the days the entries record.",
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : \"\"",
+			"days": "has(entry.facts.event_kind) ? {\"BIRTH\": 56.0, \"MISCARRIAGE_3M\": 28.0, \"MISCARRIAGE_2M\": 7.0, \"MISCARRIAGE_UNDER_2M\": 5.0}[entry.facts.event_kind] : 0.0"
+		}
+	},
+	{
+		"id": "c565fe4d-b877-5e7d-9425-3a222e863c2c",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance. 性別平等工作法 §15(5): 陪產檢及陪產假七日 — per pregnancy (entry facts.event_id).",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "7.0",
+			"window": "EVENT"
+		}
+	},
+	{
+		"id": "bd265921-c96f-5774-a3e8-8c50aa8f7f7e",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "PRENATAL_CHECKUP_LEAVE",
+		"name": "Prenatal check-up leave (產檢假)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第15條第4項 — 7 days on full wages. 性別平等工作法 §15(4): 妊娠期間…產檢假七日 — per pregnancy (entry facts.event_id).",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "7.0",
+			"window": "EVENT"
+		}
+	},
+	{
+		"id": "ba7f729a-0751-5115-807a-4736be2ced48",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave (生理假)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "0.5",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it (`consumes_code`, `consumes_after_days`). MOL clarification 2021-03-12 (https://www.mol.gov.tw/1607/1632/1640/32923/post): after the annual paid sick pool and exempt days are exhausted, the monthly menstrual day must still be granted; it may be unpaid. Owner-delegated rule 2026-10-01: grant overflow unpaid, preserving the one-day monthly entitlement. Metered one day a calendar month (window keyed by the month of the leave day; 性別平等工作法 §14).",
+		"consumes_code": "SICK_LEAVE",
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"window_key": "(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on).substring(0, 7)",
+			"days": "1.0"
+		}
+	},
+	{
+		"id": "bf9cc9a2-fc65-547d-9a2e-f0dfb16e6656",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "FAMILY_CARE_LEAVE",
+		"name": "Family care leave (家庭照顧假)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "HOUR",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": true,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours). the seven days count inside the fourteen of personal leave (性平法 §20; `consumes_code`), and from 1 January 2026 may be taken by the hour (`unit: HOUR`).",
+		"consumes_code": "PERSONAL_LEAVE"
+	},
+	{
+		"id": "e11291f8-6575-5abf-8a78-1504acaec860",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "PARENTAL_LEAVE",
+		"name": "Parental leave without pay (育嬰留職停薪)",
+		"eligibility": "employment.service_months >= 6",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": true,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple. 性別平等工作法 §16(1): 期間至該子女滿三歲止，但不得逾二年 — two years per child (entry facts.event_id).",
+		"entitlement": {
+			"unit": "DAY",
+			"days": "730.0",
+			"window": "EVENT"
+		}
+	},
+	{
+		"id": "6ef8fe11-2aa6-5ca0-a23b-ebef2173f273",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "BREASTFEEDING_TIME",
+		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time."
+	},
+	{
+		"id": "84eb1389-153f-574d-83d8-1d63dad1f044",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER"
+	},
+	{
+		"id": "36a151ca-3c52-522b-9935-a7e95ed5558e",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "HOSPITALISED_SICK_LEAVE",
+		"name": "住院傷病假 (hospitalised sickness leave)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "0.5",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). The rolling twenty-four-month pool of 365 days is shared with the outpatient row."
+	},
+	{
+		"id": "049cd7cd-da63-51c8-b45b-b85d9f39b482",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "OFFICIAL_LEAVE",
+		"name": "公假 (official leave)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered."
+	},
+	{
+		"id": "d730790e-7df9-5987-92d6-9e5d0782abae",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "JOB_SEARCH_LEAVE",
+		"name": "謀職假 (job-search leave)",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. the grant follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2)). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice."
+	},
+	{
+		"id": "9acd430c-4cb7-5dcf-b908-1059f48dfad1",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "STATUTORY_REST_IN_LIEU",
+		"name": "例假補假 (statutory rest day in lieu)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "DAY",
+		"can_encash": true,
+		"encash_on_exit": true,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE)."
+	},
+	{
+		"id": "75b883ef-ca65-55d3-8478-b76a7867d76f",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "COMPENSATORY_TIME_OFF",
+		"name": "補休 (time off in lieu of overtime pay)",
+		"eligibility": "",
+		"evidence": "NONE",
+		"unit": "HOUR",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"preceding_leave_same_event": [],
+		"preceding_leave_contiguous": false,
+		"requires_no_pay_origin": false,
+		"pay_fraction": "",
+		"paid_by": "EMPLOYER",
+		"authority": "勞動基準法 §32-1; 施行細則 §22-2 — the hours of 補休 the worker takes for overtime or 休息日 work they elected to take as time off. HR records each absence by the hour; the balance is not a leave entitlement: payroll keeps it from the elected days, consumes the oldest hours first, and pays what is untaken at the agreed expiry or on termination. A paid day off: the wage is not reduced."
+	}
+]

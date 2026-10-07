@@ -1,0 +1,356 @@
+[
+	{
+		"id": "ca5b21b6-678a-540f-a754-ee7ecacdd527",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "LI",
+		"name": "Labor Insurance (勞工保險)",
+		"configuration": {
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))"
+			},
+			"refuse_when": [
+				{
+					"when": "person.age == null",
+					"message": "Taiwan labour and employment insurance turn on the worker’s age: record the date of birth."
+				}
+			],
+			"rules": [
+				{
+					"when": "person.age >= 65",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "true",
+					"employee": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0]])) * ((person.residency_status == \"CITIZEN\" || (has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true)) ? 0.115 : 0.125) * 0.2, 1.0, \"HALF_UP\")",
+					"employer": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0]])) * ((person.residency_status == \"CITIZEN\" || (has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true)) ? 0.115 : 0.125) * 0.7, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Priced on the 勞工保險投保薪資分級表 grade: 12.5% from 2025-01-01, cut by the 1% employment-insurance rate to 11.5% for a worker covered by employment insurance (就業保險法 §41(2); BLI 分擔金額表 note 二, https://www.bli.gov.tw/Files/25696); 20% worker, 70% employer, rounded to the dollar. Covered-day proration, voluntary cover after 65 and disability subsidies are not applied."
+		},
+		"authority": "Labor Insurance Act articles 6, 8, 9, 13–15; Enforcement Rules articles 27, 28-1 and 33. Ordinary-risk premium rate 11.5%, shared 20% employee, 70% employer and 10% government. Registered continuing cover remains chargeable after age 65. Apply the declared insured salary grade and covered days on a thirty-day calendar; round each share once after day proration. Variable wages use an independently recorded three-month-average declaration. Salary changes do not automatically change the insured grade; notified adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0007758.html ; https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged."
+	},
+	{
+		"id": "e2784df7-bc5b-595b-b1bc-a375cbd905ae",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "WAGE_ARREARS_FUND",
+		"name": "積欠工資墊償基金 (wage arrears payment fund)",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "round((\"LI\" in elections && has(elections.LI.insured_amount) ? double(elections.LI.insured_amount) : bracket(base.assessed, [[11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0]])) * 0.00025, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "0.025% of the worker’s LI grade, kept to the cent per payslip; BLI rounds the employer’s total once to the dollar. The insurer-confirmed grade, where declared as the LI election insured_amount, replaces the grade of the wage."
+		},
+		"authority": "Labor Standards Act article 28. Sum all covered workers’ prorated LI-equivalent insured salaries, including workers covered only by employment or occupational accident insurance, then apply 0.025% and round once to the nearest whole dollar at company level. Source: https://www.bli.gov.tw/0110180.html"
+	},
+	{
+		"id": "3d542d9f-bbf1-5609-aa04-d7df74cad929",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "EI",
+		"name": "Employment Insurance (就業保險)",
+		"configuration": {
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))"
+			},
+			"refuse_when": [
+				{
+					"when": "person.age == null",
+					"message": "Taiwan labour and employment insurance turn on the worker’s age: record the date of birth."
+				},
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "!(person.residency_status == \"CITIZEN\" || (has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true)) || person.age >= 65",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "true",
+					"employee": "round((\"LI\" in elections && has(elections.LI.insured_amount) ? double(elections.LI.insured_amount) : bracket(base.assessed, [[11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0]])) * 0.01 * 0.2, 1.0, \"HALF_UP\")",
+					"employer": "round((\"LI\" in elections && has(elections.LI.insured_amount) ? double(elections.LI.insured_amount) : bracket(base.assessed, [[11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0]])) * 0.01 * 0.7, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Covered: nationals, foreign spouses of nationals (employee.facts.foreign_spouse_of_national), under 65 (就業保險法 §5). Priced on the wage’s LI grade (1%; 20% worker, 70% employer), no covered-day proration. The insurer-confirmed grade, where declared as the LI election insured_amount, replaces the grade of the wage."
+		},
+		"authority": "Employment Insurance Act articles 5, 8 and 40; Labor Insurance Act article 15; Enforcement Rules article 28-1. The 1% premium is shared 20% employee, 70% employer and 10% government. Coverage uses the statutory age and nationality/registration conditions. Cover ends the day before the 65th birthday: BLI 就業保險 FAQ 承保業務 Q4 (updated 2024-05-30, https://www.bli.gov.tw/0017586.html) — 本局會主動自其滿65歲當日將其改列為不適用就業保險身分. Apply the independently declared insured grade and covered days on a thirty-day calendar, rounding each share once after proration. Notified grade adjustments take effect on the first of the following month. Sources: https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html 身心障礙者權益保障法 §73 — the government subsidises the insured worker's own share by the certificate's severity (100/50/25%); BLI computes the subsidy on the worker's unrounded share and rounds it to the whole dollar on its own, and the worker is withheld the rounded share less the rounded subsidy — BLI's worked example (勞動部勞工保險局納保組 許晉慶, 〈身心障礙勞工保險費減免〉, 台灣勞工季刊 第44期 p.72–73, https://www.mol.gov.tw/media/q5cjfwu3/%E6%B4%BB%E7%94%A8%E6%B3%95%E8%A6%8F.pdf): 輕度, grade 28,800, LI 9%: (28,800×9%×20%) − (28,800×9%×20%×25%) = 518 − 130 = 388; EI 1%: 58 − 14 = 44. Subsidy standards 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090). The employer share is unchanged. BLI eligibility and document classification: https://www.bli.gov.tw/0007747.html coverage cannot precede the fifteenth birthday (art.5); apply the later of declared cover and birthday. BLI https://www.bli.gov.tw/0014162.htm and https://www.bli.gov.tw/0011588.htm read 2026-10-01. Unchanged law, corrected in place."
+	},
+	{
+		"id": "6f605f24-0c14-5a47-935e-6985e408a764",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "NHI",
+		"name": "National Health Insurance (全民健康保險)",
+		"configuration": {
+			"rules": [
+				{
+					"when": "(has(scheme.elections.insured_elsewhere) && scheme.elections.insured_elsewhere == true)",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "true",
+					"employee": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0], [76500.0, 76500.0], [80200.0, 80200.0], [83900.0, 83900.0], [87600.0, 87600.0], [92100.0, 92100.0], [96600.0, 96600.0], [101100.0, 101100.0], [105600.0, 105600.0], [110100.0, 110100.0], [115500.0, 115500.0], [120900.0, 120900.0], [126300.0, 126300.0], [131700.0, 131700.0], [137100.0, 137100.0], [142500.0, 142500.0], [147900.0, 147900.0], [150000.0, 150000.0], [156400.0, 156400.0], [162800.0, 162800.0], [169200.0, 169200.0], [175600.0, 175600.0], [182000.0, 182000.0], [189500.0, 189500.0], [197000.0, 197000.0], [204500.0, 204500.0], [212000.0, 212000.0], [219500.0, 219500.0], [228200.0, 228200.0], [236900.0, 236900.0], [245600.0, 245600.0], [254300.0, 254300.0], [263000.0, 263000.0], [273000.0, 273000.0], [283000.0, 283000.0], [293000.0, 293000.0], [303000.0, 303000.0], [313000.0, 313000.0]])) * 0.0517 * 0.3, 1.0, \"HALF_UP\") * (1.0 + (has(scheme.elections.enrolled_dependants) ? min(max(0.0, double(scheme.elections.enrolled_dependants)), 3.0) : 0.0))",
+					"employer": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0], [76500.0, 76500.0], [80200.0, 80200.0], [83900.0, 83900.0], [87600.0, 87600.0], [92100.0, 92100.0], [96600.0, 96600.0], [101100.0, 101100.0], [105600.0, 105600.0], [110100.0, 110100.0], [115500.0, 115500.0], [120900.0, 120900.0], [126300.0, 126300.0], [131700.0, 131700.0], [137100.0, 137100.0], [142500.0, 142500.0], [147900.0, 147900.0], [150000.0, 150000.0], [156400.0, 156400.0], [162800.0, 162800.0], [169200.0, 169200.0], [175600.0, 175600.0], [182000.0, 182000.0], [189500.0, 189500.0], [197000.0, 197000.0], [204500.0, 204500.0], [212000.0, 212000.0], [219500.0, 219500.0], [228200.0, 228200.0], [236900.0, 236900.0], [245600.0, 245600.0], [254300.0, 254300.0], [263000.0, 263000.0], [273000.0, 273000.0], [283000.0, 283000.0], [293000.0, 293000.0], [303000.0, 303000.0], [313000.0, 313000.0]])) * 0.0517 * 0.6 * 1.56, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Worker share 30% per person, rounded per person, for self and up to three enrolled dependants (the NHI election enrolled_dependants, 全民健康保險法 §18(2)); employer 60% × the 1.56 average-dependant factor. Nothing where the worker is insured through another unit (the NHI election insured_elsewhere). Priced on the month’s wage grade, not the declared insured amount; disability subsidies are not applied. The insurer-confirmed grade, where declared as its own election insured_amount, replaces the grade of the wage."
+		},
+		"authority": "National Health Insurance Act articles 18, 27, 29 and 30; Enforcement Rules article 52. Regular premiums use the declared insured amount at the month-end insuring unit. The employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. The employer pays 60% with the published 1.56 average dependant factor. The declaration is independent of contract salary and retains its effective dates. 身心障礙者權益保障法 §73 and 身心障礙者參加社會保險保險費補助辦法 §4–5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090) — the government pays 100% (極重度/重度), 50% (中度) or 25% (輕度) of a disabled person's own premium; 全民健康保險法 §27(1)(1) makes each dependant's 30% their own (被保險人及其眷屬自付), so each disabled dependant's per-person premium is subsidised on its own (elections `disability_subsidy`, `dependants_subsidised_*`). 全民健康保險法施行細則 §52: premiums are paid in whole dollars, 角以下四捨五入, and where the self-paid premium and the government subsidy both end in five 角 the subsidy rounds up (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060002) — so each person's subsidy is round(per-person premium × share, 1, 'HALF_UP') and the worker pays the rest. The supplementary premium is outside the subsidy: 補助辦法 §4–5 subsidise the insured person's own 自付保險費, and NHIA applies it by deducting it in the monthly premium billing (健保費開計作業中予以扣減補助 — NHIA 各級政府辦理保險對象健保費補助項目一覽表, updated 115-09-17, https://www.nhi.gov.tw/ch/cp-4721-0d598-2645-1.html); the §31 supplementary premium is withheld at the payment, not billed there, so it carries none (inference from the two; the former municipal citation replaced 2026-09-28). Sources: https://www.nhi.gov.tw/en/cp-68-8652f-35-2.html ; https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html (URLs corrected 2026-09-28; both open)"
+	},
+	{
+		"id": "41b49310-aac1-5661-bfcc-e277f4d8b341",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "NHI_SUPPLEMENT",
+		"name": "健保補充保險費 (NHI supplementary premium)",
+		"configuration": {
+			"rules": [
+				{
+					"when": "(\"NHI\" in elections && has(elections.NHI.insured_elsewhere) && elections.NHI.insured_elsewhere == true)",
+					"employee": "0.0",
+					"employer": "0.0"
+				},
+				{
+					"when": "base.additional > 0.0",
+					"employee": "round(min(10000000.0, min(base.additional, max(0.0, year.additional + base.additional - 4.0 * (\"NHI\" in elections && has(elections.NHI.insured_amount) ? double(elections.NHI.insured_amount) : bracket(base.ordinary, [[28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0], [76500.0, 76500.0], [80200.0, 80200.0], [83900.0, 83900.0], [87600.0, 87600.0], [92100.0, 92100.0], [96600.0, 96600.0], [101100.0, 101100.0], [105600.0, 105600.0], [110100.0, 110100.0], [115500.0, 115500.0], [120900.0, 120900.0], [126300.0, 126300.0], [131700.0, 131700.0], [137100.0, 137100.0], [142500.0, 142500.0], [147900.0, 147900.0], [150000.0, 150000.0], [156400.0, 156400.0], [162800.0, 162800.0], [169200.0, 169200.0], [175600.0, 175600.0], [182000.0, 182000.0], [189500.0, 189500.0], [197000.0, 197000.0], [204500.0, 204500.0], [212000.0, 212000.0], [219500.0, 219500.0], [228200.0, 228200.0], [236900.0, 236900.0], [245600.0, 245600.0], [254300.0, 254300.0], [263000.0, 263000.0], [273000.0, 273000.0], [283000.0, 283000.0], [293000.0, 293000.0], [303000.0, 303000.0], [313000.0, 313000.0]]))))) * 0.0211, 1.0, \"HALF_UP\")",
+					"employer": "0.0"
+				},
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "2.11% on the part of the year’s bonuses above four times the insured grade of the month’s salary (the ordinary wage counted here); a bonus paid before the month’s salary is assessed against the lowest grade until the salary run settles the month. The NHI election insured_amount, where declared, is the insured amount the four-times threshold reads."
+		},
+		"authority": "National Health Insurance Act article 31: bonuses exceeding four times the current insured amount attract a 2.11% supplementary premium, limited to the current payment and NT$10 million of assessable bonus per payment. After departure, retain the insured amount at withdrawal. The regular month-end premium being zero does not remove this threshold. Round once to whole NT dollars. Sources: https://www.nhi.gov.tw/ch/cp-2985-e7319-3150-1.html ; https://www.nhi.gov.tw/ch/dl-64814-5f26c2b955c24ebbbbf1479877ecfb7e-1.pdf the bonus is every class counting toward this scheme (`ALLOWANCES + ADHOC`, the year's in `year.ALLOWANCES + year.ADHOC`), never a company's code."
+	},
+	{
+		"id": "0f561114-bc81-54b8-9883-192e786038a3",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "NHI_PART_TIME",
+		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary)",
+		"configuration": {
+			"rules": [
+				{
+					"when": "(\"NHI\" in elections && has(elections.NHI.insured_elsewhere) && elections.NHI.insured_elsewhere == true) && !(has(scheme.elections.exempt) && scheme.elections.exempt == true) && base.assessed >= 28590.0",
+					"employee": "round(min(base.assessed, 10000000.0) * 0.0211, 1.0, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "The month’s salary paid to a worker not insured through this unit, charged whole at 2.11% when it reaches the NT$28,590 minimum wage. The law tests each single payment; the month stands in for it (one salary payment a month)."
+		},
+		"authority": "全民健康保險法 §31(1)(2): salary income (薪資所得, 所得稅格式代號 50) paid to a person who is not insured through this unit (兼職薪資所得) attracts the 2.11% supplementary premium, withheld at payment by the payer (§31(1) 扣費義務人). NHIA, 二代健保補充保險費簡介 (115.01.05 版, https://www.nhi.gov.tw/ch/dl-26429-47de962ef1464d8f91828d4421028290-1.pdf): the rate is 2.11% from 1 January 2021; from 1 September 2014 a single payment below the basic (minimum) wage is not withheld on, so a payment at or above the NT$28,590 minimum wage is charged whole; a single payment is assessed on at most NT$10,000,000; 第2類 insureds’ salary income and persons with no NHI eligibility or 第5類 insureds are exempt (the NHI_PART_TIME election exempt). A worker insured through this unit (the NHI election insured_elsewhere unset) is outside this premium; their bonus premium is NHI_SUPPLEMENT. Each payslip is one payment (PAY_PERIOD). Rounded to the whole NT dollar (四捨五入; NHIA 補充保險費計算公式 page, not retrieved — secondary sources agree)."
+	},
+	{
+		"id": "ef7bdce7-8696-58f0-8007-87836ebab52b",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "LABOR_PENSION",
+		"name": "Labor Pension (勞工退休金, new system)",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"] || (has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true)) && !(has(scheme.elections.pension_system) && scheme.elections.pension_system == \"LSA\")",
+					"employee": "has(scheme.elections.voluntary_rate) ? round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[1500.0, 1500.0], [3000.0, 3000.0], [4500.0, 4500.0], [6000.0, 6000.0], [7500.0, 7500.0], [8700.0, 8700.0], [9900.0, 9900.0], [11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0], [76500.0, 76500.0], [80200.0, 80200.0], [83900.0, 83900.0], [87600.0, 87600.0], [92100.0, 92100.0], [96600.0, 96600.0], [101100.0, 101100.0], [105600.0, 105600.0], [110100.0, 110100.0], [115500.0, 115500.0], [120900.0, 120900.0], [126300.0, 126300.0], [131700.0, 131700.0], [137100.0, 137100.0], [142500.0, 142500.0], [147900.0, 147900.0], [150000.0, 150000.0]])) * double(scheme.elections.voluntary_rate) / 100.0, 1.0, \"HALF_UP\") : 0.0",
+					"employer": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[1500.0, 1500.0], [3000.0, 3000.0], [4500.0, 4500.0], [6000.0, 6000.0], [7500.0, 7500.0], [8700.0, 8700.0], [9900.0, 9900.0], [11100.0, 11100.0], [12540.0, 12540.0], [13500.0, 13500.0], [15840.0, 15840.0], [16500.0, 16500.0], [17280.0, 17280.0], [17880.0, 17880.0], [19047.0, 19047.0], [20008.0, 20008.0], [21009.0, 21009.0], [22000.0, 22000.0], [23100.0, 23100.0], [24000.0, 24000.0], [25250.0, 25250.0], [26400.0, 26400.0], [27600.0, 27600.0], [28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0], [76500.0, 76500.0], [80200.0, 80200.0], [83900.0, 83900.0], [87600.0, 87600.0], [92100.0, 92100.0], [96600.0, 96600.0], [101100.0, 101100.0], [105600.0, 105600.0], [110100.0, 110100.0], [115500.0, 115500.0], [120900.0, 120900.0], [126300.0, 126300.0], [131700.0, 131700.0], [137100.0, 137100.0], [142500.0, 142500.0], [147900.0, 147900.0], [150000.0, 150000.0]])) * (has(scheme.elections.employer_rate) ? max(6.0, double(scheme.elections.employer_rate)) : 6.0) / 100.0, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "The employer rate (scheme.elections.employer_rate, at least 6) and the worker’s voluntary rate (the election voluntary_rate, up to 6) on the 月提繳工資分級表 grade the wage falls in, for nationals, permanent residents and foreign spouses; nothing for a worker who kept the LSA pension (the election pension_system LSA). No covered-day proration. The insurer-confirmed grade, where declared as its own election insured_amount, replaces the grade of the wage."
+		},
+		"authority": "Labor Pension Act articles 7–9, 14, 15 and 18. The employer contributes at least 6% of the declared monthly contribution wage (scheme.elections.employer_rate, default 6; §14(1) 不得低於 6%, so a higher declared rate is priced as declared). A national continuously employed by the same unit before 1 July 2005 may retain the LSA old pension system under articles 8–9, with the 2005 election or deemed continuation and same-unit history evidenced by the nonregistration declaration; the LSA section 56 employer reserve still applies. An employee may voluntarily contribute up to 6%; the default is no voluntary contribution. Apply the declared grade and covered days on a thirty-day month, rounding after proration. A February departure on the last day completes thirty contribution days. Sources: https://www.bli.gov.tw/0017599.html ; https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0102559.html ; https://www.bli.gov.tw/0022156.html"
+	},
+	{
+		"id": "bea7d51c-4705-5ab6-a701-0cc21d171659",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "OCC_INJURY",
+		"name": "Occupational Accident Insurance (勞工職業災害保險)",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "!has(company.facts.occ_experience_rate_percent) && !(company.risk_class in {\"1\": 0.25, \"2\": 0.21, \"3\": 0.96, \"4\": 0.22, \"5\": 0.21, \"6\": 0.17, \"7\": 0.15, \"8\": 0.2, \"9\": 0.43, \"10\": 0.39, \"11\": 0.21, \"12\": 0.22, \"13\": 0.26, \"14\": 0.4, \"15\": 0.43, \"16\": 0.34, \"17\": 0.27, \"18\": 0.12, \"19\": 0.26, \"20\": 0.26, \"21\": 0.2, \"22\": 0.28, \"23\": 0.39, \"24\": 0.25, \"25\": 0.57, \"26\": 0.37, \"27\": 0.45, \"28\": 0.53, \"29\": 0.44, \"30\": 0.19, \"31\": 0.17, \"32\": 0.39, \"33\": 0.87, \"34\": 0.21, \"35\": 0.17, \"36\": 0.23, \"37\": 0.21, \"38\": 0.2, \"39\": 0.19, \"40\": 0.13, \"41\": 0.13, \"42\": 0.12, \"43\": 0.12, \"44\": 0.16, \"45\": 0.15, \"46\": 0.13, \"47\": 0.14, \"48\": 0.25, \"49\": 0.19, \"50\": 0.12, \"51\": 0.12, \"52\": 0.16, \"53\": 0.14, \"54\": 0.25, \"55\": 0.19})",
+					"message": "Taiwan occupational accident insurance is priced on the entity’s industry class: record the entity’s risk class (1–55, 勞工職業災害保險適用行業別及費率表)."
+				}
+			],
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "round((has(scheme.elections.insured_amount) ? double(scheme.elections.insured_amount) : bracket(base.assessed, [[28590.0, 28590.0], [28800.0, 28800.0], [30300.0, 30300.0], [31800.0, 31800.0], [33300.0, 33300.0], [34800.0, 34800.0], [36300.0, 36300.0], [38200.0, 38200.0], [40100.0, 40100.0], [42000.0, 42000.0], [43900.0, 43900.0], [45800.0, 45800.0], [48200.0, 48200.0], [50600.0, 50600.0], [53000.0, 53000.0], [55400.0, 55400.0], [57800.0, 57800.0], [60800.0, 60800.0], [63800.0, 63800.0], [66800.0, 66800.0], [69800.0, 69800.0], [72800.0, 72800.0]])) * (has(company.facts.occ_experience_rate_percent) ? double(company.facts.occ_experience_rate_percent) : {\"1\": 0.25, \"2\": 0.21, \"3\": 0.96, \"4\": 0.22, \"5\": 0.21, \"6\": 0.17, \"7\": 0.15, \"8\": 0.2, \"9\": 0.43, \"10\": 0.39, \"11\": 0.21, \"12\": 0.22, \"13\": 0.26, \"14\": 0.4, \"15\": 0.43, \"16\": 0.34, \"17\": 0.27, \"18\": 0.12, \"19\": 0.26, \"20\": 0.26, \"21\": 0.2, \"22\": 0.28, \"23\": 0.39, \"24\": 0.25, \"25\": 0.57, \"26\": 0.37, \"27\": 0.45, \"28\": 0.53, \"29\": 0.44, \"30\": 0.19, \"31\": 0.17, \"32\": 0.39, \"33\": 0.87, \"34\": 0.21, \"35\": 0.17, \"36\": 0.23, \"37\": 0.21, \"38\": 0.2, \"39\": 0.19, \"40\": 0.13, \"41\": 0.13, \"42\": 0.12, \"43\": 0.12, \"44\": 0.16, \"45\": 0.15, \"46\": 0.13, \"47\": 0.14, \"48\": 0.25, \"49\": 0.19, \"50\": 0.12, \"51\": 0.12, \"52\": 0.16, \"53\": 0.14, \"54\": 0.25, \"55\": 0.19}[company.risk_class]) / 100.0, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "The employer pays the 災保費率 (行業別 + 0.07% 上下班, 勞動部 113-11-07 公告, from 2025-01-01) of the entity’s risk class on the 勞工職業災害保險投保薪資分級表 grade the month’s wage falls in (28,590–72,800), every worker regardless of age or nationality, rounded to the dollar. A Bureau-notified experience rate (company.facts.occ_experience_rate_percent) replaces the table rate; covered-day proration is not applied. The insurer-confirmed grade, where declared as its own election insured_amount, replaces the grade of the wage."
+		},
+		"authority": "Labor Occupational Accident Insurance and Protection Act articles 16, 17 and 19; Enforcement Rules articles 2, 26 and 28. The employer pays the declared insured grade multiplied by the applicable industry and commuting rate and covered days divided by 30. Round the resulting premium once to whole NT dollars after day proration. The declared grade is effective independently of contract wage changes. Sources: https://www.bli.gov.tw/0106129.html ; https://www.bli.gov.tw/Files/24759 ; https://www.bli.gov.tw/0014162.htm ; https://www.bli.gov.tw/0005472.htm An insured unit on an experience-rated industry rate (勞工職業災害保險及保護法 §16(4), 實績費率: the Bureau notifies the unit’s own rate each year) records the notified total rate, commuting rate included, as the registration’s rate override; otherwise the industry table rate applies."
+	},
+	{
+		"id": "97dd4286-0bb3-5902-8083-8fa218d993ef",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "INCOME_TAX",
+		"name": "Resident income tax withholding (薪資所得扣繳)",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || (person.residency_status in [\"PERMANENT_RESIDENT\", \"FOREIGNER\"] && person.residency_since != null && person.residency_since != \"\" && person.residency_since <= period.from)) && base.assessed > 0.0",
+					"employee": "has(scheme.elections.exemptions) ? (base.assessed <= 500000.0 ? (round((ladder(max(0.0, (12.0 * (round(base.assessed, 500.0, \"UP\") - 500.0)) - (97000.0 * (1.0 + max(0.0, double(scheme.elections.exemptions))) + 262000.0 + min(218000.0, (12.0 * (round(base.assessed, 500.0, \"UP\") - 500.0))))), [[590000.0, 0.05], [1330000.0, 0.12], [2660000.0, 0.2], [4980000.0, 0.3], [null, 0.4]]) / 12.0), 10.0, \"DOWN\") > 2000.0 ? round((ladder(max(0.0, (12.0 * (round(base.assessed, 500.0, \"UP\") - 500.0)) - (97000.0 * (1.0 + max(0.0, double(scheme.elections.exemptions))) + 262000.0 + min(218000.0, (12.0 * (round(base.assessed, 500.0, \"UP\") - 500.0))))), [[590000.0, 0.05], [1330000.0, 0.12], [2660000.0, 0.2], [4980000.0, 0.3], [null, 0.4]]) / 12.0), 10.0, \"DOWN\") : 0.0) : round((ladder(max(0.0, (12.0 * base.assessed) - (97000.0 * (1.0 + max(0.0, double(scheme.elections.exemptions))) + 262000.0 + min(218000.0, (12.0 * base.assessed)))), [[590000.0, 0.05], [1330000.0, 0.12], [2660000.0, 0.2], [4980000.0, 0.3], [null, 0.4]]) / 12.0), 1.0, \"DOWN\")) : (round(base.assessed * 0.05, 1.0, \"DOWN\") > 2000.0 ? round(base.assessed * 0.05, 1.0, \"DOWN\") : 0.0)",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Resident regular salary: with a declared 免稅額申報表 (election exemptions), the 114年度薪資所得扣繳稅額表 (財政部 113年12月 函發布; https://www.ntbca.gov.tw/download/f8e06fd841e74700aed593f8c9039ef9) — reproduced cell for cell by its own formula on the row’s lower bound (500-dollar rows to 500,000, tax rounded down to ten, nothing at 2,000 or less), and above 500,000 the 說明(三) formula on the salary itself; without one, 5% truncated with nothing at NT$2,000 or less (薪資所得扣繳辦法 §6–7, 各類所得扣繳率標準 §2(1)(1))."
+		},
+		"authority": "所得稅法 article 88; 各類所得扣繳率標準 article 2; 薪資所得扣繳辦法 articles 6–7. Resident regular salary is assessed on the full month's payments, separately from non-monthly bonus payments. The table method requires a dated declaration reference and the declared spouse/dependant count. Family records do not grant table exemptions. Without the declaration, article 6 requires 5%; an explicit 5% election also uses that method. The 5% method truncates tax to whole NT dollars before applying the NT$2,000 exemption; NT$40,020 is the first whole-dollar salary requiring withholding. The table method uses the 114年度 table (台財稅字第11304679670號函): NT$97,000 personal exemption, NT$262,000 married standard deduction and NT$218,000 salary deduction. Published salary bands truncate table tax to NT$10; salaries above NT$500,000 or more than eleven spouse/dependant exemptions use the annualised formula in explanation (3), truncated to NT$1. Current-month voluntary labour pension contributions are excluded once under 勞工退休金條例 article 14(4). Tax fractions below NT$1 are discarded under 各級公庫代理銀行代辦機構及代收稅款機構稅款解繳作業辦法 article 5 (https://law-out.mof.gov.tw/LawContent.aspx?id=FL051526). Tax residency must be declared on dated employment terms; citizenship does not determine residence. A mainland-area resident (大陸地區人民) is resident for withholding only on the stay test of 臺灣地區與大陸地區人民關係條例 §25(2) and (4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=Q0010001&flno=25): 居留、停留合計滿一百八十三日 in the tax year takes the resident table or 5% method; under 183 days the payer withholds at payment at the non-resident salary rates (18%, or 6% up to 1.5 × the minimum wage), per §25(5)–(6) and the MOF answer NM11BZY (updated 115-04-10); no domicile route applies. Cited in place 2026-09-29 (a citation omission, same rule in every version); the declared residency must rest on that day count. https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY a bonus class counts toward INCOME_TAX_BONUS instead of this scheme, so the regular base carries no bonus to subtract."
+	},
+	{
+		"id": "96122f78-f91e-5d70-a21b-086f799bb07e",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "INCOME_TAX_NON_RESIDENT",
+		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "!(person.residency_status == \"CITIZEN\" || (person.residency_status in [\"PERMANENT_RESIDENT\", \"FOREIGNER\"] && person.residency_since != null && person.residency_since != \"\" && person.residency_since <= period.from)) && base.assessed > 0.0",
+					"employee": "round(base.assessed * (base.assessed <= 42885.0 ? 0.06 : 0.18), 1.0, \"DOWN\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Non-resident salary withheld at 6% up to 1.5 × the NT$28,590 minimum wage (NT$42,885), otherwise 18%, truncated. A foreigner is resident only from the recorded residency_since day."
+		},
+		"authority": "所得稅法 article 88 and 各類所得扣繳率標準 article 3(2): non-resident salary, including taxable allowances and bonuses, is assessed monthly at 6% when total monthly salary does not exceed 1.5 times the applicable minimum wage; otherwise 18%. The resident NT$2,000 exemption does not apply. Tax fractions below NT$1 are discarded under 各級公庫代理銀行代辦機構及代收稅款機構稅款解繳作業辦法 article 5 (https://law-out.mof.gov.tw/LawContent.aspx?id=FL051526). Tax residency must be declared on dated employment terms; citizenship does not determine residence. A mainland-area resident (大陸地區人民) is resident for withholding only on the stay test of 臺灣地區與大陸地區人民關係條例 §25(2) and (4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=Q0010001&flno=25): 居留、停留合計滿一百八十三日 in the tax year takes the resident table or 5% method; under 183 days the payer withholds at payment at the non-resident salary rates (18%, or 6% up to 1.5 × the minimum wage), per §25(5)–(6) and the MOF answer NM11BZY (updated 115-04-10); no domicile route applies. Cited in place 2026-09-29 (a citation omission, same rule in every version); the declared residency must rest on that day count. https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY the 6% band’s ceiling is one and a half times the minimum wage (各類所得扣繳率標準 §3(1)(1)), so the rule reads `1.5 * minimum_wage(person.company.region)` from the version’s own wage table rather than a transcribed figure (42,885 on 28,590; 44,250 on 29,500)."
+	},
+	{
+		"id": "80134875-2bb3-5f7f-b420-58c3a7bbcdb9",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "NHI_SUPPLEMENT_EMPLOYER",
+		"name": "健保補充保費（雇主）",
+		"configuration": {
+			"rules": [],
+			"limitation": "Not priced: 健保法 §34 nets the month’s salary against all insured amounts across the unit, not per payslip."
+		},
+		"authority": "全民健康保險法 §34: the insuring unit pays 2.11% of the excess of the month’s total salary income paid (薪資所得, 所得稅格式代號 50) over the total insured amounts of its insured (`produced.NHI.base` over the run), netted across the establishment, not person by person. Salary income excludes overtime within the 勞基法 §32 limits and the statutory unused-annual-leave pay (所得稅法 §14(1)(3); 財政部 74年台財稅第16713號), so only the over-limit overtime (`INCENTIVE`) enters; the worker’s voluntary labour-pension contribution is outside salary income (勞工退休金條例 §14(3)). Source: https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html"
+	},
+	{
+		"id": "f6207047-8b69-5c72-8b3e-ee86a64ade29",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "LABOR_PENSION_RESERVE",
+		"name": "勞工退休準備金（舊制）",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "((\"LABOR_PENSION\" in elections && has(elections.LABOR_PENSION.pension_system) && elections.LABOR_PENSION.pension_system == \"LSA\") || (person.residency_status == \"FOREIGNER\" && !(has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true))) && !has(company.facts.pension_reserve_rate)",
+					"message": "This worker is on the LSA pension: record the entity’s approved 勞工退休準備金 rate (company facts pension_reserve_rate, 2–15)."
+				}
+			],
+			"rules": [
+				{
+					"when": "((\"LABOR_PENSION\" in elections && has(elections.LABOR_PENSION.pension_system) && elections.LABOR_PENSION.pension_system == \"LSA\") || (person.residency_status == \"FOREIGNER\" && !(has(employee.facts.foreign_spouse_of_national) && employee.facts.foreign_spouse_of_national == true)))",
+					"employee": "0.0",
+					"employer": "round(base.assessed * double(company.facts.pension_reserve_rate) / 100.0, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "The entity’s approved rate on the month’s wage of a worker on the LSA pension: the LABOR_PENSION election pension_system LSA, or a foreign worker outside 勞工退休金條例 §7. Kept to the cent: the Act states no rounding."
+		},
+		"authority": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內按月提撥勞工退休準備金 — a monthly appropriation, at the rate the entity declares (`company.facts.pension_reserve_rate`, 2–15), of the total wages of the workers on the LSA (old) pension system, recorded as the LABOR_PENSION election pension_system LSA: nationals in service before 1 July 2005 who kept it (勞退條例 §8–9) and foreign workers outside 勞退條例 §7 (migrant workers, and foreign professionals who kept the LSA pension under 外國專業人才延攬及僱用法 §24). From 1 April 2026 a blue-collar migrant worker (WORK_PERMIT) with under ten years at the unit is left out of the 薪資總額 (勞動部 114年10月14日勞動福3字第1140153402A號令; https://www.mol.gov.tw/1607/28690/2282/2302/86592/86636/post). An employer cost on that worker’s payslip, paid into the Bank of Taiwan account."
+	},
+	{
+		"id": "1fd1c8d9-9f18-5cde-853d-297625816e1e",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "INCOME_TAX_BONUS",
+		"name": "Income tax — bonus withholding",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || (person.residency_status in [\"PERMANENT_RESIDENT\", \"FOREIGNER\"] && person.residency_since != null && person.residency_since != \"\" && person.residency_since <= period.from)) && base.assessed > 0.0",
+					"employee": "base.assessed < 88501.0 ? 0.0 : round(base.assessed * 0.05, 1.0, \"DOWN\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Resident non-monthly salary (bonus, leave encashment) withheld at 5% when the month’s total reaches NT$88,501; the threshold is applied to the month, not to each payment."
+		},
+		"authority": "薪資所得扣繳辦法 articles 6–7: non-monthly resident salary payments are withheld separately at 5% when the payment reaches the applicable no-dependant salary-table threshold. Smaller payments are exempt. Tax fractions below NT$1 are discarded under 各級公庫代理銀行代辦機構及代收稅款機構稅款解繳作業辦法 article 5 (https://law-out.mof.gov.tw/LawContent.aspx?id=FL051526). Tax residency must be declared on dated employment terms; citizenship does not determine residence. A mainland-area resident (大陸地區人民) is resident for withholding only on the stay test of 臺灣地區與大陸地區人民關係條例 §25(2) and (4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=Q0010001&flno=25): 居留、停留合計滿一百八十三日 in the tax year takes the resident table or 5% method; under 183 days the payer withholds at payment at the non-resident salary rates (18%, or 6% up to 1.5 × the minimum wage), per §25(5)–(6) and the MOF answer NM11BZY (updated 115-04-10); no domicile route applies. Cited in place 2026-09-29 (a citation omission, same rule in every version); the declared residency must rest on that day count. https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY the bonus is every class counting toward this scheme, never a company's code."
+	},
+	{
+		"id": "96e8b8db-4fb1-59aa-9986-cc4e1071475b",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "SEVERANCE_TAX",
+		"name": "Severance withholding (退職所得扣繳)",
+		"configuration": {
+			"refuse_when": [
+				{
+					"when": "person.residency_status == null || !(person.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\", \"FOREIGNER\"])",
+					"message": "Record the residency status (CITIZEN, PERMANENT_RESIDENT or FOREIGNER) on the employment terms."
+				}
+			],
+			"rules": [
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || (person.residency_status in [\"PERMANENT_RESIDENT\", \"FOREIGNER\"] && person.residency_since != null && person.residency_since != \"\" && person.residency_since <= period.from)) && base.assessed > 0.0",
+					"employee": "round(max(0.0, base.assessed - 198000.0 * (round(double(employment.service_months) / 12.0, 1.0, \"DOWN\") + ((double(employment.service_months) - 12.0 * round(double(employment.service_months) / 12.0, 1.0, \"DOWN\")) == 0.0 ? 0.0 : ((double(employment.service_months) - 12.0 * round(double(employment.service_months) / 12.0, 1.0, \"DOWN\")) < 6.0 ? 0.5 : 1.0)))) * 0.06, 1.0, \"DOWN\")",
+					"employer": "0.0"
+				},
+				{
+					"when": "base.assessed > 0.0",
+					"employee": "round(max(0.0, base.assessed - 198000.0 * (round(double(employment.service_months) / 12.0, 1.0, \"DOWN\") + ((double(employment.service_months) - 12.0 * round(double(employment.service_months) / 12.0, 1.0, \"DOWN\")) == 0.0 ? 0.0 : ((double(employment.service_months) - 12.0 * round(double(employment.service_months) / 12.0, 1.0, \"DOWN\")) < 6.0 ? 0.5 : 1.0)))) * 0.18, 1.0, \"DOWN\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Severance and LSA retirement pay withheld on the part above NT$198,000 × 退職服務年資 (employment.service_months, a tail under six months as half a year, six or more as one): 6% for a resident, 18% for a non-resident, truncated. The half-taxable band to NT$398,000 × 年資 is the employee’s annual return, not the withholding."
+		},
+		"authority": "所得稅法 §14(1)(9) and §88; 各類所得扣繳率標準 §2: 資遣費 and 退休金 (RETIREMENT_PAY) are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident. 民國114年年度 (財政部 113年11月28日台財稅字第11304670610號公告, https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe; number per the MOF tax portal Q&A 1149, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ, updated 115-04-10: unchanged from 113年度, CPI rise 2.29% under the 3% trigger — citation corrected 2026-09-28: the number formerly cited is the 113年度 order): a lump sum is exempt to 198,000 × 退職服務年資, half taxable to 398,000 × 年資, whole above it; a 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局). The employee declares the amount in the annual return, so this is the withholding only."
+	},
+	{
+		"id": "2466eea0-fb58-515a-a521-224aac1d8b8f",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "WAGE_ARREARS_BASE",
+		"name": "Wage arrears fund — covered wages",
+		"configuration": {
+			"rules": [],
+			"limitation": "The wage basis is WAGE_ARREARS_FUND’s own LI grade; this row prices nothing."
+		},
+		"authority": "Labor Standards Act article 28 and BLI wage arrears fund calculation guidance. Covered wages use each worker’s LI-equivalent insured salary, prorated for covered days on a thirty-day calendar. Workers covered only by employment or occupational accident insurance remain included. This assessment records the wage basis; the company fund scheme calculates and rounds the levy once. Source: https://www.bli.gov.tw/0110180.html Insured amounts must be declared separately from contractual wages; changing contract pay does not change the registered grade. Insurance declarations use the insurer-confirmed effective interval. BLI notices generally take effect on the first day of the following month. Sources: https://www.bli.gov.tw/0005472.htm ; https://www.bli.gov.tw/0006928.html"
+	},
+	{
+		"id": "316c1c96-099b-5b48-ac20-14e2162e7591",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "WELFARE_FUND",
+		"name": "職工福利金（薪津扣繳）",
+		"configuration": {
+			"rules": [
+				{
+					"when": "(has(company.facts.welfare_committee_established) && company.facts.welfare_committee_established == true)",
+					"employee": "round(base.assessed * 0.005, 1.0, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "0.5% of the month’s salary net of unpaid days (BASIC, NO_PAY_LEAVE and the allowances that count toward it), rounded to the dollar half up (owner default 2026-09-28), only where company.facts.welfare_committee_established."
+		},
+		"authority": "職工福利金條例 §2(1)(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0040001&flno=2, last amended 2015-07-01): 每月於每個職員工人薪津內各扣百分之○‧五 — a worker deduction paid into the entity's 職工福利金, withheld only where the entity records `company.facts.welfare_committee_established` (§1 obliges every enterprise to 提撥 and 辦理職工福利事業; the deduction presupposes the committee and fund that receive it). Temporary workers are included (勞委會 93-02-17 勞福一字第0930006802號函). Owner rule 2026-09-28 defaults (law silent): 薪津 is the month's salary line net of unpaid days (`BASE - ABSENCE - NO_PAY_LEAVE`), an allowance joining it only where its class lists WELFARE_FUND in `counts_toward`; the deduction is rounded to the 元 half up, as the insurance shares are. It is not excluded from 薪資所得 (所得稅法 §14(1) 第三類 lists no such exclusion), so no tax base subtracts it. The employer's own §2(1)(1)(2)(4) appropriations (capital, 0.05–0.15% of monthly revenue, 20–40% of scrap sales) are entity-level and outside payroll."
+	}
+]

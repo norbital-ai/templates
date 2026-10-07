@@ -1,0 +1,787 @@
+[
+	{
+		"id": "ba2e51c2-adc2-594b-c272-21172b726481",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "allowance_npl_prorates",
+		"name": "allowance_npl_prorates",
+		"rules": {
+			"value": true
+		}
+	},
+	{
+		"id": "70d397cf-b956-5052-e8ef-1513d1bea256",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_adjacent_absence_when",
+		"name": "holiday_adjacent_absence_when",
+		"rules": {
+			"value": "employment.classification != \"NON_EA\""
+		}
+	},
+	{
+		"id": "94048683-1e8b-5709-a003-068b7acee1a0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_adjacent_absence_unpaid",
+		"name": "holiday_adjacent_absence_unpaid",
+		"rules": {
+			"value": true
+		}
+	},
+	{
+		"id": "f8b007a6-276a-5776-e4ad-18c97495bb42",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_in_no_pay_leave_unpaid",
+		"name": "holiday_in_no_pay_leave_unpaid",
+		"rules": {
+			"value": true
+		}
+	},
+	{
+		"id": "3bf53881-68b6-5bec-1945-a9c67b41e81d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "short_day_fraction",
+		"name": "short_day_fraction",
+		"rules": {
+			"value": 0.5
+		}
+	},
+	{
+		"id": "d65bbc2c-9924-5918-d4f0-00cca54c6fca",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "short_day_half_hours",
+		"name": "short_day_half_hours",
+		"rules": {
+			"value": 5
+		}
+	},
+	{
+		"id": "ea993c85-c02b-5fe8-8d8c-f21e352563df",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "deduction_ceiling",
+		"name": "deduction_ceiling",
+		"rules": {
+			"share": 0.5,
+			"basis": "GROSS",
+			"counts_statutory": true,
+			"counts_loans": false,
+			"loan_instalment_share": 0.25,
+			"exempt_codes": ["COOPERATIVE_DUES"],
+			"final_pay_exempt": true,
+			"authority": "Employment Act 1968 s.32(1): all deductions in a salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) may not exceed 50% of the salary payable for that period — CPF contributions (s.27(1)(h)) count; s.32(2): the last salary on termination or completion of the contract is outside the limit. The independent per-instalment quarter caps of s.31(3) and (5) apply even on final salary; an excessive instalment is left wholly outstanding. See MOM Allowable salary deductions and JKB v JKC [2026] SGECT 11 paras.18–22 (https://www.elitigation.sg/gd/s/2026_SGECT_11). EA s.2 salary excludes travelling allowance, expense reimbursements, benefits in kind, gratuity and retrenchment benefits. Catalogue codes in basis_exempt_codes carry those classifications; customer-specific codes must be classified in the sealed settings. Salary overpayment and unearned-benefit recovery are outside s.31 instalment caps (MOM Allowable salary deductions). EA s.31(2): recovery of an advance is spread over no more than 12 months; the first scheduled instalment, including settled history, anchors the limit. EA ss.29–30: damage recovery is a one-time deduction limited to a quarter of one month salary; accepted accommodation and approved amenities/services share a quarter of salary-period salary, no more than their supplied value. These independent limits also apply on final pay. s.32(1) excludes consented registered-co-operative payments from its aggregate half. The damage limit applies per incident; the separate APPROVED_DAMAGE_RECOVERY class requires the Commissioner permission as evidence for the s.29(1) exception. The aggregate s.32 limit still applies. EA s.31(1): actual disbursed_on is required for an advance. If it was paid before employment, recovery starts only with the first completed salary period; pre-employment TRAVEL_ADVANCE is never recoverable from salary.",
+			"basis_exempt_codes": [
+				"TRAVELLING_ALLOWANCE",
+				"RETRENCHMENT_BENEFIT",
+				"SALARY_IN_LIEU_OF_NOTICE",
+				"GRATUITY",
+				"EXPENSE_REIMBURSEMENT",
+				"ACCOMMODATION_IN_KIND"
+			],
+			"loan_instalment_exempt_codes": ["SALARY_OVERPAYMENT", "UNEARNED_BENEFIT_RECOVERY"],
+			"advance_recovery": {
+				"codes": ["SALARY_ADVANCE", "FESTIVE_ADVANCE", "TRAVEL_ADVANCE"],
+				"months": 12,
+				"first_full_period": true,
+				"unrecoverable_before_employment_codes": ["TRAVEL_ADVANCE"]
+			},
+			"group_limits": [
+				{
+					"codes": ["DAMAGE_RECOVERY"],
+					"share": 0.25,
+					"assessment_period": "MONTH",
+					"per_entry": true
+				},
+				{
+					"codes": ["ACCOMMODATION_RECOVERY", "AMENITIES_RECOVERY"],
+					"share": 0.25,
+					"assessment_period": "PAY_PERIOD"
+				}
+			]
+		}
+	},
+	{
+		"id": "220a0b3c-c54e-5fec-aed5-7342e65fe983",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "notice_compensation",
+		"name": "notice_compensation",
+		"rules": {
+			"source": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays",
+			"when": "employment.classification != \"NON_EA\"",
+			"annual_months": 12,
+			"annual_weeks": 52,
+			"hourly_holiday_when": "terms.employment_type == \"PART_TIME\"",
+			"hourly_holiday_method": "PROPORTIONAL_WEEKLY_HOURS",
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
+			"offset_leave_code": "ANNUAL",
+			"notice_extension_kinds": ["NATIONAL_SERVICE_TRAINING", "AGREED_UNPAID_LEAVE"],
+			"excluded_allowances": [],
+			"allowance_categories": [
+				"ORDINARY_ALLOWANCE",
+				"TRAVEL",
+				"FOOD",
+				"HOUSING",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE",
+				"OVERTIME",
+				"BONUS_AWS"
+			],
+			"excluded_allowance_categories": [
+				"TRAVEL",
+				"FOOD",
+				"HOUSING",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE",
+				"OVERTIME",
+				"BONUS_AWS"
+			],
+			"payment_class": "SALARY_IN_LIEU_OF_NOTICE",
+			"recovery_class": "NOTICE_BREACH_COMPENSATION_RECOVERY",
+			"default_notice": [
+				{
+					"before_service_days": 182,
+					"before_service_years": null,
+					"days": 1
+				},
+				{
+					"before_service_days": null,
+					"before_service_years": 2,
+					"days": 7
+				},
+				{
+					"before_service_days": null,
+					"before_service_years": 5,
+					"days": 14
+				},
+				{
+					"before_service_days": null,
+					"before_service_years": null,
+					"days": 28
+				}
+			],
+			"enforcement_age_threshold": 18,
+			"day_average": {
+				"source": "Employment Act 1968 Third Schedule items 3–7: complete original contractual regular/alternate-week scope; for irregular notice average actual required days in preceding 3 weeks, or first 3 weeks for less than 3 weeks elapsed service; required work at most 5 hours counts half a day. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=Sc3- (indexed official current text retrieved 3 October 2026; formula scope reproduced official Act PDF https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/3210/SGP3210.pdf pages117–120, 2019 consolidation).",
+				"days_per_week": 7,
+				"short_minutes": 300,
+				"short_weight": 0.5,
+				"long_weight": 1,
+				"methods": [
+					{
+						"code": "REGULAR_CONTRACTUAL_WEEK",
+						"mode": "DECLARED_WHOLE_WEEKS",
+						"weeks": 1,
+						"anchor_weekday": 0
+					},
+					{
+						"code": "ALTERNATING_CONTRACTUAL_WEEKS",
+						"mode": "DECLARED_WHOLE_WEEKS",
+						"weeks": 2,
+						"anchor_weekday": 0
+					},
+					{
+						"code": "IRREGULAR_OR_NEWSTARTER_NOTICE",
+						"mode": "PRECEDING_OR_FIRST_SERVICE",
+						"weeks": 3,
+						"service_threshold_days": 21
+					}
+				]
+			}
+		}
+	},
+	{
+		"id": "b75b8659-290e-5f2a-a2ee-aee8370635a0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "final_pay_deadlines",
+		"name": "final_pay_deadlines",
+		"rules": {
+			"value": [
+				{
+					"when": "employment.exit_ground == \"RESIGNATION\" && !(has(employment.exit_facts.notice_served) && employment.exit_facts.notice_served == true)",
+					"days": 7,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 s.23(2): an employee who resigns without the notice s.10 requires, or before it expires, is paid within 7 days; one who served it is paid on the last day (s.23(1), the default rule)"
+				},
+				{
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\"] && has(employment.exit_facts.final_pay_not_possible) && employment.exit_facts.final_pay_not_possible == true",
+					"days": 3,
+					"basis": "NON_REST_HOLIDAY_DAYS",
+					"authority": "Employment Act 1968 s.22: pay on dismissal; only if that is impossible, within 3 subsequent days excluding rest days, public holidays and other holidays. MOM applies the same deadline to employer termination."
+				},
+				{
+					"when": "",
+					"days": 0,
+					"basis": "EVENT_DATE",
+					"authority": "Employment Act 1968 ss.21(3), 22 and 23(1): same-day final payment absent the evidenced s.22 exception or the s.23(2) no-notice resignation."
+				}
+			]
+		}
+	},
+	{
+		"id": "f904799f-3d75-5482-302b-3c599197d03b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "authority_procedures",
+		"name": "authority_procedures",
+		"rules": {
+			"value": [
+				{
+					"code": "DIRECTION_APPEAL",
+					"title": "Appeal actual prohibiting order",
+					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s117(1)-(2), actual decision/order date, General Division of High Court, Rules of Court procedure. Actual receipt alone does not establish a stay or success on merits.",
+					"anchor_field": "issued_on",
+					"days_after": 14,
+					"requires_absent_party": false
+				},
+				{
+					"code": "AWARD_APPEAL",
+					"title": "Appeal actual original award",
+					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s117(1)-(2): 14 days after actual decision/order.",
+					"anchor_field": "original_award_on",
+					"days_after": 14,
+					"requires_absent_party": false
+				},
+				{
+					"code": "ABSENT_AWARD_REVIEW",
+					"title": "Actual absent-party original award set-aside/variation application",
+					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s115(3B)-(3C): application no later than 14 days after actual order, only affected party absent from that original order.",
+					"anchor_field": "original_award_on",
+					"days_after": 14,
+					"requires_absent_party": true
+				}
+			]
+		}
+	},
+	{
+		"id": "a80c8ccb-6546-5384-75d7-88296e4a3bb9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EMPLOYER_ASSESSMENT",
+		"scope": "JURISDICTION",
+		"code": "MOM_FOREIGN_WORKER_LEVY_BILL",
+		"name": "Actual employer-paid MOM levy bill ledger (SGD)",
+		"rules": {
+			"assessment_basis": "AUTHORITY_NOTICE",
+			"code": "MOM_FOREIGN_WORKER_LEVY_BILL",
+			"name": "Actual employer-paid MOM levy bill ledger (SGD)",
+			"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+			"facts": [
+				{
+					"key": "levy_month",
+					"type": "string",
+					"min_length": 7,
+					"max_length": 7,
+					"required_when": "true",
+					"valid_when": "entry.facts.levy_month.matches(\"^[0-9]{4}-(0[1-9]|1[0-2])$\")",
+					"label": "Actual original affected levy month (YYYY-MM)",
+					"validation_message": "The actual affected levy month must use YYYY-MM with a valid calendar month."
+				},
+				{
+					"key": "levy_bill_reference",
+					"type": "string",
+					"min_length": 1,
+					"required_when": "true",
+					"label": "Actual MOM bill or amended-bill reference"
+				},
+				{
+					"key": "levy_bill_due_on",
+					"type": "date",
+					"required_when": "true",
+					"label": "Actual deadline stated in the MOM levy bill"
+				},
+				{
+					"key": "original_levy_payment_on",
+					"type": "date",
+					"required_when": "false",
+					"label": "Actual original levy payment date for linked incoming recovery"
+				}
+			],
+			"worker_facts": [],
+			"eligible_when": "true",
+			"worker_base": "0.0",
+			"charge": "0.0",
+			"scope_expression": "entry.facts.levy_month",
+			"year_date_expression": "entry.facts.levy_month + \"-01\"",
+			"due_expression": "entry.facts.levy_bill_due_on",
+			"actions": [
+				{
+					"code": "MOM_BILL",
+					"name": "Actual MOM levy bill/affected-month adjustment notice",
+					"kind": "NOTICE",
+					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+					"valid_when": "true",
+					"due_on": "entry.facts.levy_bill_due_on"
+				},
+				{
+					"code": "EMPLOYER_PAYMENT",
+					"name": "Actual employer-paid levy receipt",
+					"kind": "PAYMENT",
+					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+					"valid_when": "true",
+					"due_on": "entry.facts.levy_bill_due_on"
+				},
+				{
+					"code": "MOM_CREDIT",
+					"name": "Actual MOM credit or waiver against this month",
+					"kind": "CREDIT",
+					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+					"valid_when": "true",
+					"due_on": "entry.facts.levy_bill_due_on"
+				},
+				{
+					"code": "MOM_RETURN",
+					"name": "Actual MOM incoming return against original paid receipt",
+					"kind": "RECOVERY",
+					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+					"valid_when": "true",
+					"due_on": "entry.facts.levy_bill_due_on",
+					"source_payment_date_fact": "original_levy_payment_on"
+				},
+				{
+					"code": "REVERSE_RECEIPT",
+					"name": "Linked reversal of superseded actual receipt",
+					"kind": "REVERSAL",
+					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
+					"valid_when": "true",
+					"due_on": "entry.facts.levy_bill_due_on"
+				}
+			],
+			"currency": "SGD"
+		},
+		"source_identity": {
+			"assessment_basis": "AUTHORITY_NOTICE"
+		}
+	},
+	{
+		"id": "1c33e8e8-97d4-51a7-cf8b-36d14800bacf",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+		"name": "CPF monthly submission and payment",
+		"rules": {
+			"description": "Submit and pay the month’s CPF contributions (employer and employee shares) for every Singapore Citizen and SPR employee through the CPF Submission Number, by the 14th of the following month (the next working day when the 14th is a Saturday, Sunday or public holiday). Late payment interest: 1.5% a month on the unpaid contributions, or $5 if higher (CPF Regulations reg.3). Apply to CPF Board for a refund of contributions paid above the Additional Wage ceiling.",
+			"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
+			"schemes": ["CPF"],
+			"due": "next_working_day(add_days(period.to, 14), holidays)"
+		}
+	},
+	{
+		"id": "f9867522-7460-5f58-5b30-103d0763583e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "SDL_REMITTANCE",
+		"name": "Skills Development Levy remittance",
+		"rules": {
+			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month; the per-employee levies are summed and rounded down to the dollar. An employer with only foreign employees pays SkillsFuture Singapore directly.",
+			"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
+			"schemes": ["SDL"],
+			"due": "next_working_day(add_days(period.to, 14), holidays)"
+		}
+	},
+	{
+		"id": "308c09a9-5ef5-50cd-06c9-981acec17698",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "SHG_DEDUCTION_REMITTANCE",
+		"name": "Self-help group fund remittance",
+		"rules": {
+			"description": "Remit the CDAC, ECF, MBMF and SINDA deductions with the month’s CPF by the 14th of the following month; apply a fund’s written opt-out or changed-amount instruction from its effective date.",
+			"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
+			"schemes": ["CDAC", "ECF", "MBMF", "SINDA"],
+			"due": "next_working_day(add_days(period.to, 14), holidays)"
+		}
+	},
+	{
+		"id": "7a8e109a-b2eb-5db1-2dba-c4fa2d6b2668",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_LEVY",
+		"name": "Foreign worker levy payment",
+		"rules": {
+			"description": "Pay the month’s foreign worker levy for every Work Permit and S Pass holder by the 17th of the following month (the next working day when it falls on a weekend or public holiday), normally by GIRO, at the amount on the MOM levy bill. Waive the month when no Work Permit or S Pass was in force. Missing two consecutive months revokes the employer’s passes. Raised unless the entity records foreign_worker_levy_payer = false (no S Pass or Work Permit holder). The levy stays a task, not an obligation: its amount is the MOM levy bill (quota tier and sector), which no scheme computes, and an obligation without a computed amount is never raised.",
+			"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"applies_when": "(company == null || company.facts == null || !has(company.facts.foreign_worker_levy_payer) || company.facts.foreign_worker_levy_payer == true)",
+			"due": "next_working_day(add_days(period.to, 17), holidays)"
+		}
+	},
+	{
+		"id": "119046ad-8ec4-5534-3f65-77925c1643a2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SALARY_PAYMENT_DEADLINE",
+		"name": "Salary payment",
+		"rules": {
+			"description": "Pay the salary for a salary period of not more than one month before the expiry of the 7th day after its last day.",
+			"authority": "Employment Act 1968 ss.20, 21(1) (https://sso.agc.gov.sg/Act/EmA1968).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "add_days(period.to, 7)"
+		}
+	},
+	{
+		"id": "49c85d0b-e8d2-56a2-bbd4-6c0773b32bc9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_PAYMENT_DEADLINE",
+		"name": "Overtime payment",
+		"rules": {
+			"description": "Pay overtime worked in the salary period not later than 14 days after its last day. Waive the month when no overtime was worked.",
+			"authority": "Employment Act 1968 s.21(2) (https://sso.agc.gov.sg/Act/EmA1968).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "add_days(period.to, 14)"
+		}
+	},
+	{
+		"id": "c5f77f3c-9872-55b2-0122-8f0bc0b0fa45",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ITEMISED_PAYSLIP",
+		"name": "Itemised payslips",
+		"rules": {
+			"description": "Give each employee an itemised payslip (basic salary, allowances, overtime hours and pay, other additional payments, deductions including CPF, net salary, dates) with the salary or within 3 working days after paying it. Raised when the payslip is paid; due 3 working days after the paid day.",
+			"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
+			"trigger": {
+				"collection": "payslip",
+				"event": "updated",
+				"fields": ["status"]
+			},
+			"due": "add_working_days(row.paid_on, 3, holidays)",
+			"when": "row.status == \"PAID\" && has(row.paid_on)"
+		}
+	},
+	{
+		"id": "2a50bed8-39c4-5ee3-de8b-8d0de9d83238",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+		"name": "Form IR8A / AIS annual return",
+		"rules": {
+			"description": "Prepare Form IR8A with Appendix 8A, Appendix 8B and Form IR8S for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
+			"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_months(add_days(period.to, 1), 2)"
+		}
+	},
+	{
+		"id": "5470d2cc-f084-55db-6a0d-724ba6692c02",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "KEY_EMPLOYMENT_TERMS",
+		"name": "Key employment terms",
+		"rules": {
+			"description": "Give the employee the key employment terms in writing not later than 14 days after the day the employee starts (an employment of 14 days or more).",
+			"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 14)"
+		}
+	},
+	{
+		"id": "3314335a-3136-5dcb-a475-3776e280a5bf",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PASS_IN_FORCE",
+		"name": "Work pass before the start",
+		"rules": {
+			"description": "A foreign employee may start work only with a valid work pass (Employment Pass, S Pass or Work Permit) in force; waive for a Citizen or SPR. Raised for a hire whose profile immigration_status is a work pass, or is unrecorded.",
+			"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Passes and permits (https://www.mom.gov.sg/passes-and-permits).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "f79c57ca-300a-579d-bf1f-db22376ab030",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
+		"name": "Work injury compensation insurance",
+		"rules": {
+			"description": "Have work injury compensation insurance in force from the first day for every employee doing manual work and every non-manual employee earning $2,600 or less a month; waive otherwise.",
+			"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "9cabd459-23ef-5d7c-fbfa-208b41b1352c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
+		"name": "PDPA purpose notification",
+		"rules": {
+			"description": "Notify the employee of the purposes for which the employer collects, uses and discloses personal data to manage the employment relationship (onboarding, payroll, CPF and IRAS filing, benefits), on or before collection; a new purpose needs fresh notification.",
+			"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "7758f0a7-bc1a-5d0d-4790-f7a4b40e1e05",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FINAL_SALARY_PAYMENT",
+		"name": "Final salary payment",
+		"rules": {
+			"description": "Pay the salary and every sum due on termination: on the last day when the contract ends or notice was served (ss.21(3), 23(1)); on the day of a dismissal or, where impossible, within 3 days excluding rest days and public holidays (s.22); within 7 days after a resignation without notice (s.23(2)). The due day is the last day; subject to IR21 withholding (s.24). Due the last day, or 7 days after a RESIGNATION whose exit_facts do not record notice_served.",
+			"authority": "Employment Act 1968 ss.21(3), 22, 23, 24 (https://sso.agc.gov.sg/Act/EmA1968).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "contract.exit_ground == \"RESIGNATION\" && !(contract.exit_facts != null && has(contract.exit_facts.notice_served) && contract.exit_facts.notice_served == true) ? add_days(exit_on, 7) : exit_on"
+		}
+	},
+	{
+		"id": "dd454c75-a48f-5dff-5547-3842d102d134",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+		"name": "IR21 tax clearance",
+		"rules": {
+			"description": "File Form IR21 for a non-Singapore-Citizen employee (SPRs included) who ceases employment, is posted overseas or leaves Singapore for more than three months, at least one month before the cessation, and withhold all monies due from the day the employer is aware until the Comptroller’s clearance; waive for a Citizen or an IRAS exemption. Late or no filing: fine up to $5,000. Raised for every leaver whose profile immigration_status is not CITIZEN (SPRs included), or is unrecorded.",
+			"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") != \"CITIZEN\"",
+			"due": "add_months(exit_on, -1)"
+		}
+	},
+	{
+		"id": "db28c88f-65c7-5f07-a67e-f127ddae52fc",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PASS_CANCELLATION",
+		"name": "Work pass cancellation",
+		"rules": {
+			"description": "Cancel the foreign employee’s Employment Pass, S Pass or Work Permit within 1 week after the last day of notice (within 1 week of departure when the employee has left Singapore for good); waive for a Citizen or SPR. Raised for a leaver whose profile immigration_status is a work pass, or is unrecorded.",
+			"authority": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "a8ee3482-c6c7-5334-a12a-d66deeae6474",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RETRENCHMENT_NOTIFICATION",
+		"name": "Mandatory retrenchment notification",
+		"rules": {
+			"description": "An employer registered in Singapore with at least 10 employees notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on, unless the entity records employee_count below 10; due 5 calendar days after that notice, which never passes the 5-working-day deadline.",
+			"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && contract.exit_facts != null && has(contract.exit_facts.retrenchment_notified_on) && headcount >= 10",
+			"due": "add_working_days(contract.exit_facts.retrenchment_notified_on, 5, holidays)"
+		}
+	},
+	{
+		"id": "0fa9d561-10d1-5626-9963-38cd297e5bb0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
+		"name": "Government-paid leave reimbursement claim",
+		"rules": {
+			"description": "Claim the reimbursable government-paid maternity, paternity, adoption or shared parental leave (GPML, GPPL, GPAL, GPSPL) through the GPL portal no later than 3 months after the last day of the leave. Raised for each recorded spell of a family-event leave (entry.facts.event_kind set); waive a spell the Government does not reimburse (e.g. GPML weeks 1–8 of a 1st or 2nd child).",
+			"authority": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave (https://www.profamilyleave.msf.gov.sg/), read 2026-10-07",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code in [\"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\", \"ADOPTION_LEAVE\", \"SHARED_PARENTAL_LEAVE\"] && row.activity == \"TIME_OFF\" && row.to != null",
+			"due": "add_months(row.to, 3)"
+		}
+	},
+	{
+		"id": "94f1028c-58f8-5e29-8184-616106e8242c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CHILDCARE_LEAVE_CLAIM",
+		"name": "Childcare and extended childcare leave claim",
+		"rules": {
+			"description": "Claim the government-paid childcare leave (days 4–6, $500 a day, $1,500 a year) and extended childcare leave (both days, $500 a day, $1,000 a year) the employer paid in the calendar year, no later than 3 months after its last day. Raised by the December run; waive when no such leave was taken.",
+			"authority": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave), read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_months(period.to, 3)"
+		}
+	},
+	{
+		"id": "03d9cf7b-41cf-540a-b2aa-6c51c4205102",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to MOM",
+		"rules": {
+			"description": "Report a work accident through iReport within 10 days: of the accident if fatal, otherwise of the employer’s first notice of it, once the employee is given 4 or more days of medical leave. Raised by a medical leave entry whose facts record work_accident_on (and accident_notified_on, work_accident_fatal); medical leave split across entries is not summed — raise it by hand when the 4th day falls in a later entry.",
+			"authority": "Workplace Safety and Health (Incident Reporting) Regulations; Work Injury Compensation Act 2019; MOM, Work-related accidents: what and when to report (https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report), read 2026-10-07",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code in [\"SICK_LEAVE\", \"HOSPITALIZATION_LEAVE\"] && row.facts != null && has(row.facts.work_accident_on)",
+			"applies_when": "row.days >= 4.0 || (has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true)",
+			"due": "add_days(has(row.facts.accident_notified_on) ? row.facts.accident_notified_on : row.facts.work_accident_on, 10)"
+		}
+	},
+	{
+		"id": "1475a899-9125-5727-80fe-7d007dd9fc3b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CPF_SUBMISSION_NUMBER",
+		"name": "CPF Submission Number registration",
+		"rules": {
+			"description": "Apply for the CPF Submission Number before the first CPF payment is due. Raised when an entity is created without one; due the first possible CPF deadline, the 14th of the month after the entity’s first month (rolled to the next working day). There is no per-employee CPF registration.",
+			"authority": "Central Provident Fund Act 1953 s.7; CPF Board, How do I start contributing CPF as a new employer (https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer), read 2026-10-07: “You will need a CPF Submission Number (CSN) to transact with CPF Board”",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"applies_when": "company == null || company.facts == null || !has(company.facts.cpf_submission_number) || company.facts.cpf_submission_number == \"\"",
+			"due": "next_working_day(add_days(month_end(period.from), 14), holidays)"
+		}
+	},
+	{
+		"id": "ff8adde2-2968-5cd7-89ba-0d167796f0a8",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "IR21_FINAL_PAY_HOLD",
+		"name": "IR21 hold on a non-Citizen’s final pay",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(employment.exit_date != \"\" && employment.exit_date <= period.to) && terms.residency_status != \"CITIZEN\" && !has(employment.exit_facts.ir21_clearance_on)",
+			"message": "Final pay of a non-Citizen leaver is held until IRAS tax clearance (record exit_facts.ir21_clearance_on).",
+			"description": "Employment Act 1968 s.24(1): no salary or other sum due on termination may be paid without the Comptroller’s permission under Income Tax Act 1947 s.68(7); s.24(2): not delayed more than 30 days after the notice. Applies to every leaver who is not a Singapore Citizen (SPRs included) on the slip of the exit period. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr24-"
+		}
+	},
+	{
+		"id": "895e6ae9-1d16-56e7-9d36-2b42ad04975c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "DEDUCTION_LIMIT",
+		"name": "Deductions within 50% of the salary",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "!(employment.exit_date != \"\" && employment.exit_date <= period.to) && payslip.statutory_employee + payslip.net_deductions - sum([\"SALARY_ADVANCE\", \"FESTIVE_ADVANCE\", \"SALARY_OVERPAYMENT\", \"UNEARNED_BENEFIT_RECOVERY\", \"TRAVEL_ADVANCE\", \"COOPERATIVE_DUES\"].filter(c, c in payslip.lines).map(c, -payslip.lines[c])) > rules.deduction_ceiling.share * payslip.gross",
+			"message": "Deductions other than absence, advances and loans, and co-operative dues exceed 50% of the salary for the period (EA s.32).",
+			"description": "Employment Act 1968 s.32(1): all deductions in one salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) must not exceed 50% of the salary payable for the period; s.32(2): not on the last salary on termination. CPF and fund deductions count. Reads PAYROLL deduction_ceiling.share. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr32-"
+		}
+	},
+	{
+		"id": "71abd7c1-b22a-56a2-aa2a-726003e35134",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_MONTHLY_LIMIT",
+		"name": "Overtime within 72 hours a month",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.overtime_hours > 72.0",
+			"message": "Overtime in the month exceeds the 72 hours EA s.38(5) allows a Part 4 employee without an exemption under s.41A.",
+			"description": "Employment Act 1968 s.38(5): an employee covered by Part 4 may not work overtime of more than 72 hours a month, save under a Commissioner exemption (s.41A). https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "93864a1d-2bd0-59ad-a8bf-3cc2f7821b1f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "REEMPLOYMENT_OFFER",
+		"name": "Re-employment offer",
+		"rules": {
+			"description": "Offer re-employment (or an alternative-employer transfer, or the EAP) to an eligible Citizen or SPR employee reaching the prescribed minimum retirement age (63; 64 for those born on or after 1 July 1963, from 1 July 2026). The Tripartite Guidelines ask employers to engage the employee at least 6 months, and offer the contract at least 3 months, before that age. Raised on the daily tick 6 months before the birthday; due 3 months before it. Waive for an employee not eligible (performance, medical fitness, hired at 55+ with under 2 years of service).",
+			"authority": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && today == add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -6)",
+			"applies_when": "!(employee != null && employee.facts != null && has(employee.facts.immigration_status) && !(employee.facts.immigration_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]))",
+			"due": "add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -3)"
+		}
+	}
+]

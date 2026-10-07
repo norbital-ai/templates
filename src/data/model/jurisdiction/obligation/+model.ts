@@ -1,27 +1,72 @@
 import { model } from '@norbital-ai/bolt';
 
 export default model({
-	description: 'One obligation record.',
-	icon: 'lucide:file-text',
-	label: 'recipient_id',
+	description:
+		'One money liability of an entity to an authority: a remittance of the statutory contributions or taxes a payroll run charged, its amount (the named schemes’ employee and employer lines of the run’s payslips), its due day, and how it was closed — settled with its evidence, or waived with a reason. Non-money duties are regulatory tasks.',
+	icon: 'lucide:landmark',
+	label: 'duty_code',
 	fields: {
-		recipient_id: { kind: 'text', optional: true },
-		duty_code: { kind: 'text', optional: true },
-		authority: { kind: 'text', optional: true },
-		subject_kind: { kind: 'text', optional: true },
-		subject_id: { kind: 'text', optional: true },
-		original_occurrence_key: { kind: 'text', optional: true },
-		trigger_ref: { kind: 'text', optional: true },
-		triggered_on: { kind: 'date', optional: true },
-		due_on: { kind: 'date', optional: true },
-		amount_due: { kind: 'text', optional: true },
-		amount_settled: { kind: 'text', optional: true },
-		state: { kind: 'text', optional: true },
-		fulfilled_on: { kind: 'text', optional: true },
-		waive_reason: { kind: 'text', optional: true },
-		reference: { kind: 'text', optional: true },
-		evidence_file: { kind: 'text', optional: true },
-		facts: { kind: 'text', optional: true },
-		retain_until: { kind: 'text', optional: true }
+		duty_code: {
+			kind: 'text'
+		},
+		authority: {
+			kind: 'text'
+		},
+		occurrence_key: {
+			kind: 'text',
+			optional: true,
+			help: 'The duty and the run that raised it; one obligation per occurrence.'
+		},
+		trigger_ref: {
+			kind: 'text',
+			help: 'The payroll run that raised it.'
+		},
+		triggered_on: {
+			kind: 'date'
+		},
+		due_on: {
+			kind: 'date'
+		},
+		amount_due: {
+			kind: 'decimal',
+			scale: 2,
+			optional: true
+		},
+		amount_settled: {
+			kind: 'decimal',
+			scale: 2,
+			optional: true
+		},
+		state: {
+			kind: 'enum',
+			values: ['OPEN', 'FULFILLED', 'WAIVED'],
+			default: 'OPEN'
+		},
+		fulfilled_on: {
+			kind: 'date',
+			optional: true
+		},
+		waive_reason: {
+			kind: 'text',
+			optional: true
+		},
+		reference: {
+			kind: 'text',
+			optional: true
+		},
+		evidence_file: {
+			kind: 'file',
+			accept: ['*/*'],
+			max: '20MiB',
+			optional: true
+		},
+		facts: {
+			kind: 'json',
+			shape: {
+				kind: 'record',
+				of: { kind: 'json' }
+			},
+			default: {}
+		}
 	}
 });

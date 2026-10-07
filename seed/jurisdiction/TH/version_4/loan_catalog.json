@@ -1,0 +1,15 @@
+[
+	{
+		"id": "4141f51e-2066-5c4e-b389-5ad7c3507212",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WELFARE_LOAN",
+		"name": "Welfare or savings loan repayment",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	}
+]

@@ -1,50 +1,17 @@
-import { LEAVE_APPROVAL, HR_LEAVE_MANUAL } from './grants.js';
-import { jurisdictionReadFields } from './grants.js';
 import { policy } from '@norbital-ai/bolt';
-import { DRAFT_SETTINGS_ROW, MEMBER_LIMITS, SEAL_CREATE_APPROVAL, SEAL_UPDATE_APPROVAL, UNPAID_PAYSLIP, UNPINNED, WORK_DAY_CREATE_APPROVAL, WORK_DAY_FULL_FIELDS, WORK_DAY_UPDATE_APPROVAL } from './grants.js';
+import {
+	HR_ADMIN,
+	HR_APPS,
+	HR_ENTRIES_DIRECT,
+	MEMBER_LIMITS,
+	PAYROLL_AUTHORITY
+} from './grants.js';
 
+/** The top rank: every HR and payroll authority, and the final approver of every route. */
 export default policy({
-	description:
-		'Senior management: the full people-operations view, plus creating, running and deleting payroll runs.',
-	capabilities: { apps: [] },
-	automations: ['behaviour_catalog_events'],
-	grants: {
-  catalogue_entries: {
-   queries: ['leave_summary','preview_leave'],
-   read: { where: { source_kind: { in: ['claim_requests', 'adhoc_requests', 'loans', 'loan_repayments', 'leave_entries'] } } },
-   create: { where: { source_kind: { in: ['claim_requests', 'adhoc_requests', 'loans', 'loan_repayments', 'leave_entries'] } }, fields: ['source_basis', 'company_id', 'employment_id', 'catalog', 'catalogue_id', 'reference', 'occurred_on', 'values', 'input_proofs', 'input_files'], approval: [{ ...LEAVE_APPROVAL, match: { record: { catalog: { eq: 'LEAVE' }, activity: { eq: 'TIME_OFF' } } } }] },
-   update: { where: { source_kind: { in: ['claim_requests', 'adhoc_requests', 'loans', 'loan_repayments'] } }, fields: ['source_basis', 'reference', 'occurred_on', 'values', 'input_proofs', 'input_files'] },
-   delete: { where: { source_kind: { eq: 'loan_repayments' }, payslip_id: { isNull: true } } },
-   actions: ['execute_event']
-  },
-		sys_file: {read: {where: {field: {in: ['training_service_recoveries.source_file','training_service_recovery_cash.evidence_file','training_service_recovery_cash.allocation_file','original_component_partitions.evidence_file','payment_allocations.component_withholding_file','employment_terms.lifecycle_source_file','employee_profiles.lifecycle_source_file','payment_events.payment_method_source_file','payslips.payment_method_source_file','source_cash_payments.payment_method_source_file','holidays.statutory_qualification_file','person_facts.calendar_source_file','employee_profiles.retirement_source_file','employment_terms.leave_remuneration_source_file','employment_statutory_facts.election_cessation_file','employment_statutory_facts.unit_assessment_source_file','medical_copayment_return_instructions.original_instruction_file','loans.advance_source_file','loans.wage_basis_file','loans.permission_file','loans.fee_terms_file','medical_copayment_movements.evidence_file','medical_copayment_movements.allocation_file','conditional_refund_cash_corrections.component_allocation_file','conditional_refund_notice_corrections.evidence_file','conditional_refund_notices.evidence_file','conditional_refund_reports.acknowledgement_file','conditional_refund_reports.sent_file',"conditional_refund_cash_sources.bank_file","conditional_refund_cash_sources.parties_file","conditional_refund_cash_sources.component_allocation_file","conditional_refund_cash_sources.authority_refund_file","statutory_refund_receipts.bank_file","statutory_refund_receipts.authority_refund_file","statutory_refund_receipts.original_source_allocation_file","statutory_refund_receipts.employee_share_direction_file","statutory_employee_refunds.bank_file","statutory_employee_refunds.employee_receipt_file","statutory_employee_refunds.parties_file","original_financial_component_sources.allocation_file",'leave_transfer_opening_sources.ledger_file','statutory_remittance_acknowledgements.original_board_receipt_file','platform_earning_slip_deliveries.delivery_file','platform_earning_slips.document_file','platform_earning_slips.delivery_file','platform_cash_records.bank_file','platform_cash_records.breakdown_file','platform_operators.identity_file','platform_workers.identity_file','platform_operator_scopes.classification_file','platform_operator_scopes.agreement_file','platform_operator_scopes.rebuttal_file','platform_operator_scopes.licence_file','platform_operator_notifications.authority_file','platform_tasks.original_price_file','platform_tasks.transport_file','platform_tasks.completion_file','replacement_statutory_outcomes.authority_file','replacement_restitution_discharges.partial_rights_file','replacement_restitution_discharges.partial_partition_file','replacement_restitution_receipts.component_final_file','replacement_restitution_discharges.zero_rights_file','replacement_restitution_discharges.tax_final_file','replacement_restitution_discharges.tax_receipt_file','replacement_restitution_discharges.other_final_file','replacement_restitution_discharges.other_receipt_file','replacement_restitution_cases.basis_file','replacement_restitution_cases.attribution_file','replacement_restitution_receipts.receipt_file','work_day_credit_revisions.dossier_file','benefit_case_employee_recovery_receipts.bank_file','benefit_case_employee_recovery_allocations.attribution_file','benefit_case_government_refund_receipts.bank_file','benefit_case_government_refund_allocations.attribution_file','benefit_case_reimbursement_employer_scopes.scope_file','benefit_case_reimbursement_employer_claims.claim_file','benefit_case_reimbursement_claims.claim_file','benefit_case_reimbursement_decisions.decision_file','benefit_case_reimbursement_months.scope_file','benefit_case_reimbursement_premiums.source_file','benefit_case_reimbursement_rates.source_file','benefit_case_reimbursement_receipt_allocations.allocation_file','benefit_case_reimbursement_receipts.bank_file','employment_wage_periods.earned_workday_file','workforce_permit_rules.authority_file','workforce_registers.source_file','workforce_permit_cases.qualification_file','workforce_permit_cases.letter_file','workforce_permit_cases.denominator_file','workforce_permit_cases.ceiling_file','workforce_permit_cases.continuation_file','workforce_permit_cases.previous_holder_end_file','workforce_permit_workers.remuneration_month_file','workforce_permit_workers.non_adverse_file','workforce_permit_workers.declaration_file','workforce_permit_workers.grade_approval_file','workforce_permit_workers.holder_identity_file','workforce_permit_audits.decision_file','workforce_permit_audits.reply_file','workforce_permit_determinations.decision_file','workforce_permit_determinations.comparison_file','workforce_permit_worker_decisions.declaration_file','workforce_permit_worker_decisions.grade_approval_file','statutory_wage_records.particulars_file','statutory_wage_records.partition_file','statutory_wage_records.withholding_file','statutory_wage_records.original_record_file','statutory_wage_records.correction_file','statutory_wage_record_issues.signature_file','statutory_wage_record_issues.statement_file','statutory_wage_record_deliveries.delivery_file','annual_certified_lists.history_file','annual_certified_lists.particulars_file','annual_employer_filings.history_file','annual_employer_filings.particulars_file','annual_remittance_returns.history_file','annual_remittance_returns.particulars_file','annual_income_documents.declaration_file','annual_income_documents.history_file','annual_income_documents.correction_file','annual_income_documents.issue_file','annual_income_documents.employer_signature_file','annual_income_documents.employee_signature_file','annual_income_documents.submission_file','annual_income_documents.employer_return_file','annual_income_documents.employee_declaration_file','annual_income_documents.employer_declaration_file','annual_remittance_returns.correction_file','annual_remittance_returns.signature_file','annual_remittance_returns.submission_file','annual_certified_list_assets.file','annual_certified_lists.correction_file','annual_certified_lists.received_file','annual_certified_lists.sworn_declaration_file','annual_employer_filings.correction_file','annual_employer_filings.submission_file','annual_tax_settlement_vouchers.issuer_evidence_file','annual_tax_settlement_vouchers.evidence_file','annual_tax_assessments.evidence_file','annual_tax_settlement_events.evidence_file','income_reporting_registrations.evidence_file','income_return_filings.acceptance_evidence_file','income_return_filings.identity_evidence_file','income_return_filings.form_metadata_evidence_file','income_return_filings.recipient_source_evidence_file','benefit_case_decisions.decision_file','benefit_case_qualifications.source_file','benefit_cases.award_file','benefit_case_movements.evidence_file','fact_evidence.file','insurance_policy_vouchers.source_file','insurance_policy_vouchers.register_file','insurance_policy_restatements.signed_file','insurance_policy_restatement_registers.signed_file','insurance_policy_restatement_registers.register_file','benefit_case_periods.certificate_file','employment_wage_periods.received_component_file']}}, fields: ['id','field','size','sha256','approval_id','created_at']}},
-		entities: { read: true, update: true, actions: ['delete_saved_payrolls','record_payment','record_standalone_payment','record_noncontract','record_receipt'] },
-		rule_sets: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		jurisdiction_settings: { read: { fields: jurisdictionReadFields(true, false) }, create: { approval: SEAL_CREATE_APPROVAL }, update: { approval: SEAL_UPDATE_APPROVAL }, delete: { sealed_at: { isNull: true } }, },
-		statutory_contributions: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		leave_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		claim_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		adhoc_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		work_catalogue: { read: true, create: true, update: true, queries: ['price'] },
-		allowance_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW, queries: ['price'] },
-		loan_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
-		holidays: {
-			read: true,
-			create: true,
-			update: true,
-			
-			actions: ['import_workbook']
-		},
-		employees: { read: true,  update: true },
-		employee_profiles: { read: true,  update: true, actions:['change_terms'] },
-		roster_entries: {
-			read: true,
-			
-					},
-		rosters: { read: true, },
-		payroll_runs: { read: true, update: true, delete:true, actions:["export_file","report_data","delete_saved"] },
-		payslips: { read: true, update: true, delete:{status:{ne:'PAID'},paid_at:{isNull:true},funding_received:{eq:0}}, actions:['delete_saved'] },
-		obligations: { read: true }
-	},
+	description: 'Every HR and payroll authority; the final approver on every review route.',
+	capabilities: { apps: [...HR_APPS] },
+	automations: ['statutory_drift'],
+	grants: { ...HR_ADMIN, ...HR_ENTRIES_DIRECT, ...PAYROLL_AUTHORITY },
 	limits: MEMBER_LIMITS
 });

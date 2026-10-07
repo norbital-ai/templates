@@ -2,7 +2,7 @@
 	/**
 	 * The kiosk's manual tab: find a person of the selected entity by name and key one punch on their active
 	 * contract. One button, because there is one rule: the first punch of the day is the arrival and every later
-	 * one moves the departure (`work_days.kiosk_punch`, kind MANUAL, which a call-back or ad hoc day may use).
+	 * one moves the departure (`punchWork` through `roster_entry`, kind MANUAL, which a call-back or ad hoc day may use).
 	 */
 	import { t } from '../../lib/ui/i18n/t.js';
 	import Icon from '@iconify/svelte';
@@ -10,24 +10,26 @@
 	import { bolt } from '$bolt';
 	import { Button, Input } from '@norbital-ai/ui';
 	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { coversDate } from '../../../lib/payroll/run/effective.js';
 	import { todayKey } from '../../lib/ui/format/calendar.js';
 	import { liveRows } from '../../lib/ui/state/live.svelte.js';
 	import { punchWork, type PunchResult } from './punch.js';
-	import { getErrorMessage } from '../../lib/payroll_engine/foundation/primitives.js';
+	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
 
 	let {
 		companyId,
 		ondone,
 		onworkingchange
 	}: {
-		companyId: Id<'companies'> | null;
+		companyId: Id<'entity'> | null;
 		ondone: () => void;
 		onworkingchange: (value: boolean) => void;
 	} = $props();
 
+	const coversToday = (range: { readonly from: string; readonly to: string | null }) =>
+		range.from <= todayKey() && (range.to == null || range.to >= todayKey());
+
 	let term = $state('');
-	let chosenId = $state<Id<'employees'> | null>(null);
+	let chosenId = $state<Id<'employment_profile'> | null>(null);
 	let working = $state(false);
 	let result = $state<string | null>(null);
 	let resultTone = $state<'success' | 'warning'>('success');
@@ -35,7 +37,7 @@
 	const peopleQuery = liveRows(() =>
 		companyId == null || term.trim().length < 2
 			? null
-			: bolt.read('employees', {
+			: bolt.read('employment_profile', {
 					search: term.trim(),
 					select: { name: true, email: true },
 					limit: 20
@@ -47,7 +49,7 @@
 	const employmentsQuery = liveRows(() =>
 		chosen === null || companyId == null
 			? null
-			: bolt.read('employments', {
+			: bolt.read('employment_contract', {
 					where: {
 						employee_id: { eq: chosen.id },
 						company_id: { eq: companyId },
@@ -59,13 +61,13 @@
 	);
 	const employments = $derived(
 		(employmentsQuery.current ?? []).filter(
-			(row) => row.company_id === companyId && coversDate(row.effective_range, todayKey())
+			(row) => row.company_id === companyId && coversToday(row.effective_range)
 		)
 	);
 	const employmentsSettled = $derived(
 		chosen !== null && companyId != null && !employmentsQuery.loading
 	);
-	const companies = liveRows(() => bolt.read('companies', { select: { name: true }, limit: 200 }));
+	const companies = liveRows(() => bolt.read('entity', { select: { name: true }, limit: 200 }));
 	const companyById = $derived(
 		new Map((companies.current ?? []).map((company) => [company.id, company.name]))
 	);

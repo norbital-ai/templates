@@ -1,0 +1,381 @@
+[
+	{
+		"id": "b046ce6f-e791-5500-9e99-2c0524c73752",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "bonus",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.BONUS"],
+		"name": "Performance bonus",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8b732f68-fe76-5a86-a5ca-0398738686ea",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "BACKPAY_BASIC",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Back pay – basic",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0ec8dcc8-8543-5435-af27-64b2893c4d36",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "BACKPAY_DUTY_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Back pay – duty allowance",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "013f0ec4-aadb-5575-a844-c2edb7e619d3",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "BACKPAY_ADD_WAGES",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"name": "Back pay – additional wages",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "18346f81-d6d2-5746-a3cb-4962d3fb2951",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "COMMISSION",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
+		"name": "Commission",
+		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "29598be4-cee2-5406-af9d-655d9af1d082",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "STATUTORY_ADJUSTMENT",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Statutory adjustment",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3e5c10ea-0bed-5c66-8c39-35941da2e2e8",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && (!has(terms.statutory_work_category) || terms.statutory_work_category != \"TASK_BASIS\")",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"name": "13th month pay",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December). The amount is computed, whatever is keyed: one twelfth of the calendar year’s basic — the BASIC lines of earlier periods and of earlier slips this period (`earned.year`, `earned.month`), net of their NO_PAY_LEAVE deductions, plus this slip’s own basic (`terms.base_salary × period.paid_days ÷ period.days`). Paid in gross, inside the WTAX ₱90,000 pool (NIRC s.32(B)(7)(e)), outside the SSS, PhilHealth and Pag-IBIG bases.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(((has(earned.year.BASIC) ? earned.year.BASIC : 0.0) + (has(earned.month.BASIC) ? earned.month.BASIC : 0.0) + (has(earned.year.NO_PAY_LEAVE) ? earned.year.NO_PAY_LEAVE : 0.0) + (has(earned.month.NO_PAY_LEAVE) ? earned.month.NO_PAY_LEAVE : 0.0) + terms.base_salary / period.parts * period.paid_days / period.days) / 12.0, 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2e3cc6d8-9a81-5268-ae12-09b9da866c76",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && (!has(terms.statutory_work_category) || terms.statutory_work_category != \"TASK_BASIS\")",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"name": "13th month pay (year end)",
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G). The amount is computed, whatever is keyed: one twelfth of the calendar year’s basic — the BASIC lines of earlier periods and of earlier slips this period (`earned.year`, `earned.month`), net of their NO_PAY_LEAVE deductions, plus this slip’s own basic (`terms.base_salary × period.paid_days ÷ period.days`). Paid in gross, inside the WTAX ₱90,000 pool (NIRC s.32(B)(7)(e)), outside the SSS, PhilHealth and Pag-IBIG bases.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(((has(earned.year.BASIC) ? earned.year.BASIC : 0.0) + (has(earned.month.BASIC) ? earned.month.BASIC : 0.0) + (has(earned.year.NO_PAY_LEAVE) ? earned.year.NO_PAY_LEAVE : 0.0) + (has(earned.month.NO_PAY_LEAVE) ? earned.month.NO_PAY_LEAVE : 0.0) + terms.base_salary / period.parts * period.paid_days / period.days) / 12.0, 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SCHEDULED"
+	},
+	{
+		"id": "ae73861e-2c32-54e2-a833-5bf749156737",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "SEPARATION_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "(has(employment.exit_facts.termination_cause) && employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\", \"RETRENCHMENT\", \"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES\", \"DISEASE\", \"SECURITY_GUARD_NO_ASSIGNMENT\", \"CONTRACTOR_NO_ASSIGNMENT\", \"IMPOSSIBLE_REINSTATEMENT\"]) || ((!has(employment.exit_facts.termination_cause) || employment.exit_facts.termination_cause == \"\") && ((employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) || (terms.employment_type != \"DOMESTIC\" && employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\"] && has(employment.exit_facts.terminated_for_disease) && employment.exit_facts.terminated_for_disease)))",
+		"counts_toward": [],
+		"name": "Separation pay",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay. Years of service are `round(service_months / 12, 1, HALF_UP)`: a fraction of at least six months counts as a year (corrected in every version from a tenth-of-a-year rounding); the month’s pay is the contract’s monthly wage, basic plus fixed allowances (`terms.monthly_wage`). Causes are the exit fact `termination_cause` (customer input), incl. a security guard or contractor’s worker without assignment (half a month a year) and an impossible reinstatement (a month a year), DOLE Handbook 2024 ch.14 §C.",
+		"bands": [
+			{
+				"when": "employment.exit_ground == \"REDUNDANCY\" || (has(employment.exit_facts.termination_cause) && employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\", \"IMPOSSIBLE_REINSTATEMENT\"])",
+				"amount": "round(terms.monthly_wage * max(round(employment.service_months / 12.0, 1.0, \"HALF_UP\"), 1.0), 0.01, \"HALF_UP\")"
+			},
+			{
+				"when": "",
+				"amount": "round(terms.monthly_wage * max(round(employment.service_months / 12.0, 1.0, \"HALF_UP\") * 0.5, 1.0), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "ab077091-e452-59e6-a9c8-16f42774d766",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f3d758b1-b315-5094-99a9-c6369353c37f",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "RETIREMENT_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_ground == \"RETIREMENT\" && employee.age != null && employee.age >= 60.0 && employee.age <= 65.0 && employee.age <= 65.0 && employee.age <= 65.0 && employment.service_months >= 60.0 && !(has(company.facts.retirement_exempt_establishment) && company.facts.retirement_exempt_establishment)",
+		"counts_toward": [],
+		"name": "Retirement pay",
+		"authority": "RA 7641 (Labor Code art.302): an employee retiring at 60 to 65 after at least five years’ service, with no retirement plan, is paid half a month’s salary for every year of service — 22.5 days: fifteen days, the five-day service incentive leave and one twelfth of the 13th-month pay — a fraction of at least six months counting as a year. RA 7641 (Labor Code art.302): optional retirement from sixty and compulsory at sixty-five, after five years’ service — a person retiring past sixty-five is inside it; retail, service and agricultural establishments of not more than ten workers are outside (`company.facts.small_establishment`). One-half month salary is 22.5 days of the daily rate, the daily rate being the monthly basic on the person’s own factor (365 for the monthly-paid, 313 on a six-day week, 261 on five). Tax: the statutory benefit is exempt under NIRC s.32(B)(6)(a), which is why this class pays the RA 7641 minimum only — any excess over it under a company plan would be tested against RA 4917 (age 50, ten years’ service, BIR-qualified plan). the exemption is its own required entity fact, `company.facts.retirement_exempt_establishment` — RA 7641 exempts retail, service and agricultural establishments of not more than ten employees, a different class from the SIL exemption of any establishment regularly employing fewer than ten (`small_establishment`); a small manufacturer owes retirement pay. The daily rate is the monthly basic × 12 ÷ the contract term fact `days_per_year` (313 when unrecorded); the exemption is the entity fact `retirement_exempt_establishment`. Handbook ch.15 §B: retirement \"upon reaching the age of 60 years or more but not beyond 65 years\".",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(22.5 * (terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) * round(employment.service_months / 12.0, 1.0, \"HALF_UP\"), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1bc4a3e5-ee20-56cb-82e0-8ee05bd816c6",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "UNIFORM_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["WTAX.UNIFORM"],
+		"name": "Uniform and clothing allowance",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "873f61e8-8fbd-5ec6-86d8-cc81c06c39f2",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "MEDICAL_ASSISTANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["WTAX.MEDICAL"],
+		"name": "Actual medical assistance",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "003b4bab-ea0b-5335-9a92-e69d725bcab9",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "ACHIEVEMENT_AWARD",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["WTAX.AWARD"],
+		"name": "Employee achievement award",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "af90146e-35f4-5e48-817e-e860607f7d9d",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "CHRISTMAS_GIFT",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["WTAX.GIFT"],
+		"name": "Christmas or anniversary gift",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "9be3fc88-27fb-5fba-a49d-f0ac02d71657",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "CBA_PRODUCTIVITY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["WTAX.CBA"],
+		"name": "CBA and productivity incentive benefit",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "40ae532f-7b25-5bd8-a705-2261f41ac6b3",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "OT_MEAL_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.OT_MEAL"],
+		"name": "Overtime or night-shift meal allowance",
+		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3f3d0222-9e75-51d4-8094-34190174a335",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "KASAMBAHAY_FORFEITURE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "terms.employment_type == \"DOMESTIC\" && has(employment.exit_facts.kasambahay_unjustified_departure) && employment.exit_facts.kasambahay_unjustified_departure",
+		"counts_toward": [],
+		"name": "Kasambahay unjustified-departure salary forfeiture",
+		"authority": "RA 10361 s.32 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): a domestic worker who leaves without justifiable reason forfeits unpaid salary of no more than fifteen days. This NET deduction is capped by the final payslip’s unpaid salary; the thirteenth-month pay and leave conversion are not salary for this cap. The day is the monthly wage × 12 ÷ the contract term fact `days_per_year` (313 when unrecorded). The entry amount is the unpaid salary; at most fifteen days of it is forfeited.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(min(entry.amount, 15.0 * (terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0))), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "a1199cb1-d1c3-5936-86ab-3a7f3ff44ae6",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "KASAMBAHAY_INDEMNITY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.employment_type == \"DOMESTIC\" && has(employment.exit_facts.kasambahay_unjust_dismissal) && employment.exit_facts.kasambahay_unjust_dismissal",
+		"counts_toward": [],
+		"name": "Kasambahay unjust-dismissal indemnity",
+		"authority": "RA 10361 s.32: \"If the domestic worker is unjustly dismissed, the domestic worker shall be paid the compensation already earned plus the equivalent of fifteen (15) days work by way of indemnity\" (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514). The Act is silent on the day: fifteen of the version’s ordinary days (`terms.ordinary_day`, the monthly basic over `ordinary_divisor_days`), the day every other PH day-rate reads. Tax: a separation for a cause beyond the employee’s control, NIRC s.32(B)(6)(b), so the class counts toward nothing, like SEPARATION_PAY. The pay-request person context evaluates the version’s ordinary divisor and roster week on the event date. The day is the monthly wage × 12 ÷ the contract term fact `days_per_year` (313 when unrecorded).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(15.0 * (terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"raised_by": "SEPARATION"
+	},
+	{
+		"destination": "PAY",
+		"direction": "ADD",
+		"evidence": "NONE",
+		"raised_by": "MANUAL",
+		"id": "55261c55-17bc-5733-8cda-824f64a25d3b",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "MATERNITY_SALARY_DIFFERENTIAL",
+		"name": "Maternity salary differential",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"counts_toward": [],
+		"authority": "RA 11210 s.5(c) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86567): the employer pays the difference between the full salary and the SSS maternity benefit for the leave, unless exempt (distressed; retail or service of ten or fewer; micro business; already paying equal or better). Customer input: `entry.amount`, the full salary for the leave less the SSS benefit (the benefit is SSS’s figure, outside the payroll records). Outside the WTAX base (RMC 105-2019), counted toward no scheme."
+	}
+]

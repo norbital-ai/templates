@@ -1,0 +1,80 @@
+[
+	{
+		"id": "a85a7607-0fef-5b74-b1c5-81be22023bfc",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"code": "SEVERANCE_PAY",
+		"name": "Severance pay (ค่าชดเชย)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PND1.SEVERANCE"],
+		"raised_by": "SEPARATION",
+		"qualifies_when": "has(entry.facts.service_from)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(entry.amount / 30.0 * (add_years(entry.facts.service_from, 20) <= add_days(entry.occurred_on, 1) ? 400.0 : (add_years(entry.facts.service_from, 10) <= add_days(entry.occurred_on, 1) ? 300.0 : (add_years(entry.facts.service_from, 6) <= add_days(entry.occurred_on, 1) ? 240.0 : (add_years(entry.facts.service_from, 3) <= add_days(entry.occurred_on, 1) ? 180.0 : (add_years(entry.facts.service_from, 1) <= add_days(entry.occurred_on, 1) ? 90.0 : (calendar_distance_days(entry.facts.service_from, entry.occurred_on) + 1.0 >= 120.0 ? 30.0 : 0.0)))))), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"authority": "Labour Protection Act B.E. 2541 (1998) s.118 (as amended by the Labour Protection Act (No. 7) B.E. 2562): on termination by the employer, at the latest wage rate for 30 days after 120 days of service, 90 days after one year, 180 after three, 240 after six, 300 after ten and 400 after twenty years. entry.amount is the latest monthly wage (a day is a thirtieth, s.68) and entry.facts.service_from the first day of continuous service; entry.occurred_on is the last day of employment. Not owed under s.118 para 3 (an end-dated project, seasonal or occasional contract of up to two years) or s.119 (exit fact section_119_ground) — HR raises the entry only where owed. Tax: employment income (s.40(1)) counted toward the PND1 part `severance`, which exempts up to the last 300 days' wages and at most 300,000 except on retirement or the end of a fixed term (Ministerial Regulation No. 126 item 2(51)); the separate-taxation election (s.48(5)) is not modelled. Not SSO wage."
+	},
+	{
+		"id": "0f738867-6a51-5bd2-9389-e1a99cba75d2",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"code": "PAY_IN_LIEU_OF_NOTICE",
+		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PND1"],
+		"raised_by": "SEPARATION",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"authority": "Labour Protection Act B.E. 2541 (1998) s.17 para 2 and s.17/1: an employer ending an indefinite contract gives notice at or before one pay date to take effect on the next, or pays the wages for the notice period at once. entry.amount is the wage for the unexpired notice period."
+	},
+	{
+		"id": "8ee2f056-859a-5f4f-9da3-22a65aa5e09b",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"code": "MINIMUM_WAGE_ARREARS",
+		"name": "Minimum wage arrears",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSO", "WCF", "PND1"],
+		"raised_by": "MANUAL",
+		"qualifies_when": "entry.quantity > 0.0",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(max(0.0, double((has(company.facts.minimum_wage_400_business) && company.facts.minimum_wage_400_business ? rules.minimum_wage.business_400 : rules.minimum_wage.by_region[company.region])) * entry.quantity - entry.amount), 0.01, \"HALF_UP\")"
+			}
+		],
+		"evidence": "NONE",
+		"authority": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024) cl.20 with Labour Protection Act B.E. 2541 (1998) s.90: the employer may not pay less than the minimum wage of the workplace's area. entry.quantity is the normal working days of the shortfall period and entry.amount the wages paid for them; the line pays the difference at the PAYROLL minimum_wage rule (or 400 for a category 2-4 hotel or service establishment)."
+	},
+	{
+		"id": "d22193b1-bba5-527b-a8bc-058e58b1b515",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"code": "BONUS",
+		"name": "Bonus",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PND1"],
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE",
+		"authority": "Revenue Code s.40(1): a bonus is employment income withheld under s.50(1). It is not SSO wage (SSA s.5: remuneration for normal working time)."
+	}
+]

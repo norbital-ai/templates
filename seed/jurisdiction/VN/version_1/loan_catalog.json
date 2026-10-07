@@ -1,0 +1,15 @@
+[
+	{
+		"id": "7601f3d4-c9df-5f43-bd68-a3219972982a",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"code": "SALARY_ADVANCE",
+		"name": "Tạm ứng tiền lương (salary advance)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	}
+]

@@ -6,55 +6,41 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 18,
-		"apps": 3,
-		"automations": 1
+		"collections": 25,
+		"apps": 7,
+		"automations": 5
 	},
-	"tags": [
-		"HR",
-		"Finance",
-		"Approvals"
-	],
+	"tags": ["HR", "Finance", "Approvals"],
 	"seed": {
 		"bankTree": "norbital_hr",
 		"layout": "hr-records",
 		"stages": [
-			[
-				"sys_team",
-				"jurisdiction_settings"
-			],
+			["sys_team", "jurisdiction_settings"],
 			[
 				"sys_user",
-				"entities",
-				"statutory_contributions",
-				"leave_catalogue",
-				"loan_catalogue",
-				"claim_catalogue",
-				"adhoc_catalogue",
-				"allowance_catalogue",
-				"work_catalogue"
+				"entity",
+				"statutory_contribution_catalog",
+				"leave_catalog",
+				"loan_catalog",
+				"claim_catalog",
+				"adhoc_catalog",
+				"allowance_catalog",
+				"work_catalog"
 			],
+			["employment_profile", "holiday"],
+			["employment_contract"],
+			["roster", "obligation", "regulatory_task", "payroll_run"],
+			["payslip"],
 			[
-				"employees",
-				"holidays"
-			],
-			[
-				"employee_profiles"
-			],
-			[
-				"rosters",
-				"obligations",
-				"payroll_runs"
-			],
-			[
-				"payslips"
-			],
-			[
-				"roster_entries",
-				"catalogue_entries"
+				"roster_entry",
+				"adhoc_catalog_entry",
+				"claim_catalog_entry",
+				"leave_catalog_entry",
+				"loan_catalog_entry",
+				"rule_set"
 			]
 		]
 	},
-	"name_zh": "HR 与薪资",
-	"description_zh": "基于生效日期的雇佣事实、考勤、休假与法定缴款规则，运行多国 HR 与薪资。"
+	"name_zh": "HR \u4e0e\u85aa\u8d44",
+	"description_zh": "\u57fa\u4e8e\u751f\u6548\u65e5\u671f\u7684\u96c7\u4f63\u4e8b\u5b9e\u3001\u8003\u52e4\u3001\u4f11\u5047\u4e0e\u6cd5\u5b9a\u7f34\u6b3e\u89c4\u5219\uff0c\u8fd0\u884c\u591a\u56fd HR \u4e0e\u85aa\u8d44\u3002"
 }

@@ -1,0 +1,1304 @@
+[
+	{
+		"id": "f8ccc40b-be52-5294-afcb-a9ea05c80fc1",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "OBLIGATIONS",
+		"code": "SSS_CONTRIBUTION_REMITTANCE",
+		"name": "SSS contributions (SS, MPF, EC) for the month",
+		"rules": {
+			"description": "Pay the month’s Regular SS, MPF and EC contributions (employee shares deducted, employer shares added) with a PRN and the electronic Contribution Collection List.",
+			"authority": "SSS Circular 2019-012 as published on https://www.sss.gov.ph/pay-contribution/: on or before the last day of the month following the applicable month; RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.22(a): a late contribution carries a penalty of 2% a month. Recorded default: the calendar day (no next-working-day extension).",
+			"schemes": ["SSS", "SSS_MPF", "SSS_EC"],
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "ac293243-30bb-5cff-9dd0-0db49d6e7ea9",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "OBLIGATIONS",
+		"code": "PHILHEALTH_PREMIUM_REMITTANCE",
+		"name": "PhilHealth premium for the month",
+		"rules": {
+			"description": "Remit the month’s PhilHealth premium (both shares) through the Electronic Premium Remittance System with its remittance report.",
+			"authority": "PhilHealth Circular 0001 s.2014 (https://www.philhealth.gov.ph/partners/employers/pay_procedures.php): the 11th–15th of the following month for a PhilHealth Employer Number ending 0–4, the 16th–20th for one ending 5–9. Recorded default: an employer without a recorded PEN (entity fact `philhealth_employer_number`) is due on the 15th, the earlier window; interest on missed premiums (UHC Act IRR s.9.2) is not computed.",
+			"schemes": ["PHIC"],
+			"due": "has(company.facts.philhealth_employer_number) && company.facts.philhealth_employer_number.matches(\"[5-9][^0-9]*$\") ? add_days(month_end(period.from), 20) : add_days(month_end(period.from), 15)"
+		}
+	},
+	{
+		"id": "f04413e0-595d-594b-87d1-1c5ed10c7583",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "OBLIGATIONS",
+		"code": "HDMF_CONTRIBUTION_REMITTANCE",
+		"name": "Pag-IBIG contributions for the month",
+		"rules": {
+			"description": "Remit the month’s Pag-IBIG contributions (employee and employer) and consented loan amortisations with the Membership Contribution Remittance Form.",
+			"authority": "HDMF Circular 275 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf) §E.2, §E.4 (RA 9679 s.7): in the month following the period covered by the first letter of the employer’s name — A–D by the 14th, E–L the 19th, M–Q the 24th, R–Z or a numeral the month’s end; a penalty of 1/10 of 1% a day of delay. Recorded default: an employer without a recorded group (entity fact `hdmf_remittance_group`) is due on the 14th, the earliest window.",
+			"schemes": ["HDMF"],
+			"due": "!has(company.facts.hdmf_remittance_group) || company.facts.hdmf_remittance_group <= 1.0 ? add_days(month_end(period.from), 14) : company.facts.hdmf_remittance_group == 2.0 ? add_days(month_end(period.from), 19) : company.facts.hdmf_remittance_group == 3.0 ? add_days(month_end(period.from), 24) : month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "3a202b4b-d5aa-51ec-852a-672dfd65d306",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "OBLIGATIONS",
+		"code": "BIR_1601C_MONTHLY_REMITTANCE",
+		"name": "BIR Form 1601-C and the compensation tax withheld",
+		"rules": {
+			"description": "File BIR Form 1601-C and remit the income tax withheld on compensation for the month.",
+			"authority": "NIRC s.58(A), s.81; RR 2-98 s.2.58 as amended; BIR Form 1601-C guidelines (https://bir-cdn.bir.gov.ph/local/pdf/1601C%20final%20Jan%202018%20with%20DPA.pdf): on or before the 10th day of the following month, December’s on or before 15 January. Recorded default: an eFPS filer’s later industry-group day is not applied; the s.248 surcharge and s.249 interest are not computed.",
+			"schemes": ["WTAX"],
+			"due": "period.key.endsWith(\"-12\") ? add_days(month_end(period.from), 15) : add_days(month_end(period.from), 10)"
+		}
+	},
+	{
+		"id": "fb73bb9e-bc2d-5bd4-8fb0-794c7848be28",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_1604C_ANNUAL_ALPHALIST",
+		"name": "BIR Form 1604-C with the alphalist of employees",
+		"rules": {
+			"description": "File BIR Form 1604-C, the annual information return of income taxes withheld on compensation, with the alphabetical list of employees.",
+			"authority": "BIR Form 1604-C guidelines (https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf); RR 2-98 s.2.79(B)(5)(b) as amended by RR 11-2018: on or before 31 January of the year following the calendar year of payment. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(month_end(period.from), 31)"
+		}
+	},
+	{
+		"id": "17d51c54-bd95-5532-af15-3d31495b0b93",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_2316_CERTIFICATE",
+		"name": "BIR Form 2316 to every employee for the year",
+		"rules": {
+			"description": "Issue BIR Form 2316 (Certificate of Compensation Payment / Tax Withheld) to every employee, minimum-wage earners included; keep the employer copy ten years.",
+			"authority": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): to the employee on or before 31 January of the following year. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(month_end(period.from), 31)"
+		}
+	},
+	{
+		"id": "3c4ddf14-85c6-5045-aa4e-86930d23ceb0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_2316_SUBSTITUTED_FILING_LIST",
+		"name": "Duplicate 2316s with the certified list for substituted filing",
+		"rules": {
+			"description": "Submit the duplicate 2316s of employees qualified for substituted filing with the Certified List of Employees Qualified for Substituted Filing.",
+			"authority": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): to the BIR not later than 28 February of the following year. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(month_end(period.from), 59)"
+		}
+	},
+	{
+		"id": "99e69a09-a8cb-5e87-99f5-882c9dbe7ddd",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_YEAR_END_ADJUSTMENT",
+		"name": "Year-end annualisation and refund of over-withholding",
+		"rules": {
+			"description": "Annualise each employee’s tax at year end: withhold a deficiency from the last compensation of the year, or refund an over-withholding.",
+			"authority": "RR 2-98 s.2.79(B)(5)(b) as amended by RR 11-2018 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): the excess is refunded not later than 25 January of the following year. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(month_end(period.from), 25)"
+		}
+	},
+	{
+		"id": "75a45c1f-924e-5eca-be0b-8dc0beba4dc5",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "THIRTEENTH_MONTH_PAYMENT",
+		"name": "13th-month pay for the year",
+		"rules": {
+			"description": "Pay rank-and-file employees (kasambahay included) at least one twelfth of the basic salary earned in the calendar year.",
+			"authority": "PD 851 and its Revised Guidelines; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 (https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf) ch.13 §E: not later than 24 December of each year; RA 10361 s.25. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(period.from, 23)"
+		}
+	},
+	{
+		"id": "71be7fa6-dacc-5496-9986-df94ce2b4653",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "THIRTEENTH_MONTH_DOLE_REPORT",
+		"name": "13th-month compliance report to DOLE",
+		"rules": {
+			"description": "Report 13th-month pay compliance through the DOLE Establishment Report System.",
+			"authority": "DOLE Labor Advisory 16-25; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 (https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf) ch.13 §L: not later than 15 January of the following year. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(month_end(period.from), 15)"
+		}
+	},
+	{
+		"id": "e6e53227-a519-5924-9192-a2723de42065",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "SSS_EMPLOYEE_REPORT",
+		"name": "Report the new employee to SSS (R-1A)",
+		"rules": {
+			"description": "Report the new employee for compulsory SSS coverage (Employment Report, R-1A).",
+			"authority": "RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.24(a): each employer \"shall immediately report\" its employees subject to compulsory coverage, relieved of damages for a contingency within 30 days of employment; SSS, Employers — Duties (https://www.sss.gov.ph/employer-er/, checked 7 October 2026): report employees \"for coverage within 30 days from hiring date\".",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "6202301f-38b8-5e57-a8d5-d3b5dfb6d27b",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "PHILHEALTH_EMPLOYEE_REPORT",
+		"name": "Report the new employee to PhilHealth (ER2)",
+		"rules": {
+			"description": "Report the new employee on the Report of Employee-Members (ER2) with the PhilHealth Member Registration Form.",
+			"authority": "PhilHealth, Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php); RA 11223 s.10: the ER2 within 30 days of the employee’s assumption of duty.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "dc67dd82-9855-5e1e-b645-1006438a091a",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "HDMF_EMPLOYEE_REGISTRATION",
+		"name": "Register the new employee with Pag-IBIG",
+		"rules": {
+			"description": "Register the newly hired employee with the Pag-IBIG Fund.",
+			"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016 (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): each new hire within 30 days from the start of employment.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "a1d3deac-157e-5ec7-8fef-991dbbccd832",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_EMPLOYEE_TIN_REGISTRATION",
+		"name": "Register a first-time employee with the BIR (Form 1902)",
+		"rules": {
+			"description": "File the BIR Form 1902 of an employee without a TIN (or secure the TIN through eREG).",
+			"authority": "RR 2-98 s.2.82 as amended by RR 11-2018 s.11 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): within 10 days from the date of employment. Raised on every hire; closed with the existing TIN when the employee has one.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 10)"
+		}
+	},
+	{
+		"id": "f6a9260f-c4ee-59af-b485-96dbf47f5556",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "FINAL_PAY_RELEASE",
+		"name": "Final pay",
+		"rules": {
+			"description": "Release the final pay: unpaid salary, pro-rata 13th month, service incentive leave conversion, separation or retirement pay and refundables.",
+			"authority": "DOLE Labor Advisory No. 06, s.2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf): final pay within 30 days from the date of separation unless a more favourable policy applies.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 30)"
+		}
+	},
+	{
+		"id": "129e5999-1310-5ac5-8852-fdaeca033c45",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "CERTIFICATE_OF_EMPLOYMENT",
+		"name": "Certificate of employment",
+		"rules": {
+			"description": "Issue the certificate of employment.",
+			"authority": "DOLE Labor Advisory No. 06, s.2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf) Part III: within three days from the employee’s request; RA 10361 s.35: a kasambahay’s within five days of severance. Recorded default: the request is taken as made on the last day of work, so the shorter three-day period governs (a later request runs from its own date).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 3)"
+		}
+	},
+	{
+		"id": "caed377d-cec4-5953-aecc-c0ee1b099015",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "BIR_2316_LEAVER_CERTIFICATE",
+		"name": "BIR Form 2316 to a leaver",
+		"rules": {
+			"description": "Issue BIR Form 2316 to the separated employee.",
+			"authority": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): to a leaver on the day of the last payment of compensation. Recorded default: due with the latest lawful last payment, the final pay 30 days after the last day of work (DOLE Labor Advisory No. 06, s.2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf)).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 30)"
+		}
+	},
+	{
+		"id": "aea72e96-89da-561b-aed1-6d470cfeb9bd",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "HDMF_SEPARATION_REPORT",
+		"name": "Report the separation to Pag-IBIG",
+		"rules": {
+			"description": "Report the resignation, separation or death to the Pag-IBIG Fund.",
+			"authority": "HDMF Circular 275 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf) §E.5–E.7: within 30 days from the first day of occurrence or effectivity. Recorded default: counted from the last day of work.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 30)"
+		}
+	},
+	{
+		"id": "2022b791-411b-5b13-9ee3-25cc8dbd9c19",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "ALIEN_EMPLOYMENT_PERMIT",
+		"name": "Alien Employment Permit before a foreign national starts work",
+		"rules": {
+			"description": "Secure the DOLE Alien Employment Permit for a foreign national before the employment starts.",
+			"authority": "Labor Code art.40; DOLE Department Order 221-21: a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Recorded default: a profile `nationality` other than Philippine (PH, PHL, FILIPINO) is a foreign national; an unrecorded nationality raises nothing.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && !(employee.nationality.upperAscii() in [\"PH\", \"PHL\", \"FILIPINO\", \"PHILIPPINES\", \"PHILIPPINE\"])",
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "903f2ff3-d630-50cf-9948-c3dfc85004ce",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "AUTHORISED_CAUSE_TERMINATION_NOTICE",
+		"name": "Written notice of an authorised-cause termination to the employee and DOLE",
+		"rules": {
+			"description": "Serve written notice of a termination for an authorised cause (labour-saving devices, redundancy, retrenchment, closure, disease) on the employee and on DOLE (RKS Form 5 / Establishment Report System).",
+			"authority": "Labor Code arts.298–299; DOLE Department Order 147-15; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.14 §E: served at least one month before the intended date of termination. Recorded default: the month counts back from the last day of work, so the duty is overdue when the exit is recorded later than that.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (contract.exit_facts != null && ((has(contract.exit_facts.termination_cause) && contract.exit_facts.termination_cause != \"\") || (has(contract.exit_facts.terminated_for_disease) && contract.exit_facts.terminated_for_disease)))",
+			"due": "add_months(exit_on, -1)"
+		}
+	},
+	{
+		"id": "a64d11f7-0590-556f-a130-48f350bb2c18",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "minimum_wage",
+		"name": "Regional minimum wage (monthly, daily rate × 313 ÷ 12)",
+		"rules": {
+			"by_region": {
+				"BARMM-CITY-AGRI-RETAIL": [
+					{
+						"from": "2026-12-01",
+						"monthly": 11372.33
+					},
+					{
+						"from": "2026-08-06",
+						"monthly": 10720.25
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10068.17
+					}
+				],
+				"BARMM-CITY-NONAGRI": [
+					{
+						"from": "2026-12-01",
+						"monthly": 12024.42
+					},
+					{
+						"from": "2026-08-06",
+						"monthly": 11372.33
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10720.25
+					}
+				],
+				"BARMM-PROV-AGRI": [
+					{
+						"from": "2026-08-06",
+						"monthly": 10459.42
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 9807.33
+					}
+				],
+				"BARMM-PROV-NONAGRI": [
+					{
+						"from": "2026-08-06",
+						"monthly": 10720.25
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10068.17
+					}
+				],
+				"CAR": [
+					{
+						"from": "2025-12-30",
+						"monthly": 13172.08
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12259.17
+					}
+				],
+				"I-LOW": [
+					{
+						"from": "2025-12-01",
+						"monthly": 12520
+					}
+				],
+				"I-NONAGRI-10PLUS": [
+					{
+						"from": "2025-12-01",
+						"monthly": 13172.08
+					}
+				],
+				"II": [
+					{
+						"from": "2025-12-01",
+						"monthly": 13041.67
+					}
+				],
+				"III-AURORA-AGRI": [
+					{
+						"from": "2026-04-16",
+						"monthly": 14215.42
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13432.92
+					}
+				],
+				"III-AURORA-NONAGRI": [
+					{
+						"from": "2026-04-16",
+						"monthly": 14606.67
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13824.17
+					}
+				],
+				"III-AURORA-RETAIL": [
+					{
+						"from": "2026-04-16",
+						"monthly": 13432.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12389.58
+					}
+				],
+				"III-CORE-AGRI": [
+					{
+						"from": "2026-04-16",
+						"monthly": 14867.5
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 14085
+					}
+				],
+				"III-CORE-NONAGRI": [
+					{
+						"from": "2026-04-16",
+						"monthly": 15650
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 14867.5
+					}
+				],
+				"III-CORE-RETAIL": [
+					{
+						"from": "2026-04-16",
+						"monthly": 15389.17
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 14606.67
+					}
+				],
+				"IV-A": [
+					{
+						"from": "2025-12-01",
+						"monthly": 15650
+					}
+				],
+				"IV-A-1ST": [
+					{
+						"from": "2025-12-01",
+						"monthly": 14345.83
+					}
+				],
+				"IV-A-2ND-5TH": [
+					{
+						"from": "2026-04-01",
+						"monthly": 13693.75
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13302.5
+					}
+				],
+				"IV-A-AGRI-2ND-5TH": [
+					{
+						"from": "2026-04-01",
+						"monthly": 13250.33
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12650.42
+					}
+				],
+				"IV-A-AGRI-COMPONENT-1ST": [
+					{
+						"from": "2025-12-01",
+						"monthly": 13693.75
+					}
+				],
+				"IV-A-AGRI-RECLASSIFIED-1ST": [
+					{
+						"from": "2026-04-01",
+						"monthly": 13693.75
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12650.42
+					}
+				],
+				"IV-A-RECLASSIFIED-1ST": [
+					{
+						"from": "2026-04-01",
+						"monthly": 14345.83
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13302.5
+					}
+				],
+				"IV-A-RETAIL-SMALL": [
+					{
+						"from": "2026-04-01",
+						"monthly": 13250.33
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12650.42
+					}
+				],
+				"IV-B": [
+					{
+						"from": "2026-01-01",
+						"monthly": 11867.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11215.83
+					}
+				],
+				"IV-B-SMALL": [
+					{
+						"from": "2026-01-01",
+						"monthly": 11867.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10537.67
+					}
+				],
+				"IX-HIGH": [
+					{
+						"from": "2026-06-01",
+						"monthly": 12102.67
+					},
+					{
+						"from": "2026-01-01",
+						"monthly": 11450.58
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10798.5
+					}
+				],
+				"IX-LOW": [
+					{
+						"from": "2026-06-01",
+						"monthly": 11763.58
+					},
+					{
+						"from": "2026-01-01",
+						"monthly": 11111.5
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10459.42
+					}
+				],
+				"NCR": [
+					{
+						"from": "2026-09-26",
+						"monthly": 19692.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 18127.92
+					}
+				],
+				"NCR-AGRI-SMALL": [
+					{
+						"from": "2026-09-26",
+						"monthly": 18727.83
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 17162.83
+					}
+				],
+				"V": [
+					{
+						"from": "2026-12-01",
+						"monthly": 12520
+					},
+					{
+						"from": "2026-04-08",
+						"monthly": 11867.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11346.25
+					}
+				],
+				"VI-AGRI": [
+					{
+						"from": "2025-12-01",
+						"monthly": 13563.33
+					}
+				],
+				"VI-NONAGRI-10ORLESS": [
+					{
+						"from": "2025-12-01",
+						"monthly": 13693.75
+					}
+				],
+				"VI-NONAGRI-11PLUS": [
+					{
+						"from": "2025-12-01",
+						"monthly": 14345.83
+					}
+				],
+				"VII-A": [
+					{
+						"from": "2026-10-14",
+						"monthly": 15180.5
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 14085
+					}
+				],
+				"VII-B": [
+					{
+						"from": "2026-10-14",
+						"monthly": 14137.17
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13041.67
+					}
+				],
+				"VIII-HIGH": [
+					{
+						"from": "2026-06-01",
+						"monthly": 12259.17
+					},
+					{
+						"from": "2025-12-08",
+						"monthly": 11789.67
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11346.25
+					}
+				],
+				"VIII-LOW": [
+					{
+						"from": "2026-06-01",
+						"monthly": 11476.67
+					},
+					{
+						"from": "2025-12-08",
+						"monthly": 11007.17
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 10563.75
+					}
+				],
+				"X-CAT-I": [
+					{
+						"from": "2026-05-01",
+						"monthly": 13041.67
+					},
+					{
+						"from": "2026-01-16",
+						"monthly": 12676.5
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 12024.42
+					}
+				],
+				"X-CAT-II": [
+					{
+						"from": "2026-05-01",
+						"monthly": 12650.42
+					},
+					{
+						"from": "2026-01-16",
+						"monthly": 12285.25
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11633.17
+					}
+				],
+				"XI-AGRI": [
+					{
+						"from": "2026-09-01",
+						"monthly": 13693.75
+					},
+					{
+						"from": "2026-03-13",
+						"monthly": 13432.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13172.08
+					}
+				],
+				"XI-NONAGRI": [
+					{
+						"from": "2026-09-01",
+						"monthly": 14085
+					},
+					{
+						"from": "2026-03-13",
+						"monthly": 13693.75
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 13302.5
+					}
+				],
+				"XII-AGRI": [
+					{
+						"from": "2025-12-15",
+						"monthly": 11554.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11294.08
+					}
+				],
+				"XII-NONAGRI": [
+					{
+						"from": "2025-12-15",
+						"monthly": 11998.33
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11737.5
+					}
+				],
+				"XIII": [
+					{
+						"from": "2026-05-01",
+						"monthly": 12389.58
+					},
+					{
+						"from": "2026-01-03",
+						"monthly": 11867.92
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 11346.25
+					}
+				]
+			},
+			"by_employment_type": {
+				"DOMESTIC": {
+					"BARMM": [
+						{
+							"from": "2026-01-08",
+							"monthly": 5500.0
+						}
+					],
+					"CAR": [
+						{
+							"from": "2025-12-30",
+							"monthly": 6600.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"I": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6700.0
+						}
+					],
+					"II": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6500.0
+						}
+					],
+					"III": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6500.0
+						}
+					],
+					"IV-A": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6750.0
+						}
+					],
+					"IV-B": [
+						{
+							"from": "2026-01-01",
+							"monthly": 7000.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6500.0
+						}
+					],
+					"IX": [
+						{
+							"from": "2026-05-20",
+							"monthly": 6000.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 5500.0
+						}
+					],
+					"IX-OTHER": [
+						{
+							"from": "2026-05-20",
+							"monthly": 5500.0
+						}
+					],
+					"NCR": [
+						{
+							"from": "2026-02-07",
+							"monthly": 7800.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 7000.0
+						}
+					],
+					"V": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"VI": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6500.0
+						}
+					],
+					"VII": [
+						{
+							"from": "2026-10-14",
+							"monthly": 7500.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 7000.0
+						}
+					],
+					"VIII": [
+						{
+							"from": "2025-12-08",
+							"monthly": 6400.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"VIII-OTHER": [
+						{
+							"from": "2025-12-08",
+							"monthly": 5800.0
+						}
+					],
+					"X": [
+						{
+							"from": "2026-01-16",
+							"monthly": 6500.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"XI": [
+						{
+							"from": "2026-03-13",
+							"monthly": 6500.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"XII": [
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					],
+					"XIII": [
+						{
+							"from": "2026-01-03",
+							"monthly": 6500.0
+						},
+						{
+							"from": "2025-12-01",
+							"monthly": 6000.0
+						}
+					]
+				}
+			},
+			"orders": [
+				{
+					"from": "2025-12-01",
+					"orders": "The regional wage orders in force on 1 December 2025 (NWPC, https://nwpc.dole.gov.ph/)."
+				},
+				{
+					"from": "2025-12-08",
+					"orders": "Wage Order No. RB VIII-25 first tranche (effective 8 December 2025, s.6): non-agriculture and service/retail of more than 10 workers ₱435 → ₱452, service/retail of 1–10, cottage/handicraft and agriculture ₱405 → ₱422 (s.2); with Wage Order No. RBVIII-DW-06 (same date): domestic workers in chartered cities and first-class municipalities ₱6,000 → ₱6,400 a month."
+				},
+				{
+					"from": "2025-12-08",
+					"orders": "Wage Order No. RBVIII-DW-06: kasambahay in chartered cities and first-class municipalities ₱6,400 (`VIII`), other municipalities ₱5,800 (`VIII-OTHER`)."
+				},
+				{
+					"from": "2025-12-15",
+					"orders": "Wage Order No. RB XII-25 second tranche (15 December 2025): non-agriculture/retail/service ₱450 → ₱460, agriculture ₱433 → ₱443."
+				},
+				{
+					"from": "2025-12-30",
+					"orders": "Wage Order No. CAR-24 (published 14 December, effective 30 December 2025): ₱470 → ₱505 a day; with Wage Order No. CAR-DW-07: domestic ₱6,000 → ₱6,600 a month."
+				},
+				{
+					"from": "2026-01-01",
+					"orders": "1 January 2026: Wage Order No. RIX-24 first tranche (Region IX ₱414 → ₱439 and ₱401 → ₱426 a day), Wage Order No. MIMAROPA-13 (₱455 a day) and Wage Order No. RB-MIMAROPA-DW-06 (domestic ₱6,500 → ₱7,000 a month); the STATUTORY_ADJUSTMENT payment code the company records name from January 2026. RR 29-2025 commences on 6 January 2026, not 1 January, so RR 11-2018’s de minimis rice ceiling (₱2,000) and 10-day leave cash-out still apply."
+				},
+				{
+					"from": "2026-01-01",
+					"orders": "Wage Order No. RB-MIMAROPA-13 (published 16 December 2025, effective 1 January 2026): ₱455 for establishments of ten or more and of fewer than ten (from ₱430 and ₱404 under RB-MIMAROPA-12) — `IV-B`, `IV-B-SMALL`."
+				},
+				{
+					"from": "2026-01-03",
+					"orders": "Wage Order No. RXIII-20 first tranche (published 18 December 2025, effective 3 January 2026): every sector ₱435 → ₱455; with Wage Order No. RXIII-DW-06: chartered cities and first-class municipalities ₱6,000 → ₱6,500 a month."
+				},
+				{
+					"from": "2026-01-08",
+					"orders": "Wage Order No. BARMM-DW-02 (effective 8 January 2026): domestic workers ₱5,500 a month across BARMM."
+				},
+				{
+					"from": "2026-01-16",
+					"orders": "Wage Order No. RX-24 first tranche (published 31 December 2025, effective 16 January 2026): Category I ₱461 → ₱486, Category II ₱446 → ₱471; with Wage Order No. RBX-DW-06: domestic ₱6,000 → ₱6,500 a month in all areas."
+				},
+				{
+					"from": "2026-02-07",
+					"orders": "Wage Order No. NCR-DW-06 (approved 15 January 2026, published 22 January 2026, effective 7 February 2026): NCR domestic-worker (kasambahay) minimum wage ₱7,000 → ₱7,800 a month (`wages.by_employment_type.DOMESTIC.NCR`)."
+				},
+				{
+					"from": "2026-03-13",
+					"orders": "Wage Order No. RB XI-24 first tranche (published 25 February, effective 13 March 2026): non-agriculture ₱510 → ₱525, agriculture ₱505 → ₱515; with Wage Order No. RB XI-DW-04: chartered cities and first-class municipalities ₱6,000 → ₱6,500 a month."
+				},
+				{
+					"from": "2026-04-01",
+					"orders": "Wage Order No. IVA-22 second tranche (1 April 2026): reclassified 1st-class municipalities ₱510 → ₱550, 2nd–5th-class ₱510 → ₱525 (non-agriculture)."
+				},
+				{
+					"from": "2026-04-08",
+					"orders": "Wage Order No. RBV-23 first tranche (published 23 March, effective 8 April 2026): all sectors ₱435 → ₱455."
+				},
+				{
+					"from": "2026-04-16",
+					"orders": "Wage Order No. RBIII-26 second tranche (16 April 2026), Bataan, Bulacan, Nueva Ecija, Pampanga, Tarlac and Zambales: non-agriculture ₱570 → ₱600, agriculture ₱540 → ₱570, retail/service ₱560 → ₱590."
+				},
+				{
+					"from": "2026-04-16",
+					"orders": "Wage Order No. RBIII-26 second tranche, Aurora: non-agriculture ₱530 → ₱560, agriculture ₱515 → ₱545, retail/service ₱475 → ₱515 — `III-AURORA-*`."
+				},
+				{
+					"from": "2026-05-01",
+					"orders": "1 May 2026 second tranches: Wage Order No. RX-24 Category I ₱486 → ₱500, Category II ₱471 → ₱485; Wage Order No. RXIII-20 ₱455 → ₱475."
+				},
+				{
+					"from": "2026-05-20",
+					"orders": "Wage Order No. RIX-DW-06 (approved 16 April 2026, published 4 May 2026, effective 20 May 2026, s.8): Region IX domestic workers in chartered cities and first-class municipalities ₱5,500 → ₱6,000 a month (s.1), no exemption (s.5); `by_employment_type.DOMESTIC.IX` 6,000 at the five exact Region IX city worksites."
+				},
+				{
+					"from": "2026-05-20",
+					"orders": "Wage Order No. RIX-DW-06: kasambahay in chartered cities and first-class municipalities ₱6,000 (`IX`), other municipalities ₱5,500 (`IX-OTHER`)."
+				},
+				{
+					"from": "2026-06-01",
+					"orders": "1 June 2026 second tranches: Wage Order No. RIX-24 non-agriculture ₱439 → ₱464, agriculture ₱426 → ₱451; Wage Order No. RB VIII-25 (s.1) ₱452 → ₱470 and ₱422 → ₱440."
+				},
+				{
+					"from": "2026-08-06",
+					"orders": "Wage Order No. BARMM-05 first tranche (approved 15 July, published 21 July, effective 6 August 2026, s.6): Cotabato City, Lamitan City and Marawi City non-agriculture ₱411 → ₱436, agriculture/retail ₱386 → ₱411 (s.2); household workers and certified BMBE workers are not covered (s.4)."
+				},
+				{
+					"from": "2026-08-06",
+					"orders": "Wage Order No. BARMM-05 first tranche, Maguindanao del Norte/Sur, Lanao del Sur, Basilan, Tawi-Tawi and the Special Geographic Area: non-agriculture ₱386 → ₱411, agriculture ₱376 → ₱401 — `BARMM-PROV-*` (the provincial second tranche is not yet transcribed)."
+				},
+				{
+					"from": "2026-09-01",
+					"orders": "Wage Order No. RB XI-24 second tranche (1 September 2026): non-agriculture ₱525 → ₱540, agriculture ₱515 → ₱525."
+				},
+				{
+					"from": "2026-09-26",
+					"orders": "Wage Order No. NCR-28 (26 September 2026): NCR non-agriculture minimum wage PHP 755 a day (PHP 695 + 60), 313-factor 19,692.92 a month."
+				},
+				{
+					"from": "2026-10-14",
+					"orders": "Wage Order No. ROVII-27 (issued 14 September, published 28 September, effective 14 October 2026): Class A (expanded Metro Cebu) ₱540 → ₱582; with Wage Order No. ROVII-DW-06: domestic ₱7,000 → ₱7,500 a month."
+				},
+				{
+					"from": "2026-10-14",
+					"orders": "Wage Order No. ROVII-27 Class B (cities and municipalities outside Class A): ₱500 → ₱542 — `VII-B`."
+				},
+				{
+					"from": "2026-12-01",
+					"orders": "1 December 2026 second tranches: Wage Order No. RBV-23 ₱455 → ₱480; Wage Order No. BARMM-05 (s.2) Cotabato/Lamitan/Marawi non-agriculture ₱436 → ₱461, agriculture/retail ₱411 → ₱436."
+				}
+			],
+			"authority": "the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the version from that date carries the second tranche. Each figure is the daily rate × 313 ÷ 12. sector floors beside the area ones, for an establishment whose `company.region` names its sector — `NCR-AGRI-SMALL` is NCR agriculture, service/retail of 15 workers or fewer and manufacturing under 10 (₱658 under NCR-26, ₱718 under NCR-28; nwpc.dole.gov.ph/ncr/); `IV-A-RETAIL-SMALL` is IV-A retail/service of 10 workers or fewer (₱485 under IVA-22 from 5 Oct 2025, ₱508 from 1 Apr 2026; nwpc.dole.gov.ph/region-iva/). Each × 313 ÷ 12. The RA 9504 minimum-wage-earner test reads the same floor, so an employee of such an establishment above the sector floor is withheld on. RA 10361 (Batas Kasambahay) s.24: a domestic worker’s floor is the regional board’s domestic-worker wage order, a monthly figure, never the establishment order — `by_employment_type.DOMESTIC`, held on its own (scale 1). NCR only, from the wage orders themselves: NCR-DW-05 ₱7,000 a month from 4 January 2025, and NCR-DW-06 (approved 15 January 2026, published 22 January, effective 7 February 2026; nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf) ₱7,800 — this version states ₱7,800. Other regions’ domestic orders are not transcribed. the floor is mandatory — RA 6727 s.4 and Wage Order No. NCR-28 s.4 (the increase applies to “all minimum wage earners in the private sector within the region”) and s.6 (non-payment is dealt with under RA 6727 s.12); only an exemption the board approves on application (RA 6727 s.4(c)) lowers it, recorded as `company.facts.minimum_wage_exemption_approved` (default false: no approval, no exemption). A covered under-floor contract therefore refuses the run (`block_below_when`). a part-timer is refused too. The order’s daily rate is for normal working hours of at most eight a day and covers every minimum wage earner regardless of status (NCR-28 ss.3–4), and a worker on less than the normal hours is owed a proportion of it (DOLE Handbook 2024 ch.1 §L), so `wages.scale` multiplies a PART_TIME contract’s floor by its weekly hours over the full-time week of the person’s own factor (40 on a five-day week, 48 on a six-day one): the reference week is a recorded default, the orders naming none (20 hours on a five-day NCR-26 week: 695 × 261 ÷ 12 × 20 ÷ 40 = 7,558.13). The message quotes the floor on the person's own factor (₱755 × 261 ÷ 12 = 16,421.25 on a five-day week), not the 313-day basis. Signed NWPC board orders: additional private daily rates are II ₱500, CAR ₱505, IV-B ₱455; domestic monthly rates are I ₱6,700, II ₱6,500, III ₱6,500, IV-A ₱6,750, V ₱6,000, VI ₱6,500, XII ₱6,000, CAR ₱6,600, IV-B ₱7,000, XIII ₱6,500, X ₱6,500, BARMM ₱5,500, XI ₱6,500. The order PDFs are in this version’s sources. The private-sector exemption approval fact cannot displace a domestic floor; the inspected orders that address exemption expressly disallow it. Unrepresented mid-interval cutovers, area/sector/headcount selection and worksite-region selection remain open. Signed uniform private-sector tranche rates added for complete sealed intervals only: XIII ₱475/day. Region V RBV-22 reaches ₱435 on 1 December 2025; Caraga RXIII-19 reaches ₱435 on 1 May 2025 and RXIII-20 sets ₱455 from 3 January 2026, ₱475 from 1 May 2026. Intervals containing a later tranche remain without that regional rate pending an exact sealed version boundary. a law change on a date is a new sealed version, so the lineage is split at every signed tranche inside an interval — 8 Dec, 15 Dec and 30 Dec 2025; 3 Jan, 8 Jan, 16 Jan, 13 Mar, 8 Apr, 16 Apr, 1 May, 1 Jun, 6 Aug, 1 Sep, 14 Oct and 1 Dec 2026 — each version cloned with every catalogue row, and each interval now states the rate of the order in force on its first day (NWPC regional pages and signed orders read 2026-09-30). A worksite whose predecessor rate is unread stays unseeded and refuses. VIII MANUFACTURING and OTHER_NONAGRI select the non-agriculture class (RB VIII-25 s.2 puts non-agriculture with retail of more than 10 workers); cottage/handicraft has no sector code of its own, so it is priced at the non-agriculture floor — a recorded default that never underpays. VIII domestic rows at the seven chartered cities select the chartered-city class (RBVIII-DW-06 s.1). BARMM/Cotabato City private rows follow BARMM-05 s.2: non-agriculture (manufacturing, other non-agriculture) and agriculture/retail. RA 9178 s.8 exempts a certified Barangay Micro Business Enterprise from the Minimum Wage Law, its employees keeping social security and health benefits, so `wages.applies_when` leaves a BMBE establishment (company fact `bmbe_certificate_of_authority`, default false) outside the private floor; a kasambahay stays covered by the domestic order. The contribution schemes do not read the fact. Wage Order No. IVA-22 s.2 (p.3 non-agriculture, p.5 agriculture, p.7 retail/service of 10 or fewer; nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf) lists the City of Santo Tomas, Batangas among the component cities: non-agriculture ₱600 (`IV-A`), agriculture ₱525 (`IV-A-AGRI-COMPONENT-1ST`), retail/service of 10 or fewer ₱485 then ₱508 (`IV-A-RETAIL-SMALL`) — the same class as the City of Calamba, so `Batangas/Santo Tomas` carries Calamba's rows. Each key holds its dated floors newest first ({from, monthly}); the floor on a day is the first entry whose `from` is on or before it. Kasambahay floors are monthly as the domestic orders state them. Verified against the NWPC regional pages on 7 October 2026. NCR-27 (effective 25 July 2026, ₱780 from 20 January 2027) is not carried: NWPC marks it subject to litigation before RTC Pasig Branch 152 and RTC Navotas Branch 287; NCR-28 governs from 26 September 2026."
+		}
+	},
+	{
+		"id": "c5e2811f-1fbe-569a-9a67-6bebfefdea84",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "PHILHEALTH_SEPARATION_REPORT",
+		"name": "Report the separated employee to PhilHealth (RF-1)",
+		"rules": {
+			"description": "Show the separated employee on the RF-1 remittance report.",
+			"authority": "PhilHealth, Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php, checked 7 October 2026): \"Indicate the names of separated employees in the RF-1 within 30 days from the date of separation\".",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"due": "add_days(exit_on, 30)",
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null"
+		}
+	},
+	{
+		"id": "f62c530e-e196-530f-a96f-ca2c74d877ca",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "SSS_MATERNITY_NOTIFICATION",
+		"name": "Transmit the maternity notice and advance the SSS maternity benefit",
+		"rules": {
+			"description": "Transmit the employee’s maternity notification to SSS and advance the full maternity benefit; claim reimbursement.",
+			"authority": "RA 11199 s.14-A as amended by RA 11210 s.5 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333): the employer transmits the notice to SSS, and \"the full payment shall be advanced by the employer within thirty (30) days from the filing of the maternity leave application\". Raised by a MATERNITY_LEAVE entry (`row.catalog_code`), due 30 days after it is filed (`today`).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"due": "add_days(today, 30)",
+			"applies_when": "has(row.catalog_code) && row.catalog_code == \"MATERNITY_LEAVE\""
+		}
+	},
+	{
+		"id": "e221c766-d79d-5aab-9603-87be6bcd5e62",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
+		"name": "Kasambahay written contract and barangay registration",
+		"rules": {
+			"description": "Execute the written employment contract with the kasambahay before service starts and register the kasambahay in the barangay Registry of Domestic Workers.",
+			"authority": "RA 10361 ss.11 and 17 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): the contract before the commencement of service; registration with the barangay of the employer’s residence. Recorded default: both due on the first day of service.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 0)",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")"
+		}
+	},
+	{
+		"id": "ef51a68d-54fd-531f-9169-346f7d1fe974",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "PROBATIONARY_STANDARDS",
+		"name": "Make the regularisation standards known to a probationary employee",
+		"rules": {
+			"description": "Make known at engagement the reasonable standards under which the probationary employee will qualify as regular; probation ends within six months of the actual start.",
+			"authority": "Omnibus Rules Implementing the Labor Code Book VI Rule I ss.5(c), 6(a), (d) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): standards at the time of engagement; probation not beyond six months (Labor Code art.296).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 0)",
+			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"PROBATION\")"
+		}
+	},
+	{
+		"id": "6666c9ac-2323-5f87-864e-bc1120b00cdc",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "HDMF_EMPLOYER_REGISTRATION",
+		"name": "Register the employer with the Pag-IBIG Fund",
+		"rules": {
+			"description": "Submit the employer’s data to the Pag-IBIG Fund.",
+			"authority": "HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf): employers submit their data \"within thirty (30) days from the start of their business operations\". Recorded default: counted from the entity’s effective start, else the month it was recorded.",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 30) : add_days(period.from, 30)"
+		}
+	},
+	{
+		"id": "b529cc06-4176-5d76-8564-685862ada9c0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "PROTECTION_ORDER_REMITTANCE",
+		"name": "Remit the protection-order support withheld",
+		"rules": {
+			"description": "Remit the support the protection order fixes, withheld from the respondent employee’s pay, directly to the woman and/or child it names.",
+			"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders a percentage of the respondent’s salary \"to be withheld regularly by the respondent’s employer\" and remitted directly; failure or delay without justifiable cause is indirect contempt. Raised by each PROTECTION_ORDER_SUPPORT entry (`row.catalog_code`). Recorded default: due on the entry’s pay day.",
+			"trigger": {
+				"collection": "adhoc_catalog_entry",
+				"event": "created"
+			},
+			"due": "add_days(row.occurred_on, 0)",
+			"applies_when": "has(row.catalog_code) && row.catalog_code == \"PROTECTION_ORDER_SUPPORT\""
+		}
+	},
+	{
+		"id": "04ffde0a-af75-5e47-a067-8726e7f55a13",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "COMPULSORY_RETIREMENT_AGE",
+		"name": "Compulsory retirement at sixty-five",
+		"rules": {
+			"description": "Retire the employee at sixty-five and pay at least the RA 7641 retirement pay (22.5 days a year of service, five years’ service).",
+			"authority": "Labor Code art.302 (RA 7641); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 (https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf) ch.15 §B: retirement at sixty or more \"but not beyond 65 years\". Raised once, on the sixty-fifth birthday.",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"due": "add_days(today, 0)",
+			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && add_years(employee.date_of_birth, 65.0) == today && contract != null && (contract.effective_range.to == null || contract.effective_range.to >= today)"
+		}
+	},
+	{
+		"id": "29d617d8-6767-5c7f-a993-07269839d5ef",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "PROBATION_ENDS",
+		"name": "Probation ends: regularise or end the employment",
+		"rules": {
+			"description": "Decide on regularisation: a probationary employee allowed to work after six months is regular.",
+			"authority": "Omnibus Rules Implementing the Labor Code Book VI Rule I s.6(a), (d) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819); Labor Code art.296: probation \"shall not exceed six (6) months from the date the employee started working\". Raised a month ahead, due the day before the six months end.",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"due": "add_days(add_months(contract.effective_range.from, 6.0), -1)",
+			"when": "contract != null && add_months(contract.effective_range.from, 5.0) == today && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"PROBATION\")"
+		}
+	},
+	{
+		"id": "89661daa-701f-556d-b532-7a1809b8c925",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "TASKS",
+		"code": "SIL_YEAR_END_COMMUTATION",
+		"name": "Commute the unused service incentive leave of the service year",
+		"rules": {
+			"description": "Pay the money equivalent of the service incentive leave days left unused at the end of the service year.",
+			"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: service incentive leave \"shall be commutable to its money equivalent if not used or exhausted at the end of the year\". Raised on each service anniversary from the second (the first year earns no leave); the days are the ANNUAL_LEAVE balance of the ending service year.",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"due": "add_days(today, 0)",
+			"when": "contract != null && calendar_completed_months(contract.effective_range.from, today) >= 24.0 && add_years(contract.effective_range.from, round(calendar_completed_months(contract.effective_range.from, today) / 12.0, 1.0, \"TRUNCATE\")) == today && (contract.effective_range.to == null || contract.effective_range.to >= today) && !(has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\"))"
+		}
+	},
+	{
+		"id": "63a8545a-fadb-5b38-acfb-50808e8e1894",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_FLOOR_CONTRACT",
+		"name": "Contract basic below every floor the region has had",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "!((terms.employment_type != \"DOMESTIC\" && ((has(company.facts.bmbe_certificate_of_authority) && company.facts.bmbe_certificate_of_authority) || (has(company.facts.minimum_wage_exemption_approved) && company.facts.minimum_wage_exemption_approved))) || terms.employment_type == \"PART_TIME\" || (terms.employment_type == \"INTERN\" && !(has(terms.facts.ebet_program) && terms.facts.ebet_program == \"UPSKILLING\"))) && terms.base_salary > 0.0 && (terms.employment_type == \"DOMESTIC\" ? (company.region in rules.minimum_wage.by_employment_type.DOMESTIC ? double(first(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, !rules.minimum_wage.by_employment_type.DOMESTIC[company.region].exists(o, double(o.monthly) < double(e.monthly)))).monthly) : -1.0) : (company.region in rules.minimum_wage.by_region ? double(first(rules.minimum_wage.by_region[company.region].filter(e, !rules.minimum_wage.by_region[company.region].exists(o, double(o.monthly) < double(e.monthly)))).monthly) * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 313.0 : -1.0)) > 0.0 && terms.base_salary < round((terms.employment_type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.employment_type == \"DOMESTIC\" ? (company.region in rules.minimum_wage.by_employment_type.DOMESTIC ? double(first(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, !rules.minimum_wage.by_employment_type.DOMESTIC[company.region].exists(o, double(o.monthly) < double(e.monthly)))).monthly) : -1.0) : (company.region in rules.minimum_wage.by_region ? double(first(rules.minimum_wage.by_region[company.region].filter(e, !rules.minimum_wage.by_region[company.region].exists(o, double(o.monthly) < double(e.monthly)))).monthly) * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 313.0 : -1.0)), 0.01, \"HALF_UP\")",
+			"message": "The basic salary is below the regional minimum wage (RA 6727 s.4): record the wage order’s floor or the approved exemption.",
+			"description": "RA 6727 s.4 and the regional wage orders (rule `minimum_wage`, NWPC, checked 7 October 2026): no employer pays less than the floor for the establishment’s region and sector; a kasambahay’s floor is the domestic order’s (RA 10361 s.24). Labor Code art.61: an apprentice at not less than 75% of the floor. RA 9178 s.8: a certified BMBE is outside the minimum wage law (entity fact `bmbe_certificate_of_authority`); RA 6727 s.4(c): a board-approved exemption (entity fact `minimum_wage_exemption_approved`). The floor is the daily rate × 313 ÷ 12 restated on the term’s `days_per_year`. Recorded defaults: a part-time contract is not checked (its floor depends on hours the records do not carry); an INTERN on a GENERAL EBET programme is paid an allowance, not a wage (RA 12063 s.13(a)), one on UPSKILLING keeps the full floor (s.12); a region the table does not list is not checked. The contract site carries no term day, so the write is refused only below the lowest floor the region’s table holds; the payslip validation checks the floor in force."
+		}
+	},
+	{
+		"id": "4cdf2eb5-2dd9-55f7-8dc4-a3fbf3809d29",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_FLOOR_PAYSLIP",
+		"name": "Basic below the floor in force on the period",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!((terms.employment_type != \"DOMESTIC\" && ((has(company.facts.bmbe_certificate_of_authority) && company.facts.bmbe_certificate_of_authority) || (has(company.facts.minimum_wage_exemption_approved) && company.facts.minimum_wage_exemption_approved))) || terms.employment_type == \"PART_TIME\" || (terms.employment_type == \"INTERN\" && !(has(terms.facts.ebet_program) && terms.facts.ebet_program == \"UPSKILLING\"))) && terms.base_salary > 0.0 && (terms.employment_type == \"DOMESTIC\" ? (company.region in rules.minimum_wage.by_employment_type.DOMESTIC && size(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)).monthly) : -1.0) : (company.region in rules.minimum_wage.by_region && size(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)).monthly) * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 313.0 : -1.0)) > 0.0 && terms.base_salary < round((terms.employment_type == \"APPRENTICE\" ? 0.75 : 1.0) * (terms.employment_type == \"DOMESTIC\" ? (company.region in rules.minimum_wage.by_employment_type.DOMESTIC && size(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_employment_type.DOMESTIC[company.region].filter(e, e.from <= period.to)).monthly) : -1.0) : (company.region in rules.minimum_wage.by_region && size(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)) > 0 ? double(first(rules.minimum_wage.by_region[company.region].filter(e, e.from <= period.to)).monthly) * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 313.0 : -1.0)), 0.01, \"HALF_UP\")",
+			"message": "basic salary below the regional minimum wage in force (RA 6727 s.4; a new wage order raises the floor from its effective date).",
+			"description": "RA 6727 s.4 and the regional wage orders (rule `minimum_wage`, NWPC, checked 7 October 2026): no employer pays less than the floor for the establishment’s region and sector; a kasambahay’s floor is the domestic order’s (RA 10361 s.24). Labor Code art.61: an apprentice at not less than 75% of the floor. RA 9178 s.8: a certified BMBE is outside the minimum wage law (entity fact `bmbe_certificate_of_authority`); RA 6727 s.4(c): a board-approved exemption (entity fact `minimum_wage_exemption_approved`). The floor is the daily rate × 313 ÷ 12 restated on the term’s `days_per_year`. Recorded defaults: a part-time contract is not checked (its floor depends on hours the records do not carry); an INTERN on a GENERAL EBET programme is paid an allowance, not a wage (RA 12063 s.13(a)), one on UPSKILLING keeps the full floor (s.12); a region the table does not list is not checked."
+		}
+	},
+	{
+		"id": "48e7e6c7-9641-58f8-8366-9a9508e54940",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "VALIDATIONS",
+		"code": "MINOR_WORKING_HOURS",
+		"name": "A worker under eighteen past eight hours a day or at night",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.age != null && employee.age >= 15.0 && employee.age < 18.0 && work.days.exists(d, d.worked_hours > 8.0 || hours_between(d.intervals, \"22:00\", \"06:00\") > 0.0)",
+			"message": "a worker under eighteen worked more than eight hours a day or between 10 p.m. and 6 a.m. (RA 9231 s.12-A).",
+			"description": "RA 9231 s.12-A (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/1388): a child fifteen but below eighteen works at most eight hours a day and forty a week, never between ten in the evening and six in the morning. The weekly limit is not read (the period’s days are not grouped by week)."
+		}
+	},
+	{
+		"id": "46f71c9e-ad4b-58a1-b400-550b567f1ce0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "VALIDATIONS",
+		"code": "KASAMBAHAY_DAILY_REST",
+		"name": "A kasambahay without eight hours’ daily rest",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "terms.employment_type == \"DOMESTIC\" && work.days.exists(d, d.worked_hours > 16.0)",
+			"message": "a kasambahay worked more than sixteen hours in a day (RA 10361 s.20: eight hours’ daily rest).",
+			"description": "RA 10361 s.20 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): \"an aggregate daily rest period of eight (8) hours per day\"."
+		}
+	},
+	{
+		"id": "5c9c0171-f86b-5136-8965-ee0e48867600",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "VALIDATIONS",
+		"code": "EBET_PROGRAM_RECORDED",
+		"name": "A trainee contract names its EBET programme",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "terms.employment_type in [\"INTERN\", \"APPRENTICE\"] && (!has(terms.facts.ebet_program) || (terms.employment_type == \"APPRENTICE\") != (terms.facts.ebet_program == \"APPRENTICESHIP\"))",
+			"message": "A trainee contract records its EBET programme (RA 12063 s.4): APPRENTICE for an apprenticeship, INTERN for general training or upskilling.",
+			"description": "RA 12063 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026) ss.4, 12–13: enterprise-based trainees are classified by registered programme; only an apprenticeship takes the 75% floor, a general trainee an allowance, an upskilling trainee the full wage. Customer input: `terms.facts.ebet_program`."
+		}
+	}
+]

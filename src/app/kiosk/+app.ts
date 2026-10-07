@@ -4,5 +4,7 @@ export default app('kiosk', {
 	title: 'app.kiosk.title',
 	description: 'app.kiosk.description',
 	icon: 'lucide:scan-face',
-	pages: { kiosk: { title: 'app.kiosk.title', icon: 'lucide:scan-face', site: true } }
+	// face check-in: no camera, no kiosk
+	requires: ['camera'],
+	pages: { kiosk: { title: 'app.kiosk.title', icon: 'lucide:scan-face', portal: true } }
 });

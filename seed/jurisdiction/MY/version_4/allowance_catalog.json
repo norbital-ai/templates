@@ -1,0 +1,108 @@
+[
+	{
+		"id": "616da834-e5ef-43a6-85f1-c6c44ef296f1",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "SUA",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO",
+			"FIRST_SCHEDULE_WAGES"
+		],
+		"name": "Scale-up allowance",
+		"amount": "allowance.amount / (has(period.parts) ? double(period.parts) : 1.0) * (period.paid_days == period.days ? 1.0 : double(period.paid_days) / double(period.days))"
+	},
+	{
+		"id": "b8893b98-4bd0-5b1b-90a6-19ab10848ab2",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "CHILDCARE_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"PCB.ORDINARY",
+			"SKBBK",
+			"SOCSO",
+			"FIRST_SCHEDULE_WAGES"
+		],
+		"name": "Child care allowance (children aged 12 and under)",
+		"authority": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item ii: child care allowance for children up to 12 years of age, received by the employee or paid directly to the child care centre, is exempt up to RM3,000 a year (raised from the RM2,400 of LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.4). PCB.assessed_on and PCB.ordinary_on subtract annual_exempt(…, 3,000); the rest is normal remuneration. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money and exclude none of this kind: SOCSO, EIS and SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment under the contract, so wages. Seeded only in versions from 1 January 2026: the 2026 specification is the source read for the RM3,000; the YA2025 limit is not read.",
+		"amount": "allowance.amount / (has(period.parts) ? double(period.parts) : 1.0) * (period.paid_days == period.days ? 1.0 : double(period.paid_days) / double(period.days))"
+	},
+	{
+		"id": "5131ffc0-8c81-5996-852d-ddf9be1d9768",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "MEAL_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"SKBBK",
+			"SOCSO",
+			"FIRST_SCHEDULE_WAGES"
+		],
+		"name": "Meal allowance (regular, same rate for all)",
+		"authority": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item vii and LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.3 (p.22, Example 19: RM250 a month exempt): a meal allowance received on a regular basis at the same rate to all employees is exempt from tax, so this class counts toward no PCB base. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money; a cash meal allowance is not a special expense of the employment: SOCSO, EIS and SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment, not the in-kind “supply of any food” of exclusion (a), so wages. Owner rule 2026-09-28: the law is silent on a regular meal allowance under Act 4 s.2(24)(c); default — not a special expense (it does not arise from the nature of the work), so wages; lawful because it charges the contribution. An overtime or outstation meal allowance at an internal-circular rate is not this class.",
+		"amount": "allowance.amount / (has(period.parts) ? double(period.parts) : 1.0) * (period.paid_days == period.days ? 1.0 : double(period.paid_days) / double(period.days))"
+	},
+	{
+		"id": "ff2e097d-1cef-525c-848a-f6bbc0b45683",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "PARKING_ALLOWANCE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"HRDF",
+			"SKBBK",
+			"SOCSO",
+			"FIRST_SCHEDULE_WAGES"
+		],
+		"name": "Parking allowance",
+		"authority": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item vi and LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.2 (pp.21–22, Example 18: RM180 a month exempt): a parking rate or parking allowance, including a rate paid by the employer directly to the operator, is exempt from tax, so this class counts toward no PCB base. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money. Owner rule 2026-09-28: the law is silent on whether a parking allowance is a sum to defray “special expenses entailed … by the nature of his employment” (s.2(24)(c)); default — it is not (parking at the workplace attends every employment, not this one’s nature), so SOCSO, EIS and SKBBK wages; lawful because it charges the contribution. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment under the contract, so wages.",
+		"amount": "allowance.amount / (has(period.parts) ? double(period.parts) : 1.0) * (period.paid_days == period.days ? 1.0 : double(period.paid_days) / double(period.days))"
+	},
+	{
+		"id": "783df4a6-b4f9-4f78-b168-6a782ab51405",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "ONCALL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO",
+			"FIRST_SCHEDULE_WAGES"
+		],
+		"name": "On-call allowance",
+		"amount": "allowance.amount / (has(period.parts) ? double(period.parts) : 1.0) * (period.paid_days == period.days ? 1.0 : double(period.paid_days) / double(period.days))"
+	}
+]

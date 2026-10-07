@@ -1,0 +1,301 @@
+[
+	{
+		"id": "1f5baa45-47d8-52ec-80f8-bdcad7712a9b",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "bonus",
+		"name": "Bonus",
+		"authority": "CPF Act 1953 First Schedule: a bonus is an Additional Wage, charged under the Additional Wage ceiling (102,000 less the year’s Ordinary Wages subject to CPF).",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "",
+		"evidence": "NONE",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "6b182681-b211-57f6-bad0-ebaf84ebb931",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"authority": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays: actual dated required work and gross contractual rates price unserved notice; written mutual waiver reduces only its covered dates. Employer notice compensation remains taxable and counts toward SDL; CPF and self-help treatment preserved.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["SDL"],
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0fa474e0-cd8e-5097-851f-28c42165923a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "RETRENCHMENT_BENEFIT",
+		"name": "Retrenchment benefit",
+		"authority": "Employment Act 1968 s.45: no employee with under 2 years’ continuous service is entitled to a retrenchment benefit, and no provision fixes a quantum for longer service; a contractual or negotiated retrenchment benefit is raised by HR with the amount. CPF Board (“Are CPF contributions payable on redundancy payment?”): “CPF contributions are not payable on termination benefits given for retrenchment or loss of employment”, so it is outside CPF and, following the CPF base, outside CDAC, ECF and SINDA; Muis, MBMF employer information, Table 2: retrenchment pay — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2 (read on sso.agc.gov.sg, current version as at 28 Sep 2026): “wages” means “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment but does not include such payments as the Minister may, by notification in the Gazette, specify”; the only notified exclusion is medical, dental and TCM reimbursement (S 375/2023), and no SDL or Agency publication addresses retrenchment pay. Source interpretation: law silent on this payment; default counts toward SDL, read as SALARY_IN_LIEU_OF_NOTICE is (the same s.2 words); lawful because SDL is employer-borne, s.3(2) caps it at 0.25% of $4,500 a month, and any excess is refundable under SDL Regulations reg.13, whereas the other reading risks an Agency assessment for unpaid levy. IRAS: compensation for loss of employment is not taxable and is reported apart from gratuity, notice pay and ex-gratia (Form IR8A item d3, Explanatory Notes YA 2027).",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["SDL"],
+		"eligibility": "",
+		"evidence": "NONE",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "eae9ac96-2c1a-5212-8640-6b41d3287af2",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "DAMAGE_RECOVERY",
+		"name": "Damage or loss recovery",
+		"authority": "EA s.29 and MOM salary-deductions guidance: one-time recovery only after an inquiry and an opportunity to explain; input amount must be the evidenced actual loss attributable to the employee. Payroll enforces the independent quarter-month salary limit. Do not split one loss into repeated requests.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "b74b5d40-84f6-51e4-9d24-ab5fcee19805",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "ACCOMMODATION_RECOVERY",
+		"name": "Accommodation recovery",
+		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accommodation supplied and accepted by the employee; retain acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "0ef4b2ff-0830-5c1d-bf1c-986f79eb707f",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "AMENITIES_RECOVERY",
+		"name": "Amenities or services recovery",
+		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accepted amenities/services authorised by the Commissioner for Labour; retain permission, acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "f1357750-b9fd-510e-b4b7-0374153f25d9",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "COOPERATIVE_DUES",
+		"name": "Registered co-operative dues",
+		"authority": "EA ss.27(1)(j),32(1): payment to a registered co-operative society with the employee written consent is outside the aggregate 50% limit. Input amount and evidence identify the consented subscription, entrance fee, loan instalment, interest or other due. This is not an employer loan.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "3fd109c1-6e4a-5eb0-8278-442217793778",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "APPROVED_DAMAGE_RECOVERY",
+		"name": "Commissioner-approved damage recovery",
+		"authority": "Employment Act 1968 s.29(1): the quarter-month limit may be exceeded with the Commissioner permission. Input amount must be within the evidenced actual loss and the permission, following an inquiry and opportunity to explain; attach that permission to this one-time request. Payroll still enforces the s.32 aggregate salary-period limit except on final salary. https://sso.agc.gov.sg/Act/EmA1968?WholeDoc=1",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "17170780-2168-5740-a5b2-4dfa58421500",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "ORDINARY_BACKPAY",
+		"name": "Ordinary wage backpayment",
+		"authority": "CPF Board, What payments attract CPF contributions (updated 25 September 2026): wages for employment in one month and contractually payable by the 14th of the following month are Ordinary Wages; wages not meeting both conditions are Additional Wages. The contractual payable date is distinct from the actual payment date. https://www.cpf.gov.sg/employer/employer-obligations/what-payments-attract-cpf-contributions",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "",
+		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose != 'PRIOR_CASH_REPAYMENT' && (entry.wage_attribution.increment_kind != 'RETROSPECTIVE' && entry.wage_attribution.single_month && entry.wage_attribution.payable_days_after_month <= 14)",
+		"evidence": "OPTIONAL",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "afd753f4-abdc-5cfb-a664-5e75872897eb",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "ADDITIONAL_BACKPAY",
+		"name": "Additional wage backpayment",
+		"authority": "CPF Board, What payments attract CPF contributions (updated 25 September 2026): wages for employment in one month and contractually payable by the 14th of the following month are Ordinary Wages; wages not meeting both conditions are Additional Wages. The contractual payable date is distinct from the actual payment date. https://www.cpf.gov.sg/employer/employer-obligations/what-payments-attract-cpf-contributions",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "",
+		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose != 'PRIOR_CASH_REPAYMENT' && !(entry.wage_attribution.increment_kind != 'RETROSPECTIVE' && entry.wage_attribution.single_month && entry.wage_attribution.payable_days_after_month <= 14)",
+		"evidence": "OPTIONAL",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "d7b6062f-3632-5c7c-b1eb-2d15d5450c03",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "PRIOR_WAGE_CASH_REPAYMENT",
+		"name": "Prior wage cash repayment",
+		"authority": "CPF Board refund/adjustment guidance: prior wage repayment and contribution refund or transfer are separate actions. This entry settles evidenced cash only and does not reduce current wage contribution liability. https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose == 'PRIOR_CASH_REPAYMENT'",
+		"evidence": "OPTIONAL",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "a4e9418e-cf03-518f-ac0d-be26c80dba5d",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "EMPLOYMENT_ASSISTANCE_PAYMENT",
+		"name": "Employment Assistance Payment",
+		"authority": "MOM Tripartite Guidelines on Re-employment of Older Employees, updated 1 July 2026, paras.34,36–43: https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en ; age on the day after employment ends, actual gross rate, documented higher contractual ages and actual part-time comparator. MOM EAP FAQ: outside CPF and income tax. SDL follows the existing owner default for employment-loss payments pending specific Agency classification; not an asserted statutory exemption. Tripartite Guidelines para.46 (1 July 2026; archived para.41 before): an employee hired at 55 or older qualifies only with at least 2 years’ service (3 before 1 July 2026), read from employment.start_date and service_months.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["SDL"],
+		"eligibility": "has(employment.exit_facts.eap_decision) && employment.exit_facts.eap_decision == \"AWARD\" && terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"] && employee.date_of_birth != \"\" && employee.date_of_birth >= (add_days(employment.exit_date, 1) < \"2026-07-01\" ? \"1955-07-01\" : \"1958-07-01\") && calendar_completed_months(employee.date_of_birth, add_days(employment.exit_date, 1)) >= (has(employment.exit_facts.eap_contract_retirement_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0))), employment.exit_facts.eap_contract_retirement_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0)))) && calendar_completed_months(employee.date_of_birth, add_days(employment.exit_date, 1)) < (has(employment.exit_facts.eap_contract_reemployment_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0), employment.exit_facts.eap_contract_reemployment_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0)) && !(has(employment.start_date) && employment.start_date != \"\" && age_on(employee.date_of_birth, employment.start_date) >= 55 && employment.service_months < (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 36.0 : 24.0))",
+		"evidence": "NONE",
+		"raised_by": "SEPARATION",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(min((calendar_completed_months(employee.date_of_birth, add_days(employment.exit_date, 1)) >= ((has(employment.exit_facts.eap_contract_retirement_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0))), employment.exit_facts.eap_contract_retirement_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0)))) + (has(employment.exit_facts.eap_contract_reemployment_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0), employment.exit_facts.eap_contract_reemployment_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0))) / 2.0 ? min(8500.0 * (terms.employment_type == \"PART_TIME\" && has(employment.exit_facts.eap_prorate_bounds) && employment.exit_facts.eap_prorate_bounds ? min(1.0, employment.exit_facts.eap_weekly_hours / employment.exit_facts.eap_fulltime_weekly_hours) : 1.0), max(4000.0 * (terms.employment_type == \"PART_TIME\" && has(employment.exit_facts.eap_prorate_bounds) && employment.exit_facts.eap_prorate_bounds ? min(1.0, employment.exit_facts.eap_weekly_hours / employment.exit_facts.eap_fulltime_weekly_hours) : 1.0), 2.0 * (has(employment.exit_facts.eap_transfer_started_on) && add_days(employment.exit_date, 1) < add_months(employment.exit_facts.eap_transfer_started_on, 3) ? max(employment.exit_facts.eap_gross_monthly, employment.exit_facts.eap_previous_gross_monthly) : employment.exit_facts.eap_gross_monthly))) : min(14750.0 * (terms.employment_type == \"PART_TIME\" && has(employment.exit_facts.eap_prorate_bounds) && employment.exit_facts.eap_prorate_bounds ? min(1.0, employment.exit_facts.eap_weekly_hours / employment.exit_facts.eap_fulltime_weekly_hours) : 1.0), max(6250.0 * (terms.employment_type == \"PART_TIME\" && has(employment.exit_facts.eap_prorate_bounds) && employment.exit_facts.eap_prorate_bounds ? min(1.0, employment.exit_facts.eap_weekly_hours / employment.exit_facts.eap_fulltime_weekly_hours) : 1.0), 3.5 * (has(employment.exit_facts.eap_transfer_started_on) && add_days(employment.exit_date, 1) < add_months(employment.exit_facts.eap_transfer_started_on, 3) ? max(employment.exit_facts.eap_gross_monthly, employment.exit_facts.eap_previous_gross_monthly) : employment.exit_facts.eap_gross_monthly)))), (has(employment.exit_facts.eap_transfer_started_on) && add_days(employment.exit_date, 1) < add_months(employment.exit_facts.eap_transfer_started_on, 3) ? max(employment.exit_facts.eap_gross_monthly, employment.exit_facts.eap_previous_gross_monthly) : employment.exit_facts.eap_gross_monthly) * months_through(add_days(employment.exit_date, 1), add_days(add_months(employee.date_of_birth, (has(employment.exit_facts.eap_contract_reemployment_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0), employment.exit_facts.eap_contract_reemployment_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0))), -1))), 0.01, \"HALF_UP\")",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "7af4ef8d-8f37-5834-8b56-39a9dc6af04e",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "DIRECTOR_GENERAL_MEETING_FEE",
+		"name": "Director fee voted at general meeting",
+		"authority": "CPF Board director FAQ: directors fees voted at General Meetings do not attract CPF; wages under a separate contract of service remain chargeable. This distinct component excludes the fee from CPF only and preserves the existing SHG/SDL wage assessment pending their own scope. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-directors",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "entry.facts.general_meeting_voted && entry.facts.general_meeting_ref != \"\"",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "3f95e4d2-8959-5575-b38e-30721ac6e697",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "CPF_MISSED_SHARE_RECOVERY",
+		"name": "Permitted recovery of missed employee CPF share",
+		"authority": "CPF Act s7(6A); Board recovery guidance: employer-error share not recoverable; otherwise Board paid and employee consent forwarded or written Board permission before recovery within six months. Dedicated assessed recovery ledger required.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "",
+		"evidence": "NONE",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8ff08b28-d56d-4c2c-9f84-9d29b9e3d8c9",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
+		"name": "Actual notice breach compensation recovery",
+		"authority": "Employment Act 1968 s.23(3): actual employee s.11(1) notice liability may be deducted from salary due, subject to a contrary court or Commissioner order. IRAS employment income and personal breach repayment are separate: no reduction of gross taxable wages. Source: https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ea21f954-e74f-56b5-b386-71936efba590",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "FOOD_ABSENCE_COST",
+		"name": "Actual food supplied during unauthorized absence",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	},
+	{
+		"id": "72d2ac70-9155-5098-9dd1-5981c2a4dbfc",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "CONSENT_EMPLOYEE_BENEFIT",
+		"name": "Actual employee-benefit purchase with withdrawable written consent",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"eligibility": "employment.classification != \"NON_EA\"",
+		"evidence": "REQUIRED",
+		"raised_by": "MANUAL",
+		"bands": []
+	}
+]

@@ -1,0 +1,38 @@
+[
+	{
+		"id": "a45ee591-4baf-54b6-a6bb-03b3037182b0",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "FIXED_MONTHLY",
+		"name": "Fixed monthly allowance",
+		"authority": "CPF Act 1953 s.2(1) and First Schedule: a fixed allowance payable for the month is an Ordinary Wage. Part month: Employment Act s.20A — the monthly gross rate (fixed allowances included) × days worked ÷ days required to work.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "true",
+		"amount": "period.working_days > 0 ? allowance.amount * period.covered_working_days / period.working_days : allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "ead20347-25e2-5b92-8b85-d09487f64bbc",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "PT_ANNUAL_HOURLY_OW",
+		"name": "Contractual annual leave hourly addition (OW)",
+		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "terms.employment_type == \"PART_TIME\"",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	},
+	{
+		"id": "07dc130d-7c02-5ff1-9b45-bc2d49982d84",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "PT_ANNUAL_HOURLY_AW",
+		"name": "Contractual annual leave hourly addition (AW)",
+		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
+		"eligibility": "terms.employment_type == \"PART_TIME\"",
+		"amount": "allowance.amount * period.paid_days / period.days"
+	}
+]

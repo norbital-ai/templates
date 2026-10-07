@@ -1,0 +1,800 @@
+[
+	{
+		"id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
+		"code": "JP",
+		"jurisdiction_code": "JP",
+		"name": "Japan — 1 July 2026",
+		"sealed_at": "2026-10-06T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-09-30"
+		},
+		"payroll": {
+			"currency": "JPY",
+			"timezone": "Asia/Tokyo",
+			"tax_year_start_month": 1
+		},
+		"sources": {
+			"urls": [
+				"https://laws.e-gov.go.jp/law/322AC0000000049",
+				"https://laws.e-gov.go.jp/law/211AC0000000070",
+				"https://laws.e-gov.go.jp/law/329AC0000000115",
+				"https://laws.e-gov.go.jp/law/349AC0000000116",
+				"https://laws.e-gov.go.jp/law/344AC0000000084",
+				"https://laws.e-gov.go.jp/law/340AC0000000033",
+				"https://laws.e-gov.go.jp/law/334AC0000000137",
+				"https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/rate_prefectures/r08",
+				"https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/18.pdf",
+				"https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/minimumichiran/index.html",
+				"https://jsite.mhlw.go.jp/yamagata-roudoukyoku/koyouhoken-20260316.html"
+			],
+			"instructions": "Sources are the primary instrument first — the statute in e-Gov 法令検索, the 財務省告示 withholding tables as the National Tax Agency publishes them, the 協会けんぽ rate notice and the 厚生労働省 minimum wage and employment insurance rate notices — never a news article or a commentary. A version seals what was in force on its own effective day: the 協会けんぽ rates (from the March premium), the employment insurance rate (from 1 April) and the withholding tables (from 1 January) each open a version on their own day; a prefectural minimum wage is an effective-dated entry of the minimum_wage rule instead."
+		},
+		"change_summary": "1 July 2026: the statutory disability employment rate for private employers rises from 2.5% to 2.7% (障害者の雇用の促進等に関する法律施行令 art.9 as amended by 令和5年政令第239号), so the employment status report binds an employer of 37.5 or more regular employees.",
+		"reference_tables": {
+			"PREFECTURE": {
+				"HOKKAIDO": "北海道",
+				"AOMORI": "青森県",
+				"IWATE": "岩手県",
+				"MIYAGI": "宮城県",
+				"AKITA": "秋田県",
+				"YAMAGATA": "山形県",
+				"FUKUSHIMA": "福島県",
+				"IBARAKI": "茨城県",
+				"TOCHIGI": "栃木県",
+				"GUNMA": "群馬県",
+				"SAITAMA": "埼玉県",
+				"CHIBA": "千葉県",
+				"TOKYO": "東京都",
+				"KANAGAWA": "神奈川県",
+				"NIIGATA": "新潟県",
+				"TOYAMA": "富山県",
+				"ISHIKAWA": "石川県",
+				"FUKUI": "福井県",
+				"YAMANASHI": "山梨県",
+				"NAGANO": "長野県",
+				"GIFU": "岐阜県",
+				"SHIZUOKA": "静岡県",
+				"AICHI": "愛知県",
+				"MIE": "三重県",
+				"SHIGA": "滋賀県",
+				"KYOTO": "京都府",
+				"OSAKA": "大阪府",
+				"HYOGO": "兵庫県",
+				"NARA": "奈良県",
+				"WAKAYAMA": "和歌山県",
+				"TOTTORI": "鳥取県",
+				"SHIMANE": "島根県",
+				"OKAYAMA": "岡山県",
+				"HIROSHIMA": "広島県",
+				"YAMAGUCHI": "山口県",
+				"TOKUSHIMA": "徳島県",
+				"KAGAWA": "香川県",
+				"EHIME": "愛媛県",
+				"KOCHI": "高知県",
+				"FUKUOKA": "福岡県",
+				"SAGA": "佐賀県",
+				"NAGASAKI": "長崎県",
+				"KUMAMOTO": "熊本県",
+				"OITA": "大分県",
+				"MIYAZAKI": "宮崎県",
+				"KAGOSHIMA": "鹿児島県",
+				"OKINAWA": "沖縄県"
+			},
+			"TERMINATION_GROUND": [
+				"DEATH",
+				"DISCIPLINARY_DISMISSAL",
+				"DISMISSAL",
+				"END_OF_CONTRACT",
+				"MUTUAL",
+				"REDUNDANCY",
+				"RESIGNATION",
+				"RETIREMENT"
+			]
+		},
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": ["nationality", "gender", "date_of_birth", "marital_status", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"eq": "event.day"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }) == true) && !raised.exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id) } })",
+					"events": ["created", "updated", "daily"]
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "JP employee inputs",
+			"description": "contract_terms and exit_facts are the employment contract's facts; employment_statutory_facts and facts are employment_profile.facts. Profile columns (date of birth, gender, nationality) are not inputs here.",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "JPY"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0,
+										"multipleOf": 1
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "JPY"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string",
+											"enum": [
+												"FIXED_ALLOWANCE",
+												"FAMILY_ALLOWANCE",
+												"HOUSING_ALLOWANCE",
+												"COMMUTING_ALLOWANCE"
+											]
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "JPY"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0,
+													"multipleOf": 1
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["INDEFINITE", "FIXED_TERM", "PART_TIME"],
+								"description": "労働契約法 arts.17–19: INDEFINITE (期間の定めのない労働契約), FIXED_TERM (有期労働契約, at most 3 years, 労働基準法 art.14); PART_TIME (短時間・有期雇用労働法 art.2)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "MANAGERIAL", "OFFICER"],
+								"description": "ORDINARY: a worker under the hours rules. MANAGERIAL: a manager or supervisor (管理監督者, 労働基準法 art.41(ii)) outside the overtime premium (the late-night premium still applies). OFFICER: a company officer who is not a worker (労働基準法 art.9) — outside overtime, minimum wage and workers' accident insurance."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["SOCIAL_AND_EMPLOYMENT", "SOCIAL_ONLY", "EMPLOYMENT_ONLY", "NONE"],
+								"description": "Insurance coverage of the terms. Health and welfare pension (健康保険法 art.3(1), 厚生年金保険法 arts.9 and 12): scheduled hours of three quarters of a full-timer's, or a short-time worker of 20+ weekly hours, 88,000+ monthly wage, not a student, at an employer of 51+ insured (令和6年10月). Employment insurance (雇用保険法 arts.4–6): 20+ weekly hours and 31+ days expected; not an officer. SOCIAL_ONLY is typically an officer; EMPLOYMENT_ONLY a short-time worker below the social insurance thresholds; NONE neither. The calculation refuses any other value."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["RESIDENT", "NON_RESIDENT"],
+								"description": "所得税法 art.2(1)(iii)–(v): RESIDENT (居住者: domiciled in Japan or resident for a year or more) is withheld by the tables; NON_RESIDENT (非居住者) at 20.42% with no deductions (arts.212–213). The calculation refuses any other value."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"weekly_scheduled_days": {
+										"type": "number",
+										"minimum": 0,
+										"maximum": 7,
+										"title": "Scheduled working days a week",
+										"description": "労働基準法 art.39(3) with 施行規則 art.24の3: a worker of 4 days or fewer and under 30 hours a week is granted annual leave in proportion (read by ANNUAL_LEAVE)."
+									},
+									"weekly_scheduled_hours": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Scheduled working hours a week"
+									},
+									"commute_car_km_one_way": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Car commuting distance, one way (km)",
+										"description": "所得税法施行令 art.20の2(ii): the non-taxable limit of a car or bicycle commuter's allowance by one-way distance. Unrecorded is a public-transport commuter (150,000 cap)."
+									},
+									"commute_parking_fee": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Monthly parking fee borne (yen)",
+										"description": "From 1 April 2026 (令和8年度改正): a qualifying car park fee the commuter regularly bears adds up to 5,000 a month to the car limit."
+									},
+									"commute_transit_fare": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Monthly reasonable transit fare (yen)",
+										"description": "所得税法施行令 art.20の2(iv): a commuter using both transport and a car adds the reasonable fare to the car limit, at most 150,000 a month."
+									}
+								}
+							}
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes.",
+					"properties": {
+						"ground": {
+							"type": "string"
+						},
+						"last_day": {
+							"type": "string",
+							"format": "date"
+						},
+						"note": {
+							"type": "string"
+						},
+						"separation_slip_requested": {
+							"type": "boolean",
+							"default": true,
+							"title": "離職票 requested",
+							"description": "雇用保険法施行規則 art.7(2): the 離職証明書 is filed unless the leaver does not want the 離職票; a leaver aged 59 or over always gets it."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"description": "One standing per scheme at a time (employment_facts.ts); CEL scheme.elections.* on its own scheme and elections.<CODE>.* elsewhere.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["INSURED", "DECLARED", "NOTIFIED"],
+										"description": "INSURED: a social or labour insurance standing (HEALTH, PENSION, EI). DECLARED: a tax declaration filed (INCOME_TAX 扶養控除等申告書, RETIREMENT_TAX 退職所得の受給に関する申告書). NOTIFIED: a municipal special collection notice (RESIDENT_TAX)."
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"dependency_declaration_filed": {
+												"type": "boolean",
+												"default": false,
+												"title": "扶養控除等申告書 filed with this employer",
+												"description": "INCOME_TAX. 所得税法 art.194: the 給与所得者の扶養控除等(異動)申告書 filed with this employer (the main employer) — withholding by the 甲欄 and the bonus 甲 rates. Unfiled is the 乙欄."
+											},
+											"withholding_dependants": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "扶養親族等の数",
+												"description": "INCOME_TAX. The number the declaration gives for the tables: 源泉控除対象配偶者 and 源泉控除対象親族 (including 特定親族 from 2026), plus one for each of the employee being a disabled person, widow, single parent or working student, and one for each disabled or co-resident specially disabled family member (月額表 備考 1(4))."
+											},
+											"standard_monthly_remuneration": {
+												"type": "number",
+												"minimum": 58000,
+												"maximum": 1390000,
+												"title": "標準報酬月額 (health)",
+												"description": "HEALTH (read by every social insurance scheme). The health insurance standard monthly remuneration the pension office decided (資格取得時決定, 定時決定, 随時改定; 健康保険法 arts.41–43). The welfare pension grade is the same amount within 88,000–650,000. Unrecorded grades the contract monthly wage."
+											},
+											"june_amount": {
+												"type": "number",
+												"minimum": 0,
+												"title": "住民税 特別徴収 June amount",
+												"description": "RESIDENT_TAX. 地方税法 art.321の4: the June amount on the municipality's 特別徴収税額決定通知書."
+											},
+											"monthly_amount": {
+												"type": "number",
+												"minimum": 0,
+												"title": "住民税 特別徴収 monthly amount (July–May)",
+												"description": "RESIDENT_TAX. 地方税法 art.321の4: the monthly amount from July to May on the notice; replaced each June. Unrecorded is no special collection."
+											},
+											"retirement_income_declaration_filed": {
+												"type": "boolean",
+												"default": false,
+												"title": "退職所得の受給に関する申告書 filed",
+												"description": "RETIREMENT_TAX. 所得税法 art.203: filed, the retirement income deduction applies; unfiled, 20.42% of the payment."
+											},
+											"basic_pension_number": {
+												"type": "string",
+												"title": "基礎年金番号",
+												"description": "PENSION: the insured person's 基礎年金番号."
+											},
+											"employment_insurance_number": {
+												"type": "string",
+												"title": "雇用保険被保険者番号",
+												"description": "EI: the 雇用保険被保険者番号."
+											},
+											"secondary_dependants": {
+												"type": "integer",
+												"minimum": 0,
+												"title": "従たる給与の扶養親族等の数",
+												"description": "INCOME_TAX: dependants on a 従たる給与についての扶養控除等申告書 (乙欄, 1,610 yen each; 月額表 備考2)."
+											},
+											"specified_officer": {
+												"type": "boolean",
+												"default": false,
+												"title": "特定役員",
+												"description": "RETIREMENT_TAX: an officer for 5 years or less (所得税法 art.30(5))."
+											},
+											"retirement_due_to_disability": {
+												"type": "boolean",
+												"default": false,
+												"title": "障害者となったことに直接基因する退職",
+												"description": "RETIREMENT_TAX: adds 1,000,000 to the retirement income deduction (art.30(6)(iii))."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"family_care_recipients": {
+							"type": "integer",
+							"minimum": 0,
+							"title": "要介護状態の対象家族の数",
+							"description": "育児・介護休業法 art.16の5: family members in need of care the worker looks after — two or more give 10 介護休暇 days a year instead of 5."
+						}
+					},
+					"description": "Person facts on employment_profile.facts (employee.facts): the family-care count. Every other statutory fact is a scheme election."
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "JP entity inputs",
+			"additionalProperties": false,
+			"description": "entity.facts. The entity region is the prefecture code of reference_tables.PREFECTURE (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
+			"required": ["monthly_average_scheduled_hours", "workers_accident_rate_per_mille"],
+			"properties": {
+				"monthly_average_scheduled_hours": {
+					"type": "number",
+					"exclusiveMinimum": 0,
+					"maximum": 744,
+					"title": "1か月平均所定労働時間",
+					"description": "労働基準法施行規則 art.19(1)(iv) and 最低賃金法施行規則 art.2: the monthly wage is divided by the year's scheduled hours over 12 for the overtime rate and the minimum wage comparison."
+				},
+				"ei_industry_class": {
+					"type": "string",
+					"enum": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
+					"default": "GENERAL",
+					"title": "雇用保険の事業の種類",
+					"description": "徴収法 art.12(4): general, agriculture/forestry/fisheries/sake brewing (with the listed exceptions that take the general rate), or construction."
+				},
+				"workers_accident_rate_per_mille": {
+					"type": "number",
+					"minimum": 2.5,
+					"maximum": 88,
+					"title": "労災保険率 (per mille)",
+					"description": "徴収法 art.12(2)–(3) with 施行規則 別表第一: the rate of the business type (令和6年度改定) or the merit-adjusted rate on the labour insurance notice."
+				},
+				"wage_deduction_agreement": {
+					"type": "boolean",
+					"default": false,
+					"title": "賃金控除協定 concluded",
+					"description": "労働基準法 art.24(1) proviso: a written agreement with the majority union or representative permits deductions other than taxes and social insurance (loan recovery). Without it no loan class is offered."
+				},
+				"withholding_semiannual_special": {
+					"type": "boolean",
+					"default": false,
+					"title": "源泉所得税の納期の特例",
+					"description": "所得税法 art.216: approved semi-annual payment for an office paying fewer than 10 employees; raises WITHHOLDING_TAX_SEMIANNUAL instead of WITHHOLDING_TAX_PAYMENT."
+				},
+				"resident_tax_semiannual_special": {
+					"type": "boolean",
+					"default": false,
+					"title": "住民税の納期の特例",
+					"description": "地方税法 art.321の5の2: approved semi-annual payment for an office paying fewer than 10 employees (常時十人未満); raises RESIDENT_TAX_SEMIANNUAL instead of RESIDENT_TAX_PAYMENT."
+				},
+				"corporate_number": {
+					"type": "string",
+					"pattern": "^[0-9]{13}$",
+					"title": "法人番号"
+				},
+				"social_insurance_office_symbol": {
+					"type": "string",
+					"title": "健康保険・厚生年金保険 事業所整理記号"
+				},
+				"social_insurance_office_number": {
+					"type": "string",
+					"title": "健康保険・厚生年金保険 事業所番号"
+				},
+				"labour_insurance_number": {
+					"type": "string",
+					"pattern": "^[0-9]{14}$",
+					"title": "労働保険番号"
+				},
+				"employment_insurance_office_number": {
+					"type": "string",
+					"title": "雇用保険適用事業所番号"
+				},
+				"withholding_tax_office": {
+					"type": "string",
+					"title": "所轄税務署"
+				},
+				"regular_employee_count": {
+					"type": "number",
+					"minimum": 0,
+					"title": "常時雇用する労働者の数",
+					"description": "Regular employees for the headcount-bound duties: the disability employment report (障害者雇用促進法 art.43(7); a short-time worker of 20–30 hours counts 0.5), the disability levy (100+). Unrecorded, the entity's employments in force (headcount) are counted."
+				},
+				"business_year_end_month": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 12,
+					"title": "事業年度の末月",
+					"description": "The month the business year ends (3 for March): dates the women's advancement publication (女性活躍推進法 art.20)."
+				},
+				"health_insurer": {
+					"type": "string",
+					"enum": ["KYOKAI", "SOCIETY"],
+					"default": "KYOKAI",
+					"title": "健康保険の保険者",
+					"description": "協会けんぽ (KYOKAI) or a 健康保険組合 (SOCIETY); a society employer records its own rates below."
+				},
+				"society_health_rate_percent": {
+					"type": "number",
+					"minimum": 3,
+					"maximum": 13,
+					"title": "健康保険組合の一般保険料率 (%)",
+					"description": "健康保険法 art.160(13): the society's rate, within 3%–13%."
+				},
+				"society_care_rate_percent": {
+					"type": "number",
+					"minimum": 0,
+					"title": "健康保険組合の介護保険料率 (%)"
+				},
+				"society_support_levy_rate_percent": {
+					"type": "number",
+					"minimum": 0,
+					"title": "健康保険組合の子ども・子育て支援金率 (%)",
+					"description": "健康保険法 art.160の2: each insurer sets its own; unrecorded is 0.23%."
+				},
+				"society_employee_share": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 0.5,
+					"title": "被保険者負担割合",
+					"description": "健康保険法 art.162: a society may raise the employer's share; unrecorded is one half."
+				},
+				"industry_minimum_wage_hourly": {
+					"type": "number",
+					"minimum": 0,
+					"title": "特定最低賃金 (hourly, yen)",
+					"description": "最低賃金法 arts.15–16: the specified minimum wage of the establishment's industry in the prefecture, where one applies; the higher of it and the regional minimum governs (art.6(1))."
+				},
+				"overtime_agreement_from": {
+					"type": "string",
+					"format": "date",
+					"title": "36協定 有効期間の初日"
+				},
+				"overtime_agreement_to": {
+					"type": "string",
+					"format": "date",
+					"title": "36協定 有効期間の末日",
+					"description": "労働基準法 art.36: the filed agreement's last day; raises OVERTIME_AGREEMENT_RENEWAL and dates OVERTIME_WITHOUT_AGREEMENT."
+				},
+				"overtime_special_clause": {
+					"type": "boolean",
+					"default": false,
+					"title": "特別条項付き",
+					"description": "労働基準法 art.36(5): the agreement allows exceeding 45 h a month / 360 h a year."
+				},
+				"labour_insurance_instalments": {
+					"type": "boolean",
+					"default": false,
+					"title": "労働保険料の延納",
+					"description": "徴収法 art.18: the provisional premium is paid in three instalments (10 July, 31 October, 31 January)."
+				}
+			}
+		},
+		"cloned_from_id": "81433da5-520f-572c-ae96-91a6ad18ca40"
+	}
+]

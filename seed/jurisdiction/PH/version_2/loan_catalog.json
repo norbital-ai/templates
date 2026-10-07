@@ -1,0 +1,82 @@
+[
+	{
+		"id": "883bf8d6-f0c2-5b28-9186-a48c6e87b3fa",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "LOAN_RECOVERY_SSS_SALARY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "SSS salary loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"loan_type": "GOVERNMENT"
+	},
+	{
+		"id": "1b7ba700-a96b-5c4b-a3aa-a35079aeb51d",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Pag-IBIG salary loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"loan_type": "GOVERNMENT"
+	},
+	{
+		"id": "c7752923-3a58-5693-9d1a-4f55b13bd255",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"name": "Pag-IBIG calamity loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"loan_type": "GOVERNMENT"
+	},
+	{
+		"id": "941d5436-2889-598d-9b68-2fb25ddb3686",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "LOAN_RECOVERY_COMPANY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "terms.employment_type != \"DOMESTIC\"",
+		"name": "Company loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"loan_type": "STAFF"
+	},
+	{
+		"id": "24ec9168-7ba5-5551-877a-28dc89225c90",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "COMPANY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "terms.employment_type != \"DOMESTIC\"",
+		"name": "Company loan",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"evidence": "NONE"
+	}
+]

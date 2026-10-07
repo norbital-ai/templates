@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
 	 * The attendance kiosk: a full-screen time clock for one legal entity. A live face held in the outline for two
-	 * seconds is matched on the device's descriptor (`employees.kiosk_match`) and punched (`work_days.kiosk_punch`);
-	 * the manual tab keys a punch by name. The engine, anti-spoof, voice and silhouette are this page's own modules.
+	 * seconds is matched on the device against the enrolled descriptors and punched on the person's day
+	 * (`roster_entry`); the manual tab keys a punch by name. The engine, anti-spoof, voice and silhouette are
+	 * this page's own modules.
 	 */
 	import { t } from '../../lib/ui/i18n/t.js';
 	import { onMount } from 'svelte';
@@ -35,30 +36,21 @@
 		unpaddedFaceBox,
 		warmFaceEngine
 	} from './face.ts';
-	import {
-		KIOSK_CAPTURE_HEIGHT,
-		KIOSK_CAPTURE_WIDTH,
-		KIOSK_LOOP_MS
-	} from './config.ts';
+	import { KIOSK_CAPTURE_HEIGHT, KIOSK_CAPTURE_WIDTH, KIOSK_LOOP_MS } from './config.ts';
 	import { KIOSK_MATCH_THRESHOLD } from './embed.ts';
 	import { readKioskSettings, writeKioskSettings } from './settings.ts';
 	import { browserNarratorPlatform, createKioskNarrator } from './voice.ts';
-	import { kioskVoiceLanguage, type KioskPhraseKey } from './phrases.ts';
-	import { blockedPhraseKey } from './punch.ts';
+	import { kioskVoiceLanguage, kioskCaptureRefusalPhrase, type KioskPhraseKey } from './phrases.ts';
+	import { todayKey } from '../../lib/ui/format/calendar.js';
 	import {
 		faceInsideSilhouette,
 		fitFrame,
 		silhouetteGeometry,
 		type FrameSize
 	} from './silhouette.ts';
-	import { loadAntiSpoof, scoreAntiSpoof } from './anti-spoof.ts';
-	import {
-		observeKioskHold,
-		kioskSecondsLeft,
-		sameKioskPerson,
-		type KioskHold
-	} from './hold.ts';
-	import { getErrorMessage } from '../../lib/payroll_engine/foundation/primitives.js';
+	import { loadAntiSpoof, scoreAntiSpoof } from './anti_spoof.ts';
+	import { observeKioskHold, kioskSecondsLeft, sameKioskPerson, type KioskHold } from './hold.ts';
+	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
 
 	type Tab = 'scan' | 'manual';
 	type Direction = 'in' | 'out';
@@ -79,9 +71,9 @@
 
 	type Candidate = Readonly<{
 		employeeName: string;
-		employmentId: Id<'employments'>;
+		employmentId: Id<'employment_contract'>;
 		employeeNumber: string;
-		companyId: Id<'companies'>;
+		companyId: Id<'entity'>;
 	}>;
 
 	type PunchResult = Readonly<{
@@ -93,20 +85,20 @@
 		/** The roster code the day is planned as, when that is why the punch was blocked. */
 		plannedCode?: string;
 	}>;
-	/** What `employees.kiosk_match` answers. */
+	/** What the kiosk's own face match answers. */
 	type MatchResult =
 		| { readonly status: 'unknown' }
 		| {
 				readonly status: 'unenrolled';
-				readonly employee: { readonly id: Id<'employees'>; readonly name: string };
+				readonly employee: { readonly id: Id<'employment_profile'>; readonly name: string };
 		  }
 		| {
 				readonly status: 'match';
-				readonly employee: { readonly id: Id<'employees'>; readonly name: string };
+				readonly employee: { readonly id: Id<'employment_profile'>; readonly name: string };
 				readonly employment: {
-					readonly id: Id<'employments'>;
+					readonly id: Id<'employment_contract'>;
 					readonly employee_number: string;
-					readonly company_id: Id<'companies'>;
+					readonly company_id: Id<'entity'>;
 				};
 		  };
 
@@ -120,7 +112,7 @@
 	const settings = readKioskSettings();
 
 	let tab = $state<Tab>('scan');
-	let selectedCompanyId = $state<Id<'companies'> | null>(null);
+	let selectedCompanyId = $state<Id<'entity'> | null>(null);
 	let manualWorking = $state(false);
 	let phase = $state<Phase>('boot');
 	let fatal = $state<string | null>(null);
@@ -206,10 +198,10 @@
 	};
 
 	const companies = liveRows(() =>
-		bolt.read('companies', {
+		bolt.read('entity', {
 			where: { approval_id: { isNull: true } },
 			select: { name: true },
-			orderBy: 'name',
+			orderBy: { name: 'asc' },
 			limit: 200
 		})
 	);
@@ -519,7 +511,7 @@
 		if (phase === 'boot' || phase === 'unavailable' || fatal !== null) return;
 		resumeScan();
 	};
-	const selectCompany = (id: Id<'companies'> | null) => {
+	const selectCompany = (id: Id<'entity'> | null) => {
 		if (phase === 'working' || manualWorking) return;
 		selectedCompanyId = id;
 		handles.completedProbe = null;
@@ -598,7 +590,7 @@
 		hold = null;
 		narrator.say(
 			phase === 'blocked'
-				? blockedPhraseKey(result.reason)
+				? kioskCaptureRefusalPhrase(result.reason)
 				: result.status === 'out'
 					? 'checked_out'
 					: 'checked_in'
@@ -627,7 +619,7 @@
 	const acceptMatch = (
 		matched: MatchResult,
 		holdProbe: readonly number[],
-		requestedCompanyId: Id<'companies'>
+		requestedCompanyId: Id<'entity'>
 	) => {
 		if (
 			tab !== 'scan' ||
@@ -654,6 +646,77 @@
 			employmentId: matched.employment.id,
 			employeeNumber: matched.employment.employee_number,
 			companyId: matched.employment.company_id
+		};
+	};
+
+	/** Cosine distance between two descriptors; `NaN` when either is unusable. */
+	const faceDistance = (left: readonly number[], right: readonly number[]): number => {
+		if (left.length === 0 || left.length !== right.length) return Number.NaN;
+		let dot = 0;
+		let leftNorm = 0;
+		let rightNorm = 0;
+		for (let i = 0; i < left.length; i += 1) {
+			const a = left[i]!;
+			const b = right[i]!;
+			dot += a * b;
+			leftNorm += a * a;
+			rightNorm += b * b;
+		}
+		const norm = leftNorm * rightNorm;
+		return Number.isFinite(norm) && norm > 0 ? 1 - dot / Math.sqrt(norm) : Number.NaN;
+	};
+
+	const rangeCovers = (
+		range: { readonly from: string; readonly to: string | null },
+		day: string
+	): boolean => range.from <= day && (range.to == null || range.to >= day);
+
+	/**
+	 * The enrolled person nearest the probe, then their active contract in the entity. A cleared
+	 * face_embedding on the signed-in person's profile is not read: the read is over APPROVED rows only.
+	 */
+	const matchFace = async (
+		requestedCompanyId: Id<'entity'>,
+		probe: readonly number[],
+		threshold: number
+	): Promise<MatchResult> => {
+		const holders = await bolt.read('employment_profile', {
+			where: { face_enrollment_status: { eq: 'APPROVED' } },
+			select: { name: true, face_embedding: true },
+			all: true
+		});
+		let best: { readonly id: Id<'employment_profile'>; readonly name: string } | null = null;
+		let bestDistance = Number.POSITIVE_INFINITY;
+		for (const row of holders.rows) {
+			const stored = row.face_embedding;
+			if (stored == null) continue;
+			const distance = faceDistance(probe, stored);
+			if (Number.isFinite(distance) && distance < bestDistance) {
+				bestDistance = distance;
+				best = { id: row.id, name: row.name };
+			}
+		}
+		if (best == null || bestDistance > threshold) return { status: 'unknown' };
+		const contracts = await bolt.read('employment_contract', {
+			where: {
+				employee_id: { eq: best.id },
+				company_id: { eq: requestedCompanyId },
+				approval_id: { isNull: true }
+			},
+			select: { id: true, employee_number: true, company_id: true, effective_range: true },
+			all: true
+		});
+		const day = todayKey();
+		const active = contracts.rows.find((row) => rangeCovers(row.effective_range, day));
+		if (active == null) return { status: 'unenrolled', employee: best };
+		return {
+			status: 'match',
+			employee: best,
+			employment: {
+				id: active.id,
+				employee_number: active.employee_number,
+				company_id: active.company_id
+			}
 		};
 	};
 
@@ -763,35 +826,28 @@
 					handles.matchInFlight = true;
 					const holdProbe = hold.probe;
 					const matchStart = performance.now();
-					void bolt
-						.query('employees.kiosk_match', {
-							company_id: activeCompanyId,
-							probe: [...hold.embedding],
-							threshold: KIOSK_MATCH_THRESHOLD
-						})
-						.then(
-							(answer) => {
-								const matched = answer as MatchResult;
-								handles.matchInFlight = false;
-								performance.clearMeasures('kiosk.match');
-								performance.measure('kiosk.match', { start: matchStart });
-								if (activeSession === handles.scanSession)
-									acceptMatch(matched, holdProbe, activeCompanyId);
-							},
-							(error: unknown) => {
-								handles.matchInFlight = false;
-								if (hold?.probe !== holdProbe || handles.disposed) return;
-								rejectFace(
-									{
-										tone: 'error',
-										icon: 'lucide:triangle-alert',
-										title: t('kiosk.read_failed'),
-										detail: getErrorMessage(error)
-									},
-									'try_again'
-								);
-							}
-						);
+					void matchFace(activeCompanyId, hold.embedding, KIOSK_MATCH_THRESHOLD).then(
+						(matched) => {
+							handles.matchInFlight = false;
+							performance.clearMeasures('kiosk.match');
+							performance.measure('kiosk.match', { start: matchStart });
+							if (activeSession === handles.scanSession)
+								acceptMatch(matched, holdProbe, activeCompanyId);
+						},
+						(error: unknown) => {
+							handles.matchInFlight = false;
+							if (hold?.probe !== holdProbe || handles.disposed) return;
+							rejectFace(
+								{
+									tone: 'error',
+									icon: 'lucide:triangle-alert',
+									title: t('kiosk.read_failed'),
+									detail: getErrorMessage(error)
+								},
+								'try_again'
+							);
+						}
+					);
 				}
 				if (
 					candidate !== null &&
@@ -870,7 +926,7 @@
 
 		<div data-kiosk-company>
 			<Picker
-				of="companies"
+				of="entity"
 				label={['name']}
 				where={{ approval_id: { isNull: true } }}
 				orderBy="name"

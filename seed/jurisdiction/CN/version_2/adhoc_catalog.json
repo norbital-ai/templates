@@ -1,0 +1,107 @@
+[
+	{
+		"id": "aaef4369-5ff0-4cc8-8fea-9e666e44d0a5",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "ECONOMIC_COMPENSATION",
+		"name": "经济补偿 (economic compensation on termination)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.SEPARATION"],
+		"raised_by": "SEPARATION",
+		"evidence": "NONE",
+		"eligibility": "",
+		"qualifies_when": "has(entry.facts.qualifying_months) && double(entry.facts.qualifying_months) > 0.0 && has(entry.facts.local_average_monthly_wage)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(((has(entry.facts.local_average_monthly_wage) && entry.amount > 3.0 * double(entry.facts.local_average_monthly_wage)) ? 3.0 * double(entry.facts.local_average_monthly_wage) * min((round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0))), 12.0) : entry.amount * (round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0)))), 0.01, \"HALF_UP\")"
+			}
+		],
+		"authority": "劳动合同法 第四十六条 (owed grounds), 第四十七条: 按劳动者在本单位工作的年限, 每满一年支付一个月工资; 六个月以上不满一年的按一年计算; 不满六个月的支付半个月工资. 劳动者月工资高于用人单位所在直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资三倍的, 按职工月平均工资三倍的数额支付, 年限最高不超过十二年; 月工资是劳动者在劳动合同解除或者终止前十二个月的平均工资. The entry amount is that 12-month average wage; `qualifying_months` the service months and `local_average_monthly_wage` the city's published average (both entered from the record). IIT: 财税〔2018〕164号 五(一) — the excess over 3 × the local average annual wage is taxed separately on the annual table (IIT part `separation`)."
+	},
+	{
+		"id": "bdd8ac0b-22fa-404c-8241-4770137d8e41",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "PAY_IN_LIEU_OF_NOTICE",
+		"name": "代通知金 (one month's wage in lieu of notice)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.SEPARATION"],
+		"raised_by": "SEPARATION",
+		"evidence": "NONE",
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "劳动合同法 第四十条: 提前三十日以书面形式通知劳动者本人或者额外支付劳动者一个月工资后, 可以解除劳动合同; 劳动合同法实施条例 第二十条: 额外支付的工资按照该劳动者上一个月的工资标准确定. The entry amount is the previous month's wage. IIT: taxed with ECONOMIC_COMPENSATION as one-off termination income (财税〔2018〕164号 五(一), IIT part `separation`)."
+	},
+	{
+		"id": "0af3217f-9669-4190-a8aa-8e1ffb359f1e",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "ANNUAL_BONUS",
+		"name": "全年一次性奖金 (annual one-time bonus)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.BONUS", "UNION_FUND"],
+		"raised_by": "MANUAL",
+		"evidence": "NONE",
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "国家税务总局《关于调整个人取得全年一次性奖金等计算征收个人所得税方法问题的通知》(国税发〔2005〕9号) 第一条 (全年一次性奖金的范围); 财政部 税务总局公告2023年第30号 (separate taxation by election to 31 December 2027). Taxed through the IIT `bonus` part: separately when the employee elects `annual_bonus_separate`, otherwise merged into the cumulative wage income."
+	},
+	{
+		"id": "7eb37b7d-71d9-4cac-8dce-2bd21e9bcf18",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "BONUS",
+		"name": "奖金 (other bonus)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT", "UNION_FUND"],
+		"raised_by": "MANUAL",
+		"evidence": "NONE",
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "国家统计局《关于工资总额组成的规定》第七条 (奖金是工资总额的组成部分); 个人所得税法 第二条第一款第一项, 实施条例 第六条第一项 (taxed with the month's wages)."
+	},
+	{
+		"id": "ba4ffe30-ec02-40fc-9421-dadb81f40014",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "DAMAGE_COMPENSATION_DEDUCTION",
+		"name": "赔偿经济损失扣款 (deduction for damage the employee caused)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"evidence": "REQUIRED",
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "max(0.0, min(0.2 * terms.monthly_wage, terms.monthly_wage - (first(rules.minimum_wage.by_region[(company.region == \"SH\" ? \"SH\" : \"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\"))].filter(e, e[\"from\"] <= entry.occurred_on).map(e, double(e.amount))) == null ? 0.0 : first(rules.minimum_wage.by_region[(company.region == \"SH\" ? \"SH\" : \"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\"))].filter(e, e[\"from\"] <= entry.occurred_on).map(e, double(e.amount))))))"
+				}
+			}
+		],
+		"authority": "工资支付暂行规定 第十六条: 因劳动者本人原因给用人单位造成经济损失的, 用人单位可按照劳动合同的约定要求其赔偿经济损失; 经济损失的赔偿可从劳动者本人的工资中扣除, 但每月扣除的部分不得超过劳动者当月工资的20%; 若扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付. Capped at 20% of the contract monthly wage and at what leaves the minimum wage (`rules.minimum_wage` on the entry day); SH from 2026-08-01: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第二十二条, same rule."
+	}
+]

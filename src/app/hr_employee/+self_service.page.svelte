@@ -1,132 +1,85 @@
 <script lang="ts">
-	import Labelled from '../../lib/ui/components/Labelled.svelte';
+	import Labelled from '../../lib/ui/components/labelled.svelte';
 	import { t } from '../../lib/ui/i18n/t.js';
-	import { everyField } from '../../lib/every-field.js';
+	import { everyField } from '../../lib/payroll_engine/foundation.js';
 	/**
-	 * Employee self-service: the signed-in person's profile and contract, their month (the plan, the clock and a missing
-	 * punch to report), their leave balances and leave, claims, loans and payslips. Everything is scoped to the one
-	 * employment they work in today; a person with several active contracts chooses one. The person is the employee row
-	 * whose email is the signed-in member's (the grants scope every read to their own rows as well).
+	 * Employee self-service: the signed-in person's profile and contract, their work days, leave, claims, loans and
+	 * payslips. Everything is scoped to the one contract they work in today; a person with several active contracts
+	 * chooses one. The person is the employment_profile row whose email is the signed-in member's.
 	 */
 	import { bolt } from '$bolt';
-	import { setContext } from 'svelte';
-	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/scopes/create-scope.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Alert, Combobox, Table, Tabs } from '@norbital-ai/ui';
-	import { inclusiveDays, shiftPeriod } from '../../lib/payroll/run/dates.js';
-	import { coversDate } from '../../lib/payroll/run/effective.js';
-	import { resolveEmployment } from '../../lib/employment-contract.js';
-	import type { LeaveBalanceSummaries } from '../../lib/leave/summary.js';
-	import { payRequestRecordMetadata } from '../../lib/scheduling/lock.js';
-	import { payDateFor, todayKey } from '../../lib/ui/format/calendar.js';
-	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
-	import {
-		formatCalendarDate,
-		formatLeaveSummary,
-		formatNumeric
-	} from '../../lib/ui/format/display-formatters.js';
-	import { live, liveRows } from '../../lib/ui/state/live.svelte.js';
-	import EmploymentMonth from '../../lib/ui/roster/employment-month.svelte';
+	import { Combobox, Table, Tabs, Button } from '@norbital-ai/ui';
+	import { todayKey } from '../../lib/ui/format/calendar.js';
+	import { formatNumeric, formatTermsDates } from '../../lib/ui/format/display_formatters.js';
+	import { liveRows } from '../../lib/ui/state/live.svelte.js';
+	import { moneyNumber } from '../../lib/payroll_engine/foundation.js';
+	import LeaveRequest from '../../lib/ui/person/leave_request.svelte';
 
 	const today = todayKey();
 
 	const employee = liveRows(() =>
-		bolt.read('employees', {
-			select: everyField('employees'),
+		bolt.read('employment_profile', {
+			select: everyField('employment_profile'),
 			where: { email: { eq: { actor: 'email' } } },
 			limit: 1
 		})
 	);
 	const me = $derived(employee.current?.[0] ?? null);
-	const companies = liveRows(() =>
-		bolt.read('companies', {
-			select: everyField('companies'),
+	const entities = liveRows(() =>
+		bolt.read('entity', {
+			select: everyField('entity'),
 			where: { approval_id: { isNull: true } },
 			all: true
 		})
 	);
-	const companyById = $derived(new Map((companies.current ?? []).map((row) => [row.id, row])));
+	const entityById = $derived(new Map((entities.current ?? []).map((row) => [row.id, row])));
 	const contracts = liveRows(() =>
 		me == null
 			? null
-			: bolt.read('employments', {
-					select: everyField('employments'),
+			: bolt.read('employment_contract', {
+					select: everyField('employment_contract'),
 					where: { employee_id: { eq: me.id }, approval_id: { isNull: true } },
 					all: true
 				})
 	);
 	const active = $derived(
-		(contracts.current ?? [])
-			.map(resolveEmployment)
-			.filter((row) => coversDate(row.effective_range, today))
+		(contracts.current ?? []).filter(
+			(row) =>
+				row.effective_range.from <= today &&
+				(row.effective_range.to == null || row.effective_range.to >= today)
+		)
 	);
-	let chosen = $state<Id<'employments'> | null>(null);
+	let chosen = $state<Id<'employment_contract'> | null>(null);
 	const employment = $derived(
 		active.length === 1 ? active[0] : active.find((row) => row.id === chosen)
 	);
+	let requesting = $state(false);
 	const employmentId = $derived(employment?.id ?? null);
 	/** The active contract as stored, whole: the Home tab shows every one of its fields. */
 	const contract = $derived(
 		(contracts.current ?? []).find((row) => row.id === employmentId) ?? null
 	);
-	const company = $derived(employment == null ? undefined : companyById.get(employment.company_id));
+	const company = $derived(employment == null ? undefined : entityById.get(employment.company_id));
 	const needsChoice = $derived(active.length > 1 && employment == null);
-	// every request opened here is the viewer's own: the forms prefill their employment and never ask for the person
-	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
-		employmentId: () => employmentId ?? undefined,
-		employeeId: () => me?.id ?? undefined,
-		companyId: () => employment?.company_id,
-		settingsCode: () => company?.settings_code
-	});
 	/** Held false while a read is in flight, so the explanation cannot flash before the rows that contradict it. */
 	const noEmployment = $derived(!employee.loading && !contracts.loading && active.length === 0);
-	const employmentLabel = (row: { company_id: Id<'companies'>; employee_number: string }) =>
-		`${companyById.get(row.company_id)?.name ?? t('app.hr_employee.company_fallback')}${t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
+	const employmentLabel = (row: { company_id: Id<'entity'>; employee_number: string }) =>
+		`${entityById.get(row.company_id)?.name ?? t('app.hr_employee.company_fallback')}${t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
 	const choices = $derived(active.map((row) => ({ value: row.id, label: employmentLabel(row) })));
-
-	/** The next pay date: the last day of this month, or of next month once it has passed. */
-	const nextPayDate = $derived.by(() => {
-		if (company == null) return null;
-		const thisMonth = payDateFor(today.slice(0, 7));
-		return thisMonth >= today ? thisMonth : payDateFor(shiftPeriod(today.slice(0, 7), 1));
-	});
-	const daysToPayday = $derived(
-		nextPayDate == null ? null : Math.max(0, inclusiveDays(today, nextPayDate) - 1)
-	);
-
-	const balanceQuery = live(
-		() =>
-			employmentId == null
-				? null
-				: bolt.query('leave_entries.leave_balances', { employment_id: employmentId, as_of: today }),
-		['leave_entries']
-	);
-	// The query answers `json`: its shape is `LeaveBalanceSummaries`, asserted where it enters.
-	const balances = $derived({
-		error: balanceQuery.error,
-		current: balanceQuery.current as LeaveBalanceSummaries | undefined
-	});
-	type Held = {
-		readonly approval_id: string | null;
-		readonly payslip_id: unknown;
-		readonly pay_period: string | null;
-	};
-	const lock = (row: Held) =>
-		payRequestRecordMetadata(
-			row.approval_id,
-			row.payslip_id == null ? [] : [{ period: row.pay_period ?? '' }],
-			t
-		)[0]?.reason ?? '';
 	const mine = $derived(
 		employmentId == null ? { id: { in: [] } } : { employment_id: { eq: employmentId } }
 	);
+	/** The entry's stored `values`: its amount is a number, or an amount object. */
+	const amountOf = (value: unknown): number | null => moneyNumber(value);
 </script>
 
-{#snippet lockCell({ row }: { row: Held })}<span class="text-xs text-muted-foreground"
-		>{lock(row)}</span
-	>{/snippet}
-{#snippet summaryCell({ value }: { value: unknown })}{formatLeaveSummary(value, t)}{/snippet}
+{#snippet amountCell({
+	value
+}: {
+	value: unknown;
+})}{#if amountOf(value) == null}—{:else}{formatNumeric(amountOf(value))}{/if}{/snippet}
 
 {#snippet gate()}
 	{#if noEmployment}
@@ -191,19 +144,6 @@
 									: ''}
 							</p>
 						</Stack>
-						{#if nextPayDate != null && daysToPayday != null}
-							<Stack gap="none" class="text-right">
-								<p class="text-xs font-medium text-muted-foreground">
-									{t('app.hr_employee.next_payday')}
-								</p>
-								<p class="text-heading tabular-nums">
-									{daysToPayday === 0
-										? t('app.hr_employee.today')
-										: t('app.hr_employee.days_until', { days: daysToPayday })}
-								</p>
-								<p class="text-meta">{formatCalendarDate(nextPayDate)}</p>
-							</Stack>
-						{/if}
 					</Cluster>
 					<!-- repository-health:allow UI27 -- a 1px hairline between the cards; the gap scale has none -->
 					<Grid class="gap-px bg-border" gap="none" minimum="compact">
@@ -217,7 +157,7 @@
 						{/each}
 					</Grid>
 				</section>
-				<!-- The contract, terms in force and revisions, read-only: HR edits, the person reads. -->
+				<!-- The contract, read-only: HR edits, the person reads. -->
 				{#if contract != null}
 					<section
 						class="rounded-lg border bg-card p-5 shadow-card"
@@ -225,7 +165,21 @@
 					>
 						<Stack gap="md">
 							<h2 class="text-heading">{t('app.hr_employee.my_contract')}</h2>
-							<ContractDetail record={contract} />
+							<!-- repository-health:allow UI27 -- a 1px hairline between the cards; the gap scale has none -->
+							<Grid class="gap-px bg-border" gap="none" minimum="compact">
+								<Stack class="bg-card px-5 py-4" gap="xs">
+									<p class="text-xs font-medium text-muted-foreground">
+										{t('component.employee_number')}
+									</p>
+									<p class="text-sm font-medium">{contract.employee_number}</p>
+								</Stack>
+								<Stack class="bg-card px-5 py-4" gap="xs">
+									<p class="text-xs font-medium text-muted-foreground">
+										{t('component.effective_period')}
+									</p>
+									<p class="text-sm font-medium">{formatTermsDates(contract, t)}</p>
+								</Stack>
+							</Grid>
 						</Stack>
 					</section>
 				{/if}
@@ -244,82 +198,50 @@
 	</Stack>
 {/snippet}
 {#snippet schedule()}
-	<Cover gap="md" top={scheduleIntro}><EmploymentMonth {employmentId} selfService /></Cover>
+	<Cover gap="md" top={scheduleIntro}>
+		{#if employmentId != null}
+			<Table
+				of="roster_entry"
+				key={`my-work-${employmentId}`}
+				toolbar={{ title: t('app.hr_employee.my_schedule_title') }}
+				where={{ employment_id: { eq: employmentId } }}
+				orderBy={{ work_date: 'desc' }}
+				columns={['work_date', 'shift_definition_id', 'worked_intervals', 'worksite']}
+			/>
+		{/if}
+	</Cover>
 {/snippet}
 
-{#snippet leaveBalances()}
-	<Scroll name={t('app.hr_employee.leave_scroll_name')} inset>
-		{#if employmentId != null}
-			<Stack gap="sm" as="section" aria-label={t('app.hr_employee.leave_balances')}>
-				<h3 class="text-heading">{t('app.hr_employee.leave_balances')}</h3>
-				<p class="text-meta">
-					{t('app.hr_employee.leave_balances_description', { date: formatCalendarDate(today) })}
-				</p>
-				{#if balances.error}
-					<Alert.Root variant="destructive"
-						><Alert.Description>{balances.error}</Alert.Description></Alert.Root
-					>
-				{:else if balances.current == null}
-					<p class="text-meta">{t('leave.loading_balances')}</p>
-				{:else if balances.current.length === 0}
-					<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
-				{:else}
-					{#each balances.current as balance (balance.catalogue_id)}
-						<Stack gap="sm" class="border-t py-3">
-							<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
-							<p class="text-meta">
-								{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
-									balance.window.end
-								)}
-							</p>
-							<Grid as="dl" gap="sm" tracks="repeat(auto-fit, minmax(min(100%, 7rem), 1fr))">
-								{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
-									<div>
-										<dt class="text-meta">{item.label}</dt>
-										<dd class="text-sm font-medium tabular-nums">
-											{item.value == null
-												? t('component.accrual_unlimited')
-												: formatNumeric(item.value)}
-										</dd>
-									</div>
-								{/each}
-							</Grid>
-							{#each balance.warnings ?? [] as warning (warning)}
-								<p class="text-meta">{warning}</p>
-							{/each}
-						</Stack>
-					{/each}
-				{/if}
-			</Stack>
-		{/if}
-	</Scroll>
-{/snippet}
-{#snippet leaveApplications()}
-	<Table
-		of="leave_entries"
-		key="my-leave"
-		toolbar={{ title: t('app.hr_employee.my_leave_title'), new: employmentId != null }}
-		where={mine}
-		orderBy={{ effective_on: 'desc' }}
-		columns={[
-			{ field: 'catalogue_id', label: t('component.catalogue_leave') },
-			{ field: 'summary', label: t('leave.activity'), cell: summaryCell },
-			{ field: 'reference', label: t('component.reference') },
-			{ field: 'days', label: t('component.days') },
-			{ field: 'encash_days', label: t('component.encash_days') }
-		]}
-	/>
-{/snippet}
 {#snippet leave()}
 	<Cover gap="md" top={gate}>
-		<Tabs
-			tabs={[
-				{ name: 'balances', title: t('app.hr_employee.leave_tab_balances'), body: leaveBalances },
-				{
-					name: 'applications',
-					title: t('app.hr_employee.leave_tab_applications'),
-					body: leaveApplications
-				}
+		{#if requesting && employmentId != null && contract?.company_id != null}
+			<LeaveRequest
+				{employmentId}
+				companyId={contract.company_id}
+				onsaved={() => (requesting = false)}
+				onclose={() => (requesting = false)}
+			/>
+		{/if}
+		{#if employmentId != null && contract?.company_id != null}
+			<Cluster gap="sm">
+				<Button onclick={() => (requesting = true)}>{t('leave.request_title')}</Button>
+			</Cluster>
+		{/if}
+		<Table
+			of="leave_catalog_entry"
+			key="my-leave"
+			toolbar={{
+				title: t('app.hr_employee.my_leave_title'),
+				new: employmentId == null ? false : () => (requesting = true)
+			}}
+			where={mine}
+			orderBy={{ occurred_on: 'desc' }}
+			columns={[
+				{ field: 'catalog_id', label: t('component.catalogue_leave') },
+				{ field: 'activity', label: t('leave.activity') },
+				{ field: 'amount', label: t('component.amount'), cell: amountCell },
+				{ field: 'occurred_on', label: t('component.day') },
+				{ field: 'reference', label: t('component.reference') }
 			]}
 		/>
 	</Cover>
@@ -327,19 +249,16 @@
 {#snippet claims()}
 	<Cover gap="md" top={gate}>
 		<Table
-			of="claim_requests"
+			of="claim_catalog_entry"
 			key="my-claims"
 			toolbar={{ title: t('app.hr_employee.my_claims_title'), new: employmentId != null }}
 			where={mine}
-			orderBy={{ incurred_on: 'desc' }}
+			orderBy={{ occurred_on: 'desc' }}
 			columns={[
-				{ field: 'catalogue_id', label: t('component.component') },
-				{ field: 'amount', label: t('component.amount') },
-				{ field: 'as_adjustment_entry', label: t('component.as_adjustment_entry') },
-				{ field: 'incurred_on', label: t('component.incurred_on') },
-				{ field: 'description', label: t('component.claim_description') },
-				{ field: 'evidence_file', label: t('component.evidence_file') },
-				{ field: 'approval_id', label: '', cell: lockCell }
+				{ field: 'catalog_id', label: t('component.component') },
+				{ field: 'amount', label: t('component.amount'), cell: amountCell },
+				{ field: 'occurred_on', label: t('component.incurred_on') },
+				{ field: 'reference', label: t('component.reference') }
 			]}
 		/>
 	</Cover>
@@ -347,16 +266,16 @@
 {#snippet loans()}
 	<Cover gap="md" top={gate}>
 		<Table
-			of="loans"
+			of="loan_catalog_entry"
 			key="my-loans"
 			toolbar={{ title: t('app.hr_employee.my_loans_title'), new: false }}
 			where={mine}
-			initialFilter={{ effective_range: { contains: { today: '' } } }}
-			orderBy={{ effective_from: 'desc' }}
+			orderBy={{ occurred_on: 'desc' }}
 			columns={[
-				'reference',
-				{ field: 'principal', label: t('component.principal') },
-				'effective_range'
+				'catalog_id',
+				{ field: 'amount', label: t('component.amount'), cell: amountCell },
+				'occurred_on',
+				'reference'
 			]}
 		/>
 	</Cover>
@@ -374,7 +293,7 @@
 {#snippet payslips()}
 	<Cover gap="md" top={gate}>
 		<Table
-			of="payslips"
+			of="payslip"
 			key="my-payslips"
 			toolbar={{ title: t('app.hr_employee.my_payslips_title'), new: false }}
 			where={mine}
@@ -407,7 +326,7 @@
 				body: events
 			},
 			{
-				name: 'payslips',
+				name: 'payslip',
 				title: t('app.hr_employee.tab_payslips'),
 				icon: 'lucide:badge-dollar-sign',
 				body: payslips

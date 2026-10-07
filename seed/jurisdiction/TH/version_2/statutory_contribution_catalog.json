@@ -1,0 +1,85 @@
+[
+	{
+		"id": "5a87f52f-d7ec-542f-8e47-203ed5cb2540",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"code": "SSO",
+		"name": "Social Security Fund (กองทุนประกันสังคม)",
+		"authority": "Social Security Act B.E. 2533 (1990) s.33 (an employee aged 15 to 60 at entry is insured and stays insured past 60), s.46 (employee and employer contribute at equal rates), s.47 (the employer deducts the employee contribution from wages); the 5% rate of the Ministerial Regulation on contribution rates; wage base 1,650 to 15,000 baht a month under Ministerial Regulation No. 7 (B.E. 2538), repealed from 1 January 2026. https://www.sso.go.th/",
+		"configuration": {
+			"assessable": {
+				"ordinary": "min(month.ordinary, 15000.0)"
+			},
+			"rules": [
+				{
+					"when": "employee.date_of_birth == \"\" || employment.start_date == \"\" || (age_on(employee.date_of_birth, employment.start_date) >= 15 && age_on(employee.date_of_birth, employment.start_date) <= 60)",
+					"employee": "round(min(max(base.assessed, 1650.0), 15000.0) * 0.05, 1.0, \"HALF_UP\")",
+					"employer": "round(min(max(base.assessed, 1650.0), 15000.0) * 0.05, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Engine: the month's SSO wage (base salary and fixed allowances paid for normal working time; overtime, holiday-work pay and leave cash-out are outside s.5 \"wage\") is floored at 1,650 and capped at 15,000; each side pays 5% rounded to the baht. SSA s.33: an employee \"not below fifteen years and not over sixty years\" is insured — read on the age at the contract's start (`employment.start_date`), so an insured person who reaches 60 in the same employment stays insured and one hired at 61 or over is not; an unrecorded date of birth is charged. https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+		}
+	},
+	{
+		"id": "0b877c35-db14-51d1-b9b2-3f4ceb33523b",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"code": "WCF",
+		"name": "Workmen's Compensation Fund (กองทุนเงินทดแทน)",
+		"authority": "Workmen's Compensation Act B.E. 2537 as amended B.E. 2561 ss.5, 44-45 https://www.sso.go.th/wpr/download/download_by_pool_file/47436; the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.5 (an employer of one or more employees), cl.6 and Table 1 (1,091 business codes, 0.20%-1.00% of wages), cl.11 (annual wages capped at \"สองแสนสี่หมื่นบาทต่อปี\" a person; whole-baht rounding), cl.19 (experience rating from the fifth year) https://www.sso.go.th/wpr/download/download_by_pool_file/14479",
+		"configuration": {
+			"assessable": {
+				"ordinary": "min(month.ordinary, max(0.0, 240000.0 - year.ordinary))"
+			},
+			"refuse_when": [
+				{
+					"when": "!has(company.facts.wcf_rate_percent) && !(company.risk_class in rules.wcf_rate.by_code)",
+					"message": "Thailand WCF needs the employer's business code (entity risk_class, a code of the Ministry of Labour Table 1) or the rate the Social Security Office notified (entity fact wcf_rate_percent)."
+				}
+			],
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "round(base.assessed * (has(company.facts.wcf_rate_percent) ? double(company.facts.wcf_rate_percent) : double(rules.wcf_rate.by_code[company.risk_class])) / 100.0, 1.0, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Engine: the employer's annual WCF liability accrued month by month on the wages for normal working hours and days (WCA s.5 \"wages\" — overtime, holiday work and holiday overtime are outside), the year's assessable wages capped at 240,000 baht a person (cl.11), at the rate of the employer's business code in Table 1 (entity risk_class) or, from the fifth year, the experience-rated rate the SSO notified (entity fact wcf_rate_percent, cl.19), rounded to the baht (cl.11: fifty satang or more counts as one baht). The law collects it in advance each January on estimated wages (cl.13) and settles it on the Kor Tor 20 Kor statement (cl.14-15); both are TASKS rows."
+		}
+	},
+	{
+		"id": "1f715630-7960-51bf-8b02-69018d7290f2",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"code": "PVD",
+		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ)",
+		"authority": "Provident Fund Act B.E. 2530 (1987) s.10: member contributions of 2%-15% of wages; the employer contributes not less than the member and not more than 15%.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "scheme.standing == \"MEMBER\" && has(scheme.elections.employee_percent)",
+					"employee": "round(base.assessed * double(scheme.elections.employee_percent) / 100.0, 0.01, \"HALF_UP\")",
+					"employer": "round(base.assessed * min(15.0, max(double(scheme.elections.employee_percent), (has(company.facts.pvd_employer_percent) ? double(company.facts.pvd_employer_percent) : 0.0))) / 100.0, 0.01, \"HALF_UP\")"
+				}
+			],
+			"limitation": "Voluntary: charged only for a member — a PVD standing of kind MEMBER whose election `employee_percent` is the rate the member chose. Engine: the member contributes that rate of the PVD wage; the employer the higher of the fund-rule rate (entity fact pvd_employer_percent) and the member rate, at most 15%. Fund rules that scale the employer rate with service are not modelled."
+		}
+	},
+	{
+		"id": "5e9c2a31-cd26-5280-8160-a0b9e78ddd50",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"code": "PND1",
+		"name": "Personal income tax withholding (ภ.ง.ด.1)",
+		"authority": "Revenue Code s.40(1), s.42 bis, s.47, s.48(1), s.50(1) and Departmental Instruction Tor Por 4/2528 (withholding by annualising the income); Revenue Code Amendment Act (No. 44) B.E. 2560 (personal allowance 60,000; expense 50% up to 100,000; brackets to 5,000,000) and Royal Decree No. 470 (first 150,000 of net income exempt). https://www.rd.go.th/english/6045.html",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "round(max(0.0, (ladder(max(0.0, ((year.ordinary + year.severance) + terms.monthly_wage * (13.0 - double(period.month))) - min(((year.ordinary + year.severance) + terms.monthly_wage * (13.0 - double(period.month))) * 0.5, 100000.0) - 60000.0 - (employee.marital_status == \"MARRIED\" && employee.spouse_status == \"WITHOUT_INCOME\" ? 60000.0 : 0.0) - (30000.0 * (has(scheme.elections.child_allowance_count) ? double(scheme.elections.child_allowance_count) : 0.0) + 30000.0 * (has(scheme.elections.second_child_from_2018_count) ? double(scheme.elections.second_child_from_2018_count) : 0.0)) - (has(scheme.elections.other_annual_deductions) ? double(scheme.elections.other_annual_deductions) : 0.0) - (charged.year.SSO.employee + charged.month.SSO.employee * (13.0 - double(period.month))) - min(charged.year.PVD.employee + charged.month.PVD.employee * (13.0 - double(period.month)), 500000.0)), [[150000.0, 0.0], [300000.0, 0.05], [500000.0, 0.10], [750000.0, 0.15], [1000000.0, 0.20], [2000000.0, 0.25], [5000000.0, 0.30], [null, 0.35]]) - charged.year.PND1.employee) / (13.0 - double(period.month)) + ladder(max(0.0, ((year.ordinary + year.severance) + base.assessed + terms.monthly_wage * ((13.0 - double(period.month)) - 1.0)) - min(((year.ordinary + year.severance) + base.assessed + terms.monthly_wage * ((13.0 - double(period.month)) - 1.0)) * 0.5, 100000.0) - 60000.0 - (employee.marital_status == \"MARRIED\" && employee.spouse_status == \"WITHOUT_INCOME\" ? 60000.0 : 0.0) - (30000.0 * (has(scheme.elections.child_allowance_count) ? double(scheme.elections.child_allowance_count) : 0.0) + 30000.0 * (has(scheme.elections.second_child_from_2018_count) ? double(scheme.elections.second_child_from_2018_count) : 0.0)) - (has(scheme.elections.other_annual_deductions) ? double(scheme.elections.other_annual_deductions) : 0.0) - (charged.year.SSO.employee + charged.month.SSO.employee * (13.0 - double(period.month))) - min(charged.year.PVD.employee + charged.month.PVD.employee * (13.0 - double(period.month)), 500000.0)), [[150000.0, 0.0], [300000.0, 0.05], [500000.0, 0.10], [750000.0, 0.15], [1000000.0, 0.20], [2000000.0, 0.25], [5000000.0, 0.30], [null, 0.35]]) - ladder(max(0.0, ((year.ordinary + year.severance) + terms.monthly_wage * (13.0 - double(period.month))) - min(((year.ordinary + year.severance) + terms.monthly_wage * (13.0 - double(period.month))) * 0.5, 100000.0) - 60000.0 - (employee.marital_status == \"MARRIED\" && employee.spouse_status == \"WITHOUT_INCOME\" ? 60000.0 : 0.0) - (30000.0 * (has(scheme.elections.child_allowance_count) ? double(scheme.elections.child_allowance_count) : 0.0) + 30000.0 * (has(scheme.elections.second_child_from_2018_count) ? double(scheme.elections.second_child_from_2018_count) : 0.0)) - (has(scheme.elections.other_annual_deductions) ? double(scheme.elections.other_annual_deductions) : 0.0) - (charged.year.SSO.employee + charged.month.SSO.employee * (13.0 - double(period.month))) - min(charged.year.PVD.employee + charged.month.PVD.employee * (13.0 - double(period.month)), 500000.0)), [[150000.0, 0.0], [300000.0, 0.05], [500000.0, 0.10], [750000.0, 0.15], [1000000.0, 0.20], [2000000.0, 0.25], [5000000.0, 0.30], [null, 0.35]])), 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "Engine (Departmental Instruction Tor Por 4/2528): the year's regular income is estimated as the PND1 wage already paid this year (`year.ordinary` + `year.severance`) plus the contract's monthly wage (`terms.monthly_wage`) for this and every remaining month; the annual tax on it (less the expense deduction of 50% up to 100,000, s.42 bis; the personal allowance 60,000, s.47(1)(a); 60,000 for a spouse without income, s.47(1)(b), from the profile columns; the PND1 elections declared on Lor Yor 01 — 30,000 a child and 30,000 more for a second or later child born from 2018, s.47(1)(c), and other annual deductions; the employee SSO contribution (s.47(1)(ฌ), as paid) and the provident fund member contribution up to 500,000, each as charged this year plus this month's charge for the remaining months) less the tax already withheld this year (`charged.year.PND1.employee`) is spread over the remaining months, so December trues the year up; income above the regular wage this month (a bonus, back pay) is withheld in full this month as the difference between the annual tax with and without it. Progressive scale: 0% to 150,000, 5% to 300,000, 10% to 500,000, 15% to 750,000, 20% to 1,000,000, 25% to 2,000,000, 30% to 5,000,000, 35% above. An over-withholding is not refunded through payroll (the employee claims it on PND91). Income from a previous employer in the same year is not on the context; Severance pay (part `severance`) is exempt up to the last 300 days' wages (ten monthly base salaries) and at most 300,000, except on retirement or the end of a fixed term (Ministerial Regulation No. 126 (B.E. 2509) item 2(51) as amended by No. 217 (B.E. 2542), https://www.rd.go.th/2455.html); the excess is withheld in its month. The separate-taxation election of s.48(5) is not modelled.",
+			"assessable": {
+				"severance": "employment.exit_ground in [\"RETIREMENT\", \"END_OF_CONTRACT\"] ? month.severance : max(0.0, month.severance - min(terms.base_salary * 10.0, 300000.0))"
+			}
+		}
+	}
+]

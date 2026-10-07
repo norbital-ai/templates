@@ -1,0 +1,67 @@
+[
+	{
+		"id": "31ac4824-7ac9-5575-b5a2-f7a3a1baa59d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SALARY_ADVANCE",
+		"name": "Salary advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	},
+	{
+		"id": "35a1ed6d-3717-52d3-89e2-a555754d944b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "FESTIVE_ADVANCE",
+		"name": "Festive advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "FESTIVE",
+		"minimum_repayment": null,
+		"bands": []
+	},
+	{
+		"id": "42c2b4bf-98c6-5b9e-b0ae-85aa167de1db",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SALARY_OVERPAYMENT",
+		"name": "Salary overpayment recovery",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	},
+	{
+		"id": "3f4a0f2d-a378-5567-9ead-0822ef69a2fa",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "UNEARNED_BENEFIT_RECOVERY",
+		"name": "Unearned benefit recovery",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	},
+	{
+		"id": "22e8ad67-2cbc-5826-a84f-f94917754211",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "TRAVEL_ADVANCE",
+		"name": "Travel advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"bands": []
+	}
+]
