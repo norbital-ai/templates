@@ -1,11 +1,17 @@
 <script lang="ts">
 	/**
-	 * Picking a visit's start: the next two weeks as a calendar (a day nobody can take is greyed out), then the chosen day
-	 * as a timeline of hours with its open starts, and the visit's span once one is picked.
+	 * Picking a visit's start: the next two weeks as a swipeable strip of days (each with how many starts it has; a day
+	 * nobody can take is greyed), then the chosen day's starts by part of the day, each with when the visit would end.
 	 */
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 
 	type Day = { readonly day: string; readonly starts: readonly string[] };
+	type SlotCopy =
+		| 'app.portal.morning'
+		| 'app.portal.afternoon'
+		| 'app.portal.evening'
+		| 'app.portal.your_visit'
+		| 'app.portal.starts_count';
 	let {
 		days,
 		minutes,
@@ -20,13 +26,11 @@
 		value: string | null;
 		locale: string;
 		onPick: (start: string | null) => void;
-		t: (key: string) => string;
+		t: (key: SlotCopy) => string;
 	} = $props();
 
-	const DAY_MS = 86_400_000;
 	/** A calendar date's midnight UTC: date arithmetic that no time zone shifts. */
 	const at = (d: string) => Date.parse(`${d}T00:00:00Z`);
-	const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 	const fmt = (o: Intl.DateTimeFormatOptions, utc = false) =>
 		new Intl.DateTimeFormat(locale, utc ? { ...o, timeZone: 'UTC' } : o);
 
@@ -39,25 +43,6 @@
 			days.find((d) => d.starts.length > 0)?.day ??
 			today
 	);
-
-	/** Monday-first weeks covering the two weeks offered; cells outside them are blank. */
-	const cells = $derived.by(() => {
-		if (days.length === 0) return [];
-		const first = at(days[0]!.day),
-			last = at(days.at(-1)!.day);
-		const from = first - ((new Date(first).getUTCDay() + 6) % 7) * DAY_MS;
-		const to = last + ((7 - new Date(last).getUTCDay()) % 7) * DAY_MS;
-		const out: { day: string; inside: boolean }[] = [];
-		for (let ms = from; ms <= to; ms += DAY_MS)
-			out.push({ day: iso(ms), inside: ms >= first && ms <= last });
-		return out;
-	});
-	// 1 January 2024 was a Monday
-	const weekdays = $derived(
-		Array.from({ length: 7 }, (_, i) =>
-			fmt({ weekday: 'narrow' }, true).format(at('2024-01-01') + i * DAY_MS)
-		)
-	);
 	const month = $derived.by(() => {
 		if (days.length === 0) return '';
 		const f = fmt({ month: 'long', year: 'numeric' }, true);
@@ -67,7 +52,7 @@
 	});
 
 	/** The day's starts by part of the day: morning, afternoon, evening. */
-	const PARTS = [
+	const PARTS: readonly { from: number; key: SlotCopy }[] = [
 		{ from: 0, key: 'app.portal.morning' },
 		{ from: 12, key: 'app.portal.afternoon' },
 		{ from: 17, key: 'app.portal.evening' }
@@ -82,79 +67,86 @@
 		})).filter((p) => p.starts.length > 0)
 	);
 	const time = (s: string) => fmt({ hour: 'numeric', minute: '2-digit' }).format(new Date(s));
+	const end = (s: string) => new Date(Date.parse(s) + minutes * 60_000).toISOString();
 	const span = $derived(
 		value === null
 			? null
-			: `${fmt({ weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(value))} · ${time(value)} – ${time(new Date(Date.parse(value) + minutes * 60_000).toISOString())}`
+			: `${fmt({ weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(value))} · ${time(value)} – ${time(end(value))}`
 	);
 </script>
 
 <Stack gap="lg">
 	<Stack gap="sm">
 		<p class="text-sm font-semibold">{month}</p>
-		<Grid tracks="repeat(7, minmax(0, 1fr))" gap="xs" class="text-center" aria-label={month}>
-			{#each weekdays as w, i (i)}
-				<span class="pb-1 text-xs font-medium text-muted-foreground">{w}</span>
+		<!-- the two weeks as one swipeable strip: each day says how many starts it has; a day nobody can take is greyed -->
+		<Scroll name="slot-days" axis="x" gap="xs" class="pb-1">
+			{#each days as d (d.day)}
+				{@const open = d.starts.length}
+				<button
+					type="button"
+					disabled={open === 0}
+					aria-pressed={d.day === day}
+					aria-label={fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(
+						at(d.day)
+					)}
+					onclick={() => {
+						picked = d.day;
+						if (value !== null && !d.starts.includes(value)) onPick(null);
+					}}
+					class="w-16 shrink-0 rounded-xl border bg-background px-1 py-2 text-center transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground/50 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+				>
+					<Stack as="span" gap="none" align="center">
+						<span class="text-xs uppercase opacity-80"
+							>{fmt({ weekday: 'short' }, true).format(at(d.day))}</span
+						>
+						<span class="text-lg font-semibold tabular-nums"
+							>{fmt({ day: 'numeric' }, true).format(at(d.day))}</span
+						>
+						<span class="text-xs tabular-nums opacity-80"
+							>{open === 0
+								? '—'
+								: t('app.portal.starts_count').replace('{count}', String(open))}</span
+						>
+					</Stack>
+				</button>
 			{/each}
-			{#each cells as c (c.day)}
-				{@const open = c.inside ? (starts.get(c.day)?.length ?? 0) : 0}
-				{#if !c.inside}
-					<span></span>
-				{:else}
-					<button
-						type="button"
-						disabled={open === 0}
-						aria-pressed={c.day === day}
-						aria-label={fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(
-							at(c.day)
-						)}
-						onclick={() => {
-							picked = c.day;
-							if (value !== null && !(starts.get(c.day) ?? []).includes(value)) onPick(null);
-						}}
-						class="h-11 rounded-lg border text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted-foreground/50 disabled:hover:bg-transparent aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-					>
-						<Stack as="span" gap="xs" align="center" justify="center" fill>
-							<span class="font-semibold tabular-nums"
-								>{fmt({ day: 'numeric' }, true).format(at(c.day))}</span
-							>
-						</Stack>
-					</button>
-				{/if}
-			{/each}
-		</Grid>
+		</Scroll>
 	</Stack>
 
-	<Stack gap="sm">
+	<Stack gap="md">
 		<p class="text-sm font-semibold">
 			{fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(at(day))}
 		</p>
-		<!-- the day as a timeline: a rail down the day's parts, each with its open starts in even columns -->
-		<Stack gap="md">
-			{#each parts as part (part.key)}
-				<Stack gap="sm">
-					<p class="text-sm font-medium text-muted-foreground">
-						{t(part.key)}
-					</p>
-					<Grid tracks="repeat(3, minmax(0, 1fr))" gap="sm">
-						{#each part.starts as s (s)}
-							<button
-								type="button"
-								aria-pressed={value === s}
-								onclick={() => onPick(s)}
-								class="min-h-11 rounded-md border text-sm font-medium tabular-nums transition-colors hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-							>
-								{time(s)}
-							</button>
-						{/each}
-					</Grid>
-				</Stack>
-			{/each}
-		</Stack>
+		{#each parts as part (part.key)}
+			<Stack gap="sm">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					{t(part.key)} · {part.starts.length}
+				</p>
+				<Grid tracks="repeat(auto-fill, minmax(6.5rem, 1fr))" gap="sm">
+					{#each part.starts as s (s)}
+						<button
+							type="button"
+							aria-pressed={value === s}
+							onclick={() => onPick(s)}
+							class="min-h-14 rounded-lg border bg-background px-2 py-1.5 text-center tabular-nums transition-colors hover:border-primary/60 hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+						>
+							<Stack as="span" gap="none" align="center">
+								<span class="text-sm font-semibold">{time(s)}</span>
+								<span class="text-xs opacity-70">– {time(end(s))}</span>
+							</Stack>
+						</button>
+					{/each}
+				</Grid>
+			</Stack>
+		{/each}
 	</Stack>
 
 	{#if span !== null}
-		<Stack gap="xs" class="rounded-lg border bg-muted/40 px-4 py-3">
+		<Stack
+			gap="xs"
+			class="rounded-xl border border-primary/40 bg-primary/5 px-4 py-3"
+			role="status"
+		>
 			<p class="text-caption">{t('app.portal.your_visit')}</p>
 			<p class="text-sm font-semibold">{span}</p>
 		</Stack>

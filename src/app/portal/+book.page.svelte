@@ -10,6 +10,7 @@
 	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
+		Combobox,
 		Icon,
 		Input,
 		Label,
@@ -17,10 +18,10 @@
 		PhoneVerify,
 		PointInput,
 		Spinner,
-		Textarea
+		Textarea,
+		type Point
 	} from '@norbital-ai/ui';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
-	import Choice from '../../lib/Choice.svelte';
 	import { live } from '../../lib/live.svelte.js';
 
 	const t = bolt.t;
@@ -38,7 +39,7 @@
 	let service = $state<Id<'services'> | null>(null);
 	let name = $derived(known?.name ?? '');
 	let address = $derived(known?.address ?? '');
-	let location = $derived<{ lat: number; lng: number } | null>(known?.location ?? null);
+	let location = $derived<Point | null>(known?.location ?? null);
 	let repeat = $state<(typeof REPEATS)[number]>('once');
 	let notes = $state('');
 	let preference = $state<'any' | 'preferred'>('any');
@@ -217,7 +218,7 @@
 			error = outcome.kind === 'refused' ? outcome.message : t('app.portal.failed');
 			return;
 		}
-		availability = outcome.records[0]!.id as Id<'availability_requests'>;
+		availability = outcome.records[0]!.id;
 		step = 'time';
 	}
 	async function confirm() {
@@ -247,7 +248,7 @@
 			error = outcome.kind === 'refused' ? outcome.message : t('app.portal.failed');
 			return;
 		}
-		request = outcome.records[0]!.id as Id<'booking_requests'>;
+		request = outcome.records[0]!.id;
 		step = 'done';
 	}
 	function again() {
@@ -286,19 +287,20 @@
 						<Grid minimum="compact" gap="md">
 							<Stack gap="sm">
 								<Label for="portal-service">{t('app.portal.service')}</Label>
-								<Choice
+								<Combobox
 									id="portal-service"
-									value={service ?? ''}
+									value={service}
+									clearable
+									placeholder={t('app.booking.select_service')}
+									options={(services.current?.rows ?? []).map((s) => ({
+										value: s.id,
+										label: s.name
+									}))}
 									onChange={(value) => {
-										service = value ? (value as Id<'services'>) : null;
+										service = value;
 										start = null;
 									}}
-								>
-									<option value="">{t('app.booking.select_service')}</option>
-									{#each services.current?.rows ?? [] as s (s.id)}<option value={s.id}
-											>{s.name}</option
-										>{/each}
-								</Choice>
+								/>
 								{#if chosen}<p class="text-caption">
 										{chosen.description} · {t('app.booking.duration', {
 											minutes: chosen.duration_minutes
@@ -307,14 +309,17 @@
 							</Stack>
 							<Stack gap="sm">
 								<Label for="portal-repeat">{t('app.portal.repeat')}</Label>
-								<Choice
+								<Combobox
 									id="portal-repeat"
 									value={repeat}
-									onChange={(value) => (repeat = value as typeof repeat)}
-								>
-									{#each REPEATS as r (r)}<option value={r}>{t(`component.repeat_${r}`)}</option
-										>{/each}
-								</Choice>
+									options={REPEATS.map((r) => ({
+										value: r,
+										label: t(`component.repeat_${r}`)
+									}))}
+									onChange={(value) => {
+										if (value !== null) repeat = value;
+									}}
+								/>
 							</Stack>
 						</Grid>
 						<Stack gap="sm" class="booking-destination">
@@ -327,7 +332,7 @@
 								onChange={(next) => {
 									// The picker sets a point before its address callback; apply the point after address invalidation.
 									queueMicrotask(() => {
-										location = next === null ? null : (next as { lat: number; lng: number });
+										location = next;
 									});
 								}}
 							/>
@@ -339,19 +344,20 @@
 							</Stack>
 							<Stack gap="sm">
 								<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
-								<Choice
+								<Combobox
 									id="preferred-helper"
-									value={helper ?? ''}
+									value={helper}
+									clearable
+									placeholder={t('app.booking.no_preference')}
+									options={(helpers.current?.rows ?? []).map((h) => ({
+										value: h.id,
+										label: h.name
+									}))}
 									onChange={(value) => {
-										helper = value ? (value as Id<'helpers'>) : null;
+										helper = value;
 										preference = helper === null ? 'any' : 'preferred';
 									}}
-								>
-									<option value="">{t('app.booking.no_preference')}</option>
-									{#each helpers.current?.rows ?? [] as h (h.id)}<option value={h.id}
-											>{h.name}</option
-										>{/each}
-								</Choice>
+								/>
 								{#if mismatch}<p role="alert" class="text-sm text-destructive">
 										{t('app.booking.skill_mismatch')}
 									</p>{/if}
@@ -392,7 +398,7 @@
 							value={start}
 							locale={bolt.locale}
 							onPick={(s) => (start = s)}
-							t={(k) => t(k as never)}
+							{t}
 						/>
 					{/if}
 					{#if quote.current?.estimated}<p class="text-caption">

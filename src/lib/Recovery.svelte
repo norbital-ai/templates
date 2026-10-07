@@ -2,10 +2,9 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { Button, DateInput, Label } from '@norbital-ai/ui';
+	import { Button, Combobox, DateInput, Label } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { live } from './live.svelte.js';
-	import Choice from './Choice.svelte';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
 	let { visit }: { visit: Id<'visits'> } = $props();
@@ -60,7 +59,7 @@
 		['visits', 'helpers', 'helper_time_off', 'drive_times']
 	);
 	let busy = $state(false);
-	let medical = $state('no');
+	let medical = $state<'yes' | 'no'>('no');
 	let approved = $state(false);
 	let message = $state<string | null>(null);
 	async function approve() {
@@ -155,7 +154,7 @@
 								picked = s;
 								chosen = null;
 							}}
-							t={(key) => t(key as never)}
+							{t}
 						/>{/if}
 					<p class="text-sm text-muted-foreground">{t('app.recovery.date_change')}</p>
 				</Stack>
@@ -165,13 +164,17 @@
 			{:else if best !== undefined}
 				<Stack gap="sm">
 					<Label for="replacement">{t('app.recovery.recommended')}</Label>
-					<Choice
+					<Combobox
 						id="replacement"
-						value={best.helper}
-						onChange={(id) => (chosen = id as Id<'helpers'>)}
-					>
-						{#each candidates.current ?? [] as c}<option value={c.helper}>{c.name}</option>{/each}
-					</Choice>
+						value={chosen ?? best.helper}
+						options={(candidates.current ?? []).map((c) => ({
+							value: c.helper,
+							label: c.name
+						}))}
+						onChange={(id) => {
+							if (id !== null) chosen = id;
+						}}
+					/>
 					<p class="text-sm text-muted-foreground">
 						{t('app.recovery.metrics', { drive: best.drive_minutes, hours: best.week_hours })}
 					</p>
@@ -202,11 +205,17 @@
 					<summary class="cursor-pointer text-sm">{t('app.recovery.report_absence')}</summary>
 					<Stack gap="sm" class="pt-3">
 						<p class="text-sm text-muted-foreground">{t('app.recovery.report_absence_help')}</p>
-						<Choice id="medical" value={medical} onChange={(m) => (medical = m)}
-							><option value="no">{t('app.recovery.no_medical')}</option><option value="yes"
-								>{t('app.recovery.medical')}</option
-							></Choice
-						>
+						<Combobox
+							id="medical"
+							value={medical}
+							options={[
+								{ value: 'no', label: t('app.recovery.no_medical') },
+								{ value: 'yes', label: t('app.recovery.medical') }
+							]}
+							onChange={(m) => {
+								if (m !== null) medical = m;
+							}}
+						/>
 						<Button variant="outline" disabled={busy} onclick={report}
 							>{t('app.recovery.prepare')}</Button
 						>

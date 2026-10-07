@@ -1,5 +1,5 @@
 import { addDays } from '@norbital-ai/std/date';
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
 import { utcOf } from '@norbital-ai/std/zone';
 import { loadPool } from '../lib/dispatch.js';
 import { openSlots } from '../lib/matching.js';
@@ -61,7 +61,7 @@ publish_openings.run(async (_, ctx) => {
 			].sort();
 			const row = have.get(`${s.id}|${day}`);
 			have.delete(`${s.id}|${day}`);
-			if (row === undefined) creates.push({ service: s.id as Id<'services'>, day, starts });
+			if (row === undefined) creates.push({ service: s.id, day, starts });
 			else if (row.starts.join() !== starts.join())
 				updates.push({ target: row.id, set: { starts } });
 		}

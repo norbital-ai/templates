@@ -1,4 +1,4 @@
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
 import { when } from '../lib/dispatch.js';
 
 /**
@@ -35,7 +35,7 @@ portal_intake.run(async ({ ids }, ctx) => {
 				...(r.email === null ? {} : { email: r.email }),
 				...(point === undefined ? {} : { location: point })
 			});
-			customer = records[0]!.id as Id<'customers'>;
+			customer = records[0]!.id;
 		}
 		const availability =
 			r.availability === null ? null : await ctx.get('availability_requests', r.availability);

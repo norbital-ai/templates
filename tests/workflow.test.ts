@@ -152,6 +152,138 @@ describe('booking', () => {
 	});
 });
 
+describe('jobs: one-off and recurring', () => {
+	const HOURS_3 = 3 * 3_600_000;
+	const startOf = (v: Row) => Date.parse((v['slot'] as { start: { $t: string } }).start.$t);
+	const endOf = (v: Row) => Date.parse((v['slot'] as { end: { $t: string } }).end.$t);
+	/** The local wall time of an instant in Singapore. */
+	const wall = (ms: number) =>
+		new Date(ms).toLocaleString('en-GB', {
+			timeZone: 'Asia/Singapore',
+			weekday: 'short',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+
+	it('a one-off job is one visit for the service length, matched, its cleaner told, then done', async () => {
+		const t = await workspace();
+		const alpha = await signedIn(t, ALPHA);
+		const { output } = committed(await book(t, {}));
+		expect(output).toMatchObject({ assigned: 1, unassigned: 0 });
+		const all = await visits(t);
+		expect(all).toHaveLength(1);
+		const [v] = all;
+		expect(v).toMatchObject({ helper: ALPHA, status: 'scheduled', attention: 'none' });
+		expect(startOf(v!)).toBe(Date.parse(TUESDAY_10));
+		expect(endOf(v!) - startOf(v!)).toBe(HOURS_3);
+		const booking = (await t.as(t.admin).read('bookings', { all: true })).rows[0]!;
+		expect(booking).toMatchObject({ repeat: 'once', status: 'active' });
+		await settle(t);
+		// the cleaner hears about it on WhatsApp, and it is on their own list
+		expect(
+			t.fakes.transports.whatsapp.sent.some(
+				(s) => (s.message as { to: string }).to === '6590000001@s.whatsapp.net'
+			)
+		).toBe(true);
+		expect((await alpha.read('visits', { all: true })).rows).toHaveLength(1);
+		t.clock.set('2026-09-29T02:00:00.000Z');
+		committed(
+			await alpha.act('visits.update', { target: v!['id'], set: { status: 'in_progress' } })
+		);
+		t.clock.set('2026-09-29T05:00:00.000Z');
+		committed(await alpha.act('visits.update', { target: v!['id'], set: { status: 'done' } }));
+		expect((await visits(t))[0]).toMatchObject({ status: 'done' });
+	});
+
+	it('a weekly job is eight visits at the same local time a week apart, kept with one cleaner', async () => {
+		const t = await workspace();
+		const { output } = committed(await book(t, { repeat: 'weekly' }));
+		expect(output).toMatchObject({ assigned: 8, unassigned: 0 });
+		const all = await visits(t);
+		expect(all).toHaveLength(8);
+		const starts = all.map(startOf);
+		for (let i = 1; i < starts.length; i++)
+			expect(starts[i]! - starts[i - 1]!).toBe(7 * 86_400_000);
+		expect(new Set(starts.map(wall))).toEqual(new Set(['Tue 10:00']));
+		// continuity: the same cleaner every week while they are free
+		expect(new Set(all.map((v) => v['helper']))).toEqual(new Set([ALPHA]));
+		expect(all.every((v) => endOf(v) - startOf(v) === HOURS_3)).toBe(true);
+	});
+
+	it('fortnightly and monthly jobs repeat at their own spacing, the same wall time', async () => {
+		const t = await workspace();
+		committed(await book(t, { repeat: 'fortnightly', visits: 3 }));
+		const fortnightly = (await visits(t)).map(startOf);
+		expect(fortnightly.map((s, i) => (i === 0 ? 0 : s - fortnightly[i - 1]!))).toEqual([
+			0,
+			14 * 86_400_000,
+			14 * 86_400_000
+		]);
+		const m = await workspace();
+		committed(await book(m, { repeat: 'monthly', visits: 3 }));
+		const monthly = (await visits(m)).map((v) =>
+			new Date(startOf(v)).toLocaleString('en-GB', {
+				timeZone: 'Asia/Singapore',
+				day: '2-digit',
+				month: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit'
+			})
+		);
+		expect(monthly).toEqual(['29/09, 10:00', '29/10, 10:00', '29/11, 10:00']);
+	});
+
+	it('a recurring job keeps its cleaner but covers a week they are off with someone else', async () => {
+		const t = await workspace();
+		committed(
+			await t.as(t.admin).act('helper_time_off.create', {
+				helper: ALPHA,
+				period: { from: '2026-10-13', to: '2026-10-13' },
+				reason: 'leave'
+			})
+		);
+		committed(await book(t, { repeat: 'weekly', visits: 4 }));
+		const helpers = (await visits(t)).map((v) => v['helper']);
+		expect(helpers[0]).toBe(ALPHA);
+		expect(helpers[2]).not.toBe(ALPHA); // 13 October, Alpha's leave
+		expect([helpers[1], helpers[3]]).toEqual([ALPHA, ALPHA]);
+	});
+
+	it('a recurring job nobody can staff in full is not booked at all; no partial series', async () => {
+		const t = await workspace();
+		committed(
+			await t.as(t.admin).act('helper_time_off.create', {
+				helper: ALPHA,
+				period: { from: '2026-10-06', to: '2026-10-06' },
+				reason: 'leave'
+			})
+		);
+		expect(
+			await book(t, { repeat: 'weekly', visits: 3, preference: 'preferred', helpers: [ALPHA] })
+		).toMatchObject({ kind: 'refused' });
+		expect(await visits(t)).toEqual([]);
+		expect((await t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+	});
+
+	it('cancelling one occurrence leaves the series; cancelling the booking ends the visits still to come', async () => {
+		const t = await workspace();
+		const { output } = committed(await book(t, { repeat: 'weekly', visits: 4 }));
+		const [first] = await visits(t);
+		committed(await desk(t).act('visits.cancel', { target: first!['id'] } as never));
+		expect((await visits(t)).map((v) => v['status'])).toEqual([
+			'cancelled',
+			'scheduled',
+			'scheduled',
+			'scheduled'
+		]);
+		committed(await desk(t).act('bookings.cancel', { target: output['booking'] } as never));
+		expect((await visits(t)).every((v) => v['status'] === 'cancelled')).toBe(true);
+		expect((await t.as(t.admin).read('bookings', { all: true })).rows[0]).toMatchObject({
+			status: 'cancelled'
+		});
+	});
+});
+
 describe('the shift check', () => {
 	it('asks two hours ahead; silence proposes a replacement, and only controller approval assigns them', async () => {
 		const t = await workspace();
@@ -298,6 +430,28 @@ describe('the shift check', () => {
 				expect.stringContaining('A new helper')
 			])
 		);
+	});
+
+	it('two cleaners dropping out of overlapping visits the same morning both get recommendations', async () => {
+		const t = await workspace();
+		committed(await book(t, {}));
+		committed(await book(t, { customer: WEST_CUSTOMER }));
+		const [first, second] = await visits(t);
+		expect(first!['helper']).not.toBe(second!['helper']);
+		const a = await signedIn(t, String(first!['helper']));
+		const b = await signedIn(t, String(second!['helper']));
+		committed(await a.act('visits.decline_shift', { target: first!['id'], input: { mc: true } }));
+		committed(await b.act('visits.decline_shift', { target: second!['id'], input: { mc: true } }));
+		await t.runDue();
+		// both now unassigned at the same time: neither refusal blocks the other's recovery
+		for (const v of await visits(t))
+			expect(v).toMatchObject({
+				helper: null,
+				attention: expect.stringMatching(/awaiting_approval|unassigned/)
+			});
+		// and the one cleaner left is proposed for one of them, not both
+		const proposed = (await visits(t)).map((v) => v['proposed_helper']).filter((h) => h !== null);
+		expect(new Set(proposed).size).toBe(proposed.length);
 	});
 
 	it('lets the controller report unavailability and prepare recommendations for the day', async () => {
@@ -485,7 +639,8 @@ describe('drive times and double booking', () => {
 	it('times every planned leg with Google, caches it, and moves a visit its helper can no longer reach', async () => {
 		const maps = google({ TRAFFIC_UNAWARE: 90 });
 		const t = await workspace(maps);
-		committed(await book(t, {})); // Alpha, 10:00–13:00 in the east
+		// Alpha, 10:00–13:00 in the east, asked for by name so the optimiser leaves it (the fake times every leg at 90)
+		committed(await book(t, { preference: 'preferred', helpers: [ALPHA] }));
 		// 14:15 in the west: the straight-line estimate (~50 min + 15 to settle) lets Alpha, whom the customer asked for, go
 		committed(
 			await book(t, {
@@ -518,6 +673,26 @@ describe('drive times and double booking', () => {
 		expect(notices.map((n) => n['subject'])).toContainEqual(
 			expect.stringContaining('A new helper for your visit')
 		);
+	});
+
+	it('optimises on its own: a cleaner back from cancelled leave takes the visit nearest her', async () => {
+		const t = await workspace();
+		const admin = t.as(t.admin);
+		const leave = committed(
+			await admin.act('helper_time_off.create', {
+				helper: ALPHA,
+				period: { from: '2026-09-29', to: '2026-09-29' },
+				reason: 'other'
+			})
+		);
+		committed(await book(t, {})); // east, Tuesday 10:00: Alpha is off, so someone farther takes it
+		await settle(t);
+		expect((await visits(t))[0]!['helper']).not.toBe(ALPHA);
+		committed(await admin.act('helper_time_off.delete', { target: leave.records[0]!.id }));
+		// no button: the next scheduled run rebalances
+		t.clock.advance('15min');
+		await settle(t);
+		expect((await visits(t))[0]!['helper']).toBe(ALPHA);
 	});
 
 	it('matches with the cached time: a shorter real drive opens an earlier start', async () => {

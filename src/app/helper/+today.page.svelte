@@ -6,7 +6,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Instant } from '@norbital-ai/std/date';
+	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Badge, Button, DateInput, EmptyState, Label, Sheet, Textarea } from '@norbital-ai/ui';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
@@ -77,6 +77,19 @@
 					all: true
 				})
 	);
+	/** Leave on the chosen day: after a decline, a missed shift check, or booked time off. */
+	const off = live(() =>
+		helper === undefined
+			? null
+			: bolt.read('helper_time_off', {
+					where: {
+						helper: { eq: helper.id },
+						period: { overlaps: { from: PlainDate(selectedDay), to: PlainDate(selectedDay) } }
+					},
+					limit: 1
+				})
+	);
+	const away = $derived(off.current?.rows.length === 1);
 	const visits = $derived(
 		[...(open.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
 	);
@@ -235,7 +248,11 @@
 					{#if here !== null}{@render sharingLine()}{/if}
 					{#if problem}<p class="text-sm text-destructive">{problem}</p>{/if}
 
-					{#if asked && Date.parse(asked.slot.end!) > Date.now()}
+					{#if away}
+						<p role="status" class="border-b pb-5 font-medium">{t('app.helper.away_today')}</p>
+					{:else if asked?.shift_check === 'declined'}
+						<p role="status" class="border-b pb-5 font-medium">{t('app.helper.declined')}</p>
+					{:else if asked && Date.parse(asked.slot.end!) > Date.now()}
 						<Stack gap="sm" class="border-b pb-5">
 							<p class="font-semibold">
 								{t(
@@ -295,32 +312,46 @@
 						{#if open.current === undefined}<p>{t('component.loading')}</p>
 						{:else if route.length === 0}<p>{t('app.helper.route_empty')}</p>
 						{:else}
-							{#each route as v, i (v.id)}
-								<Stack gap="sm">
-									<p class="text-sm font-medium">{t('app.helper.route_stop', { number: i + 1 })}</p>
+							<ol class="route">
+								{#each route as v, i (v.id)}
+									{@const state =
+										v.status === 'done'
+											? 'done'
+											: v.status === 'in_progress'
+												? 'now'
+												: v.id === upcoming[0]?.id
+													? 'next'
+													: 'later'}
 									{#if i > 0}
-										<p class="text-caption">
-											{t('app.helper.route_drive', {
-												minutes: driveMinutes(route[i - 1]!.location, v.location)
-											})} · {t('app.helper.route_gap', {
-												minutes: Math.max(
-													0,
-													Math.round(
-														(Date.parse(v.slot.start) - Date.parse(route[i - 1]!.slot.end!)) /
-															60_000
+										<!-- the leg between two stops: the drive, and the slack left around it -->
+										<li class="leg">
+											<p class="text-caption">
+												{t('app.helper.timeline_drive', {
+													minutes: driveMinutes(route[i - 1]!.location, v.location)
+												})} · {t('app.helper.timeline_spare', {
+													minutes: Math.max(
+														0,
+														Math.round(
+															(Date.parse(v.slot.start) - Date.parse(route[i - 1]!.slot.end!)) /
+																60_000
+														) - driveMinutes(route[i - 1]!.location, v.location)
 													)
-												)
-											})}
-										</p>
-									{:else}<p class="text-caption">{t('app.helper.route_first')}</p>{/if}
-									{#if v.status === 'done'}
-										<Cluster justify="between" gap="sm"
-											><p class="text-sm">{time(v.slot.start)} · {v.address}</p>
-											<Badge variant="success">{t('component.status_done')}</Badge></Cluster
-										>
-									{:else}{@render visitCard(v, v.id === upcoming[0]?.id)}{/if}
-								</Stack>
-							{/each}
+												})}
+											</p>
+										</li>
+									{/if}
+									<li class="stop" data-state={state}>
+										{#if state === 'done'}
+											<Cluster justify="between" gap="sm"
+												><p class="text-sm text-muted-foreground">
+													<span class="tabular-nums">{time(v.slot.start)}</span> · {v.address}
+												</p>
+												<Badge variant="success">{t('component.status_done')}</Badge></Cluster
+											>
+										{:else}{@render visitCard(v, state === 'next')}{/if}
+									</li>
+								{/each}
+							</ol>
 						{/if}
 					</Stack>
 				{/if}
@@ -356,3 +387,71 @@
 		</Stack>
 	{/if}
 </Sheet>
+
+<style>
+	/* the day as a timeline: a line down the left, a dot per stop, a dashed line for each drive. Drawn with
+	   backgrounds so the layout stays the primitives'. */
+	.route li {
+		--x: 0.6875rem;
+		--line: linear-gradient(var(--color-border), var(--color-border)) var(--x) 0 / 2px 100%
+			no-repeat;
+		padding-left: 2rem;
+	}
+	.stop {
+		--dot: var(--color-background);
+		--ring: var(--color-border);
+		background:
+			radial-gradient(
+				circle at calc(var(--x) + 1px) 1.5rem,
+				var(--dot) 0.3rem,
+				var(--ring) 0.32rem 0.45rem,
+				transparent 0.47rem
+			),
+			var(--line);
+	}
+	.stop:first-child {
+		background:
+			radial-gradient(
+				circle at calc(var(--x) + 1px) 1.5rem,
+				var(--dot) 0.3rem,
+				var(--ring) 0.32rem 0.45rem,
+				transparent 0.47rem
+			),
+			linear-gradient(var(--color-border), var(--color-border)) var(--x) 1.5rem / 2px 100% no-repeat;
+	}
+	.stop:last-child {
+		background:
+			radial-gradient(
+				circle at calc(var(--x) + 1px) 1.5rem,
+				var(--dot) 0.3rem,
+				var(--ring) 0.32rem 0.45rem,
+				transparent 0.47rem
+			),
+			linear-gradient(var(--color-border), var(--color-border)) var(--x) 0 / 2px 1.5rem no-repeat;
+	}
+	.stop:only-child {
+		background: radial-gradient(
+			circle at calc(var(--x) + 1px) 1.5rem,
+			var(--dot) 0.3rem,
+			var(--ring) 0.32rem 0.45rem,
+			transparent 0.47rem
+		);
+	}
+	.stop[data-state='done'] {
+		--dot: var(--color-success);
+		--ring: var(--color-success);
+	}
+	.stop[data-state='next'],
+	.stop[data-state='now'] {
+		--dot: var(--color-primary);
+		--ring: color-mix(in srgb, var(--color-primary) 35%, transparent);
+	}
+	.leg {
+		padding-block: 0.75rem;
+		background: repeating-linear-gradient(var(--color-border) 0 4px, transparent 4px 9px) var(--x)
+			0 / 2px 100% no-repeat;
+	}
+	.stop[data-state='done'] {
+		padding-block: 1.125rem;
+	}
+</style>

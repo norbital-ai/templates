@@ -9,7 +9,7 @@
  * A drive is Google's time between the ~1 km squares the two addresses sit in, when the `drive_times` cache has it
  * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
  */
-import type { PlainTime } from '@norbital-ai/bolt';
+import type { Id, PlainTime } from '@norbital-ai/bolt';
 import { addDays, addMonths, Instant, type PlainDate } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
 
@@ -52,7 +52,7 @@ export type Settings = typeof DEFAULTS;
 export type Point = { readonly lat: number; readonly lng: number };
 export type Slot = { readonly start: Instant; readonly end: Instant };
 export type Helper = {
-	readonly id: string;
+	readonly id: Id<'helpers'>;
 	readonly name: string;
 	readonly skills: readonly string[];
 	readonly home_area: string | null;
@@ -62,14 +62,19 @@ export type Helper = {
 	readonly day_end: PlainTime;
 	readonly status: string;
 };
-/** A visit a helper already holds. */
+/** A visit a helper already holds, or a not-yet-written slot `planBooking` is laying out. */
 export type Busy = {
-	readonly id: string;
-	readonly helper: string;
+	readonly helper: Id<'helpers'>;
 	readonly slot: Slot;
 	readonly location: Point | null;
+} & (
+	| { readonly planned?: false; readonly id: Id<'visits'> }
+	| { readonly planned: true; readonly id: string }
+);
+export type Off = {
+	readonly helper: Id<'helpers'>;
+	readonly period: { from: string; to: string | null };
 };
-export type Off = { readonly helper: string; readonly period: { from: string; to: string | null } };
 export type Need = {
 	readonly skill: string;
 	readonly slot: Slot;
@@ -86,7 +91,7 @@ export type Pool = {
 	readonly drive?: ReadonlyMap<string, number>;
 };
 export type Candidate = {
-	readonly helper: string;
+	readonly helper: Id<'helpers'>;
 	readonly name: string;
 	readonly score: number;
 	/** The drive this visit adds to the helper's day: in from their last stop, on to their next, less the leg it replaces. */
@@ -242,7 +247,7 @@ export function rank(
 	need: Need,
 	pool: Pool,
 	zone: string,
-	keep: string | null = null
+	keep: Id<'helpers'> | null = null
 ): Candidate[] {
 	const scarcity = (h: Helper) =>
 		h.skills
@@ -293,15 +298,15 @@ export function planBooking(
 	starts: readonly Instant[],
 	pool: Pool,
 	zone: string,
-	preferred: readonly string[] = []
+	preferred: readonly Id<'helpers'>[] = []
 ) {
 	const helpers =
 		preferred.length === 0
 			? pool.helpers
 			: preferred.flatMap((id) => pool.helpers.filter((h) => h.id === id));
 	const busy = [...pool.busy];
-	const visits: { slot: Slot; helper: string }[] = [];
-	let keep: string | null = null;
+	const visits: { slot: Slot; helper: Id<'helpers'> }[] = [];
+	let keep: Id<'helpers'> | null = null;
 	for (const [i, start] of starts.entries()) {
 		const slot = slotOf(start, need.minutes);
 		const found = rank({ ...need, slot }, { ...pool, helpers, busy }, zone, keep);
@@ -311,7 +316,13 @@ export function planBooking(
 				: preferred.flatMap((id) => found.filter((c) => c.helper === id))[0];
 		if (best === undefined) return { visits, missing: i };
 		visits.push({ slot, helper: best.helper });
-		busy.push({ id: `planned-${i}`, helper: best.helper, slot, location: need.location });
+		busy.push({
+			planned: true,
+			id: `planned-${i}`,
+			helper: best.helper,
+			slot,
+			location: need.location
+		});
 		keep = best.helper;
 	}
 	return { visits, missing: null };
@@ -326,7 +337,7 @@ export function availableSlots(
 	now: string,
 	repeat = 'once',
 	count = BOOKING_AHEAD,
-	preferred: readonly string[] = []
+	preferred: readonly Id<'helpers'>[] = []
 ) {
 	const helpers = pool.helpers.filter((h) => preferred.length === 0 || preferred.includes(h.id));
 	return days.map((day) => {
@@ -370,6 +381,58 @@ export function lookups(pool: Pool, spots: readonly (Point | null)[], zone: stri
 	return [...new Set(legs.flatMap(([a, b]) => legOf(a, b) ?? []))];
 }
 
+/** Minutes driven over every helper-day in `pool`: home to the first visit, then visit to visit. */
+export function travelMinutes(pool: Pool, zone: string): number {
+	const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
+	return routes(pool, zone).reduce(
+		(sum, day) =>
+			sum +
+			legsOf(day, homes.get(day[0]!.helper) ?? null).reduce(
+				(total, [a, b]) => total + driveMinutes(a, b, pool.drive),
+				0
+			),
+		0
+	);
+}
+
+/**
+ * Local search over the relocate neighbourhood: hand a movable visit to another helper whenever that improves the
+ * ranking objective (added drive plus squared weekly utilization) by more than the continuity bonus, and sweep again
+ * until no single move improves it. Greedy booking fixes each visit in arrival order; this undoes the choices later
+ * bookings made poor. Hard requirements hold for every move, since only `rank`'s feasible helpers are considered.
+ * ponytail: relocate only, no swaps; a two-visit exchange would escape a few more local minima.
+ */
+export function improve(
+	pool: Pool,
+	movable: readonly (Omit<Need, 'visit'> & { readonly visit: string })[],
+	zone: string,
+	sweeps = 20
+) {
+	let busy = [...pool.busy];
+	const moves = new Map<string, { from: Id<'helpers'>; to: Id<'helpers'> }>();
+	for (let sweep = 0; sweep < sweeps; sweep++) {
+		let moved = false;
+		for (const need of movable) {
+			const held = busy.find((b) => b.id === need.visit);
+			if (held === undefined) continue;
+			const best = rank(need, { ...pool, busy }, zone, held.helper)[0];
+			if (best === undefined || best.helper === held.helper) continue;
+			busy = busy.map((b) => (b.id === need.visit ? { ...b, helper: best.helper } : b));
+			const from = moves.get(need.visit)?.from ?? held.helper;
+			if (from === best.helper) moves.delete(need.visit);
+			else moves.set(need.visit, { from, to: best.helper });
+			moved = true;
+		}
+		if (!moved) break;
+	}
+	return {
+		moves: [...moves].map(([visit, m]) => ({ visit, ...m })),
+		before: travelMinutes(pool, zone),
+		after: travelMinutes({ ...pool, busy }, zone),
+		busy
+	};
+}
+
 /** Shared skills over all skills of either: how closely `b` can stand in for `a`. */
 export function skillSimilarity(a: readonly string[], b: readonly string[]): number {
 	const all = new Set([...a, ...b]);
@@ -396,8 +459,10 @@ export const slotOf = (start: string, minutes: number): Slot => ({
 });
 
 /**
- * The starts, every half hour inside the helper's hours, at which they could take `need`'s service on each of `days`,
- * later than `now`. The customer picks one of these when they asked for this helper.
+ * The starts at which the helper could take `need`'s service on each of `days`, later than `now`: every half hour inside
+ * their hours, plus the times their day actually opens up — the arrival after each visit they hold (its end, the drive
+ * and settling in) rounded up to the quarter hour, and the last start that still reaches their next visit, rounded down.
+ * Every candidate is held to the hard requirements, travel buffers included, so a listed start is one they can make.
  */
 export function openSlots(
 	helper: Helper,
@@ -407,13 +472,33 @@ export function openSlots(
 	zone: string,
 	now: string
 ): { day: PlainDate; starts: Instant[] }[] {
+	const QUARTER = 15;
+	const from = minutesOf(helper.day_start),
+		to = minutesOf(helper.day_end) - need.minutes;
 	return days.map((day) => {
+		const candidates = new Set<number>();
+		for (let m = from; m <= to; m += 30) candidates.add(m);
+		for (const b of pool.busy) {
+			if (b.helper !== helper.id || b.id === need.visit) continue;
+			const start = local(b.slot.start, zone),
+				end = local(b.slot.end, zone);
+			if (end.date === day) {
+				const arrive =
+					end.minutes + driveMinutes(b.location, need.location, pool.drive) + SETTLE_MINUTES;
+				candidates.add(Math.ceil(arrive / QUARTER) * QUARTER);
+			}
+			if (start.date === day) {
+				const leave =
+					start.minutes -
+					driveMinutes(need.location, b.location, pool.drive) -
+					SETTLE_MINUTES -
+					need.minutes;
+				candidates.add(Math.floor(leave / QUARTER) * QUARTER);
+			}
+		}
 		const starts: Instant[] = [];
-		for (
-			let m = minutesOf(helper.day_start);
-			m + need.minutes <= minutesOf(helper.day_end);
-			m += 30
-		) {
+		for (const m of [...candidates].sort((a, b) => a - b)) {
+			if (m < from || m > to) continue;
 			const slot = slotOf(iso(utcOf(day, m * MINUTE, zone)), need.minutes);
 			if (ms(slot.start) > ms(now) && refusal(helper, { ...need, slot }, pool, zone) === null)
 				starts.push(slot.start);
@@ -431,7 +516,7 @@ export function proposal(
 	leaving: readonly string[],
 	pool: Pool,
 	zone: string
-): { helper: string; slot: Slot } | null {
+): { helper: Id<'helpers'>; slot: Slot } | null {
 	const minutes = (ms(need.slot.end) - ms(need.slot.start)) / MINUTE;
 	for (const shift of [0, -60, 60, -120, 120, 1440, 2880, 4320, 5760, 7200, 8640, 10080]) {
 		const slot = slotOf(iso(ms(need.slot.start) + shift * MINUTE), minutes);

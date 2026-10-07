@@ -374,4 +374,3 @@ Open **Review** or the visit's **Review and rebook** tab. Compare the recommenda
 **My Day** shows assignments in chronological order, directions and estimated travel between stops. The route can be read without GPS; starting work requires location sharing. Approved assignments and time changes queue in-app alerts for linked users and WhatsApp when configured. A proposal alone sends no assignment notice. The local probe substitutes clearly labeled fictional coordinates.
 
 ![Cleaner daily route](images/recovery-route.png)
-

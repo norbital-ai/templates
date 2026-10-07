@@ -6,6 +6,7 @@
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
+		Combobox,
 		DateInput,
 		Label,
 		Picker,
@@ -19,7 +20,6 @@
 	import { live } from '../../../lib/live.svelte.js';
 	import { excerpt } from '../../../lib/summary.js';
 	import SlotPicker from '../../../lib/SlotPicker.svelte';
-	import Choice from '../../../lib/Choice.svelte';
 
 	let { view }: { view: RecordView<'bookings'> } = $props();
 
@@ -60,11 +60,7 @@
 
 	// opened from a customer, the customer is filled in
 	let customer = $state<Id<'customers'> | null>(
-		untrack(() =>
-			view.mode === 'create'
-				? ((view.values['customer'] as Id<'customers'> | undefined) ?? null)
-				: null
-		)
+		untrack(() => (view.mode === 'create' ? (view.values.customer ?? null) : null))
 	);
 	let service = $state<Id<'services'> | null>(
 		untrack(() => (view.mode === 'create' ? (view.values.service ?? null) : null))
@@ -194,30 +190,37 @@
 				<Grid minimum="compact" gap="md">
 					<Stack gap="sm">
 						<Label for="booking-preference">{t('app.schedule.step_preference')}</Label>
-						<Choice
+						<Combobox
 							id="booking-preference"
 							value={preference}
+							options={[
+								{ value: 'any', label: t('app.schedule.no_preference') },
+								{ value: 'preferred', label: t('app.schedule.has_preference') }
+							]}
 							onChange={(value) => {
-								preference = value as 'any' | 'preferred';
-								start = null;
+								if (value !== null) {
+									preference = value;
+									start = null;
+								}
 							}}
-						>
-							<option value="any">{t('app.schedule.no_preference')}</option>
-							<option value="preferred">{t('app.schedule.has_preference')}</option>
-						</Choice>
+						/>
 					</Stack>
 					<Stack gap="sm">
 						<Label for="booking-repeat">{t('app.schedule.step_repeat')}</Label>
-						<Choice
+						<Combobox
 							id="booking-repeat"
 							value={repeat}
+							options={REPEATS.map((r) => ({
+								value: r,
+								label: t(`component.repeat_${r}`)
+							}))}
 							onChange={(value) => {
-								repeat = value as typeof repeat;
-								start = null;
+								if (value !== null) {
+									repeat = value;
+									start = null;
+								}
 							}}
-						>
-							{#each REPEATS as r (r)}<option value={r}>{t(`component.repeat_${r}`)}</option>{/each}
-						</Choice>
+						/>
 					</Stack>
 				</Grid>
 			</Section>
@@ -273,7 +276,7 @@
 						value={start}
 						locale={bolt.locale}
 						onPick={(s) => (start = s)}
-						t={(k) => t(k as never)}
+						{t}
 					/>
 				{:else if shown}<p class="text-caption">{t('app.schedule.not_free')}</p>
 				{:else if customer !== null && service !== null && !open.error}<p

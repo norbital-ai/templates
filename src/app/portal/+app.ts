@@ -11,7 +11,7 @@ export default app('portal', {
 	banner: 'app-media/portal-banner.webp',
 	audience: { public: ['portal_visitor'] },
 	pages: {
-		book: { title: 'app.portal.tab_book', icon: 'lucide:calendar-plus', site: true },
-		visits: { title: 'app.portal.tab_visits', icon: 'lucide:house-heart', site: true }
+		book: { title: 'app.portal.tab_book', icon: 'lucide:calendar-plus', portal: true },
+		visits: { title: 'app.portal.tab_visits', icon: 'lucide:house-heart', portal: true }
 	}
 });

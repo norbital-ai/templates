@@ -1,4 +1,4 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection } from '@norbital-ai/bolt';
 import { addDays, Instant } from '@norbital-ai/std/date';
 import { utcOf } from '@norbital-ai/std/zone';
 import { loadPool, when } from '../../../lib/dispatch.js';
@@ -165,7 +165,7 @@ helpers.action('offboard', async ({ last_day }, ctx) => {
 			target: v.id,
 			set: {
 				helper: null,
-				proposed_helper: (found?.helper ?? null) as Id<'helpers'> | null,
+				proposed_helper: found?.helper ?? null,
 				proposed_slot: found?.slot ?? null,
 				shift_check: 'not_due' as const,
 				attention: 'helper_left' as const

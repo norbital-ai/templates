@@ -146,10 +146,10 @@ visits.transform(async (inputs, ctx) => {
 		const helper = input.helper === undefined ? stored.helper : input.helper;
 		const moved = input.helper !== undefined || input.slot !== undefined;
 		const status = input.status ?? stored.status;
-		return moved && helper != null && status !== 'cancelled' ? [String(helper)] : [];
+		return moved && helper != null && status !== 'cancelled' ? [helper] : [];
 	});
 	if (touched.length === 0) return inputs.map((input) => stamped(input, ctx.now));
-	const ids = [...new Set(touched)] as Id<'helpers'>[];
+	const ids = [...new Set(touched)];
 	const starts = inputs.map((input, i) => Date.parse((input.slot ?? ctx.existing[i]!.slot).start));
 	const from = instant(new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString());
 	const to = instant(new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString());
@@ -172,7 +172,7 @@ visits.transform(async (inputs, ctx) => {
 		const v = ctx.existing[i]!;
 		held.set(String(v.id), {
 			id: v.id,
-			helper: input.helper === undefined ? v.helper : (input.helper as typeof v.helper),
+			helper: input.helper === undefined ? v.helper : input.helper,
 			slot:
 				input.slot === undefined
 					? v.slot
@@ -275,7 +275,7 @@ visits.query('candidates', async ({ visit, start }, ctx) => {
 		},
 		ctx.tz
 	).map((c) => ({
-		helper: c.helper as Id<'helpers'>,
+		helper: c.helper,
 		name: c.name,
 		drive_minutes: c.drive_minutes,
 		same_area: c.same_area,
@@ -354,7 +354,7 @@ visits.action('reassign', async ({ helper }, ctx) => {
 		const [row] = (
 			await ctx.read('visits', { where: { id: { eq: v.id } }, select: VISIT, limit: 1 })
 		).rows;
-		const { assigned } = await reassign(ctx, [row!], String(v.helper));
+		const { assigned } = await reassign(ctx, [row!], v.helper!);
 		if (assigned === 0)
 			ctx.refuse('No other helper is free for this visit. Reschedule it instead.');
 		return;
@@ -393,7 +393,7 @@ visits.action('reschedule', async ({ start }, ctx) => {
 	if (best === undefined) return ctx.refuse('No helper is free at that time.', { field: 'start' });
 	await ctx.act('visits.update', {
 		target: v.id,
-		set: { slot, helper: best.helper as Id<'helpers'>, attention: 'none' }
+		set: { slot, helper: best.helper, attention: 'none' }
 	});
 	await tellCustomer(
 		ctx,
@@ -456,7 +456,7 @@ visits.action('recommend', async (_, ctx) => {
 	await ctx.act('visits.update', {
 		target: v.id,
 		set: {
-			proposed_helper: (best?.helper ?? null) as Id<'helpers'> | null,
+			proposed_helper: best?.helper ?? null,
 			proposed_slot: best === undefined ? null : v.slot,
 			attention: best === undefined ? 'unassigned' : 'awaiting_approval'
 		}
@@ -528,7 +528,7 @@ visits.action('rebook', async ({ start, helper }, ctx) => {
 	await ctx.act('visits.update', {
 		target: v.id,
 		set: {
-			helper: best.helper as Id<'helpers'>,
+			helper: best.helper,
 			slot,
 			attention: 'none',
 			proposed_helper: null,
