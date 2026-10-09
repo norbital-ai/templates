@@ -181,17 +181,15 @@
 						controls: dayPicker,
 						actions: [
 							{
-								start: 'review_job_assignment_suspicion',
-								input: () => ({}),
 								icon: 'lucide:shield-alert',
-								label: t('app.field_ops_controller.run_suspicion_review'),
-								description: t('app.field_ops_controller.suspicion_review_description')
+								name: t('app.field_ops_controller.run_suspicion_review'),
+								description: t('app.field_ops_controller.suspicion_review_description'),
+								run: () => bolt.start('review_job_assignment_suspicion', {})
 							},
 							{
-								run: () => picker?.click(),
-								group: 'import',
 								icon: 'lucide:upload',
-								label: t('app.field_ops_controller.import_assignments'),
+								name: t('app.field_ops_controller.import_assignments'),
+								run: () => picker?.click(),
 								disabled: () => (importing ? t('app.field_ops_controller.importing') : null)
 							}
 						]
