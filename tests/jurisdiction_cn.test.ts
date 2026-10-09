@@ -847,7 +847,8 @@ describe('CN public lineage', () => {
 		assert.equal(trips('WEEKLY_REST', days(8, 8, 8, 8, 8, 8)), false);
 		assert.equal(trips('WEEKLY_REST', days(8, 8, 8, 8, 8, 8, 8)), true);
 		// Owner ruling: 2026 unemployment at 0.5% / 0.5% in both cities, provisional and warned.
-		assert.equal(trips('UNEMPLOYMENT_RATE_PROVISIONAL'), true);
+		assert.equal(trips('UNEMPLOYMENT_RATE_PROVISIONAL', { company: { region: 'SH' } }), true);
+		assert.equal(trips('UNEMPLOYMENT_RATE_PROVISIONAL', { company: { region: 'KM' } }), false);
 		assert.match(
 			String((code('version_4', 'rule_set', 'UNEMPLOYMENT_RATE_PROVISIONAL').rules as Row).message),
 			/owner ruling, provisional until a 2026 rate notice/
@@ -4219,17 +4220,17 @@ describe('CN public lineage', () => {
 				plan.payslips.find((slip) => slip.employment_id === id) as Parameters<typeof lines>[0];
 			const december = of(await run(COMPANY.KM, '2025-12', 'REGULAR'), 'k-p2');
 			// Declared base 3,000 floored at 4,357 (2025) for social insurance; within 2,070–32,470 for HPF at 12%.
-			// Medical on its own 2025 base floor 4,306: 2% and 7.9% (7% + 0.9% maternity).
-			// IIT: 8,000 − 5,000 − 348.56 − 86.12 − 13.07 − 360 = 2,192.25 at 3%.
+			// Medical on its own 2025 base floor 4,357: 2% and 7.9% (7% + 0.9% maternity).
+			// IIT: 8,000 − 5,000 − 348.56 − 87.14 − 13.07 − 360 = 2,191.23 at 3%.
 			assert.deepEqual(lines(december), {
 				PENSION: [348.56, 697.12],
-				MEDICAL: [86.12, 340.17],
-				// Inferred: 0.6% of 7,177, the average behind the medical base 4,306–21,531 in force.
-				MAJOR_MEDICAL: [1, 43.06],
+				MEDICAL: [87.14, 344.2],
+				// Municipal notice of 2025-09-29: 43.57 from 2025-10.
+				MAJOR_MEDICAL: [1, 43.57],
 				UNEMPLOYMENT: [13.07, 30.5],
 				WORK_INJURY: [0, 30.5],
 				HPF: [360, 360],
-				IIT: [65.77, 0],
+				IIT: [65.74, 0],
 				// No union recorded: the 2% union preparatory fund (建会筹备金, 中国工会章程 第三十八条) on 8,000.
 				UNION_FUND: [0, 160]
 			});
@@ -4262,20 +4263,20 @@ describe('CN public lineage', () => {
 			// 2026: floor 4,403 (云人社发〔2026〕8号); the HPF floor (the class-1 minimum wage) leaves 3,000.
 			assert.deepEqual(lines(january).PENSION, [352.24, 704.48]);
 			assert.deepEqual(lines(january).WORK_INJURY, [0, 30.82]);
-			assert.deepEqual(lines(january).MEDICAL, [86.12, 340.17]);
-			// 2026 unemployment by owner ruling: 0.5% / 0.5% in Kunming as in Shanghai, on the 4,403 floor.
-			assert.deepEqual(lines(january).UNEMPLOYMENT, [22.02, 22.02]);
+			assert.deepEqual(lines(january).MEDICAL, [87.14, 344.2]);
+			// Published 2026 provincial split: 0.3% employee / 0.7% employer on the 4,403 floor.
+			assert.deepEqual(lines(january).UNEMPLOYMENT, [13.21, 30.82]);
 			// The Kunming HPF floor is the class-1 minimum wage: 2,170 in August, 2,270 from 1 September 2026.
 			const august = of(await run(COMPANY.KM, '2026-08', 'REGULAR'), 'k-p3');
 			assert.deepEqual(lines(august).HPF, [260, 260]);
 			const september = of(await run(COMPANY.KM, '2026-09', 'REGULAR'), 'k-p3');
 			assert.deepEqual(lines(september).HPF, [272, 272]);
 			// The medical base limits move on 1 September 2026 (云人社发〔2026〕8号): 4,403 floor.
-			assert.deepEqual(lines(august).MEDICAL, [86.12, 340.17]);
+			assert.deepEqual(lines(august).MEDICAL, [87.14, 344.2]);
 			assert.deepEqual(lines(september).MEDICAL, [88.06, 347.84]);
-			// The per-head major-expense supplement (inferred): 0.6% of 7,177 to August 2026 (version 3), of 7,339 from
+			// The per-head major-expense supplement (inferred): published 43.57 to August 2026 (version 3), of 7,339 from
 			// September (version 4, with the 4,403–22,017 medical base); employee 1 yuan.
-			assert.deepEqual(lines(august).MAJOR_MEDICAL, [1, 43.06]);
+			assert.deepEqual(lines(august).MAJOR_MEDICAL, [1, 43.57]);
 			assert.deepEqual(lines(september).MAJOR_MEDICAL, [1, 44.03]);
 		});
 

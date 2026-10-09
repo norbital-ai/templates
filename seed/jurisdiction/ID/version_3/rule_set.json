@@ -6975,26 +6975,616 @@
 						"monthly": 4007626.0,
 						"condition": ""
 					}
+				],
+				"Provinsi Kalimantan Barat/Kabupaten Kayong Utara": [
+					{
+						"kbli": "01262",
+						"monthly": 3404291,
+						"condition": ""
+					},
+					{
+						"kbli": "10431",
+						"monthly": 3404291,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Bombana": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Selatan": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Tengah": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Utara": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Timur": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Utara": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Kepulauan": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Selatan": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna Barat": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kabupaten Wakatobi": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
+				],
+				"Provinsi Sulawesi Tenggara/Kota Baubau": [
+					{
+						"kbli": "05",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 3373843.2,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 3437546.64,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 3437546.64,
+						"condition": ""
+					}
 				]
 			},
-			"sector_authority": "PP 36/2021 art.35D(1) as amended by PP 49/2025: the governor may set sector minimum wages (UMSP/UMSK), above the UMP/UMK, for the KBLI sectors listed; they bind workers under one year of service. `kbli` is a KBLI 2020 code or a prefix of one (a 2-digit division, a 3- or 4-digit group): a worksite whose `terms.facts.worksite_kbli` starts with it is covered. A province key covers every locality below it; a locality’s UMSK and its province’s UMSP both bind (the higher wins). Decrees read with their KBLI: DKI Kep. Gubernur 33/2026 (61 rows, jdih.jakarta.go.id); Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 (29 Dec 2025, revoking Kep. 863; 17 localities; medium and large enterprises; Purwakarta’s two KBLI 20302 rows: polyester 5,062,344, rayon viscose 5,193,876 — company.facts.umsp_rayon_viscose; read from the transcription on llg-bwi.org); Jawa Tengah UMSP (Kep. 100.3.3.1/504/2025 Lampiran, 11 KBLI, medium and large) and UMSK (Kep. 100.3.3.1/505/2025 Lampiran II: Cilacap, Demak, Kabupaten and Kota Semarang, Tegal); Jawa Timur UMSP 2,571,426.91 (Kep. 100.3.3.1/935/013/2025, 7 KBLI) and UMSK of 11 localities (Kep. 100.3.3.1/938/013/2025); Banten Kep. 704/2025 Lampiran I–VII (Lebak, Kabupaten Tangerang sectors 1A–3A, Serang, Cilegon, Tangerang Selatan; sector 3B and Kota Tangerang sector V are bipartite agreements — not seeded); Kalimantan Timur (Pengumuman 500.15.14.1/5096/DTKT.Srk-IV/2025: Bontang, Balikpapan, Samarinda, Kutai Kartanegara, Kutai Timur, Paser, Penajam Paser Utara, Berau); Kalimantan Selatan UMSK (Kep. 100.3.3.1/01107/KUM/2025 diktum KETIGA: banking read as KBLI 641, four-star-and-above hotels as 55110 with company.facts.umsp_hotel_star, wood as division 16); Bali, Badung and Lampung as before. Sector names reported without KBLI and read as KBLI groups (secondary reports of the decrees): Riau UMS (Kpts.1164/XII/2025: oil and gas = division 06, agriculture and plantations = 01, forestry 02, fisheries 03, pulp and paper 170); Kalimantan Utara UMSK (plywood 16211, oil 06100, mining = divisions 05–09, forestry 02, agriculture 01, wood 16); Kepulauan Riau UMSP 3,902,096 (basic chemicals 2011, ships 3011 and pleasure boats 30120, gas and geothermal 0620, oil 06100) and the Batam UMSK 5,374,672 for shipyards and offshore structures (3011); Jambi UMSP palm 3,513,120; Sulawesi Barat UMSP palm 3,324,301; Papua Barat UMSP (gas 06201 5,880,000, cement 23941 4,091,000, palm, forest timber 022, wood 16 and fish processing 102 3,991,000); Papua Barat Daya UMSP (oil and gas 06 5,549,000, mining other than quarrying 05/07 3,837,000, forestry 02 and plantations 012 3,802,000, fisheries 03 3,784,000); Papua Selatan UMSP (mining 05/07/08 and fisheries 03 4,517,120). Not seeded (tracker GAP ID-SETTINGS-15): the sector tables whose KBLI rows or amounts were not obtained. Kota Tangerang sectors I–IV (Banten Kep. 704/2025 Lampiran I: 5,777,364.09, 5,561,387.86, 5,480,396.78 and 5,453,399.75; Lampiran V names each sub-sector without KBLI, read here as KBLI 2020 by its Peraturan BPS 2/2020 title, read 2026-10-08 https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-kabupaten-dan-kota-tahun-2026-202512241555.pdf and https://ppid.bps.go.id/upload/doc/Peraturan_Badan_Pusat_Statistik_No__2_Tahun_2020_Klasifikasi_Baku_Lapangan_Usaha_Indonesia_1658133734.pdf); its star hotels of 3 to 5 stars are condition HOTEL_3_5 (company.facts.umsp_hotel_star), large export toys and furniture EXPORT; not read as KBLI: “Jasa – Distributor”, “Minimarket (khusus distributor)”, “Rumah Sakit Type B”, “Industri Garment (bukan konveksi)” (KBLI 1411 is konveksi itself) and the hospital “Jasa” (no class or KBLI is named), and sector V (bipartite agreements of the named companies). Mimika UMSK 2026 (Kep. Gubernur Papua Tengah 100.3.3.1/337/2025 diktum KEDUA–KETIGA, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=551): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819; every company working in the PT Freeport Indonesia area pays the mining rate (company.facts.umsp_freeport_area). Sulawesi Tengah (read 2026-10-08 on jdih.sultengprov.go.id, each record’s linked signed copy): UMSP Kep. 500.15.14.1/485/2025 (detailperaturan/1161): mining and quarrying (divisions 05–09) 3,352,956, palm plantation 01262 3,320,403; Morowali UMSK Kep. 487/2025 as amended by Kep. 495/2025 (1179): palm 01262 4,262,000, non-ferrous basic metal 24202, nickel ore 07295, iron and steel 24101, steel rolling 24102 and coal products 19100 4,627,000; Morowali Utara Kep. 488/2025 (1176): palm 01262 4,507,917, 24202 4,516,842, nickel ore 07295 4,521,306; Poso Kep. 489/2025 (1177): palm 01262 3,328,251, electricity 351 3,317,251; Kota Palu Kep. 486/2025 (1175): gravel/sand-and-stone quarrying 08103 3,658,497.15. Read 2026-10-08 on an official copy (round 8): Kalimantan Selatan UMSP Kep. 100.3.3.1/01101/KUM/2025 (23 Dec 2025) diktum KETIGA, the signed scan in the Disnakertrans Kalsel download centre (https://disnakertrans.kalselprov.go.id/unduhan?page=2, “KEPGUB KALSEL PENETAPAN UMP DAN UMSP 2026”): coal 05100 3,770,000, palm plantation 01262 and CPO 10431 3,730,000, wholesale of solid, liquid and gaseous fuels 46610 3,728,000, integrated power 35115 3,759,000, plywood 16211 3,728,000. Kalimantan Tengah UMSP Kep. 188.44/477/2025 (19 Dec 2025) Lampiran: CPO 10431, palm kernel oil 10432, palm cooking oil 10437 and palm plantation 01262 3,692,907, coal 05100 and gold and silver 07301 3,714,130; and UMSK Kep. 188.44/492/2025 (24 Dec 2025) Lampiran II for Kapuas, Seruyan, Kotawaringin Timur and Barat, Barito Selatan, Timur and Utara and Murung Raya by KBLI — both the signed scans the Disnakertrans Kalteng Facebook account posted (https://www.facebook.com/disnakertranskalteng/posts/1179509067627689 and /1183741693871093, linking drive.google.com files 1d8E-pDjpPPGfGSqHZ65QVn-aE7gnhkqk and 14epIlxAcjLvspZvIaYU5gTeHuwztWGNc); its hotel row is “Hotel Bintang” 55110 without a star floor. Aceh UMSP Kep. 500.15.14.1/1489/2025 (30 Dec 2025, from 1 January 2026) Lampiran, the Biro Hukum certified copy on jdih.acehprov.go.id (https://jdih.acehprov.go.id/dih/view/ebe6f9a2-424d-44f1-b818-233c68619ec7): palm 01262 and palm oil 10431 3,987,940, coal 05100, gold and silver 07301 and natural gas 06201 4,061,791, medium and large enterprises; every worker under one year of service in the five sectors, married or not — diktum KEEMPAT’s “pekerja/buruh lajang … masa kerja kurang dari 1 (satu) tahun” names the reference worker the amount is set for (a single worker’s needs), and diktum KEENAM bars every employer in the five sectors from paying below it. Kalimantan Barat UMSP Kep. 1350/NAKERTRAN/2025 (19 Dec 2025) as the Kabupaten Sekadau labour office (Disperindagnaker) publishes its table on the regency open-data portal (https://data.sekadaukab.go.id/dataset/product/upah-minimum-provinsi-dan-upah-minimum-sektoral-provinsi-kalimantan-barat): palm 01262 3,062,552, bauxite 07293 3,108,007, decorative and building stone 08101 3,062,552, CPO 10431 3,062,552 (the signed copy on sudahinakertrans.kalbarprov.go.id is Cloudflare-blocked to this reader; kalbaronline.com reports 3,062,552). Still not configured (each warns at the payslip, VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, from minimum_wage.unseeded_sector): Sulawesi Tenggara UMSP and Kolaka UMSK, Kayong Utara UMSK, the Jambi mining UMSP and the five Jambi UMSK, the Sumatera Utara UMSK (Kep. 188.44/909/KPTS/2025) and the Kota Tangerang Lampiran V sub-sectors. Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 was annulled by PTUN Bandung 26/G/2026/PTUN.BDG (30 Jun 2026, ordering a new decree at the bupati/walikota recommendations); the governor appealed on 31 Jul 2026, so the decree stands until the ruling is final (UU 5/1986 art.67(1): a suit does not suspend a decision) and stays seeded; a final ruling is a new version from its effective date.",
+			"sector_authority": "PP 36/2021 art.35D(1) as amended by PP 49/2025: the governor may set sector minimum wages (UMSP/UMSK), above the UMP/UMK, for the KBLI sectors listed; they bind workers under one year of service. `kbli` is a KBLI 2020 code or a prefix of one (a 2-digit division, a 3- or 4-digit group): a worksite whose `terms.facts.worksite_kbli` starts with it is covered. A province key covers every locality below it; a locality’s UMSK and its province’s UMSP both bind (the higher wins). Decrees read with their KBLI: DKI Kep. Gubernur 33/2026 (61 rows, jdih.jakarta.go.id); Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 (29 Dec 2025, revoking Kep. 863; 17 localities; medium and large enterprises; Purwakarta’s two KBLI 20302 rows: polyester 5,062,344, rayon viscose 5,193,876 — company.facts.umsp_rayon_viscose; read from the transcription on llg-bwi.org); Jawa Tengah UMSP (Kep. 100.3.3.1/504/2025 Lampiran, 11 KBLI, medium and large) and UMSK (Kep. 100.3.3.1/505/2025 Lampiran II: Cilacap, Demak, Kabupaten and Kota Semarang, Tegal); Jawa Timur UMSP 2,571,426.91 (Kep. 100.3.3.1/935/013/2025, 7 KBLI) and UMSK of 11 localities (Kep. 100.3.3.1/938/013/2025); Banten Kep. 704/2025 Lampiran I–VII (Lebak, Kabupaten Tangerang sectors 1A–3A, Serang, Cilegon, Tangerang Selatan; sector 3B and Kota Tangerang sector V are bipartite agreements — not seeded); Kalimantan Timur (Pengumuman 500.15.14.1/5096/DTKT.Srk-IV/2025: Bontang, Balikpapan, Samarinda, Kutai Kartanegara, Kutai Timur, Paser, Penajam Paser Utara, Berau); Kalimantan Selatan UMSK (Kep. 100.3.3.1/01107/KUM/2025 diktum KETIGA: banking read as KBLI 641, four-star-and-above hotels as 55110 with company.facts.umsp_hotel_star, wood as division 16); Bali, Badung and Lampung as before. Sector names reported without KBLI and read as KBLI groups (secondary reports of the decrees): Riau UMS (Kpts.1164/XII/2025: oil and gas = division 06, agriculture and plantations = 01, forestry 02, fisheries 03, pulp and paper 170); Kalimantan Utara UMSK (plywood 16211, oil 06100, mining = divisions 05–09, forestry 02, agriculture 01, wood 16); Kepulauan Riau UMSP 3,902,096 (basic chemicals 2011, ships 3011 and pleasure boats 30120, gas and geothermal 0620, oil 06100) and the Batam UMSK 5,374,672 for shipyards and offshore structures (3011); Jambi UMSP palm 3,513,120; Sulawesi Barat UMSP palm 3,324,301; Papua Barat UMSP (gas 06201 5,880,000, cement 23941 4,091,000, palm, forest timber 022, wood 16 and fish processing 102 3,991,000); Papua Barat Daya UMSP (oil and gas 06 5,549,000, mining other than quarrying 05/07 3,837,000, forestry 02 and plantations 012 3,802,000, fisheries 03 3,784,000); Papua Selatan UMSP (mining 05/07/08 and fisheries 03 4,517,120). Not seeded (tracker GAP ID-SETTINGS-15): the sector tables whose KBLI rows or amounts were not obtained. Kota Tangerang sectors I–IV (Banten Kep. 704/2025 Lampiran I: 5,777,364.09, 5,561,387.86, 5,480,396.78 and 5,453,399.75; Lampiran V names each sub-sector without KBLI, read here as KBLI 2020 by its Peraturan BPS 2/2020 title, read 2026-10-08 https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-kabupaten-dan-kota-tahun-2026-202512241555.pdf and https://ppid.bps.go.id/upload/doc/Peraturan_Badan_Pusat_Statistik_No__2_Tahun_2020_Klasifikasi_Baku_Lapangan_Usaha_Indonesia_1658133734.pdf); its star hotels of 3 to 5 stars are condition HOTEL_3_5 (company.facts.umsp_hotel_star), large export toys and furniture EXPORT; not read as KBLI: “Jasa – Distributor”, “Minimarket (khusus distributor)”, “Rumah Sakit Type B”, “Industri Garment (bukan konveksi)” (KBLI 1411 is konveksi itself) and the hospital “Jasa” (no class or KBLI is named), and sector V (bipartite agreements of the named companies). Mimika UMSK 2026 (Kep. Gubernur Papua Tengah 100.3.3.1/337/2025 diktum KEDUA–KETIGA, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=551): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819; every company working in the PT Freeport Indonesia area pays the mining rate (company.facts.umsp_freeport_area). Sulawesi Tengah (read 2026-10-08 on jdih.sultengprov.go.id, each record’s linked signed copy): UMSP Kep. 500.15.14.1/485/2025 (detailperaturan/1161): mining and quarrying (divisions 05–09) 3,352,956, palm plantation 01262 3,320,403; Morowali UMSK Kep. 487/2025 as amended by Kep. 495/2025 (1179): palm 01262 4,262,000, non-ferrous basic metal 24202, nickel ore 07295, iron and steel 24101, steel rolling 24102 and coal products 19100 4,627,000; Morowali Utara Kep. 488/2025 (1176): palm 01262 4,507,917, 24202 4,516,842, nickel ore 07295 4,521,306; Poso Kep. 489/2025 (1177): palm 01262 3,328,251, electricity 351 3,317,251; Kota Palu Kep. 486/2025 (1175): gravel/sand-and-stone quarrying 08103 3,658,497.15. Read 2026-10-08 on an official copy (round 8): Kalimantan Selatan UMSP Kep. 100.3.3.1/01101/KUM/2025 (23 Dec 2025) diktum KETIGA, the signed scan in the Disnakertrans Kalsel download centre (https://disnakertrans.kalselprov.go.id/unduhan?page=2, “KEPGUB KALSEL PENETAPAN UMP DAN UMSP 2026”): coal 05100 3,770,000, palm plantation 01262 and CPO 10431 3,730,000, wholesale of solid, liquid and gaseous fuels 46610 3,728,000, integrated power 35115 3,759,000, plywood 16211 3,728,000. Kalimantan Tengah UMSP Kep. 188.44/477/2025 (19 Dec 2025) Lampiran: CPO 10431, palm kernel oil 10432, palm cooking oil 10437 and palm plantation 01262 3,692,907, coal 05100 and gold and silver 07301 3,714,130; and UMSK Kep. 188.44/492/2025 (24 Dec 2025) Lampiran II for Kapuas, Seruyan, Kotawaringin Timur and Barat, Barito Selatan, Timur and Utara and Murung Raya by KBLI — both the signed scans the Disnakertrans Kalteng Facebook account posted (https://www.facebook.com/disnakertranskalteng/posts/1179509067627689 and /1183741693871093, linking drive.google.com files 1d8E-pDjpPPGfGSqHZ65QVn-aE7gnhkqk and 14epIlxAcjLvspZvIaYU5gTeHuwztWGNc); its hotel row is “Hotel Bintang” 55110 without a star floor. Aceh UMSP Kep. 500.15.14.1/1489/2025 (30 Dec 2025, from 1 January 2026) Lampiran, the Biro Hukum certified copy on jdih.acehprov.go.id (https://jdih.acehprov.go.id/dih/view/ebe6f9a2-424d-44f1-b818-233c68619ec7): palm 01262 and palm oil 10431 3,987,940, coal 05100, gold and silver 07301 and natural gas 06201 4,061,791, medium and large enterprises; every worker under one year of service in the five sectors, married or not — diktum KEEMPAT’s “pekerja/buruh lajang … masa kerja kurang dari 1 (satu) tahun” names the reference worker the amount is set for (a single worker’s needs), and diktum KEENAM bars every employer in the five sectors from paying below it. Kalimantan Barat UMSP Kep. 1350/NAKERTRAN/2025 (19 Dec 2025) as the Kabupaten Sekadau labour office (Disperindagnaker) publishes its table on the regency open-data portal (https://data.sekadaukab.go.id/dataset/product/upah-minimum-provinsi-dan-upah-minimum-sektoral-provinsi-kalimantan-barat): palm 01262 3,062,552, bauxite 07293 3,108,007, decorative and building stone 08101 3,062,552, CPO 10431 3,062,552 (the signed copy on sudahinakertrans.kalbarprov.go.id is Cloudflare-blocked to this reader; kalbaronline.com reports 3,062,552). Still not configured (each warns at the payslip, VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, from minimum_wage.unseeded_sector): Sulawesi Tenggara UMSP and Kolaka UMSK, Kayong Utara UMSK, the Jambi mining UMSP and the five Jambi UMSK, the Sumatera Utara UMSK (Kep. 188.44/909/KPTS/2025) and the Kota Tangerang Lampiran V sub-sectors. Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 was annulled by PTUN Bandung 26/G/2026/PTUN.BDG (30 Jun 2026, ordering a new decree at the bupati/walikota recommendations); the governor appealed on 31 Jul 2026, so the decree stands until the ruling is final (UU 5/1986 art.67(1): a suit does not suspend a decision) and stays seeded; a final ruling is a new version from its effective date. Kayong Utara UMSK 2026: KBLI 01262 and 10431, Rp3,404,291 from 1 January 2026; official Kabupaten media centre statement by the Bupati (31 December 2025), https://mediacenter.kayongutarakab.go.id/berita/detail/umk-kayong-utara-2026-ditetapkan-rp337-juta-naik-465-persen, read 2026-10-09. Sultra No.581/2025, dated 2025-12-24: mining/quarrying 3373843.20 and construction 3437546.64; Diktum KETUJUH limits UMSP to districts without UMK (Kendari, Kolaka and Konawe Utara excluded). Signed decree scan visually checked pages 2–3: https://www.scribd.com/document/987358059/39-UMP-UMSP-Sulawesi-Tenggara-2026 (read 2026-10-09).",
 			"unseeded_sector": {
 				"outside_tables": false,
 				"areas": {
-					"SULTRA_UMSP": {
-						"regions": ["Provinsi Sulawesi Tenggara"],
-						"kbli": ["05", "06", "07", "08", "09", "41", "42", "43"],
-						"decree": "Kep. Gubernur Sulawesi Tenggara No. 581 of 24 December 2025 (UMP and UMSP 2026: mining and quarrying, construction)"
-					},
 					"KOLAKA_UMSK": {
 						"regions": ["Provinsi Sulawesi Tenggara/Kabupaten Kolaka"],
 						"kbli": [],
 						"decree": "the Kep. Gubernur Sulawesi Tenggara on the UMK and UMSK of Kabupaten Kolaka 2026"
-					},
-					"KAYONG_UTARA_UMSK": {
-						"regions": ["Provinsi Kalimantan Barat/Kabupaten Kayong Utara"],
-						"kbli": [],
-						"decree": "the Kep. Gubernur Kalimantan Barat on the UMK and UMSK of Kabupaten Kayong Utara 2026"
 					},
 					"JAMBI_SECTOR": {
 						"regions": ["Provinsi Jambi"],
@@ -7010,7 +7600,7 @@
 							"Provinsi Jambi/Kota Jambi"
 						],
 						"kbli": [],
-						"decree": "Kep. Gubernur Jambi 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 (UMK and UMSK 2026 of five localities)"
+						"decree": "district sector decrees for five localities; 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 concerns Kota Jambi UMK and does not establish these sector tables"
 					},
 					"SUMUT_UMSK": {
 						"regions": [
@@ -8779,8 +9369,8 @@
 			"site": "payslip",
 			"kind": "warn",
 			"when": "terms.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts) && company.facts != null && has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && has(terms.facts.worksite_kbli) && terms.facts.worksite_kbli != \"\" && has(rules.minimum_wage.unseeded_sector) && ((has(rules.minimum_wage.unseeded_sector.areas) && rules.minimum_wage.unseeded_sector.areas.exists(c, rules.minimum_wage.unseeded_sector.areas[c].regions.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")) && (rules.minimum_wage.unseeded_sector.areas[c].kbli.size() == 0 || rules.minimum_wage.unseeded_sector.areas[c].kbli.exists(p, terms.facts.worksite_kbli.startsWith(p))))) || (has(rules.minimum_wage.unseeded_sector.outside_tables) && rules.minimum_wage.unseeded_sector.outside_tables == true && !(has(rules.minimum_wage.by_sector) && rules.minimum_wage.by_sector.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")))))",
-			"message": "A sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it) and is not configured for the worksite: check the KBLI against the decree and pay at least its rate — SULTRA_UMSP: Kep. Gubernur Sulawesi Tenggara No. 581 of 24 December 2025 (UMP and UMSP 2026: mining and quarrying, construction); KOLAKA_UMSK: the Kep. Gubernur Sulawesi Tenggara on the UMK and UMSK of Kabupaten Kolaka 2026; KAYONG_UTARA_UMSK: the Kep. Gubernur Kalimantan Barat on the UMK and UMSK of Kabupaten Kayong Utara 2026; JAMBI_SECTOR: the Kep. Gubernur Jambi on the UMSP 2026 (coal, oil and gas mining); JAMBI_UMSK: Kep. Gubernur Jambi 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 (UMK and UMSK 2026 of five localities); SUMUT_UMSK: Kep. Gubernur Sumatera Utara 188.44/909/KPTS/2025 (UMSK 2026 of 12 localities, among the 22 with their own UMK); KOTA_TANGERANG_LAMPIRAN_V: Banten Kep. 704/2025 Lampiran V (Kota Tangerang sub-sectors named without a KBLI: Jasa – Distributor, Minimarket khusus distributor, Rumah Sakit Type B and hospital Jasa, Industri Garment bukan konveksi).",
-			"description": "A sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it) and is not configured for the worksite: check the KBLI against the decree and pay at least its rate — SULTRA_UMSP: Kep. Gubernur Sulawesi Tenggara No. 581 of 24 December 2025 (UMP and UMSP 2026: mining and quarrying, construction); KOLAKA_UMSK: the Kep. Gubernur Sulawesi Tenggara on the UMK and UMSK of Kabupaten Kolaka 2026; KAYONG_UTARA_UMSK: the Kep. Gubernur Kalimantan Barat on the UMK and UMSK of Kabupaten Kayong Utara 2026; JAMBI_SECTOR: the Kep. Gubernur Jambi on the UMSP 2026 (coal, oil and gas mining); JAMBI_UMSK: Kep. Gubernur Jambi 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 (UMK and UMSK 2026 of five localities); SUMUT_UMSK: Kep. Gubernur Sumatera Utara 188.44/909/KPTS/2025 (UMSK 2026 of 12 localities, among the 22 with their own UMK); KOTA_TANGERANG_LAMPIRAN_V: Banten Kep. 704/2025 Lampiran V (Kota Tangerang sub-sectors named without a KBLI: Jasa – Distributor, Minimarket khusus distributor, Rumah Sakit Type B and hospital Jasa, Industri Garment bukan konveksi).",
+			"message": "A sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it) and is not configured for the worksite: check the KBLI against the decree and pay at least its rate — KOLAKA_UMSK: the Kep. Gubernur Sulawesi Tenggara on the UMK and UMSK of Kabupaten Kolaka 2026; JAMBI_SECTOR: the Kep. Gubernur Jambi on the UMSP 2026 (coal, oil and gas mining); JAMBI_UMSK: district sector decrees for five localities; 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 concerns Kota Jambi UMK and does not establish these sector tables; SUMUT_UMSK: Kep. Gubernur Sumatera Utara 188.44/909/KPTS/2025 (UMSK 2026 of 12 localities, among the 22 with their own UMK); KOTA_TANGERANG_LAMPIRAN_V: Banten Kep. 704/2025 Lampiran V (Kota Tangerang sub-sectors named without a KBLI: Jasa – Distributor, Minimarket khusus distributor, Rumah Sakit Type B and hospital Jasa, Industri Garment bukan konveksi).",
+			"description": "A sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it) and is not configured for the worksite: check the KBLI against the decree and pay at least its rate — KOLAKA_UMSK: the Kep. Gubernur Sulawesi Tenggara on the UMK and UMSK of Kabupaten Kolaka 2026; JAMBI_SECTOR: the Kep. Gubernur Jambi on the UMSP 2026 (coal, oil and gas mining); JAMBI_UMSK: district sector decrees for five localities; 1201/KEP.GUB/DISNAKERTRANS-3.3/2025 concerns Kota Jambi UMK and does not establish these sector tables; SUMUT_UMSK: Kep. Gubernur Sumatera Utara 188.44/909/KPTS/2025 (UMSK 2026 of 12 localities, among the 22 with their own UMK); KOTA_TANGERANG_LAMPIRAN_V: Banten Kep. 704/2025 Lampiran V (Kota Tangerang sub-sectors named without a KBLI: Jasa – Distributor, Minimarket khusus distributor, Rumah Sakit Type B and hospital Jasa, Industri Garment bukan konveksi).",
 			"authority": "PP 36/2021 art.35D(1) (as amended by PP 49/2025 from 2026; with Permenaker 16/2024 art.7 for 2025); UU 13/2003 arts.88E(2) and 185: a governor’s sector minimum wage binds workers under one year of service in the sectors it names. Where the decree is known but its table was not read on an official copy (tracker ID-SETTINGS-15 lists the hosts tried), the run cannot floor the wage at it, so the payslip warns instead of silently flooring the worker at the UMK. Data: `rules.minimum_wage.unseeded_sector.areas.<code>` — `regions` (a province key covers its localities), `kbli` (prefixes of terms.facts.worksite_kbli; empty = any declared KBLI), `decree`; and `outside_tables` (version 1: every worksite area without a 2025 table in `by_sector`). Seeding an area’s table in `minimum_wage.by_sector` replaces its entry. Micro and small enterprises are outside it, as the sector rows are. It warns at any length of service: under one year the sector minimum binds (art.35D), and from one year the wage of the structure and scale may not fall below it either (UU 13/2003 art.88E(2); the long-service reading of MINIMUM_WAGE_LONG_SERVICE)."
 		}
 	},

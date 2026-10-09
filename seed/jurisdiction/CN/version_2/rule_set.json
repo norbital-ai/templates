@@ -157,20 +157,20 @@
 						"ceiling": 22017
 					},
 					"medical_base": {
-						"floor": 4306,
-						"ceiling": 21531
+						"floor": 4357,
+						"ceiling": 21789
 					},
 					"medical_rate": {
 						"employee": 0.02,
 						"employer": 0.079
 					},
 					"unemployment_rate": {
-						"employee": 0.005,
-						"employer": 0.005
+						"employee": 0.003,
+						"employer": 0.007
 					},
 					"major_medical": {
 						"employee": 1.0,
-						"employer": 43.06
+						"employer": 43.57
 					},
 					"wi_voluntary_interns_and_retirees": false,
 					"hpf": {
@@ -238,10 +238,10 @@
 					"hpf_base_adjustment_month": "01",
 					"disabled_fund_month": "11",
 					"sources": [
-						"社会保险 base limits: 云南省 全省社会保险相关参数 (2025: 4357–21789; 2026: 4403–22017, 云人社发〔2026〕8号); medical base 4306–21531 to 2026-08, 4403–22017 from 2026-09-01",
+						"社会保险 base limits: 云南省 全省社会保险相关参数 (2025: 4357–21789; 2026: 4403–22017, 云人社发〔2026〕8号); medical base 4357–21789 from 2025-10 to 2026-08, 4403–22017 from 2026-09-01",
 						"医疗保险 7.9% / 2% (7% + 0.9% maternity): 昆明市医疗保障局 昆明市财政局 2023年调整通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
-						"大额医疗费用补助 per head, employer 0.6% of the provincial average (inferred 43.06 / 44.03), employee 1: 昆医保通〔2023〕47号 method",
-						"失业保险: 云人社发〔2025〕9号 (the phased 1%, 0.3% / 0.7%, to 2025-12-31; the split since 2022-07-01); 2026 by owner ruling 0.5% / 0.5%",
+						"大额医疗: 昆明市医疗保障局 / 昆明市税务局 / 云南滇中新区税务局 notice dated 2025-09-29, effective 2025-10: medical base 4357–21789, average 7263; employer major medical 43.57 / employee 1. Issued notice reproduced at https://zc.51shebao.com/detail/838843 (read 2026-10-09; original municipal host unavailable). 2026-09 medical base 4403–22017: 云人社发〔2026〕8号 https://www.yn.gov.cn/hdjl/msgq/202608/t20260829_330317.html; major medical 44.03 remains inferred from 7339 × 0.6%, not a published municipal amount.",
+						"失业保险: 云人社发〔2025〕9号; 2026 current provincial split confirmed by 元谋县人力资源和社会保障局, 2026年度缴费标准 (0.3% employee / 0.7% employer), https://yncxym.gov.cn/info/1011/286437.htm; 龙陵县社会保险中心 current province-wide rates https://longling.gov.cn/info/9116/4394209.htm (read 2026-10-09). Supersedes the 2026 owner assumption for KM; SH remains provisional.",
 						"住房公积金 5–12%, floor the local minimum wage, ceiling 32543: 昆明住房公积金管理中心 annual standard",
 						"最低工资 classes I–III 2170/2020/1870 (2025-10-01), 2270/2120/1970 (2026-09-01), including the employee's contributions: 云人社发〔2025〕19号, 〔2026〕9号",
 						"病假工资: at least 80% of the minimum wage (劳部发〔1995〕309号 第59条), more where the employer records it",
@@ -784,9 +784,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "!(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
-			"message": "unemployment insurance for 2026 is charged at 0.5% / 0.5% by owner ruling, provisional until a 2026 rate notice is published; confirm with the tax bureau.",
-			"description": "失业保险条例 第六条; the phased 1% rate (人社部发〔2024〕40号) ended on 2025-12-31. 2026: owner ruling, provisional until a 2026 rate notice — no instrument continuing the phased 1% rate (人社部发〔2024〕40号, 沪人社规〔2024〕25号 第一条, 云人社发〔2025〕9号, all to 2025-12-31) was found; 人社部发〔2026〕39号 (2026-06-18) sets no rate. The default 失业保险条例 第六条 (2% / 1%) is not charged: per the owner ruling 0.5% employee / 0.5% employer is charged in both cities and every 2026 payslip warns (UNEMPLOYMENT_RATE_PROVISIONAL)."
+			"when": "company.region == \"SH\" && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"])",
+			"message": "Shanghai unemployment insurance for 2026 is charged at 0.5% / 0.5% by owner ruling, provisional until a 2026 rate notice is published; confirm with the tax bureau.",
+			"description": "Shanghai 2026 unemployment remains the owner-approved provisional 0.5% employee / 0.5% employer pending a continuing municipal rate notice (沪人社规〔2024〕25号 第一条 ended 2025-12-31). Kunming uses the published current Yunnan split 0.3% employee / 0.7% employer: 元谋县人社局 https://yncxym.gov.cn/info/1011/286437.htm and 龙陵县社会保险中心 https://longling.gov.cn/info/9116/4394209.htm (read 2026-10-09); this warning applies only to SH."
 		}
 	},
 	{
