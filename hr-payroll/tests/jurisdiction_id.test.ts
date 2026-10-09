@@ -3228,6 +3228,71 @@ describe('ID round 7: the whole law, row by row', () => {
 		v1At('Provinsi Kalimantan Selatan/Kabupaten Kotabaru', '10431', 3_646_004);
 	});
 
+	it('Kayong Utara 2026: the official sector floor binds palm plantations and CPO, not other sectors', () => {
+		for (const version of ['version_2', 'version_3']) {
+			for (const kbli of ['01262', '10431']) {
+				for (const wage of [3_404_290, 3_404_291]) {
+					assert.equal(
+						trips(
+							version,
+							'SECTOR_MINIMUM_WAGE',
+							contractCtx(version, {
+								terms: {
+									base_salary: wage,
+									monthly_wage: wage,
+									facts: {
+										worksite_region: 'Provinsi Kalimantan Barat/Kabupaten Kayong Utara',
+										worksite_kbli: kbli
+									}
+								},
+								company: { facts: { enterprise_size_class: 'OTHER' } }
+							})
+						),
+						wage < 3_404_291
+					);
+				}
+			}
+		}
+	});
+
+	it('Sultra 2026: sector floors bind only districts without their own UMK', () => {
+		for (const version of ['version_2', 'version_3']) {
+			for (const [kbli, floor] of [
+				['07295', 3373843.2],
+				['42101', 3437546.64]
+			] as const) {
+				for (const region of [
+					'Kabupaten Bombana',
+					'Kabupaten Kolaka',
+					'Kabupaten Konawe Utara',
+					'Kota Kendari'
+				]) {
+					const table =
+						payrollRules(version).minimum_wage.by_sector[`Provinsi Sulawesi Tenggara/${region}`];
+					if (region !== 'Kabupaten Bombana') {
+						assert.equal(table, undefined);
+						continue;
+					}
+					for (const wage of [floor - 1, floor]) {
+						const ctx = contractCtx(version, {
+							terms: {
+								base_salary: wage,
+								monthly_wage: wage,
+								facts: {
+									worksite_region: `Provinsi Sulawesi Tenggara/${region}`,
+									worksite_kbli: kbli
+								}
+							},
+							company: { facts: { enterprise_size_class: 'OTHER' } }
+						});
+						assert.equal(trips(version, 'SECTOR_MINIMUM_WAGE', ctx), wage < floor);
+						assert.equal(trips(version, 'SECTOR_MINIMUM_WAGE_UNSEEDED', ctx), false);
+					}
+				}
+			}
+		}
+	});
+
 	it('ID-SETTINGS-15: a worksite whose sector decree is not configured warns at the payslip', () => {
 		const warns = (
 			version: string,
@@ -3260,7 +3325,7 @@ describe('ID round 7: the whole law, row by row', () => {
 				assert.ok(check.message.includes(area.decree), area.decree);
 			assert.match(check.message, /188\.44\/909\/KPTS\/2025/);
 			// All areas together, then one area at a time (the others dropped) so each case proves its own entry.
-			assert.equal(warns(version, 'Provinsi Sulawesi Tenggara/Kota Kendari', '07295'), true);
+			assert.equal(warns(version, 'Provinsi Sulawesi Tenggara/Kota Kendari', '07295'), false);
 			assert.equal(warns(version, 'Provinsi DKI Jakarta', '20118'), false);
 			const W = (code: string, region: string, kbli?: string, opts = {}) =>
 				warns(version, region, kbli, opts, {
@@ -3271,23 +3336,15 @@ describe('ID round 7: the whole law, row by row', () => {
 					}
 				});
 			const kendari = 'Provinsi Sulawesi Tenggara/Kota Kendari';
-			assert.equal(W('SULTRA_UMSP', kendari, '07295'), true); // nickel ore: mining
-			assert.equal(W('SULTRA_UMSP', kendari, '42101'), true); // construction
-			assert.equal(W('SULTRA_UMSP', kendari, '47111'), false); // retail: not a named sector
 			// From a year of service it still warns: the wage scale may not fall below it (UU 13/2003 art.88E(2)).
-			assert.equal(W('SULTRA_UMSP', kendari, '07295', { months: 12 }), true);
-			assert.equal(W('SULTRA_UMSP', kendari, '07295', { size: 'MICRO_OR_SMALL' }), false);
-			assert.equal(W('SULTRA_UMSP', kendari), false); // no worksite KBLI declared
 			assert.equal(W('KOLAKA_UMSK', 'Provinsi Sulawesi Tenggara/Kabupaten Kolaka', '47111'), true);
 			assert.equal(W('KOLAKA_UMSK', kendari, '07295'), false);
 			assert.equal(
-				W('KAYONG_UTARA_UMSK', 'Provinsi Kalimantan Barat/Kabupaten Kayong Utara', '01262'),
-				true
-			);
-			assert.equal(
-				W('KAYONG_UTARA_UMSK', 'Provinsi Kalimantan Barat/Kabupaten Ketapang', '01262'),
+				warns(version, 'Provinsi Kalimantan Barat/Kabupaten Kayong Utara', '01262'),
 				false
 			);
+			assert.equal(areas.KAYONG_UTARA_UMSK, undefined);
+
 			assert.equal(W('JAMBI_SECTOR', 'Provinsi Jambi/Kabupaten Bungo', '05100'), true);
 			assert.equal(W('JAMBI_SECTOR', 'Provinsi Jambi/Kabupaten Bungo', '01262'), false); // palm is seeded
 			assert.equal(W('JAMBI_UMSK', 'Provinsi Jambi/Kota Jambi', '47111'), true);
@@ -3329,7 +3386,7 @@ describe('ID round 7: the whole law, row by row', () => {
 		}
 		for (const version of ['version_2', 'version_3']) {
 			assert.equal(noKbli(version, 'Provinsi Jawa Barat/Kota Bekasi'), true);
-			assert.equal(noKbli(version, 'Provinsi Sulawesi Tenggara/Kota Kendari'), true); // a warned area
+			assert.equal(noKbli(version, 'Provinsi Sulawesi Tenggara/Kabupaten Bombana'), true); // seeded UMSP
 			assert.equal(noKbli(version, 'Provinsi DKI Jakarta'), true); // DKI's table
 			assert.equal(noKbli(version, 'Provinsi Maluku/Kota Ambon'), false); // no sector wage known
 		}
