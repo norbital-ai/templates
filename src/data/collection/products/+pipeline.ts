@@ -24,10 +24,15 @@ export default pipeline('products', {
 			}
 		},
 		records: (input) => masterRecords(input.items),
-		known: (ctx, keys) =>
+		// the codes already on file, read once per feed (the value crosses as plain data)
+		known: (ctx, records) =>
 			ctx
-				.read('products', { where: { external_code: { in: keys } }, all: true })
-				.then((page) => page.rows),
+				.read('products', {
+					where: { external_code: { in: records.map((r) => r.external_code) } },
+					select: { external_code: true },
+					all: true
+				})
+				.then((page) => Object.fromEntries(page.rows.map((r) => [r.external_code, true]))),
 		map: (item, { known }) =>
 			item.external_code in known
 				? null

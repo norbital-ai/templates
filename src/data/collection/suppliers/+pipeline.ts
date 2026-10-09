@@ -22,10 +22,15 @@ export default pipeline('suppliers', {
 			}
 		},
 		records: (input) => masterRecords(input.vendors),
-		known: (ctx, keys) =>
+		// the codes already on file, read once per feed (the value crosses as plain data)
+		known: (ctx, records) =>
 			ctx
-				.read('suppliers', { where: { external_code: { in: keys } }, all: true })
-				.then((page) => page.rows),
+				.read('suppliers', {
+					where: { external_code: { in: records.map((r) => r.external_code) } },
+					select: { external_code: true },
+					all: true
+				})
+				.then((page) => Object.fromEntries(page.rows.map((r) => [r.external_code, true]))),
 		map: (vendor, { known }) =>
 			vendor.external_code in known
 				? null
