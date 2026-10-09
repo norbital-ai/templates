@@ -44,6 +44,11 @@ export default relationship({
 	},
 	'loan_catalog.settings_id': { to: 'jurisdiction_settings', inverse: 'loan_catalog', owned: true },
 	'work_catalog.settings_id': { to: 'jurisdiction_settings', inverse: 'work_catalog', owned: true },
+	'suspension_kind.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'suspension_kind',
+		owned: true
+	},
 	'adhoc_catalog_entry.catalog_id': { to: 'adhoc_catalog', inverse: 'entry' },
 	'adhoc_catalog_entry.company_id': { to: 'entity', inverse: 'adhoc_catalog_entry' },
 	'adhoc_catalog_entry.employment_id': {
@@ -101,6 +106,13 @@ export default relationship({
 	'regulatory_task.company_id': { to: 'entity', inverse: 'regulatory_task', owned: true },
 	'regulatory_task.settings_id': { to: 'jurisdiction_settings', inverse: 'regulatory_task' },
 	'holiday.company_id': { to: 'entity', inverse: 'holiday' },
+	'workplace_case.company_id': { to: 'entity', inverse: 'workplace_case', owned: true },
+	'work_suspension.company_id': { to: 'entity', inverse: 'work_suspension', owned: true },
+	'workplace_case.employment_id': {
+		to: 'employment_contract',
+		inverse: 'workplace_case',
+		optional: true
+	},
 	'shift_pattern.company_id': { to: 'entity', inverse: 'shift_pattern' },
 	'shift_definition.company_id': { to: 'entity', inverse: 'shift_definition' },
 	'roster.employment_id': { to: 'employment_contract', inverse: 'roster' },

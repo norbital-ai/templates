@@ -14,10 +14,12 @@ export default model({
 			optional: true
 		},
 		eligibility: {
-			kind: 'text'
+			kind: 'text',
+			format: 'cel'
 		},
 		amount: {
 			kind: 'text',
+			format: 'cel',
 			optional: true,
 			help: 'CEL amount over the payslip context; `allowance.amount` is the contract’s monthly figure.'
 		},

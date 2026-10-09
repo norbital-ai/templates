@@ -1,0 +1,42 @@
+[
+	{
+		"id": "3d9da9b4-7a28-55d6-a14e-580b44a52e58",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "EMPLOYER_CAUSED",
+		"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
+		"authority": "PP 36/2021 art.40(2)(d) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+	},
+	{
+		"id": "16fd39ee-6e12-5cab-846f-f3a84f5de903",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "FORCE_MAJEURE",
+		"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "0.0",
+		"authority": "UU 13/2003 art.93(1); PP 36/2021 art.40(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+	},
+	{
+		"id": "97f07b81-8b60-5d78-9d16-8a7c99d2413f",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "STRIKE_NORMATIVE",
+		"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
+		"authority": "UU 13/2003 art.145 — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+	},
+	{
+		"id": "77a7ff88-7e5b-5085-9a6c-ff25e1f95b01",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "STRIKE_OTHER",
+		"name": "Any other strike — no work, no wage",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "0.0",
+		"authority": "UU 13/2003 art.93(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+	}
+]

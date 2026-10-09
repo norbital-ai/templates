@@ -55,6 +55,7 @@ const statutory_lineage = automation({
 export default statutory_lineage;
 
 statutory_lineage.run(async ({ code }, ctx) => {
+	// One read: the version in force with any open draft already cloned from it (the `clones` relation).
 	const { rows: versions } = await ctx.read('jurisdiction_settings', {
 		where: {
 			code: { eq: code },
@@ -63,38 +64,26 @@ statutory_lineage.run(async ({ code }, ctx) => {
 			voided_at: { isNull: true },
 			effective_range: { contains: { today: '' } }
 		},
+		// what the check needs; the version's whole configuration is read only when it drafts
 		select: {
-			id: true,
-			code: true,
 			name: true,
-			jurisdiction_code: true,
-			employee_input_schema: true,
-			entity_input_schema: true,
-			behaviours: true,
-			payroll: true,
-			change_summary: true,
-			effective_range: true,
 			sources: true,
-			reference_tables: true,
-			sealed_at: true,
-			voided_at: true,
-			void_reason: true
+			// an open draft already cloned from it, through the relation
+			clones: {
+				select: { id: true },
+				where: {
+					sealed_at: { isNull: true },
+					voided_at: { isNull: true },
+					approval_id: { isNull: true }
+				},
+				all: true
+			}
 		},
 		all: true
 	});
 	const version = versions[0];
 	if (version == null) return { code, drafted: false, skipped: true };
-	const { rows: held } = await ctx.read('jurisdiction_settings', {
-		where: {
-			code: { eq: code },
-			cloned_from_id: { eq: version.id },
-			sealed_at: { isNull: true },
-			voided_at: { isNull: true },
-			approval_id: { isNull: true }
-		},
-		select: { id: true },
-		all: true
-	});
+	const held = version.clones;
 	if (held.length > 0) return { code, drafted: false, skipped: true };
 	const sources = sourcesFrom(version.sources);
 	const urls = sources.urls.filter((url) => allowedUrl(url, sources));
@@ -128,8 +117,29 @@ statutory_lineage.run(async ({ code }, ctx) => {
 	});
 	const unverified = unverifiedQuotes(pages, finding.quotes, sources);
 	if (!shouldDraft(finding, unverified)) return { code, drafted: false, skipped: false };
+	const { rows: whole } = await ctx.read('jurisdiction_settings', {
+		where: { id: { eq: version.id } },
+		select: {
+			id: true,
+			code: true,
+			name: true,
+			jurisdiction_code: true,
+			employee_input_schema: true,
+			entity_input_schema: true,
+			behaviours: true,
+			payroll: true,
+			change_summary: true,
+			effective_range: true,
+			sources: true,
+			reference_tables: true,
+			sealed_at: true,
+			voided_at: true,
+			void_reason: true
+		},
+		limit: 1
+	});
 	const payload = {
-		...cloneSettingsFields({ ...version }, ctx.today),
+		...cloneSettingsFields({ ...whole[0]! }, ctx.today),
 		change_summary: finding.summary
 	};
 	await ctx.act('jurisdiction_settings.create', payload);

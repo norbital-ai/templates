@@ -18,7 +18,9 @@ const create_columns = [
 	'company_id',
 	'settings_id'
 ] as const;
+// `occurrence_key` moves when a duty is withdrawn (its exit moved or undone), so the exit as it now stands raises anew.
 const update_columns = [
+	'occurrence_key',
 	'due_on',
 	'state',
 	'done_on',

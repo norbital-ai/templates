@@ -2,7 +2,7 @@ import { model } from '@norbital-ai/bolt';
 
 export default model({
 	description:
-		'The claim catalogue of one jurisdiction settings version: code, destination and direction, the bands that price and cap a claim (with the schemes each opts into) and the evidence it demands. Sealed with its version; the run cites the version it priced against.',
+		'The claim catalogue of one jurisdiction settings version: code, destination and direction, the bands that price and cap a claim (with the schemes each opts into). Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:receipt-text',
 	label: 'name',
 	fields: {
@@ -34,25 +34,31 @@ export default model({
 					kind: 'object',
 					fields: {
 						when: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						amount: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						limit: {
 							kind: 'object',
 							optional: true,
 							fields: {
-								period: {
-									kind: 'enum',
-									values: ['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']
-								},
 								on_exceed: {
 									kind: 'enum',
-									values: ['BLOCK', 'ALLOW']
+									values: ['BLOCK', 'ALLOW'],
+									help: 'BLOCK pays up to the limit, ALLOW pays all; either flags the excess on the run.'
 								},
 								amount: {
-									kind: 'text'
+									kind: 'text',
+									format: 'cel'
+								},
+								window: {
+									kind: 'enum',
+									values: ['ENTRY', 'PERIOD', 'CALENDAR_YEAR'],
+									optional: true,
+									help: 'What the limit meters: each claim alone (default), or the settlement period or calendar year less the claims of the class already taken in it.'
 								}
 							}
 						}
@@ -62,16 +68,18 @@ export default model({
 		},
 		eligibility: {
 			kind: 'text',
+			format: 'cel',
 			default: ''
 		},
 		qualifies_when: {
 			kind: 'text',
+			format: 'cel',
 			default: ''
 		},
-		evidence: {
-			kind: 'enum',
-			values: ['NONE', 'OPTIONAL', 'REQUIRED'],
-			default: 'NONE'
+		amount_required: {
+			kind: 'bool',
+			default: true,
+			help: 'An entry must carry an amount; a class priced by its bands alone (piece units) need not.'
 		},
 		counts_toward: {
 			kind: 'json',
@@ -81,27 +89,6 @@ export default model({
 					kind: 'text'
 				}
 			}
-		},
-		leave_code: {
-			kind: 'text',
-			optional: true
-		},
-		unit_cap: {
-			kind: 'decimal',
-			scale: 2,
-			optional: true
-		},
-		claim_window_months: {
-			kind: 'int',
-			optional: true
-		},
-		employer_premium_scheme: {
-			kind: 'text',
-			optional: true
-		},
-		minimum_service_months: {
-			kind: 'int',
-			optional: true
 		}
 	}
 });

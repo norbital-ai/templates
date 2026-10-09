@@ -1,5 +1,21 @@
 [
 	{
+		"id": "cdb70bf7-55b1-51dc-8f44-f8d243bd6cf8",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"kinds": [
+				{
+					"code": "PERSONAL_DATA_BREACH",
+					"name": "Personal data protection violation (Law 91/2025 art.23; Decree 13/2023 art.23 before 2026)"
+				}
+			]
+		}
+	},
+	{
 		"id": "40717c29-b9fc-531b-a55d-a96c7b6dfff6",
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"family": "PAYROLL",
@@ -109,7 +125,7 @@
 				"collection": "leave_catalog_entry",
 				"event": "created"
 			},
-			"due": "add_working_days(has(row.to) && row.to != null ? row.to : today, 7, holidays)",
+			"due": "add_working_days(has(row.to) && row.to != null ? row.to : today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
 			"when": "row.catalog_code in [\"SICK_LEAVE\", \"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\"]"
 		}
 	},
@@ -227,7 +243,7 @@
 		"code": "MINIMUM_WAGE",
 		"name": "MINIMUM_WAGE",
 		"rules": {
-			"description": "Pay a covered employee at least the regional minimum wage — monthly for monthly-paid work, hourly for hourly-paid work. Engine: the run warns on a contract below the monthly regional table; hourly-paid and part-time contracts are not compared with the hourly minimum. When: Each wage agreement and payment. Due: Continuously; the version's regional table.",
+			"description": "Pay a covered employee at least the regional minimum wage — monthly for monthly-paid work, hourly for hourly-paid work. Engine: the run warns on a contract below the monthly regional table; an hourly-paid contract is refused below the regional hourly minimum on its term fact hourly_rate (HOURLY_MINIMUM_WAGE, Decree 293/2025 art.3(2)); a part-time contract without an hourly rate is compared on the monthly table. When: Each wage agreement and payment. Due: Continuously; the version's regional table.",
 			"authority": "Labour Code 2019 art.91; Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour) https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm",
 			"trigger": {
 				"collection": "payroll_run",
@@ -365,7 +381,7 @@
 		"code": "TERMINATION_NOTICE",
 		"name": "TERMINATION_NOTICE",
 		"rules": {
-			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness).",
+			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness). Engine: the notice by the contract’s term — 45 days for an indefinite (INDEFINITE, or PERMANENT with no contract_type), 30 for an agreed term of 12–36 months, 3 working days (Sunday the weekly rest) for one under 12 months; an unrecorded term gives the longest, 45.",
 			"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
 			"trigger": {
 				"collection": "employment_contract",
@@ -374,7 +390,7 @@
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
 			"applies_when": "!(contract.exit_ground in [\"DEATH\", \"DISMISSAL\"])",
-			"due": "add_days(exit_on, 0)"
+			"due": "contract.exit_ground == \"UNILATERAL\" ? ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -45) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_days(exit_on, -30) : add_days(exit_on, -45)))) : add_days(exit_on, 0)"
 		}
 	},
 	{
@@ -413,7 +429,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_days(exit_on, 14)"
+			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -432,7 +448,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_days(exit_on, 14)"
+			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -568,6 +584,44 @@
 		}
 	},
 	{
+		"id": "a809a2cd-c070-57b0-a584-2b06966d50ce",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PERMIT_EXTENSION",
+		"name": "WORK_PERMIT_EXTENSION",
+		"rules": {
+			"description": "Apply to extend a foreign employee's work permit at least 10 and at most 45 days before it expires, with the report explaining the continued need for foreign labour (Form 03). A permit is extended once, for at most two years. Raised by the daily tick 45 days before the permit's expiry (terms fact work_permit_valid_until); due 10 days before it.",
+			"authority": "Decree 219/2025/NĐ-CP arts.27(1), 28(1), 29 (in force 7 August 2025), Official Gazette Công báo 1073+1074 of 20 August 2025 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)",
+			"due": "add_days(first(contract.facts.contract_terms.filter(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)).facts.work_permit_valid_until, -10)"
+		}
+	},
+	{
+		"id": "c5640c21-ebab-59d6-9821-a604b7cb4d96",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PERMIT_RETURN",
+		"name": "WORK_PERMIT_RETURN",
+		"rules": {
+			"description": "The work permit lapses when the labour contract ends (Labour Code art.156(2)): within 15 days the employer recovers it and returns it to the authority that issued it, with a written report of the case (or the reason it could not be recovered). Raised on the exit of an employee whose terms record a work permit (work_permit_valid_until); an exemption certificate is not revoked on this ground (art.32).",
+			"authority": "Decree 219/2025/NĐ-CP arts.30(1), 31(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf; Labour Code 2019 art.156(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until))",
+			"due": "add_days(exit_on, 15)"
+		}
+	},
+	{
 		"id": "4859f9e7-e1fe-53d1-88db-50e3892b9f87",
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"family": "TASKS",
@@ -576,7 +630,7 @@
 		"name": "OCCUPATIONAL_HEALTH_CHECK",
 		"rules": {
 			"description": "Arrange periodic health checks for employees. When: Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly. Due: At least once a year (twice for the listed groups).",
-			"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1)",
+			"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1); art.21(2): workers in jobs exposed to occupational disease are also examined for it (Decree 44/2016/NĐ-CP).",
 			"trigger": {
 				"collection": "payroll_run",
 				"event": "created"
@@ -584,6 +638,42 @@
 			"months": ["06", "12"],
 			"applies_when": "period.key.endsWith(\"-12\") || (has(company.facts.six_monthly_health_checks) && company.facts.six_monthly_health_checks == true)",
 			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "a1a20854-bab0-5b83-a9b0-6d5956ab9bfa",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"name": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"rules": {
+			"description": "Send the summary report on occupational accidents (form Appendix XII), with or without accidents in the period, to the provincial labour authority where the head office is: before 5 July for the first half-year and before 10 January for the year. Raised with the June and December runs.",
+			"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.36; Decree 39/2016/NĐ-CP art.24(1) (Công báo 397+398 of 21 June 2016) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/19831/14231-1-392016nd-cp14302pdf",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["06", "12"],
+			"due": "period.key.endsWith(\"-06\") ? add_days(period.to, 4) : add_days(period.to, 9)"
+		}
+	},
+	{
+		"id": "607ff0c1-d2c1-56c9-86a2-e69757bab7a2",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OSH_ANNUAL_REPORT",
+		"name": "OSH_ANNUAL_REPORT",
+		"rules": {
+			"description": "Send the annual report on occupational safety and hygiene work (form Appendix II) to the provincial labour authority and the Department of Health before 10 January of the next year, from the OSH statistics book the employer keeps. Raised with the December run.",
+			"authority": "Circular 07/2016/TT-BLĐTBXH art.10(1)–(2) (Công báo 797+798 of 8 July 2016) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/20377/14868-1-072016tt-bldtbxh14949pdf",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"due": "add_days(period.to, 9)"
 		}
 	},
 	{
@@ -667,13 +757,14 @@
 		"code": "PDPL_BREACH_NOTIFICATION",
 		"name": "PDPL_BREACH_NOTIFICATION",
 		"rules": {
-			"description": "On discovering a violation of personal data protection rules that may harm national defence, security or social order, or infringe the life, health, honour, dignity or property of data subjects, notify the specialised personal data protection agency and record the violation in minutes; a processor that discovers a violation must promptly inform the controller. Decree 356/2025 adds notice to data subjects for location and biometric data. When: Discovery of a personal data protection violation. Due: No later than 72 hours from discovery",
+			"description": "On discovering a violation of personal data protection rules that may harm national defence, security or social order, or infringe the life, health, honour, dignity or property of data subjects, notify the specialised personal data protection agency and record the violation in minutes; a processor that discovers a violation must promptly inform the controller. Decree 356/2025 adds notice to data subjects for location and biometric data. When: A PERSONAL_DATA_BREACH workplace case is opened on the day of discovery of a personal data protection violation. Due: 72 hours (three days after the case opens) from discovery",
 			"authority": "Law on Personal Data Protection 91/2025/QH15 art.23 (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387)",
 			"trigger": {
-				"collection": "payroll_run",
+				"collection": "workplace_case",
 				"event": "created"
 			},
-			"due": "add_days(period.to, 0)"
+			"due": "add_days(row.opened_on, 3)",
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\""
 		}
 	},
 	{
@@ -767,7 +858,7 @@
 			"site": "contract",
 			"kind": "refuse",
 			"description": "A monthly wage for the job below the regional minimum wage of the entity’s region.",
-			"when": "!(terms.employment_type in [\"PART_TIME\", \"PROBATION\", \"INTERN\"]) && terms.base_salary > 0.0 && terms.base_salary < max(double(rules.minimum_wage.by_region[company.region in [\"I\", \"II\", \"III\"] ? company.region : \"IV\"]), (has(terms.facts.prior_floor_reclassified) && terms.facts.prior_floor_reclassified == true && has(terms.facts.prior_floor_region) && employment.start_date != \"\" && employment.start_date <= \"2025-12-31\") ? double(rules.minimum_wage.prior_by_region[terms.facts.prior_floor_region]) : 0.0)",
+			"when": "!(terms.employment_type in [\"PART_TIME\", \"PROBATION\", \"INTERN\"]) && terms.base_salary > 0.0 && terms.base_salary < max(double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]), (has(terms.facts.prior_floor_reclassified) && terms.facts.prior_floor_reclassified == true && has(terms.facts.prior_floor_region) && employment.start_date != \"\" && employment.start_date <= \"2025-12-31\") ? double(rules.minimum_wage.prior_by_region[terms.facts.prior_floor_region]) : 0.0)",
 			"message": "The monthly wage is below the regional minimum wage for the entity’s region (Labour Code art.90(2), art.91).",
 			"authority": "Labour Code 45/2019/QH14 arts.90(2), 91 https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 293/2025/NĐ-CP art.3 (the version’s rules.minimum_wage.by_region). An entity without a recorded region is checked against Region IV, the lowest floor; part-time, probation (at least 85% of the job wage, art.26) and intern terms are outside the monthly check. An incumbent hired by 31 December 2025 whose worksite moved to a lower region keeps the prior region’s Decree 74/2024 minimum (Decree 293/2025 art.5(5); contract-term facts prior_floor_region, prior_floor_reclassified)."
 		}
@@ -834,6 +925,751 @@
 			"when": "((has(hours.year.day_type) && has(hours.year.day_type.WORK) ? hours.year.day_type.WORK.overtime_hours : 0.0) + (has(hours.year.day_type) && has(hours.year.day_type.REST) ? hours.year.day_type.REST.worked_hours : 0.0) + (has(hours.year.day_type) && has(hours.year.day_type.OFF) ? hours.year.day_type.OFF.worked_hours : 0.0) + (has(hours.year.holiday_kind) && has(hours.year.holiday_kind.PUBLIC_HOLIDAY) ? hours.year.holiday_kind.PUBLIC_HOLIDAY.worked_hours : 0.0) + (has(hours.year.holiday_kind) && has(hours.year.holiday_kind.SUBSTITUTE) ? hours.year.holiday_kind.SUBSTITUTE.worked_hours : 0.0)) > ((has(company.facts.overtime_300h_sector) && company.facts.overtime_300h_sector == true) ? 300.0 : 200.0)",
 			"message": "overtime this year exceeds 200 hours (300 in the listed sectors) (Labour Code art.107(2)(b), (3)).",
 			"authority": "Labour Code 45/2019/QH14 art.107(2)(b): at most 200 hours a year; art.107(3): 300 hours in the sectors and cases listed, after notifying the provincial labour authority (art.107(4); Decree 145/2020/NĐ-CP arts.61–62). Counted from hours.year: approved overtime on working days and every hour worked on rest days and holidays. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "afb6c851-9510-47ea-acf8-9153aab4498a",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "public_holidays",
+		"family": "PAYROLL",
+		"code": "public_holidays",
+		"rules": {
+			"holidays": [
+				{
+					"date": "2026-09-01",
+					"name": "Quốc khánh (ngày liền kề)",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-09-02",
+					"name": "Quốc khánh",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-11-24",
+					"name": "Ngày Văn hóa Việt Nam",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-01-01",
+					"name": "Tết Dương lịch",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-04-16",
+					"name": "Giỗ Tổ Hùng Vương",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-04-30",
+					"name": "Ngày Chiến thắng",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-05-01",
+					"name": "Ngày Quốc tế Lao động",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-05-03",
+					"name": "Ngày Quốc tế Lao động (nghỉ bù)",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-05-01",
+					"given_to": "ONLY_IF_OFF_ON_REPLACED_DATE"
+				},
+				{
+					"date": "2027-09-02",
+					"name": "Quốc khánh",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-11-24",
+					"name": "Ngày Văn hóa Việt Nam",
+					"kind": "PUBLIC_HOLIDAY"
+				}
+			],
+			"authority": "Labour Code 45/2019/QH14 art.112(1) (11 days: 1 January; five days of Tết; Hùng Kings 10/3 lunar; 30 April; 1 May; 2 September and one adjacent day) and art.111(3) (a holiday on the weekly rest day is taken on the next working day); Tết 2026 and 2 September 2026 per Bộ Nội vụ Thông báo 9441/TB-BNV of 16 October 2025 (16–20 February 2026; 1–2 September 2026); 24 November from 1 July 2026 per Nghị quyết 28/2026/QH16 art.2 (https://vanban.chinhphu.vn/?classid=1&docid=218008&orggroupid=1&pageid=27160). Hùng Kings 2027 is 10/3 lunar = Friday 16 April 2027, fixed by art.112(1)(c) itself (a working day: no substitute, no notice needed). Tết 2027 and the day adjacent to 2 September 2027 await the Government’s notices and are not listed. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "7d5a17f4-d463-4f9f-9088-4f56e7faa8cc",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "REGION_REQUIRED",
+		"family": "VALIDATIONS",
+		"code": "REGION_REQUIRED",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "The entity’s minimum-wage region is unrecorded.",
+			"when": "!(company.region in [\"I\", \"II\", \"III\", \"IV\"])",
+			"message": "Record the entity’s minimum-wage region (I–IV) before writing terms: the floor is the region of the place of work.",
+			"authority": "Decree 293/2025/NĐ-CP arts.3–4: the minimum wage is the region of the employer’s place of operation."
+		}
+	},
+	{
+		"id": "69bf10f6-024d-4ecb-a1ca-6746c3fcce08",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "HOURLY_MINIMUM_WAGE",
+		"family": "VALIDATIONS",
+		"code": "HOURLY_MINIMUM_WAGE",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "An hourly rate below the regional hourly minimum.",
+			"when": "has(terms.facts.hourly_rate) && double(terms.facts.hourly_rate) < double(rules.minimum_wage.hourly_by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"])",
+			"message": "The hourly rate is below the regional hourly minimum wage.",
+			"authority": "Decree 293/2025/NĐ-CP art.3(2), art.4: an hourly-paid worker is paid at least the regional hourly minimum (term fact hourly_rate)."
+		}
+	},
+	{
+		"id": "dddcc651-fe1a-4038-9eef-509a388e732d",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "PROBATION_WAGE",
+		"family": "VALIDATIONS",
+		"code": "PROBATION_WAGE",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "A probation wage below 85% of the job wage.",
+			"when": "terms.employment_type == \"PROBATION\" && has(terms.facts.probation_job_wage) && terms.base_salary < 0.85 * double(terms.facts.probation_job_wage)",
+			"message": "The probation wage is below 85% of the job’s wage (Labour Code art.26).",
+			"authority": "Labour Code 45/2019/QH14 art.26. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "41223bf9-3d86-4a06-bf53-912aef5b9348",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "PROBATION_PERIOD",
+		"family": "VALIDATIONS",
+		"code": "PROBATION_PERIOD",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "A probation longer than the job class allows.",
+			"when": "terms.employment_type == \"PROBATION\" && terms.effective_to != \"\" && has(terms.facts.probation_class) && (terms.facts.probation_class == \"OTHER\" ? terms.effective_to > add_working_days(terms.effective_from, 5, [], [\"SATURDAY\", \"SUNDAY\"]) : double(calendar_distance_days(terms.effective_from, terms.effective_to)) + 1.0 > (terms.facts.probation_class == \"ENTERPRISE_MANAGER\" ? 180.0 : terms.facts.probation_class == \"COLLEGE_OR_ABOVE\" ? 60.0 : 30.0))",
+			"message": "The probation is longer than Labour Code art.25 allows for the job class.",
+			"authority": "Labour Code 45/2019/QH14 art.25: at most 180 days for an enterprise manager, 60 for a college-level job, 30 for an intermediate or technical job, 6 working days for any other. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "78e7436d-cf69-4bf6-ad37-75e15a278f4b",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
+		"family": "VALIDATIONS",
+		"code": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "Night work or overtime by a worker from the seventh month of pregnancy or with a child under 12 months, without her consent recorded for that day.",
+			"when": "work.days.exists(d, (employee.children.exists(c, has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\" && (!has(c.child_birthdate) || c.child_birthdate == \"\") && d.date >= add_months(c.estimated_delivery_date, -3)) || employee.children.exists(c, has(c.child_birthdate) && c.child_birthdate != \"\" && add_months(c.child_birthdate, 12) > d.date)) && !(has(d.overtime_consented) && d.overtime_consented == true) && (d.overtime_hours > 0.0 || hours_between(d.intervals, rules.night_window.from, rules.night_window.to) > 0.0))",
+			"message": "night work or overtime by a pregnant worker from the seventh month or one with a child under 12 months, without recorded consent (Labour Code art.137(1)(a)).",
+			"authority": "Labour Code 45/2019/QH14 art.137(1)(a): unless she agrees, no night work, overtime or long business trips from the seventh month of pregnancy (sixth in remote areas) or while raising a child under 12 months. Read on employee.children (estimated_delivery_date three months ahead, child_birthdate) and the day’s consent (work.days[].overtime_consented, the work-day sheet’s per-day consent column: owner ruling, consent is per day, never an employee fact). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "ac507e25-d367-4628-b653-5fd960831897",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "MINOR_WORKING_TIME",
+		"family": "VALIDATIONS",
+		"code": "MINOR_WORKING_TIME",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "A worker aged 15 to 18 over 8 hours a day, or on overtime or night work outside the listed jobs.",
+			"when": "employee.age != null && employee.age >= 15 && employee.age < 18 && !(has(terms.facts.minor_listed_job) && terms.facts.minor_listed_job == true) && (work.days.exists(d, d.worked_hours > 8.0 || d.overtime_hours > 0.0) || sum(work.days.map(d, hours_between(d.intervals, rules.night_window.from, rules.night_window.to))) > 0.0)",
+			"message": "a worker under 18 works over 8 hours a day, overtime or nights outside the listed jobs (Labour Code art.146).",
+			"authority": "Labour Code 45/2019/QH14 art.146(1)(b): a worker from 15 to under 18 works at most 8 hours a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "5e7810d0-13e4-41b4-9d5e-8e1e47be9339",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "WEEKLY_REST",
+		"family": "VALIDATIONS",
+		"code": "WEEKLY_REST",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "No 24-hour weekly rest in a seven-day run, or under four rest days in the month where rest is averaged.",
+			"when": "(has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly == true) ? size(work.days.filter(d, !d.worked)) < 4 && size(work.days) >= 28 : work.days.exists(d, size(work.days.filter(x, x.date >= d.date && x.date <= add_days(d.date, 6))) == 7 && work.days.filter(x, x.date >= d.date && x.date <= add_days(d.date, 6)).all(x, x.worked))",
+			"message": "seven days in a row worked with no weekly rest (Labour Code art.111).",
+			"authority": "Labour Code 45/2019/QH14 art.111(1): at least 24 consecutive hours of rest each week; where the cycle does not allow it, at least four days a month on average (entity fact rest_averaged_monthly). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "759757f6-b37a-5314-92bb-02a1e1ef38e8",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked && (day.worked_hours - day.overtime_hours) > ((has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\") ? 10.0 : 8.0)",
+			"message": "normal hours above 8 in the day (10 under a weekly arrangement) (Labour Code art.105).",
+			"description": "normal hours above 8 in the day (10 under a weekly arrangement) (Labour Code art.105).",
+			"authority": "Labour Code 2019 art.105(1)–(2): normal working hours at most 8 a day and 48 a week; under a weekly arrangement at most 10 a day (term fact normal_hours_arrangement). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "bbe32bfb-6a6a-5173-ab2d-b00255977d26",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "week.worked_hours - week.overtime_hours > 48.0",
+			"message": "normal hours above 48 in the seven days ending on this day (Labour Code art.105(1)).",
+			"description": "normal hours above 48 in the seven days ending on this day (Labour Code art.105(1)).",
+			"authority": "Labour Code 2019 art.105(1)–(2): at most 48 normal hours a week. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "cec26291-f99f-5cdb-89a5-bafb44937ed9",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_OVERTIME_DAY",
+		"name": "ROSTER_OVERTIME_DAY",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "overtime_hours",
+			"when": "day.overtime_hours > 0.0 && ((has(terms.facts.normal_hours_arrangement) && terms.facts.normal_hours_arrangement == \"WEEKLY\") ? (day.worked_hours - day.overtime_hours) + day.overtime_hours > 12.0 : day.overtime_hours > 0.5 * (day.scheduled_hours > 0.0 ? day.scheduled_hours : 8.0))",
+			"message": "overtime above half the day’s normal hours (12 hours in all under a weekly arrangement) (Labour Code art.107(2)(b)).",
+			"description": "overtime above half the day’s normal hours (12 hours in all under a weekly arrangement) (Labour Code art.107(2)(b)).",
+			"authority": "Labour Code 2019 art.107(2)(b): overtime at most 50% of the normal hours of a day; under a weekly arrangement normal plus overtime at most 12 a day. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "5de80567-abbf-5357-a298-ee1a5b04c4cc",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_SHIFT_CHANGE_REST",
+		"name": "ROSTER_SHIFT_CHANGE_REST",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.rest_hours_before != null && day.rest_hours_before < 12.0",
+			"message": "under 12 hours of rest since the previous day’s work (Labour Code art.110).",
+			"description": "under 12 hours of rest since the previous day’s work (Labour Code art.110).",
+			"authority": "Labour Code 2019 art.110: a shift worker rests at least 12 hours before moving to another shift. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "949c6f1e-5da3-506b-8486-528de855b53b",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_WEEKLY_REST",
+		"name": "ROSTER_WEEKLY_REST",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "day.worked && week.worked_days >= 7 && !(has(company.facts.rest_averaged_monthly) && company.facts.rest_averaged_monthly == true)",
+			"message": "seven days in a row worked without the 24-hour weekly rest (Labour Code art.111(1)).",
+			"description": "seven days in a row worked without the 24-hour weekly rest (Labour Code art.111(1)).",
+			"authority": "Labour Code 2019 art.111(1): at least 24 consecutive hours of rest each week; where the work cycle does not allow it, four days a month on average (entity fact rest_averaged_monthly). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "157ba5db-e63e-5947-8f6a-bd0f65628ef5",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_MINOR_WORKING_TIME",
+		"name": "ROSTER_MINOR_WORKING_TIME",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && (double(age_on(employee.date_of_birth, day.date)) < 15.0 ? (day.worked_hours > 4.0 || week.worked_hours > 20.0 || day.overtime_hours > 0.0 || hours_between(day.intervals, rules.night_window.from, rules.night_window.to) > 0.0) : (double(age_on(employee.date_of_birth, day.date)) < 18.0 && (day.worked_hours > 8.0 || week.worked_hours > 40.0 || (!(has(terms.facts.minor_listed_job) && terms.facts.minor_listed_job == true) && (day.overtime_hours > 0.0 || hours_between(day.intervals, rules.night_window.from, rules.night_window.to) > 0.0)))))",
+			"message": "a worker under 18 above the minors’ hours, or on overtime or night work (Labour Code art.146).",
+			"description": "a worker under 18 above the minors’ hours, or on overtime or night work (Labour Code art.146).",
+			"authority": "Labour Code 2019 art.146: under 15 at most 4 hours a day and 20 a week, no overtime or night work; from 15 to under 18 at most 8 a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job); night is 22:00–06:00 (art.106). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "fd6ec218-0a67-58d1-8411-3ca98d85ceb2",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
+		"name": "ROSTER_MATERNITY_NIGHT_OVERTIME",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "overtime_hours",
+			"when": "(employee.children.exists(c, has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\" && (!has(c.child_birthdate) || c.child_birthdate == \"\") && day.date >= add_months(c.estimated_delivery_date, -3)) || employee.children.exists(c, has(c.child_birthdate) && c.child_birthdate != \"\" && add_months(c.child_birthdate, 12) > day.date)) && !(has(day.overtime_consented) && day.overtime_consented == true) && day.worked && (day.overtime_hours > 0.0 || hours_between(day.intervals, rules.night_window.from, rules.night_window.to) > 0.0)",
+			"message": "night work or overtime from the seventh month of pregnancy or with a child under 12 months, without her consent (Labour Code art.137(1)).",
+			"description": "night work or overtime from the seventh month of pregnancy or with a child under 12 months, without her consent (Labour Code art.137(1)).",
+			"authority": "Labour Code 2019 art.137(1): no night work, overtime or long business trips from the seventh month of pregnancy (estimated delivery within three months on employee.children) or while raising a child under 12 months, unless she agrees (day.overtime_consented, the sheet’s per-day consent: owner ruling, consent is per day). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "dc5dc404-6762-5fe7-8e89-6f870b602db6",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_UNDER_13",
+		"name": "ROSTER_UNDER_13",
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "employee_number",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && double(age_on(employee.date_of_birth, day.date)) < 13.0 && !(has(terms.facts.child_arts_sports_approved) && terms.facts.child_arts_sports_approved == true)",
+			"message": "a child under 13 may not be employed except in arts or sports work the provincial labour authority approved (Labour Code art.145(3)): remove the day or record the approval.",
+			"description": "a child under 13 may not be employed except in arts or sports work the provincial labour authority approved (Labour Code art.145(3)): remove the day or record the approval.",
+			"authority": "Labour Code 2019 art.145(3): the employer may not recruit or use a person under 13, except in arts, physical training or sports work that does not harm the child, with the provincial labour authority’s consent (term fact child_arts_sports_approved). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+		}
+	},
+	{
+		"id": "8397ae71-3dc8-4690-b28f-bcd2184dd1fc",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "FOREIGN_EXIT_PIT_FINALISATION",
+		"family": "TASKS",
+		"code": "FOREIGN_EXIT_PIT_FINALISATION",
+		"rules": {
+			"description": "A foreign resident ending the assignment finalises PIT before leaving Vietnam, directly or by authorising the employer.",
+			"authority": "Decree 253/2026/NĐ-CP art.50(3)(c): a foreign resident whose contract ends finalises with the tax authority before leaving or authorises an organisation to finalise and answer for it. https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf p.38",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "!(employee.nationality == \"\" || employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "6179e883-279d-4810-97b5-31c0a2a12634",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"scope": "JURISDICTION",
+		"name": "OSH_INDUCTION_TRAINING",
+		"family": "TASKS",
+		"code": "OSH_INDUCTION_TRAINING",
+		"rules": {
+			"description": "Train a new worker in occupational safety and hygiene before assigning the work.",
+			"authority": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.14(2)–(3): the employer trains workers in OSH on recruitment and before assigning a job; Decree 44/2016/NĐ-CP.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "16d88484-c41c-5b79-876f-c4004ba8ab6e",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "record_retention",
+		"name": "Record retention after exit",
+		"rules": {
+			"until": "add_years(employment.exit_date.substring(0, 4) + \"-12-31\", 10)",
+			"description": "Payroll sheets, timesheets and the other accounting documents of the exit year are kept at least 10 years from the end of that accounting (calendar) year — the longest retention after exit; SI, PIT and labour records are within it. A former employee may be anonymised only after it.",
+			"authority": "Accounting Law 88/2015/QH13 art.41(5)(b); Decree 174/2016/NĐ-CP art.12; Law on Personal Data Protection 91/2025/QH15 art.25(2)(b)–(c)"
+		}
+	},
+	{
+		"id": "969ec0c2-a0d9-5905-a1b2-70c83604c639",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"rules": {
+			"description": "Delete or destroy a former employee's personal data once the statutory retention ends (anonymise the profile: employment_profile.anonymise), unless an agreement provides otherwise. Raised on the exit; due on the record_retention date (10 years after the exit year ends).",
+			"authority": "Law on Personal Data Protection 91/2025/QH15 art.25(2)(b)–(c) (https://bocongan.gov.vn/media/bca-media/photo-library/20250728100402_a4c3955c-ea1d-48a0-9998-c262b14864af-Lu%E1%BA%ADt-B%E1%BA%A3o-v%E1%BB%87-d%E1%BB%AF-li%E1%BB%87u-c%C3%A1-nh%C3%A2n.pdf); Accounting Law 88/2015/QH13 art.41(5)(b)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 10)"
+		}
+	},
+	{
+		"id": "902b7899-bd30-572b-9e1c-569b1dcb68d2",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			]
+		}
+	},
+	{
+		"id": "08b0578c-5c92-55b6-ba93-43a3808c1b3f",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				},
+				{
+					"code": "DOUBLE_HOLIDAY",
+					"name": "Two public holidays on one day"
+				}
+			]
+		}
+	},
+	{
+		"id": "1c05e605-2cf3-5125-8285-cf91d0fe442a",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "SI_HI_UI_CHANGE_LIST",
+		"name": "Danh sách tham gia, điều chỉnh đóng BHXH, BHYT, BHTN (Mẫu D02-LT)",
+		"rules": {
+			"description": "Part B of the D02-LT list (columns A, B and 1–19) for the selected run’s month: a row for each SI participant hired in the month (Tăng lao động, from the month when the month is charged, else the next), each contract term starting in the month after the first (Điều chỉnh tiền lương, from the month) and each exit in the month (Giảm lao động do nghỉ việc, from the next month when the month is charged, else the month; the termination date in column 19). Column 4 is the term’s base salary, column 9 the allowances of the SI salary (the SI assessment’s), columns 10–12 the contract type. Columns 5–8 (state pay scale) are left empty. Customer input: employee facts si_number (column 1, empty for a first registration: VSS issues it) and hi_registered_facility (column 16), entity fact vss_result_delivery (column 17). Outside compulsory SI (a pensioner, a domestic worker, a contract under one month) is not listed. Part A (the unit) is the VSS registration. A month the SI rule did not charge (14 or more unpaid, sick or maternity working days, Law 41/2024 art.33(5), or a maternity month, art.53(8)) with the slip’s leave of those classes (slips[].leave) is listed as a reduction for that month only (columns 14 and 15 the month: the guide’s “từ tháng … đến tháng”, so participation resumes the next month unless the next month’s list reduces it again), its reason by the class with the most days — Giảm do nghỉ thai sản (maternity, miscarriage, prenatal, contraception, paternity), Giảm do nghỉ ốm đau (sick, child sick care, convalescence) or Giảm do nghỉ không hưởng lương (unpaid, unpaid bereavement, a stoppage by the worker’s fault) — and each leave’s dates in column 19 (the guide: “ghi rõ thời gian nghỉ … vào cột 19”). The hire and exit months keep their own rows (VN-OBLIGATION-52). The unpaid-leave reduction (Giảm do nghỉ không hưởng lương) stops BHXH and BHTN only: health insurance stays charged on the payslip, and column 19 says so (“BHYT tiếp tục đóng”). Decision 366/QĐ-BHXH Điều 4(2)(b) leaves the contribution to Law 41/2024 arts.33–34 and the HI Law arts.13, 15; Law 41/2024 art.33(5) waives only SI for 14 or more unpaid working days, and neither the HI Law as amended by Law 51/2024 nor Decree 188/2025 arts.6–8 (signed scan pp.6–12, read 2026-10-08) waives HI for unpaid days — HI moves to the fund only for 14 or more sickness or maternity days (HI Law art.12(2)(b)), so those reductions cover all three.",
+			"authority": "Quyết định 366/QĐ-BHXH ngày 29/4/2026 (Quy trình thu BHXH, BHYT, BHTN; cấp sổ BHXH, thẻ BHYT; in force 01/5/2026, replacing Quyết định 595/QĐ-BHXH and its amendments, art.2), Phụ lục danh mục biểu mẫu item 6 (D02-LT) with the template “3. Mau D02-LT.xlsx” and its guide “3a. HD Mau D02-LT.docx”, read 2026-10-08 https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx?ItemID=5018 (files https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/BHXHVN_366-QD-BHXH_2942026.pdf and https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/Mau%20bieu.rar); Law 41/2024/QH15 arts.28(1), 33(5), 53(8).",
+			"file": "\"D02-LT-\" + runs[0].period.substring(0, 7) + \".csv\"",
+			"applies_when": "generated_at >= \"2026-05-01\"",
+			"when": "size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && !(has(employee.receiving_pension) && employee.receiving_pension == true) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && int(double(t.facts.agreed_term_months)) < 1))",
+			"columns": [
+				{
+					"header": "STT",
+					"value": "\"\""
+				},
+				{
+					"header": "Họ và tên",
+					"value": "\"\""
+				},
+				{
+					"header": "Mã số BHXH",
+					"value": "\"\""
+				},
+				{
+					"header": "Ngày/ tháng/ năm sinh",
+					"value": "\"\""
+				},
+				{
+					"header": "Chức vụ, chức danh nghề, nghề nghiệp, nơi làm việc",
+					"value": "\"\""
+				},
+				{
+					"header": "Hệ số lương/ Tiền lương",
+					"value": "\"\""
+				},
+				{
+					"header": "Hệ số chênh lệch bảo lưu",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp chức vụ",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp thâm niên VK (%)",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp thâm niên nghề (%)",
+					"value": "\"\""
+				},
+				{
+					"header": "Các khoản phụ cấp lương và thu nhập bổ sung",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: Không xác định thời hạn",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: Xác định thời hạn",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: HĐ, thỏa thuận khác",
+					"value": "\"\""
+				},
+				{
+					"header": "Ngày Quyết định, HĐLĐ, HĐLV có hiệu lực",
+					"value": "\"\""
+				},
+				{
+					"header": "Từ tháng/ năm",
+					"value": "\"\""
+				},
+				{
+					"header": "Đến tháng/ năm",
+					"value": "\"\""
+				},
+				{
+					"header": "Nơi đăng ký KCB ban đầu",
+					"value": "\"\""
+				},
+				{
+					"header": "Hình thức nhận kết quả",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại tăng, giảm, điều chỉnh",
+					"value": "\"\""
+				},
+				{
+					"header": "Ghi chú",
+					"value": "\"\""
+				}
+			],
+			"records": [
+				{
+					"each": "((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")))) > 0 ? [{\"kind\": \"Tăng lao động\", \"date\": (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\"), \"from\": (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee > 0.0) ? runs[0].period.substring(0, 7) : add_months(runs[0].period.substring(0, 7) + \"-01\", 1).substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")))[0], \"note\": \"\"}] : []) + (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 7) == runs[0].period.substring(0, 7) && string(t.effective_range.from).substring(0, 10) != (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")).map(t, {\"kind\": \"Điều chỉnh tiền lương\", \"date\": string(t.effective_range.from).substring(0, 10), \"from\": runs[0].period.substring(0, 7), \"term\": t, \"note\": \"\"}) + ((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\")))) > 0 ? [{\"kind\": \"Giảm lao động do nghỉ việc\", \"date\": \"\", \"from\": (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee > 0.0) ? add_months(runs[0].period.substring(0, 7) + \"-01\", 1).substring(0, 7) : runs[0].period.substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\")))[0], \"note\": \"Ngày chấm dứt HĐLĐ: \" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(8, 10) + \"/\" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(5, 7) + \"/\" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 4)}] : []) + (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee == 0.0 && slips[size(slips) - 1].statutory.SI.base > 0.0 && size((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"])) > 0 && !((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7)) && !((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7)) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))) > 0 ? [{\"kind\": (double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) > 0.0 && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"]).map(l, double(l.days)))) ? \"Giảm do nghỉ thai sản\" : (double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) > 0.0 && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"]).map(l, double(l.days)))) ? \"Giảm do nghỉ ốm đau\" : \"Giảm do nghỉ không hưởng lương\")), \"date\": \"\", \"from\": runs[0].period.substring(0, 7), \"to\": runs[0].period.substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))[size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))) - 1], \"note\": (\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, \"Nghỉ \" + (l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"] ? \"thai sản\" : (l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] ? \"ốm đau\" : \"không hưởng lương\")) + \" từ \" + (l.from == null ? \"\" : string(l.from).substring(0, 10).substring(8, 10) + \"/\" + string(l.from).substring(0, 10).substring(5, 7) + \"/\" + string(l.from).substring(0, 10).substring(0, 4)) + \" đến \" + (l.to == null ? \"\" : string(l.to).substring(0, 10).substring(8, 10) + \"/\" + string(l.to).substring(0, 10).substring(5, 7) + \"/\" + string(l.to).substring(0, 10).substring(0, 4))).join(\"; \")}] : [])",
+					"fields": [
+						{
+							"header": "STT",
+							"value": "string(index)"
+						},
+						{
+							"header": "Họ và tên",
+							"value": "employee.name"
+						},
+						{
+							"header": "Mã số BHXH",
+							"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.si_number) ? employee.facts.si_number : \"\")"
+						},
+						{
+							"header": "Ngày/ tháng/ năm sinh",
+							"value": "(has(employee.date_of_birth) && employee.date_of_birth != null ? string(employee.date_of_birth).substring(8, 10) + \"/\" + string(employee.date_of_birth).substring(5, 7) + \"/\" + string(employee.date_of_birth).substring(0, 4) : \"\")"
+						},
+						{
+							"header": "Chức vụ, chức danh nghề, nghề nghiệp, nơi làm việc",
+							"value": "(has(item.term.job_title) ? item.term.job_title : \"\")"
+						},
+						{
+							"header": "Hệ số lương/ Tiền lương",
+							"value": "(has(item.term.base_salary) && has(item.term.base_salary.value) ? double(item.term.base_salary.value) : 0.0)"
+						},
+						{
+							"header": "Hệ số chênh lệch bảo lưu",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp chức vụ",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp thâm niên VK (%)",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp thâm niên nghề (%)",
+							"value": "\"\""
+						},
+						{
+							"header": "Các khoản phụ cấp lương và thu nhập bổ sung",
+							"value": "(has(item.term.allowances) ? double(sum(item.term.allowances.filter(a, !(a.code in [\"MEAL_ALLOWANCE\", \"HOUSING\", \"INSURANCE_EQUIVALENT\"])).map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0))) : 0.0)"
+						},
+						{
+							"header": "Loại HĐLĐ: Không xác định thời hạn",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"INDEFINITE\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Loại HĐLĐ: Xác định thời hạn",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"FIXED\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Loại HĐLĐ: HĐ, thỏa thuận khác",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"OTHER\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Ngày Quyết định, HĐLĐ, HĐLV có hiệu lực",
+							"value": "item.date == \"\" ? \"\" : item.date.substring(8, 10) + \"/\" + item.date.substring(5, 7) + \"/\" + item.date.substring(0, 4)"
+						},
+						{
+							"header": "Từ tháng/ năm",
+							"value": "item.from.substring(5, 7) + \"/\" + item.from.substring(0, 4)"
+						},
+						{
+							"header": "Đến tháng/ năm",
+							"value": "has(item.to) ? item.to.substring(5, 7) + \"/\" + item.to.substring(0, 4) : \"\""
+						},
+						{
+							"header": "Nơi đăng ký KCB ban đầu",
+							"value": "item.kind == \"Tăng lao động\" ? (has(employee.facts) && employee.facts != null && has(employee.facts.hi_registered_facility) ? employee.facts.hi_registered_facility : \"\") : \"\""
+						},
+						{
+							"header": "Hình thức nhận kết quả",
+							"value": "(has(company.facts) && company.facts != null && has(company.facts.vss_result_delivery) ? company.facts.vss_result_delivery : \"\") == \"PAPER\" ? \"Bản giấy\" : ((has(company.facts) && company.facts != null && has(company.facts.vss_result_delivery) ? company.facts.vss_result_delivery : \"\") == \"ELECTRONIC\" ? \"Bản điện tử\" : \"\")"
+						},
+						{
+							"header": "Loại tăng, giảm, điều chỉnh",
+							"value": "item.kind"
+						},
+						{
+							"header": "Ghi chú",
+							"value": "item.note + (item.kind == \"Giảm do nghỉ không hưởng lương\" ? \"; BHYT tiếp tục đóng\" : \"\")"
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"id": "4ab4832c-12e1-5b33-9ba7-d0d3fbfb029f",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "PIT_FINALISATION_SCHEDULE",
+		"name": "Bảng kê chi tiết cá nhân thuộc diện tính thuế theo biểu lũy tiến từng phần (Mẫu 05-1/BK-QTT-TNCN)",
+		"rules": {
+			"description": "The first table of 05-1/BK-QTT-TNCN (indicators [06]–[25]) over the selected runs of one 2026 tax year, made only when the selection reaches the year end (a December run: the annual finalisation selection; a month alone is not a finalisation): a row per resident employee taxed on the progressive table (not a non-resident, a SERVICE engagement or a contract under three months: those are 05-2/BK-QTT-TNCN). [12] is the PIT assessed base, [16] the family deductions (15,500,000 a month for the taxpayer and 6,200,000 per dependant month: twelve months for an employee who authorised the finalisation, else the months paid; dependants by registration month when recorded), [18] the employee SI, HI and UI, [19] the voluntary pension election capped at 1,000,000 a month before July 2026 and 3,000,000 after (employer pension parts in the wage are not on the export rows), [20] = [12] − [16] − [18] − [19], [21] the PIT withheld. [22]–[25] (the finalisation on the employee’s behalf, the 2026 annual table of the Law on PIT 109/2025/QH15) only for an employee who authorised it (finalisation_authorised, [10]); [25] ticks a remaining tax of 50,000 or less, as the form defines it. [09] carries identity_number ([08] is left for the tax code the tax client holds); [11], [13], [14] and [17] are empty (no such income or donation is recorded). The transferred-employee and exempt-income tables and the Tổng row are the tax software’s.",
+			"authority": "Thông tư 89/2026/TT-BTC ngày 30/6/2026 Phụ lục I mục 7.1 (05-1/BK-QTT-TNCN with 05/QTT-TNCN) and Phụ lục II mẫu 05-1/BK-QTT-TNCN (signed scan pp.315–317, read visually 2026-10-08), art.99(1) in force 01/7/2026 and art.100(1): tax periods before 1 July 2026 keep the earlier forms https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf; Decree 253/2026/NĐ-CP arts.51, 68.",
+			"file": "\"05-1-BK-QTT-TNCN-\" + runs[0].period.substring(0, 4) + \".csv\"",
+			"applies_when": "size(runs) > 0 && runs[0].period.substring(0, 4) >= \"2026\" && runs.all(r, r.period.substring(0, 4) == runs[0].period.substring(0, 4)) && runs.exists(r, r.period.substring(5, 7) == \"12\")",
+			"when": "\"PIT\" in totals.statutory && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : [])) > 0 && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.residency_status) && t.residency_status == \"NON_RESIDENT\") && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.employment_type) && t.employment_type == \"SERVICE\") && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && int(double(t.facts.agreed_term_months)) < 3)",
+			"columns": [
+				{
+					"header": "[06] STT",
+					"value": "index"
+				},
+				{
+					"header": "[07] Họ và tên",
+					"value": "employee.name"
+				},
+				{
+					"header": "[08] Mã số thuế",
+					"value": "\"\""
+				},
+				{
+					"header": "[09] Số ĐDCN/Hộ chiếu",
+					"value": "(has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\")"
+				},
+				{
+					"header": "[10] Cá nhân ủy quyền quyết toán thay",
+					"value": "((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? \"x\" : \"\""
+				},
+				{
+					"header": "[11] CN nước ngoài ủy quyền quyết toán dưới 12 tháng",
+					"value": "\"\""
+				},
+				{
+					"header": "[12] Tổng thu nhập chịu thuế phát sinh trong kỳ",
+					"value": "(\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0)"
+				},
+				{
+					"header": "[13] TNCT được miễn theo Hiệp định",
+					"value": "\"\""
+				},
+				{
+					"header": "[14] TNCT được miễn theo Hợp đồng dầu khí",
+					"value": "\"\""
+				},
+				{
+					"header": "[15] Số lượng NPT tính giảm trừ",
+					"value": "size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) : int(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)))"
+				},
+				{
+					"header": "[16] Tổng số tiền giảm trừ gia cảnh",
+					"value": "(15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips)))))"
+				},
+				{
+					"header": "[17] Từ thiện, nhân đạo, khuyến học",
+					"value": "\"\""
+				},
+				{
+					"header": "[18] Bảo hiểm được trừ",
+					"value": "((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0))"
+				},
+				{
+					"header": "[19] Quỹ hưu trí tự nguyện được trừ",
+					"value": "double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))"
+				},
+				{
+					"header": "[20] Thu nhập tính thuế",
+					"value": "max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0)))))"
+				},
+				{
+					"header": "[21] Tổng số thuế TNCN đã khấu trừ",
+					"value": "(\"PIT\" in totals.statutory ? totals.statutory.PIT.employee : 0.0)"
+				},
+				{
+					"header": "[22] Tổng số thuế phải nộp",
+					"value": "((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? string(round(ladder(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))), [[120000000.0, 0.05], [360000000.0, 0.10], [720000000.0, 0.20], [1200000000.0, 0.30], [null, 0.35]]), 1.0, \"HALF_UP\")) : \"\""
+				},
+				{
+					"header": "[23] Số thuế đã nộp thừa",
+					"value": "((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? string(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.employee : 0.0) - round(ladder(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))), [[120000000.0, 0.05], [360000000.0, 0.10], [720000000.0, 0.20], [1200000000.0, 0.30], [null, 0.35]]), 1.0, \"HALF_UP\"))) : \"\""
+				},
+				{
+					"header": "[24] Số thuế còn phải nộp",
+					"value": "((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? string(max(0.0, round(ladder(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))), [[120000000.0, 0.05], [360000000.0, 0.10], [720000000.0, 0.20], [1200000000.0, 0.30], [null, 0.35]]), 1.0, \"HALF_UP\") - (\"PIT\" in totals.statutory ? totals.statutory.PIT.employee : 0.0))) : \"\""
+				},
+				{
+					"header": "[25] Số thuế được miễn (còn phải nộp từ 50.000 đồng trở xuống)",
+					"value": "((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) && round(ladder(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))), [[120000000.0, 0.05], [360000000.0, 0.10], [720000000.0, 0.20], [1200000000.0, 0.30], [null, 0.35]]), 1.0, \"HALF_UP\") - (\"PIT\" in totals.statutory ? totals.statutory.PIT.employee : 0.0) > 0.0 && round(ladder(max(0.0, (\"PIT\" in totals.statutory ? totals.statutory.PIT.base : 0.0) - (15500000.0 * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))) + 6200000.0 * (size(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : [])) > 0 ? double(sum(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants_registered_from)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants_registered_from))[0].status.elections.dependants_registered_from : []).map(s, ((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? (s < runs[0].period.substring(0, 4) + \"-01\" ? 12 : 13 - int(s.substring(5, 7))) : size(slips.filter(x, x.period.substring(0, 7) >= s))))) : double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.dependants)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.dependants))[0].status.elections.dependants : 0)) * (((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.finalisation_authorised) && f.status.elections.finalisation_authorised == true)) ? 12.0 : double(size(slips))))) - ((\"SI\" in totals.statutory ? totals.statutory.SI.employee : 0.0) + (\"HI\" in totals.statutory ? totals.statutory.HI.employee : 0.0) + (\"UI\" in totals.statutory ? totals.statutory.UI.employee : 0.0)) - double(sum(slips.map(s, min(double(((has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).exists(f, has(f.status.elections.voluntary_pension_contribution)) ? (has(employee.facts) && employee.facts != null && has(employee.facts.employment_statutory_facts) ? employee.facts.employment_statutory_facts.filter(f, has(f.status) && has(f.status.elections)) : []).filter(f, has(f.status.elections.voluntary_pension_contribution))[0].status.elections.voluntary_pension_contribution : 0)), 3000000.0))))), [[120000000.0, 0.05], [360000000.0, 0.10], [720000000.0, 0.20], [1200000000.0, 0.30], [null, 0.35]]), 1.0, \"HALF_UP\") - (\"PIT\" in totals.statutory ? totals.statutory.PIT.employee : 0.0) <= 50000.0 ? \"x\" : \"\""
+				}
+			]
 		}
 	}
 ]

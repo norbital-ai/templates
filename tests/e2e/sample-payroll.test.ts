@@ -50,7 +50,53 @@ it.skipIf(!sample)(
 				),
 				String(entity.name)
 			).toBe(true);
+		// the amounts are money in the raising version's payroll currency
+		expect(obligations.filter((row) => row.currency == null)).toEqual([]);
 		const tasks = (await hr.read('regulatory_task', { all: true })).rows;
 		expect(tasks.some((row) => row.subject_collection === 'payroll_run')).toBe(true);
+	}
+);
+
+it.skipIf(!sample)(
+	'an ad hoc entry takes its company from the employment and an off-cycle run pays it',
+	{ timeout: 600_000 },
+	async () => {
+		const t = await workspace({ sample: true, now: '2026-02-10T04:00:00.000Z' });
+		const hr = t.as(t.member(['hr_manager']));
+		const [entity] = (
+			await hr.read('entity', { where: { settings_code: { eq: 'MY' } }, all: true })
+		).rows;
+		// a bank employment in force through January 2026
+		const [contract] = (
+			await hr.read('employment_contract', {
+				where: { company_id: { eq: String(entity!.id) }, employee_number: { eq: 'NHPMY0191' } },
+				limit: 1
+			})
+		).rows;
+		// any lineage's BONUS row: admission pins the entry to the class of the version in force on its day
+		const [bonus] = (await hr.read('adhoc_catalog', { where: { code: { eq: 'BONUS' } }, limit: 1 }))
+			.rows;
+		const created = await hr.act('adhoc_catalog_entry.create', {
+			catalog_id: String(bonus!.id),
+			employment_id: String(contract!.id),
+			occurred_on: '2026-01-25',
+			amount: '5000.00'
+		});
+		expect(created.kind, JSON.stringify(created)).toBe('committed');
+		const entryId =
+			created.kind === 'committed'
+				? created.records.find((row) => row.collection === 'adhoc_catalog_entry')?.id
+				: undefined;
+		const [entry] = (
+			await hr.read('adhoc_catalog_entry', { where: { id: { eq: String(entryId) } }, all: true })
+		).rows;
+		expect(entry?.company_id).toBe(entity!.id);
+		const run = await hr.act('payroll_run.create', {
+			company_id: entity!.id,
+			period: '2026-01',
+			kind: 'OFF_CYCLE',
+			sources: [String(entryId)]
+		});
+		expect(run.kind, JSON.stringify(run)).toBe('committed');
 	}
 );

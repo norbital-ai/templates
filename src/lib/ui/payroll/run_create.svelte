@@ -10,42 +10,41 @@
 	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { live, liveRows } from '../state/live.svelte.js';
 	import { todayKey } from '../format/calendar.js';
-	import { formatNumeric } from '../format/display_formatters.js';
+	import { versionMoney } from '../format/version_money.svelte.js';
 	import { moneyNumber } from '../../payroll_engine/foundation.js';
+	import { periodOptions } from './pay_periods.js';
 	import * as Predicate from 'effect/Predicate';
 
 	let { companyId, open = $bindable(false) }: { companyId: Id<'entity'>; open?: boolean } =
 		$props();
 
-	const entity = live(() => bolt.get('entity', companyId, { pay_frequency: true }));
-	/** The periods the entity's own projection offers, twelve back from now: its pay frequency decides the shape. */
-	const periods = $derived.by(() => {
-		const [year, month] = todayKey().split('-').map(Number);
-		const frequency = entity.current?.pay_frequency ?? 'MONTHLY';
-		const out: { value: string; label: string }[] = [];
-		for (let back = 0; back < 12; back++) {
-			const stamp = new Date(Date.UTC(year!, month! - 1 - back, 1));
-			const key = `${stamp.getUTCFullYear()}-${String(stamp.getUTCMonth() + 1).padStart(2, '0')}`;
-			const label = stamp.toLocaleDateString(undefined, {
+	const entity = live(() =>
+		bolt.get('entity', companyId, {
+			pay_frequency: true,
+			pay_frequency_changes: true,
+			settings_code: true
+		})
+	);
+	const money = versionMoney(() => {
+		const lineage = entity.current?.settings_code;
+		return lineage == null || lineage === '' ? null : { lineage };
+	});
+	/** The periods the entity's schedule offers, twelve months back from now (a daily entity: its days), each paid at
+	 * the frequency in force on its days (`periodsIn`): a month that switches offers both frequencies' own. */
+	const periods = $derived.by(() =>
+		periodOptions(entity.current ?? {}, todayKey()).map((period) => {
+			const label = new Date(`${period.from}T00:00:00Z`).toLocaleDateString(undefined, {
 				month: 'long',
 				year: 'numeric',
 				timeZone: 'UTC'
 			});
-			if (frequency === 'SEMI_MONTHLY')
-				out.push(
-					{ value: `${key}-1`, label: `${label} · 1` },
-					{ value: `${key}-2`, label: `${label} · 2` }
-				);
-			else if (frequency === 'TEN_DAY')
-				out.push(
-					{ value: `${key}-1`, label: `${label} · 1` },
-					{ value: `${key}-2`, label: `${label} · 2` },
-					{ value: `${key}-3`, label: `${label} · 3` }
-				);
-			else out.push({ value: key, label });
-		}
-		return out;
-	});
+			return {
+				value: period.key,
+				label: period.key.length === 7 ? label : `${label} · ${period.key.slice(8)}`,
+				description: `${period.frequency} · ${period.from} – ${period.to}`
+			};
+		})
+	);
 
 	const openEntryRead = () =>
 		({
@@ -90,12 +89,7 @@
 			id: row.id,
 			person,
 			item: itemName,
-			label: [
-				person,
-				itemName,
-				String(row.occurred_on),
-				amount == null ? null : formatNumeric(amount)
-			]
+			label: [person, itemName, String(row.occurred_on), amount == null ? null : money(amount)]
 				.filter((part) => part != null && part !== '')
 				.join(' · ')
 		};

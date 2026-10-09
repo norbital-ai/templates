@@ -10,5 +10,17 @@
 		"counts_toward": ["SSO", "WCF", "PND1", "EWF"],
 		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
 		"authority": "Labour Protection Act B.E. 2541 (1998) s.5 and Social Security Act B.E. 2533 (1990) s.5: a fixed allowance paid every month for work in normal time is wage, so it enters the SSO and WCF bases; employment income under Revenue Code s.40(1)."
+	},
+	{
+		"id": "ddb36d14-d310-5638-87ac-2f920bea851e",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "BENEFIT_IN_KIND",
+		"name": "Benefit in kind (housing, car, employer-paid tax)",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PND1"],
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
+		"authority": "Revenue Code ss.39, 40(1): income from employment includes money's worth and \"other benefits\" the employer provides — free housing, a car, and the income tax the employer pays for the employee. The monthly value (and for borne tax, the tax borne) enters the PND1 base without being paid; not SSO or WCF wage. The gross-up of a borne tax repeats by the next month's amount."
 	}
 ]

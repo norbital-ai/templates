@@ -6,8 +6,7 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { toast } from 'svelte-sonner';
-	import { Button, DateInput, Label, Sheet, Textarea } from '@norbital-ai/ui';
+	import { Button, DateInput, Label, Sheet, Textarea, toast } from '@norbital-ai/ui';
 	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { t } from '../../../lib/ui/i18n/t.js';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';

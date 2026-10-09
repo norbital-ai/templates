@@ -1,0 +1,12 @@
+[
+	{
+		"id": "657a872f-e4d2-545d-9f0c-1e7f2799e4ab",
+		"settings_id": "fc4a2bdc-a8bf-56c4-ada0-2eaad013b28c",
+		"code": "WELFARE_LOAN",
+		"name": "Welfare or savings loan repayment",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"bands": []
+	}
+]

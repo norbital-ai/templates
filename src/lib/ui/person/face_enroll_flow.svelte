@@ -8,8 +8,8 @@
 	import { bolt } from '$bolt';
 	import { Button, Icon, Spinner, useKinds } from '@norbital-ai/ui';
 	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { KIOSK_LOOP_MS } from '../../../app/kiosk/config.js';
-	import { meanEmbedding } from '../../../app/kiosk/embed.js';
+	import { KIOSK_LOOP_MS } from '../../../kiosk/attendance/config.js';
+	import { meanEmbedding } from '../../../kiosk/attendance/embed.js';
 	import {
 		createAnalyseCanvas,
 		drawVideoFrame,
@@ -20,7 +20,7 @@
 		openCamera,
 		closeCamera,
 		warmFaceEngine
-	} from '../../../app/kiosk/face.js';
+	} from '../../../kiosk/attendance/face.js';
 	import {
 		GUIDED_POSES,
 		guidedCaptureComplete,
@@ -30,10 +30,10 @@
 		targetPose,
 		type GuidedPose
 	} from './guided_capture.js';
-	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../../app/kiosk/phrases.js';
-	import type { KioskSample } from '../../../app/kiosk/sample.js';
-	import { readKioskSettings } from '../../../app/kiosk/settings.js';
-	import { browserNarratorPlatform, createKioskNarrator } from '../../../app/kiosk/voice.js';
+	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../../kiosk/attendance/phrases.js';
+	import type { KioskSample } from '../../../kiosk/attendance/sample.js';
+	import { readKioskSettings } from '../../../kiosk/attendance/settings.js';
+	import { browserNarratorPlatform, createKioskNarrator } from '../../../kiosk/attendance/voice.js';
 	import { getErrorMessage } from '../../payroll_engine/foundation.js';
 
 	/**

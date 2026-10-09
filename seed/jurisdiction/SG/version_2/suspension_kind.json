@@ -1,0 +1,52 @@
+[
+	{
+		"id": "d6c406b3-4092-536b-98f0-78ee1c3c8a3e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Employer shutdown or temporary closure",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A shutdown or temporary closure by the employer is not the employee’s absence: the day counts as attended and the monthly salary is paid whole."
+	},
+	{
+		"id": "2686f946-361d-55bf-ac9a-401e05ca4f1f",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "LOCKOUT",
+		"name": "Lockout by the employer",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A lockout keeps the employee from work by the employer’s act: attended, salary whole."
+	},
+	{
+		"id": "2de27a3c-0180-5ada-a05f-c12f9e02cf76",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "GOVERNMENT_ORDER",
+		"name": "Government order closing the workplace",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. Workplace Safety and Health Act 2006 s.21 (https://sso.agc.gov.sg/Act/WSHA2006?ProvIds=pr21-): a stop-work order ceases the work, not the contract; for a work-pass holder the declared fixed salary stays payable (EFM (Work Passes) Regulations 2012 Fourth Schedule)."
+	},
+	{
+		"id": "f42462ce-0334-5b8d-850a-e23cbb70c940",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "NATURAL_DISASTER",
+		"name": "Natural disaster or force majeure closure",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A workplace closed by a natural disaster or other force majeure is not the employee’s absence; Singapore has no statutory shutdown allowance. An employee who cannot reach an open workplace is absent (NO_PAY_LEAVE)."
+	},
+	{
+		"id": "d5e98e02-56eb-5fde-b2d4-32a152e36209",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "STRIKE",
+		"name": "Strike",
+		"counts_as_attended": "false",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A striking employee is absent from work: the day is not attended and the employer may deduct for it under s.28(2) through a NO_PAY_LEAVE entry; there is no suspension pay."
+	}
+]

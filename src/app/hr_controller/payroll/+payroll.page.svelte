@@ -57,7 +57,7 @@
 							run: exportPayroll,
 							requiresSelection: true,
 							icon: 'lucide:download',
-							label: bolt.t('app.payroll.export'),
+							name: bolt.t('app.payroll.export'),
 							description: bolt.t('app.payroll.export_description')
 						}
 					]

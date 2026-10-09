@@ -117,7 +117,7 @@
 					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.075, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.075 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.125, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
 				}
 			],
-			"limitation": "The age band is the age at the end of the previous month, so a band changes the month after the birthday. SPR years one and two use the graduated employer and graduated employee rates (Tables 2–3); full-rate elections approved by the CPF Board are not applied."
+			"limitation": "The age band is the age at the end of the previous month, so a band changes the month after the birthday. SPR years one and two use the graduated employer and graduated employee rates (Tables 2–3); an SPR jointly or employer-only elected to full rates pays Table 1 or Tables 4–5 from the standing’s elections."
 		}
 	},
 	{
@@ -176,11 +176,11 @@
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
 		"code": "SINDA",
 		"name": "Singapore Indian Development Association Fund",
-		"authority": "CPF Board self-help group contribution schedule: Singapore Indian Development Association Fund. Monthly employee-borne wage-band deductions apply to every employee of the Indian community, whatever the residency or pass: CPF Act 1953 s.76(3) requires the deduction from “an employee who belongs to that community”, s.2 “employee” is any person employed in Singapore, and SINDA Rules 1992 r.2 (unlike CDAC Rules r.2, which confines the Chinese community to citizens and permanent residents) sets no residency condition. The CPF Board’s narrower list (citizens, SPRs, Employment Pass holders) is guidance the Rules do not carry. A dual election records SINDA as a second fund for an employee of Indian descent whose first NRIC race selects another fund. The Indian community is the one CPF (Contributions to Community Fund — SINDA) Rules 1992 r.2 defines: “every person of Indian descent and includes Bangladeshis, Bengalis, Gujaratis, Parsees, Sikhs, Sinhalese, Telegus, Pakistanis, Sri Lankans, Goanese, Malayalees, Punjabis, Sindhis and Tamils” (read on sso.agc.gov.sg, current version as at 28 Sep 2026), so each of those NRIC races is read as SINDA’s, not only INDIAN. NRIC races are read in the spelling of the ICA-sourced Myinfo RaceCode list (Myinfo API code tables, public.cloud.myinfo.gov.sg, v1.11, read 2026-09-28): TELUGU and GOAN beside the Rules' Telegus and Goanese; CEYLONESE and CEYLON MOOR as Sri Lankans; and, by the Rules' \"every person of Indian descent\", OTHER INDIAN, MALABARI, MARATHI, MAHRATTA, HINDUSTANI, BRAHMIN, RAJPUT, ASSAMI, MANIPURI and KHASI (peoples whose origin lies wholly within India, Pakistan, Bangladesh or Sri Lanka). A single mixed-descent code goes to the fund of its first-named descent (the Board's first-race rule), so SINO INDIAN is CDAC's and ANGLO INDIAN ECF's, and a dual election adds SINDA; codes of wider origin (NEPALESE, GURKHA, BHUTANESE, MALDIVIAN, PATHAN, NAGA, AFGHAN) are not read as SINDA's. The base includes cash wage allowances, overtime and leave encashment, less unpaid absence; official expense reimbursements are excluded. The published wage band applies unless a dated fund instruction records an opt-out or a different monthly amount. Explicit zero is distinct from no instruction. The instruction reference is required; MBMF changes use the approved total after any component changes. CPF Board: https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups . SINDA instructions remain valid only with the same employer: https://www.sinda.org.sg/donate/sindafundcontribution/ . An incomplete registration does not waive the statutory or fund contribution for an otherwise covered worker; assess the declared liability and retain the registration warning. Source interpretation: the CPF Board list is guidance the Rules do not carry, so the Rules govern — an S Pass, Work Permit or unclassified foreign-pass holder of the Indian community is deducted under r.2 on the same wage bands as any other employee of that community, and the earlier refusal of that class is withdrawn. CPF Board internship FAQ (read 3 October 2026): MOE-subsidised student internships endorsed by the institution, including endorsed extensions, are exempt; retain institution documentation. Exemption Order 2018 para.2 exempts Schedule student employees from both CPF s.7 and community funds s.76(3). This bounded branch requires evidence and an approved interval covering the entire assessment period. Partial-period and other Schedule classes are not inferred. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-interns-undergoing-an-internship-programme ; https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251217 . CPF Exemption Order2018 para5 after31May2026: citizen seaman under current qualifying contract entered and employment begun before1June2026 is exempt from CPF s7 and all community-fund s76(3) contributions. Exact classes: Swedish ship on Swedish-seamen terms, Norwegian ship on Norwegian-seamen terms, or East Asiatic Co Ltd Denmark under Danish Shipowners Association/Seamen Union agreement. Prior-connected-contract continuation is not inferred from a seaman title. https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251230 (S325/2026, retrieved2026-10-03). CPF Exemption Order2018 para4 (S325/2026): only private domestic household employment by an individual, exclusively domestic and unconnected to any trade/business/profession; citizen/SPR, qualifying pre-June current contract, its applicable pre-June hours test and every rolling7-day window in the charged calendar month <=14hours. Saved daily records, including explicit zero-hour dates, supply actual hours; missing dates cannot establish exemption. Prior connected contracts are not inferred. https://sso.agc.gov.sg/SL/CPFA1953-OR10 (retrieved2026-10-03). SINDA applies to Singapore Citizens, SPRs and Employment Pass holders of Indian descent (CPF Board, Contributions to self-help groups, read 2026-10-07).",
+		"authority": "CPF Act 1953 s.76(3) and the SINDA Fund Rules; CPF Board, Contributions to self-help groups (read 2026-10-07): the Indian community — including Bangladeshis, Pakistanis, Sri Lankans and Sindhis — who are Singapore Citizens, SPRs or Employment Pass holders; the monthly wage-band schedule.",
 		"configuration": {
 			"rules": [
 				{
-					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\" || (has(employee.facts.immigration_status) && employee.facts.immigration_status == \"EMPLOYMENT_PASS\")) && person.race in [\"INDIAN\", \"BENGALI\", \"GUJARATI\", \"MALAYALEE\", \"PUNJABI\", \"SIKH\", \"TAMIL\", \"TELUGU\", \"SINHALESE\", \"PARSEE\", \"PATHAN\", \"KANNADA\", \"KASHMIRI\", \"GOAN\", \"CEYLONESE\", \"CEYLON MOOR\", \"MALABARI\", \"OTHER INDIAN\", \"ASSAMI\", \"BRAHMIN\", \"HINDUSTANI\", \"KHASI\", \"MAHRATTA\", \"MANIPURI\", \"MARATHI\", \"RAJPUT\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\" || (has(employee.facts.immigration_status) && employee.facts.immigration_status == \"EMPLOYMENT_PASS\")) && person.race in [\"SRI LANKAN\", \"SINDHI\", \"BANGLADESHI\", \"PAKISTANI\", \"INDIAN\", \"BENGALI\", \"GUJARATI\", \"MALAYALEE\", \"PUNJABI\", \"SIKH\", \"TAMIL\", \"TELUGU\", \"SINHALESE\", \"PARSEE\", \"PATHAN\", \"KANNADA\", \"KASHMIRI\", \"GOAN\", \"CEYLONESE\", \"CEYLON MOOR\", \"MALABARI\", \"OTHER INDIAN\", \"ASSAMI\", \"BRAHMIN\", \"HINDUSTANI\", \"KHASI\", \"MAHRATTA\", \"MANIPURI\", \"MARATHI\", \"RAJPUT\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
 					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":1},{\"up_to\":1500,\"amount\":3},{\"up_to\":2500,\"amount\":5},{\"up_to\":4500,\"amount\":7},{\"up_to\":7500,\"amount\":9},{\"up_to\":10000,\"amount\":12},{\"up_to\":15000,\"amount\":18},{\"up_to\":null,\"amount\":30}]))",
 					"employer": "0.0"
 				}
@@ -206,23 +206,67 @@
 		}
 	},
 	{
-		"id": "de122868-f751-5360-b9be-ad3a8ad7a991",
+		"id": "452b8626-67c3-5d6b-ba0a-bc2048b494d5",
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
-		"code": "CPF_EXCESS",
-		"name": "Employee excess CPF under written notice",
-		"authority": "CPF Act 1953 s.7(4)(b), s.7(5), ss.13B and 13D: the employer deducts and pays the employee-notified excess with CPF until a further notice given no less than six months after the previous notice. CPF prescribed-sum regulations reg.4 prescribe the member annual aggregate limit SGD37,740; reg.3 excludes excess voluntary credits. This is separately named employee voluntary CPF; IR8A compulsory CPF remains scheme CPF and excludes this employee-only excess. Sources retrieved 2026-10-03: https://sso.agc.gov.sg/Act/CPFA1953?ProvIds=pr7- ; https://sso.agc.gov.sg/SL/36-RG50?DocDate=20251216 .",
+		"code": "WHT_NR_DIRECTOR",
+		"name": "Withholding tax on non-resident director fees",
+		"authority": "Income Tax Act 1947 s.45 (s.12(2) source); IRAS: 24% of director fees and remuneration paid to a non-resident director (YA 2024 onwards). The base is the director-fee lines (counts_toward WHT_NR_DIRECTOR); a director recorded as tax_resident is assessed annually through IR8A instead.",
 		"configuration": {
-			"rules": []
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && has(employee.facts.tax_resident) && employee.facts.tax_resident == false",
+					"employee": "round(base.assessed * 0.24, 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			]
 		}
 	},
 	{
-		"id": "57835e2a-a640-50c4-aa76-f77d7b9faaf1",
+		"id": "191b24bb-f02e-564b-8b7f-e09ee66e7aec",
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
-		"code": "CPF_MSO_ACCOUNT_CREDIT",
-		"name": "Unused MSO outpatient subsidy account credit",
-		"authority": "CPF (Public Sector Employees) Regulations 2011, First Schedule paragraph 9(4), 9(9); unused balance is not a contribution.",
+		"code": "WHT_NR_ENTERTAINER",
+		"name": "Withholding tax on non-resident public entertainers",
+		"authority": "Income Tax Act 1947 s.45 (s.12(5) source); IRAS, Tax obligations of non-resident public entertainer (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer), read 2026-10-07: 15% of the taxable gross income from services performed in Singapore (the 10% concession lapsed after 31 Mar 2022); non-resident = in Singapore under 183 days in the calendar year (employee.facts.tax_resident == false). The base is the NR_PUBLIC_ENTERTAINER_FEE lines.",
 		"configuration": {
-			"rules": []
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && has(employee.facts.tax_resident) && employee.facts.tax_resident == false",
+					"employee": "round(base.assessed * 0.15, 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "fce3d93b-60ca-537f-ad3f-c9524b8a0fe0",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "APPENDIX_8A",
+		"name": "Appendix 8A benefits-in-kind (Form IR8A item d8)",
+		"authority": "Income Tax Act 1947 ss.10(1)(b), 68(2); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, note 11: the total value of benefits-in-kind (items 2 to 4) is entered in item d8 of Form IR8A. A reporting base, not a contribution: Singapore withholds no tax on employment income, so nothing is charged; the base is the value the BIK_* classes carry here, which the IR8A worksheet reads.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "2dca3c5c-1e83-50f2-b12f-1495912cbf17",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "APPENDIX_8B",
+		"name": "Appendix 8B share-plan gains (Form IR8A item d7)",
+		"authority": "Income Tax Act 1947 ss.10(1)(b), (6)–(7), 68(2); IRAS, Explanatory Notes for the Completion of Appendix 8B for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf) and Appendix 8B (App8B(1/2027)), read 2026-10-08, note 4: the total gross ESOP/ESOW gains are entered in item d7 of Form IR8A. A reporting base: nothing is charged; the base is the gain SHARE_PLAN_GAIN and SHARE_PLAN_DEEMED_GAIN carry here.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			]
 		}
 	}
 ]

@@ -13,16 +13,8 @@ export default model({
 			kind: 'text'
 		},
 		kind: {
-			kind: 'enum',
-			values: [
-				'PUBLIC_HOLIDAY',
-				'SPECIAL_HOLIDAY',
-				'SUBSTITUTE',
-				'DOUBLE_HOLIDAY',
-				'DOUBLE_SPECIAL',
-				'MAKEUP_WORKDAY'
-			],
-			default: 'PUBLIC_HOLIDAY'
+			kind: 'text',
+			help: 'A kind the version governing the day lists (`rule_set` PAYROLL `holiday_kinds`): what the work and leave records price it as.'
 		},
 		published_at: {
 			kind: 'instant',

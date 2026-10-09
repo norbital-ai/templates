@@ -1,0 +1,1956 @@
+[
+	{
+		"id": "381d8d4a-ea35-501c-a689-0034e803c93d",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "INSURANCE_PREMIUM_REMITTANCE",
+		"name": "Labour, employment and occupational accident insurance premiums and the wage arrears levy",
+		"rules": {
+			"description": "Pay the month’s labour, employment and occupational accident insurance premiums (the worker shares deducted plus the employer shares) and the wage arrears fund levy on the BLI bill. Fifteen-day grace, then a late fee.",
+			"authority": "勞工保險條例 §16(1)(1): 由投保單位負責扣、收繳，並須於次月底前，連同投保單位負擔部分，一併向保險人繳納 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16); 就業保險法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=40); 勞工職業災害保險及保護法 §19–21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"schemes": ["LI", "WAGE_ARREARS_FUND", "EI", "OCC_INJURY"],
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "bdec1443-7adb-572f-b011-77fb4eeefe5e",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "NHI_PREMIUM_REMITTANCE",
+		"name": "NHI premiums",
+		"rules": {
+			"description": "Pay the month’s NHI premiums (the worker and dependant shares deducted plus the employer share) on the NHIA bill.",
+			"authority": "全民健康保險法 §30(1): 投保單位應於次月底前向保險人繳納 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=30) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"schemes": ["NHI", "NHI_PART_TIME"],
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "c3d0bbd3-84a2-518f-9a76-e6be29bcfded",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING",
+		"name": "NHI supplementary premium remittance",
+		"rules": {
+			"description": "Remit the 2.11% supplementary premium withheld in the month on bonuses above four times the insured amount and on salary paid to a person not insured through this unit. Due by the end of the month after payment; the pay month stands in for the payment day.",
+			"authority": "全民健康保險法 §31, §34 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §7 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=7) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"schemes": ["NHI_SUPPLEMENT"],
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "32d1bd0a-a85e-561f-9c75-b5aec20eb8d0",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_PENSION_REMITTANCE",
+		"name": "Labour pension contributions",
+		"rules": {
+			"description": "Pay the month’s employer and voluntary labour pension contributions on the BLI bill (sent by the 25th of the following month), and tell each worker in writing of the amount contributed each month.",
+			"authority": "勞工退休金條例 §19(1): 勞保局…於次月二十五日前寄送事業單位，雇主應於再次月底前繳納 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=19); BLI: January’s bill is due by 31 March (https://www.mol.gov.tw/1607/1632/1640/43913/post); §21(1) monthly written notice A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"schemes": ["LABOR_PENSION"],
+			"due": "next_working_day(month_end(add_months(period.from, 2)), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "3797b314-0e61-5a70-b0df-72538b4744be",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_TAX_REMITTANCE",
+		"name": "Withholding tax remittance",
+		"rules": {
+			"description": "Pay the salary, bonus and retirement-income tax withheld in the month into the treasury: residents by the 10th of the following month; for a non-resident, within ten days of withholding, with the withholding certificate filed for verification. The pay month’s last day stands in for the withholding day.",
+			"authority": "所得稅法 §92(1): 應於每月十日前將上一月內所扣稅款向國庫繳清; §92(2) 非居住者: 代扣稅款之日起十日內 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"schemes": ["INCOME_TAX", "INCOME_TAX_NON_RESIDENT", "INCOME_TAX_BONUS", "SEVERANCE_TAX"],
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "cfcdb9f2-963c-560b-8962-bd8873c06559",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_PAYMENT_AND_PAYSLIP",
+		"name": "Wage payment and itemised statement",
+		"rules": {
+			"description": "Pay the wage in full and directly on the agreed pay day (at least twice a month unless monthly payment is agreed), with an itemised statement of the agreed wage, each item paid, each deduction and the net. The period end stands in for the agreed pay day.",
+			"authority": "勞動基準法 §22, §23(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); 施行細則 §14-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=14-1)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "f89bd8a6-fd92-5b35-b412-980c22f7e4e5",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_WITHHOLDING_STATEMENTS",
+		"name": "Annual withholding statements (扣繳憑單) filing",
+		"rules": {
+			"description": "File the 各類所得扣繳暨免扣繳憑單 for every salary and retirement-income payment of the previous year with the tax office by 31 January (5 February where January carries three or more consecutive holidays — not computed here); on dissolution within ten days.",
+			"authority": "所得稅法 §92(1): 並應於每年一月底前將上一年內扣繳各納稅義務人之稅款數額，開具扣繳憑單，彙報該管稽徵機關查核; §89(3) 免扣繳憑單 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "d198fc4a-388e-596b-875c-3b3ac26cad3c",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_CERTIFICATE_ISSUE",
+		"name": "Withholding certificates issued to employees",
+		"rules": {
+			"description": "Deliver each employee’s 扣繳憑單 for the previous year by 10 February (15 February where the filing deadline moves to 5 February — not computed here).",
+			"authority": "所得稅法 §92(1): 並應於二月十日前將扣繳憑單填發納稅義務人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=92) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "f1015249-cd09-5d77-89ee-ea67a2d5acdf",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NHI_SUPPLEMENTARY_PREMIUM_STATEMENT",
+		"name": "NHI supplementary premium deduction details (扣費明細)",
+		"rules": {
+			"description": "Report the previous year’s supplementary premium deduction details (扣費明細) to NHIA by 31 January (5 February where January carries three or more consecutive holidays — not computed here).",
+			"authority": "全民健康保險法 §31(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31); 全民健康保險扣取及繳納補充保險費辦法 §10 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060027&flno=10) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "541ac6b5-808d-529a-ad14-5d5f8de688a2",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "INSURED_SALARY_ADJUSTMENT_FEBRUARY_JULY",
+		"name": "Insured salary adjustments for February to July",
+		"rules": {
+			"description": "Report the new insured grade (勞保, 職保, 勞退 月提繳工資, 健保) of every worker whose monthly wage changed between February and July by 31 August.",
+			"authority": "勞工保險條例 §14(2): 二月至七月調整時，投保單位應於當年八月底前 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14); 勞工職業災害保險及保護法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=17); 勞工退休金條例 §15(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=15); 全民健康保險法 §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=21) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["08"],
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "db9af498-e2f5-5a09-968f-70254895aa03",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "INSURED_SALARY_ADJUSTMENT_AUGUST_JANUARY",
+		"name": "Insured salary adjustments for August to January",
+		"rules": {
+			"description": "Report the new insured grade of every worker whose monthly wage changed between August and January by the end of February.",
+			"authority": "勞工保險條例 §14(2): 八月至次年一月調整時，應於次年二月底前通知保險人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14); 勞工職業災害保險及保護法 §17(2); 勞工退休金條例 §15(2); 全民健康保險法 §21 A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["02"],
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "d9948291-3044-5187-aaca-eb4868372dcf",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_MANAGEMENT_CONFERENCE",
+		"name": "Labour-management conference",
+		"rules": {
+			"description": "Hold the labour-management conference at least once every three months (the body whose consent governs flexible hours, overtime extension and rest-day adjustment where there is no union). The quarter’s last day stands in for the three-month interval.",
+			"authority": "勞動基準法 §83 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=83); 勞資會議實施辦法 §18: 勞資會議至少每三個月舉辦一次 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020008&flno=18)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["03", "06", "09", "12"],
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "80c605f6-9d1b-5499-8797-3f631f2ae0c4",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OLD_SYSTEM_PENSION_RESERVE_ESTIMATE",
+		"name": "Year-end estimate of the LSA pension reserve",
+		"rules": {
+			"description": "Before the year ends, estimate the reserve needed for the workers eligible to retire in the next year under the LSA pension.",
+			"authority": "勞動基準法 §56(2): 雇主應於每年年度終了前，估算前項勞工退休準備金專戶餘額 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56)",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"applies_when": "has(company.facts.pension_reserve_rate)",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "ccfa5d6a-f371-59aa-ac6b-d856b579d308",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OLD_SYSTEM_PENSION_RESERVE_SHORTFALL",
+		"name": "LSA pension reserve shortfall top-up",
+		"rules": {
+			"description": "Pay any shortfall the year-end estimate found into the reserve account in one sum by the end of March, and report it to the supervisory committee.",
+			"authority": "勞動基準法 §56(2): 不足者，雇主應於次年度三月底前一次提撥 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["03"],
+			"applies_when": "has(company.facts.pension_reserve_rate)",
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "44cb100e-7638-59e6-b31e-d3206aab1dfc",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT",
+		"name": "Labour and employment insurance enrolment",
+		"rules": {
+			"description": "Enrol the worker in labour insurance and, where covered (就業保險法 §5), employment insurance on the day of hire.",
+			"authority": "勞工保險條例 §11: 於其所屬勞工到職…之當日，列表通知保險人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11); 就業保險法 §6(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=6)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "62153854-c53b-5f6a-8787-72b448f7b130",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT",
+		"name": "Occupational accident insurance enrolment",
+		"rules": {
+			"description": "Enrol the worker (any age or nationality) in occupational accident insurance on the day of hire.",
+			"authority": "勞工職業災害保險及保護法 §12(1): 勞工到職…之當日，列表通知保險人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "5a153dea-d977-57b5-bb6f-f9b7e5095cbd",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NHI_ENROLMENT",
+		"name": "NHI enrolment",
+		"rules": {
+			"description": "Enrol the worker, and the dependants enrolled with them, in NHI within three days of meeting the conditions (the hire day is not counted).",
+			"authority": "全民健康保險法 §15(7): 投保單位應於保險對象合於投保條件之日起三日內，向保險人辦理投保 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15); 行政程序法 §48(2) 始日不計算在內 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(hired_on, 3), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "424e33a1-24dc-5af1-ba1e-6e1a2eaa3f61",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_PENSION_REGISTRATION",
+		"name": "Labour pension registration",
+		"rules": {
+			"description": "Notify BLI to start the worker’s labour pension contributions within seven days of hire (the hire day is not counted).",
+			"authority": "勞工退休金條例 §18: 雇主應於勞工到職、離職、復職或死亡之日起七日內，列表通知勞保局 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18); 行政程序法 §48(2) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "next_working_day(add_days(hired_on, 7), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "17da6f86-dbe8-5670-9b22-fc1440a93e35",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYMENT_CONTRACT_TERMS",
+		"name": "Employment contract terms",
+		"rules": {
+			"description": "Agree the statutory contract terms at formation: place and work, hours, rest and leave, wage calculation and pay dates, termination, severance and retirement, bonuses and allowances and the other listed matters.",
+			"authority": "勞動基準法施行細則 §7 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "74b1740f-3f78-5c45-a3b8-acbcd6ec05d0",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_EMPLOYMENT_INSURANCE_WITHDRAWAL",
+		"name": "Labour and employment insurance withdrawal",
+		"rules": {
+			"description": "Withdraw the worker from labour and employment insurance on the day of leaving.",
+			"authority": "勞工保險條例 §11: 於其所屬勞工…離職…之當日，列表通知保險人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11); 就業保險法 §6(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=6)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "187b65cd-55ab-5452-aeaf-6afbdfddb8f9",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OCCUPATIONAL_ACCIDENT_INSURANCE_WITHDRAWAL",
+		"name": "Occupational accident insurance withdrawal",
+		"rules": {
+			"description": "Withdraw the worker from occupational accident insurance on the day of leaving.",
+			"authority": "勞工職業災害保險及保護法 §12(1): 離職、退保之當日，列表通知保險人 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=12)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "6ad7bd86-c327-525b-a260-036f7fbf314f",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NHI_WITHDRAWAL",
+		"name": "NHI withdrawal",
+		"rules": {
+			"description": "Withdraw the worker and their dependants from this unit’s NHI within three days of the cause (the leaving day is not counted).",
+			"authority": "全民健康保險法 §15(7): 並於退保原因發生之日起三日內，向保險人辦理退保 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15); 行政程序法 §48(2) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "next_working_day(add_days(exit_on, 3), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "79deca46-7714-5363-ae17-989491488d40",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_PENSION_DEREGISTRATION",
+		"name": "Labour pension stop notice",
+		"rules": {
+			"description": "Notify BLI to stop the worker’s labour pension contributions within seven days of leaving or death.",
+			"authority": "勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18); 行政程序法 §48(2) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "next_working_day(add_days(exit_on, 7), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "819778a9-f69c-5d6c-9193-f5634df6314a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FINAL_WAGE_SETTLEMENT",
+		"name": "Final wage settlement",
+		"rules": {
+			"description": "Settle all wages when the contract ends.",
+			"authority": "勞動基準法施行細則 §9: 依本法終止勞動契約時，雇主應即結清工資給付勞工 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=9)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "c0cf28ca-dd3f-55cd-9a2f-3d612040ebd4",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "UNUSED_ANNUAL_LEAVE_SETTLEMENT",
+		"name": "Unused annual leave pay on termination",
+		"rules": {
+			"description": "Pay the unused annual-leave days on termination with the written notice of the leave dates and pay (the year-end settlement under 施行細則 §24-1 turns on the agreed leave year and is not raised here).",
+			"authority": "勞動基準法 §38(4)–(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38); 施行細則 §24-1(2), §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "a9f02dee-0442-5631-9b1d-e2e549b4a56a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_COMP_TIME_SETTLEMENT",
+		"name": "Untaken compensatory time paid on termination",
+		"rules": {
+			"description": "Pay the untaken hours of 補休 at the overtime rate of the day they were earned when the contract ends.",
+			"authority": "勞動基準法 §32-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2(2): 契約終止…依第九條規定給付 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "352feb16-ed88-550d-896b-23c18c4c47bb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEVERANCE_PAYMENT",
+		"name": "Severance payment",
+		"rules": {
+			"description": "Where the contract ended under 勞動基準法 §11, the §13 proviso, §14 or §20, pay severance within thirty days of termination.",
+			"authority": "勞工退休金條例 §12(2): 資遣費應於終止勞動契約後三十日內發給 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12); 勞動基準法 §17(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(has(contract.exit_facts.lsa_termination_ground) ? contract.exit_facts.lsa_termination_ground : (contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]",
+			"due": "next_working_day(add_days(exit_on, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "888b77ef-505f-5325-a54d-eec5cd54d281",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RETIREMENT_PAYMENT",
+		"name": "LSA retirement payment",
+		"rules": {
+			"description": "Where a worker with LSA (old-system) seniority retires under 勞動基準法 §53 or §54, pay the retirement pay within thirty days (instalments only with the authority’s approval).",
+			"authority": "勞動基準法 §55(3): 雇主應於勞工退休之日起三十日內給付 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55); 勞工退休金條例 §11(2) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground == \"RETIREMENT\" && has(contract.exit_facts.old_system_service_months) && contract.exit_facts.old_system_service_months > 0.0",
+			"due": "next_working_day(add_days(exit_on, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "09505706-a6b2-53b4-b5d1-275b9c09aa5c",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LAYOFF_REPORT",
+		"name": "Layoff report to the authority",
+		"rules": {
+			"description": "Where the employer lays the worker off (資遣), report the worker’s particulars to the local authority and the public employment service ten days before the last day (within three days after it for a layoff caused by disaster, incident or force majeure).",
+			"authority": "就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(has(contract.exit_facts.lsa_termination_ground) ? contract.exit_facts.lsa_termination_ground : (contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
+			"due": "add_days(exit_on, -10)"
+		}
+	},
+	{
+		"id": "2598a66e-700d-58b2-b99f-60ecbb1a0ee6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TERMINATION_NOTICE",
+		"name": "Termination notice or pay in lieu",
+		"rules": {
+			"description": "Where the employer ended the contract under §11 or the §13 proviso (or §20), the 10/20/30-day notice was due before the last day; any notice not given is paid as wages on termination.",
+			"authority": "勞動基準法 §16(1), (3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16); 施行細則 §9",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(has(contract.exit_facts.lsa_termination_ground) ? contract.exit_facts.lsa_termination_ground : (contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "de48d929-d882-554a-9db3-3674b2739a9e",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE",
+		"name": "Foreign professional pension election and registration",
+		"rules": {
+			"description": "For foreign professionals employed before 1 January 2026: obtain each worker’s written election to keep the LSA pension within six months of commencement (by 30 June 2026), otherwise register their new-system contributions; permanent-resident foreign professionals enter employment insurance.",
+			"authority": "外國專業人才延攬及僱用法 §24, §25 as amended (公布 2025-09-24, 施行 2026-01-01) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030295&flno=24); 勞動部 Q&A https://www.mol.gov.tw/1607/28690/2282/2302/2316/86977/post A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["06"],
+			"due": "next_working_day(month_end(period.from), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "071789d9-d21d-5c0b-b675-64a1fdfec9fb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYMENT_STABILISATION_FEE",
+		"name": "Employment stabilisation fee (就業安定費)",
+		"rules": {
+			"description": "Pay the 就業安定費 on the WDA's quarterly bill (mailed mid-February, May, August and November) by the 25th of that month; thirty-day grace, then 0.3% a day to 30%. The amount is the authority's bill.",
+			"authority": "就業服務法 §55(1), (5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=55); 雇主聘僱外國人許可及管理辦法 §71; WDA 雇主繳納就業安定費注意事項: 雇主應分別於5月25日、8月25日、11月25日及次年2月25日前繳納 (https://fw.wda.gov.tw/wda-employer/home/extra-come-to-tw/index/subCategory/2c95efb39839190201983a747b44054a?locale=zh) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["02", "05", "08", "11"],
+			"applies_when": "has(company.facts.employment_stabilisation_fee_payer) && company.facts.employment_stabilisation_fee_payer == true",
+			"due": "next_working_day(add_days(period.from, 24), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "6ab549ef-69fa-5caf-bea4-7aeda97c0f6c",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "minimum_wage",
+		"name": "Minimum wage",
+		"rules": {
+			"monthly": 29500,
+			"hourly": 196,
+			"authority": "最低工資法 §10; from 2026-01-01: monthly 29,500, hourly 196 (勞動部 announcement) (https://www.mol.gov.tw/1607/1632/1633/84947/post)"
+		}
+	},
+	{
+		"id": "61392a79-45d2-5a17-a749-fc13c6501528",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_FLOOR",
+		"name": "Monthly wage below the minimum wage",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "terms.work_classification == \"EA_COVERED\" && terms.employment_type != \"PART_TIME\" && terms.monthly_wage < double(rules.minimum_wage.monthly)",
+			"message": "The monthly wage (base salary with its fixed allowances) is below the minimum wage (最低工資法 §5).",
+			"description": "最低工資法 §5: 勞工與雇主雙方議定之工資，不得低於最低工資 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030062&flno=5), for a worker under the 勞動基準法 (§3). The floor is the version’s PAYROLL row minimum_wage. A part-time worker is held to the hourly rate, which the terms do not state, so they are not checked."
+		}
+	},
+	{
+		"id": "48e88e05-8d02-5561-bef5-a8470b5a9576",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_DAILY_CAP",
+		"name": "More than twelve hours on a day",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (work.days.exists(d, d.worked_hours > 12.0))",
+			"message": "A day exceeds twelve hours of work including overtime (勞動基準法 §32(2)).",
+			"description": "勞動基準法 §32(2): 延長勞工之工作時間連同正常工作時間，一日不得超過十二小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "09dc6a77-557b-510a-a09f-0fc2205ad298",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_MONTHLY_CAP",
+		"name": "Overtime above the monthly ceiling",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) ? 54.0 : 46.0))",
+			"message": "The month’s overtime exceeds 46 hours (54 with the union’s or labour-management conference’s consent) (勞動基準法 §32(2)).",
+			"description": "勞動基準法 §32(2): 延長之工作時間，一個月不得超過四十六小時；經工會同意…後…一個月不得超過五十四小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); §36(3): 休息日之工作時間…計入延長工作時間總數. Counts each working day’s approved overtime and every hour worked on a 休息日 (OFF); holiday hours beyond eight are counted (87年 函). The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
+		}
+	},
+	{
+		"id": "5ddb934f-6e22-5779-bf48-07cb457a2c31",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_EXTENSION_FILING",
+		"name": "The 54-hour month used by an employer of thirty or more",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) && company.headcount >= 30.0 && (sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > 46.0)",
+			"message": "Overtime above 46 hours in a month under consent: an employer of thirty or more workers must file the arrangement with the local authority (勞動基準法 §32(3)).",
+			"description": "勞動基準法 §32(3): 雇主僱用勞工人數在三十人以上，依前項但書規定延長勞工工作時間者，應報當地主管機關備查 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
+		}
+	},
+	{
+		"id": "1ed0e7d3-873d-54a4-8eed-772ab6bb0303",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "EMERGENCY_REST_DAY_REPORT",
+		"name": "A regular day off suspended",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(payslip.lines.STATUTORY_REST_WORK)",
+			"message": "A regular day off (例假) was worked: report the reasons to the local authority within 24 hours and grant rest in lieu (勞動基準法 §40(2)).",
+			"description": "勞動基準法 §40(2): 雇主停止勞工假期，應於事後二十四小時內，詳述理由，報請當地主管機關核備 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40). Raised by the STATUTORY_REST_WORK line."
+		}
+	},
+	{
+		"id": "21e1c74b-ec3f-5c6a-a70b-5264286931b6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_RULES_FILING",
+		"name": "Work rules filed on reaching thirty workers",
+		"rules": {
+			"description": "On reaching thirty workers, draw up the work rules and file them with the local authority for approval within thirty days; post them after approval.",
+			"authority": "勞動基準法 §70 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=70); 施行細則 §37: 雇主於僱用勞工人數滿三十人時應即訂立工作規則，並於三十日內報請當地主管機關核備 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=37). Raised by every hire while the entity has thirty or more contracts in force and has not recorded the approval of its work rules (company.facts.work_rules_approval_reference) — a transfer or several hires on one day do not skip it. A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"when": "headcount >= 30.0 && !(has(company.facts.work_rules_approval_reference) && company.facts.work_rules_approval_reference != \"\")",
+			"due": "next_working_day(add_days(hired_on, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "395fb5da-2202-5b41-a77f-5a696aac0f34",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"name": "Occupational accident reported within eight hours",
+		"rules": {
+			"description": "An occupational accident in which a worker needs hospital treatment: report it to the labour inspection authority within eight hours. Raised by an OCCUPATIONAL_INJURY_LEAVE entry whose facts record hospitalised.",
+			"authority": "職業安全衛生法 §37(2): 事業單位勞動場所發生下列職業災害之一者，雇主應於八小時內通報勞動檢查機構 — (3) 罹災人數在一人以上，且需住院治療 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=37).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code == \"OCCUPATIONAL_INJURY_LEAVE\" && has(row.facts.hospitalised) && row.facts.hospitalised == true",
+			"due": "today"
+		}
+	},
+	{
+		"id": "798daad9-6931-5c1f-b011-10fa171e14a3",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "OCCUPATIONAL_FATALITY_REPORT",
+		"name": "Occupational fatality reported within eight hours",
+		"rules": {
+			"description": "A worker died of an occupational accident: report it to the labour inspection authority within eight hours.",
+			"authority": "職業安全衛生法 §37(2)(1): 發生死亡災害 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=37).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && has(contract.exit_facts.occupational_death) && contract.exit_facts.occupational_death == true",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "4a0c7058-30f9-5388-bffe-97edf68e9b52",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_LEAVE_YEAR_END_PAYMENT",
+		"name": "Unused annual leave paid at the leave year’s end",
+		"rules": {
+			"description": "At the end of each service year, pay the unused 特別休假 days (unless deferred by agreement to the next year) on the agreed pay day or within thirty days, with the written notice of the year’s leave and pay. Raised on the last day of the service year (the anniversary eve).",
+			"authority": "勞動基準法 §38(4)–(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38); 施行細則 §24-1(2)(2): 年度終結：於契約約定之工資給付日發給或於年度終結後三十日內發給 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1). The leave year is the service year (施行細則 §24(2) 週年制) unless agreed otherwise. A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "calendar_completed_months(contract.effective_range.from, add_days(today, 1)) >= 12 && add_years(contract.effective_range.from, round(double(calendar_completed_months(contract.effective_range.from, add_days(today, 1))) / 12.0, 1.0, \"DOWN\")) == add_days(today, 1)",
+			"due": "next_working_day(add_days(today, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "f03cbda2-0bf7-5df8-94f5-25413f11c32f",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "COMP_TIME_YEAR_END_PAYMENT",
+		"name": "Untaken compensatory time paid at the leave year’s end",
+		"rules": {
+			"description": "Hours elected as 補休 and not taken by the end of the agreed leave year are paid at the overtime rate of the day they were earned, on the agreed pay day or within thirty days. Raised on the last day of the service year; waive where nothing is untaken.",
+			"authority": "勞動基準法 §32-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2: 補休之期限逾依第二十四條第二項所約定年度之末日者，以該日為期限之末日; 補休期限屆期 — 於契約約定之工資給付日發給或於期限屆期後三十日內發給 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2). A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "calendar_completed_months(contract.effective_range.from, add_days(today, 1)) >= 12 && add_years(contract.effective_range.from, round(double(calendar_completed_months(contract.effective_range.from, add_days(today, 1))) / 12.0, 1.0, \"DOWN\")) == add_days(today, 1)",
+			"due": "next_working_day(add_days(today, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "dd268100-d3c2-5576-936e-4ff96d08f073",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_QUARTER_CAP",
+		"name": "Overtime above 138 hours in three months",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) && (hours.rolling.overtime_hours - (has(hours.rolling.day_type.OFF) ? hours.rolling.day_type.OFF.overtime_hours : 0.0) + (has(hours.rolling.day_type.OFF) ? hours.rolling.day_type.OFF.worked_hours : 0.0)) > 138.0)",
+			"message": "Overtime under consent exceeds 138 hours in three months (勞動基準法 §32(2)).",
+			"description": "勞動基準法 §32(2): 經工會同意…延長之工作時間，一個月不得超過五十四小時，每三個月不得超過一百三十八小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). hours.rolling: this month and the two before; working-day overtime plus every hour worked on a 休息日 (OFF), as §36(3) counts it. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT)."
+		}
+	},
+	{
+		"id": "fdb5e4ce-0088-57c5-8a28-82f390a9f01d",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_HOURLY",
+		"name": "Hourly wage below the minimum wage",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "terms.work_classification == \"EA_COVERED\" && has(terms.facts.hourly_wage) && double(terms.facts.hourly_wage) < double(rules.minimum_wage.hourly)",
+			"message": "The agreed hourly wage is below the hourly minimum wage (最低工資法 §5).",
+			"description": "最低工資法 §5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030062&flno=5): the hourly floor of the PAYROLL row minimum_wage, for a worker whose terms record facts.hourly_wage (customer input)."
+		}
+	},
+	{
+		"id": "8da0143e-809e-5190-8059-b15a3fc590b6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "public_holidays",
+		"name": "Public holidays",
+		"rules": {
+			"holidays": [
+				{
+					"date": "2026-01-01",
+					"name": "中華民國開國紀念日",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-15",
+					"name": "農曆除夕前一日（小年夜）",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-16",
+					"name": "農曆除夕",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-17",
+					"name": "春節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-18",
+					"name": "春節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-19",
+					"name": "春節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-02-28",
+					"name": "和平紀念日",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-04",
+					"name": "兒童節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-05",
+					"name": "民族掃墓節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-05-01",
+					"name": "勞動節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-06-19",
+					"name": "端午節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-09-25",
+					"name": "中秋節",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-09-28",
+					"name": "孔子誕辰紀念日",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-10-10",
+					"name": "國慶日",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-10-25",
+					"name": "臺灣光復暨金門古寧頭大捷紀念日",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-11-28",
+					"name": "地方公職人員選舉投票日",
+					"kind": "SPECIAL_HOLIDAY"
+				},
+				{
+					"date": "2026-12-25",
+					"name": "行憲紀念日",
+					"kind": "PUBLIC_HOLIDAY"
+				}
+			],
+			"authority": "勞動基準法 §37(1): 內政部所定應放假之紀念日、節日、勞動節…均應休假; 紀念日及節日實施條例 (公布施行 2025-05-28: 16 days, 小年夜, 勞動節, 9/28, 10/25 and 12/25 added) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020033); dates per the 115年紀念日及節日假期處理一覽表 (行政院人事行政總處 115年辦公日曆表; 高雄市政府勞工局 115年休假日一覽表). A holiday on a 例假 or 休息日 is given in lieu on an agreed day (施行細則 §23-1: PUBLIC_HOLIDAY_IN_LIEU), not on the civil-service substitute date. 原住民族歲時祭儀 are each tribe’s own and not listed: the INDIGENOUS_RITUAL_HOLIDAY leave class. An election or referendum 投票日 is a SPECIAL_HOLIDAY for workers with the vote only (MOL), with no day in lieu when it falls on a rest day. 投票日 2026-11-28: 中央選舉委員會 115年地方公職人員選舉公告 (CNA 2026-08-20, https://cna.com.tw/news/aipl/202608200078.aspx); 公職人員選舉罷免法 §3 / 勞動基準法 §37: workers with the vote are given the day off with pay, work is paid double (MOL, https://www.mol.gov.tw/1607/1632/1640/11674/post)."
+		}
+	},
+	{
+		"id": "76bec60e-13a8-5f06-937f-7e3f9f706da1",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM",
+		"name": "NHI employer supplementary premium (§34)",
+		"rules": {
+			"description": "Pay the unit’s supplementary premium: 2.11% of the month’s salary paid (run.statutory NHI_SUPPLEMENT_EMPLOYER base) above the insured amounts of its insured on the month’s last day (the same scheme’s charged_base, each slip’s insured amount), never below nil; with the regular premium.",
+			"authority": "全民健康保險法 §34 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=34); 全民健康保險扣取及繳納補充保險費辦法 §7: 投保單位…於次月底前…繳納. A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4); 民法 §122).",
+			"schemes": ["NHI_SUPPLEMENT_EMPLOYER"],
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"amount": "round(max(0.0, (\"NHI_SUPPLEMENT_EMPLOYER\" in run.statutory ? run.statutory.NHI_SUPPLEMENT_EMPLOYER.base - run.statutory.NHI_SUPPLEMENT_EMPLOYER.charged_base : 0.0)) * 0.0211, 1.0, \"HALF_UP\")"
+		}
+	},
+	{
+		"id": "b76faa42-358c-540e-aeb9-0dc63e78fdeb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SERVICE_CERTIFICATE",
+		"name": "Certificate of service",
+		"rules": {
+			"description": "Issue a certificate of service when the worker asks for one on leaving; it may not be refused.",
+			"authority": "勞動基準法 §19: 勞動契約終止時，勞工如請求發給服務證明書，雇主或其代理人不得拒絕 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=19).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "0c5d2e52-89eb-5ecb-9f7b-f5a4332e1bd0",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "INVOLUNTARY_SEPARATION_CERTIFICATE",
+		"name": "Involuntary separation certificate",
+		"rules": {
+			"description": "On an involuntary separation (勞動基準法 §11, the §13 proviso, §14 or §20), issue the 非自願離職證明書 the worker needs for unemployment benefit when asked.",
+			"authority": "就業保險法 §11(3), §25(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=25); 就業服務法施行細則 — the employer issues the certificate of the separation’s cause.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(has(contract.exit_facts.lsa_termination_ground) ? contract.exit_facts.lsa_termination_ground : (contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "38703ab8-27b7-5cd4-a288-0f19697ad324",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PARENTAL_LEAVE_INSURANCE_CONTINUATION",
+		"name": "Insurance continuation on parental leave",
+		"rules": {
+			"description": "On 育嬰留職停薪 the worker may keep LI, EI and NHI (and the pension may stop): file the 繼續加保 with BLI and NHIA from the leave’s first day; the employer share is waived and the worker’s deferred for three years.",
+			"authority": "性別平等工作法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=16); BLI 育嬰留職停薪繼續加保 (https://www.bli.gov.tw/0022925.html: 繼續加保效力自留職停薪之起始當日起算). No later filing day is set; due the first day.",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code in [\"PARENTAL_LEAVE\", \"PARENTAL_LEAVE_BY_DAY\"]",
+			"due": "today"
+		}
+	},
+	{
+		"id": "8fb2819e-4afd-59a0-8a0f-08ec519178cf",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_SEPARATION_NOTICE",
+		"name": "Foreign worker separation notified within three days",
+		"rules": {
+			"description": "When a foreign worker’s employment ends (or the worker is absent three consecutive days without contact), notify in writing the local authority, the immigration agency and the police within three days.",
+			"authority": "就業服務法 §56(1): 雇主應於三日內以書面載明相關事項通知當地主管機關、入出國管理機關及警察機關 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=56). A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4); 民法 §122).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "employee != null && employee.nationality != \"\" && employee.nationality != \"TW\"",
+			"due": "next_working_day(add_days(exit_on, 3), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "a2f6c118-0cb7-5a3f-8512-b2864213bb0a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_ABSENCE_NOTICE",
+		"name": "Foreign worker absent three days notified",
+		"rules": {
+			"description": "A foreign worker absent three consecutive days without contact: notify the local authority, the immigration agency and the police within three days. Raised by the third consecutive roster day recorded as an unexplained absence (facts.absent_without_contact).",
+			"authority": "就業服務法 §56(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=56). A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4); 民法 §122).",
+			"trigger": {
+				"collection": "roster_entry",
+				"event": "updated"
+			},
+			"when": "has(row.facts) && has(row.facts.absent_without_contact) && row.facts.absent_without_contact == true && has(row.facts.consecutive_absent_days) && double(row.facts.consecutive_absent_days) == 3.0",
+			"applies_when": "employee != null && employee.nationality != \"\" && employee.nationality != \"TW\"",
+			"due": "next_working_day(add_days(today, 3), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "7c946ad0-8c00-5070-800f-3f0dd3a9c80a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PENSION_CONTRIBUTION_NOTICE",
+		"name": "Monthly written notice of the pension contribution",
+		"rules": {
+			"description": "Tell each worker in writing every month the amount contributed to their labour pension account; the payslip’s LABOR_PENSION line, delivered with the wage, is that notice.",
+			"authority": "勞工退休金條例 §21(1): 雇主提繳之金額，應每月以書面通知勞工 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21). The Act sets no day; the record raises it with the run, due with the wage.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "941f982b-34d8-5176-b948-d086214119c1",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "DISABLED_EMPLOYMENT_QUOTA_LEVY",
+		"name": "Disabled-employment quota shortfall levy",
+		"rules": {
+			"description": "An employer of 67 or more must employ disabled persons of at least 1% of its workforce (and at least one); for each person short, pay the 差額補助費 of one minimum wage a month into the local disabled-employment fund by the 10th of the following month.",
+			"authority": "身心障礙者權益保障法 §38(2), §43(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=D0050046&flno=38); 施行細則 §16(1): 每月十日前繳納前一月之差額補助費. The count of disabled employees (重度 counted twice, §38(3)) is the entity’s own (company.facts.disabled_employees_counted). A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4); 民法 §122).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"applies_when": "headcount >= 67.0 && (has(company.facts.disabled_employees_counted) ? double(company.facts.disabled_employees_counted) : 0.0) < max(1.0, round(headcount / 100.0, 1.0, \"DOWN\"))",
+			"due": "next_working_day(add_days(month_end(period.from), 10), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "6ad748a9-43a0-5543-9ac6-7756e74eb701",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "UNDER_FIFTEEN_EMPLOYMENT",
+		"name": "Employment under fifteen",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "employee.age != null && employee.age < 15 && !(has(terms.facts.under_15_exception_reference) && terms.facts.under_15_exception_reference != \"\")",
+			"message": "A worker under fifteen may be employed only with a junior-high graduation or the authority’s permit (勞動基準法 §45): record its reference.",
+			"description": "勞動基準法 §45(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=45)."
+		}
+	},
+	{
+		"id": "56593255-9acb-5981-a390-24072ce71e67",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "CHILD_WORKER_LIMITS",
+		"name": "Child worker hours and night work",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.age != null && employee.age < 16 && work.days.exists(d, d.worked_hours > 8.0 || d.overtime_hours > 0.0 || (d.day_type in [\"REST\", \"OFF\"] && d.worked_hours > 0.0) || hours_between(d.intervals, \"20:00\", \"06:00\") > 0.0)",
+			"message": "A worker under sixteen (童工) worked more than eight hours, overtime, on a rest day or between 20:00 and 06:00 (勞動基準法 §47, §48).",
+			"description": "勞動基準法 §44(1), §47: 童工每日之工作時間不得超過八小時…例假日不得工作; §48: 童工不得於午後八時至翌晨六時之時間內工作 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=48)."
+		}
+	},
+	{
+		"id": "348d1534-834d-5bd8-a623-c4b194d35c8c",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WOMEN_NIGHT_WORK",
+		"name": "Night work by a woman without consent",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (employee.gender == \"FEMALE\" && !(has(company.facts.women_night_work_consent) && company.facts.women_night_work_consent == true) && work.days.exists(d, hours_between(d.intervals, \"22:00\", \"06:00\") > 0.0))",
+			"message": "A woman worked between 22:00 and 06:00 without the union’s or labour-management conference’s consent and the safety measures (勞動基準法 §49).",
+			"description": "勞動基準法 §49(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=49): 雇主不得使女工於午後十時至翌晨六時之時間內工作 unless consented and the safety facilities are provided (company.facts.women_night_work_consent). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "d238736d-7a95-5735-b4f4-57f2552fee63",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "REST_BETWEEN_SHIFTS",
+		"name": "Less than eleven hours between shifts",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, size(d.intervals) > 0 && work.days.exists(e, e.date == add_days(d.date, 1) && size(e.intervals) > 0 && hours_between([{\"start\": d.intervals.filter(i, !d.intervals.exists(j, j.end > i.end))[0].end, \"end\": e.intervals.filter(i, !e.intervals.exists(j, j.start < i.start))[0].start}], \"00:00\", \"00:00\") < ((has(company.facts.shift_change_rest_eight_hours) && company.facts.shift_change_rest_eight_hours == true) ? 8.0 : 11.0)))",
+			"message": "Fewer than eleven consecutive hours of rest between two shifts (勞動基準法 §34(2)).",
+			"description": "勞動基準法 §34(2): 更換班次時，至少應有連續十一小時之休息時間 — eight where the central authority’s announced exception applies and the union or conference agreed (company.facts.shift_change_rest_eight_hours) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=34)."
+		}
+	},
+	{
+		"id": "41710b1a-99e7-5d99-b20d-91aceb3eaeeb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "BREAK_AFTER_FOUR_HOURS",
+		"name": "No break after four hours",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work == true) && work.days.exists(d, d.intervals.exists(i, hours_between([i], \"00:00\", \"00:00\") > 4.0))",
+			"message": "A worker worked more than four hours without a thirty-minute break (勞動基準法 §35).",
+			"description": "勞動基準法 §35: 勞工繼續工作四小時，至少應有三十分鐘之休息 — a recorded interval longer than four hours; shift or continuous work rearranges the break inside working time (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35)."
+		}
+	},
+	{
+		"id": "4e7a6112-4c73-528e-9ef6-d3537b1f26d9",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "SEVEN_DAY_REST",
+		"name": "No regular day off and rest day in seven days",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (!(has(company.facts.flexible_working_time) && company.facts.flexible_working_time == true) && work.days.exists(d, size(work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6))) == 7 && !(work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6)).exists(e, e.day_type == \"REST\") && work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6)).exists(e, e.day_type == \"OFF\"))))",
+			"message": "Seven consecutive days without one regular day off (例假) and one rest day (休息日) (勞動基準法 §36(1)).",
+			"description": "勞動基準法 §36(1): 勞工每七日中應有二日之休息，其中一日為例假，一日為休息日; the 2-, 4- and 8-week schemes (§36(2), §30(2)–(3), §30-1) apply where the entity records flexible_working_time (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=36). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "2d26bbd1-1f82-500f-98ed-764d42da3b2a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NORMAL_HOURS",
+		"name": "Normal hours above eight a day or forty a week",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (!(has(company.facts.flexible_working_time) && company.facts.flexible_working_time == true) && (work.days.exists(d, d.scheduled_hours > 8.0) || work.days.exists(d, size(work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6))) == 7 && sum(work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6)).map(e, e.scheduled_hours)) > 40.0)))",
+			"message": "Scheduled normal hours exceed eight a day or forty in seven days (勞動基準法 §30(1)).",
+			"description": "勞動基準法 §30(1): 勞工正常工作時間，每日不得超過八小時，每週不得超過四十小時; flexible schemes (§30(2)–(3), §30-1) where the entity records flexible_working_time (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "b0a668af-c441-57ba-b13b-bf7570392c28",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PREGNANCY_WAGE_PROTECTION",
+		"name": "Wage reduced during pregnancy",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.children.exists(c, has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\" && c.estimated_delivery_date >= period.from && (!has(c.child_birthdate) || c.child_birthdate == \"\")) && has(earned.previous_month.base_salary) && terms.base_salary < double(earned.previous_month.base_salary)",
+			"message": "The base salary fell while the worker is pregnant: a lighter job may not reduce the wage (勞動基準法 §51).",
+			"description": "勞動基準法 §51: 女工在妊娠期間，如有較為輕易之工作，得申請改調，雇主不得拒絕，並不得減少其工資 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=51). Pregnancy is a child record with an estimated delivery date and no birth date yet."
+		}
+	},
+	{
+		"id": "9a5f6c51-c6b3-5a94-af5e-15df899aedf3",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NO_PENALTY_DEDUCTION",
+		"name": "A deduction outside the lawful classes",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "payslip.lines.exists(k, payslip.lines[k] < 0.0 && !(k in [\"NO_PAY_LEAVE\", \"PARTIAL_PAY_LEAVE\", \"COURT_GARNISHMENT\", \"OCC_INJURY_OFFSET\", \"SALARY_ADVANCE\", \"FOOD_LODGING\"]))",
+			"message": "A deduction from the wage that is not unpaid leave, a court garnishment, an insurer offset, an agreed advance or the declared food and lodging (勞動基準法 §22(2), §26).",
+			"description": "勞動基準法 §22(2): 工資應全額直接給付勞工; §26: 雇主不得預扣勞工工資作為違約金或賠償費用 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=26)."
+		}
+	},
+	{
+		"id": "ef0685b7-8d7a-5a20-8806-7bfa4969c58a",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "GARNISHMENT_ONE_THIRD",
+		"name": "Garnishment above a third of the wage",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(payslip.lines.COURT_GARNISHMENT) && -payslip.lines.COURT_GARNISHMENT > payslip.gross / 3.0",
+			"message": "The garnishment exceeds one third of the month’s wage: check the enforcement order (強制執行法 §115-1(2)).",
+			"description": "強制執行法 §115-1(2): 對於薪資…之扣押，不得逾每期給付扣除…後餘額三分之一, leaving the debtor 1.2 times the local minimum living cost (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1)."
+		}
+	},
+	{
+		"id": "95459c7a-0929-503c-bf33-becf93b62bc5",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "FOOD_LODGING_CAP",
+		"name": "Food and lodging above the signed declaration",
+		"rules": {
+			"site": "payslip",
+			"kind": "refuse",
+			"when": "has(payslip.lines.FOOD_LODGING) && -(payslip.lines.FOOD_LODGING + (has(earned.month.FOOD_LODGING) ? earned.month.FOOD_LODGING : 0.0)) > (has(employee.facts.food_lodging_monthly_cap) ? double(employee.facts.food_lodging_monthly_cap) : 0.0)",
+			"message": "The food and lodging deducted exceeds the amount in the signed 外國人入國工作費用及工資切結書.",
+			"description": "雇主聘僱外國人許可及管理辦法; 外國人入國工作費用及工資切結書: the deduction is the declared amount (employee.facts.food_lodging_monthly_cap) and may not change to the worker’s detriment. The cap is a month’s: the month’s earlier slips (earned.month) count, so a semi-monthly entity cannot deduct it twice."
+		}
+	},
+	{
+		"id": "4020eb00-f6cc-593c-8cd8-a556287fd446",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "DOMESTIC_MIGRANT_WAGE",
+		"name": "Domestic migrant worker below the MOL wage",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "has(terms.facts.worker_category) && terms.facts.worker_category in [\"DOMESTIC_CAREGIVER\", \"DOMESTIC_HELPER\"] && terms.monthly_wage < 20000.0",
+			"message": "A foreign domestic worker's monthly wage is below the NT$20,000 the Ministry of Labour set for new and renewed contracts from 2022-08-10.",
+			"description": "勞動部 111年8月 公告: 自8月10日起新聘及續轉聘家事移工月薪調為2萬元 (https://www.mol.gov.tw/1607/1632/1633/54530/post). The 勞動基準法 minimum wage does not apply to household domestic workers (§3); MINIMUM_WAGE_FLOOR keys on EA_COVERED."
+		}
+	},
+	{
+		"id": "32caa914-3612-5714-a599-c6c1a635fdea",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_ROSTER_RETENTION",
+		"name": "Wage roster kept five years",
+		"rules": {
+			"description": "Keep the month's wage roster (工資清冊: wages paid, each item's calculation, the year's annual-leave dates and unused-leave pay) until the due day; it may then be disposed of.",
+			"authority": "勞動基準法 §23(2): 雇主應置備勞工工資清冊…保存五年 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); §38(5).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "add_years(period.to, 5)"
+		}
+	},
+	{
+		"id": "e36f88e1-f911-56c3-8105-384ef6bb4e63",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ATTENDANCE_RECORDS_RETENTION",
+		"name": "Attendance records kept five years",
+		"rules": {
+			"description": "Keep the month's attendance records, to the minute, until the due day, and give the worker a copy on request.",
+			"authority": "勞動基準法 §30(5)–(6): 雇主應置備勞工出勤紀錄，並保存五年…逐日記載勞工出勤情形至分鐘為止 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "add_years(period.to, 5)"
+		}
+	},
+	{
+		"id": "5773b3b6-981b-5e38-86cb-03f6fa6dfbfc",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "INSURANCE_PENSION_RECORDS_RETENTION",
+		"name": "Insurance and pension registers kept five years after leaving",
+		"rules": {
+			"description": "Keep the worker's register, attendance and payroll records for insurance, and the pension register (contributions, election documents), until five years after the departure.",
+			"authority": "勞工保險條例 §10(3)–(4) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=10); 勞工退休金條例 §21(2)–(3): 保存至勞工離職之日起五年止 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on, 5)"
+		}
+	},
+	{
+		"id": "a069e3cb-8b37-5e94-b4be-fa79b885b86c",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "MASS_LAYOFF_PLAN",
+		"name": "Mass layoff plan notified sixty days before",
+		"rules": {
+			"description": "A layoff that meets a 大量解僱 threshold: notify the competent authority and the persons concerned of the layoff plan (reasons, units, dates, numbers, selection criteria, severance and redeployment) and post it publicly sixty days before the day the threshold is met; a layoff caused by disaster, incident or emergency is not held to the sixty days. Counted per worksite (廠場: the terms’ facts.worksite, with headcount_by_worksite on the exit day; each site’s permanent headcount, headcount_permanent_by_worksite, its workers in force less §46 fixed-term ones) — more than 10 in sixty days under 30 employed; more than a third, or more than 20 in one day, at 30–199; a quarter (50) at 200–499; a fifth (80) at 500 or more — and per entity, more than 200 in sixty days or 100 in one day. Only §11 grounds and §20 mergers or reorganisations count, and never a 就業服務法 §46 fixed-term worker (terms facts.fixed_term). Raised once per layoff: the occurrence is the first day a window within 59 days of the exit meets a threshold, and the plan is due sixty days before it.",
+			"authority": "大量解僱勞工保護法 §2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020012&flno=2), §4 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020012&flno=4)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "exit_ground", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(has(contract.exit_facts.lsa_termination_ground) ? contract.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] : contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && cel.bind(Q, separations.filter(s, (!s.fixed_term && (has(s.exit_facts.lsa_termination_ground) ? s.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] : s.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]))), cel.bind(M, (headcount_by_worksite.map(k, cel.bind(D, cel.bind(Ls, Q.filter(s, s.worksite == k), Ls.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Ls, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 10.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 3.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 4.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 5.0) || double(count_within(Ls, \"exit_date\", e.exit_date, e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 1000000.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? 20.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? 50.0 : 80.0)))), size(D) > 0 ? D[0].exit_date : \"\")) + [cel.bind(D, Q.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Q, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > 200.0 || double(count_within(Q, \"exit_date\", e.exit_date, e.exit_date)) > 100.0)), size(D) > 0 ? D[0].exit_date : \"\")]).filter(d, d != \"\"), size(M) > 0))",
+			"occurrence": "cel.bind(Q, separations.filter(s, (!s.fixed_term && (has(s.exit_facts.lsa_termination_ground) ? s.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] : s.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]))), cel.bind(M, (headcount_by_worksite.map(k, cel.bind(D, cel.bind(Ls, Q.filter(s, s.worksite == k), Ls.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Ls, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 10.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 3.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 4.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 5.0) || double(count_within(Ls, \"exit_date\", e.exit_date, e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 1000000.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? 20.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? 50.0 : 80.0)))), size(D) > 0 ? D[0].exit_date : \"\")) + [cel.bind(D, Q.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Q, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > 200.0 || double(count_within(Q, \"exit_date\", e.exit_date, e.exit_date)) > 100.0)), size(D) > 0 ? D[0].exit_date : \"\")]).filter(d, d != \"\"), size(M) > 0 ? M.filter(d, !M.exists(x, x < d))[0] : exit_on))",
+			"due": "cel.bind(Q, separations.filter(s, (!s.fixed_term && (has(s.exit_facts.lsa_termination_ground) ? s.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_20\"] : s.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]))), cel.bind(M, (headcount_by_worksite.map(k, cel.bind(D, cel.bind(Ls, Q.filter(s, s.worksite == k), Ls.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Ls, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 10.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 3.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 4.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) / 5.0) || double(count_within(Ls, \"exit_date\", e.exit_date, e.exit_date)) > ((k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 30.0 ? 1000000.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 200.0 ? 20.0 : (k in headcount_permanent_by_worksite ? double(headcount_permanent_by_worksite[k]) : 0.0) < 500.0 ? 50.0 : 80.0)))), size(D) > 0 ? D[0].exit_date : \"\")) + [cel.bind(D, Q.filter(e, e.exit_date >= add_days(exit_on, -59) && e.exit_date <= add_days(exit_on, 59) && (double(count_within(Q, \"exit_date\", add_days(e.exit_date, -59), e.exit_date)) > 200.0 || double(count_within(Q, \"exit_date\", e.exit_date, e.exit_date)) > 100.0)), size(D) > 0 ? D[0].exit_date : \"\")]).filter(d, d != \"\"), size(M) > 0 ? add_days(M.filter(d, !M.exists(x, x < d))[0], -60) : add_days(exit_on, -60)))"
+		}
+	},
+	{
+		"id": "248277d0-9ad1-53da-8bc7-4be7db8eebe7",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMERGENCY_OVERTIME_NOTICE",
+		"name": "Emergency overtime notified within 24 hours",
+		"rules": {
+			"description": "Hours extended for a natural disaster, incident or emergency: notify the union within 24 hours of the extension starting (report to the local authority where there is no union), and give the workers appropriate rest afterwards. Raised by a workplace case of kind EMERGENCY_OVERTIME opened on the day the extension started.",
+			"authority": "勞動基準法 §32(4): 因天災、事變或突發事件，雇主有使勞工在正常工作時間以外工作之必要者，得將工作時間延長之。但應於延長開始後二十四小時內通知工會；無工會組織者，應報當地主管機關備查 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32)",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"EMERGENCY_OVERTIME\"",
+			"due": "add_days(row.opened_on, 1)"
+		}
+	},
+	{
+		"id": "1e2c8f81-2105-595a-ad00-10944a1ede65",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident reported within eight hours",
+		"rules": {
+			"description": "A work accident with a death, three or more injured, or one or more needing hospital treatment: report it to the labour inspection authority within eight hours and leave the scene undisturbed beyond rescue until the inspection or judicial authority permits. Raised by a workplace case of kind OCCUPATIONAL_ACCIDENT whose facts count deaths, injured or hospitalised.",
+			"authority": "職業安全衛生法 §37(2)–(4): 雇主應於八小時內通報勞動檢查機構 — (1) 發生死亡災害 (2) 發生災害之罹災人數在三人以上 (3) 發生災害之罹災人數在一人以上，且需住院治療 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=37)",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"OCCUPATIONAL_ACCIDENT\" && has(row.facts) && row.facts != null && ((has(row.facts.deaths) && double(row.facts.deaths) >= 1.0) || (has(row.facts.injured) && double(row.facts.injured) >= 3.0) || (has(row.facts.hospitalised) && double(row.facts.hospitalised) >= 1.0))",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "988b79df-fcfc-54c6-bccf-077c615d3dbb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_ACCIDENT_REPORT_UPDATED",
+		"name": "Work accident reported within eight hours (case updated)",
+		"rules": {
+			"description": "A work accident case updated so that it first records a death, three or more injured, or one or more needing hospital treatment: report it to the labour inspection authority within eight hours. Raised only when the counts before the update did not already meet a §37(2) condition (row.before.facts).",
+			"authority": "職業安全衛生法 §37(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=37)",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "updated",
+				"fields": ["facts"]
+			},
+			"when": "row.kind == \"OCCUPATIONAL_ACCIDENT\" && has(row.before) && has(row.before.facts) && row.before.facts != null && has(row.facts) && row.facts != null && ((has(row.facts.deaths) && double(row.facts.deaths) >= 1.0) || (has(row.facts.injured) && double(row.facts.injured) >= 3.0) || (has(row.facts.hospitalised) && double(row.facts.hospitalised) >= 1.0)) && !((has(row.before.facts.deaths) && double(row.before.facts.deaths) >= 1.0) || (has(row.before.facts.injured) && double(row.before.facts.injured) >= 3.0) || (has(row.before.facts.hospitalised) && double(row.before.facts.hospitalised) >= 1.0))",
+			"due": "today"
+		}
+	},
+	{
+		"id": "2b0189cf-90cc-5527-b9ec-7698634e00f6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "INSURANCE_PREMIUM_LATE_SURCHARGE",
+		"name": "Pay the labour insurance late surcharge",
+		"rules": {
+			"description": "The labour, employment and occupational accident insurance remittance paid after the fifteen-day grace: pay the 滯納金 the bureau bills — labour and employment insurance 0.1% of the premium a day from the day after the grace to the day before payment, at most 20%; occupational accident insurance 0.2% a day, at most 20%. Raised when the remittance is recorded paid more than fifteen days after its due day.",
+			"authority": "勞工保險條例 §17(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=17); 就業保險法 §40 (勞工保險條例 applies); 勞工職業災害保險及保護法 §21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=21)",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state", "fulfilled_on"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code in [\"INSURANCE_PREMIUM_REMITTANCE\"] && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > add_days(row.due_on, 15)",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "5953b8f2-e333-5ecb-bf6c-8d0225d71404",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NHI_LATE_SURCHARGE",
+		"name": "Pay the NHI late surcharge",
+		"rules": {
+			"description": "An NHI premium or supplementary premium remitted after the fifteen-day grace: pay the 滯納金 of 0.1% of the amount a day from the day after the grace to the day before payment, at most 15% for an insuring unit or withholding agent. Raised when the remittance is recorded paid more than fifteen days after its due day.",
+			"authority": "全民健康保險法 §35(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=35)",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state", "fulfilled_on"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code in [\"NHI_PREMIUM_REMITTANCE\", \"NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING\", \"NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM\"] && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > add_days(row.due_on, 15)",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "1767f19b-35e9-56a7-b1f2-366e628ab067",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LABOUR_PENSION_LATE_SURCHARGE",
+		"name": "Pay the labour pension late surcharge",
+		"rules": {
+			"description": "Labour pension contributions paid after the deadline: pay the 滯納金 of 3% of the contribution a day from the day after the deadline to the day before payment, at most the contribution itself. Raised when the remittance is recorded paid after its due day.",
+			"authority": "勞工退休金條例 §53(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=53)",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state", "fulfilled_on"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code in [\"LABOUR_PENSION_REMITTANCE\"] && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "723d17e3-4749-5d7e-8c2e-095b86e1c841",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WITHHOLDING_TAX_LATE_SURCHARGE",
+		"name": "Pay the withholding tax late surcharge",
+		"rules": {
+			"description": "Withheld tax remitted after the §92 deadline: pay the 滯納金 of 1% of the tax for every three days late; after thirty days the tax goes to enforcement. Raised when the remittance is recorded paid after its due day.",
+			"authority": "所得稅法 §114(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=114); 稅捐稽徵法 §20 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340001&flno=20)",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state", "fulfilled_on"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code in [\"WITHHOLDING_TAX_REMITTANCE\"] && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "c2821fa5-d6ec-53c4-8a3f-aea9cedf87bd",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"kinds": [
+				{
+					"code": "EMERGENCY_OVERTIME",
+					"name": "Emergency extension of working hours (勞動基準法 §32(4))"
+				},
+				{
+					"code": "OCCUPATIONAL_ACCIDENT",
+					"name": "Work accident (職業安全衛生法 §37); facts: deaths, injured, hospitalised"
+				}
+			],
+			"authority": "勞動基準法 §32(4); 職業安全衛生法 §37"
+		}
+	},
+	{
+		"id": "28265fc3-6aaf-53b5-9874-043b2df7ddc2",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NON_COMPETE_BELOW_HALF_WAGE",
+		"name": "Non-compete compensation below half the average wage",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(payslip.lines.NON_COMPETE_COMPENSATION) && payslip.lines.NON_COMPETE_COMPENSATION < 0.5 * (has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : terms.monthly_wage)",
+			"message": "Non-compete compensation below half the average monthly wage at leaving: the restriction is not reasonably compensated (勞動基準法 §9-1, 施行細則 §7-3).",
+			"description": "施行細則 §7-3(1): 每月補償金額不低於勞工離職時一個月平均工資百分之五十 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7-3). The average is exit_facts.average_daily_wage × 30 where declared, else the monthly wage of the terms last in force."
+		}
+	},
+	{
+		"id": "104d0acc-d62a-54e8-b4ca-df3905f34fc5",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "Personal data deleted after the retention",
+		"rules": {
+			"description": "Delete (anonymise) the former worker’s personal data once the last statutory retention has run: the profile’s anonymise action.",
+			"authority": "個人資料保護法 §11(3): 個人資料蒐集之特定目的消失或期限屆滿時，應主動或依當事人之請求，刪除、停止處理或利用該個人資料 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&flno=11). Due on the record_retention day: 15 May of the sixth year after the exit year (商業會計法 §§38, 65).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.effective_range.to != null",
+			"due": "string(int(exit_on.substring(0, 4)) + 6) + \"-05-15\""
+		}
+	},
+	{
+		"id": "50270cb8-cae2-5a64-953f-c564e5f96978",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "record_retention",
+		"name": "Record retention after exit",
+		"rules": {
+			"description": "The day a former worker’s personal records may be deleted: the longest statutory retention after the exit.",
+			"authority": "The longest retention of a former worker’s records: the salary vouchers of the exit year are accounting vouchers kept at least five years after that year’s settlement (商業會計法 §38(1), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=J0080009&flno=38), which completes within two months of the year end, extendable by two and a half (§65, https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=J0080009&flno=65): to 15 May of the sixth year after the exit year (a calendar fiscal year). Shorter: the 勞工名卡 five years from leaving (勞動基準法 §7(2), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=7), the wage roster five years (§23(2)), attendance records five years (§30(6)), the labour pension roster five years from leaving (勞工退休金條例 §21(2), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=21). 個人資料保護法 §11(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&flno=11) then requires the data deleted or its processing stopped.",
+			"until": "string(int(employment.exit_date.substring(0, 4)) + 6) + \"-05-15\""
+		}
+	},
+	{
+		"id": "58c9a09b-3b65-54d9-98a6-ce8a2d82d065",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_ROSTER_CSV",
+		"name": "工資清冊 (wage roster)",
+		"rules": {
+			"description": "工資清冊 (wage roster) as a CSV: one row per worker for the selected runs — the wages paid, each wage item, the deductions and the amount actually paid.",
+			"authority": "勞動基準法 §23(2): 雇主應置備勞工工資清冊，將發放工資、工資各項目計算方式明細、工資總額等事項記入。工資清冊應保存五年 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=23); 施行細則 §14-1(1): the items are the wage total, each wage item, the deductions by law or agreement and the amount actually paid (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=14-1). No official column template is prescribed; the columns follow §14-1 and the lines this lineage prices.",
+			"file": "\"wage-roster-\" + runs[0].period + \".csv\"",
+			"when": "size(slips) > 0",
+			"columns": [
+				{
+					"header": "姓名",
+					"value": "has(employee.name) ? employee.name : \"\""
+				},
+				{
+					"header": "工資給付期間",
+					"value": "slips[0].period + (size(slips) > 1 ? \"~\" + slips[size(slips) - 1].period : \"\")"
+				},
+				{
+					"header": "本薪",
+					"value": "(has(totals.lines.BASIC) ? totals.lines.BASIC : 0.0) - max((has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0), -(has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0)) - max((has(totals.lines.PARTIAL_PAY_LEAVE) ? totals.lines.PARTIAL_PAY_LEAVE : 0.0), -(has(totals.lines.PARTIAL_PAY_LEAVE) ? totals.lines.PARTIAL_PAY_LEAVE : 0.0)) - max((has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0), -(has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0))"
+				},
+				{
+					"header": "延長工時工資",
+					"value": "(has(totals.lines.OVERTIME) ? totals.lines.OVERTIME : 0.0) + (has(totals.lines.REST_DAY_WORK) ? totals.lines.REST_DAY_WORK : 0.0) + (has(totals.lines.HOLIDAY_OVERTIME) ? totals.lines.HOLIDAY_OVERTIME : 0.0)"
+				},
+				{
+					"header": "例假及休假出勤工資",
+					"value": "(has(totals.lines.STATUTORY_REST_WORK) ? totals.lines.STATUTORY_REST_WORK : 0.0) + (has(totals.lines.HOLIDAY_WORK) ? totals.lines.HOLIDAY_WORK : 0.0)"
+				},
+				{
+					"header": "全勤獎金",
+					"value": "(has(totals.lines.FULL_ATTENDANCE_BONUS) ? totals.lines.FULL_ATTENDANCE_BONUS : 0.0)"
+				},
+				{
+					"header": "伙食津貼",
+					"value": "(has(totals.lines.MEAL_ALLOWANCE) ? totals.lines.MEAL_ALLOWANCE : 0.0)"
+				},
+				{
+					"header": "其他給付",
+					"value": "totals.gross - ((has(totals.lines.BASIC) ? totals.lines.BASIC : 0.0) - max((has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0), -(has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0)) - max((has(totals.lines.PARTIAL_PAY_LEAVE) ? totals.lines.PARTIAL_PAY_LEAVE : 0.0), -(has(totals.lines.PARTIAL_PAY_LEAVE) ? totals.lines.PARTIAL_PAY_LEAVE : 0.0)) - max((has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0), -(has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0))) - ((has(totals.lines.OVERTIME) ? totals.lines.OVERTIME : 0.0) + (has(totals.lines.REST_DAY_WORK) ? totals.lines.REST_DAY_WORK : 0.0) + (has(totals.lines.HOLIDAY_OVERTIME) ? totals.lines.HOLIDAY_OVERTIME : 0.0)) - ((has(totals.lines.STATUTORY_REST_WORK) ? totals.lines.STATUTORY_REST_WORK : 0.0) + (has(totals.lines.HOLIDAY_WORK) ? totals.lines.HOLIDAY_WORK : 0.0)) - (has(totals.lines.FULL_ATTENDANCE_BONUS) ? totals.lines.FULL_ATTENDANCE_BONUS : 0.0) - (has(totals.lines.MEAL_ALLOWANCE) ? totals.lines.MEAL_ALLOWANCE : 0.0)"
+				},
+				{
+					"header": "工資總額",
+					"value": "totals.gross"
+				},
+				{
+					"header": "勞工保險費",
+					"value": "(has(totals.statutory.LI) ? totals.statutory.LI.employee : 0.0) + (has(totals.statutory.EI) ? totals.statutory.EI.employee : 0.0)"
+				},
+				{
+					"header": "全民健康保險費",
+					"value": "(has(totals.statutory.NHI) ? totals.statutory.NHI.employee : 0.0)"
+				},
+				{
+					"header": "健保補充保險費",
+					"value": "(has(totals.statutory.NHI_SUPPLEMENT) ? totals.statutory.NHI_SUPPLEMENT.employee : 0.0) + (has(totals.statutory.NHI_PART_TIME) ? totals.statutory.NHI_PART_TIME.employee : 0.0)"
+				},
+				{
+					"header": "勞工退休金自提",
+					"value": "(has(totals.statutory.LABOR_PENSION) ? totals.statutory.LABOR_PENSION.employee : 0.0)"
+				},
+				{
+					"header": "所得稅",
+					"value": "(has(totals.statutory.INCOME_TAX) ? totals.statutory.INCOME_TAX.employee : 0.0) + (has(totals.statutory.INCOME_TAX_BONUS) ? totals.statutory.INCOME_TAX_BONUS.employee : 0.0) + (has(totals.statutory.INCOME_TAX_NON_RESIDENT) ? totals.statutory.INCOME_TAX_NON_RESIDENT.employee : 0.0) + (has(totals.statutory.SEVERANCE_TAX) ? totals.statutory.SEVERANCE_TAX.employee : 0.0)"
+				},
+				{
+					"header": "職工福利金",
+					"value": "(has(totals.statutory.WELFARE_FUND) ? totals.statutory.WELFARE_FUND.employee : 0.0)"
+				},
+				{
+					"header": "其他扣除",
+					"value": "totals.total_deductions - ((has(totals.statutory.LI) ? totals.statutory.LI.employee : 0.0) + (has(totals.statutory.EI) ? totals.statutory.EI.employee : 0.0)) - (has(totals.statutory.NHI) ? totals.statutory.NHI.employee : 0.0) - ((has(totals.statutory.NHI_SUPPLEMENT) ? totals.statutory.NHI_SUPPLEMENT.employee : 0.0) + (has(totals.statutory.NHI_PART_TIME) ? totals.statutory.NHI_PART_TIME.employee : 0.0)) - (has(totals.statutory.LABOR_PENSION) ? totals.statutory.LABOR_PENSION.employee : 0.0) - ((has(totals.statutory.INCOME_TAX) ? totals.statutory.INCOME_TAX.employee : 0.0) + (has(totals.statutory.INCOME_TAX_BONUS) ? totals.statutory.INCOME_TAX_BONUS.employee : 0.0) + (has(totals.statutory.INCOME_TAX_NON_RESIDENT) ? totals.statutory.INCOME_TAX_NON_RESIDENT.employee : 0.0) + (has(totals.statutory.SEVERANCE_TAX) ? totals.statutory.SEVERANCE_TAX.employee : 0.0)) - (has(totals.statutory.WELFARE_FUND) ? totals.statutory.WELFARE_FUND.employee : 0.0)"
+				},
+				{
+					"header": "扣除額合計",
+					"value": "totals.total_deductions"
+				},
+				{
+					"header": "實發金額",
+					"value": "totals.net"
+				}
+			]
+		}
+	},
+	{
+		"id": "a7c22ee1-86a2-55bc-8f4c-26862c60f9e0",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "REDUCED_HOURS_NOTICE",
+		"name": "Reduced-hours agreement notified",
+		"rules": {
+			"description": "A 減班休息 (reduced working time by written agreement) recorded as a REDUCED_WORK_AGREEMENT work suspension: notify the local labour authority of the agreement. The guidance names no deadline; labelled default: by the suspension’s first day, before the reduced hours start.",
+			"authority": "因應景氣影響勞雇雙方協商減少工時應行注意事項 (勞動部, 2019-11-22): 與員工簽訂書面協議，並通報當地縣市政府 (https://www.mol.gov.tw/1607/1632/1640/12438/post). Deadline: none given — DEFAULT the first reduced day.",
+			"trigger": {
+				"collection": "work_suspension",
+				"event": "created"
+			},
+			"when": "row.kind == \"REDUCED_WORK_AGREEMENT\"",
+			"due": "row.starts_on"
+		}
+	},
+	{
+		"id": "a3162a27-92c7-5865-b0b4-6d73d723a9ca",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_DAILY_HOURS_CAP",
+		"name": "More than twelve hours worked in a day, overtime included",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (day.worked_hours > 12.0)",
+			"message": "More than twelve hours worked in a day, overtime included (勞動基準法 §32(2)).",
+			"description": "勞動基準法 §32(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32): 延長之工作時間連同正常工作時間，一日不得超過十二小時. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "93d8fff8-1689-533c-9b83-5d4fada47ae2",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS",
+		"name": "Normal hours above eight a day or forty in the seven days without approved overtime",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (!(has(company.facts.flexible_working_time) && company.facts.flexible_working_time == true) && (day.worked_hours - day.overtime_hours - (has(day.banked_hours) ? day.banked_hours : 0.0) > 8.0 || week.worked_hours - week.overtime_hours > 40.0))",
+			"message": "Normal hours above eight a day or forty in the seven days without approved overtime (勞動基準法 §30(1)).",
+			"description": "勞動基準法 §30(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30): 勞工正常工作時間，每日不得超過八小時，每週不得超過四十小時; the §30-1 / §30(2)–(3) flexible schemes are the entity fact flexible_working_time. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "4995629a-314b-5c29-9870-9259fb993ab0",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_REST_BETWEEN_SHIFTS",
+		"name": "Fewer than eleven consecutive hours of rest since the previous shift",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "day.rest_hours_before != null && day.rest_hours_before < ((has(company.facts.shift_change_rest_eight_hours) && company.facts.shift_change_rest_eight_hours == true) ? 8.0 : 11.0)",
+			"message": "Fewer than eleven consecutive hours of rest since the previous shift (勞動基準法 §34(2)).",
+			"description": "勞動基準法 §34(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=34): 更換班次時，至少應有連續十一小時之休息時間 (eight by announced exception: shift_change_rest_eight_hours)."
+		}
+	},
+	{
+		"id": "11d9a59b-8883-5b0c-a518-2d09ad338d09",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_BREAK_AFTER_FOUR_HOURS",
+		"name": "Four hours worked without a thirty-minute break",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work == true) && day.intervals.exists(i, hours_between([i], \"00:00\", \"00:00\") > 4.0)",
+			"message": "Four hours worked without a thirty-minute break (勞動基準法 §35).",
+			"description": "勞動基準法 §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35): 勞工繼續工作四小時，至少應有三十分鐘之休息 (shift or continuous work excepted: shift_or_continuous_work)."
+		}
+	},
+	{
+		"id": "c0b82e0c-e0a5-56d9-8431-375f7155eab7",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_SEVEN_DAY_REST",
+		"name": "Seven days worked without the regular day off",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (!(has(company.facts.flexible_working_time) && company.facts.flexible_working_time == true) && week.worked_days >= 7)",
+			"message": "Seven days worked without the regular day off (例假) (勞動基準法 §36(1)).",
+			"description": "勞動基準法 §36(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=36): 勞工每七日中應有二日之休息，其中一日為例假，一日為休息日 (the 2/4/8-week schemes: flexible_working_time). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "264c2e5d-50e1-5faf-b403-bb42e7a1a8d1",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_REGULAR_DAY_OFF_WORKED",
+		"name": "Work on a regular day off",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (day.day_type == \"REST\" && day.worked)",
+			"message": "Work on a regular day off (例假): only for a §40 emergency, paid double with rest in lieu, and reported within 24 hours.",
+			"description": "勞動基準法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40): 例假 work only for a natural disaster, incident or emergency; wages doubled, rest given in lieu, and reported to the authority within 24 hours. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "439e8e7f-c114-5c98-88dd-d2314223cbb1",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_CHILD_WORKER",
+		"name": "A child worker",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "employee.age != null && employee.age < 16 && (day.worked_hours > 8.0 || day.overtime_hours > 0.0 || (day.day_type in [\"REST\", \"OFF\"] && day.worked) || hours_between(day.intervals, \"20:00\", \"06:00\") > 0.0)",
+			"message": "A child worker (under sixteen) beyond eight hours, on overtime, on a rest day or between 20:00 and 06:00 (勞動基準法 §§47–48).",
+			"description": "勞動基準法 §47 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=47): 童工每日之工作時間不得超過八小時，每週之工作時間不得超過四十小時，例假日不得工作; §48: 童工不得於午後八時至翌晨六時之時間內工作."
+		}
+	},
+	{
+		"id": "24da9411-b202-57e4-af3c-a479644e47b9",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_WOMEN_NIGHT_WORK",
+		"name": "A woman worked between 22:00 and 06:00 without the union or conference consent and safety measures",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (employee.gender == \"FEMALE\" && !(has(company.facts.women_night_work_consent) && company.facts.women_night_work_consent == true) && hours_between(day.intervals, \"22:00\", \"06:00\") > 0.0)",
+			"message": "A woman worked between 22:00 and 06:00 without the union or conference consent and safety measures (勞動基準法 §49(1)).",
+			"description": "勞動基準法 §49(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=49). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+		}
+	},
+	{
+		"id": "149d65c8-6bf8-59cb-957f-30bd609cbcfb",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PREGNANT_NIGHT_WORK",
+		"name": "A pregnant or nursing worker worked between 22:00 and 06:00",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "employee.gender == \"FEMALE\" && employee.children.exists(c, (has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\" && (!has(c.child_birthdate) || c.child_birthdate == \"\")) || (has(c.child_birthdate) && c.child_birthdate != \"\" && c.child_birthdate > add_years(day.date, -2))) && hours_between(day.intervals, \"22:00\", \"06:00\") > 0.0",
+			"message": "A pregnant or nursing worker worked between 22:00 and 06:00 (勞動基準法 §49(5)); a child under two is read as possible nursing — confirm.",
+			"description": "勞動基準法 §49(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=49): 女工因健康或其他正當理由，不能於午後十時至翌晨六時之時間內工作者，雇主不得強制其工作; 妊娠或哺乳期間之女工，不得於午後十時至翌晨六時之時間內工作. Pregnancy is a child recorded with an estimated_delivery_date and no birth date; nursing is read from a child under two (性別平等工作法 §18)."
+		}
+	},
+	{
+		"id": "d95ec634-80e8-5a36-a37d-f3105b583634",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_ATTENDANCE_TO_THE_MINUTE",
+		"name": "Overtime approved on a day with no clock-in and clock-out: the attendance record must show the day to the minute",
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"when": "day.overtime_hours + (has(day.banked_hours) ? day.banked_hours : 0.0) > 0.0 && size(day.intervals) == 0",
+			"message": "Overtime approved on a day with no clock-in and clock-out: the attendance record must show the day to the minute (勞動基準法 §30(5)–(6)). Record the times.",
+			"description": "勞動基準法 §30(5)–(6) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30): 雇主應置備勞工出勤紀錄 … 出勤紀錄，應逐日記載勞工出勤情形至分鐘為止. A day carrying approved or banked overtime and no worked intervals is a record the law does not allow: the import refuses it."
+		}
+	},
+	{
+		"id": "40fc722a-cd67-5709-b748-e866171884c8",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "LI_UNIT_CHANGE",
+		"name": "Labour insurance unit change reported",
+		"rules": {
+			"description": "The insuring unit’s name, address or responsible person changed: file the 投保單位變更事項申請書 with the Bureau of Labor Insurance (labour, employment and occupational accident insurance) within thirty days.",
+			"authority": "勞工保險條例施行細則 §17 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050002&flno=17): 投保單位之名稱、地址或其通訊地址之變更 … 負責人之變更 — 應於三十日內填具投保單位變更事項申請書. Raised by an entity update whose name, or facts.address / facts.responsible_person, changed (row.before). A deadline on a Saturday, Sunday or published holiday moves to the next working day.",
+			"trigger": {
+				"collection": "entity",
+				"event": "updated",
+				"fields": ["name", "facts"]
+			},
+			"when": "has(row.before) && (\"name\" in row.before || (\"facts\" in row.before && row.before.facts != null && (((has(row.before.facts.address) ? string(row.before.facts.address) : \"\") != (has(row.facts.address) ? string(row.facts.address) : \"\")) || ((has(row.before.facts.responsible_person) ? string(row.before.facts.responsible_person) : \"\") != (has(row.facts.responsible_person) ? string(row.facts.responsible_person) : \"\")))))",
+			"due": "next_working_day(add_days(today, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "f5d1b851-fbaf-5c53-99ee-5fd07217b93d",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NHI_UNIT_CHANGE",
+		"name": "NHI unit change reported",
+		"rules": {
+			"description": "The insuring unit’s name, responsible person or address changed: file the 投保單位變更事項申報表 with the NHIA within fifteen days.",
+			"authority": "全民健康保險法施行細則 §42 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060002&flno=42): 投保單位之名稱、負責人、地址或其通訊地址變更時，應於十五日內填具投保單位變更事項申報表. Raised as LI_UNIT_CHANGE.",
+			"trigger": {
+				"collection": "entity",
+				"event": "updated",
+				"fields": ["name", "facts"]
+			},
+			"when": "has(row.before) && (\"name\" in row.before || (\"facts\" in row.before && row.before.facts != null && (((has(row.before.facts.address) ? string(row.before.facts.address) : \"\") != (has(row.facts.address) ? string(row.facts.address) : \"\")) || ((has(row.before.facts.responsible_person) ? string(row.before.facts.responsible_person) : \"\") != (has(row.facts.responsible_person) ? string(row.facts.responsible_person) : \"\")))))",
+			"due": "next_working_day(add_days(today, 15), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "cba8795f-78e2-5b31-9205-dd76eff04296",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			]
+		}
+	},
+	{
+		"id": "cf483da1-759a-5d9f-b25b-b877b563292b",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SPECIAL_HOLIDAY",
+					"name": "Election or referendum day (投票日: workers with the vote only; no day in lieu)"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				},
+				{
+					"code": "DOUBLE_HOLIDAY",
+					"name": "Two public holidays on one day"
+				},
+				{
+					"code": "DOUBLE_SPECIAL",
+					"name": "Two special holidays on one day"
+				}
+			]
+		}
+	},
+	{
+		"id": "e71c15cb-59d4-54a5-81df-c2d47077d1b5",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_LEAVE_ENTITLEMENT_NOTICE",
+		"name": "Annual leave entitlement notified",
+		"rules": {
+			"description": "The worker has met a §38(1) special-leave condition (six months’ service, or a further service year): tell the worker of the entitlement and that they arrange the days, within thirty days of the condition being met.",
+			"authority": "勞動基準法 §38(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38): 雇主應於勞工符合第一項所定之特別休假條件時，告知勞工依前二項規定排定特別休假; 施行細則 §24(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24): 應於勞工符合特別休假條件之日起三十日內為之. Raised on the six-month day and each service anniversary.",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "(today == add_months(contract.effective_range.from, 6) || (calendar_completed_months(contract.effective_range.from, today) >= 12 && add_years(contract.effective_range.from, round(double(calendar_completed_months(contract.effective_range.from, today)) / 12.0, 1.0, \"DOWN\")) == today))",
+			"due": "next_working_day(add_days(today, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "f893dc35-2454-596b-9ceb-f907a664b744",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "ANNUAL_LEAVE_WRITTEN_STATEMENT",
+		"name": "Annual leave statement given in writing",
+		"rules": {
+			"description": "At the end of the leave (service) year: record the year’s special-leave dates and the pay for the days not taken in the wage roster (工資清冊, WAGE_ROSTER_CSV), and give the worker the statement in writing.",
+			"authority": "勞動基準法 §38(5) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38): 雇主應將勞工每年特別休假之期日及未休之日數所發給之工資數額，記載於第二十三條所定之勞工工資清冊，並每年定期將其內容以書面通知勞工. Raised on the service year’s last day with ANNUAL_LEAVE_YEAR_END_PAYMENT; due with that payment (施行細則 §24-1(2)).",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "calendar_completed_months(contract.effective_range.from, add_days(today, 1)) >= 12 && add_years(contract.effective_range.from, round(double(calendar_completed_months(contract.effective_range.from, add_days(today, 1))) / 12.0, 1.0, \"DOWN\")) == add_days(today, 1)",
+			"due": "next_working_day(add_days(today, 30), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "f244dc34-e9c7-57e1-b9fd-7459a48e7108",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_COMPLAINT_CHANNEL",
+		"name": "Sexual-harassment complaint channel posted",
+		"rules": {
+			"description": "An employer of ten to twenty-nine: set up a sexual-harassment complaint channel and post it at the workplace. Raised with each hire until the entity records it (company facts sexual_harassment_complaint_channel). No statutory deadline: labelled default — the hire day the threshold is reached.",
+			"authority": "性別平等工作法 §13(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=13): 僱用受僱者十人以上未達三十人者，應訂定申訴管道，並在工作場所公開揭示.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "headcount >= 10 && headcount < 30 && !(has(company.facts.sexual_harassment_complaint_channel) && company.facts.sexual_harassment_complaint_channel == true)",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "f5c63fe1-1113-5a13-b38e-7766e72fd7e6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_PREVENTION_RULES",
+		"name": "Sexual-harassment prevention, complaint and discipline rules published",
+		"rules": {
+			"description": "An employer of thirty or more: adopt sexual-harassment prevention measures and complaint and discipline rules and post them at the workplace. Raised with each hire until the entity records them (company facts sexual_harassment_prevention_rules). No statutory deadline: labelled default — the hire day the threshold is reached.",
+			"authority": "性別平等工作法 §13(1)(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=13): 僱用受僱者三十人以上者，應訂定性騷擾防治措施、申訴及懲戒規範，並在工作場所公開揭示.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "headcount >= 30 && !(has(company.facts.sexual_harassment_prevention_rules) && company.facts.sexual_harassment_prevention_rules == true)",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "48f34b20-78b2-500c-ab8c-b6f92e1e02ca",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PERSONAL_DATA_COLLECTION_NOTICE",
+		"name": "Personal-data collection notice given",
+		"rules": {
+			"description": "When the worker’s personal data are collected on hiring: tell the worker the employer’s name, the purposes, the data categories, the period, area, recipients and manner of use, the worker’s §3 rights and how to exercise them, and the effect of not providing data they may withhold. The data the law itself requires (insurance, tax) fall under the §8(2)(2) exception; the notice still covers the rest.",
+			"authority": "個人資料保護法 §8(1)–(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0050021&flno=8).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "10cf0104-11b5-55d0-b31f-58e8d36c21f6",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_OVERTIME_WITHOUT_CONSENT",
+		"name": "Overtime on a day without recorded consent",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "day.overtime_hours + (has(day.banked_hours) ? day.banked_hours : 0.0) > 0.0 && !(has(day.overtime_consented) && day.overtime_consented == true)",
+			"message": "Overtime recorded on a day without the worker’s consent to it (勞動基準法 §32(1)): record the day’s consent.",
+			"description": "勞動基準法 §32(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32): the worker’s agreement to work the day’s overtime — owner ruling: recorded per day (overtime_consented_at), never as a company or contract fact. Distinct from the collective union / labour-management conference approval that unlocks the 54-hour month (company facts overtime_extension_approval_on), which the payslip caps read."
+		}
+	}
+]

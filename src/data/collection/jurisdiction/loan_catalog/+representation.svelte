@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { Form, openRecord, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import CatalogSections from '../../../../lib/ui/settings/catalog_sections.svelte';
 
 	let { view }: { view: RecordView<'loan_catalog'> } = $props();
 	const record = $derived(view.mode === 'update' ? view.record : null);
+	const values = $derived(view.mode === 'create' ? view.values : {});
 	const t = bolt.t;
 </script>
 
@@ -11,26 +13,38 @@
 	of="loan_catalog"
 	mode={view.mode}
 	{...record == null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
-	sections={[
-		{ name: 'identity', title: t('section.identity'), fields: ['code', 'name'] },
-		{
-			name: 'rules',
-			title: t('section.rules'),
-			fields: [
-				'eligibility',
-				'evidence',
-				'loan_type',
-				'minimum_repayment',
-				'approval_reference_required',
-				'order_recovery_rule',
-				'order_payment_when',
-				'order_authority'
-			]
-		},
-		{
-			name: 'settlement',
-			title: t('section.settlement'),
-			fields: ['destination', 'direction', 'bands']
-		}
-	]}
-/>
+>
+	{#key record?.revision}
+		<Form
+			of="loan_catalog"
+			mode={view.mode}
+			{...record ? { id: record.id } : {}}
+			{record}
+			{values}
+			onOutcome={(outcome) => {
+				if (outcome.kind !== 'committed' || record) return;
+				const created = outcome.records.find((row) => row.collection === 'loan_catalog');
+				if (created) openRecord('loan_catalog', created.id);
+			}}
+		>
+			{#snippet children()}
+				<CatalogSections
+					sections={[
+						{ name: 'identity', title: t('section.identity'), fields: ['code', 'name'] },
+						{ name: 'authority', title: t('section.authority'), fields: ['authority'] },
+						{
+							name: 'rules',
+							title: t('section.rules'),
+							fields: ['eligibility']
+						},
+						{
+							name: 'settlement',
+							title: t('section.settlement'),
+							fields: ['destination', 'direction', 'bands']
+						}
+					]}
+				/>
+			{/snippet}
+		</Form>
+	{/key}
+</RecordShell>

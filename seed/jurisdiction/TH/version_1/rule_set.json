@@ -1,5 +1,38 @@
 [
 	{
+		"id": "b5ef1089-2aa7-5d8f-b2ba-386791399a0a",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"kinds": [
+				{
+					"code": "PERSONAL_DATA_BREACH",
+					"name": "Personal data breach (PDPA s.37(4))"
+				},
+				{
+					"code": "PERSONAL_DATA_TRANSFER_ABROAD",
+					"name": "Personal data to be sent or transferred abroad (PDPA s.28)"
+				}
+			]
+		}
+	},
+	{
+		"id": "46aff01a-9ee5-5bde-8a55-d0c9e94562d7",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "record_retention",
+		"name": "Record retention after exit",
+		"rules": {
+			"until": "add_years(employment.exit_date.substring(0, 4) + \"-12-31\", 5)",
+			"description": "Accounts and the supporting documents of the exit's accounting year (payroll, withholding records) are kept at least five years from the closing of that year's accounts — longer than the LPA s.115 two years after the exit; the longest retention after exit. A former employee may be anonymised only after it.",
+			"authority": "Accounting Act B.E. 2543 s.14 (Department of Business Development summary https://www2.dbd.go.th/dbdweb_en/download/PDF_LAW/dbd_law_1_SummaryAccountingActBE2543.pdf); LPA s.115"
+		}
+	},
+	{
 		"id": "7d701bb5-f4d2-59f0-a95d-e65af387d9b7",
 		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
 		"family": "PAYROLL",
@@ -172,7 +205,8 @@
 				"event": "created"
 			},
 			"months": ["01"],
-			"due": "month_end(period.from)"
+			"due": "month_end(period.from)",
+			"applies_when": "!(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)"
 		}
 	},
 	{
@@ -202,7 +236,7 @@
 		"name": "Annual employment and working conditions report (Kor Ror 11)",
 		"rules": {
 			"description": "An employer of ten or more employees submits the annual report on employment and working conditions to the Department of Labour Protection and Welfare.",
-			"authority": "Labour Protection Act B.E. 2541 (1998) s.115/1 (as amended by Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette 7 November 2025, in force 7 December 2025)): within January of each year.",
+			"authority": "Labour Protection Act B.E. 2541 s.115/1 (inserted by LPA (No. 2) B.E. 2551; paragraph one replaced by LPA (No. 9) B.E. 2568 s.9, Royal Gazette vol.142 part 74 Kor, 7 November 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): an employer of ten or more files the report on employment and working conditions within January each year.",
 			"trigger": {
 				"collection": "payroll_run",
 				"event": "created"
@@ -220,15 +254,15 @@
 		"code": "DISABLED_EMPLOYMENT_QUOTA",
 		"name": "Disabled-person employment quota or fund contribution",
 		"rules": {
-			"description": "An employer of 100 or more employees employs one person with disabilities for every 100 employees (s.33) or pays the Empowerment of Persons with Disabilities Fund for each shortfall (s.34) at 365 days of the highest minimum wage. Raised on the January run when the entity's contracts in force that day number 100 or more; the Act counts on 1 October.",
-			"authority": "Persons with Disabilities Empowerment Act B.E. 2550 ss.33-34 with the Ministerial Regulation on the employment of persons with disabilities B.E. 2554: the count is taken on 1 October and the fund contribution is paid by 31 January.",
+			"description": "An employer of 100 or more employees employs one person with disabilities for every 100 employees who are not disabled, a remainder above 50 counting as another 100 (Ministerial Regulation B.E. 2554 cl.3), or pays the Empowerment of Persons with Disabilities Fund for each one short (s.34) the lowest minimum daily wage in force last in the previous year × 365 (cl.5), or arranges the s.35 alternatives. Raised on the January run when the entity's contracts in force that day number 100 or more (the Regulation counts on 1 October, branches in one province together); due 31 March.",
+			"authority": "Persons with Disabilities Empowerment Act B.E. 2550 ss.33-35; Ministerial Regulation on the number of persons with disabilities employers must employ and the fund contribution B.E. 2554 cl.3 (count on 1 October) and cl.5 para 2 as amended by No. 2 B.E. 2560 (Royal Gazette vol. 134 part 103 Kor, 5 October 2017): paid by 31 March each year. Office of the Council of State consolidated texts https://www.ocs.go.th/searchlaw/law-index/item/6494 and https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZDlTeDI5VEFDSGt3NkEzTXp4T0ludz09, read 2026-10-08.",
 			"trigger": {
 				"collection": "payroll_run",
 				"event": "created"
 			},
 			"months": ["01"],
 			"applies_when": "double(headcount) >= 100.0",
-			"due": "month_end(period.from)"
+			"due": "month_end(add_months(period.from, 2))"
 		}
 	},
 	{
@@ -294,7 +328,7 @@
 		"name": "Pay wages and money due on termination",
 		"rules": {
 			"description": "Pay the wages, overtime pay, holiday pay and holiday overtime pay due when the employer ends the employment.",
-			"authority": "Labour Protection Act B.E. 2541 s.70 para 2: where the employer terminates the employment, \"wage, overtime pay, holiday pay and holiday overtime pay\" are paid \"within three days as from the employment termination date\" (Office of the Council of State translation https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Severance (s.118) and the annual-leave pay of s.67 are owed on termination without this deadline.",
+			"authority": "Labour Protection Act B.E. 2541 s.70 para 2: where the employer terminates the employment, \"wage, overtime pay, holiday pay and holiday overtime pay\" are paid \"within three days as from the employment termination date\" (text as in the Council of State translation; s.70 as amended by LPA (No. 7) B.E. 2562 keeps the three-day rule; https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Severance (s.118) and the annual-leave pay of s.67 are owed on termination without this deadline.",
 			"trigger": {
 				"collection": "employment_contract",
 				"event": "updated",
@@ -409,7 +443,7 @@
 			"description": "Pay the members' contributions deducted and the employer's contributions into the registered provident fund.",
 			"authority": "Revenue Code s.65 ter(2) with Ministerial Regulation No. 183 (B.E. 2533) items 3-4: the employer's contributions are paid into the fund within three working days of the wage payment (Revenue Department ruling 0706/4613 of 8 May 2007, https://www.rd.go.th/35308.html). Wages are taken as paid on the last day of the period.",
 			"schemes": ["PVD"],
-			"due": "add_working_days(period.to, 3, holidays)"
+			"due": "add_working_days(period.to, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -420,8 +454,8 @@
 		"code": "WORK_RULES",
 		"name": "Announce work rules in Thai (10 employees)",
 		"rules": {
-			"description": "An employer that comes to employ ten employees announces work rules in Thai, posts them at the workplace and gives a copy to the labour office.",
-			"authority": "Labour Protection Act B.E. 2541 (1998) s.108: an employer of ten or more employees has work rules in Thai, announced within 15 days of the day it comes to have ten employees — \"within fifteen days as from the date the aggregate amount of the employees … reach to ten\" (Office of the Council of State translation https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Raised on the hire that brings the contracts in force to ten.",
+			"description": "An employer that comes to employ ten employees announces work rules in Thai, posts them at the workplace and keeps a copy there.",
+			"authority": "Labour Protection Act B.E. 2541 s.108: an employer of ten or more has work rules in Thai, announced within 15 days of the day the employees reach ten, posted and kept at the workplace (Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)). The former duty to send a copy to the Director-General was repealed by Order of the Head of the NCPO No. 21/2560 (4 April 2017; summarised by Tilleke & Gibbins, https://www.tilleke.com/ja/insights/thailand-amendments-labor-protection-act). Raised on the hire that brings the contracts in force to ten.",
 			"trigger": {
 				"collection": "employment_contract",
 				"event": "created"
@@ -439,12 +473,12 @@
 		"name": "Notify the SSO of a work injury (Kor Tor 16)",
 		"rules": {
 			"description": "Notify the Social Security Office of an employee's work injury, sickness or disappearance.",
-			"authority": "Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.48: \"ให้นายจ้างแจ้งเหตุดังกล่าวต่อสำนักงาน … ภายในสิบห้าวันนับแต่วันที่นายจ้างทราบ\" — within 15 days of the day the employer knows. https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/84244ea51a2464c0713a98ddd8cc0955.pdf Raised by a SICK_LEAVE entry whose facts mark a work injury (facts.work_injury); its first day stands for the day the employer knew.",
+			"authority": "Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.48: \"ให้นายจ้างแจ้งเหตุดังกล่าวต่อสำนักงาน … ภายในสิบห้าวันนับแต่วันที่นายจ้างทราบ\" — within 15 days of the day the employer knows. https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/84244ea51a2464c0713a98ddd8cc0955.pdf Raised by a WORK_INJURY_LEAVE entry; its first day stands for the day the employer knew.",
 			"trigger": {
 				"collection": "leave_catalog_entry",
 				"event": "created"
 			},
-			"when": "row.catalog_code == \"SICK_LEAVE\" && has(row.facts) && row.facts != null && has(row.facts.work_injury) && row.facts.work_injury == true",
+			"when": "row.catalog_code == \"WORK_INJURY_LEAVE\"",
 			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, 15)"
 		}
 	},
@@ -458,9 +492,9 @@
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
-			"when": "!(has(company.facts.minimum_wage_exempt) && company.facts.minimum_wage_exempt) && company.region in rules.minimum_wage.by_region && ((has(term.facts) && term.facts != null && has(term.facts.pay_basis) && term.facts.pay_basis == \"DAILY\") ? term.base_salary : term.monthly_wage / 30.0) < double((has(company.facts.minimum_wage_400_business) && company.facts.minimum_wage_400_business ? rules.minimum_wage.business_400 : rules.minimum_wage.by_region[company.region]))",
+			"when": "!(has(term.facts) && term.facts != null && has(term.facts.pay_basis) && term.facts.pay_basis == \"PIECE\") && !(has(company.facts.minimum_wage_exempt) && company.facts.minimum_wage_exempt) && company.region in rules.minimum_wage.by_region && ((has(term.facts) && term.facts != null && has(term.facts.pay_basis) && term.facts.pay_basis == \"DAILY\") ? term.base_salary : term.monthly_wage / 30.0) < double((has(company.facts.minimum_wage_400_business) && company.facts.minimum_wage_400_business ? rules.minimum_wage.business_400 : rules.minimum_wage.by_region[company.region]))",
 			"message": "The contract pays less than the minimum wage of the workplace's province (Wage Committee Notification No. 14 cl.20): a day's wage — the day rate, or the monthly wage with its fixed allowances divided by 30 (LPA s.68) — must be at least the area rate.",
-			"description": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette vol.142 special part 236 Ngor, 1 July 2025, cl.2-18 (rates by area; 400 for category 2-4 hotels and service establishments), cl.19 (\"วัน\" is the normal working time, however short), cl.20 (\"ห้ามมิให้นายจ้างจ่ายค่าจ้าง … น้อยกว่าอัตราค่าจ้างขั้นต่ำ\") https://ratchakitcha.soc.go.th/documents/76681.pdf; Labour Protection Act B.E. 2541 (1998) ss.68, 90. An entity whose region is not a key of the table is not checked. An employer outside the notification (explanatory note item 7: central, regional and local government, state enterprises, non-profit employers, sea-cargo loading, home work, seasonal agriculture) records the entity fact minimum_wage_exempt."
+			"description": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette vol.142 special part 236 Ngor, 1 July 2025, cl.2-18 (rates by area; 400 for category 2-4 hotels and service establishments), cl.19 (\"วัน\" is the normal working time, however short), cl.20 (\"ห้ามมิให้นายจ้างจ่ายค่าจ้าง … น้อยกว่าอัตราค่าจ้างขั้นต่ำ\") https://ratchakitcha.soc.go.th/documents/76681.pdf; Labour Protection Act B.E. 2541 (1998) ss.68, 90. An entity whose region is not a key of the table is not checked. An employer outside the notification (explanatory note item 7: central, regional and local government, state enterprises, non-profit employers, sea-cargo loading, home work, seasonal agriculture) records the entity fact minimum_wage_exempt. A piece-rate contract is checked on the payslip (PIECE_MINIMUM_WAGE)."
 		}
 	},
 	{
@@ -488,27 +522,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
-			"when": "!(has(employee.facts.deduction_consent) && employee.facts.deduction_consent) && ((has(payslip.lines.WELFARE_LOAN) ? -payslip.lines.WELFARE_LOAN : 0.0) > payslip.gross * 0.1 || (has(statutory.PVD) ? statutory.PVD.employee : 0.0) > payslip.gross * 0.1 || (has(payslip.lines.WELFARE_LOAN) ? -payslip.lines.WELFARE_LOAN : 0.0) + (has(statutory.PVD) ? statutory.PVD.employee : 0.0) > payslip.gross * 0.2)",
+			"when": "!(has(employee.facts.deduction_consent) && employee.facts.deduction_consent) && ((has(payslip.lines.WELFARE_LOAN) ? -payslip.lines.WELFARE_LOAN : 0.0) > (sum([\"BASIC\", \"BASIC_DAILY\", \"PIECE_WORK\", \"PIECE_PAID_DAYS\", \"FIXED_ALLOWANCE\", \"OVERTIME\", \"HOLIDAY_WORK\", \"HOLIDAY_OVERTIME\", \"NO_PAY_LEAVE\", \"SUSPENSION_PAY_ADJUSTMENT\", \"SUSPENSION_PAY\"].filter(c, c in payslip.lines).map(c, payslip.lines[c]))) * 0.1 || (has(statutory.PVD) ? statutory.PVD.employee : 0.0) > (sum([\"BASIC\", \"BASIC_DAILY\", \"PIECE_WORK\", \"PIECE_PAID_DAYS\", \"FIXED_ALLOWANCE\", \"OVERTIME\", \"HOLIDAY_WORK\", \"HOLIDAY_OVERTIME\", \"NO_PAY_LEAVE\", \"SUSPENSION_PAY_ADJUSTMENT\", \"SUSPENSION_PAY\"].filter(c, c in payslip.lines).map(c, payslip.lines[c]))) * 0.1 || (has(payslip.lines.WELFARE_LOAN) ? -payslip.lines.WELFARE_LOAN : 0.0) + (has(statutory.PVD) ? statutory.PVD.employee : 0.0) > (sum([\"BASIC\", \"BASIC_DAILY\", \"PIECE_WORK\", \"PIECE_PAID_DAYS\", \"FIXED_ALLOWANCE\", \"OVERTIME\", \"HOLIDAY_WORK\", \"HOLIDAY_OVERTIME\", \"NO_PAY_LEAVE\", \"SUSPENSION_PAY_ADJUSTMENT\", \"SUSPENSION_PAY\"].filter(c, c in payslip.lines).map(c, payslip.lines[c]))) * 0.2)",
 			"message": "A deduction exceeds the LPA s.76 limits — 10% of the wages due for the loan or the provident fund contribution, one fifth for both together — without the employee's recorded prior consent: the slip is held.",
-			"description": "Labour Protection Act B.E. 2541 s.76: deductions for union dues, cooperative or welfare debts, a guarantee or damages, and provident fund contributions \"for each case shall not be made exceeding ten per cent, and the aggregate amount thereof shall not exceed one-fifth … except where prior consent is given by the employee\" (Office of the Council of State translation https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Customer input: employee fact deduction_consent records that consent."
-		}
-	},
-	{
-		"id": "3441cb32-9961-5abf-941f-5169fc7352fe",
-		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_RULES_FILING",
-		"name": "Send a copy of the work rules to the labour office",
-		"rules": {
-			"description": "Submit a copy of the announced work rules to the Director-General of the Department of Labour Protection and Welfare.",
-			"authority": "Labour Protection Act B.E. 2541 s.108 para 2: \"submit the copy thereof to the Director-General … within seven days as from the date the working regulations has been notified\" (Office of the Council of State translation https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf); due here 7 days after the latest announcement day (15 days from the tenth employee).",
-			"trigger": {
-				"collection": "employment_contract",
-				"event": "created"
-			},
-			"applies_when": "double(headcount) >= 10.0 && double(headcount) < 11.0",
-			"due": "add_days(hired_on, 22)"
+			"description": "Labour Protection Act B.E. 2541 s.76 para 2: deductions under (2)-(5) (union dues, cooperative or welfare debts, a guarantee or damages, provident fund contributions) each at most 10% and together one fifth of the money due to the employee at the s.70 payment time — wages, overtime, holiday pay and holiday overtime (the work and fixed-allowance lines of the slip, not a bonus or other one-off pay) — except with the employee's consent. Council of State consolidated text https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09, read 2026-10-08. Customer input: employee fact deduction_consent records that consent."
 		}
 	},
 	{
@@ -1631,6 +1647,1184 @@
 				"99009": 0.2
 			},
 			"authority": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) Table 1 (อัตราเงินสมทบ, ร้อยละของค่าจ้าง): 1,091 business codes, 0.20%-1.00%; the code is the one the SSO assigned the employer (cl.7-8), held as entity risk_class. https://www.sso.go.th/wpr/download/download_by_pool_file/14479 A Ministry of Labour revision reported for 1 January 2027 (452 codes lowered) is not yet in this table."
+		}
+	},
+	{
+		"id": "ca439647-222f-5f65-9ca1-31ac4a3ba97f",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "YOUNG_WORKER_HIRE_NOTICE",
+		"name": "Notify the labour inspector of a child employee",
+		"rules": {
+			"description": "Notify the labour inspector of a child employee.",
+			"authority": "Labour Protection Act B.E. 2541 s.45(1): employing a child under 18, the employer notifies the labour inspector within 15 days of the day the child starts work, and keeps a record of working conditions (s.45(2)). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) < 18",
+			"due": "add_days(hired_on, 15)"
+		}
+	},
+	{
+		"id": "104307a3-e959-52eb-9de4-b742960b597a",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "YOUNG_WORKER_EXIT_NOTICE",
+		"name": "Notify the labour inspector that a child employee has left",
+		"rules": {
+			"description": "Notify the labour inspector that a child employee has left.",
+			"authority": "Labour Protection Act B.E. 2541 s.45(3): notify the termination of a child's employment to the labour inspector within 7 days. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, exit_on) < 18",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "22809885-c112-5024-87c6-f6e57e1daab9",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TEMPORARY_SHUTDOWN_NOTICE",
+		"name": "Notify a temporary cessation of business",
+		"rules": {
+			"description": "Notify a temporary cessation of business.",
+			"authority": "Labour Protection Act B.E. 2541 s.75 para 2: the employer informs the employees and the labour inspector before ceasing business temporarily. Due the day before the cessation starts. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code == \"TEMPORARY_SHUTDOWN\"",
+			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, -1)"
+		}
+	},
+	{
+		"id": "b0abbafd-5ab1-55a3-9bbd-9e5da7ac2d65",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TECHNOLOGY_REDUNDANCY_NOTICE",
+		"name": "Give 60 days' notice of a technology redundancy",
+		"rules": {
+			"description": "Give 60 days' notice of a technology redundancy.",
+			"authority": "Labour Protection Act B.E. 2541 s.121 para 1: the termination day, reason and list of employees go to the labour inspector and the employees at least 60 days before the termination; otherwise TECHNOLOGY_NOTICE_IN_LIEU is owed. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts.special_severance_ground) && contract.exit_facts.special_severance_ground == \"TECHNOLOGY\"",
+			"due": "add_days(exit_on, -60)"
+		}
+	},
+	{
+		"id": "2a60b442-3fb4-5868-9a1a-1a3e86d1c744",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RETIREMENT_SEVERANCE",
+		"name": "Pay severance on retirement",
+		"rules": {
+			"description": "Pay severance on retirement.",
+			"authority": "Labour Protection Act B.E. 2541 s.118/1 (LPA (No. 6) B.E. 2560): retirement at the agreed age, or at 60 on 30 days' notice from the employee where no or a later age is agreed, is a termination owing s.118 severance (adhoc SEVERANCE_PAY). Secondary summary of the No. 6 text: https://www.tilleke.com/ja/insights/thailand-amendments-labor-protection-act",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground == \"RETIREMENT\"",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "df939094-7b60-56af-880e-35f3fe9c067b",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SECURITY_DEPOSIT_RETURN",
+		"name": "Return the security deposit",
+		"rules": {
+			"description": "Return the security deposit.",
+			"authority": "Labour Protection Act B.E. 2541 s.10 para 2: security money is returned with any interest within 7 days of the exit; late return carries s.9 interest. Customer input: employee fact security_deposit_held. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "employee != null && has(employee.facts) && employee.facts != null && has(employee.facts.security_deposit_held) && employee.facts.security_deposit_held",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "b7c75d83-d31e-567f-a1de-75f1e0d6f45c",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYEE_REGISTER_UPDATE",
+		"name": "Update the employee register",
+		"rules": {
+			"description": "Update the employee register.",
+			"authority": "Labour Protection Act B.E. 2541 s.113: the register (name, sex, nationality, birth date, address, start, position, wage and benefits, end) is amended within 15 days of a change. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_profile",
+				"event": "updated"
+			},
+			"applies_when": "double(headcount) >= 10.0",
+			"due": "add_days(today, 15)"
+		}
+	},
+	{
+		"id": "d45271e8-c95c-5f93-bd72-95c2f788cadc",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RECORDS_RETENTION",
+		"name": "Keep the employee register and wage records",
+		"rules": {
+			"description": "Keep the employee register and wage records.",
+			"authority": "Labour Protection Act B.E. 2541 s.114: an employer of ten or more keeps wage-payment documents signed by the employee or bank-transfer evidence; s.115: the register for at least two years after each exit and the wage documents two years after payment (longer while a complaint or labour case is open). Due is the earliest disposal day. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on, 2)"
+		}
+	},
+	{
+		"id": "8cb8e1f7-6c4c-51c1-bd05-d78049b5bacf",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PERMIT_RENEWAL",
+		"name": "Renew a foreign worker's work permit",
+		"rules": {
+			"description": "Renew a foreign worker's work permit.",
+			"authority": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 ss.8-9 (as amended B.E. 2561): a foreign worker works only with a valid permit and in the permitted work. Raised 30 days before the permit's expiry (employee fact work_permit_expires_on, customer input). https://chiangmai.boi.go.th/uploads/file_download/file/20180828/th-bdfgjloz2459.pdf",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "employee != null && has(employee.facts) && employee.facts != null && has(employee.facts.work_permit_expires_on) && today == add_days(employee.facts.work_permit_expires_on, -30)",
+			"due": "employee.facts.work_permit_expires_on"
+		}
+	},
+	{
+		"id": "db7cffeb-ccb2-5224-b41b-f60370d7e604",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_DEVELOPMENT_REGISTRATION",
+		"name": "Register with the Department of Skill Development (Sor Tor 1)",
+		"rules": {
+			"description": "Register with the Department of Skill Development (Sor Tor 1).",
+			"authority": "Skill Development Promotion Act B.E. 2545 (as amended B.E. 2557): an employer of 100 or more registers (Sor Tor 1, Sor Tor 4) when it reaches 100 employees. Department of Skill Development guidance: https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "double(headcount) >= 100.0 && double(headcount) < 101.0",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "d60c14d8-f314-5cec-84af-bc5d8d4cbe50",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_DEVELOPMENT_CONTRIBUTION",
+		"name": "Skill Development Fund contribution return (Sor Tor 2)",
+		"rules": {
+			"description": "Skill Development Fund contribution return (Sor Tor 2).",
+			"authority": "Skill Development Promotion Act B.E. 2545 (as amended): an employer of 100 or more that did not train at least 50% of its average employees in the calendar year contributes 1% of the wage base for the shortfall and files Sor Tor 2 within March of the following year. Department of Skill Development guidance: https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["03"],
+			"applies_when": "double(headcount) >= 100.0",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "84a1282c-6ccc-5a0e-b6f1-a063c00ccadb",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_DEVELOPMENT_COURSE_CERTIFICATION",
+		"name": "Certify the year's training courses and costs",
+		"rules": {
+			"description": "Certify the year's training courses and costs.",
+			"authority": "Skill Development Promotion Act B.E. 2545 (as amended): training counted toward the 50% is certified within 60 days of the course ending and no later than 15 January of the following year. Department of Skill Development guidance: https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"applies_when": "double(headcount) >= 100.0",
+			"due": "add_days(period.from, 14)"
+		}
+	},
+	{
+		"id": "4c35f01c-404e-532d-8e33-5b519b91cacc",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NORMAL_HOURS",
+		"name": "Normal hours",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.scheduled_hours > (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))) || work.days.exists(d, sum(work.days.filter(e, int(calendar_distance_days(\"2024-01-01\", e.date)) / 7 == int(calendar_distance_days(\"2024-01-01\", d.date)) / 7).map(e, e.scheduled_hours)) > (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)) * 6.0)",
+			"message": "Normal working time exceeds 8 hours a day or 48 a week (7 and 42 for hazardous work) (LPA s.23).",
+			"description": "Labour Protection Act B.E. 2541 s.23 and Ministerial Regulation No. 2: normal time at most 8 hours a day and 48 a week; for work harmful to health 7 and 42. Weekly limit read as 6 × the daily limit over a Monday-Sunday week of planned hours. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "8f1e56a3-d7fd-561d-8305-4ecc6d13f63c",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "REST_BREAK",
+		"name": "Rest break",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.worked_hours - d.overtime_hours > 5.0 && size(d.intervals) == 1)",
+			"message": "A day of more than five consecutive working hours was recorded without a rest break (LPA s.27).",
+			"description": "Labour Protection Act B.E. 2541 s.27: a rest period of at least one hour after no more than five consecutive working hours (or shorter breaks totalling an hour by agreement); 20 minutes before overtime of two hours or more. A single recorded interval of more than five normal hours shows no break. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "c9b36586-6112-5344-bbf6-97e12e120b63",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WEEKLY_HOLIDAY",
+		"name": "Weekly holiday",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, size(work.days.filter(e, e.date >= d.date && e.date <= add_days(d.date, 6) && e.worked)) >= 7)",
+			"message": "Seven consecutive days were worked without a weekly holiday (LPA s.28).",
+			"description": "Labour Protection Act B.E. 2541 s.28: at least one weekly holiday a week, no more than six days apart; in hotel, transport, forest or remote work it may be accumulated within four weeks by prior agreement. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "d9c791d7-9c7b-56d2-b99e-e5293a7d5bbb",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "OVERTIME_CONSENT",
+		"name": "Overtime consent",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(work.days.exists(d, d.overtime_hours > 0.0 && !(has(d.overtime_consented) && d.overtime_consented)) || work.holidays.exists(h, h.worked && !work.days.exists(d, d.date == h.date && (has(d.overtime_consented) && d.overtime_consented)))) && !(has(terms.facts.continuous_work) && terms.facts.continuous_work)",
+			"message": "Overtime or holiday work was paid without the employee's recorded prior consent (LPA ss.24-25).",
+			"description": "Labour Protection Act B.E. 2541 s.24: overtime only with the employee's prior consent each time, except continuous or emergency work; s.25: holiday work likewise, beyond the listed undertakings. Consent is per day (owner ruling): a day with paid overtime, or a published holiday worked, without that day's recorded consent (work.days[].overtime_consented, from the work-day sheet) warns; contract fact continuous_work exempts. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "c5982fe8-55c3-5f01-991e-cd84e458f977",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PREGNANT_EMPLOYEE_WORK",
+		"name": "Pregnant employee work",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(has(employee.facts.pregnant) && employee.facts.pregnant) && (sum(work.days.map(d, d.overtime_hours)) > 0.0 || work.holidays.exists(h, h.worked) || work.days.exists(d, hours_between(d.intervals, \"22:00\", \"06:00\") > 0.0))",
+			"message": "A pregnant employee worked overtime, on a holiday or between 22:00 and 06:00 (LPA s.39).",
+			"description": "Labour Protection Act B.E. 2541 s.39: no work 22:00-06:00, overtime or holiday work for a pregnant employee (s.39/1 allows executive, academic, clerical or financial work with her consent); s.43: no dismissal for pregnancy. Customer input: employee fact pregnant. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "493a6548-7bff-5d8d-baae-5a69cd45d607",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "YOUNG_WORKER_WORK",
+		"name": "Young worker work",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(employee.date_of_birth != \"\" && age_on(employee.date_of_birth, period.to) < 18) && (sum(work.days.map(d, d.overtime_hours)) > 0.0 || work.holidays.exists(h, h.worked) || work.days.exists(d, hours_between(d.intervals, \"22:00\", \"06:00\") > 0.0))",
+			"message": "An employee under 18 worked overtime, on a holiday or between 22:00 and 06:00 (LPA ss.47-48).",
+			"description": "Labour Protection Act B.E. 2541 s.47: no work 22:00-06:00 for a child under 18 without the Director-General's permission; s.48: no overtime or holiday work. Wages are paid to the child (s.52). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "99e84e8e-9d4b-5e10-b8e3-003390195446",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "CHILD_EMPLOYMENT",
+		"name": "Child employment",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day) < 15",
+			"message": "An employee under 15 may not be employed (LPA s.44).",
+			"description": "Labour Protection Act B.E. 2541 s.44: no employer shall employ a child under 15. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "705f290f-32ce-5677-b7e2-4c2d1c6b736b",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_STANDARD_WAGE",
+		"name": "Skill standard wage",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "!(has(term.facts) && term.facts != null && has(term.facts.pay_basis) && term.facts.pay_basis == \"PIECE\") && has(term.facts) && term.facts != null && has(term.facts.skill_standard_day_rate) && ((has(term.facts.pay_basis) && term.facts.pay_basis == \"DAILY\") ? term.base_salary : term.monthly_wage / 30.0) < double(term.facts.skill_standard_day_rate)",
+			"message": "The contract pays a certified worker less than the skill-standard wage rate of the trade (LPA s.90 with the Wage Committee skill-standard notification).",
+			"description": "Labour Protection Act B.E. 2541 ss.79(3), 87, 90: the Wage Committee's notifications set wage rates by skill standard per occupation and level; a certified worker in a listed trade is paid at least that rate. Customer input: contract fact skill_standard_day_rate (the notified rate of the worker's trade and level). https://www.dsd.go.th/"
+		}
+	},
+	{
+		"id": "d3b6618e-559c-597f-b009-533b6ee16de5",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "public_holidays",
+		"name": "Government holidays (national calendar)",
+		"rules": {
+			"holidays": [
+				{
+					"date": "2025-12-05",
+					"name": "วันคล้ายวันพระบรมราชสมภพ ร.9 วันชาติ และวันพ่อแห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2025-12-10",
+					"name": "วันรัฐธรรมนูญ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2025-12-31",
+					"name": "วันสิ้นปี",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-01-01",
+					"name": "วันขึ้นปีใหม่",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-01-02",
+					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
+					"kind": "SPECIAL_HOLIDAY"
+				},
+				{
+					"date": "2026-03-03",
+					"name": "วันมาฆบูชา",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-06",
+					"name": "วันจักรี",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-13",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-14",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-04-15",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-05-01",
+					"name": "วันแรงงานแห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-05-04",
+					"name": "วันฉัตรมงคล",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-05-31",
+					"name": "วันวิสาขบูชา",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-06-01",
+					"name": "วันหยุดชดเชยวันวิสาขบูชา",
+					"kind": "SUBSTITUTE",
+					"replaces": "2026-05-31"
+				},
+				{
+					"date": "2026-06-02",
+					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
+					"kind": "SPECIAL_HOLIDAY"
+				},
+				{
+					"date": "2026-06-03",
+					"name": "วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-07-28",
+					"name": "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-07-29",
+					"name": "วันอาสาฬหบูชา",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-07-30",
+					"name": "วันเข้าพรรษา",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-07-31",
+					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
+					"kind": "SPECIAL_HOLIDAY"
+				},
+				{
+					"date": "2026-08-12",
+					"name": "วันแม่แห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-10-13",
+					"name": "วันนวมินทรมหาราช",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-10-23",
+					"name": "วันปิยมหาราช",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-12-05",
+					"name": "วันคล้ายวันพระบรมราชสมภพ ร.9 วันชาติ และวันพ่อแห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-12-07",
+					"name": "วันหยุดชดเชยวันพ่อแห่งชาติ",
+					"kind": "SUBSTITUTE",
+					"replaces": "2026-12-05"
+				},
+				{
+					"date": "2026-12-10",
+					"name": "วันรัฐธรรมนูญ",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2026-12-31",
+					"name": "วันสิ้นปี",
+					"kind": "PUBLIC_HOLIDAY"
+				}
+			],
+			"authority": "Office of the Prime Minister notification on annual government holidays (24 May 2019) with the Cabinet resolution of 2 December 2025 on the 2026 government holidays (Secretariat of the Cabinet summary, item 9) https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf: the 2026 list of 22 days (the Royal Ploughing Ceremony day is announced yearly by the Bureau of the Royal Household and is not listed). Created unpublished for each entity: under LPA s.29 the employer announces at least 13 traditional holidays a year including National Labour Day (1 May) from these, and a holiday falling on the weekly holiday moves to the next working day. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		}
+	},
+	{
+		"id": "c6b7e5a1-8bff-509f-81ce-14e058a3b9fa",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PIECE_MINIMUM_WAGE",
+		"name": "Piece-work minimum wage",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\") && !(has(company.facts.minimum_wage_exempt) && company.facts.minimum_wage_exempt) && company.region in rules.minimum_wage.by_region && sum(work.days.filter(d, !(d.holiday_kind != \"\" || d.day_type == \"REST\")).map(d, (has(d.facts) && d.facts != null && has(d.facts.units) ? double(d.facts.units) : 0.0))) * (has(terms.facts.piece_rate) ? double(terms.facts.piece_rate) : 0.0) < double((has(company.facts.minimum_wage_400_business) && company.facts.minimum_wage_400_business ? rules.minimum_wage.business_400 : rules.minimum_wage.by_region[company.region])) * double(size(work.days.filter(d, !(d.holiday_kind != \"\" || d.day_type == \"REST\") && d.worked)))",
+			"message": "The piece-work wages of the normal days worked are below the area minimum wage for those days (Wage Committee Notification No. 14 cl.19-20).",
+			"description": "Wage Committee Notification on Minimum Wage Rates (No. 14) cl.19-20 (a \"day\" is the normal working time; no wage below the area rate) with LPA s.90: a piece worker's pay for the normal days worked is at least the area day rate for each of them. https://ratchakitcha.soc.go.th/documents/76681.pdf"
+		}
+	},
+	{
+		"id": "ab106008-a634-5289-9cff-c59ee31eac72",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked && !(day.holiday_kind != \"\" || day.day_type == \"REST\") && day.worked_hours - day.overtime_hours > (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))",
+			"message": "normal hours above 8 in the day (7 in hazardous work) (LPA s.23).",
+			"description": "normal hours above 8 in the day (7 in hazardous work) (LPA s.23).",
+			"authority": "LPA s.23 para 1: normal working time at most 8 hours a day and 48 a week; hazardous work at most 7 hours a day and 42 a week (term fact normal_hours_per_day for a lower agreed day). Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "1b69feb2-6dc6-5229-8cf5-cb5c0c3cec05",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "week.worked_hours - week.overtime_hours > 6.0 * (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))",
+			"message": "normal hours above 48 (42 in hazardous work) in the seven days ending on this day (LPA s.23).",
+			"description": "normal hours above 48 (42 in hazardous work) in the seven days ending on this day (LPA s.23).",
+			"authority": "LPA s.23 para 1: at most 48 normal hours a week (42 in hazardous work). Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "04e0e422-dce1-5940-a415-ba946d2b2c80",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_OVERTIME_WEEK",
+		"name": "ROSTER_OVERTIME_WEEK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "overtime_hours",
+			"when": "day.overtime_hours > 0.0 && week.overtime_hours_by_day_type.WORK + week.overtime_hours_by_day_type.REST + week.overtime_hours_by_day_type.OFF > 36.0",
+			"message": "more than 36 overtime hours, rest-day and holiday overtime included, in the seven days ending on this day (LPA s.26).",
+			"description": "more than 36 overtime hours, rest-day and holiday overtime included, in the seven days ending on this day (LPA s.26).",
+			"authority": "LPA s.26 and Ministerial Regulation No. 3 (B.E. 2541): overtime and holiday work together at most 36 hours a week, so overtime on working, rest and holiday days all counts (each day once, by its planned type). Holiday work in normal hours also counts but the sheet’s week does not hold it; that part stays the payslip check OVERTIME_WEEKLY_CAP. Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "f32e42ae-b943-52b6-9f18-8808f8738c13",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_OVERTIME_CONSENT",
+		"name": "ROSTER_OVERTIME_CONSENT",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "overtime_hours",
+			"when": "day.worked && (day.overtime_hours > 0.0 || (day.holiday_kind != \"\" && day.holiday_kind != \"MAKEUP_WORKDAY\")) && !(has(day.overtime_consented) && day.overtime_consented) && !(has(terms.facts.continuous_work) && terms.facts.continuous_work)",
+			"message": "overtime or holiday work on this day without the employee's recorded consent for the day (LPA ss.24-25).",
+			"description": "overtime or holiday work on this day without the employee's recorded consent for the day (LPA ss.24-25).",
+			"authority": "LPA s.24: overtime only with the employee's prior consent each time, except continuous or emergency work; s.25: holiday work likewise. Consent is the sheet's per-day consent (day.overtime_consented; owner ruling: never a contract or company setting). Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "cf04c0da-77ec-5ecc-81e9-ec5690aa9ace",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_REST_BREAK",
+		"name": "ROSTER_REST_BREAK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "day.worked_hours - day.overtime_hours > 5.0 && size(day.intervals) == 1",
+			"message": "five or more working hours with no recorded rest break (LPA s.27).",
+			"description": "five or more working hours with no recorded rest break (LPA s.27).",
+			"authority": "LPA s.27 para 1: a rest period of at least one hour after no more than five consecutive working hours. Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "b34b65fe-8ee5-5e39-b2c3-cf4be14c107c",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_WEEKLY_HOLIDAY",
+		"name": "ROSTER_WEEKLY_HOLIDAY",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "day.worked && week.worked_days >= 7",
+			"message": "seven days in a row worked without the weekly holiday (LPA s.28).",
+			"description": "seven days in a row worked without the weekly holiday (LPA s.28).",
+			"authority": "LPA s.28 para 1: at least one weekly holiday a week, at intervals of no more than six days. Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "4be5838b-d276-5c6a-8369-18c291d2e6bb",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PREGNANT_WORK",
+		"name": "ROSTER_PREGNANT_WORK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "overtime_hours",
+			"when": "has(employee.facts.pregnant) && employee.facts.pregnant == true && day.worked && (day.overtime_hours > 0.0 || hours_between(day.intervals, \"22:00\", \"06:00\") > 0.0 || (day.holiday_kind != \"\" || day.day_type == \"REST\"))",
+			"message": "a pregnant employee worked overtime, at night (22:00–06:00) or on a holiday (LPA s.39).",
+			"description": "a pregnant employee worked overtime, at night (22:00–06:00) or on a holiday (LPA s.39).",
+			"authority": "LPA s.39: an employer shall not have a pregnant employee work between 22:00 and 06:00, overtime or on a holiday (employee.facts.pregnant). Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "4cbfdcf1-96de-516f-86e1-9ef1f7ebad18",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_YOUNG_WORKER",
+		"name": "ROSTER_YOUNG_WORKER",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && double(age_on(employee.date_of_birth, day.date)) < 18.0 && (day.overtime_hours > 0.0 || hours_between(day.intervals, \"22:00\", \"06:00\") > 0.0 || (day.holiday_kind != \"\" || day.day_type == \"REST\"))",
+			"message": "an employee under 18 worked overtime, at night (22:00–06:00) or on a holiday (LPA ss.47–48).",
+			"description": "an employee under 18 worked overtime, at night (22:00–06:00) or on a holiday (LPA ss.47–48).",
+			"authority": "LPA s.47: no work for an employee under 18 between 22:00 and 06:00 without the Director-General’s permission; s.48: no overtime or holiday work. Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "f3f36121-8efa-55e6-b2d7-753b2c5c4a8a",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_UNDER_15",
+		"name": "ROSTER_UNDER_15",
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "employee_number",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && double(age_on(employee.date_of_birth, day.date)) < 15.0",
+			"message": "a child under 15 may not be employed (LPA s.44): remove the day.",
+			"description": "a child under 15 may not be employed (LPA s.44): remove the day.",
+			"authority": "LPA s.44: an employer shall not employ a child under 15. The contract site refuses the same (CHILD_EMPLOYMENT). Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		}
+	},
+	{
+		"id": "32b99741-4dd3-58aa-b718-45c94ff3890e",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SSO_LATE_SURCHARGE",
+		"name": "Pay the SSO late-remittance surcharge",
+		"rules": {
+			"description": "Pay the SSO late-remittance surcharge.",
+			"authority": "Social Security Act B.E. 2533 s.49 para 1 (as amended by No. 4 B.E. 2558): a contribution not remitted, or short, by the s.47 day bears a surcharge of 2% a month of the unremitted amount from the day after it was due, at most the contribution itself; para 2: a contribution the employer failed to deduct is still the employer's to remit with the surcharge. Raised when the remittance is recorded paid after its due day; the surcharge is paid with it. https://www.sso.go.th/wpr/download/download_by_pool_file/47435",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"SSO_CONTRIBUTION_REMITTANCE\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "1941b7af-2295-5fd6-87ad-e15433d34798",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PND1_LATE_SURCHARGE",
+		"name": "Pay the PND1 late-payment surcharge",
+		"rules": {
+			"description": "Pay the PND1 late-payment surcharge.",
+			"authority": "Revenue Code s.27: tax not paid or remitted in time bears a surcharge of 1.5% a month or part of a month of the tax, from the day after the deadline to the payment day, at most the tax (0.75% within an extension). Raised when the PND1 remittance is recorded paid after its due day. https://www.rd.go.th/english/37745.html",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"PND1_FILING\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "aab6bf2f-c317-5beb-9c9f-f67b4ac89e4f",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WCF_INSTALMENT_DEPOSIT",
+		"name": "Deposit 25% of the year's WCF contribution (instalment payer)",
+		"rules": {
+			"description": "Deposit 25% of the year's WCF contribution (instalment payer).",
+			"authority": "Ministry of Labour notification of 21 February 2019 cl.16-17: an employer allowed to pay the WCF contribution by instalments (entity fact wcf_instalments, the SSO's approval) deposits 25% of the estimated year's contribution within January. https://www.sso.go.th/wpr/download/download_by_pool_file/14479",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"applies_when": "(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "468303de-94cc-5f27-baf7-61566b99eaf2",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WCF_INSTALMENT",
+		"name": "Pay the quarter's WCF instalment and report its wages",
+		"rules": {
+			"description": "Pay the quarter's WCF instalment and report its wages.",
+			"authority": "Ministry of Labour notification of 21 February 2019 cl.18: the instalment payer pays in four instalments a year, each within the month after its quarter ends, reporting the quarter's total wages. https://www.sso.go.th/wpr/download/download_by_pool_file/14479",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01", "04", "07", "10"],
+			"applies_when": "(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "ae877721-b980-56bb-8603-5f26e4cd08f7",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WCF_LATE_SURCHARGE",
+		"name": "WCF_LATE_SURCHARGE",
+		"rules": {
+			"description": "Pay the Workmen’s Compensation Fund late-payment surcharge: 2% a month of the contribution not remitted, or short, from the day after its due day, at most the contribution itself. Raised when a WCF contribution task (the annual or additional contribution, the instalment deposit or an instalment) is marked done after its due day; the surcharge is paid with it.",
+			"authority": "Workmen’s Compensation Act B.E. 2537 s.46 para 1 (as amended by No. 2 B.E. 2561), Office of the Council of State translation published by the SSO https://www.sso.go.th/wpr/download/download_by_pool_file/47436",
+			"trigger": {
+				"collection": "regulatory_task",
+				"event": "updated",
+				"fields": ["state", "done_on"]
+			},
+			"when": "row.state == \"DONE\" && row.code in [\"WCF_ANNUAL_CONTRIBUTION\", \"WCF_ADDITIONAL_CONTRIBUTION\", \"WCF_INSTALMENT_DEPOSIT\", \"WCF_INSTALMENT\"] && has(row.done_on) && row.done_on != null && row.done_on > row.due_on",
+			"due": "row.done_on"
+		}
+	},
+	{
+		"id": "f486c313-2418-554e-a59e-43a9110f0e88",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_DEVELOPMENT_FUND_PAYMENT",
+		"name": "Skill Development Fund contribution",
+		"rules": {
+			"description": "Pay the year's Skill Development Fund contribution with Sor Tor 2 within March of the following year: the lowest statutory minimum daily wage × 30 × the employees short of training 50% of the year's average headcount × the months the employer had 100 or more employees ÷ 100. Raised with the December run over the year's month-end headcounts and the registrar-certified trained count (entity fact sdf_trained_employees); a zero contribution is not raised.",
+			"authority": "Skill Development Promotion Act B.E. 2545 (as amended B.E. 2557) s.30; Department of Skill Development guidance for employers in the compulsory scheme (contribution formula and example) https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
+			"schemes": [],
+			"months": ["12"],
+			"due": "month_end(add_months(period.from, 3))",
+			"amount": "round(337.0 * 30.0 * max(0.0, round(0.5 * (sum(headcount_months.map(m, double(m.headcount))) / 12.0), 1.0, \"UP\") - (has(company.facts.sdf_trained_employees) ? double(company.facts.sdf_trained_employees) : 0.0)) * double(size(headcount_months.filter(m, double(m.headcount) >= 100.0))) / 100.0, 0.01, \"HALF_UP\")"
+		}
+	},
+	{
+		"id": "4a1147a4-4be8-5063-99de-970e7a0f368f",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "DISMISSAL_FOR_CAUSE",
+					"name": "Dismissal for cause"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				}
+			]
+		}
+	},
+	{
+		"id": "6f266e27-d2ff-5f08-8383-5af35d440172",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SPECIAL_HOLIDAY",
+					"name": "Special holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				}
+			]
+		}
+	},
+	{
+		"id": "afc14142-31f7-50a2-9441-74a4b37189fb",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_PRIVACY_NOTICE",
+		"name": "PDPA_PRIVACY_NOTICE",
+		"rules": {
+			"description": "Tell the new employee, before or when collecting their personal data, the purposes and lawful bases, what is collected and for how long it is kept, who it may be disclosed to, the controller's (and any DPO's) contact details and their rights.",
+			"authority": "PDPA s.23 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf))",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "a11aed91-c25f-5eb1-81a6-40ab0496da94",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_SENSITIVE_DATA_CONSENT",
+		"name": "PDPA_SENSITIVE_DATA_CONSENT",
+		"rules": {
+			"description": "Obtain the employee's explicit consent before collecting sensitive personal data — health (medical certificates), biometric data (face or fingerprint attendance), criminal records, religion, disability, trade union membership — unless a s.26 exception applies (e.g. occupational medicine or the assessment of working capacity required by law).",
+			"authority": "PDPA s.26 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf))",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "e0577e2c-254d-5982-b46d-f6b4d92d68bf",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_BREACH_NOTICE",
+		"name": "PDPA_BREACH_NOTICE",
+		"rules": {
+			"description": "Notify the PDPC Office of a personal data breach without delay and, where feasible, within 72 hours of becoming aware of it (unless it is unlikely to risk the persons' rights and freedoms); where the risk is high, notify the data subjects and the remedies without delay too. Raised when a PERSONAL_DATA_BREACH case is opened on the day of discovery; due three days later.",
+			"authority": "PDPA s.37(4) (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf))",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 3)"
+		}
+	},
+	{
+		"id": "15a9b149-d87f-5c32-93c0-e5cf22f374d3",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_CROSS_BORDER_TRANSFER",
+		"name": "PDPA_CROSS_BORDER_TRANSFER",
+		"rules": {
+			"description": "Before sending or transferring personal data abroad (a foreign parent, a cloud or payroll provider), confirm the destination has adequate protection under the PDPC's rules, or that a s.28 exception applies (consent after being told of the inadequacy, a contract with the employee, compliance with law), or that a s.29 group policy covers it. Raised when a PERSONAL_DATA_TRANSFER_ABROAD case is opened; due that day.",
+			"authority": "PDPA ss.28–29 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf))",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"PERSONAL_DATA_TRANSFER_ABROAD\"",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "6236f327-bb31-51c1-b14f-e86e9a012aeb",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_PROCESSING_RECORDS",
+		"name": "PDPA_PROCESSING_RECORDS",
+		"rules": {
+			"description": "Keep the record of processing — the personal data collected, the purpose of each category, the controller's details, the retention period, access rights and conditions, s.27 uses or disclosures, refused requests and the security measures — in writing or electronically, for the data subjects and the Office to check. Raised when the entity is created.",
+			"authority": "PDPA s.39 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf))",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "today"
+		}
+	},
+	{
+		"id": "07c79e9c-0f5d-5e46-915e-a0d008b7c9ea",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"rules": {
+			"description": "Erase or destroy a former employee's personal data when its retention period ends (anonymise the profile: employment_profile.anonymise), unless keeping it is needed to establish or defend legal claims or to comply with the law. Raised on the exit; due on the record_retention date (five years after the exit year ends).",
+			"authority": "PDPA s.37(3) (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation (https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf)); Accounting Act B.E. 2543 s.14",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 5)"
+		}
+	},
+	{
+		"id": "a7ee7326-c51a-5d68-8529-cff234585eae",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SKILL_DEVELOPMENT_LATE_SURCHARGE",
+		"name": "SKILL_DEVELOPMENT_LATE_SURCHARGE",
+		"rules": {
+			"description": "Pay the Skill Development Fund surcharge on a contribution paid after March: 1.5% a month of the amount unpaid or short, a remaining part-month of 15 days or more counting as a month. Raised when the year's contribution is recorded paid after its due day; the surcharge is paid with it.",
+			"authority": "Skill Development Promotion Act B.E. 2545 (as amended B.E. 2557) s.31; Department of Skill Development guidance for employers in the compulsory scheme, the surcharge formula (https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824)",
+			"trigger": {
+				"collection": "obligation",
+				"event": "updated",
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"SKILL_DEVELOPMENT_FUND_PAYMENT\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "603617eb-9b3a-5f9a-a340-51d6ce511eb1",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "DISABILITY_FUND_LATE_INTEREST",
+		"name": "Pay interest on a late Empowerment of Persons with Disabilities Fund contribution",
+		"rules": {
+			"description": "Pay interest at 7.5% a year on the fund contribution not paid, paid late or paid short, on the unpaid amount from the day after its 31 March due day to the day paid. Raised when the disability quota duty (met by paying the fund) is marked done after its due day; the interest is paid with it.",
+			"authority": "Persons with Disabilities Empowerment Act B.E. 2550 s.34 para 2: an employer who must pay the fund but does not pay, pays late or pays short \"ให้เสียดอกเบี้ยในอัตราร้อยละเจ็ดครึ่งต่อปี\" of the amount not yet paid in; Ministerial Regulation B.E. 2554 cl.5 para 2 as amended by No. 2 B.E. 2560: payment by 31 March each year. Office of the Council of State consolidated texts https://www.ocs.go.th/searchlaw/law-index/item/6494 and https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZDlTeDI5VEFDSGt3NkEzTXp4T0ludz09, read 2026-10-08.",
+			"trigger": {
+				"collection": "regulatory_task",
+				"event": "updated",
+				"fields": ["state", "done_on"]
+			},
+			"when": "row.state == \"DONE\" && row.code == \"DISABLED_EMPLOYMENT_QUOTA\" && has(row.done_on) && row.done_on != null && row.done_on > row.due_on",
+			"due": "row.done_on"
+		}
+	},
+	{
+		"id": "96610681-1181-5763-8624-c3349343bdef",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "SSO_CONTRIBUTION_FILE",
+		"name": "SSO contribution data file (Sor Por Sor 1-10, text format 135)",
+		"rules": {
+			"description": "The month's contribution data for the SSO e-service upload, in the Office's fixed 135-character text format: a header record 1 (employer account and branch, the day paid as DDMMYY and the wage period as MMYY in Buddhist-era years, the establishment name, the 5% rate as 0500, the count of insured persons, total wages, total contributions and each side's share) and a detail record 2 per insured person (citizen ID, the SSO prefix code 003 นาย / 004 นางสาว / 005 นาง, first name, surname, wage, the employee contribution, 27 blank). Amounts carry two implied decimals, right-aligned and zero-filled. Wages are the SSO base the contribution was assessed on (the month's statutory wage within the ceiling). The paid date is the day the file is made (the day it is paid with the return). Made for one wage period with an SSO charge; the employer account is entity fact sso_employer_account_number, the branch sso_branch_number. Names come from employee facts given_name / family_name / name_title, else the profile name split at its first space and a prefix from gender and marital status. The format names no character set; the file is UTF-8 (convert to TIS-620 if the uploader asks for ANSI text).",
+			"authority": "Social Security Act B.E. 2533 s.47 (the monthly contribution return). SSO \"Format เงินสมทบ 135 (Text File)\" (sheets \"Format 1-10\" and \"สปส.1-10\": Header Record ส่วนที่ 1 and Detail Record ส่วนที่ 2, 135 characters each), published on the SSO downloads page https://www.sso.go.th/wpr/main/downloads/%E0%B9%82%E0%B8%9B%E0%B8%A3%E0%B9%81%E0%B8%81%E0%B8%A3%E0%B8%A1%E0%B8%95%E0%B9%88%E0%B8%B2%E0%B8%87%E0%B9%86_category_table-list_1_154_0 as https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/949575a913c647db4f68facd08402585.zip, read 2026-10-08; the same page publishes the Excel variant (citizen ID, prefix, first name, surname, wage, contribution; one sheet per branch number).",
+			"applies_when": "size(runs) > 0 && runs.all(r, r.period == runs[0].period)",
+			"file": "\"sso-\" + runs[0].period + \".txt\"",
+			"format": "FIXED",
+			"when": "\"SSO\" in totals.statutory && (totals.statutory.SSO.employee > 0.0 || totals.statutory.SSO.employer > 0.0)",
+			"header": [
+				{
+					"value": "\"1\"",
+					"width": 1
+				},
+				{
+					"value": "(has(company.facts) && company.facts != null && has(company.facts.sso_employer_account_number) && company.facts.sso_employer_account_number != null ? string(company.facts.sso_employer_account_number) : \"\")",
+					"width": 10
+				},
+				{
+					"value": "(has(company.facts) && company.facts != null && has(company.facts.sso_branch_number) && company.facts.sso_branch_number != null ? string(company.facts.sso_branch_number) : \"000000\")",
+					"width": 6,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "generated_at.substring(8, 10) + generated_at.substring(5, 7) + string(int(generated_at.substring(0, 4)) + 543).substring(2, 4)",
+					"width": 6
+				},
+				{
+					"value": "runs[0].period.substring(5, 7) + string(int(runs[0].period.substring(0, 4)) + 543).substring(2, 4)",
+					"width": 4
+				},
+				{
+					"value": "(has(company.name) && company.name != null ? company.name : \"\")",
+					"width": 45
+				},
+				{
+					"value": "\"0500\"",
+					"width": 4
+				},
+				{
+					"value": "string(count)",
+					"width": 6,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round((sum(rows.map(r, r.totals.statutory.SSO.base))) * 100.0, 1.0)))",
+					"width": 15,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round((sum(rows.map(r, r.totals.statutory.SSO.employee)) + sum(rows.map(r, r.totals.statutory.SSO.employer))) * 100.0, 1.0)))",
+					"width": 14,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round((sum(rows.map(r, r.totals.statutory.SSO.employee))) * 100.0, 1.0)))",
+					"width": 12,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round((sum(rows.map(r, r.totals.statutory.SSO.employer))) * 100.0, 1.0)))",
+					"width": 12,
+					"align": "right",
+					"pad": "0"
+				}
+			],
+			"columns": [
+				{
+					"header": "record_type",
+					"value": "\"2\"",
+					"width": 1
+				},
+				{
+					"header": "citizen_id",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.tax_id) && employee.facts.tax_id != null ? employee.facts.tax_id : has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\")",
+					"width": 13
+				},
+				{
+					"header": "prefix",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\") == \"นาย\" ? \"003\" : (has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\") == \"นางสาว\" ? \"004\" : (has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\") == \"นาง\" ? \"005\" : \"\"",
+					"width": 3
+				},
+				{
+					"header": "first_name",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.given_name) && employee.facts.given_name != null ? employee.facts.given_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring(0, (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \")) : (has(employee.name) && employee.name != null ? employee.name : \"\"))",
+					"width": 30
+				},
+				{
+					"header": "surname",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.family_name) && employee.facts.family_name != null ? employee.facts.family_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring((has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") + 1, (has(employee.name) && employee.name != null ? employee.name : \"\").size()) : \"\")",
+					"width": 35
+				},
+				{
+					"header": "wage",
+					"value": "string(int(round((totals.statutory.SSO.base) * 100.0, 1.0)))",
+					"width": 14,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"header": "contribution",
+					"value": "string(int(round((totals.statutory.SSO.employee) * 100.0, 1.0)))",
+					"width": 12,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"header": "blank",
+					"value": "\"\"",
+					"width": 27
+				}
+			]
+		}
+	},
+	{
+		"id": "fc7de2ac-950c-55fd-b415-80c435a93123",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "PND1_ATTACHMENT_FILE",
+		"name": "PND1 monthly return data file (Revenue Department central format)",
+		"rules": {
+			"description": "The month's PND1 return and attachment for e-filing upload (ฝากไฟล์) in the Revenue Department central format: UTF-8 text, fields separated by \"|\" with none at either end, each record ending CR/LF; one H record (sender code 0000 for a file upload, the employer taxpayer ID and branch as both sender and withholder, \"สำนักงานใหญ่\", the LTO flag, the month of payment, the Buddhist-era tax year, branch type, form type 00, the count, income, tax, surcharge 0.00, the grand total, bank transfer 0.00, the registration reference, channel 1) and a D record per employee paid 40(1) income (sequence, branch, the 13-digit ID, TIN 0000000000, title or \"-\", first name, surname or \".\", the pay day as DDMMYYYY (Buddhist era), the effective rate (tax ÷ income × 100), the PND1 income assessed and the tax withheld, income type 1 (40(1)), condition 1 (withheld), the optional address parts blank, then district, province and postcode). Entity facts: tax_id, rd_branch_number (000000 head office), rd_branch_type (V or S), rd_large_taxpayer, rd_filing_reference; employee facts tax_id (else identity_number), name_title, given_name, family_name, address_district, address_province, address_postcode. File name TAX_TYPE_NID_BRANCH_YEAR_MONTH_00_00.txt (first submission). Ceiling: severance paid on leaving is reported in the same type 1 record (the format's type 3 is not split out).",
+			"authority": "Revenue Code ss.58-59 (PND1 monthly, PND1 Kor annual). Revenue Department \"รูปแบบข้อมูล (FORMAT กลาง) ภ.ง.ด.1 ภ.ง.ด.1ก และ ภ.ง.ด.1ก พิเศษ\" Version 2.0 of 16/06/2568, https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf, listed on https://www.rd.go.th/63724.html, read 2026-10-08 (header fields 1-22, detail fields 1-26, rules 3 (file name), 6 (UTF-8), 7 (pipe), 8 (CR/LF), 9 (15,2 with a point), 15 (an empty field is two adjacent pipes)); the Department's sample files (swc_Data_Test.zip on the same page).",
+			"applies_when": "size(runs) > 0 && runs.all(r, r.pay_date.substring(0, 7) == runs[0].pay_date.substring(0, 7))",
+			"file": "\"PND1_\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"_\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"_\" + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"_\" + runs[0].pay_date.substring(5, 7) + \"_00_00.txt\"",
+			"format": "FIXED",
+			"when": "\"PND1\" in totals.statutory && totals.statutory.PND1.base > 0.0",
+			"header": [
+				{
+					"value": "\"H\" + \"|\" + \"0000\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + \"1\" + \"|\" + \"PND1\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + \"สำนักงานใหญ่\" + \"|\" + ((has(company.facts) && company.facts != null && has(company.facts.rd_large_taxpayer) && company.facts.rd_large_taxpayer != null && company.facts.rd_large_taxpayer) ? \"1\" : \"0\") + \"|\" + runs[0].pay_date.substring(5, 7) + \"|\" + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_type) && company.facts.rd_branch_type != null ? string(company.facts.rd_branch_type) : \"\") + \"|\" + \"00\" + \"|\" + string(count) + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100)) + \"|\" + \"0.00\" + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100)) + \"|\" + \"0.00\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_filing_reference) && company.facts.rd_filing_reference != null ? string(company.facts.rd_filing_reference) : \"\") + \"|\" + \"1\" + \"\\r\""
+				}
+			],
+			"columns": [
+				{
+					"header": "record",
+					"value": "\"D\" + \"|\" + string(index) + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.tax_id) && employee.facts.tax_id != null ? employee.facts.tax_id : has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"|\" + \"0000000000\" + \"|\" + ((has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\") == \"\" ? \"-\" : (has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\")) + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.given_name) && employee.facts.given_name != null ? employee.facts.given_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring(0, (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \")) : (has(employee.name) && employee.name != null ? employee.name : \"\")) + \"|\" + ((has(employee.facts) && employee.facts != null && has(employee.facts.family_name) && employee.facts.family_name != null ? employee.facts.family_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring((has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") + 1, (has(employee.name) && employee.name != null ? employee.name : \"\").size()) : \"\") == \"\" ? \".\" : (has(employee.facts) && employee.facts != null && has(employee.facts.family_name) && employee.facts.family_name != null ? employee.facts.family_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring((has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") + 1, (has(employee.name) && employee.name != null ? employee.name : \"\").size()) : \"\")) + \"|\" + runs[0].pay_date.substring(8, 10) + runs[0].pay_date.substring(5, 7) + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"|\" + (string(int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) / 100) + \".\" + (int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((totals.statutory.PND1.base) * 100.0, 1.0)) / 100) + \".\" + (int(round((totals.statutory.PND1.base) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((totals.statutory.PND1.base) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) / 100) + \".\" + (int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) % 100)) + \"|\" + \"1\" + \"|\" + \"1\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_district) && employee.facts.address_district != null ? string(employee.facts.address_district) : \"\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_province) && employee.facts.address_province != null ? string(employee.facts.address_province) : \"\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_postcode) && employee.facts.address_postcode != null ? string(employee.facts.address_postcode) : \"\") + \"\\r\""
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"\""
+				}
+			]
+		}
+	},
+	{
+		"id": "e7e6a757-87c8-5540-b6f5-bdf87a48e678",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "PND1A_ATTACHMENT_FILE",
+		"name": "PND1 Kor annual return data file (Revenue Department central format)",
+		"rules": {
+			"description": "The year's PND1 Kor (annual) return and attachment for e-filing upload (ฝากไฟล์) in the Revenue Department central format: UTF-8 text, fields separated by \"|\" with none at either end, each record ending CR/LF; one H record (sender code 0000 for a file upload, the employer taxpayer ID and branch as both sender and withholder, \"สำนักงานใหญ่\", the LTO flag, tax month 00, the Buddhist-era tax year, branch type, form type 00, the count, income, tax, surcharge 0.00, the grand total, bank transfer 0.00, the registration reference, channel 1) and a D record per employee paid 40(1) income (sequence, branch, the 13-digit ID, TIN 0000000000, title or \"-\", first name, surname or \".\", the year end 31 12 as the paid date, the effective rate (tax ÷ income × 100), the PND1 income assessed and the tax withheld, income type 1 (40(1)), condition 1 (withheld), the optional address parts blank, then district, province and postcode). Entity facts: tax_id, rd_branch_number (000000 head office), rd_branch_type (V or S), rd_large_taxpayer, rd_filing_reference; employee facts tax_id (else identity_number), name_title, given_name, family_name, address_district, address_province, address_postcode. File name TAX_TYPE_NID_BRANCH_YEAR_MONTH_00_00.txt (first submission). Ceiling: severance paid on leaving is reported in the same type 1 record (the format's type 3 is not split out).",
+			"authority": "Revenue Code ss.58-59 (PND1 monthly, PND1 Kor annual). Revenue Department \"รูปแบบข้อมูล (FORMAT กลาง) ภ.ง.ด.1 ภ.ง.ด.1ก และ ภ.ง.ด.1ก พิเศษ\" Version 2.0 of 16/06/2568, https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf, listed on https://www.rd.go.th/63724.html, read 2026-10-08 (header fields 1-22, detail fields 1-26, rules 3 (file name), 6 (UTF-8), 7 (pipe), 8 (CR/LF), 9 (15,2 with a point), 15 (an empty field is two adjacent pipes)); the Department's sample files (swc_Data_Test.zip on the same page).",
+			"applies_when": "size(runs) > 0 && runs.all(r, r.pay_date.substring(0, 4) == runs[0].pay_date.substring(0, 4)) && runs.exists(r, r.pay_date.substring(5, 7) == \"12\") && runs.exists(r, r.pay_date.substring(5, 7) != \"12\")",
+			"file": "\"PND1A_\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"_\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"_\" + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"_\" + \"00\" + \"_00_00.txt\"",
+			"format": "FIXED",
+			"when": "\"PND1\" in totals.statutory && totals.statutory.PND1.base > 0.0",
+			"header": [
+				{
+					"value": "\"H\" + \"|\" + \"0000\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + \"1\" + \"|\" + \"PND1A\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.tax_id) && company.facts.tax_id != null ? string(company.facts.tax_id) : \"\") + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + \"สำนักงานใหญ่\" + \"|\" + ((has(company.facts) && company.facts != null && has(company.facts.rd_large_taxpayer) && company.facts.rd_large_taxpayer != null && company.facts.rd_large_taxpayer) ? \"1\" : \"0\") + \"|\" + \"00\" + \"|\" + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_type) && company.facts.rd_branch_type != null ? string(company.facts.rd_branch_type) : \"\") + \"|\" + \"00\" + \"|\" + string(count) + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.base))) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100)) + \"|\" + \"0.00\" + \"|\" + (string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) / 100) + \".\" + (int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((sum(rows.map(r, r.totals.statutory.PND1.employee))) * 100.0, 1.0)) % 100)) + \"|\" + \"0.00\" + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_filing_reference) && company.facts.rd_filing_reference != null ? string(company.facts.rd_filing_reference) : \"\") + \"|\" + \"1\" + \"\\r\""
+				}
+			],
+			"columns": [
+				{
+					"header": "record",
+					"value": "\"D\" + \"|\" + string(index) + \"|\" + (has(company.facts) && company.facts != null && has(company.facts.rd_branch_number) && company.facts.rd_branch_number != null ? string(company.facts.rd_branch_number) : \"000000\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.tax_id) && employee.facts.tax_id != null ? employee.facts.tax_id : has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"|\" + \"0000000000\" + \"|\" + ((has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\") == \"\" ? \"-\" : (has(employee.facts) && employee.facts != null && has(employee.facts.name_title) && employee.facts.name_title != null ? employee.facts.name_title : has(employee.gender) && employee.gender == \"MALE\" ? \"นาย\" : has(employee.gender) && employee.gender == \"FEMALE\" ? (has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? \"นาง\" : \"นางสาว\") : \"\")) + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.given_name) && employee.facts.given_name != null ? employee.facts.given_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring(0, (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \")) : (has(employee.name) && employee.name != null ? employee.name : \"\")) + \"|\" + ((has(employee.facts) && employee.facts != null && has(employee.facts.family_name) && employee.facts.family_name != null ? employee.facts.family_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring((has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") + 1, (has(employee.name) && employee.name != null ? employee.name : \"\").size()) : \"\") == \"\" ? \".\" : (has(employee.facts) && employee.facts != null && has(employee.facts.family_name) && employee.facts.family_name != null ? employee.facts.family_name : (has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") > 0 ? (has(employee.name) && employee.name != null ? employee.name : \"\").substring((has(employee.name) && employee.name != null ? employee.name : \"\").indexOf(\" \") + 1, (has(employee.name) && employee.name != null ? employee.name : \"\").size()) : \"\")) + \"|\" + \"3112\" + string(int(runs[0].pay_date.substring(0, 4)) + 543) + \"|\" + (string(int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) / 100) + \".\" + (int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round(((totals.statutory.PND1.base > 0.0 ? totals.statutory.PND1.employee / totals.statutory.PND1.base * 100.0 : 0.0)) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((totals.statutory.PND1.base) * 100.0, 1.0)) / 100) + \".\" + (int(round((totals.statutory.PND1.base) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((totals.statutory.PND1.base) * 100.0, 1.0)) % 100)) + \"|\" + (string(int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) / 100) + \".\" + (int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) % 100 < 10 ? \"0\" : \"\") + string(int(round((totals.statutory.PND1.employee) * 100.0, 1.0)) % 100)) + \"|\" + \"1\" + \"|\" + \"1\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + \"\" + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_district) && employee.facts.address_district != null ? string(employee.facts.address_district) : \"\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_province) && employee.facts.address_province != null ? string(employee.facts.address_province) : \"\") + \"|\" + (has(employee.facts) && employee.facts != null && has(employee.facts.address_postcode) && employee.facts.address_postcode != null ? string(employee.facts.address_postcode) : \"\") + \"\\r\""
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"\""
+				}
+			]
 		}
 	}
 ]

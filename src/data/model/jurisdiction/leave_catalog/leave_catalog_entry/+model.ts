@@ -22,7 +22,7 @@ export default model({
 			kind: 'decimal',
 			scale: 2,
 			optional: true,
-			help: 'Days taken; 0.5 for a half day.'
+			help: 'Units the movement charges. A time-off range is counted by the write over the employment’s plan, in its class’s unit.'
 		},
 		from: {
 			kind: 'date',

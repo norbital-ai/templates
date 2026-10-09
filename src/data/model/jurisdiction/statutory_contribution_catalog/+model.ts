@@ -23,22 +23,22 @@ export default model({
 				fields: {
 					person: {
 						kind: 'record',
-						of: { kind: 'text' },
+						of: { kind: 'text', format: 'cel' },
 						optional: true,
 						help: 'Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.'
 					},
 					assessable: {
 						kind: 'record',
-						of: { kind: 'text' },
+						of: { kind: 'text', format: 'cel' },
 						optional: true,
 						help: 'The month-to-date assessable amount of each wage part (ceilings, projections), CEL over `wage`, `month`, `year`, `period` and `terms`. A part without an expression is assessed as paid.'
 					},
-					assessment: { kind: 'text', optional: true },
+					assessment: { kind: 'text', format: 'cel', optional: true },
 					refuse_when: {
 						kind: 'list',
 						of: {
 							kind: 'object',
-							fields: { when: { kind: 'text' }, message: { kind: 'text' } }
+							fields: { when: { kind: 'text', format: 'cel' }, message: { kind: 'text' } }
 						},
 						optional: true,
 						help: 'Guards evaluated before the rules: the first that holds refuses the payslip with its message.'
@@ -48,10 +48,10 @@ export default model({
 						of: {
 							kind: 'object',
 							fields: {
-								when: { kind: 'text', optional: true },
-								employee: { kind: 'text', optional: true },
-								employer: { kind: 'text', optional: true },
-								contribution: { kind: 'text', optional: true }
+								when: { kind: 'text', format: 'cel', optional: true },
+								employee: { kind: 'text', format: 'cel', optional: true },
+								employer: { kind: 'text', format: 'cel', optional: true },
+								contribution: { kind: 'text', format: 'cel', optional: true }
 							}
 						},
 						optional: true

@@ -8,10 +8,12 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { RecordShell, Table, type RecordView } from '@norbital-ai/ui';
-	import { Cluster, Cover, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { live, liveRows } from '../../../lib/ui/state/live.svelte.js';
-	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/format/display_formatters.js';
+	import { formatCalendarDate } from '../../../lib/ui/format/display_formatters.js';
+	import { versionMoney } from '../../../lib/ui/format/version_money.svelte.js';
 	import { decodeNumber } from '../../../lib/payroll_engine/foundation.js';
+	import { movable } from '../../../lib/ui/payroll/slip_moves.js';
 
 	let { view }: { view: RecordView<'payroll_run'> } = $props();
 	const run = $derived(view.mode === 'update' ? view.record : null);
@@ -23,10 +25,11 @@
 			? null
 			: bolt.read('payslip', {
 					where: { payroll_run_id: { eq: run.id } },
-					select: { status: true, gross: true, net: true, employer_cost: true },
+					select: { id: true, status: true, gross: true, net: true, employer_cost: true },
 					all: true
 				})
 	);
+	const money = versionMoney(() => (run == null ? null : { version: run.settings_id }));
 	const total = $derived(slips.loading ? null : (slips.current ?? []).length);
 	const count = (status: string) =>
 		(slips.current ?? []).filter((row) => row.status === status).length;
@@ -37,11 +40,23 @@
 	/** What the build refused or noticed, one sentence per line. */
 	const warnings = $derived(run == null || !run.warnings ? [] : run.warnings.split('\n'));
 	/** Hold keeps reviewed slips out of payment; release returns them; paid is terminal, stamped now. */
-	const move = (status: 'DRAFT' | 'ON_HOLD' | 'PAID') => (selected: Id<'payslip'>[]) =>
-		selected.map((target) => ({
-			target,
-			set: { status, ...(status === 'PAID' ? { paid_at: Instant(new Date().toISOString()) } : {}) }
-		}));
+	// a slip already in the target state (a paid one) is skipped, not refused with the whole batch
+	const statusOf = (id: Id<'payslip'>) =>
+		(slips.current ?? []).find((row) => row.id === id)?.status;
+	const move = (status: 'DRAFT' | 'ON_HOLD' | 'PAID') => async (selected: Id<'payslip'>[]) => {
+		const targets = movable(status, selected, statusOf);
+		if (targets.length === 0) return;
+		await bolt.act(
+			'payslip.update',
+			targets.map((target) => ({
+				target,
+				set: {
+					status,
+					...(status === 'PAID' ? { paid_at: Instant(new Date().toISOString()) } : {})
+				}
+			}))
+		);
+	};
 </script>
 
 {#snippet runSummary()}
@@ -82,29 +97,30 @@
 				</Stack>
 				<Stack gap="xs">
 					<dt class="text-meta">{bolt.t('component.payslip_gross_pay')}</dt>
-					<dd class="font-medium tabular-nums">{formatNumeric(sum((row) => row.gross))}</dd>
+					<dd class="font-medium tabular-nums">{money(sum((row) => row.gross))}</dd>
 				</Stack>
 				<Stack gap="xs">
 					<dt class="text-meta">{bolt.t('component.payslip_net_pay')}</dt>
-					<dd class="font-medium tabular-nums">{formatNumeric(sum((row) => row.net))}</dd>
+					<dd class="font-medium tabular-nums">{money(sum((row) => row.net))}</dd>
 				</Stack>
 				<Stack gap="xs">
 					<dt class="text-meta">{bolt.t('component.employer_cost')}</dt>
-					<dd class="font-medium tabular-nums">{formatNumeric(sum((row) => row.employer_cost))}</dd>
+					<dd class="font-medium tabular-nums">{money(sum((row) => row.employer_cost))}</dd>
 				</Stack>
 			</Grid>
 			{#if total === 0 && warnings.length === 0}
 				<p class="text-sm text-muted-foreground">{bolt.t('component.draft_built_nothing')}</p>
 			{/if}
 			{#if warnings.length > 0}
-				<Stack
-					as="ul"
-					gap="xs"
+				<Scroll
+					name={bolt.t('component.workbook_warnings', { count: warnings.length })}
+					max="compact"
 					class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
-					data-run-warnings
 				>
-					{#each warnings as warning (warning)}<li>{warning}</li>{/each}
-				</Stack>
+					<Stack as="ul" gap="xs" data-run-warnings>
+						{#each warnings as warning, index (index)}<li>{warning}</li>{/each}
+					</Stack>
+				</Scroll>
 			{/if}
 			{#if held > 0}
 				<p class="text-sm text-muted-foreground">
@@ -127,21 +143,21 @@
 					select: true,
 					actions: [
 						{
-							action: 'payslip.update',
-							label: bolt.t('component.hold'),
-							input: move('ON_HOLD'),
+							icon: 'lucide:pause',
+							name: bolt.t('component.hold'),
+							run: move('ON_HOLD'),
 							requiresSelection: true
 						},
 						{
-							action: 'payslip.update',
-							label: bolt.t('component.release'),
-							input: move('DRAFT'),
+							icon: 'lucide:play',
+							name: bolt.t('component.release'),
+							run: move('DRAFT'),
 							requiresSelection: true
 						},
 						{
-							action: 'payslip.update',
-							label: bolt.t('app.payroll.mark_selected_paid'),
-							input: move('PAID'),
+							icon: 'lucide:banknote',
+							name: bolt.t('app.payroll.mark_selected_paid'),
+							run: move('PAID'),
 							requiresSelection: true
 						}
 					]

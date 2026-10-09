@@ -27,14 +27,19 @@ export default model({
 		due_on: {
 			kind: 'date'
 		},
+		currency: {
+			kind: 'currency',
+			optional: true,
+			help: 'The payroll currency of the version that raised it; the amounts are in it.'
+		},
 		amount_due: {
-			kind: 'decimal',
-			scale: 2,
+			kind: 'money',
+			currency: 'currency',
 			optional: true
 		},
 		amount_settled: {
-			kind: 'decimal',
-			scale: 2,
+			kind: 'money',
+			currency: 'currency',
 			optional: true
 		},
 		state: {

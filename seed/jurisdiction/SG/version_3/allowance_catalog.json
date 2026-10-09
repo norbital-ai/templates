@@ -4,35 +4,35 @@
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
 		"code": "FIXED_MONTHLY",
 		"name": "Fixed monthly allowance",
-		"authority": "CPF Act 1953 s.2(1) and First Schedule: a fixed allowance payable for the month is an Ordinary Wage. Part month: Employment Act s.20A — the monthly gross rate (fixed allowances included) × days worked ÷ days required to work.",
+		"authority": "CPF Act 1953 s.2(1) and First Schedule: a fixed allowance payable for the month is an Ordinary Wage. Part month: Employment Act s.20A — the monthly gross rate (fixed allowances included) × days worked ÷ days required to work. A required day of 5 hours or less counts as half a day when the month is incomplete (s.20A(2)), as for BASIC. EA s.20A (MOM, Monthly and daily salary: definitions and calculation, https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08: incomplete month = monthly gross ÷ the month’s working days, public holidays included, × days worked). A complete month pays the monthly amount ÷ period.parts in each part (a semi-monthly half pays exactly half). An incomplete month (start after the 1st, exit before the last day, or a part not wholly employed) pays the monthly amount × days worked ÷ (period.month_working_days + period.month_holiday_work_days); the last part of a month the employment started before settles the month: the s.20A total (the earlier parts’ working days, this part’s worked) less what the month’s earlier slips paid for the code (earned.month), so a leaver recorded after the first half was paid is exact. A ≤ 5-hour required day counts as half in an incomplete month. No-pay and unauthorised days deduct through their own lines at the same divisor. With nothing planned, paid days ÷ the month’s calendar days.",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "true",
-		"amount": "period.working_days > 0 ? allowance.amount * period.covered_working_days / period.working_days : allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount * (!(period.covered_working_days < period.working_days || employment.start_date > period.month_from || (employment.exit_date != \"\" && employment.exit_date < period.month_to)) ? 1.0 / double(period.parts) : double(period.month_working_days + period.month_holiday_work_days) > 0.0 ? ((double(period.parts) > 1.0 && period.part == period.parts && employment.start_date <= period.month_from) ? (double(period.month_working_days + period.month_holiday_work_days) - double(period.working_days) + (double(period.covered_working_days) - 0.5 * double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0 && d.scheduled_hours <= 5.0 && d.date >= period.from && d.date <= period.to))))) / double(period.month_working_days + period.month_holiday_work_days) - (has(earned.month.FIXED_MONTHLY) ? earned.month.FIXED_MONTHLY : 0.0) / allowance.amount : (double(period.covered_working_days) - 0.5 * double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0 && d.scheduled_hours <= 5.0 && d.date >= period.from && d.date <= period.to)))) / double(period.month_working_days + period.month_holiday_work_days)) : double(period.paid_days) / double(period.month_days))"
 	},
 	{
 		"id": "ead20347-25e2-5b92-8b85-d09487f64bbc",
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
 		"code": "PT_ANNUAL_HOURLY_OW",
 		"name": "Contractual annual leave hourly addition (OW)",
-		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement.",
+		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement. A sub-monthly entity pays the month’s amount in its parts: each settlement period prices allowance.amount ÷ period.parts before proration (a semi-monthly half pays half the monthly allowance).",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "terms.employment_type == \"PART_TIME\"",
-		"amount": "allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days"
 	},
 	{
 		"id": "07dc130d-7c02-5ff1-9b45-bc2d49982d84",
 		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
 		"code": "PT_ANNUAL_HOURLY_AW",
 		"name": "Contractual annual leave hourly addition (AW)",
-		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement.",
+		"authority": "MOM Part-time employment: leave (https://www.mom.gov.sg/employment-practices/part-time-employment/leave), retrieved 2026-10-03: clear contractual annual-leave encash agreement, prohibited where work is at least five days and 30–34 hours weekly; hourly addition is annual leave hours divided by weekly hours times 52, multiplied by original hourly gross pay. CPF Board https://ask.gov.sg/cpf/questions/cm0f52l39035vpz7a3bwg3pre: OW must be wholly and exclusively for one calendar month and payable by the 14th of the following month. Explicit OW/AW class admission uses the actual signed payable clause; payment date is not payable date. Source-year quantity remains conserved against actual computed and consumed/reserved hourly entitlement. A sub-monthly entity pays the month’s amount in its parts: each settlement period prices allowance.amount ÷ period.parts before proration (a semi-monthly half pays half the monthly allowance).",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "terms.employment_type == \"PART_TIME\"",
-		"amount": "allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days"
 	}
 ]

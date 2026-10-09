@@ -4,7 +4,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { planBehaviours, type Behaviours } from '../src/lib/payroll_engine/behaviours.js';
-import { evaluateConfigured } from '../src/lib/payroll_engine/expressions.js';
+// strict: a record expression failing inside `configured_eval`, even where CEL absorbs it, fails the suite
+import { evaluateStrict as evaluateConfigured } from '../src/lib/payroll_engine/expressions.js';
 
 type Row = Record<string, unknown>;
 type Scheme = Row & {
@@ -55,6 +56,7 @@ const charge = (
 		base: { assessed, ordinary: assessed, additional: 0 },
 		person,
 		employee: { facts: {}, dependents_count: 0 },
+		employment: { start_date: '', exit_date: '', engagement: 'EMPLOYEE' },
 		company: { region: '', risk_class: '', facts: {} },
 		scheme: { code: row.code, standing: '', elections: {} },
 		elections: {},
@@ -79,7 +81,8 @@ describe('public jurisdiction seed', () => {
 			date: '2026-03-10',
 			kind: 'SUBSTITUTE',
 			given_to: 'ONLY_IF_OFF_ON_REPLACED_DATE',
-			replaces: '2026-03-08'
+			replaces: '2026-03-08',
+			worked: true
 		};
 		const days = (dates: string[]) =>
 			evaluateConfigured(String(row.quantity), { work: { dates, holidays: [substitute] } });
@@ -91,8 +94,22 @@ describe('public jurisdiction seed', () => {
 		const work = Object.fromEntries(
 			rows('MY', 'work_catalog').map((item) => [String(item.code), item])
 		);
+		// January: a part month is a joiner on the (32 − paid_days)th; the slip is the month's only (last) part.
 		const context = (paid_days: number) => ({
-			period: { days: 31, paid_days },
+			period: {
+				days: 31,
+				paid_days,
+				part: 1,
+				parts: 1,
+				month_from: '2026-01-01',
+				month_to: '2026-01-31',
+				month_days: 31
+			},
+			employment: {
+				start_date: `2026-01-${String(32 - paid_days).padStart(2, '0')}`,
+				exit_date: ''
+			},
+			earned: { month: {} },
 			terms: { base_salary: 2600 },
 			leave: {
 				rows: [
@@ -143,8 +160,10 @@ describe('public jurisdiction seed', () => {
 			period: { key: '2026-10', from: '2026-10-01', to: '2026-10-31', days: 31, paid_days: 31 },
 			terms: {
 				base_salary: 5000,
+				// EA First Schedule para 2: manual labour keeps the s.60D(3) premium above RM4,000.
+				monthly_wage: 5000,
 				work_classification: '',
-				statutory_work_category: '',
+				statutory_work_category: 'MANUAL_LABOUR',
 				employment_type: '',
 				residency_status: 'CITIZEN'
 			},
@@ -153,7 +172,13 @@ describe('public jurisdiction seed', () => {
 				incentive_hours: 0,
 				dates: ['2026-03-10'],
 				holidays: [
-					{ date: '2026-03-10', kind: 'PUBLIC_HOLIDAY', given_to: 'EVERYONE', replaces: '' }
+					{
+						date: '2026-03-10',
+						kind: 'PUBLIC_HOLIDAY',
+						given_to: 'EVERYONE',
+						replaces: '',
+						worked: true
+					}
 				]
 			},
 			leave: { rows: [] }
@@ -182,9 +207,9 @@ describe('public jurisdiction seed', () => {
 		assert.match(work, /104/);
 		const version = settings('MY');
 		assert.equal(version.code, 'MY');
-		assert.match(JSON.stringify(version.reference_tables), /104/);
-		assert.match(JSON.stringify(version.reference_tables), /1700/);
-		assert.match(JSON.stringify(version.reference_tables), /tp1_/);
+		// The legacy rules block is gone: the floor is a PAYROLL rule the CEL reads.
+		assert.equal(version.reference_tables, undefined);
+		assert.match(JSON.stringify(rows('MY', 'rule_set')), /1700/);
 		const citizen = { age: 30, residency_status: 'CITIZEN' };
 		assert.deepEqual(charge(scheme('MY', 'EPF'), 5000, citizen), { employee: 550, employer: 650 });
 		assert.deepEqual(charge(scheme('MY', 'SOCSO'), 5000, citizen), {
@@ -215,7 +240,7 @@ describe('public jurisdiction seed', () => {
 		assert.equal(codes('PH', 'leave_catalog').has('ANNUAL_LEAVE'), true);
 		assert.equal(codes('PH', 'work_catalog').has('HOLIDAY_WORK'), true);
 		assert.equal(codes('PH', 'work_catalog').has('SPECIAL_HOLIDAY_WORK'), true);
-		const wages = JSON.stringify(settings('PH').reference_tables);
+		const wages = JSON.stringify(rows('PH', 'rule_set').find((row) => row.code === 'minimum_wage'));
 		assert.match(wages, /IX-/);
 		const sss = charge(scheme('PH', 'SSS'), 20000, { age: 30, residency_status: 'CITIZEN' });
 		assert.equal(sss.employee, 1000);
@@ -248,9 +273,37 @@ describe('public jurisdiction seed', () => {
 			assert.equal(statutory.has(code), true);
 		assert.equal(codes('VN', 'adhoc_catalog').has('SEVERANCE_ALLOWANCE'), true);
 		assert.equal(codes('VN', 'work_catalog').has('OVERTIME'), true);
-		const si = charge(scheme('VN', 'SI'), 10_000_000, { age: 30, residency_status: 'CITIZEN' });
-		assert.equal(si.employee, 800000);
-		assert.equal(si.employer, 1750000);
+		// VN SI reads the subject roots the engine supplies (coverage and the 14-day month rule).
+		const vn = scheme('VN', 'SI');
+		const context = {
+			base: { assessed: 10_000_000, amount: 10_000_000, ordinary: 10_000_000 },
+			person: { age: 30, residency_status: 'CITIZEN' },
+			employee: {
+				nationality: 'VN',
+				gender: 'FEMALE',
+				date_of_birth: '1990-01-01',
+				receiving_pension: false,
+				facts: {}
+			},
+			terms: {
+				base_salary: 10_000_000,
+				monthly_wage: 10_000_000,
+				employment_type: 'PERMANENT',
+				allowances: [],
+				facts: {}
+			},
+			employment: { start_date: '2020-01-01', exit_date: '' },
+			company: { region: 'I', risk_class: '', facts: {} },
+			scheme: { code: 'SI', standing: '', elections: {} },
+			elections: {},
+			leave: { rows: [] },
+			period: { from: '2026-10-01', to: '2026-10-31', working_days: 22, covered_working_days: 22 }
+		};
+		const rule = (vn.configuration?.rules ?? []).find(
+			(item) => item.when == null || evaluateConfigured(item.when, context) === true
+		)!;
+		assert.equal(cents(evaluateConfigured(rule.employee!, context)), 800000);
+		assert.equal(cents(evaluateConfigured(rule.employer!, context)), 1750000);
 	});
 
 	it('L-TPL-hr-payroll-112 seeds TW LI/EI, occupational accident, NHI, labour pension, withholding, 補休 and cash-out', () => {
@@ -269,9 +322,26 @@ describe('public jurisdiction seed', () => {
 		const annual = rows('TW', 'leave_catalog').find((row) => row.code === 'ANNUAL_LEAVE');
 		assert.equal(annual?.encash_on_exit, true);
 		assert.equal(codes('TW', 'adhoc_catalog').has('SEVERANCE_PAY'), true);
-		const li = charge(scheme('TW', 'LI'), 45800, { age: 30, residency_status: 'CITIZEN' });
-		assert.equal(li.employee, 1053);
-		assert.equal(li.employer, 3687);
+		// TW grades on the contract's monthly wage over the covered days, so its case supplies those roots.
+		const row = scheme('TW', 'LI');
+		const context = {
+			base: { assessed: 45800, ordinary: 45800, additional: 0 },
+			person: { age: 30, residency_status: 'CITIZEN' },
+			employee: { facts: {}, dependents_count: 0 },
+			company: { region: '', risk_class: '', facts: {} },
+			terms: { monthly_wage: 45800 },
+			period: { days: 31, covered_days: 31 },
+			leave: {},
+			scheme: { code: row.code, standing: '', elections: {} },
+			elections: {},
+			charged: { month: {}, year: {} },
+			rules: {}
+		};
+		const rule = (row.configuration?.rules ?? []).find(
+			(candidate) => candidate.when == null || evaluateConfigured(candidate.when, context) === true
+		)!;
+		assert.equal(cents(evaluateConfigured(rule.employee!, context)), 1053);
+		assert.equal(cents(evaluateConfigured(rule.employer!, context)), 3687);
 	});
 
 	it('every cloned_from_id names another seeded settings row or is omitted', () => {
@@ -328,5 +398,40 @@ describe('public jurisdiction seed', () => {
 				}
 			}
 		}
+	});
+
+	it('every version lists the exit grounds and holiday kinds its records compare or write', () => {
+		const kinds = (rules: Row[], code: string) =>
+			new Set(
+				(
+					(rules.find((row) => row.code === code)?.rules as { kinds?: { code: string }[] })
+						?.kinds ?? []
+				).map((kind) => kind.code)
+			);
+		for (const lineage of LINEAGES)
+			for (const version of readdirSync(law(lineage)).filter((entry) =>
+				entry.startsWith('version_')
+			)) {
+				const dir = resolve(law(lineage), version);
+				const text = readdirSync(dir)
+					.map((name) => readFileSync(resolve(dir, name), 'utf8'))
+					.join('\n');
+				const rules = JSON.parse(readFileSync(resolve(dir, 'rule_set.json'), 'utf8')) as Row[];
+				const grounds = kinds(rules, 'exit_grounds');
+				assert.ok(grounds.size > 0, `${lineage}/${version} exit_grounds`);
+				for (const [, list] of text.matchAll(
+					/exit_ground *(?:==|!=|in) *(\\?"[A-Z_]+\\?"|\[[^\]]*\])/g
+				))
+					for (const [code] of list!.matchAll(/[A-Z][A-Z_]+/g))
+						assert.ok(grounds.has(code), `${lineage}/${version} compares unlisted ground ${code}`);
+				const holidays = kinds(rules, 'holiday_kinds');
+				const calendar = rules.find((row) => row.code === 'public_holidays')?.rules as
+					{ holidays?: { kind?: string }[] } | undefined;
+				for (const holiday of calendar?.holidays ?? [])
+					assert.ok(
+						holidays.has(holiday.kind ?? 'PUBLIC_HOLIDAY'),
+						`${lineage}/${version} writes unlisted holiday kind ${holiday.kind}`
+					);
+			}
 	});
 });

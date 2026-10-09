@@ -7,9 +7,6 @@
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "STAFF",
-		"minimum_repayment": null,
 		"bands": []
 	}
 ]

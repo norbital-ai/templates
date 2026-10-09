@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * One employment contract: who and which entity, the effective period and terms, and departure when the range closes.
+	 * One employment contract: who and which entity, the effective period and terms, and departure (an early exit of a fixed term too), moved or undone.
 	 */
 	import { bolt } from '$bolt';
 	import { Field, Form, openRecord, RecordShell, Section, type RecordView } from '@norbital-ai/ui';
@@ -22,12 +22,16 @@
 				id={record.id}
 				companyId={record.company_id}
 				terms={termsFromFacts(record.facts)}
-				ended={record.effective_range.to != null}
+				ended={record.exit_ground != null && record.exit_ground !== ''}
 			/>
 			<Offboarding
 				id={record.id}
+				companyId={record.company_id}
 				hireFrom={String(record.effective_range.from)}
-				ended={record.effective_range.to != null}
+				lastDay={record.effective_range.to == null ? null : String(record.effective_range.to)}
+				exitGround={record.exit_ground ?? null}
+				exitFacts={record.exit_facts ?? null}
+				plannedEnd={record.signed_contract_end == null ? null : String(record.signed_contract_end)}
 			/>
 		</Cluster>
 	{/if}

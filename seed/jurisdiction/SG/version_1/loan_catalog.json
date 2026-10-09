@@ -6,10 +6,7 @@
 		"name": "Salary advance",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "STAFF",
-		"minimum_repayment": null,
+		"eligibility": "!(has(entry.advance_made_on) && entry.occurred_on > add_months(entry.advance_made_on, 12))",
 		"bands": []
 	},
 	{
@@ -19,10 +16,7 @@
 		"name": "Festive advance",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "FESTIVE",
-		"minimum_repayment": null,
+		"eligibility": "!(has(entry.advance_made_on) && entry.occurred_on > add_months(entry.advance_made_on, 12))",
 		"bands": []
 	},
 	{
@@ -33,9 +27,6 @@
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "STAFF",
-		"minimum_repayment": null,
 		"bands": []
 	},
 	{
@@ -46,9 +37,6 @@
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "STAFF",
-		"minimum_repayment": null,
 		"bands": []
 	},
 	{
@@ -58,10 +46,7 @@
 		"name": "Travel advance",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
-		"evidence": "NONE",
-		"loan_type": "STAFF",
-		"minimum_repayment": null,
+		"eligibility": "!(has(entry.advance_made_on) && entry.occurred_on > add_months(entry.advance_made_on, 12)) && !(has(entry.advance_made_on) && employment.start_date != \"\" && entry.advance_made_on < employment.start_date)",
 		"bands": []
 	}
 ]

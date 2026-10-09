@@ -38,6 +38,8 @@
 						employee_number: true,
 						effective_range: true,
 						exit_ground: true,
+						exit_facts: true,
+						signed_contract_end: true,
 						company_id: true,
 						facts: true
 					},
@@ -53,6 +55,8 @@
 				from: String(row.effective_range?.from ?? ''),
 				to: row.effective_range?.to == null ? null : String(row.effective_range.to),
 				exit: row.exit_ground,
+				exitFacts: row.exit_facts ?? null,
+				plannedEnd: row.signed_contract_end == null ? null : String(row.signed_contract_end),
 				terms: termsFromFacts(row.facts)
 			}))
 			.toSorted((left, right) => (right.from < left.from ? -1 : 1))
@@ -137,21 +141,45 @@
 								: ` · ${contract.exit}`}
 						</span>
 					</Button>
-					{#if isCurrent}
+					{#if isCurrent || contract.exit != null}
 						<Cluster gap="sm">
 							<ChangeTerms
 								id={contract.id}
 								companyId={contract.companyId}
 								terms={contract.terms}
-								ended={false}
+								ended={!isCurrent}
 							/>
-							<Offboarding id={contract.id} hireFrom={contract.from} ended={false} />
+							<Offboarding
+								id={contract.id}
+								companyId={contract.companyId}
+								hireFrom={contract.from}
+								lastDay={contract.to}
+								exitGround={contract.exit ?? null}
+								exitFacts={contract.exitFacts}
+								plannedEnd={contract.plannedEnd}
+							/>
 						</Cluster>
 					{/if}
 				</Stack>
 			{/each}
 		{/if}
 	</Section>
+	{#if record && ordered.length > 0 && ordered.every((contract) => contract.to != null && contract.to < today)}
+		<Section name="anonymise" title={t('person.anonymise_title')} defaultOpen={false}>
+			{#if record.anonymised_at != null}
+				<p class="text-meta">
+					{t('person.anonymised', { date: String(record.anonymised_at).slice(0, 10) })}
+				</p>
+			{:else}
+				<p class="text-meta">{t('person.anonymise_help')}</p>
+				<Form
+					of={{ action: 'employment_profile.anonymise' }}
+					id={record.id}
+					submit={t('person.anonymise')}
+				/>
+			{/if}
+		</Section>
+	{/if}
 {/snippet}
 
 {#snippet faceTab()}

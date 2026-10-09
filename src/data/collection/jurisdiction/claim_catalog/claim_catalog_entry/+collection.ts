@@ -1,6 +1,7 @@
-import { collection } from '@norbital-ai/bolt';
+import { collection, type TransformCtx } from '@norbital-ai/bolt';
+import { transformEntries } from '../../../../../lib/payroll_engine/services.js';
 
-export default collection('claim_catalog_entry', {
+const c = collection('claim_catalog_entry', {
 	read: { fields: 'all' },
 	create: {
 		input: {
@@ -16,7 +17,8 @@ export default collection('claim_catalog_entry', {
 				'label',
 				'facts',
 				'reference'
-			]
+			],
+			filled: ['company_id']
 		}
 	},
 	update: {
@@ -35,5 +37,12 @@ export default collection('claim_catalog_entry', {
 				'payslip_id'
 			]
 		}
-	}
+	},
+	delete: { transform: true }
 });
+export default c;
+
+// Admission: the class of the version in force on the entry day, the employment's company, and a settled entry locked.
+c.transform((inputs, ctx: TransformCtx<'claim_catalog_entry'>) =>
+	transformEntries('claim_catalog_entry', inputs, ctx)
+);

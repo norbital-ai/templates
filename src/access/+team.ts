@@ -29,6 +29,6 @@ export default team({
 	'HR Manager': ['hr_manager'],
 	/** A manager with HR-controller authority; `hr_controller` already carries every `manager` grant. */
 	'Manager (HR Controller)': ['hr_controller'],
-	/** The attendance-kiosk device account: the kiosk app, punches and pending enrolments only. */
+	/** The attendance-kiosk device account: the attendance kiosk, punches and pending enrolments only. */
 	'Attendance Kiosk': ['kiosk']
 });

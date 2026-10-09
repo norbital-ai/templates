@@ -9,8 +9,6 @@
 		"direction": "ADD",
 		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "",
-		"evidence": "NONE",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
@@ -24,17 +22,15 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "SALARY_IN_LIEU_OF_NOTICE",
 		"name": "Salary in lieu of notice",
-		"authority": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays: actual dated required work and gross contractual rates price unserved notice; written mutual waiver reduces only its covered dates. Employer notice compensation remains taxable and counts toward SDL; CPF and self-help treatment preserved.",
+		"authority": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays: actual dated required work and gross contractual rates price unserved notice; written mutual waiver reduces only its covered dates.  CPF Board, Which allowances and payments attract CPF contributions (5 Jan 2026), “Termination benefits … compensation in lieu of notice … retrenchment pay … NO”: not wages, so no CPF, SDL or self-help-group base. EA s.10(3) (AGC, read 2026-10-07): without a contractual period, 1 day under 26 weeks of service, 1 week under 2 years, 2 weeks under 5 years, 4 weeks from 5 years; s.11(1): salary at the gross rate for the notice period, a day’s gross rate where it is under a month. The band pays at least that; a longer contractual notice is the amount entered. EA s.10(2)–(3): the s.10(3) periods apply only where the contract is silent; a written contractual notice (contract_terms.facts.notice_period_days, the same for both parties) governs, and the entered amount is then paid as is.",
 		"destination": "PAY",
 		"direction": "ADD",
-		"counts_toward": ["SDL"],
+		"counts_toward": [],
 		"eligibility": "",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount",
+				"amount": "(has(terms.facts) && has(terms.facts.notice_period_days)) ? entry.amount : max(entry.amount, (employment.service_months < 6.0 ? 0.0 : (employment.service_months < 24.0 ? 1.0 : (employment.service_months < 60.0 ? 2.0 : 4.0))) == 0.0 ? (has(employee.facts.working_days_per_week) ? 12.0 * terms.monthly_wage / (52.0 * double(employee.facts.working_days_per_week)) : terms.monthly_wage / (period.working_days > 0.0 ? period.working_days : period.days)) : 12.0 * terms.monthly_wage / 52.0 * (employment.service_months < 6.0 ? 0.0 : (employment.service_months < 24.0 ? 1.0 : (employment.service_months < 60.0 ? 2.0 : 4.0))))",
 				"limit": null
 			}
 		]
@@ -44,13 +40,11 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "RETRENCHMENT_BENEFIT",
 		"name": "Retrenchment benefit",
-		"authority": "Employment Act 1968 s.45: no employee with under 2 years’ continuous service is entitled to a retrenchment benefit, and no provision fixes a quantum for longer service; a contractual or negotiated retrenchment benefit is raised by HR with the amount. CPF Board (“Are CPF contributions payable on redundancy payment?”): “CPF contributions are not payable on termination benefits given for retrenchment or loss of employment”, so it is outside CPF and, following the CPF base, outside CDAC, ECF and SINDA; Muis, MBMF employer information, Table 2: retrenchment pay — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2 (read on sso.agc.gov.sg, current version as at 28 Sep 2026): “wages” means “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment but does not include such payments as the Minister may, by notification in the Gazette, specify”; the only notified exclusion is medical, dental and TCM reimbursement (S 375/2023), and no SDL or Agency publication addresses retrenchment pay. Source interpretation: law silent on this payment; default counts toward SDL, read as SALARY_IN_LIEU_OF_NOTICE is (the same s.2 words); lawful because SDL is employer-borne, s.3(2) caps it at 0.25% of $4,500 a month, and any excess is refundable under SDL Regulations reg.13, whereas the other reading risks an Agency assessment for unpaid levy. IRAS: compensation for loss of employment is not taxable and is reported apart from gratuity, notice pay and ex-gratia (Form IR8A item d3, Explanatory Notes YA 2027).",
+		"authority": "Employment Act 1968 s.45: no employee with under 2 years’ continuous service is entitled to a retrenchment benefit, and no provision fixes a quantum for longer service; a contractual or negotiated retrenchment benefit is raised by HR with the amount. CPF Board (“Are CPF contributions payable on redundancy payment?”): “CPF contributions are not payable on termination benefits given for retrenchment or loss of employment”, so it is outside CPF and, following the CPF base, outside CDAC, ECF and SINDA; Muis, MBMF employer information, Table 2: retrenchment pay — Accounted for MBMF: No. Skills Development Levy Act 1979 s.2 (read on sso.agc.gov.sg, current version as at 28 Sep 2026): “wages” means “the remuneration in money, including any bonus, due or granted to a person in respect of the person’s employment but does not include such payments as the Minister may, by notification in the Gazette, specify”; the only notified exclusion is medical, dental and TCM reimbursement (S 375/2023), and no SDL or Agency publication addresses retrenchment pay. No SDL or Agency text addresses retrenchment pay; this template follows the CPF Board list, the only official classification of the payment for the wage base the Board collects SDL on (below), and gives it no SDL base. IRAS: compensation for loss of employment is not taxable and is reported apart from gratuity, notice pay and ex-gratia (Form IR8A item d3, Explanatory Notes YA 2027). CPF Board, Which allowances and payments attract CPF contributions (5 Jan 2026), “Termination benefits: retirement gratuity, retrenchment pay, … compensation in lieu of notice, severance pay, compensation for loss of employment — Is CPF payable? NO” (re-read 2026-10-08): no CPF, so no self-help-group base, and no SDL base as above.",
 		"destination": "PAY",
 		"direction": "ADD",
-		"counts_toward": ["SDL"],
+		"counts_toward": [],
 		"eligibility": "",
-		"evidence": "NONE",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
@@ -64,70 +58,65 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "DAMAGE_RECOVERY",
 		"name": "Damage or loss recovery",
-		"authority": "EA s.29 and MOM salary-deductions guidance: one-time recovery only after an inquiry and an opportunity to explain; input amount must be the evidenced actual loss attributable to the employee. Payroll enforces the independent quarter-month salary limit. Do not split one loss into repeated requests.",
+		"authority": "EA s.29 and MOM salary-deductions guidance: one-time recovery only after an inquiry and an opportunity to explain; input amount must be the evidenced actual loss attributable to the employee. Payroll enforces the independent quarter-month salary limit. Do not split one loss into repeated requests. No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "dde2134e-02a1-515b-a06e-f7009e6a2bd3",
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "ACCOMMODATION_RECOVERY",
 		"name": "Accommodation recovery",
-		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accommodation supplied and accepted by the employee; retain acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period.",
+		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accommodation supplied and accepted by the employee; retain acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period. No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "dec9b6f5-1e04-5cad-a4cc-93d3e4b91e8d",
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "AMENITIES_RECOVERY",
 		"name": "Amenities or services recovery",
-		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accepted amenities/services authorised by the Commissioner for Labour; retain permission, acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period.",
+		"authority": "EA s.30 and MOM salary-deductions guidance: input amount must not exceed the value of accepted amenities/services authorised by the Commissioner for Labour; retain permission, acceptance and valuation evidence. Payroll caps accommodation plus amenities/services at a quarter of salary for the salary period. No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "7ae42afe-b652-588b-8d6b-25bd0d5593bd",
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "COOPERATIVE_DUES",
 		"name": "Registered co-operative dues",
-		"authority": "EA ss.27(1)(j),32(1): payment to a registered co-operative society with the employee written consent is outside the aggregate 50% limit. Input amount and evidence identify the consented subscription, entrance fee, loan instalment, interest or other due. This is not an employer loan.",
+		"authority": "EA ss.27(1)(j),32(1): payment to a registered co-operative society with the employee written consent is outside the aggregate 50% limit. Input amount and evidence identify the consented subscription, entrance fee, loan instalment, interest or other due. This is not an employer loan. No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "9053cac3-f231-52cc-adc4-8de7a3be26fb",
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "APPROVED_DAMAGE_RECOVERY",
 		"name": "Commissioner-approved damage recovery",
-		"authority": "Employment Act 1968 s.29(1): the quarter-month limit may be exceeded with the Commissioner permission. Input amount must be within the evidenced actual loss and the permission, following an inquiry and opportunity to explain; attach that permission to this one-time request. Payroll still enforces the s.32 aggregate salary-period limit except on final salary. https://sso.agc.gov.sg/Act/EmA1968?WholeDoc=1",
+		"authority": "Employment Act 1968 s.29(1): the quarter-month limit may be exceeded with the Commissioner permission. Input amount must be within the evidenced actual loss and the permission, following an inquiry and opportunity to explain; attach that permission to this one-time request. Payroll still enforces the s.32 aggregate salary-period limit except on final salary. https://sso.agc.gov.sg/Act/EmA1968?WholeDoc=1 No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "326ea76c-cf84-5d11-b99b-f780039c3a63",
@@ -140,8 +129,6 @@
 		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "",
 		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose != 'PRIOR_CASH_REPAYMENT' && (entry.wage_attribution.increment_kind != 'RETROSPECTIVE' && entry.wage_attribution.single_month && entry.wage_attribution.payable_days_after_month <= 14)",
-		"evidence": "OPTIONAL",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
@@ -161,8 +148,6 @@
 		"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"],
 		"eligibility": "",
 		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose != 'PRIOR_CASH_REPAYMENT' && !(entry.wage_attribution.increment_kind != 'RETROSPECTIVE' && entry.wage_attribution.single_month && entry.wage_attribution.payable_days_after_month <= 14)",
-		"evidence": "OPTIONAL",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
@@ -176,14 +161,12 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "PRIOR_WAGE_CASH_REPAYMENT",
 		"name": "Prior wage cash repayment",
-		"authority": "CPF Board refund/adjustment guidance: prior wage repayment and contribution refund or transfer are separate actions. This entry settles evidenced cash only and does not reduce current wage contribution liability. https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions",
+		"authority": "CPF Board refund/adjustment guidance: prior wage repayment and contribution refund or transfer are separate actions. This entry settles evidenced cash only and does not reduce current wage contribution liability. https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "",
-		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose == 'PRIOR_CASH_REPAYMENT'",
-		"evidence": "OPTIONAL",
-		"raised_by": "MANUAL",
+		"qualifies_when": "has(entry.wage_attribution) && entry.wage_attribution.recorded && entry.wage_attribution.purpose == 'PRIOR_CASH_REPAYMENT' && !(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])",
 		"bands": [
 			{
 				"when": "",
@@ -197,13 +180,11 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "EMPLOYMENT_ASSISTANCE_PAYMENT",
 		"name": "Employment Assistance Payment",
-		"authority": "MOM Tripartite Guidelines on Re-employment of Older Employees, updated 1 July 2026, paras.34,36–43: https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en ; age on the day after employment ends, actual gross rate, documented higher contractual ages and actual part-time comparator. MOM EAP FAQ: outside CPF and income tax. SDL follows the existing owner default for employment-loss payments pending specific Agency classification; not an asserted statutory exemption. Tripartite Guidelines para.46 (1 July 2026; archived para.41 before): an employee hired at 55 or older qualifies only with at least 2 years’ service (3 before 1 July 2026), read from employment.start_date and service_months.",
+		"authority": "MOM Tripartite Guidelines on Re-employment of Older Employees, updated 1 July 2026, paras.34,36–43: https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en ; age on the day after employment ends, actual gross rate, documented higher contractual ages and actual part-time comparator. MOM EAP FAQ: outside CPF and income tax. Tripartite Guidelines para.46 (1 July 2026; archived para.41 before): an employee hired at 55 or older qualifies only with at least 2 years’ service (3 before 1 July 2026), read from employment.start_date and service_months. CPF Board, Which allowances and payments attract CPF contributions (5 Jan 2026), “Termination benefits … compensation in lieu of notice … retrenchment pay … NO”: not wages, so no CPF, SDL or self-help-group base.",
 		"destination": "PAY",
 		"direction": "ADD",
-		"counts_toward": ["SDL"],
+		"counts_toward": [],
 		"eligibility": "has(employment.exit_facts.eap_decision) && employment.exit_facts.eap_decision == \"AWARD\" && terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"] && employee.date_of_birth != \"\" && employee.date_of_birth >= (add_days(employment.exit_date, 1) < \"2026-07-01\" ? \"1955-07-01\" : \"1958-07-01\") && calendar_completed_months(employee.date_of_birth, add_days(employment.exit_date, 1)) >= (has(employment.exit_facts.eap_contract_retirement_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0))), employment.exit_facts.eap_contract_retirement_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0) : (employee.date_of_birth >= \"1963-07-01\" ? 768.0 : (employee.date_of_birth >= \"1960-07-01\" ? 756.0 : 744.0)))) && calendar_completed_months(employee.date_of_birth, add_days(employment.exit_date, 1)) < (has(employment.exit_facts.eap_contract_reemployment_months) ? max((add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0), employment.exit_facts.eap_contract_reemployment_months) : (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 816.0 : 828.0)) && !(has(employment.start_date) && employment.start_date != \"\" && age_on(employee.date_of_birth, employment.start_date) >= 55 && employment.service_months < (add_days(employment.exit_date, 1) < \"2026-07-01\" ? 36.0 : 24.0))",
-		"evidence": "NONE",
-		"raised_by": "SEPARATION",
 		"bands": [
 			{
 				"when": "",
@@ -217,13 +198,11 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "DIRECTOR_GENERAL_MEETING_FEE",
 		"name": "Director fee voted at general meeting",
-		"authority": "CPF Board director FAQ: directors fees voted at General Meetings do not attract CPF; wages under a separate contract of service remain chargeable. This distinct component excludes the fee from CPF only and preserves the existing SHG/SDL wage assessment pending their own scope. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-directors",
+		"authority": "CPF Board, Who do you need to pay CPF for? Company directors: CPF is not payable on directors’ fees voted to company directors, so no CPF, SDL or self-help-group base; a non-resident director’s fee is withheld at 24% (WHT_NR_DIRECTOR, ITA s.45).",
 		"destination": "PAY",
 		"direction": "ADD",
-		"counts_toward": ["CDAC", "ECF", "MBMF", "SDL", "SINDA"],
+		"counts_toward": ["WHT_NR_DIRECTOR"],
 		"eligibility": "",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "entry.facts.general_meeting_voted && entry.facts.general_meeting_ref != \"\"",
@@ -237,40 +216,38 @@
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "CPF_MISSED_SHARE_RECOVERY",
 		"name": "Permitted recovery of missed employee CPF share",
-		"authority": "CPF Act s7(6A); Board recovery guidance: employer-error share not recoverable; otherwise Board paid and employee consent forwarded or written Board permission before recovery within six months. Dedicated assessed recovery ledger required.",
+		"authority": "CPF Act 1953 s.7(3)–(4); CPF Board, How do I recover the employee’s share of CPF contributions (read 2026-10-07): the share is recovered from the same month’s wages; a missed share not due to the employer’s error may be recovered later only with the employee’s written consent forwarded to, or the written permission of, CPF Board, within six months. Customer input: entry.facts.missed_month, employer_error, cpf_board_consent_ref.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "",
-		"evidence": "NONE",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"]) && has(entry.missed_month) && !(has(entry.employer_error) && entry.employer_error == true) && has(entry.cpf_board_consent_ref) && entry.occurred_on <= add_months(month_end(entry.missed_month), 6)"
 	},
 	{
 		"id": "8593de1b-4a0e-4662-9497-198329585d0d",
 		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
 		"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
 		"name": "Actual notice breach compensation recovery",
-		"authority": "Employment Act 1968 s.23(3): actual employee s.11(1) notice liability may be deducted from salary due, subject to a contrary court or Commissioner order. IRAS employment income and personal breach repayment are separate: no reduction of gross taxable wages. Source: https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays",
+		"authority": "Employment Act 1968 s.23(3): actual employee s.11(1) notice liability may be deducted from salary due, subject to a contrary court or Commissioner order. IRAS employment income and personal breach repayment are separate: no reduction of gross taxable wages. Source: https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose.",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount",
 				"limit": null
 			}
-		]
+		],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])"
 	},
 	{
 		"id": "5e7f57b3-49e3-5230-8e13-fdcd19765ed3",
@@ -281,9 +258,9 @@
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])",
+		"authority": "No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose."
 	},
 	{
 		"id": "2ec9c1cc-de14-5a5c-81d8-893fc3e485b5",
@@ -294,8 +271,185 @@
 		"direction": "SUBTRACT",
 		"counts_toward": [],
 		"eligibility": "employment.classification != \"NON_EA\"",
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL",
-		"bands": []
+		"bands": [],
+		"qualifies_when": "!(has(entry.recovers) && entry.recovers in [\"FOREIGN_WORKER_LEVY\", \"SECURITY_BOND\", \"MEDICAL_INSURANCE\", \"WORK_PASS_COST\"])",
+		"authority": "No deduction may recover the foreign worker levy, the security bond, work-pass medical insurance or other employment costs of a foreign worker (EFM (Work Passes) Regulations 2012 Fourth Schedule; MOM FAQ, Can employers pass on the levy costs); entry.facts.recovers names the purpose."
+	},
+	{
+		"id": "625a8d10-01c6-58a9-9672-f4741b871d8d",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "NS_MAKEUP_PAY",
+		"name": "NS make-up pay (CPF base only)",
+		"authority": "Enlistment Act 1970; CPF Board, Which allowances and payments attract CPF contributions (5 Jan 2026), “National Service (NS) Make-up Pay”: the employer pays CPF on its own wages together with the make-up pay MINDEF/SCDF/SPF gives, as though the employee had not been away, bears the full employer share and may recover the employee share from wages. Entered as the make-up pay MINDEF states; DISPLAY: it is not paid through payroll.",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SINDA"],
+		"eligibility": "terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "f0f0873c-586b-5df7-b103-502ca07103f5",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "NR_PUBLIC_ENTERTAINER_FEE",
+		"name": "Public entertainer fee (artiste, musician, sportsman)",
+		"authority": "Income Tax Act 1947 s.45; IRAS (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer), read 2026-10-07: the gross fee, prize money and appearance fees for services in Singapore, with airfare and accommodation the payer bears (taxable from 1 Nov 2022) entered in the amount; withheld at 15% for a non-resident (WHT_NR_ENTERTAINER). Usually paid to a payee (engagement PAYEE); no CPF, SDL or fund base.",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["WHT_NR_ENTERTAINER"],
+		"eligibility": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "86ac8c89-03a2-532d-b7ee-6e74a6f42302",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "BIK_PLACE_OF_RESIDENCE",
+		"name": "Benefit in kind: place of residence (Appendix 8A item 2f)",
+		"authority": "Income Tax Act 1947 s.10(1)(b), (2)(d); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, note 12 items 1–2; IRAS, Accommodation and Related Benefits (https://www.iras.gov.sg/taxes/individual-income-tax/employers/understanding-the-tax-treatment/accommodation-and-related-benefits, last updated 30 July 2026), read 2026-10-08. Facts: `annual_value` (the premises’ AV) or `employer_rent` (rent the employer paid for the period incl. furniture and fittings, the apportioned amount: item 2c); `occupied_from` / `occupied_to` (period of occupation; whole year when absent); `sharers` (employees sharing, 1 when absent); `furnishing` (`PARTIAL` = fittings only, `FULL` = fittings and furniture); `employee_rent` (item 2e). Item 2a = AV ÷ sharers × days ÷ 365 (the IRAS example truncates to the cent: $40,000 ÷ 2 × 90 ÷ 365 = $4,931.50); 2b = 40% (partially) or 50% (fully furnished) of 2a; 2d = 2a + 2b, or 2c where the employer rents; 2f = 2d − 2e. One entry per place of residence and unbroken period (a separate Appendix 8A each).",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8A"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.annual_value) || has(entry.facts.employer_rent)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(0.0, (has(entry.facts.employer_rent) ? double(entry.facts.employer_rent) : round(double(entry.facts.annual_value) / (has(entry.facts.sharers) ? double(entry.facts.sharers) : 1.0) * (has(entry.facts.occupied_from) && has(entry.facts.occupied_to) ? (double(calendar_distance_days(entry.facts.occupied_from, entry.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") + round((has(entry.facts.furnishing) && entry.facts.furnishing == \"FULL\" ? 0.5 : has(entry.facts.furnishing) && entry.facts.furnishing == \"PARTIAL\" ? 0.4 : 0.0) * round(double(entry.facts.annual_value) / (has(entry.facts.sharers) ? double(entry.facts.sharers) : 1.0) * (has(entry.facts.occupied_from) && has(entry.facts.occupied_to) ? (double(calendar_distance_days(entry.facts.occupied_from, entry.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\"), 0.01, \"HALF_UP\")) - (has(entry.facts.employee_rent) ? double(entry.facts.employee_rent) : 0.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "86e4d324-f650-55fd-9560-b6bd335b5b31",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "BIK_UTILITIES_HOUSEKEEPING",
+		"name": "Benefit in kind: utilities and housekeeping (Appendix 8A item 2j)",
+		"authority": "Income Tax Act 1947 s.10(1)(b); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, items 2g–2j; IRAS, Accommodation and Related Benefits, read 2026-10-08: utilities, telephone and cable at the actual amount the employer paid (`utilities`, item 2g); a driver at annual cost × private ÷ total mileage (`driver_annual_cost`, `private_mileage`, `total_mileage`, item 2h; IRAS, Car and Car-related Benefits); servant, gardener or upkeep of compound at the wages or amount paid (`servant_gardener`, item 2i).",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8A"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.utilities) || has(entry.facts.driver_annual_cost) && has(entry.facts.private_mileage) && has(entry.facts.total_mileage) && double(entry.facts.total_mileage) > 0.0 || has(entry.facts.servant_gardener)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round((has(entry.facts.utilities) ? double(entry.facts.utilities) : 0.0) + (has(entry.facts.driver_annual_cost) ? double(entry.facts.driver_annual_cost) * double(entry.facts.private_mileage) / double(entry.facts.total_mileage) : 0.0) + (has(entry.facts.servant_gardener) ? double(entry.facts.servant_gardener) : 0.0), 0.01, \"HALF_UP\")",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8589af6e-adbb-5d16-8996-adf300fe46a4",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "BIK_HOTEL_ACCOMMODATION",
+		"name": "Benefit in kind: hotel accommodation (Appendix 8A item 3c)",
+		"authority": "Income Tax Act 1947 s.10(1)(b); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, item 3; IRAS, Accommodation and Related Benefits, read 2026-10-08: the actual cost of a hotel or a serviced apartment within a hotel building (`hotel_cost`, item 3a) less the amount the employee paid (`employee_paid`, item 3b).",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8A"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.hotel_cost)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(0.0, double(entry.facts.hotel_cost) - (has(entry.facts.employee_paid) ? double(entry.facts.employee_paid) : 0.0))",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "9feaf975-029f-5352-b2ca-e246eb6f7631",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "BIK_CAR",
+		"name": "Benefit in kind: car (Appendix 8A item 4i)",
+		"authority": "Income Tax Act 1947 s.10(1)(b); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, note 12 item 4i; IRAS, Car and Car-related Benefits (https://www.iras.gov.sg/taxes/individual-income-tax/employers/understanding-the-tax-treatment/car-and-car-related-benefits, last updated 7 August 2026), read 2026-10-08. A car the employer owns (`car_kind` absent or `OWNED`): 3/7 × [(`car_cost` incl. COE − `parf_rebate`) ÷ `depreciation_years` × days provided ÷ 365 + `running_costs`] — `depreciation_years` 10 for a new car, the remaining COE years rounded up for a second-hand one; a renewed COE enters the renewal plus the forgone PARF rebate as `car_cost`, no rebate, and the renewed COE’s years; days from `provided_from` / `provided_to` (whole year when absent). A leased car (`car_kind` `LEASED`): 3/7 × (`rental_cost` + `running_costs`). The IRAS examples truncate to the dollar (3/7 × $20,050 = $8,592).",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8A"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.car_kind) && entry.facts.car_kind == \"LEASED\" ? has(entry.facts.rental_cost) : has(entry.facts.car_cost)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(3.0 / 7.0 * (has(entry.facts.car_kind) && entry.facts.car_kind == \"LEASED\" ? double(entry.facts.rental_cost) + (has(entry.facts.running_costs) ? double(entry.facts.running_costs) : 0.0) : (double(entry.facts.car_cost) - (has(entry.facts.parf_rebate) ? double(entry.facts.parf_rebate) : 0.0)) / (has(entry.facts.depreciation_years) ? double(entry.facts.depreciation_years) : 10.0) * (has(entry.facts.provided_from) && has(entry.facts.provided_to) ? (double(calendar_distance_days(entry.facts.provided_from, entry.facts.provided_to)) + 1.0) : 365.0) / 365.0 + (has(entry.facts.running_costs) ? double(entry.facts.running_costs) : 0.0)), 1.0, \"DOWN\")",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "a97607f2-ca54-586a-8000-f22350751563",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "BIK_OTHER",
+		"name": "Benefit in kind: other (Appendix 8A item 4a–4h, 4j)",
+		"authority": "Income Tax Act 1947 s.10(1)(b); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, item 4: at the actual cost to the employer (`entry.amount`), the item in `appendix_8a_item` — `4a` home leave passages, `4b` interest benefits, `4c` insurance premiums, `4d` free or subsidised holidays, `4e` educational expenses, `4f` club fees, `4g` gains from assets sold below market value, `4h` motor vehicles given, `4j` other non-monetary awards. A benefit IRAS grants an administrative concession or exempts is not entered.",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8A"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.appendix_8a_item) && entry.facts.appendix_8a_item in [\"4a\", \"4b\", \"4c\", \"4d\", \"4e\", \"4f\", \"4g\", \"4h\", \"4j\"]",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "96d81958-374a-59c9-a435-5a3192aaf1c4",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "SHARE_PLAN_GAIN",
+		"name": "ESOP / ESOW gain (Appendix 8B, Form IR8A item d7)",
+		"authority": "Income Tax Act 1947 s.10(1)(b), (6); IRAS, Explanatory Notes for the Completion of Appendix 8B for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf) and Appendix 8B (App8B(1/2027)), read 2026-10-08: a gain from exercising an ESOP, or from an ESOW grant or vesting, accrues on the exercise date, the vesting date, or the date a moratorium lifts (`gain_date`); column (h) = (open market value per share on that date (f) − exercise price or price paid (e)) × shares acquired (g). Facts: `plan` (`ESOP` / `ESOW`), `grant_date`, `gain_date`, `exercise_price`, `open_market_value`, `shares`, in S$ at the exchange rate of the gain date. A loss is not reported and is not set against another plan (the line is 0). A plan granted while not exercising employment in Singapore and exercised or vested on or after 1 Jan 2002 is not taxable (`granted_outside_singapore_employment`), so it does not qualify. Payable after exit: a gain realised after the employee left (IRAS IR8A explanatory note 1(g)) is settled on a slip of its own in the period’s salary run and reported on that year’s Appendix 8B.",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8B"],
+		"eligibility": "",
+		"amount_required": false,
+		"qualifies_when": "has(entry.facts.plan) && entry.facts.plan in [\"ESOP\", \"ESOW\"] && has(entry.facts.grant_date) && has(entry.facts.gain_date) && has(entry.facts.exercise_price) && has(entry.facts.open_market_value) && has(entry.facts.shares) && !(has(entry.facts.granted_outside_singapore_employment) && entry.facts.granted_outside_singapore_employment == true && entry.facts.gain_date >= \"2002-01-01\")",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(0.0, round((double(entry.facts.open_market_value) - double(entry.facts.exercise_price)) * double(entry.facts.shares), 0.01, \"HALF_UP\"))",
+				"limit": null
+			}
+		],
+		"payable_after_exit": true
+	},
+	{
+		"id": "80f37668-356f-51bb-8ac6-6f4a21051b2e",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "SHARE_PLAN_DEEMED_GAIN",
+		"name": "ESOP / ESOW deemed-exercise gain at tax clearance (IR21)",
+		"authority": "Income Tax Act 1947 s.10(7); IRAS, How to Complete the Form IR21, “What should I do if there are unexercised share options?” (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/filing-tax-clearance/how-to-complete-the-form-ir21), read 2026-10-08: a non-Citizen leaving the employer that granted an ESOP or ESOW from 1 Jan 2003 is deemed to derive the gain on every unexercised or restricted option and unvested or restricted share at cessation: open market price on the later of one month before the cessation date and the grant date (`valued_on`, refused otherwise), less the exercise price or price paid, × shares. Facts as SHARE_PLAN_GAIN. Not for an employer on the IRAS Tracking Option, which reports the actual gains later.",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["APPENDIX_8B"],
+		"eligibility": "terms.residency_status != \"CITIZEN\"",
+		"amount_required": false,
+		"qualifies_when": "employment.exit_date != null && employment.exit_date != \"\" && has(entry.facts.plan) && entry.facts.plan in [\"ESOP\", \"ESOW\"] && has(entry.facts.grant_date) && entry.facts.grant_date >= \"2003-01-01\" && has(entry.facts.valued_on) && entry.facts.valued_on == (add_months(employment.exit_date, -1) > entry.facts.grant_date ? add_months(employment.exit_date, -1) : entry.facts.grant_date) && has(entry.facts.exercise_price) && has(entry.facts.open_market_value) && has(entry.facts.shares)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(0.0, round((double(entry.facts.open_market_value) - double(entry.facts.exercise_price)) * double(entry.facts.shares), 0.01, \"HALF_UP\"))",
+				"limit": null
+			}
+		]
 	}
 ]

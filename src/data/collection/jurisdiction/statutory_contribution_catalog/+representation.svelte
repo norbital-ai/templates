@@ -5,17 +5,17 @@
 	 */
 	import { bolt } from '$bolt';
 	import {
+		Editor,
 		Field,
 		Form,
-		Input,
 		openRecord,
 		RecordShell,
-		SchemaEditor,
 		Section,
+		Textarea,
 		type Json,
+		type Kind,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import type { ComponentProps } from 'svelte';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { asObject, textOf } from '../../../../lib/ui/records/json_object.js';
 
@@ -29,29 +29,31 @@
 		of: {
 			kind: 'object',
 			fields: {
-				when: { kind: 'text', optional: true },
-				employee: { kind: 'text', optional: true },
-				employer: { kind: 'text', optional: true },
-				contribution: { kind: 'text', optional: true }
+				when: { kind: 'text', format: 'cel', optional: true },
+				employee: { kind: 'text', format: 'cel', optional: true },
+				employer: { kind: 'text', format: 'cel', optional: true },
+				contribution: { kind: 'text', format: 'cel', optional: true }
 			}
 		}
-	} as const satisfies ComponentProps<typeof SchemaEditor>['kind'];
+	} as const satisfies Kind;
 	const REFUSE_KIND = {
 		kind: 'list',
-		of: { kind: 'object', fields: { when: { kind: 'text' }, message: { kind: 'text' } } }
-	} as const satisfies ComponentProps<typeof SchemaEditor>['kind'];
+		of: {
+			kind: 'object',
+			fields: { when: { kind: 'text', format: 'cel' }, message: { kind: 'text' } }
+		}
+	} as const satisfies Kind;
 	const EXPRESSIONS_KIND = {
 		kind: 'record',
-		of: { kind: 'text' }
-	} as const satisfies ComponentProps<typeof SchemaEditor>['kind'];
+		of: { kind: 'text', format: 'cel' }
+	} as const satisfies Kind;
+	const ASSESSMENT_KIND = { kind: 'text', format: 'cel', optional: true } as const satisfies Kind;
 </script>
 
 <RecordShell
 	of="statutory_contribution_catalog"
 	mode={view.mode}
-	{...record == null
-		? { values: view.mode === 'create' ? view.values : {} }
-		: { id: record.id, subtitle: ['name'] }}
+	{...record == null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#key record?.revision}
 		<Form
@@ -83,63 +85,44 @@
 						{#snippet editor(field)}
 							{@const cfg = asObject(field.value) ?? {}}
 							{@const set = (patch: Record<string, Json>) => field.onChange({ ...cfg, ...patch })}
-							<Grid minimum="card">
+							<Stack gap="md">
 								<Stack gap="xs">
 									<span class="text-xs font-medium text-muted-foreground"
 										>{t('statutory.configuration.assessment')}</span
 									>
-									<Input
-										aria-label={t('statutory.configuration.assessment')}
+									<Editor
+										kind={ASSESSMENT_KIND}
+										name="configuration.assessment"
 										value={textOf(cfg, 'assessment')}
 										disabled={field.disabled}
-										onchange={(event) => set({ assessment: event.currentTarget.value })}
+										onChange={(assessment) => set({ assessment })}
 									/>
 								</Stack>
 								<Stack gap="xs">
 									<span class="text-xs font-medium text-muted-foreground"
 										>{t('statutory.configuration.limitation')}</span
 									>
-									<Input
+									<Textarea
 										aria-label={t('statutory.configuration.limitation')}
+										rows={2}
 										value={textOf(cfg, 'limitation')}
 										disabled={field.disabled}
 										onchange={(event) => set({ limitation: event.currentTarget.value })}
 									/>
 								</Stack>
-							</Grid>
-							<span class="text-xs font-medium text-muted-foreground"
-								>{t('statutory.configuration.assessable')}</span
-							>
-							<SchemaEditor
-								kind={EXPRESSIONS_KIND}
-								value={asObject(cfg['assessable']) ?? {}}
-								onChange={(assessable) => set({ assessable })}
-								disabled={field.disabled}
-							/>
-							<span class="text-xs font-medium text-muted-foreground"
-								>{t('statutory.configuration.person')}</span
-							>
-							<SchemaEditor
-								kind={EXPRESSIONS_KIND}
-								value={asObject(cfg['person']) ?? {}}
-								onChange={(person) => set({ person })}
-								disabled={field.disabled}
-							/>
-							<span class="text-xs font-medium text-muted-foreground"
-								>{t('statutory.configuration.refuse_when')}</span
-							>
-							<SchemaEditor
-								kind={REFUSE_KIND}
-								value={Array.isArray(cfg['refuse_when']) ? cfg['refuse_when'] : []}
-								onChange={(refuse_when) => set({ refuse_when })}
-								disabled={field.disabled}
-							/>
-							<SchemaEditor
-								kind={RULES_KIND}
-								value={Array.isArray(cfg['rules']) ? cfg['rules'] : []}
-								onChange={(rules) => set({ rules })}
-								disabled={field.disabled}
-							/>
+								{#each [['assessable', 'statutory.configuration.assessable', EXPRESSIONS_KIND], ['person', 'statutory.configuration.person', EXPRESSIONS_KIND], ['refuse_when', 'statutory.configuration.refuse_when', REFUSE_KIND], ['rules', 'statutory.configuration.rules', RULES_KIND]] as const as [key, label, kind] (key)}
+									<Stack gap="xs">
+										<span class="text-xs font-medium text-muted-foreground">{t(label)}</span>
+										<Editor
+											{kind}
+											name="configuration.{key}"
+											value={cfg[key] ?? (kind.kind === 'list' ? [] : {})}
+											onChange={(next) => set({ [key]: next })}
+											disabled={field.disabled}
+										/>
+									</Stack>
+								{/each}
+							</Stack>
 						{/snippet}
 					</Field>
 				</Section>

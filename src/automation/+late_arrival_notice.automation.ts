@@ -3,6 +3,8 @@ import { addDays } from '@norbital-ai/std/date';
 import { Schema } from 'effect';
 import { lateArrivalNotices, shiftVariantFrom } from '../lib/payroll_engine/late_arrival.js';
 import { movementFromRow } from '../lib/payroll_engine/leave.js';
+import { plainRows } from '../lib/payroll_engine/foundation.js';
+import { type SettingsRow, zoneOn } from '../lib/payroll_engine/services.js';
 
 const isString = Schema.is(Schema.String);
 
@@ -22,105 +24,111 @@ export default late_arrival_notice;
 
 late_arrival_notice.run(async (_, ctx) => {
 	const since = addDays(ctx.today, -2);
-	const { rows: entries } = await ctx.read('roster_entry', {
-		where: {
-			approval_id: { isNull: true },
-			work_date: { gte: since }
-		},
+	// One read through the relations: each entity with its shifts and the contracts that have a recent roster day —
+	// each with its person's name, its recent roster days and the time off reaching the window.
+	const recent = { approval_id: { isNull: true }, work_date: { gte: since } } as const;
+	const { rows: entities } = await ctx.read('entity', {
 		select: {
-			id: true,
-			employment_id: true,
-			work_date: true,
-			worked_intervals: true,
-			shift_definition_id: true
+			late_arrival_grace_minutes: true,
+			settings_code: true,
+			time_zone: true,
+			shift_definition: { select: { code: true, variant: true }, all: true },
+			employment_contract: {
+				select: {
+					employee_number: true,
+					employee_id: { select: { name: true } },
+					roster_entry: {
+						select: {
+							employment_id: true,
+							work_date: true,
+							worked_intervals: true,
+							shift_definition_id: true
+						},
+						where: recent,
+						all: true
+					},
+					leave_catalog_entry: {
+						select: {
+							catalog_id: true,
+							employment_id: true,
+							activity: true,
+							occurred_on: true,
+							approval_id: true,
+							days: true,
+							from: true,
+							to: true
+						},
+						where: {
+							activity: { eq: 'TIME_OFF' },
+							approval_id: { isNull: true },
+							or: [{ to: { gte: since } }, { occurred_on: { gte: since } }]
+						},
+						all: true
+					}
+				},
+				where: { roster_entry: { some: recent } },
+				all: true
+			}
 		},
 		all: true
 	});
-	const shiftIds = [
-		...new Set(
-			entries.flatMap((row) => (row.shift_definition_id == null ? [] : [row.shift_definition_id]))
-		)
+	// An entity without a zone counts its shifts in its version's `payroll.timezone`: one read of those lineages.
+	const codes = [
+		...new Set(entities.filter((entity) => !isString(entity.time_zone)).map((e) => e.settings_code))
 	];
-	const shifts =
-		shiftIds.length === 0
-			? { rows: [] }
-			: await ctx.read('shift_definition', {
-					where: { id: { in: shiftIds } },
-					select: { id: true, code: true, variant: true },
-					all: true
-				});
-	const byShift = new Map(shifts.rows.map((row) => [row.id, row]));
-	const employmentIds = [...new Set(entries.map((row) => row.employment_id))];
-	const contracts =
-		employmentIds.length === 0
-			? { rows: [] }
-			: await ctx.read('employment_contract', {
-					where: { id: { in: employmentIds } },
-					select: { id: true, employee_number: true, employee_id: true, company_id: true },
-					all: true
-				});
-	const byContract = new Map(contracts.rows.map((row) => [row.id, row]));
-	const employeeIds = [...new Set(contracts.rows.map((row) => row.employee_id))];
-	const people =
-		employeeIds.length === 0
-			? { rows: [] }
-			: await ctx.read('employment_profile', {
-					where: { id: { in: employeeIds } },
-					select: { id: true, name: true },
-					all: true
-				});
-	const byPerson = new Map(people.rows.map((row) => [row.id, row]));
-	const companyIds = [...new Set(contracts.rows.map((row) => row.company_id))];
-	const entities =
-		companyIds.length === 0
-			? { rows: [] }
-			: await ctx.read('entity', {
-					where: { id: { in: companyIds } },
-					select: { id: true, late_arrival_grace_minutes: true, time_zone: true },
-					all: true
-				});
-	const byEntity = new Map(entities.rows.map((row) => [row.id, row]));
-	const leave =
-		employmentIds.length === 0
-			? { rows: [] }
-			: await ctx.read('leave_catalog_entry', {
-					where: {
-						employment_id: { in: employmentIds },
-						activity: { eq: 'TIME_OFF' },
-						approval_id: { isNull: true }
-					},
-					select: {
-						id: true,
-						catalog_id: true,
-						employment_id: true,
-						activity: true,
-						occurred_on: true,
-						approval_id: true,
-						days: true,
-						from: true,
-						to: true
-					},
-					all: true
-				});
-	const candidates = entries.map((row) => {
-		const contract = byContract.get(row.employment_id);
-		const entity = contract == null ? undefined : byEntity.get(contract.company_id);
-		const person = contract == null ? undefined : byPerson.get(contract.employee_id);
-		const shift =
-			row.shift_definition_id == null ? undefined : byShift.get(row.shift_definition_id);
-		const grace = entity?.late_arrival_grace_minutes;
-		return {
-			roster_entry_id: row.id,
-			employment_id: row.employment_id,
-			work_date: String(row.work_date).slice(0, 10),
-			worked_intervals: row.worked_intervals,
-			shift: shiftVariantFrom(shift?.variant),
-			grace_minutes: Schema.is(Schema.Number)(grace) ? grace : 15,
-			time_zone: isString(entity?.time_zone) ? entity.time_zone : ctx.tz,
-			employee_name: person?.name ?? '',
-			employee_number: contract?.employee_number ?? '',
-			shift_code: shift?.code ?? ''
-		};
+	const versions =
+		codes.length === 0
+			? []
+			: plainRows<SettingsRow>(
+					(
+						await ctx.read('jurisdiction_settings', {
+							select: {
+								code: true,
+								approval_id: true,
+								sealed_at: true,
+								voided_at: true,
+								effective_range: true,
+								payroll: true
+							},
+							where: {
+								code: { in: codes },
+								approval_id: { isNull: true },
+								sealed_at: { isNull: false },
+								voided_at: { isNull: true }
+							},
+							all: true
+						})
+					).rows
+				);
+	const leave = {
+		rows: entities.flatMap((entity) =>
+			entity.employment_contract.flatMap((contract) => contract.leave_catalog_entry)
+		)
+	};
+	const entries = entities.flatMap((entity) =>
+		entity.employment_contract.flatMap((contract) => contract.roster_entry)
+	);
+	const candidates = entities.flatMap((entity) => {
+		const byShift = new Map(entity.shift_definition.map((row) => [row.id, row]));
+		const grace = entity.late_arrival_grace_minutes;
+		return entity.employment_contract.flatMap((contract) =>
+			contract.roster_entry.map((row) => {
+				const shift =
+					row.shift_definition_id == null ? undefined : byShift.get(row.shift_definition_id);
+				return {
+					roster_entry_id: row.id,
+					employment_id: row.employment_id,
+					work_date: String(row.work_date).slice(0, 10),
+					worked_intervals: row.worked_intervals,
+					shift: shiftVariantFrom(shift?.variant),
+					grace_minutes: Schema.is(Schema.Number)(grace) ? grace : 15,
+					time_zone: zoneOn(entity, versions, String(ctx.today)),
+					employee_name: contract.employee_id?.name ?? '',
+					employee_number: contract.employee_number ?? '',
+					shift_code: shift?.code ?? ''
+				};
+			})
+		);
 	});
 	const notices = lateArrivalNotices({
 		now_ms: Date.parse(String(ctx.now)),

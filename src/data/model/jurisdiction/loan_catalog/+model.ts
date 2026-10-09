@@ -2,7 +2,7 @@ import { model } from '@norbital-ai/bolt';
 
 export default model({
 	description:
-		'The loan catalogue of one jurisdiction settings version: the pay lines a loan recovers through, the schemes they opt into, the minimum instalment and who may borrow. Sealed with its version; the run cites the version it priced against.',
+		'The loan catalogue of one jurisdiction settings version: the pay lines a loan recovers through, the schemes they opt into and who may borrow. Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:landmark',
 	label: 'name',
 	fields: {
@@ -10,6 +10,10 @@ export default model({
 			kind: 'text'
 		},
 		name: {
+			kind: 'text',
+			optional: true
+		},
+		authority: {
 			kind: 'text',
 			optional: true
 		},
@@ -32,25 +36,24 @@ export default model({
 					kind: 'object',
 					fields: {
 						when: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						amount: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						limit: {
 							kind: 'object',
 							optional: true,
 							fields: {
-								period: {
-									kind: 'enum',
-									values: ['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']
-								},
 								on_exceed: {
 									kind: 'enum',
 									values: ['BLOCK', 'ALLOW']
 								},
 								amount: {
-									kind: 'text'
+									kind: 'text',
+									format: 'cel'
 								}
 							}
 						}
@@ -58,40 +61,15 @@ export default model({
 				}
 			}
 		},
-		loan_type: {
-			kind: 'enum',
-			values: ['STAFF', 'GOVERNMENT', 'FESTIVE'],
-			default: 'STAFF'
-		},
-		minimum_repayment: {
-			kind: 'decimal',
-			scale: 2,
-			optional: true
-		},
-		approval_reference_required: {
-			kind: 'bool',
-			optional: true
-		},
-		order_recovery_rule: {
-			kind: 'text',
-			optional: true
-		},
-		order_payment_when: {
-			kind: 'text',
-			optional: true
-		},
-		order_authority: {
-			kind: 'text',
-			optional: true
-		},
 		eligibility: {
 			kind: 'text',
+			format: 'cel',
 			default: ''
 		},
-		evidence: {
-			kind: 'enum',
-			values: ['NONE', 'OPTIONAL', 'REQUIRED'],
-			default: 'NONE'
+		amount_required: {
+			kind: 'bool',
+			default: true,
+			help: 'An entry must carry an amount; a class priced by its bands alone (piece units) need not.'
 		}
 	}
 });

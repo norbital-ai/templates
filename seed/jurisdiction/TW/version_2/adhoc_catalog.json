@@ -19,9 +19,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "5bdd99aa-d683-5483-8a50-0d1514b0aa21",
@@ -32,15 +30,14 @@
 		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
 		"counts_toward": ["SEVERANCE_TAX"],
 		"name": "資遣費 (severance pay)",
-		"authority": "勞工退休金條例 §12(1): a worker on the new pension system whose contract ends under 勞基法 §11, the §13 proviso, §14 or §20 is paid half a month’s average wage for every year of new-system service, pro rata for a part year, up to six months; retained old-system seniority (勞退條例 §11(2)) is paid one month’s average wage a year under 勞基法 §17, a part month counting whole. The average wage is 勞基法 §2(4)’s six-month figure (`exit_facts.average_daily_wage` × 30); undeclared, a monthly-paid leaver falls back to the six-month contractual average, which omits overtime and variable regular pay. NOTICE_PAY carries 勞基法 §16(3) notice pay for §11, §13-proviso and §20 terminations (§20 applies the §16 periods; corrected in place 2026-09-28, a transcription omission): unserved days of the 10 / 20 / 30-day notice times the last normal-hours day wage (monthly wage ÷ 30), or the average daily wage where that is higher (勞動部 109年10月29日勞動關2字第1090128292A號令). Both are 退職所得 (財政部 83年8月9日台財稅第831604301號 (https://law-out.mof.gov.tw/LawContent.aspx?id=GL006450: 預告期間之工資，兼具資遣費性質) for notice pay), withheld through SEVERANCE_TAX. Without a declared ground, §11 is read from exit_ground REDUNDANCY or RETRENCHMENT and no notice pay is priced; a fixed-term expiry owes none (§18). Due within 30 days (勞退條例 §12(2)). 平均工資 (勞基法 §2(4)) is read from the payslips — the wages of the six calendar months before the termination month over their calendar days, every calendar day of 普通傷病假 (§2(5)), 職災醫療期間 (§2(2)) and 留職停薪 (§2(7)) left out with what it was paid, and the days 產假, 生理假 and 家庭照顧假 cut the wage (§2(3), §2(6): 致減少工資者) likewise (施行細則 §2: `employment.average_daily_wage(6, spanned, reduced)`); a month of it is the daily average × the period's average days a month, six months' wages ÷ 6 where nothing is left out (勞動部 台(83)勞動二字第25564號: `employment.average_monthly_wage(6, …)`) — where the departure does not state `average_daily_wage`; the contractual `monthly_wage_6m_average` omitted overtime and is no longer read. A month of service no payslip settles is refused.",
+		"authority": "勞工退休金條例 §12(1): half a month’s 平均工資 for each year of new-system service, pro rata for a part year, up to six months; §11(2) with 勞動基準法 §17: one month’s 平均工資 for each year of retained old-system service (exit_facts.old_system_service_months; a part year pro rata, a part month counted whole), uncapped. 平均工資 (勞動基準法 §2(4)): exit_facts.average_daily_wage × 30, else the declared entry facts.average_monthly_wage, else the last six months’ wages from the payslips (gross less bonus, severance, notice, retirement and leave pay) ÷ their calendar days × 30 — the 施行細則 §2 exclusions (maternity, injury, parental periods) need the declared figure. Owed on a §11, §13-proviso, §14 or §20 termination; withheld through SEVERANCE_TAX.",
 		"bands": [
 			{
 				"when": "",
-				"amount": "(has(entry.facts.average_monthly_wage) ? round(entry.facts.average_monthly_wage * min(6.0, 0.5 * employment.service_months / 12.0), 1.0, \"HALF_UP\") : entry.amount)"
+				"amount": "(has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) > 0.0 ? round((has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) * (min(6.0, 0.5 * max(0.0, double(employment.service_months) - (has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0))) / 12.0) + round((has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0)), 1.0, \"UP\") / 12.0), 1.0, \"HALF_UP\") : entry.amount"
 			}
 		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
 	},
 	{
 		"id": "5261a711-3100-512a-b9c2-5d2160910ff3",
@@ -58,9 +55,7 @@
 				"when": "",
 				"amount": "has(employment.exit_facts.notice_days_given) ? round(max(0.0, (employment.service_months < 3.0 ? 0.0 : (employment.service_months < 12.0 ? 10.0 : (employment.service_months < 36.0 ? 20.0 : 30.0))) - double(employment.exit_facts.notice_days_given)) * max(terms.monthly_wage / 30.0, has(employment.exit_facts.average_daily_wage) ? double(employment.exit_facts.average_daily_wage) : 0.0), 1.0, \"HALF_UP\") : entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "73b72f90-cc88-50d3-8d59-fedcbb768040",
@@ -77,9 +72,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_monthly_wage) && has(entry.facts.old_system_service_months) ? round(entry.facts.average_monthly_wage * min(45.0, (round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) <= 15.0 ? 2.0 * (round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) : 30.0 + ((round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) - 15.0)), 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "7e2cedf5-a3dc-57ed-9c50-2eb6a44f5bcc",
@@ -96,9 +89,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "ba284943-e9f4-5642-a542-2ae4bd234c97",
@@ -115,9 +106,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "4d6c878c-b63e-5759-b524-ca7a5b8ef645",
@@ -134,9 +123,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "ce688dc9-675a-58b5-b801-bd37060f762e",
@@ -153,9 +140,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_monthly_wage) ? round(40.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "2500e0d7-3a1d-5803-bc4a-e076c52f8059",
@@ -172,9 +157,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(1800.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "ed316475-0b31-581b-a671-d10b26843ef8",
@@ -191,9 +174,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(1500.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "c2828d8d-c6cd-5678-ba51-11b4a7cf05ae",
@@ -210,9 +191,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(1260.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "9d6ba9e9-7999-58ef-bd32-6e94aab08377",
@@ -229,9 +208,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(1110.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "3559653f-d52f-5929-9ab9-aba651c88cf3",
@@ -248,9 +225,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(960.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "27b018ad-88a4-5781-a280-c53a4a9a5276",
@@ -267,9 +242,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(810.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "e3ffb2f8-aa5c-5c93-8a35-18cde360e9d1",
@@ -286,9 +259,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(660.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "5e55093b-059b-56da-b22c-ac386aa81f72",
@@ -305,9 +276,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(540.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "3871d03d-7101-53ec-bc61-8e007a8f8274",
@@ -324,9 +293,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(420.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "8863706c-3b96-5b80-a8e0-ffa0ff30d5b3",
@@ -343,9 +310,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(330.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "5072b48e-8fe5-52b6-b642-0e294cc60880",
@@ -362,9 +327,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(240.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "17a4fc34-d0f2-5bfc-9c95-c81b674e48b1",
@@ -381,9 +344,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(150.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "e88895d9-ff98-5fde-8b15-e72c2d0a1955",
@@ -400,9 +361,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(90.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "5b421f9a-8fc6-53cf-9fe3-d55ccb1502d5",
@@ -419,9 +378,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(60.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "ae9f211b-6c5b-5c59-9d6a-f7153bd52cd5",
@@ -438,9 +395,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_daily_wage) ? round(45.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "REQUIRED",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "f6b68c1f-7f36-56c7-a5bd-62ee4e843427",
@@ -457,9 +412,7 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_monthly_wage) ? round(5.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "b1485d1e-13c2-565d-aefe-1a024670ac3b",
@@ -476,8 +429,71 @@
 				"when": "",
 				"amount": "(has(entry.facts.average_monthly_wage) ? round(40.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
 			}
+		]
+	},
+	{
+		"id": "882610a4-220f-5dc4-9bc2-53b441a436a9",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "FOOD_LODGING",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(employee.facts.food_lodging_monthly_cap)",
+		"counts_toward": [],
+		"name": "膳宿費 (migrant worker food and lodging)",
+		"authority": "雇主聘僱外國人許可及管理辦法 and the 外國人入國工作費用及工資切結書: food and lodging may be deducted from a migrant worker’s wage only as the signed declaration states; the FOOD_LODGING_CAP validation refuses a month above employee.facts.food_lodging_monthly_cap (the declared amount).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "91447adf-029c-5be2-b4ea-e03d3891f049",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "NON_COMPETE_COMPENSATION",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"qualifies_when": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && entry.occurred_on > employment.exit_date && entry.occurred_on <= add_years(employment.exit_date, 2)",
+		"counts_toward": [
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
 		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		"name": "離職後競業禁止補償 (non-compete compensation, monthly after exit)",
+		"authority": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete binds only with reasonable compensation, for at most two years (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1); 施行細則 §7-3: monthly compensation not below 50% of the average monthly wage at leaving, agreed as one sum paid in advance after leaving or monthly (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7-3). The monthly instalment is the agreed sum (entry amount), paid on a slip of its own after the exit within two years of it; withheld as a monthly salary payment (INCOME_TAX / INCOME_TAX_NON_RESIDENT). The former worker is no longer insured through the unit, so each payment of at least the minimum wage bears the 2.11% 兼職薪資 premium (NHI_PART_TIME) and enters the unit’s §34 salary total with no insured amount (NHI_SUPPLEMENT_EMPLOYER). The VALIDATIONS row NON_COMPETE_BELOW_HALF_WAGE warns below the §7-3 floor. Owner ruling (2026-10-07, binding): taxed as salary income (所得稅法 §14(1)(3)) — withheld and charged the NHI supplementary premium as salary; no 財政部 ruling on its category was found (ttc.mof.gov.tw, law-out.mof.gov.tw, dot.gov.tw and the 國稅局 sites searched 2026-10-07).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"payable_after_exit": true
+	},
+	{
+		"id": "17ace584-30a2-5c32-b22b-d49150650bc3",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "NON_COMPETE_LUMP_SUM",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"qualifies_when": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && entry.occurred_on > employment.exit_date",
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"name": "離職後競業禁止補償一次給付 (non-compete compensation, one sum after exit)",
+		"authority": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete binds only with reasonable compensation, for at most two years (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1); 施行細則 §7-3: monthly compensation not below 50% of the average monthly wage at leaving, agreed as one sum paid in advance after leaving or monthly (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7-3). The one sum agreed for the whole restriction (entry amount), paid after the exit on a slip of its own; withheld as a non-monthly salary payment (5% of a payment at the 起扣標準, INCOME_TAX_BONUS; INCOME_TAX_NON_RESIDENT), with the 2.11% 兼職薪資 premium (NHI_PART_TIME) and the unit’s §34 total (NHI_SUPPLEMENT_EMPLOYER). The 50% floor over the agreed months is the agreement’s: the class holds no restriction length. Owner ruling (2026-10-07, binding): taxed as salary income (所得稅法 §14(1)(3)) — withheld and charged the NHI supplementary premium as salary; no 財政部 ruling on its category was found (ttc.mof.gov.tw, law-out.mof.gov.tw, dot.gov.tw and the 國稅局 sites searched 2026-10-07).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"payable_after_exit": true
 	}
 ]

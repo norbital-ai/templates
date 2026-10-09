@@ -7,8 +7,7 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { toast } from 'svelte-sonner';
-	import { Button, Icon, Section, Sheet, TimeRangeInput } from '@norbital-ai/ui';
+	import { Button, Icon, Section, Sheet, TimeRangeInput, toast } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { t } from '../i18n/t.js';
 	import { formatCalendarDate, formatDurationHours } from '../format/display_formatters.js';

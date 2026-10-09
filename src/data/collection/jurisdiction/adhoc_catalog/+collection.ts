@@ -9,10 +9,9 @@ const create_columns = [
 	'bands',
 	'eligibility',
 	'qualifies_when',
-	'evidence',
+	'amount_required',
 	'counts_toward',
-	'raised_by',
-	'schedule',
+	'payable_after_exit',
 	'settings_id'
 ] as const;
 const update_columns = [
@@ -24,10 +23,9 @@ const update_columns = [
 	'bands',
 	'eligibility',
 	'qualifies_when',
-	'evidence',
+	'amount_required',
 	'counts_toward',
-	'raised_by',
-	'schedule'
+	'payable_after_exit'
 ] as const;
 
 export default collection('adhoc_catalog', {

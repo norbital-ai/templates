@@ -13,10 +13,12 @@
 		formatNumeric
 	} from '../../../../lib/ui/format/display_formatters.js';
 	import { moneyNumber } from '../../../../lib/payroll_engine/foundation.js';
+	import { versionMoney } from '../../../../lib/ui/format/version_money.svelte.js';
 	import { Schema } from 'effect';
 
 	let { view }: { view: RecordView<'payslip'> } = $props();
 	const record = $derived(view.mode === 'update' ? view.record : null);
+	const money = versionMoney(() => (record == null ? null : { run: record.payroll_run_id }));
 	const run = live(() =>
 		record == null
 			? null
@@ -64,6 +66,8 @@
 	const StatutoryLine = Schema.Struct({
 		scheme_code: Schema.String,
 		base_amount: Schema.Number,
+		/** The base the rule charged on (the assessment): what "on" names. */
+		charged_base: Schema.optional(Schema.Number),
 		employee_amount: Schema.Number,
 		employer_amount: Schema.Number
 	});
@@ -78,8 +82,7 @@
 		Schema.is(AdjustmentArray)(value) ? value : [];
 	const statutoryLines = (value: unknown): readonly Statutory[] =>
 		Schema.is(StatutoryArray)(value) ? value : [];
-	const figure = (amount: number) =>
-		amount < 0 ? `−${formatNumeric(-amount)}` : formatNumeric(amount);
+	const figure = (amount: number) => (amount < 0 ? `−${money(-amount)}` : money(amount));
 	/** A settled column as a figure; an unsettled one reads as an em dash, never a refusal. */
 	const settled = (value: unknown): string => {
 		const amount = moneyNumber(value);
@@ -93,13 +96,13 @@
 		const statutory = statutoryLines(record.statutory);
 		const pay = adjustments.filter((line) => line.destination !== 'NET');
 		const net = adjustments.filter((line) => line.destination === 'NET');
-		const on = (amount: number) => `${bolt.t('component.payslip_on')} ${formatNumeric(amount)}`;
+		const on = (amount: number) => `${bolt.t('component.payslip_on')} ${money(amount)}`;
 		const earnings: Row[] = [
 			...base.map((line, i) => ({
 				key: `base-${i}`,
 				label: line.label ?? line.component_code,
 				detail:
-					line.quantity != null && line.rate != null && line.component_code !== 'BASIC'
+					line.quantity != null && line.rate != null && line.quantity !== 1
 						? `${formatNumeric(line.quantity)} × ${formatNumeric(line.rate)}`
 						: '',
 				amount: line.amount
@@ -117,7 +120,7 @@
 				.map((line) => ({
 					key: `ee-${line.scheme_code}`,
 					label: line.scheme_code,
-					detail: on(line.base_amount),
+					detail: on(line.charged_base ?? line.base_amount),
 					amount: -line.employee_amount
 				})),
 			...net
@@ -142,7 +145,7 @@
 			.map((line) => ({
 				key: `er-${line.scheme_code}`,
 				label: line.scheme_code,
-				detail: on(line.base_amount),
+				detail: on(line.charged_base ?? line.base_amount),
 				amount: line.employer_amount
 			}));
 		return [

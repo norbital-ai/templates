@@ -1,0 +1,22 @@
+[
+	{
+		"id": "fc8b18b2-cfa3-52dd-94bc-2def5fb13c60",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "TEMPORARY_CESSATION",
+		"name": "Temporary cessation of all or part of the business for a cause other than force majeure — at least 75% of the working-day wage for the whole period",
+		"counts_as_attended": "",
+		"scheduled": "",
+		"pay": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? (day.day_type == \"WORK\" ? 0.75 * terms.base_salary : 0.0) : 0.75 * (terms.monthly_wage / 30.0)",
+		"authority": "LPA s.75 — Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+	},
+	{
+		"id": "655e4a0a-9a96-58b5-ae50-6836ca6bbb3d",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "FORCE_MAJEURE",
+		"name": "Force majeure — outside s.75: no wage for a working day not worked",
+		"counts_as_attended": "",
+		"scheduled": "",
+		"pay": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? 0.0 : (day.day_type == \"WORK\" ? 0.0 : (terms.monthly_wage / 30.0))",
+		"authority": "LPA s.75 para 1 — Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+	}
+]

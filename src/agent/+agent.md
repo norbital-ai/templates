@@ -41,7 +41,7 @@ yourself; the payroll run computes it.
   entry is pinned to the same class of the version in force on its day. An entry already settled on a
   payslip cannot change; deleting that payroll run releases it.
 - Attendance: write `roster_entry` rows (create or update the person-day's `worked_intervals`).
-- Payroll: create a `payroll_run` with the company, period (YYYY-MM) and kind. A REGULAR run pays salary
+- Payroll: create a `payroll_run` with the company, the period in the entity’s pay frequency (`YYYY-MM` monthly, `YYYY-MM-<part>` for a part of the month, `YYYY-MM-DD` daily) and kind. A REGULAR run pays salary
   and every approved, unsettled entry dated in the period; one per period. An OFF_CYCLE run pays only the
   ad hoc or claim entries listed in `sources`, with no salary, and settles statutory contributions
   month-to-date. The build runs after creation (after

@@ -6,7 +6,7 @@
 		"destination": "EMPLOYER",
 		"direction": "ADD",
 		"eligibility": "",
-		"counts_toward": [],
+		"counts_toward": ["WTAX.MEDICAL"],
 		"name": "Medical claim (paid by the company direct)",
 		"bands": [
 			{
@@ -14,7 +14,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"evidence": "REQUIRED"
+		"authority": " WTAX: a reimbursement or direct payment of medical expenses is \"actual medical assistance\", de minimis to ₱10,000 / ₱12,000 a year (RR 2-98 s.2.78.1(A)(3)(f)); the excess joins the ₱90,000 pool."
 	},
 	{
 		"id": "47f13b7a-3cd7-550e-8c05-5ee9d91d3d40",
@@ -23,7 +23,7 @@
 		"destination": "NET",
 		"direction": "ADD",
 		"eligibility": "",
-		"counts_toward": [],
+		"counts_toward": ["WTAX.MEDICAL"],
 		"name": "Medical claim",
 		"bands": [
 			{
@@ -31,7 +31,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"evidence": "REQUIRED"
+		"authority": " WTAX: a reimbursement or direct payment of medical expenses is \"actual medical assistance\", de minimis to ₱10,000 / ₱12,000 a year (RR 2-98 s.2.78.1(A)(3)(f)); the excess joins the ₱90,000 pool."
 	},
 	{
 		"id": "c79af43e-daac-5348-acdb-5ac4aa2780cc",
@@ -40,7 +40,7 @@
 		"destination": "NET",
 		"direction": "ADD",
 		"eligibility": "",
-		"counts_toward": [],
+		"counts_toward": ["WTAX.MEDICAL"],
 		"name": "Dental claim",
 		"bands": [
 			{
@@ -48,6 +48,6 @@
 				"amount": "entry.amount"
 			}
 		],
-		"evidence": "REQUIRED"
+		"authority": " WTAX: a reimbursement or direct payment of medical expenses is \"actual medical assistance\", de minimis to ₱10,000 / ₱12,000 a year (RR 2-98 s.2.78.1(A)(3)(f)); the excess joins the ₱90,000 pool."
 	}
 ]

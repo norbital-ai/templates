@@ -12,7 +12,8 @@
 	import { AppShell, Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Combobox, Table, Tabs, Button } from '@norbital-ai/ui';
 	import { todayKey } from '../../lib/ui/format/calendar.js';
-	import { formatNumeric, formatTermsDates } from '../../lib/ui/format/display_formatters.js';
+	import { formatTermsDates } from '../../lib/ui/format/display_formatters.js';
+	import { versionMoney } from '../../lib/ui/format/version_money.svelte.js';
 	import { liveRows } from '../../lib/ui/state/live.svelte.js';
 	import { moneyNumber } from '../../lib/payroll_engine/foundation.js';
 	import LeaveRequest from '../../lib/ui/person/leave_request.svelte';
@@ -62,6 +63,10 @@
 		(contracts.current ?? []).find((row) => row.id === employmentId) ?? null
 	);
 	const company = $derived(employment == null ? undefined : entityById.get(employment.company_id));
+	const money = versionMoney(() => {
+		const lineage = company?.settings_code;
+		return lineage == null || lineage === '' ? null : { lineage };
+	});
 	const needsChoice = $derived(active.length > 1 && employment == null);
 	/** Held false while a read is in flight, so the explanation cannot flash before the rows that contradict it. */
 	const noEmployment = $derived(!employee.loading && !contracts.loading && active.length === 0);
@@ -75,11 +80,9 @@
 	const amountOf = (value: unknown): number | null => moneyNumber(value);
 </script>
 
-{#snippet amountCell({
-	value
-}: {
-	value: unknown;
-})}{#if amountOf(value) == null}—{:else}{formatNumeric(amountOf(value))}{/if}{/snippet}
+{#snippet amountCell({ value }: { value: unknown })}{#if amountOf(value) == null}—{:else}{money(
+			amountOf(value)
+		)}{/if}{/snippet}
 
 {#snippet gate()}
 	{#if noEmployment}

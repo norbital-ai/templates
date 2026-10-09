@@ -8,7 +8,7 @@
 		"eligibility": "",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
 		"name": "House allowance",
-		"amount": "allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	},
 	{
 		"id": "e7d90a91-ff8d-4873-9fbb-a4a8a7fa3a5e",
@@ -19,7 +19,7 @@
 		"eligibility": "",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
 		"name": "Car allowance",
-		"amount": "allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	},
 	{
 		"id": "da1a2235-06f1-46fd-897f-dde0c94021a6",
@@ -30,6 +30,6 @@
 		"eligibility": "",
 		"counts_toward": ["JHT", "JKK", "JKM", "JKP", "JP", "KESEHATAN", "PPH21.ORDINARY", "PPH26"],
 		"name": "Special allowance",
-		"amount": "allowance.amount * period.paid_days / period.days"
+		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	}
 ]

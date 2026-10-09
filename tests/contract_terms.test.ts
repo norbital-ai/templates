@@ -9,69 +9,84 @@ import {
 	refuseTermsOverlap,
 	termInForceOn,
 	termsFromFacts,
+	salaryOf,
 	type ContractTerm
 } from '../src/lib/payroll_engine/contract_terms.ts';
+import { missingRequired, requiredOf } from '../src/lib/ui/person/input_schema.ts';
 
-const draft = {
-	start: '2020-01-15',
-	salary: 4500,
+const values = {
+	base_salary: { value: 4500, currency: 'SGD' },
 	currency: 'SGD',
 	employment_type: 'PERMANENT',
 	residency_status: 'CITIZEN',
 	work_classification: 'EA_COVERED',
 	statutory_work_category: 'NON_MANUAL',
-	allowances: [{ code: 'TRANSPORT', amount: 200 }]
+	facts: { mom_declared_monthly_salary: 4500 }
+};
+const allowances = [{ code: 'TRANSPORT', amount: 200 }];
+const hire = (overrides: object = {}) => {
+	const set = hireContractSet({
+		employee_id: 'e1',
+		company_id: 'c1',
+		employee_number: 'E-12',
+		start: '2020-01-15',
+		values,
+		allowances,
+		...overrides
+	});
+	assert.ok(typeof set !== 'string');
+	return set;
 };
 
 describe('contract terms', () => {
 	it('L-TPL-hr-payroll-032 writes the first open term onto the new contract', () => {
-		const set = hireContractSet({
-			employee_id: 'e1',
-			company_id: 'c1',
-			employee_number: 'E-12',
-			draft
-		});
-		assert.ok(typeof set !== 'string');
+		const set = hire();
 		assert.equal(set.employee_number, 'E-12');
 		assert.deepEqual(set.effective_range, { from: '2020-01-15', to: null });
 		assert.equal(set.facts.contract_terms.length, 1);
-		assert.deepEqual(set.facts.contract_terms[0]?.base_salary, { value: 4500, currency: 'SGD' });
-		assert.deepEqual(set.facts.contract_terms[0]?.allowances, [
-			{ code: 'TRANSPORT', amount: { value: 200 } }
-		]);
+		const [term] = set.facts.contract_terms;
+		assert.deepEqual(salaryOf(term!), { value: 4500, currency: 'SGD' });
+		assert.deepEqual(term?.allowances, [{ code: 'TRANSPORT', amount: { value: 200 } }]);
+		assert.equal(typeof term?.id, 'string');
+		// Nothing is defaulted: an unset key is absent, never a date or a code source chose.
+		assert.equal('residency_since' in term!, false);
+		assert.equal(
+			'residency_since' in
+				hire({ values: { ...values, residency_since: '' } }).facts.contract_terms[0]!,
+			false
+		);
 	});
 
-	it('L-TPL-hr-payroll-033 closes the predecessor the day before the successor', () => {
-		const hired = hireContractSet({
-			employee_id: 'e1',
-			company_id: 'c1',
-			employee_number: 'E-12',
-			draft
-		});
-		assert.ok(typeof hired !== 'string');
-		const changed = changeTermsSet(hired.facts.contract_terms, {
-			...draft,
+	it('L-TPL-hr-payroll-033 closes the predecessor the day before the successor, carrying every key', () => {
+		const hired = hire();
+		const stored = hired.facts.contract_terms.map((term) => ({
+			...term,
+			employment_id: 'k1',
+			allowances: [
+				{ code: 'TRANSPORT', catalogue_id: 'a1', amount: { value: 200, currency: 'SGD' } }
+			]
+		}));
+		const [current] = termsFromFacts({ contract_terms: stored });
+		const changed = changeTermsSet(termsFromFacts({ contract_terms: stored }), {
 			start: '2024-04-01',
-			salary: 5200
+			values: { ...current!, base_salary: { value: 5200, currency: 'SGD' } },
+			allowances: [{ code: 'TRANSPORT', amount: 250, source: stored[0]!.allowances[0]! }]
 		});
 		assert.ok(typeof changed !== 'string');
-		assert.deepEqual(changed.facts.contract_terms[0]?.effective_range, {
-			from: '2020-01-15',
-			to: '2024-03-31'
-		});
-		assert.deepEqual(changed.facts.contract_terms[1]?.effective_range, {
-			from: '2024-04-01',
-			to: null
-		});
-		assert.equal(changed.facts.contract_terms[1]?.base_salary.value, 5200);
-		assert.equal(
-			termInForceOn(changed.facts.contract_terms, '2024-03-31')?.base_salary.value,
-			4500
-		);
-		assert.equal(
-			termInForceOn(changed.facts.contract_terms, '2024-04-01')?.base_salary.value,
-			5200
-		);
+		const [closed, next] = changed.facts.contract_terms;
+		assert.deepEqual(closed?.effective_range, { from: '2020-01-15', to: '2024-03-31' });
+		assert.deepEqual(next?.effective_range, { from: '2024-04-01', to: null });
+		// The closed term is the stored one, its id and facts kept; the successor carries every key under a new id.
+		assert.equal(closed?.id, stored[0]!.id);
+		assert.deepEqual(closed?.facts, values.facts);
+		assert.notEqual(next?.id, closed?.id);
+		for (const key of ['facts', 'currency', 'statutory_work_category', 'employment_id'] as const)
+			assert.deepEqual(next?.[key], closed?.[key], key);
+		assert.deepEqual(next?.allowances, [
+			{ code: 'TRANSPORT', catalogue_id: 'a1', amount: { value: 250, currency: 'SGD' } }
+		]);
+		assert.equal(salaryOf(termInForceOn(changed.facts.contract_terms, '2024-03-31')!)?.value, 4500);
+		assert.equal(salaryOf(termInForceOn(changed.facts.contract_terms, '2024-04-01')!)?.value, 5200);
 	});
 
 	it('L-TPL-hr-payroll-036 refuses overlapping terms and admits a closed successor', () => {
@@ -86,32 +101,20 @@ describe('contract terms', () => {
 			allowances: []
 		};
 		assert.equal(refuseTermsOverlap([overlap, other]), 'Employment terms cannot overlap.');
-		const hired = hireContractSet({
-			employee_id: 'e1',
-			company_id: 'c1',
-			employee_number: 'E-12',
-			draft
-		});
-		assert.ok(typeof hired !== 'string');
+		const hired = hire();
 		assert.equal(
 			typeof changeTermsSet(hired.facts.contract_terms, {
-				...draft,
 				start: '2020-01-15',
-				salary: 1
+				values,
+				allowances: []
 			}),
 			'string'
 		);
 		assert.deepEqual(termsFromFacts(hired.facts), hired.facts.contract_terms);
 	});
 
-	it('a paid period keeps its terms: a change into it is refused, a change from the next period is accepted', () => {
-		const hired = hireContractSet({
-			employee_id: 'e1',
-			company_id: 'c1',
-			employee_number: 'E-12',
-			draft
-		});
-		assert.ok(typeof hired !== 'string');
+	it('a paid period keeps its whole term: a change into it is refused, a change from the next period is accepted', () => {
+		const hired = hire();
 		const terms = hired.facts.contract_terms;
 		// March 2026 is paid (a regular slip and an off-cycle slip over the same window).
 		const paid = [
@@ -119,7 +122,11 @@ describe('contract terms', () => {
 			{ from: '2026-03-01', to: '2026-03-31' }
 		];
 		const raise = (start: string) => {
-			const set = changeTermsSet(terms, { ...draft, start, salary: 5200 });
+			const set = changeTermsSet(terms, {
+				start,
+				values: { ...terms[0]!, base_salary: { value: 5200, currency: 'SGD' } },
+				allowances
+			});
 			assert.ok(typeof set !== 'string');
 			return refusePaidTermsChange(hired.facts, set.facts, paid);
 		};
@@ -128,15 +135,57 @@ describe('contract terms', () => {
 			'These terms are already paid through 2026-03-31. Start the change on or after 2026-04-01, or delete the payroll run that paid the period.'
 		);
 		assert.equal(raise('2026-04-01'), null);
-		// An allowance edited in place on the open term rewrites paid March too.
-		const edited = {
-			contract_terms: terms.map((term) => ({
-				...term,
-				allowances: [{ code: 'TRANSPORT', amount: { value: 250 } }]
-			}))
-		};
-		assert.match(String(refusePaidTermsChange(hired.facts, edited, paid)), /paid through/);
+		const edit = (change: (term: ContractTerm) => ContractTerm) => ({
+			contract_terms: terms.map(change)
+		});
+		// An allowance, a fact or a declared key edited in place on the open term rewrites paid March too.
+		for (const edited of [
+			edit((term) => ({ ...term, allowances: [{ code: 'TRANSPORT', amount: { value: 250 } }] })),
+			edit((term) => ({ ...term, facts: { mom_declared_monthly_salary: 9000 } })),
+			edit((term) => ({ ...term, statutory_work_category: 'MANUAL_LABOUR' })),
+			edit(({ facts: _facts, ...term }) => term)
+		])
+			assert.match(String(refusePaidTermsChange(hired.facts, edited, paid)), /paid through/);
 		// Deleting the run releases the period.
-		assert.equal(refusePaidTermsChange(hired.facts, edited, []), null);
+		assert.equal(
+			refusePaidTermsChange(
+				hired.facts,
+				edit((term) => term),
+				[]
+			),
+			null
+		);
+	});
+
+	it('the input schema decides what is required, including a key another value requires', () => {
+		const node = {
+			type: 'object',
+			required: ['residency_status'],
+			properties: {
+				residency_status: { type: 'string', enum: ['CITIZEN', 'PERMANENT_RESIDENT'] },
+				residency_since: { type: 'string', format: 'date' },
+				facts: { type: 'object', required: ['days'], properties: { days: { type: 'number' } } }
+			},
+			allOf: [
+				{
+					if: { properties: { residency_status: { const: 'PERMANENT_RESIDENT' } } },
+					then: { required: ['residency_since'] }
+				}
+			]
+		};
+		assert.deepEqual(requiredOf(node, { residency_status: 'CITIZEN' }), ['residency_status']);
+		assert.deepEqual(missingRequired(node, {}), ['residency_status', 'facts.days']);
+		assert.deepEqual(
+			missingRequired(node, { residency_status: 'PERMANENT_RESIDENT', facts: { days: 5 } }),
+			['residency_since']
+		);
+		assert.deepEqual(
+			missingRequired(node, {
+				residency_status: 'PERMANENT_RESIDENT',
+				residency_since: '2020-01-01',
+				facts: { days: 5 }
+			}),
+			[]
+		);
 	});
 });

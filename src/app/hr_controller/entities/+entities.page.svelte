@@ -7,8 +7,7 @@
 	import type { ActInput, Id } from '@norbital-ai/bolt';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
-	import { Table } from '@norbital-ai/ui';
-	import { toast, Toaster } from 'svelte-sonner';
+	import { Table, toast } from '@norbital-ai/ui';
 	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import {
 		parseEntityHolidaySheets,
@@ -36,6 +35,7 @@
 			company_id: row.company_id,
 			date: PlainDate(row.date),
 			name: row.name,
+			kind: row.kind,
 			...(row.replaces == null ? {} : { replaces: PlainDate(row.replaces) })
 		}));
 	}
@@ -53,7 +53,6 @@
 	}
 </script>
 
-<Toaster />
 <AppShell
 	icon="lucide:building-2"
 	title={bolt.t('app.hr_controller.entities_title')}
@@ -68,9 +67,8 @@
 				actions: [
 					{
 						run: importHolidays,
-						group: 'import',
 						icon: 'lucide:file-spreadsheet',
-						label: bolt.t('holiday_calendar.import_spreadsheet'),
+						name: bolt.t('holiday_calendar.import_spreadsheet'),
 						description: bolt.t('holiday_calendar.import_spreadsheet_description'),
 						disabled: () => (importing ? bolt.t('component.loading') : null)
 					}

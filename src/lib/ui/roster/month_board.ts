@@ -31,7 +31,7 @@ export type Day = {
 };
 
 const DAY_MINUTES = 1440;
-// ponytail: leave is found by its start date; a leave that started more than this before the window is missed
+// ponytail: a leave without a last day is found by its start; one that started more than this before the window is missed
 const LEAVE_LOOKBACK_DAYS = 180;
 
 export const dayKey = (employmentId: string, date: string): string => `${employmentId}:${date}`;
@@ -101,7 +101,15 @@ export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: strin
 		where: {
 			employment_id: { in: [...ids] },
 			activity: { eq: 'TIME_OFF' },
-			occurred_on: { gte: PlainDate(addDays(from, -LEAVE_LOOKBACK_DAYS)), lte: PlainDate(to) }
+			occurred_on: { lte: PlainDate(to) },
+			// A leave reaching into the window by its last day, however long ago it started.
+			or: [
+				{ to: { gte: PlainDate(from) } },
+				{
+					to: { isNull: true },
+					occurred_on: { gte: PlainDate(addDays(from, -LEAVE_LOOKBACK_DAYS)) }
+				}
+			]
 		},
 		select: {
 			employment_id: true,
@@ -174,6 +182,8 @@ export function buildDays(input: {
 	readonly entries: readonly EntryRow[];
 	readonly holidays: readonly HolidayRow[];
 	readonly leave: readonly LeaveRow[];
+	/** The code of a day's shift: the rostered definition's, else the one the person's pattern plans; null when none. */
+	readonly shiftOf?: (employmentId: string, date: string, rostered: string | null) => string | null;
 }): Map<string, Day> {
 	const entries = new Map(
 		input.entries.map((row) => [dayKey(row.employment_id, String(row.work_date).slice(0, 10)), row])
@@ -196,7 +206,10 @@ export function buildDays(input: {
 				date,
 				employed: person.from <= date && (person.to == null || date <= person.to),
 				entryId: entry?.id ?? null,
-				shift: entry?.shift_definition_id ?? null,
+				shift:
+					input.shiftOf?.(person.id, date, entry?.shift_definition_id ?? null) ??
+					entry?.shift_definition_id ??
+					null,
 				intervals: intervalsOf(entry?.worked_intervals),
 				overtime: numberOrNull(entry?.approved_overtime_hours),
 				incentive: numberOrNull(entry?.incentive_hours),

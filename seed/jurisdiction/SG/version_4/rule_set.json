@@ -1,71 +1,5 @@
 [
 	{
-		"id": "ba2e51c2-adc2-594b-c272-21172b726481",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "allowance_npl_prorates",
-		"name": "allowance_npl_prorates",
-		"rules": {
-			"value": true
-		}
-	},
-	{
-		"id": "70d397cf-b956-5052-e8ef-1513d1bea256",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "holiday_adjacent_absence_when",
-		"name": "holiday_adjacent_absence_when",
-		"rules": {
-			"value": "employment.classification != \"NON_EA\""
-		}
-	},
-	{
-		"id": "94048683-1e8b-5709-a003-068b7acee1a0",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "holiday_adjacent_absence_unpaid",
-		"name": "holiday_adjacent_absence_unpaid",
-		"rules": {
-			"value": true
-		}
-	},
-	{
-		"id": "f8b007a6-276a-5776-e4ad-18c97495bb42",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "holiday_in_no_pay_leave_unpaid",
-		"name": "holiday_in_no_pay_leave_unpaid",
-		"rules": {
-			"value": true
-		}
-	},
-	{
-		"id": "3bf53881-68b6-5bec-1945-a9c67b41e81d",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "short_day_fraction",
-		"name": "short_day_fraction",
-		"rules": {
-			"value": 0.5
-		}
-	},
-	{
-		"id": "d65bbc2c-9924-5918-d4f0-00cca54c6fca",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "short_day_half_hours",
-		"name": "short_day_half_hours",
-		"rules": {
-			"value": 5
-		}
-	},
-	{
 		"id": "ea993c85-c02b-5fe8-8d8c-f21e352563df",
 		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
 		"family": "PAYROLL",
@@ -112,263 +46,6 @@
 		}
 	},
 	{
-		"id": "220a0b3c-c54e-5fec-aed5-7342e65fe983",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "notice_compensation",
-		"name": "notice_compensation",
-		"rules": {
-			"source": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary; https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice; Employment Act 1968 ss.10,11,23(3); https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays",
-			"when": "employment.classification != \"NON_EA\"",
-			"annual_months": 12,
-			"annual_weeks": 52,
-			"hourly_holiday_when": "terms.employment_type == \"PART_TIME\"",
-			"hourly_holiday_method": "PROPORTIONAL_WEEKLY_HOURS",
-			"holiday_rest_precedence": "SUBSTITUTE",
-			"frequencies": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY", "HOURLY"],
-			"offset_leave_code": "ANNUAL",
-			"notice_extension_kinds": ["NATIONAL_SERVICE_TRAINING", "AGREED_UNPAID_LEAVE"],
-			"excluded_allowances": [],
-			"allowance_categories": [
-				"ORDINARY_ALLOWANCE",
-				"TRAVEL",
-				"FOOD",
-				"HOUSING",
-				"EXPENSE_REIMBURSEMENT",
-				"PRODUCTIVITY_INCENTIVE",
-				"OVERTIME",
-				"BONUS_AWS"
-			],
-			"excluded_allowance_categories": [
-				"TRAVEL",
-				"FOOD",
-				"HOUSING",
-				"EXPENSE_REIMBURSEMENT",
-				"PRODUCTIVITY_INCENTIVE",
-				"OVERTIME",
-				"BONUS_AWS"
-			],
-			"payment_class": "SALARY_IN_LIEU_OF_NOTICE",
-			"recovery_class": "NOTICE_BREACH_COMPENSATION_RECOVERY",
-			"default_notice": [
-				{
-					"before_service_days": 182,
-					"before_service_years": null,
-					"days": 1
-				},
-				{
-					"before_service_days": null,
-					"before_service_years": 2,
-					"days": 7
-				},
-				{
-					"before_service_days": null,
-					"before_service_years": 5,
-					"days": 14
-				},
-				{
-					"before_service_days": null,
-					"before_service_years": null,
-					"days": 28
-				}
-			],
-			"enforcement_age_threshold": 18,
-			"day_average": {
-				"source": "Employment Act 1968 Third Schedule items 3–7: complete original contractual regular/alternate-week scope; for irregular notice average actual required days in preceding 3 weeks, or first 3 weeks for less than 3 weeks elapsed service; required work at most 5 hours counts half a day. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=Sc3- (indexed official current text retrieved 3 October 2026; formula scope reproduced official Act PDF https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/3210/SGP3210.pdf pages117–120, 2019 consolidation).",
-				"days_per_week": 7,
-				"short_minutes": 300,
-				"short_weight": 0.5,
-				"long_weight": 1,
-				"methods": [
-					{
-						"code": "REGULAR_CONTRACTUAL_WEEK",
-						"mode": "DECLARED_WHOLE_WEEKS",
-						"weeks": 1,
-						"anchor_weekday": 0
-					},
-					{
-						"code": "ALTERNATING_CONTRACTUAL_WEEKS",
-						"mode": "DECLARED_WHOLE_WEEKS",
-						"weeks": 2,
-						"anchor_weekday": 0
-					},
-					{
-						"code": "IRREGULAR_OR_NEWSTARTER_NOTICE",
-						"mode": "PRECEDING_OR_FIRST_SERVICE",
-						"weeks": 3,
-						"service_threshold_days": 21
-					}
-				]
-			}
-		}
-	},
-	{
-		"id": "b75b8659-290e-5f2a-a2ee-aee8370635a0",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "final_pay_deadlines",
-		"name": "final_pay_deadlines",
-		"rules": {
-			"value": [
-				{
-					"when": "employment.exit_ground == \"RESIGNATION\" && !(has(employment.exit_facts.notice_served) && employment.exit_facts.notice_served == true)",
-					"days": 7,
-					"basis": "EVENT_DATE",
-					"authority": "Employment Act 1968 s.23(2): an employee who resigns without the notice s.10 requires, or before it expires, is paid within 7 days; one who served it is paid on the last day (s.23(1), the default rule)"
-				},
-				{
-					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\"] && has(employment.exit_facts.final_pay_not_possible) && employment.exit_facts.final_pay_not_possible == true",
-					"days": 3,
-					"basis": "NON_REST_HOLIDAY_DAYS",
-					"authority": "Employment Act 1968 s.22: pay on dismissal; only if that is impossible, within 3 subsequent days excluding rest days, public holidays and other holidays. MOM applies the same deadline to employer termination."
-				},
-				{
-					"when": "",
-					"days": 0,
-					"basis": "EVENT_DATE",
-					"authority": "Employment Act 1968 ss.21(3), 22 and 23(1): same-day final payment absent the evidenced s.22 exception or the s.23(2) no-notice resignation."
-				}
-			]
-		}
-	},
-	{
-		"id": "f904799f-3d75-5482-302b-3c599197d03b",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
-		"code": "authority_procedures",
-		"name": "authority_procedures",
-		"rules": {
-			"value": [
-				{
-					"code": "DIRECTION_APPEAL",
-					"title": "Appeal actual prohibiting order",
-					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s117(1)-(2), actual decision/order date, General Division of High Court, Rules of Court procedure. Actual receipt alone does not establish a stay or success on merits.",
-					"anchor_field": "issued_on",
-					"days_after": 14,
-					"requires_absent_party": false
-				},
-				{
-					"code": "AWARD_APPEAL",
-					"title": "Appeal actual original award",
-					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s117(1)-(2): 14 days after actual decision/order.",
-					"anchor_field": "original_award_on",
-					"days_after": 14,
-					"requires_absent_party": false
-				},
-				{
-					"code": "ABSENT_AWARD_REVIEW",
-					"title": "Actual absent-party original award set-aside/variation application",
-					"authority": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=P115- Employment Act s115(3B)-(3C): application no later than 14 days after actual order, only affected party absent from that original order.",
-					"anchor_field": "original_award_on",
-					"days_after": 14,
-					"requires_absent_party": true
-				}
-			]
-		}
-	},
-	{
-		"id": "a80c8ccb-6546-5384-75d7-88296e4a3bb9",
-		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
-		"family": "EMPLOYER_ASSESSMENT",
-		"scope": "JURISDICTION",
-		"code": "MOM_FOREIGN_WORKER_LEVY_BILL",
-		"name": "Actual employer-paid MOM levy bill ledger (SGD)",
-		"rules": {
-			"assessment_basis": "AUTHORITY_NOTICE",
-			"code": "MOM_FOREIGN_WORKER_LEVY_BILL",
-			"name": "Actual employer-paid MOM levy bill ledger (SGD)",
-			"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-			"facts": [
-				{
-					"key": "levy_month",
-					"type": "string",
-					"min_length": 7,
-					"max_length": 7,
-					"required_when": "true",
-					"valid_when": "entry.facts.levy_month.matches(\"^[0-9]{4}-(0[1-9]|1[0-2])$\")",
-					"label": "Actual original affected levy month (YYYY-MM)",
-					"validation_message": "The actual affected levy month must use YYYY-MM with a valid calendar month."
-				},
-				{
-					"key": "levy_bill_reference",
-					"type": "string",
-					"min_length": 1,
-					"required_when": "true",
-					"label": "Actual MOM bill or amended-bill reference"
-				},
-				{
-					"key": "levy_bill_due_on",
-					"type": "date",
-					"required_when": "true",
-					"label": "Actual deadline stated in the MOM levy bill"
-				},
-				{
-					"key": "original_levy_payment_on",
-					"type": "date",
-					"required_when": "false",
-					"label": "Actual original levy payment date for linked incoming recovery"
-				}
-			],
-			"worker_facts": [],
-			"eligible_when": "true",
-			"worker_base": "0.0",
-			"charge": "0.0",
-			"scope_expression": "entry.facts.levy_month",
-			"year_date_expression": "entry.facts.levy_month + \"-01\"",
-			"due_expression": "entry.facts.levy_bill_due_on",
-			"actions": [
-				{
-					"code": "MOM_BILL",
-					"name": "Actual MOM levy bill/affected-month adjustment notice",
-					"kind": "NOTICE",
-					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-					"valid_when": "true",
-					"due_on": "entry.facts.levy_bill_due_on"
-				},
-				{
-					"code": "EMPLOYER_PAYMENT",
-					"name": "Actual employer-paid levy receipt",
-					"kind": "PAYMENT",
-					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-					"valid_when": "true",
-					"due_on": "entry.facts.levy_bill_due_on"
-				},
-				{
-					"code": "MOM_CREDIT",
-					"name": "Actual MOM credit or waiver against this month",
-					"kind": "CREDIT",
-					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-					"valid_when": "true",
-					"due_on": "entry.facts.levy_bill_due_on"
-				},
-				{
-					"code": "MOM_RETURN",
-					"name": "Actual MOM incoming return against original paid receipt",
-					"kind": "RECOVERY",
-					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-					"valid_when": "true",
-					"due_on": "entry.facts.levy_bill_due_on",
-					"source_payment_date_fact": "original_levy_payment_on"
-				},
-				{
-					"code": "REVERSE_RECEIPT",
-					"name": "Linked reversal of superseded actual receipt",
-					"kind": "REVERSAL",
-					"authority": "MOM actual foreign-worker levy monthly bill and adjustment/payment details; EFMA employer-borne costs. This receipt policy does not compute levy tariffs, quota tiers, penalties or waivers. Use actual MOM stated amounts and affected months. https://www.mom.gov.sg/eservices/services/check-and-pay-levy ; https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy ; https://www.mom.gov.sg/faq/levy/can-employers-pass-on-the-foreign-worker-levy-costs--to-their-foreign-workers",
-					"valid_when": "true",
-					"due_on": "entry.facts.levy_bill_due_on"
-				}
-			],
-			"currency": "SGD"
-		},
-		"source_identity": {
-			"assessment_basis": "AUTHORITY_NOTICE"
-		}
-	},
-	{
 		"id": "1c33e8e8-97d4-51a7-cf8b-36d14800bacf",
 		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
 		"family": "OBLIGATIONS",
@@ -379,7 +56,7 @@
 			"description": "Submit and pay the month’s CPF contributions (employer and employee shares) for every Singapore Citizen and SPR employee through the CPF Submission Number, by the 14th of the following month (the next working day when the 14th is a Saturday, Sunday or public holiday). Late payment interest: 1.5% a month on the unpaid contributions, or $5 if higher (CPF Regulations reg.3). Apply to CPF Board for a refund of contributions paid above the Additional Wage ceiling.",
 			"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
 			"schemes": ["CPF"],
-			"due": "next_working_day(add_days(period.to, 14), holidays)"
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -390,10 +67,11 @@
 		"code": "SDL_REMITTANCE",
 		"name": "Skills Development Levy remittance",
 		"rules": {
-			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month; the per-employee levies are summed and rounded down to the dollar. An employer with only foreign employees pays SkillsFuture Singapore directly.",
-			"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external.",
+			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month (next working day); CPF Board collects it for the Skills and Workforce Development Agency (SWDA), and an employer with only foreign employees pays SWDA directly. The per-employee levies are summed and rounded down to the dollar. Late payment: a penalty of 10% a year on the outstanding amount.",
+			"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
 			"schemes": ["SDL"],
-			"due": "next_working_day(add_days(period.to, 14), holidays)"
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"amount": "round(total, 1.0, \"DOWN\")"
 		}
 	},
 	{
@@ -407,7 +85,7 @@
 			"description": "Remit the CDAC, ECF, MBMF and SINDA deductions with the month’s CPF by the 14th of the following month; apply a fund’s written opt-out or changed-amount instruction from its effective date.",
 			"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
 			"schemes": ["CDAC", "ECF", "MBMF", "SINDA"],
-			"due": "next_working_day(add_days(period.to, 14), holidays)"
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -425,7 +103,7 @@
 				"event": "created"
 			},
 			"applies_when": "(company == null || company.facts == null || !has(company.facts.foreign_worker_levy_payer) || company.facts.foreign_worker_levy_payer == true)",
-			"due": "next_working_day(add_days(period.to, 17), holidays)"
+			"due": "next_working_day(add_days(period.to, 17), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -477,7 +155,7 @@
 				"event": "updated",
 				"fields": ["status"]
 			},
-			"due": "add_working_days(row.paid_on, 3, holidays)",
+			"due": "add_working_days(row.paid_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])",
 			"when": "row.status == \"PAID\" && has(row.paid_on)"
 		}
 	},
@@ -489,7 +167,7 @@
 		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
 		"name": "Form IR8A / AIS annual return",
 		"rules": {
-			"description": "Prepare Form IR8A with Appendix 8A, Appendix 8B and Form IR8S for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
+			"description": "Prepare Form IR8A with Appendix 8A and Appendix 8B (Form IR8S is discontinued from YA 2026: excess or voluntary employer CPF is item d6 of Form IR8A) for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
 			"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
 			"trigger": {
 				"collection": "payroll_run",
@@ -548,7 +226,8 @@
 				"collection": "employment_contract",
 				"event": "created"
 			},
-			"due": "hired_on"
+			"due": "hired_on",
+			"applies_when": "contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, !has(t.statutory_work_category) || t.statutory_work_category != \"NON_MANUAL\" || !has(t.base_salary) || t.base_salary.value <= 2600.0)"
 		}
 	},
 	{
@@ -584,7 +263,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "contract.exit_ground == \"RESIGNATION\" && !(contract.exit_facts != null && has(contract.exit_facts.notice_served) && contract.exit_facts.notice_served == true) ? add_days(exit_on, 7) : exit_on"
+			"due": "contract.exit_ground == \"RESIGNATION\" && !(contract.exit_facts != null && has(contract.exit_facts.notice_served) && contract.exit_facts.notice_served == true) ? add_days(exit_on, 7) : (contract.exit_ground in [\"DISMISSAL\", \"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] && contract.exit_facts != null && has(contract.exit_facts.final_pay_not_possible) && contract.exit_facts.final_pay_not_possible == true ? add_working_days(exit_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"]) : exit_on)"
 		}
 	},
 	{
@@ -603,7 +282,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "(employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") != \"CITIZEN\"",
+			"applies_when": "(employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") != \"CITIZEN\" && !(contract.exit_facts != null && has(contract.exit_facts.ir21_exemption))",
 			"due": "add_months(exit_on, -1)"
 		}
 	},
@@ -635,7 +314,7 @@
 		"code": "RETRENCHMENT_NOTIFICATION",
 		"name": "Mandatory retrenchment notification",
 		"rules": {
-			"description": "An employer registered in Singapore with at least 10 employees notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on, unless the entity records employee_count below 10; due 5 calendar days after that notice, which never passes the 5-working-day deadline.",
+			"description": "An employer registered in Singapore with at least 10 employees (headcount on the day) notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on; due 5 working days after that notice (add_working_days over the entity holidays).",
 			"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
 			"trigger": {
 				"collection": "employment_contract",
@@ -644,7 +323,7 @@
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
 			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && contract.exit_facts != null && has(contract.exit_facts.retrenchment_notified_on) && headcount >= 10",
-			"due": "add_working_days(contract.exit_facts.retrenchment_notified_on, 5, holidays)"
+			"due": "add_working_days(contract.exit_facts.retrenchment_notified_on, 5, holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -717,7 +396,7 @@
 				"event": "created"
 			},
 			"applies_when": "company == null || company.facts == null || !has(company.facts.cpf_submission_number) || company.facts.cpf_submission_number == \"\"",
-			"due": "next_working_day(add_days(month_end(period.from), 14), holidays)"
+			"due": "next_working_day(add_days(month_end(period.from), 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
 	},
 	{
@@ -730,8 +409,8 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
-			"when": "(employment.exit_date != \"\" && employment.exit_date <= period.to) && terms.residency_status != \"CITIZEN\" && !has(employment.exit_facts.ir21_clearance_on)",
-			"message": "Final pay of a non-Citizen leaver is held until IRAS tax clearance (record exit_facts.ir21_clearance_on).",
+			"when": "(employment.exit_date != \"\" && employment.exit_date <= period.to) && terms.residency_status != \"CITIZEN\" && !has(employment.exit_facts.ir21_clearance_on) && !has(employment.exit_facts.ir21_exemption)",
+			"message": "Final pay of a non-Citizen leaver is held until IRAS tax clearance (record exit_facts.ir21_clearance_on, or ir21_exemption where IRAS requires no IR21).",
 			"description": "Employment Act 1968 s.24(1): no salary or other sum due on termination may be paid without the Comptroller’s permission under Income Tax Act 1947 s.68(7); s.24(2): not delayed more than 30 days after the notice. Applies to every leaver who is not a Singapore Citizen (SPRs included) on the slip of the exit period. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr24-"
 		}
 	},
@@ -760,7 +439,7 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "work.overtime_hours > 72.0",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && hours.month.overtime_hours > 72.0",
 			"message": "Overtime in the month exceeds the 72 hours EA s.38(5) allows a Part 4 employee without an exemption under s.41A.",
 			"description": "Employment Act 1968 s.38(5): an employee covered by Part 4 may not work overtime of more than 72 hours a month, save under a Commissioner exemption (s.41A). https://sso.agc.gov.sg/Act/EmA1968"
 		}
@@ -782,6 +461,2644 @@
 			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && today == add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -6)",
 			"applies_when": "!(employee != null && employee.facts != null && has(employee.facts.immigration_status) && !(employee.facts.immigration_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]))",
 			"due": "add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -3)"
+		}
+	},
+	{
+		"id": "b847c748-4d95-55be-8367-543dc3c9240e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "public_holidays",
+		"name": "Gazetted public holidays",
+		"rules": {
+			"authority": "MOM, Public holidays for 2026 and 2027 (https://www.mom.gov.sg/employment-practices/public-holidays, read 2026-10-07), gazetted under the Holidays Act 1998",
+			"holidays": [
+				{
+					"date": "2027-01-01",
+					"name": "New Year's Day"
+				},
+				{
+					"date": "2027-02-06",
+					"name": "Chinese New Year"
+				},
+				{
+					"date": "2027-02-07",
+					"name": "Chinese New Year (Day 2)"
+				},
+				{
+					"date": "2027-02-08",
+					"name": "Chinese New Year (observed)",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-02-07"
+				},
+				{
+					"date": "2027-03-10",
+					"name": "Hari Raya Puasa"
+				},
+				{
+					"date": "2027-03-26",
+					"name": "Good Friday"
+				},
+				{
+					"date": "2027-05-01",
+					"name": "Labour Day"
+				},
+				{
+					"date": "2027-05-17",
+					"name": "Hari Raya Haji"
+				},
+				{
+					"date": "2027-05-20",
+					"name": "Vesak Day"
+				},
+				{
+					"date": "2027-08-09",
+					"name": "National Day"
+				},
+				{
+					"date": "2027-10-28",
+					"name": "Deepavali"
+				},
+				{
+					"date": "2027-12-25",
+					"name": "Christmas Day"
+				}
+			]
+		}
+	},
+	{
+		"id": "a0ffb349-4cfb-57d7-815e-0ddf09cb56b9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "pwm_wages",
+		"name": "Progressive Wage Model floors",
+		"rules": {
+			"authority": "MOM Progressive Wage Model sectoral and occupational wage schedules (sources per role).",
+			"roles": {
+				"ADMIN_ASSISTANT": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2170,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2360
+						}
+					]
+				},
+				"ADMIN_EXECUTIVE": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2760,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2940
+						}
+					]
+				},
+				"ADMIN_SUPERVISOR": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3520
+						}
+					]
+				},
+				"CLEAN_CONSERVANCY_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2665
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2835
+						}
+					]
+				},
+				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2870
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3040
+						}
+					]
+				},
+				"CLEAN_CONSERVANCY_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3040
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3210
+						}
+					]
+				},
+				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3250
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3460
+						}
+					]
+				},
+				"CLEAN_FNB_DISHWASHER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2665
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2835
+						}
+					]
+				},
+				"CLEAN_FNB_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2250
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2420
+						}
+					]
+				},
+				"CLEAN_FNB_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2870
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3040
+						}
+					]
+				},
+				"CLEAN_FNB_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3040
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3210
+						}
+					]
+				},
+				"CLEAN_FNB_TABLE_TOP": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2180,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2350
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2520
+						}
+					]
+				},
+				"CLEAN_OFFICE_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2250
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2420
+						}
+					]
+				},
+				"CLEAN_OFFICE_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2870
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3040
+						}
+					]
+				},
+				"CLEAN_OFFICE_OUTDOOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2665
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2835
+						}
+					]
+				},
+				"CLEAN_OFFICE_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3040
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3210
+						}
+					]
+				},
+				"DRIVER_GROUP_A_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2370,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2550
+						}
+					]
+				},
+				"DRIVER_GROUP_A_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2485,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2665
+						}
+					]
+				},
+				"DRIVER_GROUP_B_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2505,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2690
+						}
+					]
+				},
+				"DRIVER_GROUP_B_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2555,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2790
+						}
+					]
+				},
+				"FOOD_FS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2520,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2660
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2800
+						}
+					]
+				},
+				"FOOD_FS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2460
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2600
+						}
+					]
+				},
+				"FOOD_FS_WAITER": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2460
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2600
+						}
+					]
+				},
+				"FOOD_FS_WAITER_SUPERVISOR": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2875,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3020
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3165
+						}
+					]
+				},
+				"FOOD_QS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2470,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2610
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2750
+						}
+					]
+				},
+				"FOOD_QS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2295,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2435
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2575
+						}
+					]
+				},
+				"FOOD_QS_STALL_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2220,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2360
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2500
+						}
+					]
+				},
+				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2685,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2825
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2965
+						}
+					]
+				},
+				"LANDSCAPE_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 3060,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3220
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3380
+						}
+					]
+				},
+				"LANDSCAPE_TECHNICIAN": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2650
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2810
+						}
+					]
+				},
+				"LANDSCAPE_WORKER": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2095,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2240
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 2385
+						}
+					]
+				},
+				"LIFT_ASSISTANT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 2750,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2915
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3080
+						}
+					]
+				},
+				"LIFT_PRINCIPAL_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3720,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3935
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 4150
+						}
+					]
+				},
+				"LIFT_SENIOR_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3420,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3620
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3820
+						}
+					]
+				},
+				"LIFT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3090,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3280
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3470
+						}
+					]
+				},
+				"LIFT_SUPERVISOR": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3660,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3875
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 4090
+						}
+					]
+				},
+				"RETAIL_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2435,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2027-09-01",
+							"monthly_floor": 2565
+						}
+					]
+				},
+				"RETAIL_ASSISTANT_SUPERVISOR": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2950,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2027-09-01",
+							"monthly_floor": 3100
+						}
+					]
+				},
+				"RETAIL_SENIOR_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2680,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2027-09-01",
+							"monthly_floor": 2820
+						}
+					]
+				},
+				"SECURITY_INHOUSE_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2635,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 2795
+						}
+					]
+				},
+				"SECURITY_INHOUSE_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2835,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 2995
+						}
+					]
+				},
+				"SECURITY_INHOUSE_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3065,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 3225
+						}
+					]
+				},
+				"SECURITY_OUTSOURCED_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3310,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 3530
+						}
+					]
+				},
+				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3610,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 3830
+						}
+					]
+				},
+				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 4210,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 4430
+						}
+					]
+				},
+				"SECURITY_OUTSOURCED_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3910,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+					"steps": [
+						{
+							"from": "2028-01-01",
+							"monthly_floor": 4130
+						}
+					]
+				},
+				"WASTE_COLLECTION_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2840,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3050
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3260
+						}
+					]
+				},
+				"WASTE_COLLECTION_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3450
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3660
+						}
+					]
+				},
+				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3550
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3760
+						}
+					]
+				},
+				"WASTE_COLLECTION_SENIOR_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3250
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3460
+						}
+					]
+				},
+				"WASTE_COLLECTION_SENIOR_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3540,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3750
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3960
+						}
+					]
+				},
+				"WASTE_COLLECTION_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3700
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3910
+						}
+					]
+				},
+				"WASTE_COLLECTION_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3450
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3660
+						}
+					]
+				},
+				"WASTE_MRF_PLANT_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3550
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3760
+						}
+					]
+				},
+				"WASTE_MRF_SENIOR_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2940,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3150
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3360
+						}
+					]
+				},
+				"WASTE_MRF_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2740,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 2950
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3160
+						}
+					]
+				},
+				"WASTE_MRF_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3140,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+					"steps": [
+						{
+							"from": "2027-07-01",
+							"monthly_floor": 3350
+						},
+						{
+							"from": "2028-07-01",
+							"monthly_floor": 3560
+						}
+					]
+				}
+			}
+		}
+	},
+	{
+		"id": "7ea2dda6-42bf-59be-836f-9bbefd83d6f6",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "NR_DIRECTOR_WITHHOLDING",
+		"name": "Withholding tax on non-resident director fees (IR37)",
+		"rules": {
+			"description": "File Form IR37 and pay the 24% withholding tax on remuneration and fees paid to a non-resident director by the 15th of the second month after the payment.",
+			"authority": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director), read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
+			"schemes": ["WHT_NR_DIRECTOR"],
+			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
+		}
+	},
+	{
+		"id": "fd967b86-86bd-5517-9178-4fc96fa70832",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "IR21_LEAVING_SINGAPORE",
+		"name": "IR21 for an overseas posting or departure over 3 months",
+		"rules": {
+			"description": "File Form IR21 at least one month before a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months (without ceasing employment). Raised when the profile records facts.leaves_singapore_from (customer input).",
+			"authority": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees), read 2026-10-07.",
+			"trigger": {
+				"collection": "employment_profile",
+				"event": "updated",
+				"fields": ["facts"]
+			},
+			"when": "row.facts != null && has(row.facts.leaves_singapore_from)",
+			"applies_when": "!(has(row.facts.immigration_status) && row.facts.immigration_status == \"CITIZEN\")",
+			"due": "add_months(row.facts.leaves_singapore_from, -1)"
+		}
+	},
+	{
+		"id": "d5182435-8b86-5a4e-a224-3fa7fe2f4345",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PASS_MEDICAL_INSURANCE",
+		"name": "Medical insurance for a Work Permit or S Pass holder",
+		"rules": {
+			"description": "Buy and keep medical insurance for each Work Permit and S Pass holder for inpatient care and day surgery, with an annual claim limit of at least $60,000 (employer co-payment terms as MOM states), in force from the start of employment.",
+			"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance) and MOM written answer 1106/2025.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status in [\"WORK_PERMIT\", \"S_PASS\"]",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "e040e66e-25e2-52e1-b17d-58ada8c67827",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PERMIT_SECURITY_BOND",
+		"name": "Security bond for a non-Malaysian Work Permit holder",
+		"rules": {
+			"description": "Furnish a $5,000 security bond for each non-Malaysian Work Permit holder before the worker arrives in Singapore.",
+			"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond), read 2026-10-07: Malaysians are exempt.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status == \"WORK_PERMIT\" && !(employee.nationality in [\"MY\", \"MALAYSIA\", \"Malaysian\", \"MALAYSIAN\"])",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "a84a7741-1ed0-51fc-8e05-370803a0377e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "YOUNG_PERSON_NOTIFICATION",
+		"name": "Notify MOM of a child or young person in an industrial undertaking",
+		"rules": {
+			"description": "Notify the Commissioner within 30 days of employing a child aged 13 to under 15 (or a young person) in an industrial undertaking, with a medical report certifying fitness. Raised for a hire under 16 at an entity whose facts record industrial_undertaking (customer input).",
+			"authority": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons (https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons) and Employing young persons and children, read 2026-10-07.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) >= 13 && age_on(employee.date_of_birth, hired_on) < 16 && company != null && company.facts != null && has(company.facts.industrial_undertaking) && company.facts.industrial_undertaking == true",
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "eee9e2be-4544-5e58-8d08-5e44212038fc",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "DAMAGE_DEDUCTION_LIMIT",
+		"name": "Damage deductions within a quarter of a month’s wages",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(has(payslip.lines.DAMAGE_RECOVERY) ? -payslip.lines.DAMAGE_RECOVERY : 0.0) > 0.25 * payslip.gross",
+			"message": "A damage or loss deduction exceeds one quarter of one month’s wages (EA s.29(1)); only with the Commissioner’s permission (APPROVED_DAMAGE_RECOVERY).",
+			"description": "Employment Act 1968 s.29(1). https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "684430aa-264b-5959-a583-7246a2d50eac",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ACCOMMODATION_DEDUCTION_LIMIT",
+		"name": "Accommodation and amenity deductions within a quarter of the salary",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(has(payslip.lines.ACCOMMODATION_RECOVERY) ? -payslip.lines.ACCOMMODATION_RECOVERY : 0.0) + (has(payslip.lines.AMENITIES_RECOVERY) ? -payslip.lines.AMENITIES_RECOVERY : 0.0) > 0.25 * payslip.gross",
+			"message": "Accommodation, amenity and service deductions exceed one quarter of the salary for the period (EA s.30(2)).",
+			"description": "Employment Act 1968 s.30(2). https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "62f83d1e-df8a-56e4-bb93-33e934218cf9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "INSTALMENT_LIMIT",
+		"name": "Advance and loan instalments within a quarter of the salary",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "[\"SALARY_ADVANCE\", \"FESTIVE_ADVANCE\", \"TRAVEL_ADVANCE\", \"SALARY_OVERPAYMENT\", \"UNEARNED_BENEFIT_RECOVERY\"].exists(c, c in payslip.lines && -payslip.lines[c] > rules.deduction_ceiling.loan_instalment_share * payslip.gross)",
+			"message": "An advance or loan instalment exceeds one quarter of the salary for the period (EA s.31(3), (5)).",
+			"description": "Employment Act 1968 s.31(3)–(5); reads PAYROLL deduction_ceiling.loan_instalment_share. https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "7f638e9c-ada6-579e-ba75-8ec956445465",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MOM_DECLARED_SALARY",
+		"name": "Pay at least the fixed salary declared to MOM",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.mom_declared_monthly_salary) && terms.base_salary + (has(terms.allowances) ? double(sum(terms.allowances.map(a, a.amount))) : 0.0) < double(terms.facts.mom_declared_monthly_salary)",
+			"message": "Basic salary plus fixed allowances is below the fixed monthly salary declared to MOM for the work pass; a reduction needs the employee’s consent and MOM to be informed.",
+			"description": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule conditions; MOM, Employment Pass conditions (https://www.mom.gov.sg/passes-and-permits/employment-pass/conditions). Customer input: contract_terms.facts.mom_declared_monthly_salary."
+		}
+	},
+	{
+		"id": "a8161a55-cc8b-5d0a-aa93-48ec7eb4ccaa",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PWM_WAGE_FLOOR",
+		"name": "Progressive Wage Model floor",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.pwm_role) && terms.facts.pwm_role in rules.pwm_wages.roles && (rules.pwm_wages.roles[terms.facts.pwm_role].base == \"BASIC\" ? terms.base_salary : terms.monthly_wage) < (\"steps\" in rules.pwm_wages.roles[terms.facts.pwm_role] && size(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)) > 0 ? double(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)[size(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)) - 1].monthly_floor) : double(rules.pwm_wages.roles[terms.facts.pwm_role].monthly_floor))",
+			"message": "Monthly wage is below the Progressive Wage Model floor for the employee’s PWM role.",
+			"description": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental Public Health Act (cleaning), Private Security Industry Act (security); MOM PWM pages. Reads PAYROLL pwm_wages. Customer input: contract_terms.facts.pwm_role. A role’s optional steps ([{ from, monthly_floor }], ascending) replace its floor from each step’s day within the version (the July cleaning and landscape steps, the January security step)."
+		}
+	},
+	{
+		"id": "b2694e3d-7451-5d52-9757-368310cd80d4",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "MISCONDUCT_DUE_INQUIRY",
+		"name": "Due inquiry before a misconduct dismissal",
+		"rules": {
+			"description": "Hold a due inquiry before dismissing an employee for misconduct; pending it the employee may be suspended for up to a week, on at least half pay. Raised when a contract closes as a DISMISSAL with exit_facts.dismissed_for_misconduct; due the dismissal day.",
+			"authority": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07). https://sso.agc.gov.sg/Act/EmA1968",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.dismissed_for_misconduct) && contract.exit_facts.dismissed_for_misconduct == true",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "fde9c2ba-a626-5806-a748-a9243ec873b9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_DATA_PROTECTION_OFFICER",
+		"name": "Designate a data protection officer",
+		"rules": {
+			"description": "Designate one or more data protection officers, make the business contact of at least one public, and put in place data protection policies and a complaints process. Raised when an entity is created without company.facts.dpo_contact (customer input).",
+			"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012).",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"applies_when": "company == null || company.facts == null || !has(company.facts.dpo_contact) || company.facts.dpo_contact == \"\"",
+			"due": "today"
+		}
+	},
+	{
+		"id": "16c3a9fe-f4bd-5431-a16e-63715708ec43",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "DAILY_HOURS_LIMIT",
+		"name": "At most 12 hours of work in a day",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && work.days.exists(d, d.worked_hours > 12.0)",
+			"message": "A Part 4 employee worked more than 12 hours in one day (EA s.38(8)), allowed only for the s.38(2)(a)–(e) emergencies.",
+			"description": "Employment Act 1968 s.38(8). https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "cb9de353-9e46-512a-b416-a7cb04f1be46",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WEEKLY_REST_DAY",
+		"name": "A rest day in every week",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && work.days.exists(d, d.worked && [1, 2, 3, 4, 5, 6].all(n, work.days.exists(e, e.date == add_days(d.date, n) && e.worked)))",
+			"message": "A Part 4 employee worked 7 days in a row without a rest day (EA s.36(1)); rest-day work must be paid under s.37.",
+			"description": "Employment Act 1968 s.36(1) (AGC, read 2026-10-07). https://sso.agc.gov.sg/Act/EmA1968"
+		}
+	},
+	{
+		"id": "8a1271e1-420a-597d-ac1d-60a9ee37a170",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "IR21_ADDITIONAL_PAYMENT_HOLD",
+		"name": "Amended or additional IR21 before a payment after clearance",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(employment.exit_date != \"\" && employment.exit_date <= period.to) && terms.residency_status != \"CITIZEN\" && has(employment.exit_facts.ir21_clearance_on) && !has(employment.exit_facts.ir21_additional_clearance_on) && !has(employment.exit_facts.ir21_exemption) && (employment.exit_date < period.from || (has(earned.month.gross) && earned.month.gross > 0.0))",
+			"message": "A payment to a non-Citizen leaver after the IR21 clearance is held until IRAS clears an Additional/Amended Form IR21 (record exit_facts.ir21_additional_clearance_on).",
+			"description": "IRAS, Tax clearance for employees, \"When There is Additional Income Payable to Your Employee\" (read 2026-10-07): file an Additional/Amended Form IR21 to seek further tax clearance before releasing the additional income; do not report it in the next IR8A/AIS. IRAS, Getting tax clearance: a step-by-step guide, Step 5: after an Amended/Additional IR21 do not release the withheld monies until its Clearance Directive. Income Tax Act 1947 s.68(7). A payment after clearance is a slip of a period after the exit, or a slip after an earlier one in the exit period (an off-cycle run after the final pay). Ceiling: one recorded clearance releases every later payment. https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+		}
+	},
+	{
+		"id": "db6a2d5b-5c42-514b-8dd2-0c4ad30ff5f2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PWM_BONUS",
+		"name": "Progressive Wage Model bonus (cleaning, landscape)",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.pwm_role) && terms.facts.pwm_role in rules.pwm_wages.roles && rules.pwm_wages.roles[terms.facts.pwm_role].sector in [\"CLEANING\", \"LANDSCAPE\"] && terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"] && period.to.endsWith(\"-12-31\") && employment.service_months >= 12 && !(employment.exit_date != \"\" && employment.exit_date <= period.to) && (has(earned.year.bonus) ? earned.year.bonus : 0.0) + (has(earned.month.bonus) ? earned.month.bonus : 0.0) + (has(payslip.lines.bonus) ? payslip.lines.bonus : 0.0) < terms.base_salary * 12.0 / 52.0 * 2.0",
+			"message": "PWM Bonus: the calendar year’s bonus is below two weeks of basic monthly wage (basic × 12 ÷ 52 × 2) for an eligible cleaner or landscape maintenance employee.",
+			"description": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), para 1.5 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf): a Citizen or SPR cleaner with 12 continuous months with the business at its cut-off date is paid at least two weeks of basic monthly wage (monthly basic × 12 ÷ 52 × 2) a year, once or twice a calendar year, in CPF-attracting bonuses. Landscape: Addendum to the Tripartite Cluster for Landscape Industry report on the PWM Bonus, 3 July 2019 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf), an NParks Landscape Company Register condition: the same quantum and service. Read 2026-10-07. Checked on the last slip of the calendar year against the year’s bonus lines; the pro-rated leaver bonus (change of service provider, retirement, medical board-out) is HR’s."
+		}
+	},
+	{
+		"id": "7a0daf38-1d50-5b70-8708-0018e0f1a445",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CPF_CONDITIONAL_WAGE_REFUND",
+		"name": "CPF refund on repaid conditional wages",
+		"rules": {
+			"description": "When an employee repays wages that attracted CPF (a conditional payment such as a sign-on bonus clawed back), apply to CPF Board for the refund of the CPF contributions paid on them no later than one year from the date the wages were repayable, after refunding the employee’s share to the employee. Raised by each PRIOR_WAGE_CASH_REPAYMENT entry; due one year after its day. An overpayment by error is not known to the engine (it charges the First Schedule exactly); its refund (one year from the payment date) is HR’s.",
+			"authority": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions (https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions), read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
+			"trigger": {
+				"collection": "adhoc_catalog_entry",
+				"event": "created"
+			},
+			"when": "has(row.catalog_code) && row.catalog_code == \"PRIOR_WAGE_CASH_REPAYMENT\"",
+			"due": "add_years(row.occurred_on, 1)"
+		}
+	},
+	{
+		"id": "c374a9b2-5e73-598b-920d-094c500fbd49",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"authority": "The SG workplace cases the TASKS below answer: Tripartite Guidelines on Flexible Work Arrangement Requests (in force 1 Dec 2024); Personal Data Protection Act 2012 ss.21–22 and Part 6A.",
+			"kinds": [
+				{
+					"code": "FLEXIBLE_WORK_REQUEST",
+					"name": "Formal flexible work arrangement request"
+				},
+				{
+					"code": "PERSONAL_DATA_ACCESS_REQUEST",
+					"name": "Personal data access request"
+				},
+				{
+					"code": "PERSONAL_DATA_CORRECTION_REQUEST",
+					"name": "Personal data correction request"
+				},
+				{
+					"code": "DATA_BREACH",
+					"name": "Data breach (suspected or confirmed)"
+				}
+			]
+		}
+	},
+	{
+		"id": "334a9b90-b2b6-5c23-8038-7409a6f59320",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
+		"name": "Written decision on a formal FWA request",
+		"rules": {
+			"description": "Give the employee a written decision on a formal flexible work arrangement request within two months of receiving it, with the reason when it is rejected (on reasonable business grounds); discussing alternatives is encouraged. Raised when a FLEXIBLE_WORK_REQUEST case is opened (opened_on = the day the request was received).",
+			"authority": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers (https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers), read 2026-10-07.",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"FLEXIBLE_WORK_REQUEST\"",
+			"due": "add_months(row.opened_on, 2)"
+		}
+	},
+	{
+		"id": "fe7143a2-eb9b-5bb0-b2eb-6020531c92cc",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_ACCESS_CORRECTION_REPLY",
+		"name": "Reply to a personal data access or correction request",
+		"rules": {
+			"description": "Give access to the personal data and its use and disclosure in the past year as soon as reasonably possible (s.21), or correct it as soon as practicable and send the corrected data to every organisation it was disclosed to in the past year (s.22(2)); if that cannot be done within 30 days of the request, tell the applicant in writing within those 30 days by when it will be. Raised when an access or correction case is opened; due 30 days after the request.",
+			"authority": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07.",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\", \"PERSONAL_DATA_CORRECTION_REQUEST\"]",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "ae31449e-9f02-5070-81db-7b136c336ae4",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_BREACH_ASSESSMENT",
+		"name": "Assess whether a data breach is notifiable",
+		"rules": {
+			"description": "Assess, in a reasonable and expeditious manner, whether a data breach is notifiable (significant harm, or 500 or more individuals); the PDPC expects the assessment within 30 calendar days of becoming aware (opened_on) and an explanation for any longer. Record the day it is assessed notifiable as facts.notifiable_assessed_on. Raised when a DATA_BREACH case is opened.",
+			"authority": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07.",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "02b1ccfc-e6c7-5217-a6c1-f0e67d2905ef",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_BREACH_NOTIFICATION",
+		"name": "Notify the PDPC of a notifiable data breach",
+		"rules": {
+			"description": "Notify the Personal Data Protection Commission as soon as practicable and no later than 3 calendar days after the day the breach is assessed notifiable, then each affected individual (s.26D(2), unless an exception applies). Raised by the daily tick for an open DATA_BREACH case once facts.notifiable_assessed_on is recorded; due 3 calendar days after it.",
+			"authority": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07.",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "daily"
+			},
+			"when": "row.kind == \"DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.notifiable_assessed_on)",
+			"due": "add_days(row.facts.notifiable_assessed_on, 3)"
+		}
+	},
+	{
+		"id": "7c6a5ad6-5a7f-5e22-b1b4-a9fa6b1f54cb",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "record_retention",
+		"name": "Record retention after exit",
+		"rules": {
+			"authority": "Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it).",
+			"until": "string(int(employment.exit_date.substring(0, 4)) + 6) + \"-12-31\""
+		}
+	},
+	{
+		"id": "17dd225f-3b23-54e4-be7c-839a4d3384f3",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_RETENTION_DISPOSAL",
+		"name": "Anonymise a former employee’s personal data after retention",
+		"rules": {
+			"description": "Once the statutory retention ends (31 December of the exit year + 6: the Income Tax Act 1947 s.67 five years from the year of assessment, longer than the Employment Act s.95 one year after leaving), cease retaining the former employee’s personal data: anonymise the profile (employment_profile anonymise, which the record_retention rule releases on the same day) unless a legal or business purpose still needs it. Raised at the exit; due that day.",
+			"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.effective_range.to != null",
+			"due": "string(int(exit_on.substring(0, 4)) + 6) + \"-12-31\""
+		}
+	},
+	{
+		"id": "e4d91d6e-8820-5f01-bb38-8780b6fc7602",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "OBLIGATIONS",
+		"scope": "JURISDICTION",
+		"code": "NR_ENTERTAINER_WITHHOLDING",
+		"name": "Withholding tax on non-resident public entertainers (S45)",
+		"rules": {
+			"description": "e-File the S45 withholding return and pay the 15% withholding tax on payments to a non-resident public entertainer by the 15th of the second month after the payment.",
+			"authority": "Income Tax Act 1947 s.45; IRAS (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer), read 2026-10-07: pay by the 15th of the second month from the date of payment.",
+			"schemes": ["WHT_NR_ENTERTAINER"],
+			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
+		}
+	},
+	{
+		"id": "92fe5f1e-caa2-5f16-849e-3ba36c401b2c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_DAILY_12_HOURS",
+		"name": "12 hours a day (Part 4)",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && day.worked_hours > 12.0",
+			"message": "More than 12 hours worked in a day by a Part 4 employee (EA s.38(8)): allowed only for the s.38(2)(a)–(e) emergencies.",
+			"description": "Employment Act 1968 s.38(8) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-), read 2026-10-07: never more than 12 hours in a day save an accident, work essential to the community, defence or security, urgent work to machinery or plant, or an unforeseeable interruption. A warning: the emergency is a fact the sheet does not carry.",
+			"column": "clock_out"
+		}
+	},
+	{
+		"id": "d0859cdf-9d8c-5afa-81d1-989f9d69cfb9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_CONSECUTIVE_HOURS",
+		"name": "6 consecutive hours without a break (Part 4)",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && has(day.intervals) && day.intervals.exists(i, hours_between([i], \"00:00\", \"00:00\") > 6.0)",
+			"message": "More than 6 consecutive hours without a break for a Part 4 employee (EA s.38(1)(a)); continuous work may run 8 hours with 45 minutes for a meal (s.38(1)(c)).",
+			"description": "Employment Act 1968 s.38(1)(a), (c) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-), read 2026-10-07. A warning: work that must be carried on continuously may run 8 consecutive hours including at least 45 minutes for a meal.",
+			"column": "clock_in"
+		}
+	},
+	{
+		"id": "ecec54de-f301-545a-91d8-1a1d18143588",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_WEEKLY_REST_DAY",
+		"name": "A rest day each week (Part 4)",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && week.worked_days >= 7",
+			"message": "Seven days worked in the seven days ending here: a Part 4 employee is entitled to a rest day each week (EA s.36(1)); rest-day work is paid under s.37.",
+			"description": "Employment Act 1968 ss.36(1), 37 (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr36-,pr37-), read 2026-10-07. A warning: rest-day work is lawful when paid at the s.37 rates."
+		}
+	},
+	{
+		"id": "95a8d0f0-d79a-576c-803d-3628a1f3df0e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_YOUNG_NIGHT_WORK",
+		"name": "No night work by a child or young person",
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"when": "(has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day.date) < 16) && terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\"] && has(day.intervals) && hours_between(day.intervals, \"23:00\", \"06:00\") > 0.0",
+			"message": "A child or young person doing manual labour may not work between 11 pm and 6 am.",
+			"description": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). The prohibition admits no exception, so the schedule must be fixed: refused.",
+			"column": "clock_in"
+		}
+	},
+	{
+		"id": "519d078c-5cb7-5049-ad49-46c9cbcba827",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_YOUNG_DAILY_HOURS",
+		"name": "Daily hours of a child or young person",
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"when": "(has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day.date) < 16) && terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\"] && day.worked_hours > (age_on(employee.date_of_birth, day.date) < 15 ? 6.0 : 7.0)",
+			"message": "A child doing manual labour may not work more than 6 hours in a day, a young person more than 7 (school time included).",
+			"description": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). Refused: no exception. School hours are not on the sheet, so only the recorded work is counted.",
+			"column": "clock_out"
+		}
+	},
+	{
+		"id": "59542c78-6806-54b8-8fc7-5b9d1700162d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_YOUNG_REST_DAY",
+		"name": "Rest-day work by a child or young person",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "(has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day.date) < 16) && terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\"] && day.worked && day.day_type == \"REST\"",
+			"message": "A child or young person doing manual labour may work on a rest day only with the Commissioner for Labour’s permission.",
+			"description": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). A warning: the permission is a fact the sheet does not carry."
+		}
+	},
+	{
+		"id": "095d3211-94c9-5499-8398-8434ab6117ae",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_YOUNG_BREAK",
+		"name": "Breaks for a child or young person",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"when": "(has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day.date) < 16) && terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\"] && has(day.intervals) && day.intervals.exists(i, hours_between([i], \"00:00\", \"00:00\") > (age_on(employee.date_of_birth, day.date) < 15 ? 3.0 : 4.0))",
+			"message": "A child doing manual labour may not work more than 3 hours, a young person more than 4, without a 30-minute break.",
+			"description": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). A warning: a break shorter than 30 minutes between two recorded intervals is not detected.",
+			"column": "clock_in"
+		}
+	},
+	{
+		"id": "a7ac653c-8f6e-5e29-be03-b94f576cb0b8",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "CPF_EZPAY_FTP",
+		"name": "CPF EZPay (FTP) submission file",
+		"rules": {
+			"description": "CPF EZPay (FTP) submission file for the selected run’s month: an Employer Header record carrying the Employer Contribution Summary records (one per payment code with an amount: 01 CPF, 02 MBMF, 03 SINDA, 04 CDAC, 05 ECF, 11 SDL), then one Contribution Detail record for each employee’s CPF (contribution, ordinary and additional wages, employment status E/L/N/O) and each self-help-group fund deduction, and the Employer Trailer (record count including header and trailer, total of the summary amounts). Fixed length 150; amounts in cents, zero-padded. Customer input: company.facts.cpf_submission_number (UEN-PTE-01), employee identity_number. One payment advice (advice code 01); the file creation date is the run’s pay date (time 000000), as no clock is read.",
+			"authority": "CPF Act 1953 s.7 and the CPF Regulations; CPF Board, CPF EZPay (FTP) File Specifications, effective 16 January 2025 (https://www.cpf.gov.sg/content/dam/web/employer/making-cpf-contributions/documents/CPFEZPayFTPSpecifications.pdf), read 2026-10-07.",
+			"file": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0] + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1] + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2] + [\"JAN\", \"FEB\", \"MAR\", \"APR\", \"MAY\", \"JUN\", \"JUL\", \"AUG\", \"SEP\", \"OCT\", \"NOV\", \"DEC\"][int((runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(5, 7)) - 1] + (runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(0, 4) + \"01\" + \".DTL\"",
+			"format": "FIXED",
+			"columns": [],
+			"header": [
+				{
+					"value": "\"F\"",
+					"width": 1
+				},
+				{
+					"value": "\" \"",
+					"width": 1
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0]",
+					"width": 10
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1]",
+					"width": 3
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2]",
+					"width": 2
+				},
+				{
+					"value": "\" \"",
+					"width": 1
+				},
+				{
+					"value": "\"01\"",
+					"width": 2
+				},
+				{
+					"value": "(runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(0, 4) + (runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(5, 7) + (runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(8, 10)",
+					"width": 8
+				},
+				{
+					"value": "\"000000\"",
+					"width": 6
+				},
+				{
+					"value": "\"FTP.DTL\"",
+					"width": 13
+				},
+				{
+					"value": "\"\"",
+					"width": 103
+				},
+				{
+					"value": "size(([\"01\", \"02\", \"03\", \"04\", \"05\"].map(c, {\"code\": c, \"amount\": double(sum(items.filter(i, i.item.code == c).map(i, i.item.amount))), \"donors\": c == \"01\" ? 0 : size(items.filter(i, i.item.code == c))}) + [{\"code\": \"11\", \"amount\": round(double(sum(rows.map(r, \"SDL\" in r.totals.statutory ? r.totals.statutory.SDL.employer : 0.0))), 1.0, \"DOWN\"), \"donors\": 0}]).filter(s, s.amount > 0.0)) == 0 ? \"\" : \"\\n\" + ([\"01\", \"02\", \"03\", \"04\", \"05\"].map(c, {\"code\": c, \"amount\": double(sum(items.filter(i, i.item.code == c).map(i, i.item.amount))), \"donors\": c == \"01\" ? 0 : size(items.filter(i, i.item.code == c))}) + [{\"code\": \"11\", \"amount\": round(double(sum(rows.map(r, \"SDL\" in r.totals.statutory ? r.totals.statutory.SDL.employer : 0.0))), 1.0, \"DOWN\"), \"donors\": 0}]).filter(s, s.amount > 0.0).map(s, \"F0\" + ((has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0] + \"          \").substring(0, 10) + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1] + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2] + \" \" + \"01\" + runs[0].period.substring(0, 4) + runs[0].period.substring(5, 7) + s.code + (\"000000000000\" + string(int(round((s.amount) * 100.0, 1.0)))).substring(size(\"000000000000\" + string(int(round((s.amount) * 100.0, 1.0)))) - 12) + (\"0000000\" + string(s.donors)).substring(size(\"0000000\" + string(s.donors)) - 7) + \"                                                                                                       \").join(\"\\n\")"
+				}
+			],
+			"records": [
+				{
+					"each": "[{\"code\": \"01\", \"amount\": (\"CPF\" in totals.statutory ? totals.statutory.CPF.employee + totals.statutory.CPF.employer : 0.0), \"ow\": max(0.0, double(sum([\"BASIC\", \"FIXED_MONTHLY\", \"HOLIDAY_ADJACENT_ABSENCE\", \"HOLIDAY_IN_NO_PAY_LEAVE\", \"HOLIDAY_ON_OFF_DAY\", \"HOLIDAY_WORK\", \"INCENTIVE\", \"NO_PAY_LEAVE\", \"NS_MAKEUP_PAY\", \"ORDINARY_BACKPAY\", \"OVERTIME\", \"PART_TIME_HOLIDAY_WORK\", \"PART_TIME_OVERTIME\", \"PT_ANNUAL_HOURLY_OW\", \"REST_DAY_WORK\"].filter(c, c in totals.lines).map(c, totals.lines[c])))), \"aw\": max(0.0, double(sum([\"ADDITIONAL_BACKPAY\", \"ENCASHMENT\", \"PT_ANNUAL_HOURLY_AW\", \"bonus\"].filter(c, c in totals.lines).map(c, totals.lines[c])))), \"status\": ((contract.effective_range.from != null && contract.effective_range.from >= runs[0].period.substring(0, 7) + \"-01\" && contract.effective_range.from <= month_end(runs[0].period.substring(0, 7) + \"-01\")) && (contract.effective_range.to != null && contract.effective_range.to >= runs[0].period.substring(0, 7) + \"-01\" && contract.effective_range.to <= month_end(runs[0].period.substring(0, 7) + \"-01\")) ? \"O\" : (contract.effective_range.to != null && contract.effective_range.to >= runs[0].period.substring(0, 7) + \"-01\" && contract.effective_range.to <= month_end(runs[0].period.substring(0, 7) + \"-01\")) ? \"L\" : (contract.effective_range.from != null && contract.effective_range.from >= runs[0].period.substring(0, 7) + \"-01\" && contract.effective_range.from <= month_end(runs[0].period.substring(0, 7) + \"-01\")) ? \"N\" : \"E\")}].filter(i, i.amount > 0.0) + [{\"code\": \"02\", \"scheme\": \"MBMF\"}, {\"code\": \"03\", \"scheme\": \"SINDA\"}, {\"code\": \"04\", \"scheme\": \"CDAC\"}, {\"code\": \"05\", \"scheme\": \"ECF\"}].filter(f, f.scheme in totals.statutory && totals.statutory[f.scheme].employee > 0.0).map(f, {\"code\": f.code, \"amount\": totals.statutory[f.scheme].employee, \"ow\": 0.0, \"aw\": 0.0, \"status\": \" \"})",
+					"fields": [
+						{
+							"value": "\"F\"",
+							"width": 1
+						},
+						{
+							"value": "\"1\"",
+							"width": 1
+						},
+						{
+							"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0]",
+							"width": 10
+						},
+						{
+							"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1]",
+							"width": 3
+						},
+						{
+							"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2]",
+							"width": 2
+						},
+						{
+							"value": "\" \"",
+							"width": 1
+						},
+						{
+							"value": "\"01\"",
+							"width": 2
+						},
+						{
+							"value": "runs[0].period.substring(0, 4) + runs[0].period.substring(5, 7)",
+							"width": 6
+						},
+						{
+							"value": "item.code",
+							"width": 2
+						},
+						{
+							"value": "employee.identity_number != null ? employee.identity_number : \"\"",
+							"width": 9
+						},
+						{
+							"value": "string(int(round((item.amount) * 100.0, 1.0)))",
+							"width": 12,
+							"align": "right",
+							"pad": "0"
+						},
+						{
+							"value": "string(int(round((item.ow) * 100.0, 1.0)))",
+							"width": 10,
+							"align": "right",
+							"pad": "0"
+						},
+						{
+							"value": "string(int(round((item.aw) * 100.0, 1.0)))",
+							"width": 10,
+							"align": "right",
+							"pad": "0"
+						},
+						{
+							"value": "item.status",
+							"width": 1
+						},
+						{
+							"value": "employee.name != null ? employee.name : \"\"",
+							"width": 66
+						},
+						{
+							"value": "\"\"",
+							"width": 14
+						}
+					]
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"F\"",
+					"width": 1
+				},
+				{
+					"value": "\"9\"",
+					"width": 1
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0]",
+					"width": 10
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1]",
+					"width": 3
+				},
+				{
+					"value": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2]",
+					"width": 2
+				},
+				{
+					"value": "\" \"",
+					"width": 1
+				},
+				{
+					"value": "\"01\"",
+					"width": 2
+				},
+				{
+					"value": "string(2 + size(([\"01\", \"02\", \"03\", \"04\", \"05\"].map(c, {\"code\": c, \"amount\": double(sum(items.filter(i, i.item.code == c).map(i, i.item.amount))), \"donors\": c == \"01\" ? 0 : size(items.filter(i, i.item.code == c))}) + [{\"code\": \"11\", \"amount\": round(double(sum(rows.map(r, \"SDL\" in r.totals.statutory ? r.totals.statutory.SDL.employer : 0.0))), 1.0, \"DOWN\"), \"donors\": 0}]).filter(s, s.amount > 0.0)) + size(items))",
+					"width": 7,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round((sum(([\"01\", \"02\", \"03\", \"04\", \"05\"].map(c, {\"code\": c, \"amount\": double(sum(items.filter(i, i.item.code == c).map(i, i.item.amount))), \"donors\": c == \"01\" ? 0 : size(items.filter(i, i.item.code == c))}) + [{\"code\": \"11\", \"amount\": round(double(sum(rows.map(r, \"SDL\" in r.totals.statutory ? r.totals.statutory.SDL.employer : 0.0))), 1.0, \"DOWN\"), \"donors\": 0}]).filter(s, s.amount > 0.0).map(s, s.amount))) * 100.0, 1.0)))",
+					"width": 15,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "\"\"",
+					"width": 108
+				}
+			]
+		}
+	},
+	{
+		"id": "f746e65e-b2d4-5895-9bc8-8a7356686c53",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			]
+		}
+	},
+	{
+		"id": "1123b2db-f8d6-5f51-9a56-c7e419490b91",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "bank_ocbc_fast",
+		"name": "OCBC FAST bulk payment file",
+		"rules": {
+			"description": "The fixed-width FAST bulk payment file an OCBC disbursement account uploads: a header (record 0: the payer account, its name, the pay day), one record 1 per payable employment (net above zero, no slip on hold) and a trailer (record 9: the count and the total in cents). Rendered only when the entity pays from an OCBC Singapore account (its disbursement bank code starts OCBCSG).",
+			"applies_when": "has(company.disbursement_account) && company.disbursement_account != null && has(company.disbursement_account.bank_code) && company.disbursement_account.bank_code.upperAscii().startsWith(\"OCBCSG\")",
+			"file": "\"bank-\" + runs[0].period + \".fast.txt\"",
+			"format": "FIXED",
+			"when": "totals.net > 0.0 && !slips.exists(s, s.status == \"ON_HOLD\")",
+			"header": [
+				{
+					"value": "\"0\"",
+					"width": 1
+				},
+				{
+					"value": "has(company.disbursement_account.bank_account_number) ? company.disbursement_account.bank_account_number : \"\"",
+					"width": 20
+				},
+				{
+					"value": "(has(company.disbursement_account.bank_account_name) ? company.disbursement_account.bank_account_name : has(company.disbursement_account.bank_name) ? company.disbursement_account.bank_name : \"\").upperAscii()",
+					"width": 35
+				},
+				{
+					"value": "runs[0].pay_date.substring(0, 4) + runs[0].pay_date.substring(5, 7) + runs[0].pay_date.substring(8, 10)",
+					"width": 8
+				}
+			],
+			"columns": [
+				{
+					"header": "record",
+					"value": "\"1\"",
+					"width": 1
+				},
+				{
+					"header": "account",
+					"value": "has(contract.bank) && contract.bank != null && has(contract.bank.bank_account_number) ? contract.bank.bank_account_number : \"\"",
+					"width": 34
+				},
+				{
+					"header": "amount_cents",
+					"value": "string(int(round(totals.net * 100.0, 1.0)))",
+					"width": 12,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"header": "name",
+					"value": "(has(employee.name) ? employee.name : \"\").upperAscii()",
+					"width": 35
+				},
+				{
+					"header": "reference",
+					"value": "contract.employee_number",
+					"width": 16
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"9\"",
+					"width": 1
+				},
+				{
+					"value": "string(count)",
+					"width": 6,
+					"align": "right",
+					"pad": "0"
+				},
+				{
+					"value": "string(int(round(sum(rows.map(r, r.totals.net)) * 100.0, 1.0)))",
+					"width": 18,
+					"align": "right",
+					"pad": "0"
+				}
+			]
+		}
+	},
+	{
+		"id": "dc003549-4851-53bc-bb96-98fd24ae0965",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				}
+			]
+		}
+	},
+	{
+		"id": "da873921-de5b-5a91-aaa3-ec4510ae60de",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "IR8A_WORKSHEET",
+		"name": "Form IR8A worksheet (AIS entry)",
+		"rules": {
+			"description": "One row per employee over the selected runs (a calendar year’s runs for the return), mapping the payroll lines to the Form IR8A items to key into AIS (myTax Portal or the payroll API, which take no file). a) gross salary, fees, leave pay, wages and overtime; b) bonus; c) director’s fees; d1) allowances; d3) notice pay (the taxable lump sum; retrenchment benefit and the EAP are compensation for loss of office, not taxable, and are listed apart); d7) ESOP/ESOW gains (Appendix 8B, the APPENDIX_8B base); d8) value of benefits-in-kind (Appendix 8A, the APPENDIX_8A base); employee’s compulsory CPF; donations (CDAC, ECF, SINDA); Mosque Building Fund (MBMF).",
+			"authority": "Income Tax Act 1947 s.68(2); IRAS, Explanatory notes for completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf), read 2026-10-07: items a), b), c), d1), d3) and the deductions (I) employee’s compulsory CPF, (II) donations, (III) Mosque Building Fund.",
+			"file": "\"IR8A_\" + runs[0].period.substring(0, 4) + \".csv\"",
+			"columns": [
+				{
+					"header": "Employee name",
+					"value": "employee.name != null ? employee.name : \"\""
+				},
+				{
+					"header": "Identification number",
+					"value": "employee.identity_number != null ? employee.identity_number : \"\""
+				},
+				{
+					"header": "a) Gross salary, fees, leave pay, wages and overtime",
+					"value": "double(sum([\"BASIC\", \"OVERTIME\", \"INCENTIVE\", \"NO_PAY_LEAVE\", \"ENCASHMENT\", \"HOLIDAY_WORK\", \"REST_DAY_WORK\", \"PART_TIME_HOLIDAY_WORK\", \"HOLIDAY_ON_OFF_DAY\", \"HOLIDAY_IN_NO_PAY_LEAVE\", \"HOLIDAY_ADJACENT_ABSENCE\", \"PART_TIME_EXTRA_HOURS\", \"PART_TIME_OVERTIME\", \"ORDINARY_BACKPAY\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "b) Bonus",
+					"value": "double(sum([\"bonus\", \"ADDITIONAL_BACKPAY\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "c) Director’s fees",
+					"value": "double(sum([\"DIRECTOR_GENERAL_MEETING_FEE\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "d1) Allowances",
+					"value": "double(sum([\"FIXED_MONTHLY\", \"PT_ANNUAL_HOURLY_OW\", \"PT_ANNUAL_HOURLY_AW\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "d3) Lump sum: notice pay",
+					"value": "double(sum([\"SALARY_IN_LIEU_OF_NOTICE\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "Compensation for loss of office (not taxable)",
+					"value": "double(sum([\"RETRENCHMENT_BENEFIT\", \"EMPLOYMENT_ASSISTANCE_PAYMENT\"].filter(c, c in totals.lines).map(c, totals.lines[c])))"
+				},
+				{
+					"header": "d7) Gains from ESOP/ESOW plans (Appendix 8B)",
+					"value": "(\"APPENDIX_8B\" in totals.statutory ? totals.statutory.APPENDIX_8B.base : 0.0)"
+				},
+				{
+					"header": "d8) Value of benefits-in-kind (Appendix 8A)",
+					"value": "(\"APPENDIX_8A\" in totals.statutory ? totals.statutory.APPENDIX_8A.base : 0.0)"
+				},
+				{
+					"header": "Employee’s compulsory CPF",
+					"value": "(\"CPF\" in totals.statutory ? totals.statutory.CPF.employee : 0.0)"
+				},
+				{
+					"header": "Donations (CDAC, ECF, SINDA)",
+					"value": "(\"CDAC\" in totals.statutory ? totals.statutory.CDAC.employee : 0.0) + (\"ECF\" in totals.statutory ? totals.statutory.ECF.employee : 0.0) + (\"SINDA\" in totals.statutory ? totals.statutory.SINDA.employee : 0.0)"
+				},
+				{
+					"header": "Mosque Building Fund",
+					"value": "(\"MBMF\" in totals.statutory ? totals.statutory.MBMF.employee : 0.0)"
+				}
+			]
+		}
+	},
+	{
+		"id": "440b7907-07cf-596b-87fb-2b564d00a685",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "NS_MAKE_UP_PAY_CLAIM",
+		"name": "NS make-up pay claim review",
+		"rules": {
+			"description": "For each national service leave spell (ORNS or SAFVC activity) check the auto-generated make-up pay claim on OneNS ‘Employee Payment Management’ (open about one month before the activity). MUP is generated from the CPF Ordinary Wages two to three months before the activity and the average of Additional Wages received in at least 8 of the last 12 months (less the two highest); a recent increase or a new hire without CPF data needs an amended or new claim. A DIRECT employer keeps paying the full wages as though the employee were not away and is reimbursed (submit changes two weeks before the activity starts); otherwise the salary is reduced for the days away and MINDEF/MHA pays the employee. Every change or appeal must be submitted within three months from the start of the activity (due date).",
+			"authority": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"event": "created"
+			},
+			"when": "row.catalog_code == \"NS_LEAVE\" && row.activity == \"TIME_OFF\" && row.from != null",
+			"due": "add_months(row.from, 3)"
+		}
+	},
+	{
+		"id": "5b0bfabc-aa54-5f3a-965b-50b7db444ce2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "APPENDIX_8A_WORKSHEET",
+		"name": "Appendix 8A worksheet (AIS entry)",
+		"rules": {
+			"description": "One record per benefit-in-kind entry the selected runs settled (a calendar year’s runs for the return): each place of residence (items 1–2f), utilities and housekeeping (2g–2j), hotel accommodation (3a–3c), car (4i) and other benefit (4a–4h, 4j), valued as its BIK_* class values it, to key into AIS (no file is taken).",
+			"authority": "Income Tax Act 1947 s.68(2); IRAS, Appendix 8A (IR8A(A/1/2027)) and Explanatory Notes for Form IR8A and Appendix 8A, year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf), read 2026-10-08: a separate Appendix 8A for each place of residence or break in the period; the total of items 2 to 4 is item d8 of Form IR8A.",
+			"file": "\"APPENDIX_8A_\" + runs[0].period.substring(0, 4) + \".csv\"",
+			"columns": [
+				{
+					"header": "Employee name",
+					"value": "\"\""
+				},
+				{
+					"header": "Identification number",
+					"value": "\"\""
+				},
+				{
+					"header": "Item",
+					"value": "\"\""
+				},
+				{
+					"header": "Period from",
+					"value": "\"\""
+				},
+				{
+					"header": "Period to",
+					"value": "\"\""
+				},
+				{
+					"header": "Days",
+					"value": "\"\""
+				},
+				{
+					"header": "Employees sharing",
+					"value": "\"\""
+				},
+				{
+					"header": "2a) Annual value (apportioned)",
+					"value": "\"\""
+				},
+				{
+					"header": "2b) Furniture and fittings",
+					"value": "\"\""
+				},
+				{
+					"header": "2c) Rent paid by employer",
+					"value": "\"\""
+				},
+				{
+					"header": "2d) Taxable value of place of residence",
+					"value": "\"\""
+				},
+				{
+					"header": "2e) Rent paid by employee",
+					"value": "\"\""
+				},
+				{
+					"header": "2f) Total taxable value of place of residence",
+					"value": "\"\""
+				},
+				{
+					"header": "2g) Utilities, telephone and gadgets",
+					"value": "\"\""
+				},
+				{
+					"header": "2h) Driver",
+					"value": "\"\""
+				},
+				{
+					"header": "2i) Servant, gardener, upkeep of compound",
+					"value": "\"\""
+				},
+				{
+					"header": "2j) Taxable value of utilities and housekeeping",
+					"value": "\"\""
+				},
+				{
+					"header": "3a) Hotel accommodation cost",
+					"value": "\"\""
+				},
+				{
+					"header": "3b) Paid by employee",
+					"value": "\"\""
+				},
+				{
+					"header": "3c) Taxable value of hotel accommodation",
+					"value": "\"\""
+				},
+				{
+					"header": "4) Value of other benefit",
+					"value": "\"\""
+				}
+			],
+			"records": [
+				{
+					"each": "entries.filter(e, e.code == \"BIK_PLACE_OF_RESIDENCE\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "Item",
+							"value": "\"2\""
+						},
+						{
+							"header": "Period from",
+							"value": "(has(item.facts.occupied_from) ? string(item.facts.occupied_from) : \"\")"
+						},
+						{
+							"header": "Period to",
+							"value": "(has(item.facts.occupied_to) ? string(item.facts.occupied_to) : \"\")"
+						},
+						{
+							"header": "Days",
+							"value": "(has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0)"
+						},
+						{
+							"header": "Employees sharing",
+							"value": "(has(item.facts.sharers) ? double(item.facts.sharers) : 1.0)"
+						},
+						{
+							"header": "2a) Annual value (apportioned)",
+							"value": "(has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0)"
+						},
+						{
+							"header": "2b) Furniture and fittings",
+							"value": "(has(item.facts.employer_rent) ? 0.0 : round((has(item.facts.furnishing) && item.facts.furnishing == \"FULL\" ? 0.5 : has(item.facts.furnishing) && item.facts.furnishing == \"PARTIAL\" ? 0.4 : 0.0) * (has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0), 0.01, \"HALF_UP\"))"
+						},
+						{
+							"header": "2c) Rent paid by employer",
+							"value": "(has(item.facts.employer_rent) ? double(item.facts.employer_rent) : 0.0)"
+						},
+						{
+							"header": "2d) Taxable value of place of residence",
+							"value": "(has(item.facts.employer_rent) ? double(item.facts.employer_rent) : (has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0) + (has(item.facts.employer_rent) ? 0.0 : round((has(item.facts.furnishing) && item.facts.furnishing == \"FULL\" ? 0.5 : has(item.facts.furnishing) && item.facts.furnishing == \"PARTIAL\" ? 0.4 : 0.0) * (has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0), 0.01, \"HALF_UP\")))"
+						},
+						{
+							"header": "2e) Rent paid by employee",
+							"value": "(has(item.facts.employee_rent) ? double(item.facts.employee_rent) : 0.0)"
+						},
+						{
+							"header": "2f) Total taxable value of place of residence",
+							"value": "max(0.0, (has(item.facts.employer_rent) ? double(item.facts.employer_rent) : (has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0) + (has(item.facts.employer_rent) ? 0.0 : round((has(item.facts.furnishing) && item.facts.furnishing == \"FULL\" ? 0.5 : has(item.facts.furnishing) && item.facts.furnishing == \"PARTIAL\" ? 0.4 : 0.0) * (has(item.facts.annual_value) ? round(double(item.facts.annual_value) / (has(item.facts.sharers) ? double(item.facts.sharers) : 1.0) * (has(item.facts.occupied_from) && has(item.facts.occupied_to) ? (double(calendar_distance_days(item.facts.occupied_from, item.facts.occupied_to)) + 1.0) : 365.0) / 365.0, 0.01, \"DOWN\") : 0.0), 0.01, \"HALF_UP\"))) - (has(item.facts.employee_rent) ? double(item.facts.employee_rent) : 0.0))"
+						},
+						{
+							"header": "2g) Utilities, telephone and gadgets",
+							"value": "\"\""
+						},
+						{
+							"header": "2h) Driver",
+							"value": "\"\""
+						},
+						{
+							"header": "2i) Servant, gardener, upkeep of compound",
+							"value": "\"\""
+						},
+						{
+							"header": "2j) Taxable value of utilities and housekeeping",
+							"value": "\"\""
+						},
+						{
+							"header": "3a) Hotel accommodation cost",
+							"value": "\"\""
+						},
+						{
+							"header": "3b) Paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "3c) Taxable value of hotel accommodation",
+							"value": "\"\""
+						},
+						{
+							"header": "4) Value of other benefit",
+							"value": "\"\""
+						}
+					]
+				},
+				{
+					"each": "entries.filter(e, e.code == \"BIK_UTILITIES_HOUSEKEEPING\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "Item",
+							"value": "\"2\""
+						},
+						{
+							"header": "Period from",
+							"value": "\"\""
+						},
+						{
+							"header": "Period to",
+							"value": "\"\""
+						},
+						{
+							"header": "Days",
+							"value": "\"\""
+						},
+						{
+							"header": "Employees sharing",
+							"value": "\"\""
+						},
+						{
+							"header": "2a) Annual value (apportioned)",
+							"value": "\"\""
+						},
+						{
+							"header": "2b) Furniture and fittings",
+							"value": "\"\""
+						},
+						{
+							"header": "2c) Rent paid by employer",
+							"value": "\"\""
+						},
+						{
+							"header": "2d) Taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2e) Rent paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "2f) Total taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2g) Utilities, telephone and gadgets",
+							"value": "(has(item.facts.utilities) ? double(item.facts.utilities) : 0.0)"
+						},
+						{
+							"header": "2h) Driver",
+							"value": "(has(item.facts.driver_annual_cost) ? round(double(item.facts.driver_annual_cost) * double(item.facts.private_mileage) / double(item.facts.total_mileage), 0.01, \"HALF_UP\") : 0.0)"
+						},
+						{
+							"header": "2i) Servant, gardener, upkeep of compound",
+							"value": "(has(item.facts.servant_gardener) ? double(item.facts.servant_gardener) : 0.0)"
+						},
+						{
+							"header": "2j) Taxable value of utilities and housekeeping",
+							"value": "round((has(item.facts.utilities) ? double(item.facts.utilities) : 0.0) + (has(item.facts.driver_annual_cost) ? round(double(item.facts.driver_annual_cost) * double(item.facts.private_mileage) / double(item.facts.total_mileage), 0.01, \"HALF_UP\") : 0.0) + (has(item.facts.servant_gardener) ? double(item.facts.servant_gardener) : 0.0), 0.01, \"HALF_UP\")"
+						},
+						{
+							"header": "3a) Hotel accommodation cost",
+							"value": "\"\""
+						},
+						{
+							"header": "3b) Paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "3c) Taxable value of hotel accommodation",
+							"value": "\"\""
+						},
+						{
+							"header": "4) Value of other benefit",
+							"value": "\"\""
+						}
+					]
+				},
+				{
+					"each": "entries.filter(e, e.code == \"BIK_HOTEL_ACCOMMODATION\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "Item",
+							"value": "\"3\""
+						},
+						{
+							"header": "Period from",
+							"value": "\"\""
+						},
+						{
+							"header": "Period to",
+							"value": "\"\""
+						},
+						{
+							"header": "Days",
+							"value": "\"\""
+						},
+						{
+							"header": "Employees sharing",
+							"value": "\"\""
+						},
+						{
+							"header": "2a) Annual value (apportioned)",
+							"value": "\"\""
+						},
+						{
+							"header": "2b) Furniture and fittings",
+							"value": "\"\""
+						},
+						{
+							"header": "2c) Rent paid by employer",
+							"value": "\"\""
+						},
+						{
+							"header": "2d) Taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2e) Rent paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "2f) Total taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2g) Utilities, telephone and gadgets",
+							"value": "\"\""
+						},
+						{
+							"header": "2h) Driver",
+							"value": "\"\""
+						},
+						{
+							"header": "2i) Servant, gardener, upkeep of compound",
+							"value": "\"\""
+						},
+						{
+							"header": "2j) Taxable value of utilities and housekeeping",
+							"value": "\"\""
+						},
+						{
+							"header": "3a) Hotel accommodation cost",
+							"value": "double(item.facts.hotel_cost)"
+						},
+						{
+							"header": "3b) Paid by employee",
+							"value": "(has(item.facts.employee_paid) ? double(item.facts.employee_paid) : 0.0)"
+						},
+						{
+							"header": "3c) Taxable value of hotel accommodation",
+							"value": "max(0.0, double(item.facts.hotel_cost) - (has(item.facts.employee_paid) ? double(item.facts.employee_paid) : 0.0))"
+						},
+						{
+							"header": "4) Value of other benefit",
+							"value": "\"\""
+						}
+					]
+				},
+				{
+					"each": "entries.filter(e, e.code == \"BIK_CAR\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "Item",
+							"value": "\"4i\""
+						},
+						{
+							"header": "Period from",
+							"value": "(has(item.facts.provided_from) ? string(item.facts.provided_from) : \"\")"
+						},
+						{
+							"header": "Period to",
+							"value": "(has(item.facts.provided_to) ? string(item.facts.provided_to) : \"\")"
+						},
+						{
+							"header": "Days",
+							"value": "\"\""
+						},
+						{
+							"header": "Employees sharing",
+							"value": "\"\""
+						},
+						{
+							"header": "2a) Annual value (apportioned)",
+							"value": "\"\""
+						},
+						{
+							"header": "2b) Furniture and fittings",
+							"value": "\"\""
+						},
+						{
+							"header": "2c) Rent paid by employer",
+							"value": "\"\""
+						},
+						{
+							"header": "2d) Taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2e) Rent paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "2f) Total taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2g) Utilities, telephone and gadgets",
+							"value": "\"\""
+						},
+						{
+							"header": "2h) Driver",
+							"value": "\"\""
+						},
+						{
+							"header": "2i) Servant, gardener, upkeep of compound",
+							"value": "\"\""
+						},
+						{
+							"header": "2j) Taxable value of utilities and housekeeping",
+							"value": "\"\""
+						},
+						{
+							"header": "3a) Hotel accommodation cost",
+							"value": "\"\""
+						},
+						{
+							"header": "3b) Paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "3c) Taxable value of hotel accommodation",
+							"value": "\"\""
+						},
+						{
+							"header": "4) Value of other benefit",
+							"value": "round(3.0 / 7.0 * (has(item.facts.car_kind) && item.facts.car_kind == \"LEASED\" ? double(item.facts.rental_cost) + (has(item.facts.running_costs) ? double(item.facts.running_costs) : 0.0) : (double(item.facts.car_cost) - (has(item.facts.parf_rebate) ? double(item.facts.parf_rebate) : 0.0)) / (has(item.facts.depreciation_years) ? double(item.facts.depreciation_years) : 10.0) * (has(item.facts.provided_from) && has(item.facts.provided_to) ? (double(calendar_distance_days(item.facts.provided_from, item.facts.provided_to)) + 1.0) : 365.0) / 365.0 + (has(item.facts.running_costs) ? double(item.facts.running_costs) : 0.0)), 1.0, \"DOWN\")"
+						}
+					]
+				},
+				{
+					"each": "entries.filter(e, e.code == \"BIK_OTHER\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "Item",
+							"value": "(has(item.facts.appendix_8a_item) ? string(item.facts.appendix_8a_item) : \"\")"
+						},
+						{
+							"header": "Period from",
+							"value": "\"\""
+						},
+						{
+							"header": "Period to",
+							"value": "\"\""
+						},
+						{
+							"header": "Days",
+							"value": "\"\""
+						},
+						{
+							"header": "Employees sharing",
+							"value": "\"\""
+						},
+						{
+							"header": "2a) Annual value (apportioned)",
+							"value": "\"\""
+						},
+						{
+							"header": "2b) Furniture and fittings",
+							"value": "\"\""
+						},
+						{
+							"header": "2c) Rent paid by employer",
+							"value": "\"\""
+						},
+						{
+							"header": "2d) Taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2e) Rent paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "2f) Total taxable value of place of residence",
+							"value": "\"\""
+						},
+						{
+							"header": "2g) Utilities, telephone and gadgets",
+							"value": "\"\""
+						},
+						{
+							"header": "2h) Driver",
+							"value": "\"\""
+						},
+						{
+							"header": "2i) Servant, gardener, upkeep of compound",
+							"value": "\"\""
+						},
+						{
+							"header": "2j) Taxable value of utilities and housekeeping",
+							"value": "\"\""
+						},
+						{
+							"header": "3a) Hotel accommodation cost",
+							"value": "\"\""
+						},
+						{
+							"header": "3b) Paid by employee",
+							"value": "\"\""
+						},
+						{
+							"header": "3c) Taxable value of hotel accommodation",
+							"value": "\"\""
+						},
+						{
+							"header": "4) Value of other benefit",
+							"value": "item.amount"
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"id": "f5f2a438-93e2-59ba-a3e5-665c289d15ba",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "APPENDIX_8B_WORKSHEET",
+		"name": "Appendix 8B worksheet (AIS entry)",
+		"rules": {
+			"description": "One record per share-plan entry the selected runs settled: each ESOP exercise or ESOW grant/vesting (SHARE_PLAN_GAIN, including a gain realised after the employee left, on a slip of its own) and each deemed exercise at tax clearance (SHARE_PLAN_DEEMED_GAIN), with the Appendix 8B columns (a)–(h).",
+			"authority": "Income Tax Act 1947 ss.10(1)(b), (6)–(7), 68(2); IRAS, Appendix 8B (App8B(1/2027)) and its Explanatory Notes, year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf), read 2026-10-08: columns (a)–(h), (h) = (f − e) × g, the total is item d7 of Form IR8A; columns (a)–(b) only when the granting company is not the employer. A deemed-exercise gain (IR21) is listed with its valuation day in (d).",
+			"file": "\"APPENDIX_8B_\" + runs[0].period.substring(0, 4) + \".csv\"",
+			"columns": [
+				{
+					"header": "Employee name",
+					"value": "\"\""
+				},
+				{
+					"header": "Identification number",
+					"value": "\"\""
+				},
+				{
+					"header": "(a) Company registration number",
+					"value": "\"\""
+				},
+				{
+					"header": "(b) Name of company",
+					"value": "\"\""
+				},
+				{
+					"header": "(c1) Type of plan",
+					"value": "\"\""
+				},
+				{
+					"header": "(c2) Date of grant",
+					"value": "\"\""
+				},
+				{
+					"header": "(d) Date of exercise, vesting or moratorium lifted",
+					"value": "\"\""
+				},
+				{
+					"header": "(e) Exercise price or price paid per share",
+					"value": "\"\""
+				},
+				{
+					"header": "(f) Open market value per share",
+					"value": "\"\""
+				},
+				{
+					"header": "(g) Number of shares acquired",
+					"value": "\"\""
+				},
+				{
+					"header": "(h) Gross gain (f − e) × g",
+					"value": "\"\""
+				},
+				{
+					"header": "Basis",
+					"value": "\"\""
+				}
+			],
+			"records": [
+				{
+					"each": "entries.filter(e, e.code == \"SHARE_PLAN_GAIN\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "(a) Company registration number",
+							"value": "(has(item.facts.grantor_registration_number) ? string(item.facts.grantor_registration_number) : \"\")"
+						},
+						{
+							"header": "(b) Name of company",
+							"value": "(has(item.facts.grantor_name) ? string(item.facts.grantor_name) : \"\")"
+						},
+						{
+							"header": "(c1) Type of plan",
+							"value": "(has(item.facts.plan) ? string(item.facts.plan) : \"\")"
+						},
+						{
+							"header": "(c2) Date of grant",
+							"value": "(has(item.facts.grant_date) ? string(item.facts.grant_date) : \"\")"
+						},
+						{
+							"header": "(d) Date of exercise, vesting or moratorium lifted",
+							"value": "(has(item.facts.gain_date) ? string(item.facts.gain_date) : \"\")"
+						},
+						{
+							"header": "(e) Exercise price or price paid per share",
+							"value": "double(item.facts.exercise_price)"
+						},
+						{
+							"header": "(f) Open market value per share",
+							"value": "double(item.facts.open_market_value)"
+						},
+						{
+							"header": "(g) Number of shares acquired",
+							"value": "double(item.facts.shares)"
+						},
+						{
+							"header": "(h) Gross gain (f − e) × g",
+							"value": "max(0.0, round((double(item.facts.open_market_value) - double(item.facts.exercise_price)) * double(item.facts.shares), 0.01, \"HALF_UP\"))"
+						},
+						{
+							"header": "Basis",
+							"value": "\"ACTUAL\""
+						}
+					]
+				},
+				{
+					"each": "entries.filter(e, e.code == \"SHARE_PLAN_DEEMED_GAIN\")",
+					"fields": [
+						{
+							"header": "Employee name",
+							"value": "employee.name != null ? employee.name : \"\""
+						},
+						{
+							"header": "Identification number",
+							"value": "employee.identity_number != null ? employee.identity_number : \"\""
+						},
+						{
+							"header": "(a) Company registration number",
+							"value": "(has(item.facts.grantor_registration_number) ? string(item.facts.grantor_registration_number) : \"\")"
+						},
+						{
+							"header": "(b) Name of company",
+							"value": "(has(item.facts.grantor_name) ? string(item.facts.grantor_name) : \"\")"
+						},
+						{
+							"header": "(c1) Type of plan",
+							"value": "(has(item.facts.plan) ? string(item.facts.plan) : \"\")"
+						},
+						{
+							"header": "(c2) Date of grant",
+							"value": "(has(item.facts.grant_date) ? string(item.facts.grant_date) : \"\")"
+						},
+						{
+							"header": "(d) Date of exercise, vesting or moratorium lifted",
+							"value": "(has(item.facts.valued_on) ? string(item.facts.valued_on) : \"\")"
+						},
+						{
+							"header": "(e) Exercise price or price paid per share",
+							"value": "double(item.facts.exercise_price)"
+						},
+						{
+							"header": "(f) Open market value per share",
+							"value": "double(item.facts.open_market_value)"
+						},
+						{
+							"header": "(g) Number of shares acquired",
+							"value": "double(item.facts.shares)"
+						},
+						{
+							"header": "(h) Gross gain (f − e) × g",
+							"value": "max(0.0, round((double(item.facts.open_market_value) - double(item.facts.exercise_price)) * double(item.facts.shares), 0.01, \"HALF_UP\"))"
+						},
+						{
+							"header": "Basis",
+							"value": "\"DEEMED_IR21\""
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"id": "796248db-b062-5215-b561-008b8f973016",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "REST_DAY_WORK_REQUESTER_MISSING",
+		"name": "Rest-day work without who asked for it",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "employment.classification != \"NON_EA\" && ((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && size(work.days.filter(d, d.day_type == \"REST\" && d.worked_hours > 0.0)) > 0 && !has(employee.facts.rest_day_work_requester)",
+			"message": "Rest-day work is recorded but not who asked for it (employee.facts.rest_day_work_requester): EA s.37 pays 1 or 2 days at the employer’s request, ½ or 1 at the employee’s. Record it and rebuild before paying.",
+			"description": "Employment Act 1968 s.37(2)–(3): the rest-day pay depends on who requested the work; the slip is held rather than paying nothing."
+		}
+	},
+	{
+		"id": "0d3f808e-8072-5d3a-a9aa-90d150051384",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "REST_DAY_NORMAL_HOURS_MISSING",
+		"name": "Rest-day work without normal daily hours",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "employment.classification != \"NON_EA\" && ((terms.statutory_work_category != \"NON_MANUAL\" && terms.base_salary <= 4500.0) || (terms.statutory_work_category == \"NON_MANUAL\" && terms.base_salary <= 2600.0)) && size(work.days.filter(d, d.day_type == \"REST\" && d.worked_hours > 0.0)) > 0 && !((has(employee.facts.normal_daily_hours) ? double(employee.facts.normal_daily_hours) : size(work.days.filter(w, w.day_type == \"WORK\" && w.scheduled_hours > 0.0)) > 0 ? double(first(work.days.filter(w, w.day_type == \"WORK\" && w.scheduled_hours > 0.0).map(w, w.scheduled_hours))) : 0.0) > 0.0)",
+			"message": "Rest-day work is recorded but the normal daily hours are unknown (no employee.facts.normal_daily_hours and no planned working shift): EA s.37 pays by whether the work exceeded half of them. Record them and rebuild before paying.",
+			"description": "Employment Act 1968 s.37(2)–(3): half or more of the normal daily hours decides the rest-day pay; the slip is held rather than paying nothing."
+		}
+	},
+	{
+		"id": "20635c95-cbcb-5a8d-b3f1-bf9f7b35b064",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "PART_TIME_HOLIDAY_HOURS_MISSING",
+		"name": "Part-time holiday work without contracted weekly hours",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "terms.employment_type == \"PART_TIME\" && !has(employee.facts.part_time_weekly_hours) && size(work.days.filter(d, has(d.holiday_kind) && d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] && d.worked_hours > 0.0)) > 0",
+			"message": "A part-timer worked a public holiday but the contracted weekly hours (employee.facts.part_time_weekly_hours) are not recorded, so the hourly basic rate cannot be set. Record them and rebuild before paying.",
+			"description": "Employment (Part-Time Employees) Regulations: holiday work is paid at the hourly basic rate from the contracted hours; the slip is held rather than paying nothing."
 		}
 	}
 ]

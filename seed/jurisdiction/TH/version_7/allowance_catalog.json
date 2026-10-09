@@ -1,0 +1,26 @@
+[
+	{
+		"id": "d13ea036-7c8c-546d-b931-37096d29b205",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "FIXED_ALLOWANCE",
+		"name": "Fixed monthly allowance",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["SSO", "WCF", "PND1", "EWF"],
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
+		"authority": "Labour Protection Act B.E. 2541 (1998) s.5 and Social Security Act B.E. 2533 (1990) s.5: a fixed allowance paid every month for work in normal time is wage, so it enters the SSO and WCF bases; employment income under Revenue Code s.40(1)."
+	},
+	{
+		"id": "0b3bbebe-bdcf-516a-99b1-a40d842ad87b",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "BENEFIT_IN_KIND",
+		"name": "Benefit in kind (housing, car, employer-paid tax)",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PND1"],
+		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days",
+		"authority": "Revenue Code ss.39, 40(1): income from employment includes money's worth and \"other benefits\" the employer provides — free housing, a car, and the income tax the employer pays for the employee. The monthly value (and for borne tax, the tax borne) enters the PND1 base without being paid; not SSO or WCF wage. The gross-up of a borne tax repeats by the next month's amount."
+	}
+]

@@ -14,6 +14,8 @@
 	import Skeleton from '../components/skeleton.svelte';
 	import DayCell from './day_cell.svelte';
 	import DayDialog from './day_dialog.svelte';
+	import { shiftCodeOf } from './shift_code.js';
+	import { bolt } from '$bolt';
 	import {
 		buildDays,
 		datesBetween,
@@ -60,6 +62,37 @@
 	const entries = liveRows(() => (ids.length === 0 ? null : entryRead(ids, from, to)));
 	const holidays = liveRows(() => holidayRead(companyId, from, to));
 	const leave = liveRows(() => (ids.length === 0 ? null : leaveRead(ids, from, to)));
+	/** What plans a day without a roster shift: the person's terms' pattern, and the entity's shifts by code. */
+	const plans = liveRows(() =>
+		ids.length === 0
+			? null
+			: bolt.read('employment_contract', {
+					where: { id: { in: [...ids] } },
+					select: { facts: true },
+					all: true
+				})
+	);
+	const shifts = liveRows(() =>
+		bolt.read('shift_definition', {
+			where: { company_id: { eq: companyId } },
+			select: { code: true },
+			all: true
+		})
+	);
+	const patterns = liveRows(() =>
+		bolt.read('shift_pattern', {
+			where: { company_id: { eq: companyId } },
+			select: { pattern: true, effective_range: true },
+			all: true
+		})
+	);
+	const shiftOf = $derived(
+		shiftCodeOf({
+			contracts: plans.current ?? [],
+			definitions: shifts.current ?? [],
+			patterns: patterns.current ?? []
+		})
+	);
 	const loading = $derived(entries.current === undefined && ids.length > 0);
 	const holidayByDate = $derived(
 		new Map((holidays.current ?? []).map((row) => [String(row.date).slice(0, 10), row.name]))
@@ -70,7 +103,8 @@
 			people,
 			entries: entries.current ?? [],
 			holidays: holidays.current ?? [],
-			leave: leave.current ?? []
+			leave: leave.current ?? [],
+			shiftOf
 		})
 	);
 	const error = $derived(entries.error ?? holidays.error ?? leave.error);

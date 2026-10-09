@@ -1,7 +1,7 @@
 [
 	{
-		"id": "e8a923e8-c282-5146-8158-c1c1a39988ef",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "4afabffb-4953-5335-82c3-006bd13febc2",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "OBLIGATIONS",
 		"scope": "JURISDICTION",
 		"code": "EPF_MONTHLY_CONTRIBUTION",
@@ -14,8 +14,8 @@
 		}
 	},
 	{
-		"id": "6f970329-1a59-54f3-a6ad-3665f8608460",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "e2f1577c-9ea7-56ad-9461-6fc106c0e6ff",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "OBLIGATIONS",
 		"scope": "JURISDICTION",
 		"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
@@ -28,8 +28,8 @@
 		}
 	},
 	{
-		"id": "beced579-3e47-5de7-88a6-d5863fab3355",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "76d819fc-99f7-50c5-83e3-7e349ede5830",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "OBLIGATIONS",
 		"scope": "JURISDICTION",
 		"code": "HRD_LEVY_MONTHLY",
@@ -43,8 +43,8 @@
 		}
 	},
 	{
-		"id": "29652511-3e3c-5c17-bc9e-99aed15d972f",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "409e43e1-2200-5dc8-b3b3-deac44df8642",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "OBLIGATIONS",
 		"scope": "JURISDICTION",
 		"code": "PCB_REMITTANCE",
@@ -57,8 +57,8 @@
 		}
 	},
 	{
-		"id": "e6c6027c-1dba-5805-9ef4-7ae091814337",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "e87b000a-a134-5ba1-8f5e-cdc35ca7bac1",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "WAGE_PAYMENT_DEADLINE",
@@ -74,8 +74,8 @@
 		}
 	},
 	{
-		"id": "eaa836ff-bfd4-552b-b0fd-6b5d3966d664",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "22d93ccd-9cd5-5749-862f-46acafd09b3c",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "EA_FORM",
@@ -92,8 +92,8 @@
 		}
 	},
 	{
-		"id": "e6786014-894d-5c1f-bc7a-92c57712f2eb",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "8d4d3d16-503f-5fb1-9450-41c8b1430010",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "FORM_E_CP8D",
@@ -110,8 +110,8 @@
 		}
 	},
 	{
-		"id": "ed8c278f-796c-5914-9fe2-8b65010e5eef",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "4a4563c5-d663-5504-9275-e2496407eb85",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "PUBLIC_HOLIDAY_NOTICE",
@@ -128,8 +128,8 @@
 		}
 	},
 	{
-		"id": "2005d617-a2c2-58d5-bac4-86db7cd349ed",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "f4b7dc30-c7e4-5347-a1f1-a01884638134",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "TERMS_PARTICULARS_ISSUE",
@@ -145,8 +145,8 @@
 		}
 	},
 	{
-		"id": "0272dfa1-b1d4-5515-948a-bd6f2dfde619",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "cd76a4eb-a634-560f-a93c-04e0c57d8ad1",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "EPF_EMPLOYEE_REGISTRATION",
@@ -162,8 +162,8 @@
 		}
 	},
 	{
-		"id": "6408db07-4562-558c-a04b-04a4ada5fdbd",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "050470e9-773f-5a7a-835d-c599960f1bbe",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
@@ -179,8 +179,8 @@
 		}
 	},
 	{
-		"id": "cc2f7241-8850-5a53-821c-56a7139ed27b",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "a24ddc0d-5558-5747-a3f1-ad7cd6d550cc",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "CP22_NEW_EMPLOYEE",
@@ -196,8 +196,8 @@
 		}
 	},
 	{
-		"id": "722c8d5a-3a18-5311-b99d-637e8939c3ef",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "e103c5c1-9f0a-5a5a-ba08-268891261f8f",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_EMPLOYEE_PARTICULARS",
@@ -214,14 +214,14 @@
 		}
 	},
 	{
-		"id": "685bf76e-0064-575f-9365-c8a930f3ceb9",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "87b736dc-f023-53fb-aa45-ea933cd6fd3f",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "CP22A_CESSATION_AND_WITHHOLDING",
 		"name": "CP22A_CESSATION_AND_WITHHOLDING",
 		"rules": {
-			"description": "Notify LHDN of the cessation (CP22A, e-SPC) not less than thirty days before it — for an employee retiring, leaving Malaysia permanently, not subject to MTD with deduction made, or (within thirty days of being informed) deceased — and withhold money payable until ninety days after LHDN receives the notice or a tax clearance letter arrives. Raised on a RETIREMENT or DEATH exit or exit_facts.leaving_malaysia.",
+			"description": "Notify LHDN of the cessation (CP22A, e-SPC) not less than thirty days before it — for an employee retiring, leaving Malaysia permanently, not subject to MTD with deduction made, or (within thirty days of being informed) deceased — and withhold money payable until ninety days after LHDN receives the notice or a tax clearance letter arrives. Raised on a RETIREMENT or DEATH exit or exit_facts.leaving_malaysia. Due: not less than thirty days before the cessation; on a death not more than thirty days after the employer is informed of it (ITA s.83(3); exit_facts.death_informed_on).",
 			"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
 			"trigger": {
 				"collection": "employment_contract",
@@ -230,12 +230,12 @@
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
 			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"DEATH\"] || (contract.exit_facts != null && has(contract.exit_facts.leaving_malaysia) && contract.exit_facts.leaving_malaysia == true)",
-			"due": "add_days(exit_on, -30)"
+			"due": "contract.exit_ground == \"DEATH\" ? add_days(contract.exit_facts != null && has(contract.exit_facts.death_informed_on) ? contract.exit_facts.death_informed_on : exit_on, 30) : add_days(exit_on, -30)"
 		}
 	},
 	{
-		"id": "c232d0e5-8d5e-5ef1-bec5-50292f0c9fa0",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "5c3d028d-4fa8-5358-a770-167e5c48e979",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "CP21_LEAVING_MALAYSIA",
@@ -254,8 +254,8 @@
 		}
 	},
 	{
-		"id": "15803e8a-1b51-5007-bad9-d2420d6d93f3",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "168646cb-5d06-5836-a232-0b6845da9568",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "TERMINATION_BENEFITS_FINAL_WAGES",
@@ -273,28 +273,28 @@
 		}
 	},
 	{
-		"id": "e6528714-9041-5557-8737-ddf6aa425a3f",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "98a1876f-b558-5fbc-a74a-77e077f40c95",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "TERMINATION_BENEFIT_PAYMENT",
 		"name": "TERMINATION_BENEFIT_PAYMENT",
 		"rules": {
-			"description": "Pay termination or lay-off benefits not later than seven days after the relevant date with a written statement of the amount and its calculation. Raised for twelve months’ continuous service ending by retrenchment, redundancy, the employer’s unilateral termination or a dismissal other than for misconduct after due inquiry; waive for an employee the Regulations do not cover.",
-			"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf)",
+			"description": "Pay termination or lay-off benefits not later than seven days after the relevant date with a written statement of the amount and its calculation. Raised for twelve months' continuous service ending by retrenchment, redundancy, the employer's unilateral termination, a dismissal other than for misconduct after due inquiry, or a resignation under s.13(2) / s.14(3), where the terms in force at the exit are within the First Schedule (wages of RM4,000 a month or less, a manual, supervisory, vehicle or vessel category, or premia by contract; not a domestic employee).",
+			"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
 			"trigger": {
 				"collection": "employment_contract",
 				"event": "updated",
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] || (contract.exit_ground == \"DISMISSAL\" && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)))",
+			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] || (contract.exit_ground == \"DISMISSAL\" && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground == \"RESIGNATION\" && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
 			"due": "add_days(exit_on, 7)"
 		}
 	},
 	{
-		"id": "bf4ac1aa-004f-5ca8-b033-8e81711ec2f6",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "077f853f-e25e-5713-a277-b9e92248f577",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
@@ -313,8 +313,8 @@
 		}
 	},
 	{
-		"id": "ec666863-f063-517a-be87-3e0077d75e3c",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "21dc83de-1180-5896-87c7-824935c4ca96",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "RETRENCHMENT_NOTIFICATION",
@@ -333,8 +333,8 @@
 		}
 	},
 	{
-		"id": "18dfeea5-14dc-5c38-ba46-b675488e3f87",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "ba3363b6-8997-5cbf-8371-65669160e250",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_LEVY",
@@ -351,8 +351,21 @@
 		}
 	},
 	{
-		"id": "ede56922-3208-578c-ad3e-86c6cdd1edc1",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "10f2d053-7053-5a78-90a1-a51abd0423c9",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "record_retention",
+		"name": "Record retention after exit",
+		"rules": {
+			"until": "add_years(employment.exit_date.substring(0, 4) + \"-12-31\", 7)",
+			"description": "Payroll, PCB/MTD and remuneration records of the exit year are kept seven years from the end of that year (ITA s.82(1)(a)) — longer than the EA s.61(2) register's six years after recording; the longest retention after exit. A former employee may be anonymised only after it.",
+			"authority": "Income Tax Act 1967 s.82(1)(a) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Employment Act 1955 s.61(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Personal Data Protection Act 2010 s.10"
+		}
+	},
+	{
+		"id": "4c914ae5-fcff-507a-9f1e-818b5c4654a5",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "PAYROLL",
 		"scope": "JURISDICTION",
 		"code": "minimum_wage",
@@ -367,8 +380,8 @@
 		}
 	},
 	{
-		"id": "5faee430-3ff1-5296-8ca2-06e644df18f3",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "1d08160b-66b9-59d8-92f4-1edddb7ec4a5",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "VALIDATIONS",
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_MONTHLY",
@@ -376,14 +389,14 @@
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
-			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\", \"PROBATION\"] && term.base_salary > 0.0 && term.base_salary < double(rules.minimum_wage.monthly)",
+			"when": "((has(term.facts) && has(term.facts.pay_basis)) ? term.facts.pay_basis : \"MONTHLY\") == \"MONTHLY\" && term.employment_type in [\"PERMANENT\", \"CONTRACT\", \"PROBATION\"] && term.base_salary > 0.0 && term.base_salary < double(rules.minimum_wage.monthly)",
 			"message": "The monthly basic salary is below the RM1,700 minimum wage (Minimum Wages Order 2024).",
-			"description": "Minimum Wages Order 2024 para 4–5 (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf); National Wages Consultative Council Act 2011 s.23. A task-basis term (no basic salary) is paid by its task lines and is not refused here; domestic employees and interns (apprenticeship contracts) are outside the Order."
+			"description": "Minimum Wages Order 2024 paras 3, 5 (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf, read 2026-10-07); National Wages Consultative Council Act 2011 s.23. A MONTHLY pay basis only: a weekly, daily, hourly or piece rate is a per-unit amount, checked by MINIMUM_WAGE_WEEKLY / _DAILY / _HOURLY / _PIECE; a part-timer by MINIMUM_WAGE_HOURLY_PART_TIME. A task-basis term (no basic salary) is paid by its task lines and is not refused here; domestic servants are outside the Order (para 2)."
 		}
 	},
 	{
-		"id": "30ef883a-087f-598c-bd37-db0e65306432",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "6d86cff1-9afc-5712-b250-71a37e051f25",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "VALIDATIONS",
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_HOURLY_PART_TIME",
@@ -391,14 +404,14 @@
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
-			"when": "term.employment_type == \"PART_TIME\" && term.base_salary > 0.0 && has(term.facts.contract_hours_per_week) && double(term.facts.contract_hours_per_week) > 0.0 && term.base_salary * 12.0 / (52.0 * double(term.facts.contract_hours_per_week)) < double(rules.minimum_wage.hourly)",
-			"message": "The part-time hourly rate (basic × 12 ÷ 52 ÷ contract hours a week) is below the RM8.72 minimum wage.",
-			"description": "Minimum Wages Order 2024 para 4 (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf): RM8.72 an hour (RM1,700 × 12 ÷ 52 ÷ 45)."
+			"when": "term.employment_type == \"PART_TIME\" && term.base_salary > 0.0 && cel.bind(basis, ((has(term.facts) && has(term.facts.pay_basis)) ? term.facts.pay_basis : \"MONTHLY\"), cel.bind(week, has(term.facts.contract_hours_per_week) ? double(term.facts.contract_hours_per_week) : 0.0, basis == \"MONTHLY\" && week > 0.0 ? term.base_salary * 12.0 / (52.0 * week) < double(rules.minimum_wage.hourly) : basis == \"WEEKLY\" && week > 0.0 ? term.base_salary / week < double(rules.minimum_wage.hourly) : basis == \"DAILY\" && has(term.facts.normal_hours_per_day) && double(term.facts.normal_hours_per_day) > 0.0 ? term.base_salary / double(term.facts.normal_hours_per_day) < double(rules.minimum_wage.hourly) : false))",
+			"message": "The part-time hourly rate is below the RM8.72 minimum wage (a monthly basic × 12 ÷ 52 ÷ contract hours a week; a weekly rate ÷ contract hours a week; a daily rate ÷ normal hours a day).",
+			"description": "Minimum Wages Order 2024 para 5(1) (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf, read 2026-10-07): RM8.72 an hour (RM1,700 × 12 ÷ 52 ÷ 45). A part-timer (Employment (Part-Time Employees) Regulations 2010) is held to the hourly rate: a MONTHLY or WEEKLY basis converted over terms.facts.contract_hours_per_week, a DAILY basis over terms.facts.normal_hours_per_day; an HOURLY rate is compared directly by MINIMUM_WAGE_HOURLY. Unrecorded hours leave the conversion unchecked."
 		}
 	},
 	{
-		"id": "166b346c-d06c-5582-be88-44ab1e9bed8a",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "68d653da-21dc-50b7-b860-296408a814e4",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "VALIDATIONS",
 		"scope": "JURISDICTION",
 		"code": "DEDUCTION_CEILING",
@@ -406,14 +419,14 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
-			"when": "!(employment.exit_date != \"\" && employment.exit_date <= period.to) && payslip.total_deductions - (has(payslip.lines.NOTICE_INDEMNITY) ? -payslip.lines.NOTICE_INDEMNITY : 0.0) > (has(payslip.lines.APPROVED_HOUSING_LOAN) ? 0.75 : 0.5) * payslip.gross",
+			"when": "payslip.total_deductions - (has(payslip.lines.NOTICE_INDEMNITY) ? -payslip.lines.NOTICE_INDEMNITY : 0.0) - (employment.exit_date != \"\" && employment.exit_date <= period.to ? -((has(payslip.lines.LOAN_RECOVERY_AIR_TICKET) ? payslip.lines.LOAN_RECOVERY_AIR_TICKET : 0.0) + (has(payslip.lines.LOAN_RECOVERY_FESTIVE_ADVANCE) ? payslip.lines.LOAN_RECOVERY_FESTIVE_ADVANCE : 0.0) + (has(payslip.lines.AIR_TICKET_DEDUCTION) ? payslip.lines.AIR_TICKET_DEDUCTION : 0.0) + (has(payslip.lines.APPROVED_HOUSING_LOAN) ? payslip.lines.APPROVED_HOUSING_LOAN : 0.0)) : 0.0) > (has(payslip.lines.APPROVED_HOUSING_LOAN) ? 0.75 : 0.5) * payslip.gross",
 			"message": "The month's deductions exceed fifty per cent of the wages earned (Employment Act 1955 s.24(8)).",
-			"description": "Employment Act 1955 s.24(8)–(9) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): every deduction under s.24 — including those authorised by any other written law, s.24(2)(d), such as EPF, SOCSO, EIS, SKBBK and MTD — is at most 50% of the wages earned in the month; not on a final payment of wages (s.24(9)(b)), not on the s.13(1) notice indemnity (s.24(9)(a)), and up to a further 25% for an approved housing loan (s.24(9)(c)). The slip is held for review."
+			"description": "Employment Act 1955 s.24(8)–(9) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): every deduction under s.24 — including those authorised by other written law (s.24(2)(d): EPF, SOCSO, EIS, SKBBK, MTD) — is at most 50% of the wages earned in the month; not counted: the s.13(1) notice indemnity (s.24(9)(a)) and, on the final payment, amounts due to the employer and unpaid (s.24(9)(b): the advance and loan recoveries); an approved housing loan may take a further 25% (s.24(9)(c)). The slip is held for review."
 		}
 	},
 	{
-		"id": "4e04bb9a-f15c-5b8b-b8c4-2d50605476b0",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "398e5cc5-341c-5ef1-aa03-92bf7a602830",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "VALIDATIONS",
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_LIMIT",
@@ -427,8 +440,8 @@
 		}
 	},
 	{
-		"id": "27a256e9-2336-50fa-a933-c64bb8aad71c",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "dbb17b96-b733-5232-a6ed-47a71f118763",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "EPF_EMPLOYER_REGISTRATION",
@@ -444,8 +457,8 @@
 		}
 	},
 	{
-		"id": "6c5f86cd-4feb-5a25-ab0f-88764220ab3d",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "43cbc671-ce1a-5c1c-b9d6-1668331ca21f",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "HRD_EMPLOYER_REGISTRATION",
@@ -462,8 +475,8 @@
 		}
 	},
 	{
-		"id": "82458344-3724-5766-996e-822c92dd5b38",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "cc8a877b-007f-5b56-8cce-82f16cfa5805",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "REST_DAY_ROSTER",
@@ -479,8 +492,8 @@
 		}
 	},
 	{
-		"id": "8bcd896c-0f68-5ef7-8ae8-9a4aa3fc86d7",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "206bca64-c997-50d8-b841-bbf169396d51",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
@@ -496,26 +509,26 @@
 		}
 	},
 	{
-		"id": "803ea5ba-2ad3-5d7a-84ce-250a0dc67613",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "963e9f2a-56f7-54a2-9a69-6438b6b818a9",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "SOCSO_ACCIDENT_REPORT",
 		"name": "SOCSO_ACCIDENT_REPORT",
 		"rules": {
-			"description": "Report a work-related accident to an insured employee to PERKESO (Borang 34) within 48 hours of being notified of it. Raised on sick or hospitalisation leave recorded as a work injury (entry fact work_injury).",
+			"description": "Report to PERKESO (Borang 34) within 48 hours of being notified an insured employee suffered an employment injury — a work accident, a commuting accident or an occupational disease (entry fact work_injury, its kind in work_injury_kind). Raised on any leave entry recorded as a work injury.",
 			"authority": "Employees' Social Security Act 1969 ss.94(e), 94A(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, accident reporting within 48 hours of notification.",
 			"trigger": {
 				"collection": "leave_catalog_entry",
 				"event": "created"
 			},
-			"when": "row != null && has(row.catalog_code) && row.catalog_code in [\"MEDICAL_LEAVE\", \"HOSPITALIZATION_LEAVE\"] && has(row.facts) && row.facts != null && has(row.facts.work_injury) && row.facts.work_injury == true",
+			"when": "row != null && has(row.facts) && row.facts != null && has(row.facts.work_injury) && row.facts.work_injury == true",
 			"due": "add_days(row.occurred_on, 2)"
 		}
 	},
 	{
-		"id": "15b29c1e-4e58-5c70-95dc-8d3f84d1002d",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "8d624d2d-5da3-5d05-9a80-237e47d8f784",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "VALIDATIONS",
 		"scope": "JURISDICTION",
 		"code": "LABOUR_ORDINANCE_TERRITORY",
@@ -524,13 +537,13 @@
 			"site": "contract",
 			"kind": "refuse",
 			"when": "has(term.facts.worksite_state) && term.facts.worksite_state in [\"SABAH\", \"SARAWAK\"]",
-			"message": "Sabah and Sarawak worksites need their Labour Ordinance profile; this Malaysian profile applies the Employment Act 1955 for Peninsular Malaysia and Labuan.",
-			"description": "Employment Act 1955 s.1(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000. Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode."
+			"message": "A Sabah or Sarawak worksite is outside this lineage: the Labour Ordinance (Sabah) Cap. 67 / (Sarawak) Cap. 76 governs it instead of the Employment Act, and the Ordinances are not encoded. Run the worksite on a lineage that encodes them.",
+			"description": "Employment Act 1955 s.1(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the Act extends to Peninsular Malaysia and Labuan only. Labour Ordinance (Sabah) Cap. 67 as amended by Act A1753 and (Sarawak) Cap. 76 as amended by Act A1754 (in force 1 May 2025) set their own overtime, holiday, leave and termination rules; no official principal text is published, so this lineage excludes those worksites: a term recording worksite_state SABAH or SARAWAK is refused rather than priced under Employment Act rules. An unrecorded worksite is taken as Peninsular Malaysia or Labuan."
 		}
 	},
 	{
-		"id": "2ca27a41-b877-5034-b66a-44c90f84a858",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "4e30a94f-c020-5255-b693-fe89801cd529",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "SOCSO_EIS_EMPLOYER_REGISTRATION",
@@ -547,8 +560,8 @@
 		}
 	},
 	{
-		"id": "10fa21e0-a0ab-5ed3-8f69-3243aeb55a5b",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "d885198e-f4c2-5a25-89d3-48d2999226f2",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "PERKESO_CESSATION_NOTICE",
@@ -565,8 +578,26 @@
 		}
 	},
 	{
-		"id": "dfd90a13-3af9-541d-a37b-d20f86d58bb2",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "5221f2bf-1f55-5024-83c0-44fe6f8f2b28",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EPF_CESSATION_NOTICE",
+		"name": "EPF_CESSATION_NOTICE",
+		"rules": {
+			"description": "On ceasing to be an employer (terminating operations, or no longer employing and not intending to employ), notify the EPF with Form KWSP 6 (Borang B), by mail, e-mail or the designated channels, within 30 days. Raised when the entity’s effective range is closed. An employer with no employees for a month only informs the EPF; the Board may cancel the employer number after six months without liability.",
+			"authority": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08 in the browser.",
+			"trigger": {
+				"collection": "entity",
+				"event": "updated"
+			},
+			"when": "row != null && has(row.effective_range) && row.effective_range != null && has(row.effective_range.to) && row.effective_range.to != null",
+			"due": "add_days(row.effective_range.to, 30)"
+		}
+	},
+	{
+		"id": "3287404a-f8e7-5c83-b0df-bee6ec07912c",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"family": "TASKS",
 		"scope": "JURISDICTION",
 		"code": "HRD_CESSATION_NOTICE",
@@ -581,6 +612,1204 @@
 			"when": "row != null && has(row.effective_range) && row.effective_range != null && has(row.effective_range.to) && row.effective_range.to != null",
 			"applies_when": "company != null && company.facts != null && has(company.facts.hrd_registration_class) && company.facts.hrd_registration_class in [\"COMPULSORY\", \"OPTIONAL\"]",
 			"due": "add_days(row.effective_range.to, 30)"
+		}
+	},
+	{
+		"id": "81823254-ac42-5f8f-9956-72d28e07e7a8",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "public_holidays",
+		"name": "public_holidays",
+		"rules": {
+			"holidays": [
+				{
+					"date": "2026-12-25",
+					"name": "Hari Krismas",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-02-06",
+					"name": "Tahun Baharu Cina",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-02-07",
+					"name": "Tahun Baharu Cina (Hari Kedua)",
+					"kind": "PUBLIC_HOLIDAY",
+					"regions": [
+						"KUALA_LUMPUR",
+						"LABUAN",
+						"PUTRAJAYA",
+						"JOHOR",
+						"KEDAH",
+						"MELAKA",
+						"NEGERI_SEMBILAN",
+						"PAHANG",
+						"PERAK",
+						"PERLIS",
+						"PULAU_PINANG",
+						"SABAH",
+						"SARAWAK",
+						"SELANGOR"
+					]
+				},
+				{
+					"date": "2027-03-10",
+					"name": "Hari Raya Puasa",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-03-11",
+					"name": "Hari Raya Puasa (Hari Kedua)",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-05-01",
+					"name": "Hari Pekerja",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-05-17",
+					"name": "Hari Raya Qurban",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-05-18",
+					"name": "Hari Raya Qurban (Hari Kedua)",
+					"kind": "PUBLIC_HOLIDAY",
+					"regions": ["KELANTAN", "TERENGGANU"]
+				},
+				{
+					"date": "2027-05-20",
+					"name": "Hari Wesak",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-06-06",
+					"name": "Awal Muharam (Maal Hijrah)",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-06-07",
+					"name": "Hari Keputeraan Rasmi Seri Paduka Baginda Yang di-Pertuan Agong",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-08-15",
+					"name": "Hari Keputeraan Nabi Muhammad S.A.W. (Maulidur Rasul)",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-08-31",
+					"name": "Hari Kebangsaan",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-09-16",
+					"name": "Hari Malaysia",
+					"kind": "PUBLIC_HOLIDAY"
+				},
+				{
+					"date": "2027-10-28",
+					"name": "Hari Deepavali",
+					"kind": "PUBLIC_HOLIDAY",
+					"regions": [
+						"KUALA_LUMPUR",
+						"LABUAN",
+						"PUTRAJAYA",
+						"JOHOR",
+						"KEDAH",
+						"KELANTAN",
+						"MELAKA",
+						"NEGERI_SEMBILAN",
+						"PAHANG",
+						"PERAK",
+						"PERLIS",
+						"PULAU_PINANG",
+						"SABAH",
+						"SELANGOR",
+						"TERENGGANU"
+					]
+				},
+				{
+					"date": "2027-12-25",
+					"name": "Hari Krismas",
+					"kind": "PUBLIC_HOLIDAY"
+				}
+			],
+			"authority": "Jabatan Perdana Menteri, Bahagian Kabinet, Perlembagaan dan Perhubungan Antara Kerajaan: Jadual Hari Kelepasan Am Persekutuan 2025, 2026 and 2027 (https://www.kabinet.gov.my/hari-kelepasan-am/); federal holidays, the second day of Chinese New Year and of Hari Raya Qurban and Deepavali limited to the states that keep them (regions). State holidays (the Ruler's birthday, Federal Territory Day and the others an employer picks for its six, EA s.60D(1)(a)) are the employer's to add; no calendar is gazetted beyond 2027. Unpublished until HR publishes them."
+		}
+	},
+	{
+		"id": "732be265-8eb9-5153-a463-ddbe16873f30",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "DAILY_HOURS_CAP",
+		"name": "DAILY_HOURS_CAP",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.worked_hours > 12.0)",
+			"message": "An employee worked more than twelve hours in one day (EA s.60A(7), s.60C(2)).",
+			"description": "EA s.60A(7) and s.60C(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): no employer shall require any employee to work more than twelve hours in any one day except in the s.60A(2)(a)–(e) emergencies."
+		}
+	},
+	{
+		"id": "fe0c8fb0-a4db-5e15-b70d-9aadb70a2b89",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "CONTINUOUS_HOURS",
+		"name": "CONTINUOUS_HOURS",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.intervals.exists(i, i.end != null && hours_between([i], \"00:00\", \"00:00\") > 5.0))",
+			"message": "An employee worked more than five consecutive hours without a 30-minute break (EA s.60A(1)(a)).",
+			"description": "EA s.60A(1)(a) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): not more than five consecutive hours without a period of leisure of at least thirty minutes (eight hours with 45 minutes for continuous work, proviso (ii))."
+		}
+	},
+	{
+		"id": "5d9b3059-26db-5046-84f9-3b9b0ee46861",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "SPREAD_OVER",
+		"name": "SPREAD_OVER",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, size(d.intervals.filter(i, i.end != null)) > 0 && [d.intervals.filter(i, i.end != null)].map(xs, size(xs) > 0 ? hours_between([{\"start\": xs[0].start, \"end\": xs[size(xs) - 1].end}], \"00:00\", \"00:00\") : 0.0)[0] > 10.0)",
+			"message": "A working day spread over more than ten hours (EA s.60A(1)(c)); the hours after the spread-over are overtime (s.60A(3)(b)).",
+			"description": "EA s.60A(1)(c) and (3)(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)."
+		}
+	},
+	{
+		"id": "f0b75b8a-83e1-5ef6-bdba-37f8a243ddd6",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NORMAL_HOURS_DAY",
+		"name": "NORMAL_HOURS_DAY",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.day_type == \"WORK\" && d.scheduled_hours > 9.0) && !(has(terms.facts.shift_work) && terms.facts.shift_work == true)",
+			"message": "The planned normal hours exceed nine in a day (EA s.60A(1)(b) and proviso (iii)).",
+			"description": "EA s.60A(1)(b) and proviso (iii) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): eight hours a day, up to nine where other days of the week are shorter; shift work is averaged under s.60C."
+		}
+	},
+	{
+		"id": "9cc17069-cd6b-5163-b1a2-e411bfb1ae6e",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "NORMAL_HOURS_WEEK",
+		"name": "NORMAL_HOURS_WEEK",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "size(work.days) >= 7 && sum(work.days.filter(d, d.day_type == \"WORK\").map(d, d.scheduled_hours)) * 7.0 / double(size(work.days)) > 45.0",
+			"message": "The planned normal hours average more than 45 a week (EA s.60A(1)(d); s.60C(1) averages shift work over three weeks).",
+			"description": "EA s.60A(1)(d) and s.60C(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): not more than forty-five hours in one week; shift work may exceed it so long as the average over three weeks (or a longer approved period) does not."
+		}
+	},
+	{
+		"id": "5d77b6b1-8bf2-53b3-b9f7-54d03a06fef7",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WEEKLY_REST_DAY",
+		"name": "WEEKLY_REST_DAY",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "size(work.days.filter(d, d.day_type == \"REST\")) < size(work.days.filter(d, d.day_type != \"\")) / 7",
+			"message": "The plan gives fewer than one rest day a week (EA s.59(1)).",
+			"description": "EA s.59(1) and (1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): one whole rest day in each week, a continuous thirty hours for shift work."
+		}
+	},
+	{
+		"id": "fc4c8aa4-8e7b-50d4-aa29-84d444972270",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "HOLIDAY_ON_REST_DAY",
+		"name": "HOLIDAY_ON_REST_DAY",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(d, d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && d.day_type == \"REST\")",
+			"message": "A public holiday fell on a rest day: the next working day is a paid holiday in its place (EA s.60D(1) proviso).",
+			"description": "EA s.60D(1) proviso and (1B) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a holiday on a rest day or on another holiday moves to the next working day; one inside annual or sick leave is replaced by another day (leave chargeable days skip published holidays)."
+		}
+	},
+	{
+		"id": "bfce06c2-2a64-536c-9ae5-22972bb2a980",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_DAILY",
+		"name": "MINIMUM_WAGE_DAILY",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "!(term.employment_type == \"PART_TIME\" && has(term.facts.normal_hours_per_day)) && ((has(term.facts) && has(term.facts.pay_basis)) ? term.facts.pay_basis : \"MONTHLY\") == \"DAILY\" && term.base_salary > 0.0 && term.base_salary < (has(term.facts.days_per_week) && double(term.facts.days_per_week) <= 4.0 ? double(rules.minimum_wage.daily_four_day_week) : has(term.facts.days_per_week) && double(term.facts.days_per_week) == 5.0 ? double(rules.minimum_wage.daily_five_day_week) : double(rules.minimum_wage.daily_six_day_week))",
+			"message": "The daily rate is below the minimum wage for the working days a week (Minimum Wages Order 2024).",
+			"description": "Minimum Wages Order 2024 para 5(1) (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf): RM65.38, RM78.46 or RM98.08 a day for a six-, five- or four-day week (terms.facts.days_per_week, six unrecorded). A part-timer with recorded normal hours a day is held to the hourly rate instead (MINIMUM_WAGE_HOURLY_PART_TIME)."
+		}
+	},
+	{
+		"id": "d83d6b0c-fde7-5770-aad3-a7f082abf220",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_WEEKLY",
+		"name": "MINIMUM_WAGE_WEEKLY",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "((has(term.facts) && has(term.facts.pay_basis)) ? term.facts.pay_basis : \"MONTHLY\") == \"WEEKLY\" && term.employment_type != \"PART_TIME\" && term.base_salary > 0.0 && cel.bind(d, has(term.facts.days_per_week) ? double(term.facts.days_per_week) : 6.0, term.base_salary < d * (d <= 4.0 ? double(rules.minimum_wage.daily_four_day_week) : d == 5.0 ? double(rules.minimum_wage.daily_five_day_week) : double(rules.minimum_wage.daily_six_day_week)))",
+			"message": "The weekly rate is below the minimum wage: the daily minimum for the working days a week times those days (Minimum Wages Order 2024).",
+			"description": "Minimum Wages Order 2024 para 5(1) (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf, read 2026-10-07): the Order states a monthly, a daily (by working days a week) and an hourly rate, not a weekly one; a week's wage is held to the daily rate for the week's working days — RM392.28 for six days (6 × 65.38), RM392.30 for five (5 × 78.46), RM392.32 for four (4 × 98.08); terms.facts.days_per_week, six unrecorded."
+		}
+	},
+	{
+		"id": "463ea976-b54b-5a39-8fe5-3d00cc557afd",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_HOURLY",
+		"name": "MINIMUM_WAGE_HOURLY",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "((has(term.facts) && has(term.facts.pay_basis)) ? term.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" && term.base_salary > 0.0 && term.base_salary < double(rules.minimum_wage.hourly)",
+			"message": "The hourly rate is below RM8.72 (Minimum Wages Order 2024).",
+			"description": "Minimum Wages Order 2024 para 4 (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf)."
+		}
+	},
+	{
+		"id": "c10c5d81-0263-528d-a8eb-07868b315a69",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "MINIMUM_WAGE_PIECE",
+		"name": "MINIMUM_WAGE_PIECE",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "(((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\" || terms.statutory_work_category == \"TASK_BASIS\") && (!has(period.parts) || period.part == period.parts) && employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to) && payslip.gross + (has(earned.month.gross) ? earned.month.gross : 0.0) < double(rules.minimum_wage.monthly)",
+			"message": "A piece- or task-rated employee's month is below the RM1,700 minimum wage (Minimum Wages Order 2024 para 5).",
+			"description": "Minimum Wages Order 2024 para 5 (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf): a piece, tonnage, task or commission rate is not less than the monthly minimum wage for a full month. The month is judged whole: on a sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY parts) the check runs on the month's last part over the month to date (this slip's gross plus earned.month.gross, the earlier parts), and only for a month the employment covers from its first to its last day — a half month is never compared with the monthly minimum (2026-10-08)."
+		}
+	},
+	{
+		"id": "645c0219-195f-5eda-a90d-ca1ca8371af8",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_PERIOD",
+		"name": "WAGE_PERIOD",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "!(company.pay_frequency in [\"MONTHLY\", \"SEMI_MONTHLY\", \"TEN_DAY\", \"WEEKLY\", \"\"])",
+			"message": "A wage period may not exceed one month (EA s.18).",
+			"description": "EA s.18 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)."
+		}
+	},
+	{
+		"id": "f9ea2a33-8570-5190-8a97-0d64bab05b0c",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "WAGE_PAYMENT_METHOD",
+		"name": "WAGE_PAYMENT_METHOD",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "has(term.facts.wage_payment_method) && term.facts.wage_payment_method in [\"CASH\", \"CHEQUE\"] && !(has(term.facts.wage_payment_written_request) && term.facts.wage_payment_written_request == true && has(term.facts.wage_payment_dg_approval) && term.facts.wage_payment_dg_approval != \"\")",
+			"message": "Wages are paid into the employee's account; cash or cheque needs the employee's written request and the Director General's approval (EA ss.25–25A).",
+			"description": "EA ss.25(1) and 25A(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)."
+		}
+	},
+	{
+		"id": "cc26a354-3912-57f3-8b0b-2514a8316765",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_CONTINUOUS_HOURS",
+		"name": "ROSTER_CONTINUOUS_HOURS",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.intervals.exists(i, i.end != null && hours_between([i], \"00:00\", \"00:00\") > 5.0)",
+			"message": "more than five consecutive hours without a 30-minute break (EA s.60A(1)(a)).",
+			"description": "more than five consecutive hours without a 30-minute break (EA s.60A(1)(a)).",
+			"authority": "EA s.60A(1)(a): no more than five consecutive hours without a period of leisure of at least 30 minutes (a break under 30 minutes does not break the run). Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "46d484ae-ee77-5936-afa3-7ba14a060fdc",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked && day.worked_hours - day.overtime_hours > 9.0 && !(has(terms.facts.shift_work) && terms.facts.shift_work == true)",
+			"message": "more than nine normal hours in the day (EA s.60A(1)(b) and proviso (iii)).",
+			"description": "more than nine normal hours in the day (EA s.60A(1)(b) and proviso (iii)).",
+			"authority": "EA s.60A(1)(b): eight hours a day; proviso (iii): where the contract sets fewer than eight on some days, nine on the others. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "4acfdb53-4931-5573-b42d-fe074420e18b",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_SPREAD_OVER",
+		"name": "ROSTER_SPREAD_OVER",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "size(day.intervals.filter(i, i.end != null)) > 0 && hours_between([{\"start\": day.intervals.filter(i, i.end != null)[0].start, \"end\": day.intervals.filter(i, i.end != null)[size(day.intervals.filter(i, i.end != null)) - 1].end}], \"00:00\", \"00:00\") > 10.0",
+			"message": "the working day spreads over more than ten hours (EA s.60A(1)(c)).",
+			"description": "the working day spreads over more than ten hours (EA s.60A(1)(c)).",
+			"authority": "EA s.60A(1)(c): a spread-over period of at most ten hours in one day. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "bb7e6ae4-fb77-587e-84bf-942ebb3a4761",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "week.worked_hours - week.overtime_hours > 45.0",
+			"message": "more than 45 normal hours in the seven days ending on this day (EA s.60A(1)(d)).",
+			"description": "more than 45 normal hours in the seven days ending on this day (EA s.60A(1)(d)).",
+			"authority": "EA s.60A(1)(d): at most 45 hours in one week. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "b538878f-9554-5a45-b430-ce36b07460e5",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_DAILY_TOTAL",
+		"name": "ROSTER_DAILY_TOTAL",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "day.worked_hours > 12.0",
+			"message": "more than twelve hours worked in the day, overtime included (EA ss.60A(7), 60C(2)).",
+			"description": "more than twelve hours worked in the day, overtime included (EA ss.60A(7), 60C(2)).",
+			"authority": "EA s.60A(7) and, for shift work, s.60C(2): outside the emergencies of s.60A(2)(a)–(e), no employee may be required to work more than twelve hours in any one day. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "ed42ba1f-290a-5f09-bf7a-947295c65cf5",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_WEEKLY_REST",
+		"name": "ROSTER_WEEKLY_REST",
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "day.worked && week.worked_days >= 7",
+			"message": "seven days in a row worked without the weekly rest day (EA s.59(1)).",
+			"description": "seven days in a row worked without the weekly rest day (EA s.59(1)).",
+			"authority": "EA s.59(1): every employee is allowed a rest day of one whole day in each week (not during maternity, sick leave or temporary disablement). Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+		}
+	},
+	{
+		"id": "2ec769c8-ffaa-50c4-8689-9992def3b6b5",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "MATERNITY_PROTECTION_REVIEW",
+		"name": "MATERNITY_PROTECTION_REVIEW",
+		"rules": {
+			"description": "Stop: it is an offence to terminate, or give notice to, a pregnant employee or one ill from her pregnancy except for wilful breach (s.13(2)), misconduct (s.14(1)) or closure of the business; during the 90 days after maternity leave while certified unfit (s.42) the same applies. The employer bears the burden of proof.",
+			"authority": "EA ss.41A and 42 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !(contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "c2293917-926b-5f55-8e45-fb9184a844c9",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RETIREMENT_AGE_REVIEW",
+		"name": "RETIREMENT_AGE_REVIEW",
+		"rules": {
+			"description": "Stop: an employee may not be retired before the minimum retirement age of 60.",
+			"authority": "Minimum Retirement Age Act 2012 (Act 753) s.4.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground == \"RETIREMENT\" && employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, exit_on) < 60",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "df190a70-5a28-5039-a000-1a8e26e655ee",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "RETRENCHMENT_FOREIGN_FIRST",
+		"name": "RETRENCHMENT_FOREIGN_FIRST",
+		"rules": {
+			"description": "Before retrenching a local employee, confirm every foreign employee employed in a similar capacity has been terminated first (a permanent resident is not a foreign employee).",
+			"authority": "EA ss.60N–60O (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"due": "add_days(exit_on, -30)"
+		}
+	},
+	{
+		"id": "9cb64623-ca92-57b7-8536-54f7a1436bed",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FLEXIBLE_WORKING_REPLY",
+		"name": "FLEXIBLE_WORKING_REPLY",
+		"rules": {
+			"description": "Approve or refuse in writing, stating any ground of refusal, an application for a flexible working arrangement within sixty days of receiving it.",
+			"authority": "EA ss.60P–60Q (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated"
+			},
+			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.flexible_working_applied_on))",
+			"due": "has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.flexible_working_applied_on)) ? first(contract.facts.contract_terms.filter(t, has(t.facts) && has(t.facts.flexible_working_applied_on)).map(t, add_days(t.facts.flexible_working_applied_on, 60))) : add_days(today, 60)"
+		}
+	},
+	{
+		"id": "de8a38db-b65c-56e5-ba2b-23cd72953fba",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_NOTICE",
+		"name": "SEXUAL_HARASSMENT_NOTICE",
+		"rules": {
+			"description": "Exhibit conspicuously at the place of employment, at all times, a notice raising awareness of sexual harassment.",
+			"authority": "EA s.81H (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf).",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"due": "today"
+		}
+	},
+	{
+		"id": "6a1597fc-f460-541c-a044-b69edb338651",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "EMPLOYEE_REGISTER",
+		"name": "EMPLOYEE_REGISTER",
+		"rules": {
+			"description": "Keep the register of employees with the month's particulars of each employee; every particular stays available for inspection for at least six years.",
+			"authority": "EA s.61(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Employment Regulations 1957.",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "5ac3ebda-b9b0-55f7-9d5c-2918fb65a0ba",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PAYSLIP_ISSUE",
+		"name": "PAYSLIP_ISSUE",
+		"rules": {
+			"description": "Give each employee a statement of the wages for the wage period — rate, days, overtime, rest-day and holiday work, leave pay, allowances, advances, each deduction, the balance and the date of payment — on or before the day of payment.",
+			"authority": "Employment Regulations 1957 (statement of wages); EPF Act 1991 s.42(1).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"due": "add_days(period.to, 7)"
+		}
+	},
+	{
+		"id": "1885e181-85c6-5421-bc65-9b2ae9a3c8fb",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "TAX_RECORDS_RETENTION",
+		"name": "TAX_RECORDS_RETENTION",
+		"rules": {
+			"description": "Keep the payroll, TP1/TP3 declarations, CP38 directions and MTD records of the past year for seven years and produce them to LHDN on request. Raised on the January run.",
+			"authority": "Income Tax Act 1967 s.82 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["01"],
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "8316caf4-32de-54d6-9071-93bb0bdc75b1",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORKERS_ACCOMMODATION_CERTIFICATE",
+		"name": "WORKERS_ACCOMMODATION_CERTIFICATE",
+		"rules": {
+			"description": "Before housing the employee, hold the Director General's certificate for the accommodation and keep it to the minimum standards.",
+			"authority": "Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) s.24D and its regulations.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.employer_provided_accommodation) && t.facts.employer_provided_accommodation == true)",
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "3df48f2d-eb49-546e-8920-cc7ae9ee7f2e",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "WORK_PASS_RENEWAL",
+		"name": "WORK_PASS_RENEWAL",
+		"rules": {
+			"description": "Apply to renew the foreign worker's Visit Pass (Temporary Employment) — from three months before expiry — and pay the year's levy with it. The renewal needs the FOMEMA fitness certificate (2nd and 3rd-year extensions), the SPIKPA hospitalisation and surgical insurance policy (except the plantation sector) and the Foreign Workers Compensation Scheme (FWCS) slip.",
+			"authority": "Immigration Department of Malaysia, Foreign Worker service page (https://www.imi.gov.my/index.php/en/main-services/foreign-worker/); levy imposed under the Fees Act 1951 (Act 209). Read 2026-10-07: the renewal documents (FOMEMA, SPIKPA, FWCS).",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.work_pass_valid_until) && add_days(t.facts.work_pass_valid_until, -90) == today)",
+			"due": "add_days(today, 90)"
+		}
+	},
+	{
+		"id": "74efcdad-a700-5508-bf07-f97a9c7997e6",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"rules": {
+			"description": "Destroy or permanently delete a former employee's personal data once no purpose needs it — at the end of the statutory retention (anonymise the profile: employment_profile.anonymise). Raised on the exit; due on the record_retention date (seven years after the exit year ends).",
+			"authority": "Personal Data Protection Act 2010 s.10(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Income Tax Act 1967 s.82(1)(a)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 7)"
+		}
+	},
+	{
+		"id": "f829e616-0cb8-58a9-9ca4-31c01be22fe9",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CP58_AGENT_STATEMENT",
+		"name": "CP58_AGENT_STATEMENT",
+		"rules": {
+			"description": "Give each agent, dealer or distributor the company paid in the past year the CP58 statement of those payments, with its name and address, by 31 March, and keep a copy for LHDN. Raised by the daily tick in January for a payee engagement (engagement PAYEE) whose terms record an agent, dealer or distributor role (term fact payee_role), once a year; due 31 March.",
+			"authority": "Income Tax Act 1967 s.83A(1)–(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf)",
+			"trigger": {
+				"collection": "calendar",
+				"event": "daily"
+			},
+			"when": "contract != null && has(contract.engagement) && contract.engagement == \"PAYEE\" && today.substring(5, 7) == \"01\" && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.payee_role) && t.facts.payee_role in [\"AGENT\", \"DEALER\", \"DISTRIBUTOR\"])",
+			"repeat_key": "string(int(today.substring(0, 4)) - 1)",
+			"due": "today.substring(0, 4) + \"-03-31\""
+		}
+	},
+	{
+		"id": "0433ef9d-728a-52b6-904f-5fd1bccf6a36",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			]
+		}
+	},
+	{
+		"id": "39d770e5-6e53-55af-809c-9e78b8c66fd9",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				},
+				{
+					"code": "DOUBLE_HOLIDAY",
+					"name": "Two public holidays on one day"
+				}
+			]
+		}
+	},
+	{
+		"id": "994198c2-9efe-5739-95ee-0d2a3a325c76",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PAYROLL",
+		"scope": "JURISDICTION",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"authority": "The MY workplace cases the TASKS below answer: Personal Data Protection Act 2010 s.12B (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Employment Act 1955 Part XVA ss.81A–81F (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf).",
+			"kinds": [
+				{
+					"code": "PERSONAL_DATA_BREACH",
+					"name": "Personal data breach (suspected or confirmed)"
+				},
+				{
+					"code": "SEXUAL_HARASSMENT_COMPLAINT",
+					"name": "Sexual harassment complaint"
+				}
+			]
+		}
+	},
+	{
+		"id": "644917d1-16da-52f4-a8e1-07f2ff7376bf",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_PRIVACY_NOTICE",
+		"name": "PDPA s.7 privacy notice",
+		"rules": {
+			"description": "Give the employee the written personal data notice, in Bahasa Malaysia and English, as soon as practicable when the personal data is first asked for or collected: that it is processed and a description of it, the purposes, its source, the right to access and correct and how to contact the employer, the classes of third parties it is disclosed to, the choices for limiting processing, and whether supplying it is obligatory and the consequences if not. Raised on every new engagement; due the start day.",
+			"authority": "Personal Data Protection Act 2010 (Act 709) s.7(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, reprint 2026, read 2026-10-07); s.6 General Principle.",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "aae4deac-163e-57b7-8665-4d6a15173378",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_DPO_APPOINTMENT",
+		"name": "Appoint and register a data protection officer",
+		"rules": {
+			"description": "Appoint one or more data protection officers accountable for compliance with the Act and register the appointment and the officer's business contact with the Commissioner (SPDP) within 21 days of the appointment. Required where the employer processes the personal data of more than 20,000 data subjects, sensitive personal data including financial information of more than 10,000, or carries on regular and systematic monitoring (entity fact pdpa_dpo_required); payroll holds every employee's financial data, so more than 10,000 employees raises it too. Raised when the entity is recorded.",
+			"authority": "Personal Data Protection Act 2010 s.12A(1)–(4) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "entity",
+				"event": "created"
+			},
+			"when": "(has(company.facts) && company.facts != null && has(company.facts.pdpa_dpo_required) && company.facts.pdpa_dpo_required == true) || headcount > 10000",
+			"due": "add_days(today, 21)"
+		}
+	},
+	{
+		"id": "b6591719-0fd7-5dfd-9273-1c057804a0ba",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_DPO_APPOINTMENT_UPDATE",
+		"name": "Appoint and register a data protection officer (scope reached)",
+		"rules": {
+			"description": "The s.12A duty when the entity comes within the Commissioner's conditions after it is recorded: raised when its pdpa_dpo_required fact is set to true; due 21 days later.",
+			"authority": "Personal Data Protection Act 2010 s.12A as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "entity",
+				"event": "updated"
+			},
+			"when": "row != null && has(row.before) && row.before != null && \"facts\" in row.before && has(row.facts) && row.facts != null && has(row.facts.pdpa_dpo_required) && row.facts.pdpa_dpo_required == true && !(row.before.facts != null && has(row.before.facts.pdpa_dpo_required) && row.before.facts.pdpa_dpo_required == true)",
+			"due": "add_days(today, 21)"
+		}
+	},
+	{
+		"id": "411378e0-9279-5d12-969a-0e9892e06b80",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_BREACH_COMMISSIONER_NOTICE",
+		"name": "Notify the Commissioner of a personal data breach",
+		"rules": {
+			"description": "Notify the Personal Data Protection Commissioner of a personal data breach as soon as practicable and no later than 72 hours from its occurrence (opened_on = the day it occurred or was detected), and keep it in the breach register for at least two years from the notification. Record the notification day as facts.commissioner_notified_on. Raised when a PERSONAL_DATA_BREACH case is opened.",
+			"authority": "Personal Data Protection Act 2010 s.12B(1), (3) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on Data Breach Notification paras 6.1, 14.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 3)"
+		}
+	},
+	{
+		"id": "bdb5b7c4-96e5-581f-a04e-78a7d1d00d3a",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "PDPA_BREACH_DATA_SUBJECT_NOTICE",
+		"name": "Notify affected employees of a personal data breach",
+		"rules": {
+			"description": "Where the breach causes or is likely to cause significant harm (facts.significant_harm), notify each affected data subject without unnecessary delay and not later than seven days after the notification to the Commissioner (facts.commissioner_notified_on). Raised when both are recorded on the PERSONAL_DATA_BREACH case.",
+			"authority": "Personal Data Protection Act 2010 s.12B(2) as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Guideline on Data Breach Notification paras 8.1, 9.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "updated"
+			},
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.significant_harm) && row.facts.significant_harm == true && has(row.facts.commissioner_notified_on)",
+			"due": "add_days(row.facts.commissioner_notified_on, 7)"
+		}
+	},
+	{
+		"id": "b8414396-a1d1-50d1-923c-f5ae88439373",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_INQUIRY",
+		"name": "Inquire into a sexual harassment complaint",
+		"rules": {
+			"description": "Inquire into a complaint of sexual harassment in the prescribed manner; or, refusing to inquire (previously inquired and not proven, or frivolous, vexatious or not in good faith), inform the complainant in writing of the refusal and its reasons as soon as practicable and not later than thirty days after receiving the complaint (opened_on). Raised when a SEXUAL_HARASSMENT_COMPLAINT case is opened.",
+			"authority": "Employment Act 1955 ss.81A, 81B(1)–(3), 81F(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "created"
+			},
+			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "b7c7d607-b4ff-5c7b-828d-e6a6d7bcd562",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_DG_INQUIRY_REPORT",
+		"name": "Inquire when directed by the Director General and report",
+		"rules": {
+			"description": "When the Director General directs the employer to inquire into a complaint (on a referral of the employer's refusal, s.81B(5)(a), or a complaint made to the Director General, s.81D(1)), inquire and submit the report of the inquiry within thirty days of the direction (facts.dg_directed_on on the SEXUAL_HARASSMENT_COMPLAINT case).",
+			"authority": "Employment Act 1955 ss.81B(4)–(5), 81D(1)–(2), 81F(c)–(d) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "updated"
+			},
+			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\" && has(row.facts) && row.facts != null && has(row.facts.dg_directed_on)",
+			"due": "add_days(row.facts.dg_directed_on, 30)"
+		}
+	},
+	{
+		"id": "d547282c-a08b-5883-b9cf-209c64e2b3bc",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "SEXUAL_HARASSMENT_FINDING_ACTION",
+		"name": "Act on a proven sexual harassment finding",
+		"rules": {
+			"description": "Where the employer's inquiry proves sexual harassment (facts.inquiry_outcome PROVEN): against an employee, take disciplinary action (dismissal without notice, downgrading, or a lesser punishment, suspension without wages at most two weeks); against a non-employee, recommend the person be brought before the appropriate disciplinary authority. Raised on the case update recording the finding; due that day.",
+			"authority": "Employment Act 1955 s.81C(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "workplace_case",
+				"event": "updated"
+			},
+			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\" && has(row.facts) && row.facts != null && has(row.facts.inquiry_outcome) && row.facts.inquiry_outcome == \"PROVEN\"",
+			"due": "today"
+		}
+	},
+	{
+		"id": "42bfd6c5-1f29-56d9-b86f-9ff8b3af3a1b",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE",
+		"name": "Inform the Director General of a foreign domestic employee",
+		"rules": {
+			"description": "Inform the Director General of Labour of the employment of a foreign domestic employee within thirty days of the employment (separate from the s.60K particulars; it applies to domestic employees although Part XII does not). Raised where the terms record a FOREIGNER on a DOMESTIC employment.",
+			"authority": "Employment Act 1955 s.57A(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\" && has(t.employment_type) && t.employment_type == \"DOMESTIC\")",
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "4095a6bf-bf13-5078-9ccc-6b17c4ce1d23",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_DOMESTIC_TERMINATION_NOTICE",
+		"name": "Inform the Director General of a foreign domestic employee's termination",
+		"rules": {
+			"description": "Inform the Director General of Labour within thirty days of the termination of a foreign domestic employee's service — by the employer, by the employee (absconding included), on the expiry of the employment pass, or by repatriation or deportation.",
+			"authority": "Employment Act 1955 s.57B(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\" && has(t.employment_type) && t.employment_type == \"DOMESTIC\")",
+			"due": "add_days(exit_on, 30)"
+		}
+	},
+	{
+		"id": "2707b42a-f593-5085-8892-288d60950533",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "CP58_AGENT_STATEMENT_ON_EXIT",
+		"name": "CP58 statement for an agent whose engagement ended",
+		"rules": {
+			"description": "The CP58 statement of the year's payments for an agent, dealer or distributor whose engagement ends during the year (the January tick reaches only engagements still in force): raised on the engagement's end for a PAYEE whose terms record an AGENT, DEALER or DISTRIBUTOR role, once for the year it ends; due 31 March of the next year.",
+			"authority": "Income Tax Act 1967 s.83A(1)–(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf, read 2026-10-07)",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "updated",
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && has(contract.engagement) && contract.engagement == \"PAYEE\" && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.payee_role) && t.facts.payee_role in [\"AGENT\", \"DEALER\", \"DISTRIBUTOR\"])",
+			"repeat_key": "exit_on.substring(0, 4)",
+			"due": "string(int(exit_on.substring(0, 4)) + 1) + \"-03-31\""
+		}
+	},
+	{
+		"id": "54f99320-5ed9-571e-9199-4b941c98a322",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "FOREIGN_WORKER_MEDICAL_EXAMINATION",
+		"name": "FOMEMA medical examination of a new foreign worker",
+		"rules": {
+			"description": "Have the foreign worker examined at a FOMEMA-registered health centre and certified fit within 30 days (the Visit Pass (Temporary Employment) is issued only after it); repeat at the 2nd- and 3rd-year renewals (WORK_PASS_RENEWAL). Raised where the terms record a FOREIGNER; due 30 days after the start (taken as arrival).",
+			"authority": "Immigration Department of Malaysia, Foreign Worker service page (https://www.imi.gov.my/index.php/en/main-services/foreign-worker/, read 2026-10-07): \"employers are given a period of 30 days to conduct health examination of foreign workers at the registered health centre with FOMEMA\"; Immigration Act 1959/63 and Immigration Regulations 1963 (visit pass conditions).",
+			"trigger": {
+				"collection": "employment_contract",
+				"event": "created"
+			},
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\")",
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "9413afc8-a27b-5af7-97df-f999dbeec69c",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "TASKS",
+		"scope": "JURISDICTION",
+		"code": "COMPULSORY_HOLIDAYS_CHECK",
+		"name": "Publish the five compulsory holidays",
+		"rules": {
+			"description": "Of the eleven gazetted holidays the employer grants, five are compulsory: National Day, the Yang di-Pertuan Agong's birthday, the Ruler's birthday or Federal Territory Day of the State, Workers' Day and Malaysia Day. Raised on the December run when the published holidays of the next twelve months lack any of the four federal ones (Hari Kebangsaan, Hari Keputeraan Rasmi Seri Paduka Baginda Yang di-Pertuan Agong, Hari Pekerja, Hari Malaysia); the state Ruler's birthday or Federal Territory Day is the employer's state row to confirm.",
+			"authority": "Employment Act 1955 s.60D(1)(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+			"trigger": {
+				"collection": "payroll_run",
+				"event": "created"
+			},
+			"months": ["12"],
+			"when": "!([\"Hari Kebangsaan\", \"Hari Pekerja\", \"Hari Malaysia\"].all(n, holidays_named.exists(h, h.name == n)) && holidays_named.exists(h, h.name.startsWith(\"Hari Keputeraan Rasmi Seri Paduka Baginda Yang di-Pertuan Agong\")))",
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "b1efa6a3-f278-5368-9689-d72603be7f2e",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "EXPORTS",
+		"scope": "JURISDICTION",
+		"code": "CP8D_EMPLOYEE_FILE",
+		"name": "C.P.8D employee remuneration file (e-CP8D)",
+		"rules": {
+			"description": "C.P.8D employee remuneration file for e-Data Praisi / e-CP8D (uploaded with Form E): one pipe-delimited record per employee paid in the remuneration year, in the 22-field order of the LHDN layout Pin. 2025 (name; TIN digits; identity or passport number, 000000000000 when none; PCB category 1–3; status 1 management (employee fact organisation_management), 2 permanent or probation, 3 contract, 4 part-time, 5 industrial trainee (INTERN or the industrial_training_student fact), 6 other; retirement or contract end dd-mm-yyyy — the cessation in the year, else the signed contract end, else the Minimum Retirement Age Act 2012 s.4 age of 60 from the date of birth; tax borne by the employer 1/2 (employee fact tax_borne_by_employer); the PCB child-relief count and amount from the standing’s declared children; gross taxable remuneration as the PCB assessed base of the year’s slips (benefits in kind included); BIK_VOLA in field 11; the field-14 exempt items the catalogue carries (meal and parking allowances, child care up to RM3,000, official travel up to RM6,000, awards up to RM2,000, none for an employee who controls the employer); TP1 relief and payroll zakat as the standing’s monthly figures × months paid; EPF, PCB, CP38 and the PERKESO (SOCSO, EIS, SKBBK) employee shares). Amounts without sen are truncated (RM50,000.70 → 50000); fields 16 and 21 and the separate VOLA and ESOS fields carry no payroll record and stay blank. Named PHHHHHHHHHH_TTTT.txt from the entity’s lhdn_employer_number and the pay-date year; made only when every selected run’s pay date falls in one year. A payee (engagement PAYEE) is not an employee and is not listed.",
+			"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Susun Atur Maklumat C.P.8D – Pin. 2025 (https://www.hasil.gov.my/wp-content/uploads/susun_atur_maklumat_c.p.8d_1.pdf) and Nota Penerangan Borang E 2025, fields 1–22 and the field-14 list (https://www.hasil.gov.my/wp-content/uploads/nota_penerangan_e_2025_1.pdf), both listed on Muat Turun Borang Majikan (https://www.hasil.gov.my/muat-turun-borang/muat-turun-borang-majikan/), read 2026-10-08 in the browser; Minimum Retirement Age Act 2012 (Act 753) s.4.",
+			"applies_when": "size(runs) > 0 && cel.bind(ds, runs.map(r, (r.pay_date != \"\" ? r.pay_date : r.period).substring(0, 4)), ds.all(d, d == ds[0]))",
+			"file": "\"P\" + (has(company.facts) && company.facts != null && has(company.facts.lhdn_employer_number) && company.facts.lhdn_employer_number != null ? string(company.facts.lhdn_employer_number).split(\"\").filter(c, c.matches(\"^[0-9]$\")).join(\"\") : \"\") + \"_\" + cel.bind(ds, runs.map(r, (r.pay_date != \"\" ? r.pay_date : r.period).substring(0, 4)), ds.filter(d, ds.all(e, e <= d))[0]) + \".txt\"",
+			"format": "FIXED",
+			"when": "!(has(contract.engagement) && contract.engagement == \"PAYEE\") && size(slips) > 0",
+			"columns": [
+				{
+					"header": "nama_pekerja",
+					"value": "cel.bind(n, has(employee.name) && employee.name != null ? string(employee.name) : \"\", size(n) > 60 ? n.substring(0, 60) : n)"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "no_tin",
+					"value": "has(employee.facts) && employee.facts != null && has(employee.facts.income_tax_number) && employee.facts.income_tax_number != null ? string(employee.facts.income_tax_number).split(\"\").filter(c, c.matches(\"^[0-9]$\")).join(\"\") : \"\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "no_pengenalan",
+					"value": "cel.bind(i, has(employee.identity_number) && employee.identity_number != null ? string(employee.identity_number).split(\"\").filter(c, c != \"-\" && c != \" \").join(\"\") : \"\", i == \"\" ? \"000000000000\" : i)"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "kategori_pekerja",
+					"value": "has(employee.marital_status) && employee.marital_status == \"MARRIED\" ? (has(employee.spouse_status) && employee.spouse_status == \"WITHOUT_INCOME\" ? \"2\" : \"3\") : ((has(employee.marital_status) && employee.marital_status in [\"DIVORCED\", \"WIDOWED\", \"SEPARATED\"]) || (cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying_half)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled_half)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary_half))) > 0.0 || (has(employee.children) && employee.children != null && employee.children.exists(c, has(c.relationship) && c.relationship == \"ADOPTED\")) ? \"3\" : \"1\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "status_pekerja",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.organisation_management) && employee.facts.organisation_management == true) ? \"1\" : cel.bind(t, cel.bind(ts, has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms != null ? contract.facts.contract_terms : [], size(ts) == 0 ? {} : ts.filter(t, ts.all(u, string(u.effective_range.from) <= string(t.effective_range.from)))[0]), (has(t.facts) && t.facts != null && has(t.facts.industrial_training_student) && t.facts.industrial_training_student == true) || (has(t.employment_type) && t.employment_type == \"INTERN\") ? \"5\" : has(t.employment_type) && t.employment_type == \"PART_TIME\" ? \"4\" : has(t.employment_type) && t.employment_type == \"CONTRACT\" ? \"3\" : has(t.employment_type) && t.employment_type in [\"PERMANENT\", \"PROBATION\"] ? \"2\" : \"6\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "tarikh_persaraan_tamat_kontrak",
+					"value": "cel.bind(to, has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\", cel.bind(end, to != \"\" && to < \"9999\" ? to : (has(contract.signed_contract_end) && contract.signed_contract_end != null ? string(contract.signed_contract_end).substring(0, 10) : (has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" ? add_years(string(employee.date_of_birth).substring(0, 10), 60) : \"\")), end == \"\" ? \"\" : end.substring(8, 10) + \"-\" + end.substring(5, 7) + \"-\" + end.substring(0, 4)))"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "cukai_ditanggung_majikan",
+					"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.tax_borne_by_employer) && employee.facts.tax_borne_by_employer == true) ? \"1\" : \"2\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "bilangan_anak",
+					"value": "cel.bind(v, cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying_half)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled_half)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary)) + cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary_half)), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "jumlah_pelepasan_anak",
+					"value": "cel.bind(v, 2000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying)) + 1000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_under_18_or_studying_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_under_18_or_studying_half)) + 8000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled)) + 4000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_tertiary_or_disabled_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_tertiary_or_disabled_half)) + 16000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary)) + 8000.0 * cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.children_disabled_tertiary_half)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.children_disabled_tertiary_half)), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "jumlah_saraan_kasar",
+					"value": "cel.bind(v, \"PCB\" in totals.statutory ? double(totals.statutory.PCB.base) : double(totals.gross), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "manfaat_barangan",
+					"value": "cel.bind(v, (\"BIK_VOLA\" in totals.lines ? double(totals.lines.BIK_VOLA) : 0.0), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "nilai_tempat_kediaman",
+					"value": "\"\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "manfaat_esos",
+					"value": "\"\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "elaun_dikecualikan",
+					"value": "cel.bind(v, (has(employee.facts) && employee.facts != null && has(employee.facts.controls_employer) && employee.facts.controls_employer == true) ? 0.0 : (\"MEAL_ALLOWANCE\" in totals.lines ? double(totals.lines.MEAL_ALLOWANCE) : 0.0) + (\"PARKING_ALLOWANCE\" in totals.lines ? double(totals.lines.PARKING_ALLOWANCE) : 0.0) + min(3000.0, (\"CHILDCARE_ALLOWANCE\" in totals.lines ? double(totals.lines.CHILDCARE_ALLOWANCE) : 0.0)) + min(6000.0, (\"TRAVEL_OFFICIAL\" in totals.lines ? double(totals.lines.TRAVEL_OFFICIAL) : 0.0)) + min(2000.0, (\"EXCELLENCE_AWARD\" in totals.lines ? double(totals.lines.EXCELLENCE_AWARD) : 0.0) + ((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) ? double(calendar_completed_months(string(contract.effective_range.from).substring(0, 10), cel.bind(ds, runs.map(r, (r.pay_date != \"\" ? r.pay_date : r.period).substring(0, 4)), ds.filter(d, ds.all(e, e <= d))[0]) + \"-12-31\")) : 0.0) + (has(contract.prior_service_months) && contract.prior_service_months != null ? double(contract.prior_service_months) : 0.0) > 120.0 ? (\"LONG_SERVICE_AWARD\" in totals.lines ? double(totals.lines.LONG_SERVICE_AWARD) : 0.0) : 0.0)), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "tuntutan_tp1",
+					"value": "cel.bind(v, cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.tp1_monthly_deductions)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.tp1_monthly_deductions)) * double(size([\"01\", \"02\", \"03\", \"04\", \"05\", \"06\", \"07\", \"08\", \"09\", \"10\", \"11\", \"12\"].filter(m, slips.exists(s, s.period.substring(5, 7) == m)))), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "zakat_tp1",
+					"value": "\"\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "caruman_kwsp",
+					"value": "cel.bind(v, (\"EPF\" in totals.statutory ? double(totals.statutory.EPF.employee) : 0.0) + (\"EPF_PR\" in totals.statutory ? double(totals.statutory.EPF_PR.employee) : 0.0) + (\"EPF_NON_CITIZEN\" in totals.statutory ? double(totals.statutory.EPF_NON_CITIZEN.employee) : 0.0), v >= 1.0 ? string(int(v)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "zakat_potongan_gaji",
+					"value": "cel.bind(v, cel.bind(fs, has(employee.facts) && has(employee.facts.employment_statutory_facts) && employee.facts.employment_statutory_facts != null ? employee.facts.employment_statutory_facts.filter(f, (!has(f.employment_id) || f.employment_id == contract.id) && has(f.status) && has(f.status.elections) && f.status.elections != null && has(f.status.elections.zakat_monthly)) : [], size(fs) == 0 ? 0.0 : double(fs.filter(f, fs.all(g, (has(g.effective_range) && has(g.effective_range.from) ? string(g.effective_range.from) : \"\") <= (has(f.effective_range) && has(f.effective_range.from) ? string(f.effective_range.from) : \"\")))[0].status.elections.zakat_monthly)) * double(size([\"01\", \"02\", \"03\", \"04\", \"05\", \"06\", \"07\", \"08\", \"09\", \"10\", \"11\", \"12\"].filter(m, slips.exists(s, s.period.substring(5, 7) == m)))), v > 0.0 ? cel.bind(c, int(round(v * 100.0, 1.0, \"HALF_UP\")), string(c / 100) + \".\" + (c % 100 < 10 ? \"0\" : \"\") + string(c % 100)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "pcb",
+					"value": "cel.bind(v, (\"PCB\" in totals.statutory ? double(totals.statutory.PCB.employee) : 0.0), v > 0.0 ? cel.bind(c, int(round(v * 100.0, 1.0, \"HALF_UP\")), string(c / 100) + \".\" + (c % 100 < 10 ? \"0\" : \"\") + string(c % 100)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "cp38",
+					"value": "cel.bind(v, cel.bind(a, (\"CP38_INSTALMENT\" in totals.lines ? double(totals.lines.CP38_INSTALMENT) : 0.0), a < 0.0 ? -a : a), v > 0.0 ? cel.bind(c, int(round(v * 100.0, 1.0, \"HALF_UP\")), string(c / 100) + \".\" + (c % 100 < 10 ? \"0\" : \"\") + string(c % 100)) : \"\")"
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "insurans_perubatan",
+					"value": "\"\""
+				},
+				{
+					"header": "|",
+					"value": "\"|\""
+				},
+				{
+					"header": "caruman_perkeso",
+					"value": "cel.bind(v, (\"SOCSO\" in totals.statutory ? double(totals.statutory.SOCSO.employee) : 0.0) + (\"EIS\" in totals.statutory ? double(totals.statutory.EIS.employee) : 0.0) + (\"SKBBK\" in totals.statutory ? double(totals.statutory.SKBBK.employee) : 0.0), v >= 1.0 ? string(int(v)) : \"\")"
+				}
+			]
+		}
+	},
+	{
+		"id": "0b58f79a-f1f5-5b99-9794-cdf6a1d7ae2b",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "YOUNG_WORKER_HOURS",
+		"name": "YOUNG_WORKER_HOURS",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && work.days.exists(d, d.worked && age_on(employee.date_of_birth, d.date) < 18 && (d.worked_hours > (age_on(employee.date_of_birth, d.date) < 15 ? 6.0 : 7.0) || hours_between(d.intervals, \"20:00\", age_on(employee.date_of_birth, d.date) < 15 ? \"07:00\" : \"06:00\") > 0.0 || d.intervals.exists(i, i.end != null && hours_between([i], \"00:00\", \"00:00\") > (age_on(employee.date_of_birth, d.date) < 15 ? 3.0 : 4.0))))",
+			"message": "A child (under 15) or young person (15 to under 18) worked beyond the Act 350 limits: more than 6 / 7 hours a day, between 8 pm and 7 am / 6 am, or more than 3 / 4 consecutive hours without a 30-minute rest.",
+			"description": "Children and Young Persons (Employment) Act 1966 (Act 350), reprint as at 1 December 2011 (Commissioner of Law Revision; copy read 2026-10-08 at https://ccs-co.com/wp-content/uploads/38.-Act-350-Children-and-Young-Persons-Employmen-Act-1966.pdf — jtksm.mohr.gov.my's 2019 reprint, https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20Children%20and%20Young%20Persons%20%28Employment%29%20Act%201966_0.pdf, refused the reader) ss.1A (child: not completed fifteen years; young person: not completed eighteen), 5(1)(a)–(c) and 6(1)(a)–(c): a child not between 8 pm and 7 am, not more than three consecutive hours without thirty minutes' rest, not more than six hours a day (seven with school); a young person not between 8 pm and 6 am, four consecutive hours, seven hours a day (eight with school or as an apprentice). Exceptions (public entertainment under licence; agricultural undertakings and vessels for a young person's night work) are the employer's to confirm, so this warns. The six-days-in-seven limit (s.4) is the WEEKLY_REST_DAY warning's. Peninsular Malaysia only, like this lineage."
+		}
+	},
+	{
+		"id": "59559381-344e-51f8-b2a5-94a984fff112",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "CHILD_EMPLOYMENT",
+		"name": "CHILD_EMPLOYMENT",
+		"rules": {
+			"site": "contract",
+			"kind": "warn",
+			"when": "has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, day) < 15",
+			"message": "A child under 15 may be employed only in light work in a family undertaking, in public entertainment under the Director General's licence, in work approved for a school or training institution, or as an approved apprentice (Act 350 s.2(2)).",
+			"description": "Children and Young Persons (Employment) Act 1966 (Act 350), reprint as at 1 December 2011 (Commissioner of Law Revision; copy read 2026-10-08 at https://ccs-co.com/wp-content/uploads/38.-Act-350-Children-and-Young-Persons-Employmen-Act-1966.pdf — jtksm.mohr.gov.my's 2019 reprint, https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20Children%20and%20Young%20Persons%20%28Employment%29%20Act%201966_0.pdf, refused the reader) s.2(2)(a)–(d) and s.2(3): the only employment a child (under fifteen) may be engaged in; a young person is not engaged in hazardous work (s.2(6)). Checked on the term's first day (`day`)."
 		}
 	}
 ]

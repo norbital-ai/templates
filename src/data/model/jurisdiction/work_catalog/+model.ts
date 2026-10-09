@@ -12,14 +12,21 @@ export default model({
 		component_code: { kind: 'text' },
 		eligibility: {
 			kind: 'text',
+			format: 'cel',
 			help: 'CEL predicate over the payslip context; the line is produced only when it holds.'
 		},
-		quantity: { kind: 'text', help: 'CEL quantity over the payslip context.' },
-		rate: { kind: 'text', help: 'CEL rate over the payslip context.' },
+		quantity: { kind: 'text', format: 'cel', help: 'CEL quantity over the payslip context.' },
+		rate: { kind: 'text', format: 'cel', help: 'CEL rate over the payslip context.' },
 		prorated: {
 			kind: 'bool',
 			default: false,
 			help: 'The line is the contract amount scaled to the days employed; the payslip records its proration.'
+		},
+		denominator: {
+			kind: 'text',
+			format: 'cel',
+			optional: true,
+			help: 'CEL: the divisor a prorated line states on the payslip (blank: the period’s calendar days).'
 		},
 		destination: { kind: 'enum', values: ['PAY', 'NET', 'EMPLOYER'] },
 		direction: { kind: 'enum', values: ['ADD', 'SUBTRACT'] },

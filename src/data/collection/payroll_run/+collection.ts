@@ -1,21 +1,33 @@
-import { collection, type TransformCtx } from '@norbital-ai/bolt';
+import { collection, type Row, type TransformCtx } from '@norbital-ai/bolt';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Result, Schema } from 'effect';
-import { Reads, readsFrom, runEngine } from '../../../lib/payroll_engine/foundation.js';
+import {
+	callerReadAsHost,
+	Reads,
+	readJoined,
+	readsFrom,
+	runEngine
+} from '../../../lib/payroll_engine/foundation.js';
 import {
 	admitPayrollRun,
 	buildPayrollRun,
+	currencyScale,
 	type PayrollRunKind,
 	type PinnedCollection
 } from '../../../lib/payroll_engine/services.js';
 import {
 	bankAccountFrom,
 	moneyText,
+	exportEntries,
+	exportSlip,
 	payrollExportDocuments,
+	plainRow,
+	recordDocuments,
 	payslipLines,
 	type ExportDocument,
-	type ExportPayment
+	type ExportPayment,
+	type PinningSlip
 } from '../../../lib/payroll_engine/export.js';
 
 /** The payslip columns the run's own build fills; the run relation supplies `payroll_run_id`. */
@@ -77,7 +89,7 @@ const c = collection('payroll_run', {
 	queries: {
 		export_payroll: {
 			description:
-				'Bank payment file (OCBC FAST when the payer is OCBCSG, else CSV) and one payslip CSV per employee for the selected runs. Held slips are omitted from the bank file.',
+				'A bank payment CSV, one payslip CSV per employee and the files of the versions’ EXPORTS records (bank layouts, statutory returns) for the selected runs. Held slips are omitted from the bank files.',
 			input: {
 				ids: { kind: 'list', of: { kind: 'id', of: 'payroll_run' }, min: 1 }
 			},
@@ -138,7 +150,7 @@ c.transform(async (inputs, ctx: TransformCtx<'payroll_run'>) => {
 		const version = await runEngine(admitPayrollRun(request), ctx.db.read, ctx.refuse);
 		const outcome = await Effect.runPromise(
 			Effect.result(
-				buildPayrollRun(request).pipe(Effect.provideService(Reads, readsFrom(ctx.db.read)))
+				buildPayrollRun(request, version).pipe(Effect.provideService(Reads, readsFrom(ctx.db.read)))
 			)
 		);
 		if (Result.isFailure(outcome)) {
@@ -193,15 +205,32 @@ c.transform(async (inputs, ctx: TransformCtx<'payroll_run'>) => {
 	return out;
 });
 
-c.query('export_payroll', async ({ ids }, ctx) => {
-	const runs = await ctx.read('payroll_run', {
-		where: { id: { in: ids } },
-		select: { id: true, company_id: true, period: true },
-		all: true
-	});
-	const slips = await ctx.read('payslip', {
-		where: { payroll_run_id: { in: ids } },
-		select: {
+/** An entry a slip pinned, as a return reads it (`slips[].leave[]`, `entries[]`): its class code through `catalog`. */
+const PINNED = {
+	employment_id: true,
+	catalog: { one: 'catalog_id', select: { code: true } },
+	amount: true,
+	facts: true
+} as const;
+const PINNED_ARMS = {
+	adhoc_catalog_entry: { many: { ...PINNED, quantity: true } },
+	claim_catalog_entry: { many: { ...PINNED, quantity: true } },
+	loan_catalog_entry: { many: PINNED },
+	leave_catalog_entry: { many: { ...PINNED, days: true, from: true, to: true } }
+} as const;
+
+/** What an export reads, as one joined read of the selected runs. */
+const RUN_EXPORT = {
+	id: true,
+	company_id: true,
+	period: true,
+	kind: true,
+	settings_id: true,
+	salary_from: true,
+	salary_to: true,
+	pay_date: true,
+	payslip: {
+		many: {
 			id: true,
 			payroll_run_id: true,
 			employment_id: true,
@@ -212,43 +241,140 @@ c.query('export_payroll', async ({ ids }, ctx) => {
 			status: true,
 			base: true,
 			statutory: true,
-			adjustments: true
-		},
-		all: true
-	});
+			adjustments: true,
+			// The entries each slip pinned (their class codes through `catalog`): a return's `slips[].leave[]` and
+			// `entries[]`, in this same read.
+			...PINNED_ARMS,
+			employment: {
+				one: 'employment_id',
+				select: {
+					id: true,
+					employee_id: true,
+					employee_number: true,
+					bank: true,
+					effective_range: true,
+					exit_ground: true,
+					facts: true,
+					person: {
+						one: 'employee_id',
+						select: {
+							id: true,
+							name: true,
+							identity_number: true,
+							date_of_birth: true,
+							nationality: true,
+							facts: true
+						}
+					}
+				}
+			}
+		}
+	},
+	company: {
+		one: 'company_id',
+		select: {
+			id: true,
+			name: true,
+			registration_number: true,
+			region: true,
+			facts: true,
+			disbursement_account: true
+		}
+	},
+	settings: {
+		one: 'settings_id',
+		select: {
+			id: true,
+			payroll: true,
+			rule_set: { many: { code: true, rules: true }, where: { family: { eq: 'EXPORTS' } } }
+		}
+	}
+} as const;
+type Run = Pick<
+	Row<'payroll_run'>,
+	'id' | 'company_id' | 'period' | 'kind' | 'settings_id' | 'salary_from' | 'salary_to' | 'pay_date'
+> & {
+	readonly payslip: readonly (Pick<
+		Row<'payslip'>,
+		| 'id'
+		| 'payroll_run_id'
+		| 'employment_id'
+		| 'net'
+		| 'gross'
+		| 'total_deductions'
+		| 'currency'
+		| 'status'
+		| 'base'
+		| 'statutory'
+		| 'adjustments'
+	> &
+		PinningSlip & {
+			readonly employment:
+				| (Pick<
+						Row<'employment_contract'>,
+						| 'id'
+						| 'employee_id'
+						| 'employee_number'
+						| 'bank'
+						| 'effective_range'
+						| 'exit_ground'
+						| 'facts'
+				  > & {
+						readonly person: Pick<
+							Row<'employment_profile'>,
+							'id' | 'name' | 'identity_number' | 'date_of_birth' | 'nationality' | 'facts'
+						> | null;
+				  })
+				| null;
+		})[];
+	readonly company: Pick<
+		Row<'entity'>,
+		'id' | 'name' | 'registration_number' | 'region' | 'facts' | 'disbursement_account'
+	> | null;
+	readonly settings:
+		| (Pick<Row<'jurisdiction_settings'>, 'id' | 'payroll'> & {
+				readonly rule_set: readonly Pick<Row<'rule_set'>, 'code' | 'rules'>[];
+		  })
+		| null;
+};
+
+c.query('export_payroll', async ({ ids }, ctx) => {
+	// One read: the runs with their slips, each slip's contract and person, the entity and the version's exports.
+	const joined = await runEngine(
+		readJoined<Run>('payroll_run', { id: { in: ids } }, RUN_EXPORT),
+		callerReadAsHost(ctx.read),
+		ctx.refuse
+	);
+	const runs = { rows: joined };
+	const slips = {
+		rows: joined.flatMap((run) => run.payslip.map(({ employment: _employment, ...slip }) => slip))
+	};
+	const held = [
+		...new Map(
+			joined.flatMap((run) =>
+				run.payslip.flatMap((slip) =>
+					slip.employment == null ? [] : [[slip.employment.id, slip.employment] as const]
+				)
+			)
+		).values()
+	];
+	const contracts = { rows: held.map(({ person: _person, ...contract }) => contract) };
 	const employmentIds = [...new Set(slips.rows.map((row) => row.employment_id))];
-	const contracts =
-		employmentIds.length === 0
-			? { rows: [] }
-			: await ctx.read('employment_contract', {
-					where: { id: { in: employmentIds } },
-					select: { id: true, employee_id: true, employee_number: true, bank: true },
-					all: true
-				});
-	const employeeIds = [...new Set(contracts.rows.map((row) => row.employee_id))];
-	const people =
-		employeeIds.length === 0
-			? { rows: [] }
-			: await ctx.read('employment_profile', {
-					where: { id: { in: employeeIds } },
-					select: { id: true, name: true },
-					all: true
-				});
-	const companyIds = [...new Set(runs.rows.map((row) => row.company_id))];
-	const entities =
-		companyIds.length === 0
-			? { rows: [] }
-			: await ctx.read('entity', {
-					where: { id: { in: companyIds } },
-					select: { id: true, disbursement_account: true },
-					all: true
-				});
+	const people = {
+		rows: held.flatMap((contract) => (contract.person == null ? [] : [contract.person]))
+	};
+	const entities = { rows: joined.flatMap((run) => (run.company == null ? [] : [run.company])) };
+	const versions = { rows: joined.flatMap((run) => (run.settings == null ? [] : [run.settings])) };
+	const scaleOf = (units: number | null | undefined, code: string | undefined) => {
+		const scale = units ?? (code == null || code === '' ? undefined : currencyScale(code));
+		return scale === undefined ? {} : { scale };
+	};
+	const minorUnitsOf = new Map(versions.rows.map((row) => [row.id, row.payroll?.minor_units]));
 	const byContract = new Map(contracts.rows.map((row) => [row.id, row]));
 	const byPerson = new Map(people.rows.map((row) => [row.id, row]));
 	const byEntity = new Map(entities.rows.map((row) => [row.id, row]));
 	const documents: ExportDocument[] = [];
 	for (const run of runs.rows) {
-		const entity = byEntity.get(run.company_id);
 		const payments: ExportPayment[] = slips.rows
 			.filter((slip) => slip.payroll_run_id === run.id)
 			.map((slip) => {
@@ -273,11 +399,43 @@ c.query('export_payroll', async ({ ids }, ctx) => {
 			});
 		documents.push(
 			...payrollExportDocuments({
-				payer: bankAccountFrom(entity?.disbursement_account),
 				period: String(run.period),
-				payments
+				payments,
+				...scaleOf(minorUnitsOf.get(run.settings_id), payments[0]?.currency)
 			})
 		);
 	}
+	// The selected runs' versions' statutory returns (`EXPORTS` rule-set rows), one CSV each over every employment.
+	const templates = versions.rows.flatMap((version) => version.rule_set);
+	const byCode = new Map(templates.map((row) => [String(row.code), row]));
+	const periodOf = new Map(runs.rows.map((row) => [row.id, String(row.period)]));
+	documents.push(
+		...recordDocuments(
+			[...byCode.values()].map((row) => ({ code: String(row.code), rules: row.rules })),
+			runs.rows.map((row) => ({
+				id: row.id,
+				period: String(row.period),
+				kind: String(row.kind ?? ''),
+				salary_from: String(row.salary_from ?? ''),
+				salary_to: String(row.salary_to ?? ''),
+				pay_date: String(row.pay_date ?? '')
+			})),
+			employmentIds.map((id) => {
+				const mine = slips.rows.filter((slip) => slip.employment_id === id);
+				const contract = byContract.get(id);
+				const person = contract == null ? undefined : byPerson.get(contract.employee_id);
+				return {
+					employee: plainRow(person),
+					contract: plainRow(contract),
+					slips: mine.map((slip) => exportSlip(slip, periodOf.get(slip.payroll_run_id) ?? '')),
+					entries: exportEntries(mine)
+				};
+			}),
+			// The runs' entity (the first run's), its payer facts included.
+			plainRow(runs.rows[0] == null ? undefined : byEntity.get(runs.rows[0].company_id)),
+			// The host clock's instant, never the wall clock: a re-run under a fixed clock makes the same file.
+			String(ctx.now)
+		)
+	);
 	return { documents };
 });

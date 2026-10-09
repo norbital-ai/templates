@@ -10,7 +10,6 @@
 		"counts_toward": [],
 		"eligibility": "",
 		"qualifies_when": "entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on",
-		"evidence": "REQUIRED",
 		"bands": [
 			{
 				"when": "",

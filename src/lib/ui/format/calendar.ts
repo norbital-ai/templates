@@ -16,10 +16,10 @@ const period_half = (period: string): number | null => {
 	return suffix === '' ? null : Number.parseInt(suffix, 10);
 };
 
-/** The Monday a Sunday-ending week begins. */
-const week_start = (end: string): string => {
-	const stamp = new Date(`${end}T00:00:00Z`);
-	stamp.setUTCDate(stamp.getUTCDate() - 6);
+/** The Saturday a Sunday-starting week ends. */
+const week_end = (start: string): string => {
+	const stamp = new Date(`${start}T00:00:00Z`);
+	stamp.setUTCDate(stamp.getUTCDate() + 6);
 	return stamp.toISOString().slice(0, 10);
 };
 
@@ -38,7 +38,7 @@ export function periodInCompanyGrammar(
 		const weeks = weeklyInstalments(month);
 		const named = period_half(period);
 		if (named != null && named <= weeks.length) return period;
-		const current = weeks.findIndex((sunday) => week_start(sunday) <= today && today <= sunday);
+		const current = weeks.findIndex((sunday) => sunday <= today && today <= week_end(sunday));
 		return `${month}-${current >= 0 ? current + 1 : 1}`;
 	}
 	if (payFrequency !== 'SEMI_MONTHLY') return month;

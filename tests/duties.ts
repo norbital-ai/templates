@@ -33,6 +33,8 @@ export const DUTY_KEYS = [
 	'when',
 	'months',
 	'applies_when',
+	'repeat_key',
+	'occurrence',
 	'due'
 ];
 
@@ -73,6 +75,8 @@ export function raiseDuties(input: {
 	readonly run?: Row;
 	/** The entity's contracts in force on the trigger day (`event.headcount`). */
 	readonly headcount?: number;
+	/** The entity's separations around the trigger day (`event.separations`). */
+	readonly separations?: readonly Row[];
 	/** The day a `calendar` trigger runs on. */
 	readonly day?: string;
 }): { [key: string]: Json }[] {
@@ -94,8 +98,20 @@ export function raiseDuties(input: {
 			action: event,
 			row,
 			settings_id: input.settings_id,
+			// the version's PAYROLL rule tables, as the tap gives them (`rules`)
+			rules: Object.fromEntries(
+				input.rows
+					.filter((held) => held.family === 'PAYROLL')
+					.map((held) => [String(held.code), held.rules ?? {}])
+			),
 			day,
 			headcount: input.headcount ?? 0,
+			leave_balances: [],
+			separations: input.separations ?? [],
+			headcount_by_worksite: {},
+			headcount_permanent_by_worksite: {},
+			headcount_permanent: input.headcount ?? 0,
+			headcount_months: [],
 			period: { key: day.slice(0, 7), from: String(month.from), to: String(month.to) },
 			company_id,
 			employment_id: ['employment_contract', 'calendar'].includes(collection)
@@ -103,7 +119,15 @@ export function raiseDuties(input: {
 				: (row.employment_id ?? null),
 			employee_id: row.employee_id ?? null
 		},
-		run: input.run ?? { totals: { gross: 0, net: 0, employer_cost: 0, schemes } }
+		run: input.run ?? {
+			totals: { gross: 0, net: 0, employer_cost: 0, schemes },
+			statutory: Object.fromEntries(
+				Object.keys(schemes).map((code) => [
+					code,
+					{ base: 1, employee: 1, employer: 1, charged_base: 1, parts: {} }
+				])
+			)
+		}
 	};
 	const occurrence =
 		collection === 'payroll_run'
@@ -122,6 +146,7 @@ export function raiseDuties(input: {
 				employee: [],
 				contract: ['employment_contract', 'calendar'].includes(collection) ? [row] : [],
 				holidays: [],
+				subject_tasks: [],
 				raised:
 					input.raisedAll !== true
 						? []
@@ -131,6 +156,10 @@ export function raiseDuties(input: {
 									occurrence_key: `${String(task.code)}:${company_id}:${String(occurrence)}`
 								})),
 				...input.reads,
+				// a suite's own `event` keeps the roots the tap always gives (`rules`)
+				...(input.reads?.event == null
+					? {}
+					: { event: { rules: context.event.rules, ...(input.reads.event as Row) } }),
 				...(Array.isArray(input.reads?.raised)
 					? {
 							raised: (input.reads.raised as Row[]).map((held) => ({
@@ -189,10 +218,25 @@ export function withBalances<
 					employment: {
 						service_months: serviceMonths,
 						start_date: range.from ?? '',
-						exit_date: range.to ?? ''
+						exit_date: range.to ?? '',
+						exit_ground: row.exit_ground ?? '',
+						exit_facts: row.exit_facts ?? {}
 					}
 				} as Parameters<typeof leaveBalances>[0]['context']
 			})
 		}
 	};
 }
+
+/** The payroll settings every lineage seeds with the engine's former behaviour (TAKEOVER "Payroll settings"). */
+export const SEEDED_PAYROLL = {
+	pay_date: 'period.to',
+	week_start: 0,
+	semi_monthly_split: 15,
+	roster_week: 'ROLLING',
+	rolling_hours_months: 3,
+	base_salary_required: true,
+	off_cycle_families: ['ADHOC', 'CLAIM'],
+	monthly_wage: 'terms.base_salary + sum(terms.allowances.map(a, a.amount))',
+	negative_net: 'refuse'
+} as const;
