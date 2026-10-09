@@ -20,7 +20,7 @@ export default model({
 		},
 		marital_status: {
 			kind: 'enum',
-			values: ['SINGLE', 'MARRIED', 'DIVORCED'],
+			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED'],
 			optional: true
 		},
 		solo_parent: {
@@ -84,14 +84,9 @@ export default model({
 							optional: true
 						},
 						citizenship: {
-							kind: 'enum',
-							values: ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'],
-							optional: true
-						},
-						shared_parental_weeks: {
-							kind: 'int',
-							min: 0,
-							optional: true
+							kind: 'text',
+							optional: true,
+							help: 'The child’s citizenship as the governing version’s records compare it (e.g. CITIZEN).'
 						},
 						prior_employment_days: {
 							kind: 'int',
@@ -111,10 +106,6 @@ export default model({
 						prior_infant_care_days: {
 							kind: 'int',
 							min: 0,
-							optional: true
-						},
-						relief_class: {
-							kind: 'text',
 							optional: true
 						}
 					}
@@ -183,6 +174,11 @@ export default model({
 			kind: 'instant',
 			optional: true
 		},
+		anonymised_at: {
+			kind: 'instant',
+			optional: true,
+			help: 'When the former employee was anonymised after the retention period; personal fields are blank since.'
+		},
 		face_match_count: {
 			kind: 'int',
 			min: 0,
@@ -197,6 +193,15 @@ export default model({
 				}
 			},
 			optional: true
+		},
+		before: {
+			kind: 'json',
+			shape: {
+				kind: 'record',
+				of: { kind: 'json' }
+			},
+			optional: true,
+			help: 'The prior values of the fields the last update changed, recorded for the duties that answer a change.'
 		}
 	}
 });

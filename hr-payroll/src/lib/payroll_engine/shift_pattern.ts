@@ -49,6 +49,9 @@ export type PlannedShift = {
 	readonly code: string;
 	readonly day_type: string;
 	readonly scheduled_hours: number;
+	/** The planned break, centred on the shift: its start in minutes after the day's local midnight (past 1440 on an
+	 * overnight shift) and its length; null when the shift names no clock or no break. */
+	readonly break?: { readonly from_minute: number; readonly minutes: number } | null;
 };
 
 /** A stored shift definition as a planned day; a shift ending at or before its start runs past midnight. */
@@ -59,15 +62,18 @@ export const plannedShift = (row: {
 	const variant = Schema.is(Variant)(row.variant) ? row.variant : {};
 	const { start_time: start, end_time: end } = variant;
 	let minutes = 0;
+	let held: PlannedShift['break'] = null;
 	if (start != null && end != null && CLOCK.test(start) && CLOCK.test(end)) {
-		minutes = clockMinutes(end) - clockMinutes(start);
-		if (minutes <= 0) minutes += 1440;
-		minutes = Math.max(0, minutes - (variant.break_minutes ?? 0));
+		const span = clockMinutes(end) - clockMinutes(start) + (end <= start ? 1440 : 0);
+		const pause = Math.min(span, Math.max(0, variant.break_minutes ?? 0));
+		minutes = span - pause;
+		if (pause > 0) held = { from_minute: clockMinutes(start) + (span - pause) / 2, minutes: pause };
 	}
 	return {
 		code: row.code ?? '',
 		day_type: variant.day_type ?? '',
-		scheduled_hours: Math.round((minutes / 60) * 100) / 100
+		scheduled_hours: Math.round((minutes / 60) * 100) / 100,
+		break: held
 	};
 };
 

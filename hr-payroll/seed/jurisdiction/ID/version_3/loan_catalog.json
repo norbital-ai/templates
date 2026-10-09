@@ -5,14 +5,13 @@
 		"code": "STAFF_LOAN",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
+		"eligibility": "has(entry.facts.written_agreement_reference) && entry.facts.written_agreement_reference != \"\"",
 		"name": "Staff loan",
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE"
+		]
 	}
 ]

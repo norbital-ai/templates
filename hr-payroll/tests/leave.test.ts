@@ -12,6 +12,8 @@ import {
 	previewLeave,
 	refuseCoveredWorkDay,
 	refuseLeaveWrite,
+	windowEndsOn,
+	type AttendanceDay,
 	type LeaveClass,
 	type LeaveEntitlement,
 	type LeaveMovement
@@ -120,8 +122,57 @@ describe('leave', () => {
 			taken: 4,
 			reserved: 0,
 			available: 9,
-			window_key: ''
+			window_key: '',
+			window_to: ''
 		});
+	});
+
+	it('a balance listing offers only the classes whose eligibility holds for the employee', () => {
+		const fullTime = { employment_type: 'PERMANENT' };
+		const partTime: LeaveClass = {
+			...annual,
+			id: catalog('pt'),
+			code: 'ANNUAL_LEAVE_PART_TIME',
+			eligibility: 'terms.employment_type == "PART_TIME"'
+		};
+		const onExit: LeaveClass = {
+			...annual,
+			id: catalog('ox'),
+			code: 'ANNUAL_LEAVE_ON_EXIT',
+			eligibility: 'employment.exit_ground != ""'
+		};
+		// a class keyed to the request's own facts is decided by the request, not the listing
+		const birth: LeaveClass = {
+			...annual,
+			id: catalog('bl'),
+			code: 'BIRTH_LEAVE',
+			eligibility: 'entry.facts.event_kind == "BIRTH"'
+		};
+		const list = (terms: object, exit_ground: string) =>
+			leaveBalances({
+				classes: [annual, partTime, onExit, birth],
+				movements: [],
+				serviceMonths: 24,
+				context: { terms, employment: { exit_ground } },
+				offeredOnly: true
+			}).map((row) => row.code);
+		assert.deepEqual(list(fullTime, ''), ['ANNUAL_LEAVE', 'BIRTH_LEAVE']);
+		// the engine's own reads (the exit encashment, previews) still see every class
+		assert.equal(
+			leaveBalances({
+				classes: [annual, partTime],
+				movements: [],
+				serviceMonths: 24,
+				context: { terms: fullTime, employment: { exit_ground: '' } }
+			}).length,
+			2
+		);
+		assert.deepEqual(list({ employment_type: 'PART_TIME' }, 'RESIGNATION'), [
+			'ANNUAL_LEAVE',
+			'ANNUAL_LEAVE_PART_TIME',
+			'ANNUAL_LEAVE_ON_EXIT',
+			'BIRTH_LEAVE'
+		]);
 	});
 
 	it('L-TPL-hr-payroll-073 previews the same remaining days the write would see', () => {
@@ -504,5 +555,347 @@ describe('chargeable days', () => {
 			employmentStart: '2026-01-02'
 		});
 		assert.equal(joiner!.carried, 0);
+	});
+
+	it('carry_depth: carried days carry again, at most that many windows on', () => {
+		// 12 a year from 2023, none taken; the cap is no limit.
+		const carried = (carry_depth?: number) =>
+			leaveBalances({
+				classes: [
+					{
+						...annual,
+						id: catalog('ay'),
+						entitlement: {
+							days: '12.0',
+							window: 'CALENDAR_YEAR',
+							carry_forward: '100.0',
+							...(carry_depth == null ? {} : { carry_depth })
+						}
+					}
+				],
+				movements: [],
+				serviceMonths: 40,
+				asOf: '2026-02-02',
+				employmentStart: '2023-01-01'
+			})[0]!.carried;
+		assert.equal(carried(), 12);
+		assert.equal(carried(2), 24);
+		assert.equal(carried(3), 36);
+		assert.equal(carried(9), 36);
+	});
+
+	it('a ROLLING window meters the months before the day read; another class’s days are `taken_by_class`', () => {
+		const rolling: LeaveClass = {
+			...sick,
+			consumes_code: null,
+			entitlement: {
+				// A grant forfeited by unpaid absence of the same rolling window.
+				days: 'taken_by_class.UNPAID_LEAVE.rolling > 2.0 ? 0.0 : 10.0',
+				window: 'ROLLING',
+				window_months: 24
+			}
+		};
+		const balance = (unpaidDays: number) =>
+			leaveBalances({
+				classes: [rolling, unpaid],
+				movements: [
+					taken('sl', 3, { id: 'old', from: '2024-03-01' }),
+					taken('sl', 4, { id: 'in', from: '2024-06-01' }),
+					taken('ul', unpaidDays, { id: 'u', from: '2026-01-05' })
+				],
+				serviceMonths: 60,
+				asOf: '2026-03-02'
+			}).find((row) => row.code === 'SICK_LEAVE')!;
+		assert.deepEqual([balance(1).taken, balance(1).available], [4, 6]);
+		assert.equal(balance(3).available, 0);
+	});
+
+	it('a service year offset starts the first service year months after the employment start', () => {
+		const offset: LeaveClass = {
+			...annual,
+			entitlement: { days: '10.0', window: 'SERVICE_YEAR', service_year_offset_months: 6 }
+		};
+		const read = (asOf: string) =>
+			leaveBalances({
+				classes: [offset],
+				movements: [
+					taken('al', 2, { from: '2025-09-15' }),
+					taken('al', 3, { id: 'b', from: '2026-01-10' })
+				],
+				serviceMonths: 12,
+				asOf,
+				employmentStart: '2025-04-01'
+			})[0]!.taken;
+		// Service years run from 1 October: 2025-10-01 → 2026-09-30.
+		assert.equal(read('2026-03-02'), 3);
+		assert.equal(read('2025-09-20'), 2);
+	});
+
+	it('attendance: a grant on the base date tests the window before it; a month counts at half its days', () => {
+		// Employed 1 April 2025, every weekday scheduled; service years from 1 October (six months on).
+		const days: AttendanceDay[] = [];
+		for (let t = Date.parse('2025-04-01'); t <= Date.parse('2026-04-30'); t += 86_400_000) {
+			const date = new Date(t).toISOString().slice(0, 10);
+			const weekday = new Date(t).getUTCDay();
+			const scheduled = weekday !== 0 && weekday !== 6;
+			// Absent through April 2025, then on childcare leave in the first half of June; attending otherwise.
+			const away = date < '2025-05-01';
+			const childcare = date >= '2025-06-01' && date <= '2025-06-15';
+			days.push({
+				date,
+				scheduled,
+				worked: scheduled && !away && !childcare,
+				holiday: false,
+				leave: childcare && scheduled ? ['CHILDCARE_LEAVE'] : []
+			});
+		}
+		const grant = (rule: string, asOf: string) =>
+			leaveBalances({
+				classes: [
+					{
+						...annual,
+						entitlement: { window: 'SERVICE_YEAR', service_year_offset_months: 6, days: rule }
+					}
+				],
+				movements: [],
+				serviceMonths: 0,
+				asOf,
+				employmentStart: '2025-04-01',
+				attendanceDays: days.filter((day) => day.date <= asOf)
+			})[0]!.entitlement;
+		// The 80% test over the six months before the base date, childcare leave counting as attended.
+		const eighty = (counted: string) =>
+			`(double(attendance.previous.worked) + ${counted}) / double(attendance.previous.scheduled) >= 0.8 ? 10.0 : 0.0`;
+		const childcare =
+			'(has(attendance.previous.leave.CHILDCARE_LEAVE) ? double(attendance.previous.leave.CHILDCARE_LEAVE) : 0.0)';
+		// April–September 2025: 131 weekdays, 22 absent in April, 10 of childcare leave. Counted as attended, the
+		// leave passes the test (109 of 131); not counted, it fails (99 of 131).
+		assert.equal(grant('double(attendance.previous.scheduled)', '2025-10-01'), 131);
+		assert.equal(grant('double(attendance.previous.worked)', '2025-10-01'), 99);
+		assert.equal(grant(childcare, '2025-10-01'), 10);
+		assert.equal(grant(eighty(childcare), '2025-10-01'), 10);
+		assert.equal(grant(eighty('0.0'), '2025-10-01'), 0);
+		// The service year from the base date, read so far: every scheduled day attended.
+		assert.equal(
+			grant('double(attendance.window.worked) / double(attendance.window.scheduled)', '2026-04-30'),
+			1
+		);
+		// A month counts when attended or on leave for at least half its scheduled days: all but April 2025.
+		const months =
+			'double(size(attendance.previous.months.filter(m, double(m.worked) + (has(m.leave.CHILDCARE_LEAVE) ? double(m.leave.CHILDCARE_LEAVE) : 0.0) >= 0.5 * double(m.scheduled))))';
+		assert.equal(grant(months, '2025-10-01'), 5);
+	});
+
+	it('consumes_after_days: only the days past the first N draw on the pool', () => {
+		// A class with three days of its own a year, then drawing on a 30-day sick pool.
+		const pool: LeaveClass = {
+			...hospital,
+			id: catalog('pool'),
+			code: 'SICK_POOL',
+			entitlement: { window: 'CALENDAR_YEAR', days: '30.0' }
+		};
+		const own: LeaveClass = {
+			...sick,
+			id: catalog('own'),
+			code: 'OWN_LEAVE',
+			consumes_code: 'SICK_POOL',
+			entitlement: { window: 'CALENDAR_YEAR', days: '12.0', consumes_after_days: 3 }
+		};
+		const read = (days: number) =>
+			leaveBalances({
+				classes: [pool, own],
+				movements: [taken('own', days)],
+				serviceMonths: 24,
+				asOf: '2026-06-01'
+			});
+		const poolTaken = (days: number) => read(days).find((row) => row.code === 'SICK_POOL')!.taken;
+		assert.equal(poolTaken(2), 0);
+		assert.equal(poolTaken(3), 0);
+		assert.equal(poolTaken(5), 2);
+		// The class's own view: its 12 days less 5, and the pool's 28 left after its first three free days.
+		assert.equal(read(5).find((row) => row.code === 'OWN_LEAVE')!.available, 7);
+	});
+
+	it('an hourly class draws on a day pool at the contract’s daily hours', () => {
+		const pool: LeaveClass = {
+			...hospital,
+			id: catalog('pool'),
+			code: 'PERSONAL_POOL',
+			entitlement: { window: 'CALENDAR_YEAR', days: '14.0' }
+		};
+		const hourly: LeaveClass = {
+			...sick,
+			id: catalog('care'),
+			code: 'FAMILY_CARE_HOURS',
+			consumes_code: 'PERSONAL_POOL',
+			entitlement: {
+				unit: 'HOUR',
+				window: 'CALENDAR_YEAR',
+				days: '56.0',
+				hours_per_day: 'double(terms.facts.daily_hours)'
+			}
+		};
+		const rows = leaveBalances({
+			classes: [pool, hourly],
+			movements: [taken('care', 12), taken('pool', 2, { id: 'p2' })],
+			serviceMonths: 24,
+			asOf: '2026-06-01',
+			context: { terms: { facts: { daily_hours: 8 } } }
+		});
+		// 12 hours are 1.5 pool days: 2 + 1.5 taken of 14.
+		assert.equal(rows.find((row) => row.code === 'PERSONAL_POOL')!.taken, 3.5);
+		// 56 − 12 = 44 hours of its own; the pool's 10.5 days left are 84 hours.
+		assert.equal(rows.find((row) => row.code === 'FAMILY_CARE_HOURS')!.available, 44);
+	});
+
+	it('attendance tallies banked overtime hours and suspended days by kind', () => {
+		const days: AttendanceDay[] = [
+			{
+				date: '2026-03-02',
+				scheduled: true,
+				worked: true,
+				holiday: false,
+				leave: [],
+				banked_hours: 2.5
+			},
+			{
+				date: '2026-03-03',
+				scheduled: true,
+				worked: true,
+				holiday: false,
+				leave: [],
+				banked_hours: 1
+			},
+			{
+				date: '2026-03-04',
+				scheduled: true,
+				worked: false,
+				holiday: false,
+				leave: [],
+				suspended: 'EMPLOYER_SHUTDOWN'
+			},
+			{
+				date: '2026-03-07',
+				scheduled: false,
+				worked: false,
+				holiday: false,
+				leave: [],
+				suspended: 'EMPLOYER_SHUTDOWN'
+			}
+		];
+		const credit = (rule: string) =>
+			leaveBalances({
+				classes: [{ ...annual, entitlement: { window: 'CALENDAR_YEAR', days: rule } }],
+				movements: [],
+				serviceMonths: 24,
+				asOf: '2026-03-31',
+				attendanceDays: days
+			})[0]!.entitlement;
+		// Banked hours credit time off: 3.5 hours at 7 hours a day.
+		assert.equal(credit('attendance.window.banked_hours / 7.0'), 0.5);
+		// A suspended scheduled day, by its kind: the record decides whether it counts as attended or is excluded.
+		assert.equal(credit('double(attendance.window.suspended.EMPLOYER_SHUTDOWN)'), 1);
+		assert.equal(
+			credit(
+				'(double(attendance.window.worked) + double(attendance.window.suspended.EMPLOYER_SHUTDOWN)) / double(attendance.window.scheduled)'
+			),
+			1
+		);
+	});
+});
+
+describe('banked overtime', () => {
+	it('attendance lists each banked day with its hours and band', () => {
+		const days: AttendanceDay[] = [
+			{
+				date: '2026-03-02',
+				scheduled: true,
+				worked: true,
+				holiday: false,
+				leave: [],
+				banked_hours: 2,
+				banked_band: 'WEEKDAY_FIRST_TWO'
+			},
+			{
+				date: '2026-03-07',
+				scheduled: false,
+				worked: true,
+				holiday: false,
+				leave: [],
+				banked_hours: 3,
+				banked_band: 'REST_DAY'
+			}
+		];
+		const credit = (rule: string) =>
+			leaveBalances({
+				classes: [{ ...annual, entitlement: { window: 'CALENDAR_YEAR', days: rule } }],
+				movements: [],
+				serviceMonths: 24,
+				asOf: '2026-03-31',
+				attendanceDays: days
+			})[0]!.entitlement;
+		// A payout priced per band: 1.34 for the first two weekday hours, 1.67 on a rest day.
+		assert.equal(
+			credit(
+				'sum(attendance.window.banked.map(b, b.hours * (b.band == "REST_DAY" ? 1.67 : 1.34)))'
+			),
+			2 * 1.34 + 3 * 1.67
+		);
+		assert.deepEqual(
+			credit('double(size(attendance.window.banked.filter(b, b.date == "2026-03-07")))'),
+			1
+		);
+	});
+});
+
+describe('window-end encashment', () => {
+	it('a balance names its window’s last day, and windowEndsOn finds the day a window closes', () => {
+		const yearly: LeaveClass = {
+			...annual,
+			entitlement: { window: 'CALENDAR_YEAR', days: '5.0' }
+		};
+		const [row] = leaveBalances({
+			classes: [yearly],
+			movements: [],
+			serviceMonths: 24,
+			asOf: '2026-06-01',
+			employmentStart: '2024-03-15'
+		});
+		assert.equal(row!.window_to, '2026-12-31');
+		assert.equal(windowEndsOn(yearly, '2026-12-31', '2024-03-15'), true);
+		assert.equal(windowEndsOn(yearly, '2026-12-30', '2024-03-15'), false);
+		const service: LeaveClass = {
+			...annual,
+			entitlement: { window: 'SERVICE_YEAR', days: '5.0' }
+		};
+		assert.equal(windowEndsOn(service, '2027-03-14', '2024-03-15'), true);
+		assert.equal(windowEndsOn(service, '2026-12-31', '2024-03-15'), false);
+	});
+});
+
+describe('balance listing context', () => {
+	it('a class without a window_key that reads entry lists its balance on an empty entry', () => {
+		const prenatal: LeaveClass = {
+			...annual,
+			id: catalog('pn'),
+			code: 'PRENATAL',
+			entitlement: {
+				window: 'EVENT',
+				days: 'has(entry.facts.multiple_birth) && entry.facts.multiple_birth ? 98.0 : 42.0'
+			}
+		};
+		const rows = leaveBalances({
+			classes: [annual, prenatal],
+			movements: [],
+			serviceMonths: 24,
+			asOf: '2026-03-01'
+		});
+		assert.deepEqual(
+			rows.map((row) => [row.code, row.entitlement]),
+			[
+				['ANNUAL_LEAVE', 7],
+				['PRENATAL', 42]
+			]
+		);
 	});
 });

@@ -6,6 +6,7 @@ import {
 	type DynValue,
 	type Json,
 	completedMonths,
+	getErrorMessage,
 	isCalendarDate,
 	isDynObject,
 	numberOf,
@@ -150,29 +151,44 @@ const holidaySet = (value: unknown): ReadonlySet<string> =>
 			dateOf(isDynObject(item) ? item['date'] : item, 'Working days')
 		)
 	);
-const isWorkingDay = (day: string, holidays: ReadonlySet<string>): boolean => {
-	const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
-	return weekday !== 0 && weekday !== 6 && !holidays.has(day);
-};
-/** The day itself when it is a working day, else the next one: not a Saturday, Sunday or listed holiday. */
-register('next_working_day', [1, 2], (day, holidays) => {
+const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+/** The weekdays a record names as its weekend (`["SATURDAY", "SUNDAY"]`, `["FRIDAY", "SATURDAY"]`). */
+const weekendOf = (value: unknown): ReadonlySet<number> =>
+	new Set(
+		listOf(value, 'Weekend').map((day) => {
+			const index = WEEKDAYS.indexOf(String(day));
+			if (index < 0) throw new Refusal({ message: `Weekend names no weekday: ${String(day)}` });
+			return index;
+		})
+	);
+const isWorkingDay = (
+	day: string,
+	holidays: ReadonlySet<string>,
+	weekend: ReadonlySet<number>
+): boolean => !weekend.has(new Date(`${day}T00:00:00Z`).getUTCDay()) && !holidays.has(day);
+/** The day itself when it is a working day, else the next one: not a weekend day or a listed holiday. */
+register('next_working_day', [3], (day, holidays, weekend) => {
 	const off = holidaySet(holidays);
+	const rest = weekendOf(weekend);
 	let current = dateOf(day, 'Next working day');
-	for (let guard = 0; !isWorkingDay(current, off); guard++) {
+	for (let guard = 0; !isWorkingDay(current, off, rest); guard++) {
 		if (guard > 366) throw new Refusal({ message: 'Next working day found none within a year.' });
 		current = String(addDays(current, 1));
 	}
 	return current;
 });
-/** `n` working days after (or, negative, before) the day, skipping Saturdays, Sundays and listed holidays. */
-register('add_working_days', [2, 3], (day, n, holidays) => {
+/** `n` working days after (or, negative, before) the day, skipping weekend days and listed holidays. */
+register('add_working_days', [4], (day, n, holidays, weekend) => {
 	const off = holidaySet(holidays);
+	const rest = weekendOf(weekend);
+	if (rest.size === 7)
+		throw new Refusal({ message: 'A weekend of every day leaves no working day.' });
 	let current = dateOf(day, 'Add working days');
 	const steps = count(n);
 	const step = steps < 0 ? -1 : 1;
 	for (let left = Math.abs(steps); left > 0;) {
 		current = String(addDays(current, step));
-		if (isWorkingDay(current, off)) left--;
+		if (isWorkingDay(current, off, rest)) left--;
 	}
 	return current;
 });
@@ -186,6 +202,40 @@ register('max', [2], (left, right) =>
 );
 register('sum', [1], (list) =>
 	listOf(list, 'Sum').reduce<number>((total, value) => total + numeric(value, 'Sum'), 0)
+);
+/**
+ * How many items of a list sorted by `field` hold a value from `from` through `to` (both inclusive): two binary
+ * searches, so a rolling-window threshold over every item is O(n log n). The list must be sorted by that field
+ * (`separations` is, by `exit_date`).
+ */
+register('count_within', [4], (list, field, from, to) => {
+	// Only the items the search touches are read: validating the whole list per call would make a window test O(n²).
+	if (!Array.isArray(list)) throw new Refusal({ message: 'Count within requires an actual list.' });
+	const items: readonly unknown[] = list;
+	const key = String(field);
+	const at = (i: number) => {
+		const item = items[i];
+		return isDynObject(item) ? String(item[key] ?? '') : '';
+	};
+	const bound = (value: string, strict: boolean) => {
+		let low = 0;
+		let high = items.length;
+		while (low < high) {
+			const mid = (low + high) >> 1;
+			if (strict ? at(mid) <= value : at(mid) < value) low = mid + 1;
+			else high = mid;
+		}
+		return low;
+	};
+	return Math.max(0, bound(String(to), true) - bound(String(from), false));
+});
+
+/** The `n` largest numbers of a list, largest first (the six highest monthly credits of a benefit). */
+register('top', [2], (list, n) =>
+	listOf(list, 'Top')
+		.map((value) => numeric(value, 'Top'))
+		.toSorted((left, right) => right - left)
+		.slice(0, Math.max(0, count(n)))
 );
 register('round', [1, 2, 3], (value, step, mode) =>
 	roundStep(
@@ -283,6 +333,11 @@ export function configuredProgram(expression: string): (context: CelContext) => 
 }
 
 let configuredNestedDepth = 0;
+/**
+ * The nested `configured_eval` failures of the strict evaluation running now, kept even when CEL's commutative
+ * `&&` / `||` absorbs them (`error && false` is false): a record's broken expression never reads as a quiet no.
+ */
+let failures: { readonly expression: string; readonly message: string }[] | undefined;
 
 /** A record's own stored expression, evaluated from another (the encash rule reads `leave_catalog.entitlement.days`). */
 registrations.push([
@@ -297,6 +352,12 @@ registrations.push([
 		configuredNestedDepth++;
 		try {
 			return configuredProgram(expression)(context);
+		} catch (cause) {
+			failures?.push({
+				expression,
+				message: getErrorMessage(cause)
+			});
+			throw cause;
 		} finally {
 			configuredNestedDepth--;
 		}
@@ -306,3 +367,24 @@ registrations.push([
 /** One expression against its actual captured context. */
 export const evaluateConfigured = (expression: string, context: CelContext): Json =>
 	configuredProgram(expression)(context);
+
+/**
+ * `evaluateConfigured`, failing on any nested `configured_eval` failure too, absorbed or not. The refusal's `detail` is
+ * the expression that failed — the innermost record expression, else this one — and its `message` the evaluator's.
+ */
+export const evaluateStrict = (expression: string, context: CelContext): Json => {
+	const outer = failures;
+	const mine: { readonly expression: string; readonly message: string }[] = [];
+	failures = mine;
+	let value: Json = null;
+	try {
+		value = evaluateConfigured(expression, context);
+	} catch (cause) {
+		mine.push({ expression, message: getErrorMessage(cause) });
+	} finally {
+		failures = outer;
+	}
+	const [first] = mine;
+	if (first !== undefined) throw new Refusal({ message: first.message, detail: first.expression });
+	return value;
+};

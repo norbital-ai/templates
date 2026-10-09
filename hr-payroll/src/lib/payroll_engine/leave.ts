@@ -23,7 +23,7 @@ const Band = Schema.Struct({
 	days: Schema.Number
 });
 /** The span a class's balance is metered over: the default `LIFETIME` counts every movement of the employment. */
-const WINDOWS = ['CALENDAR_YEAR', 'SERVICE_YEAR', 'LIFETIME', 'EVENT'] as const;
+const WINDOWS = ['CALENDAR_YEAR', 'SERVICE_YEAR', 'LIFETIME', 'EVENT', 'ROLLING'] as const;
 export type LeaveWindow = (typeof WINDOWS)[number];
 const Entitlement = Schema.Struct({
 	unit: Schema.optional(Schema.String),
@@ -32,10 +32,22 @@ const Entitlement = Schema.Struct({
 	days: Schema.optional(Schema.String),
 	bands: Schema.optional(Schema.Array(Band)),
 	window: Schema.optional(Schema.Literals(WINDOWS)),
+	/** `ROLLING`: the months the window reaches back from the day read (that day included). */
+	window_months: Schema.optional(Schema.Number),
+	/** `SERVICE_YEAR`: months after the employment start the first service year begins (a first grant at 6 months). */
+	service_year_offset_months: Schema.optional(Schema.Number),
 	/** CEL over `entry` (a movement's columns and facts): the `EVENT` window's key; absent, `entry.facts.event_id`. */
 	window_key: Schema.optional(Schema.String),
 	/** CEL on the previous window's context: the most unused days of that window carried into this one. */
-	carry_forward: Schema.optional(Schema.String)
+	carry_forward: Schema.optional(Schema.String),
+	/** How many windows on a day may still be carried (default 1: carried days carry once). */
+	carry_depth: Schema.optional(Schema.Number),
+	/** With `consumes_code`: the first N units of the class (in the pool's window) are its own; only those past N draw
+	 * on the pool. */
+	consumes_after_days: Schema.optional(Schema.Number),
+	/** With `consumes_code` and a non-day `unit`: CEL over the subject (e.g. `terms.facts.daily_hours`) — the units
+	 * one pool day holds, so hours draw on a day pool. */
+	hours_per_day: Schema.optional(Schema.String)
 });
 
 export type LeaveEntitlement = Schema.Schema.Type<typeof Entitlement>;
@@ -48,6 +60,8 @@ export type LeaveClass = {
 	readonly is_npl: boolean;
 	readonly consumes_code: string | null;
 	readonly entitlement: LeaveEntitlement | null;
+	/** CEL on the employee (the subject roots): whether the class is theirs at all. Blank = everyone. */
+	readonly eligibility?: string;
 };
 
 export type LeaveMovement = {
@@ -66,10 +80,28 @@ export type LeaveMovement = {
 	readonly facts?: { readonly [key: string]: unknown };
 };
 
+/** One employed day as the entitlement's `attendance` root counts it: a WORK day of the plan, whether attendance was
+ * recorded on it, whether a published holiday falls on it, and the class codes of the approved time off covering it. */
+export type AttendanceDay = {
+	readonly date: string;
+	readonly scheduled: boolean;
+	readonly worked: boolean;
+	readonly holiday: boolean;
+	readonly leave: readonly string[];
+	/** Overtime hours banked as time off on the day (`roster_entry.banked_overtime_hours`), and their band. */
+	readonly banked_hours?: number;
+	readonly banked_band?: string;
+	/** The kind of the work suspension covering the day, if any, and that suspension's range. */
+	readonly suspended?: string;
+	readonly suspension?: { readonly kind: string; readonly from: string; readonly to: string };
+};
+
 /** Where a balance is read: its day, the employment's start (service years) and the event being admitted, plus
  * the subject roots (`employee`, `terms`, `employment`, `earned`, …) the entitlement CEL reads. */
 export type LeaveWindowInput = {
 	readonly asOf?: string | null;
+	/** The employment's days up to `asOf`, when a class reads `attendance`. */
+	readonly attendanceDays?: readonly AttendanceDay[];
 	readonly employmentStart?: string | null;
 	readonly eventId?: string | null;
 	/** The movement being admitted or previewed: its `window_key` names the `EVENT` window read. */
@@ -94,6 +126,10 @@ export type LeaveBalance = {
 	readonly available: number;
 	/** A `window_key` class's key this view meters; blank for the class's own (next-event) view. */
 	readonly window_key: string;
+	/** The last day of the window this balance meters (blank for `LIFETIME` and `EVENT`). */
+	readonly window_to: string;
+	/** The class's `attendance` root as its entitlement read it, when it reads one. */
+	readonly attendance?: DynObject;
 };
 
 export type LeavePreview = LeaveBalance & {
@@ -107,10 +143,6 @@ export type LeavePreview = LeaveBalance & {
 export function dayKey(value: unknown): string | null {
 	const held = isJsonObject(value) ? (value.$d ?? value.from) : value;
 	return isString(held) && DATE.test(held) ? held.slice(0, 10) : null;
-}
-
-export function dayEnd(value: unknown): string | null {
-	return isJsonObject(value) ? dayKey(value.to) : null;
 }
 
 export function daysOf(movement: Pick<LeaveMovement, 'days'>): number {
@@ -167,6 +199,20 @@ const movementEntry = (movement: LeaveMovement): DynObject => {
 	};
 };
 
+/** The next movement before it is written, in the write context's shape: no facts, no days, no dates yet. */
+const EMPTY_ENTRY: DynObject = {
+	facts: {},
+	activity: 'TIME_OFF',
+	days: 0,
+	from: null,
+	to: null,
+	occurred_on: null,
+	incurred_on: null,
+	due_on: null,
+	amount: 0,
+	quantity: 1
+};
+
 const keyRule = (cls: LeaveClass | undefined): string | null => {
 	const rule = cls?.entitlement?.window_key;
 	return rule == null || rule.trim() === '' ? null : rule;
@@ -180,6 +226,51 @@ function eventKey(cls: LeaveClass | undefined, movement: LeaveMovement): string 
 	return key == null || key === '' ? null : String(key);
 }
 
+/** The day service years count from: the employment start, moved by the class's `service_year_offset_months`. */
+const serviceStart = (where: LeaveWindowInput, cls?: LeaveClass): string | null =>
+	where.employmentStart == null
+		? null
+		: String(addMonths(where.employmentStart, cls?.entitlement?.service_year_offset_months ?? 0));
+
+/** The span a window read at `where` covers; null for `LIFETIME`, `EVENT` and a read with no day. */
+function windowRange(
+	window: LeaveWindow,
+	where: LeaveWindowInput,
+	cls?: LeaveClass
+): { from: string; to: string } | null {
+	const asOf = where.asOf ?? null;
+	if (asOf == null) return null;
+	if (window === 'ROLLING')
+		return {
+			from: String(addDays(addMonths(asOf, -(cls?.entitlement?.window_months ?? 12)), 1)),
+			to: asOf
+		};
+	if (window === 'CALENDAR_YEAR')
+		return { from: `${asOf.slice(0, 4)}-01-01`, to: `${asOf.slice(0, 4)}-12-31` };
+	if (window === 'SERVICE_YEAR') {
+		const start = serviceStart(where, cls);
+		if (start == null) return null;
+		// Before an offset start, the employment's first months are a window of their own.
+		return asOf < start && where.employmentStart != null && where.employmentStart < start
+			? { from: where.employmentStart, to: String(addDays(start, -1)) }
+			: serviceYear(start, asOf);
+	}
+	return null;
+}
+
+/** Whether `day` is the last day of a class's window (a calendar or service year, a rolling span): its window-end
+ * encashment day. */
+export function windowEndsOn(
+	cls: LeaveClass,
+	day: string,
+	employmentStart: string | null
+): boolean {
+	return (
+		windowRange(cls.entitlement?.window ?? 'LIFETIME', { asOf: day, employmentStart }, cls)?.to ===
+		day
+	);
+}
+
 /** Whether a movement falls in a window read at `where`, keyed by `cls` for an `EVENT` window. */
 function inWindow(
 	window: LeaveWindow,
@@ -187,23 +278,87 @@ function inWindow(
 	where: LeaveWindowInput,
 	cls?: LeaveClass
 ): boolean {
-	const day = movementDay(movement);
-	const asOf = where.asOf ?? null;
+	if (window === 'LIFETIME') return true;
 	if (window === 'EVENT') {
 		const key = where.entry == null ? (where.eventId ?? null) : eventKey(cls, where.entry);
 		return key != null && eventKey(cls, movement) === key;
 	}
-	if (window === 'CALENDAR_YEAR')
-		return asOf == null || (day != null && day.slice(0, 4) === asOf.slice(0, 4));
-	if (window === 'SERVICE_YEAR') {
-		const year =
-			asOf == null || where.employmentStart == null
-				? null
-				: serviceYear(where.employmentStart, asOf);
-		return year == null || (day != null && day >= year.from && day <= year.to);
-	}
-	return true;
+	const range = windowRange(window, where, cls);
+	const day = movementDay(movement);
+	return range == null || (day != null && day >= range.from && day <= range.to);
 }
+
+/** Scheduled (WORK) days of a span: how many, how many attended, on a holiday, and covered by each class's time off. */
+function tally(days: readonly AttendanceDay[]): DynObject {
+	const scheduled = days.filter((day) => day.scheduled);
+	const leave: { [code: string]: number } = {};
+	const suspended: { [kind: string]: number } = {};
+	for (const day of scheduled) {
+		for (const code of new Set(day.leave)) leave[code] = (leave[code] ?? 0) + 1;
+		if (day.suspended != null && day.suspended !== '')
+			suspended[day.suspended] = (suspended[day.suspended] ?? 0) + 1;
+	}
+	return {
+		scheduled: scheduled.length,
+		worked: scheduled.filter((day) => day.worked).length,
+		holidays: scheduled.filter((day) => day.holiday).length,
+		leave,
+		suspended,
+		banked_hours: days.reduce((total, day) => total + (day.banked_hours ?? 0), 0),
+		// Each suspension the span's days fall in, once: `{ kind, from, to }`.
+		suspensions: [
+			...new Map(
+				days.flatMap((day) =>
+					day.suspension == null
+						? []
+						: [[`${day.suspension.kind}:${day.suspension.from}`, day.suspension] as const]
+				)
+			).values()
+		],
+		// Each banked day, its origin and band: a payout of untaken hours is priced per band.
+		banked: days
+			.filter((day) => (day.banked_hours ?? 0) > 0)
+			.map((day) => ({ date: day.date, hours: day.banked_hours ?? 0, band: day.banked_band ?? '' }))
+	};
+}
+
+/**
+ * The CEL root `attendance`: the class's window holding the day read (`window`) and the one before it (`previous`;
+ * empty for `LIFETIME` and `EVENT`, whose `window` runs from the employment start), each `from`, `to`, its `tally`
+ * and `months[]` (one tally per calendar month, `month` its key). Only days up to the day read are counted.
+ */
+function attendanceOf(cls: LeaveClass, input: LeaveWindowInput): DynObject {
+	const days = input.attendanceDays ?? [];
+	const window = cls.entitlement?.window ?? 'LIFETIME';
+	const asOf = input.asOf ?? '';
+	const span = (range: { from: string; to: string }): DynObject => {
+		const inside = days.filter((day) => day.date >= range.from && day.date <= range.to);
+		const months = [...new Set(inside.map((day) => day.date.slice(0, 7)))].toSorted();
+		return {
+			...range,
+			...tally(inside),
+			months: months.map((month) => ({
+				month,
+				...tally(inside.filter((day) => day.date.startsWith(month)))
+			}))
+		};
+	};
+	const current = windowRange(window, input, cls) ?? {
+		from: input.employmentStart ?? days[0]?.date ?? asOf,
+		to: asOf
+	};
+	const before = String(addDays(current.from, -1));
+	const previous =
+		windowRange(window, input, cls) == null ||
+		(input.employmentStart != null && before < input.employmentStart)
+			? null
+			: windowRange(window, { ...input, asOf: before }, cls);
+	return { window: span(current), previous: span(previous ?? { from: '', to: '' }) };
+}
+
+/** Whether a class's stored rules read the `attendance` root: only then are its days tallied. */
+export const readsAttendance = (cls: LeaveClass): boolean =>
+	JSON.stringify(cls.entitlement ?? {}).includes('attendance');
 
 /** Days of one class code taken (approved and held) in each window, as the entitlement CEL root `taken`. */
 function takenOf(
@@ -223,7 +378,8 @@ function takenOf(
 		calendar_year: sum('CALENDAR_YEAR'),
 		service_year: sum('SERVICE_YEAR'),
 		lifetime: sum('LIFETIME'),
-		event: sum('EVENT')
+		event: sum('EVENT'),
+		rolling: sum('ROLLING')
 	};
 }
 
@@ -239,7 +395,15 @@ const classEntitlement = (
 	entitlementDays(cls.entitlement, input.serviceMonths, {
 		...input.context,
 		as_of: input.asOf ?? null,
-		taken: takenOf(cls.code, input.classes, input.movements, input)
+		...(readsAttendance(cls) ? { attendance: attendanceOf(cls, input) } : {}),
+		taken: takenOf(cls.code, input.classes, input.movements, input),
+		// Another class's days in the same windows (an absence that forfeits this grant), by its code.
+		taken_by_class: Object.fromEntries(
+			[...new Set(input.classes.map((other) => other.code))].map((code) => [
+				code,
+				takenOf(code, input.classes, input.movements, input)
+			])
+		)
 	});
 
 export function metered(cls: LeaveClass): boolean {
@@ -270,26 +434,59 @@ function debitFor(
 ): number {
 	const keyed = classes.find((cls) => cls.code === code);
 	const window = keyed?.entitlement?.window ?? 'LIFETIME';
-	const ids = new Set(
-		classes.filter((cls) => cls.code === code || cls.consumes_code === code).map((cls) => cls.id)
+	const byId = new Map(
+		classes
+			.filter((cls) => cls.code === code || cls.consumes_code === code)
+			.map((cls) => [String(cls.id), cls])
 	);
-	let total = 0;
+	// Each debiting class's approved and held units in the window, by class code.
+	const sums = new Map<string, { approved: number; held: number }>();
 	for (const movement of movements) {
-		if (!ids.has(movement.catalog_id)) continue;
-		if (!inWindow(window, movement, where, keyed)) continue;
-		if (held ? movement.approval_id == null : movement.approval_id != null) continue;
-		total += signedDays(movement.activity, daysOf(movement));
+		const cls = byId.get(String(movement.catalog_id));
+		if (cls == null || !inWindow(window, movement, where, keyed)) continue;
+		const sum = sums.get(cls.code) ?? { approved: 0, held: 0 };
+		const days = signedDays(movement.activity, daysOf(movement));
+		if (movement.approval_id == null) sum.approved += days;
+		else sum.held += days;
+		sums.set(cls.code, sum);
+	}
+	let total = 0;
+	for (const [owner, sum] of sums) {
+		const cls = classes.find((row) => row.code === owner);
+		const free = owner === code ? 0 : (cls?.entitlement?.consumes_after_days ?? 0);
+		const rate = owner === code ? 1 : unitsPerDay(cls, where);
+		if (free === 0 && rate === 1) {
+			total += held ? sum.held : sum.approved;
+			continue;
+		}
+		// Past its own first `consumes_after_days` units, a class draws on the pool at its units per pool day.
+		const approved = Math.max(0, sum.approved - free);
+		const all = Math.max(0, sum.approved + sum.held - free);
+		total += (held ? all - approved : approved) / rate;
 	}
 	return total;
 }
 
+/** A consuming class's units per pool day: its `hours_per_day` CEL on the subject, else 1. */
+function unitsPerDay(cls: LeaveClass | undefined, where: LeaveWindowInput): number {
+	const rule = cls?.entitlement?.hours_per_day;
+	if (rule == null || rule.trim() === '') return 1;
+	const value = numberOf(evaluateConfigured(rule, where.context ?? {}));
+	return value != null && value > 0 ? value : 1;
+}
+
 /** The last day of the window before the one holding `asOf`, for windows that follow one another. */
-function previousWindowEnd(window: LeaveWindow, where: LeaveWindowInput): string | null {
+function previousWindowEnd(
+	window: LeaveWindow,
+	where: LeaveWindowInput,
+	cls?: LeaveClass
+): string | null {
 	const asOf = where.asOf ?? null;
 	if (asOf == null) return null;
 	if (window === 'CALENDAR_YEAR') return `${Number(asOf.slice(0, 4)) - 1}-12-31`;
-	if (window === 'SERVICE_YEAR' && where.employmentStart != null) {
-		const year = serviceYear(where.employmentStart, asOf);
+	const start = serviceStart(where, cls);
+	if (window === 'SERVICE_YEAR' && start != null) {
+		const year = serviceYear(start, asOf);
 		return year == null ? null : String(addDays(year.from, -1));
 	}
 	return null;
@@ -297,7 +494,7 @@ function previousWindowEnd(window: LeaveWindow, where: LeaveWindowInput): string
 
 /**
  * The days a class carries into the window holding `asOf`: the previous window's entitlement less what it took, capped
- * by the class's own `carry_forward` CEL read on that window. Carried days carry once: they do not roll on again.
+ * by the class's own `carry_forward` CEL read on that window. Carried days carry again for `carry_depth` windows (1).
  */
 function carriedInto(
 	cls: LeaveClass,
@@ -305,12 +502,14 @@ function carriedInto(
 		readonly classes: readonly LeaveClass[];
 		readonly movements: readonly LeaveMovement[];
 		readonly serviceMonths: number;
-	} & LeaveWindowInput
+	} & LeaveWindowInput,
+	depth = cls.entitlement?.carry_depth ?? 1
 ): number {
 	const rule = cls.entitlement?.carry_forward;
 	const window = cls.entitlement?.window ?? 'LIFETIME';
-	const end = previousWindowEnd(window, input);
-	if (rule == null || rule.trim() === '' || end == null || input.asOf == null) return 0;
+	const end = previousWindowEnd(window, input, cls);
+	if (depth <= 0 || rule == null || rule.trim() === '' || end == null || input.asOf == null)
+		return 0;
 	if (input.employmentStart != null && end < input.employmentStart) return 0;
 	const previous = {
 		...input,
@@ -320,12 +519,14 @@ function carriedInto(
 	const used =
 		debitFor(cls.code, input.classes, input.movements, false, previous) +
 		debitFor(cls.code, input.classes, input.movements, true, previous);
-	const unused = classEntitlement(cls, previous) - used;
+	// What the previous window held: its grant, plus what it carried in while days may still carry on.
+	const unused = classEntitlement(cls, previous) + carriedInto(cls, previous, depth - 1) - used;
 	const cap =
 		numberOf(
 			evaluateConfigured(rule, {
 				...input.context,
 				as_of: end,
+				...(readsAttendance(cls) ? { attendance: attendanceOf(cls, previous) } : {}),
 				taken: takenOf(cls.code, input.classes, input.movements, previous),
 				service_months: previous.serviceMonths,
 				bands: cls.entitlement?.bands ?? []
@@ -338,6 +539,8 @@ type BalanceInput = {
 	readonly classes: readonly LeaveClass[];
 	readonly movements: readonly LeaveMovement[];
 	readonly serviceMonths: number;
+	/** A listing offered to the employee (the balances page, the request form): only the classes they are eligible for. */
+	readonly offeredOnly?: boolean;
 } & LeaveWindowInput;
 
 /**
@@ -347,32 +550,58 @@ type BalanceInput = {
  */
 export function leaveBalances(input: BalanceInput): LeaveBalance[] {
 	const listing = input.entry == null && input.eventId == null;
-	return input.classes.flatMap((cls) => {
-		if (!listing || keyRule(cls) == null) return [balanceOf(cls, input, '')];
-		const ids = new Set(input.classes.filter((row) => row.code === cls.code).map((row) => row.id));
-		const firsts = new Map<string, LeaveMovement>();
-		for (const movement of input.movements
-			.filter((row) => ids.has(row.catalog_id))
-			.toSorted((left, right) =>
-				`${movementDay(left) ?? ''}:${left.id ?? ''}`.localeCompare(
-					`${movementDay(right) ?? ''}:${right.id ?? ''}`
+	// A listing reads every class on the next, still empty entry (its context's own, if the caller gave one).
+	const blank = { ...input, context: { entry: EMPTY_ENTRY, ...input.context } };
+	const offeredOnly = listing && input.offeredOnly === true;
+	return input.classes
+		.filter((cls) => !offeredOnly || offered(cls, blank.context))
+		.flatMap((cls) => {
+			if (!listing) return [balanceOf(cls, input, '')];
+			if (keyRule(cls) == null) return [balanceOf(cls, blank, '')];
+			const ids = new Set(
+				input.classes.filter((row) => row.code === cls.code).map((row) => row.id)
+			);
+			const firsts = new Map<string, LeaveMovement>();
+			for (const movement of input.movements
+				.filter((row) => ids.has(row.catalog_id))
+				.toSorted((left, right) =>
+					`${movementDay(left) ?? ''}:${left.id ?? ''}`.localeCompare(
+						`${movementDay(right) ?? ''}:${right.id ?? ''}`
+					)
+				)) {
+				const key = eventKey(cls, movement);
+				if (key != null && !firsts.has(key)) firsts.set(key, movement);
+			}
+			return [
+				// The class's own view is the next event's: an `entry` with no facts yet.
+				balanceOf(cls, { ...input, context: { ...input.context, entry: EMPTY_ENTRY } }, ''),
+				...[...firsts].map(([key, first]) =>
+					balanceOf(
+						cls,
+						{ ...input, entry: first, context: { ...input.context, entry: movementEntry(first) } },
+						key
+					)
 				)
-			)) {
-			const key = eventKey(cls, movement);
-			if (key != null && !firsts.has(key)) firsts.set(key, movement);
-		}
-		return [
-			// The class's own view is the next event's: an `entry` with no facts yet.
-			balanceOf(cls, { ...input, context: { ...input.context, entry: { facts: {} } } }, ''),
-			...[...firsts].map(([key, first]) =>
-				balanceOf(
-					cls,
-					{ ...input, entry: first, context: { ...input.context, entry: movementEntry(first) } },
-					key
-				)
-			)
-		];
-	});
+			];
+		});
+}
+
+/**
+ * Whether a listing offers a class: its eligibility holds on the subject. A class whose eligibility reads the request
+ * (`entry`: a birth's facts) is the request's to decide, and one that cannot be read here stays: the write judges it.
+ */
+function offered(cls: LeaveClass, context: DynObject | undefined): boolean {
+	if (cls.eligibility == null || /\bentry\b/.test(cls.eligibility)) return true;
+	try {
+		return (
+			evaluateConfigured(cls.eligibility, {
+				...context,
+				earlier: { rows: [], calendar_year: 0, lifetime: 0 }
+			}) !== false
+		);
+	} catch {
+		return true;
+	}
 }
 
 function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): LeaveBalance {
@@ -393,12 +622,16 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 				0,
 				debitFor(pool.code, input.classes, input.movements, true, input)
 			);
+			// The pool's days left, in this class's units, beyond its own first free units.
+			const free = Math.max(0, (cls.entitlement?.consumes_after_days ?? 0) - taken - reserved);
 			available = Math.min(
 				available,
-				Math.max(
-					0,
-					classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken - poolReserved
-				)
+				free +
+					Math.max(
+						0,
+						classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken - poolReserved
+					) *
+						unitsPerDay(cls, input)
 			);
 		}
 	}
@@ -412,7 +645,9 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 		taken,
 		reserved,
 		available,
-		window_key
+		window_key,
+		window_to: windowRange(cls.entitlement?.window ?? 'LIFETIME', input, cls)?.to ?? '',
+		...(readsAttendance(cls) ? { attendance: attendanceOf(cls, input) } : {})
 	};
 }
 
@@ -488,7 +723,7 @@ export function refuseLeaveWrite(
 		readonly classes: readonly LeaveClass[];
 		readonly movements: readonly LeaveMovement[];
 		readonly serviceMonths: number;
-	} & Pick<LeaveWindowInput, 'employmentStart' | 'context'>
+	} & Pick<LeaveWindowInput, 'employmentStart' | 'context' | 'attendanceDays'>
 ): string | null {
 	const cls = input.classes.find((row) => row.id === input.proposed.catalog_id);
 	if (cls == null) return 'Choose the entry’s class.';
@@ -507,7 +742,8 @@ export function refuseLeaveWrite(
 		eventId: input.proposed.event_id ?? null,
 		entry: input.proposed,
 		...(input.employmentStart === undefined ? {} : { employmentStart: input.employmentStart }),
-		...(input.context === undefined ? {} : { context: input.context })
+		...(input.context === undefined ? {} : { context: input.context }),
+		...(input.attendanceDays === undefined ? {} : { attendanceDays: input.attendanceDays })
 	}).find((balance) => balance.catalog_id === cls.id);
 	const days = daysOf(input.proposed);
 	if (row != null && row.metered && days > row.available)
@@ -551,8 +787,60 @@ export function classFromRow(row: HostRow<'leave_catalog'>): LeaveClass {
 		can_encash: row.can_encash !== false,
 		is_npl: row.is_npl === true,
 		consumes_code: isString(row.consumes_code) ? row.consumes_code : null,
-		entitlement: Option.isNone(parsed) ? null : parsed.value
+		entitlement: Option.isNone(parsed) ? null : parsed.value,
+		...(isString(row.eligibility) && row.eligibility.trim() !== ''
+			? { eligibility: row.eligibility }
+			: {})
 	};
+}
+
+/**
+ * Movements as the classes read here meter them: a movement captured under another version's class (`codeOf` names that
+ * class's code) is re-keyed to the class of the same code, so a window spanning a version change counts it.
+ */
+export function movementsByCode(
+	movements: readonly LeaveMovement[],
+	classes: readonly LeaveClass[],
+	codeOf: ReadonlyMap<string, string>
+): LeaveMovement[] {
+	const known = new Set<string>(classes.map((cls) => cls.id));
+	const byCode = new Map(classes.map((cls) => [cls.code, cls.id]));
+	return movements.map((movement) => {
+		if (known.has(movement.catalog_id)) return movement;
+		const id = byCode.get(codeOf.get(movement.catalog_id) ?? '');
+		return id == null ? movement : { ...movement, catalog_id: id };
+	});
+}
+
+/**
+ * Each leave row's chain start: rows of one key (an employment's class code) back to back — the next starting the day
+ * after the previous ends — are one continuous leave, so an extension entered as a new row keeps the first row's start.
+ */
+export function chainStarts(
+	rows: readonly {
+		readonly id: string;
+		readonly key: string;
+		readonly from: string;
+		readonly to: string;
+	}[]
+): Map<string, string> {
+	const out = new Map<string, string>();
+	const ordered = rows
+		.filter((row) => DATE.test(row.from))
+		.toSorted((left, right) =>
+			`${left.key}|${left.from}`.localeCompare(`${right.key}|${right.from}`)
+		);
+	let previous: (typeof ordered)[number] | undefined;
+	for (const row of ordered) {
+		const continues =
+			previous != null &&
+			previous.key === row.key &&
+			DATE.test(previous.to) &&
+			String(addDays(previous.to, 1)) === row.from;
+		out.set(row.id, continues ? out.get(previous!.id)! : row.from);
+		previous = row;
+	}
+	return out;
 }
 
 type LeaveMovementInput =

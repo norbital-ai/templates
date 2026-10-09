@@ -1,122 +1,29 @@
 import { collection, type TransformCtx } from '@norbital-ai/bolt';
 import { refuseSealedUpdate, stripRow } from '../../../../lib/payroll_engine/settings_version.js';
+import adhoc_catalog from '../../../model/jurisdiction/adhoc_catalog/+model.js';
+import allowance_catalog from '../../../model/jurisdiction/allowance_catalog/+model.js';
+import jurisdiction_settings from '../../../model/jurisdiction/jurisdiction_settings/+model.js';
+import claim_catalog from '../../../model/jurisdiction/claim_catalog/+model.js';
+import leave_catalog from '../../../model/jurisdiction/leave_catalog/+model.js';
+import loan_catalog from '../../../model/jurisdiction/loan_catalog/+model.js';
+import rule_set_model from '../../../model/jurisdiction/rule_set/+model.js';
+import statutory_contribution_catalog from '../../../model/jurisdiction/statutory_contribution_catalog/+model.js';
+import suspension_kind from '../../../model/jurisdiction/suspension_kind/+model.js';
+import work_catalog from '../../../model/jurisdiction/work_catalog/+model.js';
 
-const create_columns = [
-	'code',
-	'jurisdiction_code',
-	'name',
-	'employee_input_schema',
-	'entity_input_schema',
-	'behaviours',
-	'sealed_at',
-	'voided_at',
-	'void_reason',
-	'payroll',
-	'change_summary',
-	'effective_range',
-	'sources',
-	'reference_tables',
-	'cloned_from_id'
-] as const;
-
-const leave_columns = [
-	'code',
-	'name',
-	'description',
-	'authority',
-	'eligibility',
-	'evidence',
-	'unit',
-	'can_encash',
-	'encash_on_exit',
-	'entitlement',
-	'schedule',
-	'is_npl',
-	'preceding_leave_same_event',
-	'preceding_leave_contiguous',
-	'requires_no_pay_origin',
-	'pay_fraction',
-	'paid_by',
-	'evidence_after_days',
-	'consumes_code'
-] as const;
-const claim_columns = [
-	'code',
-	'name',
-	'authority',
-	'destination',
-	'direction',
-	'bands',
-	'eligibility',
-	'qualifies_when',
-	'evidence',
-	'counts_toward',
-	'leave_code',
-	'unit_cap',
-	'claim_window_months',
-	'employer_premium_scheme',
-	'minimum_service_months'
-] as const;
-const allowance_columns = [
-	'code',
-	'name',
-	'eligibility',
-	'authority',
-	'counts_toward',
-	'destination',
-	'direction'
-] as const;
-const adhoc_columns = [
-	'code',
-	'name',
-	'authority',
-	'destination',
-	'direction',
-	'bands',
-	'eligibility',
-	'qualifies_when',
-	'evidence',
-	'counts_toward',
-	'raised_by',
-	'schedule'
-] as const;
-const loan_columns = [
-	'code',
-	'name',
-	'destination',
-	'direction',
-	'bands',
-	'loan_type',
-	'minimum_repayment',
-	'approval_reference_required',
-	'order_recovery_rule',
-	'order_payment_when',
-	'order_authority',
-	'eligibility',
-	'evidence'
-] as const;
-const work_columns = [
-	'code',
-	'name',
-	'authority',
-	'component_code',
-	'eligibility',
-	'quantity',
-	'rate',
-	'destination',
-	'direction',
-	'counts_toward'
-] as const;
-const contribution_columns = ['code', 'name', 'authority', 'configuration'] as const;
-const rule_columns = [
-	'scope',
-	'family',
-	'code',
-	'name',
-	'content_hash',
-	'source_identity',
-	'rules'
-] as const;
+/** Create columns are every field a model declares, so a clone carries each one (a child's FK is its relation). */
+const columnsOf = <F extends object>(spec: { readonly fields: F }) =>
+	Object.keys(spec.fields) as Extract<keyof F, string>[];
+const create_columns = [...columnsOf(jurisdiction_settings), 'cloned_from_id'] as const;
+const leave_columns = columnsOf(leave_catalog);
+const claim_columns = columnsOf(claim_catalog);
+const allowance_columns = columnsOf(allowance_catalog);
+const adhoc_columns = columnsOf(adhoc_catalog);
+const loan_columns = columnsOf(loan_catalog);
+const work_columns = columnsOf(work_catalog);
+const contribution_columns = columnsOf(statutory_contribution_catalog);
+const suspension_columns = columnsOf(suspension_kind);
+const rule_columns = columnsOf(rule_set_model);
 
 const c = collection('jurisdiction_settings', {
 	read: { fields: 'all' },
@@ -131,6 +38,7 @@ const c = collection('jurisdiction_settings', {
 				loan_catalog: { create: { columns: loan_columns } },
 				work_catalog: { create: { columns: work_columns } },
 				statutory_contribution_catalog: { create: { columns: contribution_columns } },
+				suspension_kind: { create: { columns: suspension_columns } },
 				rule_set: { create: { columns: rule_columns } }
 			}
 		}
@@ -170,144 +78,28 @@ c.transform(async (inputs, ctx: TransformCtx<'jurisdiction_settings'>) => {
 			settings_id: { eq: fromId },
 			approval_id: { isNull: true }
 		};
-		const [leave, claim, allowance, adhoc, loan, work, statutory_contribution, rule_set] =
-			await Promise.all([
-				ctx.db.read('leave_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						description: true,
-						authority: true,
-						eligibility: true,
-						evidence: true,
-						unit: true,
-						can_encash: true,
-						encash_on_exit: true,
-						entitlement: true,
-						schedule: true,
-						is_npl: true,
-						preceding_leave_same_event: true,
-						preceding_leave_contiguous: true,
-						requires_no_pay_origin: true,
-						pay_fraction: true,
-						paid_by: true,
-						evidence_after_days: true,
-						consumes_code: true
-					},
-					all: true
-				}),
-				ctx.db.read('claim_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						authority: true,
-						destination: true,
-						direction: true,
-						bands: true,
-						eligibility: true,
-						qualifies_when: true,
-						evidence: true,
-						counts_toward: true,
-						leave_code: true,
-						unit_cap: true,
-						claim_window_months: true,
-						employer_premium_scheme: true,
-						minimum_service_months: true
-					},
-					all: true
-				}),
-				ctx.db.read('allowance_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						eligibility: true,
-						authority: true,
-						counts_toward: true,
-						destination: true,
-						direction: true
-					},
-					all: true
-				}),
-				ctx.db.read('adhoc_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						authority: true,
-						destination: true,
-						direction: true,
-						bands: true,
-						eligibility: true,
-						qualifies_when: true,
-						evidence: true,
-						counts_toward: true,
-						raised_by: true,
-						schedule: true
-					},
-					all: true
-				}),
-				ctx.db.read('loan_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						destination: true,
-						direction: true,
-						bands: true,
-						loan_type: true,
-						minimum_repayment: true,
-						approval_reference_required: true,
-						order_recovery_rule: true,
-						order_payment_when: true,
-						order_authority: true,
-						eligibility: true,
-						evidence: true
-					},
-					all: true
-				}),
-				ctx.db.read('work_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						authority: true,
-						component_code: true,
-						eligibility: true,
-						quantity: true,
-						rate: true,
-						destination: true,
-						direction: true,
-						counts_toward: true
-					},
-					all: true
-				}),
-				ctx.db.read('statutory_contribution_catalog', {
-					where: catalogWhere,
-					select: {
-						code: true,
-						name: true,
-						authority: true,
-						configuration: true
-					},
-					all: true
-				}),
-				ctx.db.read('rule_set', {
-					where: catalogWhere,
-					select: {
-						scope: true,
-						family: true,
-						code: true,
-						name: true,
-						content_hash: true,
-						source_identity: true,
-						rules: true
-					},
-					all: true
-				})
-			]);
+		const read = { where: catalogWhere, all: true } as const;
+		const [
+			leave,
+			claim,
+			allowance,
+			adhoc,
+			loan,
+			work,
+			statutory_contribution,
+			rule_set,
+			suspension
+		] = await Promise.all([
+			ctx.db.read('leave_catalog', read),
+			ctx.db.read('claim_catalog', read),
+			ctx.db.read('allowance_catalog', read),
+			ctx.db.read('adhoc_catalog', read),
+			ctx.db.read('loan_catalog', read),
+			ctx.db.read('work_catalog', read),
+			ctx.db.read('statutory_contribution_catalog', read),
+			ctx.db.read('rule_set', read),
+			ctx.db.read('suspension_kind', read)
+		]);
 		out.push({
 			...input,
 			sealed_at: null,
@@ -336,6 +128,9 @@ c.transform(async (inputs, ctx: TransformCtx<'jurisdiction_settings'>) => {
 			},
 			rule_set: {
 				create: rule_set.rows.map((row) => stripRow(row, rule_columns))
+			},
+			suspension_kind: {
+				create: suspension.rows.map((row) => stripRow(row, suspension_columns))
 			}
 		});
 	}

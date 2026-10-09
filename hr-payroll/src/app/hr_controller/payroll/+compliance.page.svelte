@@ -1,16 +1,26 @@
 <script lang="ts">
 	/**
 	 * What one legal entity still owes the authorities: the open remittances its payroll runs raised (with their
-	 * amounts) and the open regulatory tasks its row events raised. Done and dismiss write the row's own state.
+	 * amounts) and the open regulatory tasks its row events raised. Done and dismiss write the row's own state. Below,
+	 * the entity's workplace cases and work suspensions, which raise tasks and mark days: New and a row open their record.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
-	import { toast } from 'svelte-sonner';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { Button, EmptyState, Label, Sheet, Table, Textarea } from '@norbital-ai/ui';
+	import {
+		Button,
+		EmptyState,
+		Label,
+		RecordShell,
+		Sheet,
+		Table,
+		Textarea,
+		toast
+	} from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
+	import { readableTitle } from '../../../lib/ui/format/display_formatters.js';
 
 	const scope = companyScope();
 	const t = bolt.t;
@@ -20,6 +30,8 @@
 		| null
 	>(null);
 	let reason = $state('');
+	// a case or suspension is created under this page's entity, so its kind picker lists that lineage's kinds only
+	let creating = $state<'workplace_case' | 'work_suspension' | null>(null);
 	let sheetOpen = $state(false);
 	let saving = $state(false);
 
@@ -79,6 +91,8 @@
 	}
 </script>
 
+{#snippet titleCell({ value }: { value: unknown })}{readableTitle(String(value ?? ''))}{/snippet}
+
 <AppShell
 	icon="lucide:clipboard-check"
 	title={t('app.compliance.title')}
@@ -101,7 +115,7 @@
 							run: settle,
 							requiresSelection: true,
 							icon: 'lucide:check',
-							label: t('compliance.settle')
+							name: t('compliance.settle')
 						},
 						{
 							run: (ids: Id<'obligation'>[]) => {
@@ -111,7 +125,7 @@
 							},
 							requiresSelection: true,
 							icon: 'lucide:x',
-							label: t('compliance.waive')
+							name: t('compliance.waive')
 						}
 					]
 				}}
@@ -129,7 +143,7 @@
 							run: done,
 							requiresSelection: true,
 							icon: 'lucide:check',
-							label: t('compliance.done')
+							name: t('compliance.done')
 						},
 						{
 							run: (ids: Id<'regulatory_task'>[]) => {
@@ -139,15 +153,55 @@
 							},
 							requiresSelection: true,
 							icon: 'lucide:x',
-							label: t('compliance.dismiss')
+							name: t('compliance.dismiss')
 						}
 					]
 				}}
-				columns={['title', 'authority', 'subject_collection', 'triggered_on', 'due_on']}
+				columns={[
+					{ field: 'title', cell: titleCell },
+					'authority',
+					'subject_collection',
+					'triggered_on',
+					'due_on'
+				]}
+			/>
+			<Table
+				of="workplace_case"
+				key={`workplace_case-${scope.id}`}
+				where={{ company_id: { eq: scope.id } }}
+				orderBy={{ opened_on: 'desc' }}
+				toolbar={{ title: t('app.compliance.cases'), new: () => (creating = 'workplace_case') }}
+				columns={['kind', 'employment_id', 'opened_on', 'closed_on']}
+			/>
+			<Table
+				of="work_suspension"
+				key={`work_suspension-${scope.id}`}
+				where={{ company_id: { eq: scope.id } }}
+				orderBy={{ starts_on: 'desc' }}
+				toolbar={{
+					title: t('app.compliance.suspensions'),
+					new: () => (creating = 'work_suspension')
+				}}
+				columns={['kind', 'starts_on', 'ends_on', 'worksite']}
 			/>
 		</Stack>
 	{/if}
 </AppShell>
+
+{#if creating != null && scope.id != null}
+	<Sheet
+		open
+		onOpenChange={(open) => !open && (creating = null)}
+		title={t(creating === 'workplace_case' ? 'app.compliance.cases' : 'app.compliance.suspensions')}
+	>
+		<RecordShell
+			of={creating}
+			mode="create"
+			values={{ company_id: scope.id }}
+			onDone={() => (creating = null)}
+		/>
+	</Sheet>
+{/if}
 
 <Sheet bind:open={sheetOpen} title={t('compliance.dismiss_title')}>
 	<Stack gap="md">

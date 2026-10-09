@@ -3,10 +3,9 @@ import { bolt } from '$bolt';
 import type { CellValue } from 'exceljs';
 import { t } from '../i18n/t.js';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '@norbital-ai/ui';
 import { getErrorMessage } from '../../payroll_engine/foundation.js';
 import { formatNamedList } from '../../payroll_engine/foundation.js';
-import WorkbookImportDetails from './workbook_import_details.svelte';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
 const FAILURE_TOAST_MS = 20_000;
@@ -77,7 +76,7 @@ function workbook_grids(workbook: InstanceType<typeof ExcelJSBrowser.Workbook>):
 }
 
 /** A file the operator picks, or null when they dismiss the dialog. */
-export function pickWorkbookFile(): Promise<File | null> {
+function pickWorkbookFile(): Promise<File | null> {
 	return new Promise((resolve) => {
 		const input = document.createElement('input');
 		input.type = 'file';
@@ -95,7 +94,7 @@ export function pickWorkbookFile(): Promise<File | null> {
 	});
 }
 
-export async function readWorkbookGrids(file: File): Promise<WorkbookGrids> {
+async function readWorkbookGrids(file: File): Promise<WorkbookGrids> {
 	if (file.name.toLowerCase().endsWith('.csv'))
 		return new Map([[file.name, csv_grid(await file.text())]]);
 	const workbook = new ExcelJSBrowser.Workbook();
@@ -141,7 +140,7 @@ export async function runWorkbookImport<const A extends string>(options: {
 			throw new Error(t('component.workbook_import_failed', { file: file.name }));
 		const overwritten =
 			outcome.kind === 'committed' ? (options.overwritten?.(outcome.output) ?? []) : [];
-		toast.success<typeof WorkbookImportDetails>(
+		toast.success(
 			t('component.workbook_imported', {
 				count:
 					(outcome.kind === 'committed'
@@ -151,45 +150,26 @@ export async function runWorkbookImport<const A extends string>(options: {
 				file: file.name
 			}),
 			overwritten.length === 0
-				? { closeButton: true }
+				? {}
 				: {
-						closeButton: true,
-						description: WorkbookImportDetails,
-						componentProps: {
-							label: options.recordLabel,
-							details: `${t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`
-						},
+						description: `${t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`,
 						duration: FAILURE_TOAST_MS
 					}
 		);
 		const warnings = outcome.kind === 'committed' ? (options.warnings?.(outcome.output) ?? []) : [];
 		if (warnings.length > 0)
-			toast.warning<typeof WorkbookImportDetails>(
-				t('component.workbook_warnings', { count: warnings.length }),
-				{
-					closeButton: true,
-					description: WorkbookImportDetails,
-					componentProps: { label: options.recordLabel, details: warnings.join('\n') },
-					duration: Number.POSITIVE_INFINITY
-				}
-			);
+			toast.warning(t('component.workbook_warnings', { count: warnings.length }), {
+				description: warnings.join('\n'),
+				duration: FAILURE_TOAST_MS
+			});
 		options.afterImport?.(payload);
 	} catch (error) {
 		const message = getErrorMessage(error);
 		const [headline = '', ...detail] = message.split('\n');
 		const description = detail.join('\n').trim();
-		toast.error<typeof WorkbookImportDetails>(
-			headline.trim() || t('component.workbook_import_failed', { file: file.name }),
-			{
-				closeButton: true,
-				...(description === ''
-					? {}
-					: {
-							description: WorkbookImportDetails,
-							componentProps: { label: options.recordLabel, details: description }
-						}),
-				duration: FAILURE_TOAST_MS
-			}
-		);
+		toast.error(headline.trim() || t('component.workbook_import_failed', { file: file.name }), {
+			...(description === '' ? {} : { description }),
+			duration: FAILURE_TOAST_MS
+		});
 	}
 }

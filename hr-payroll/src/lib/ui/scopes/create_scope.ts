@@ -31,7 +31,9 @@ export const EMPLOYMENT_LABEL_SELECT = {
 	employee_id: { select: { name: true } }
 } as const;
 
-/** The zone an entity counts its payroll windows and rostered days in; the workspace's zone without one. */
+/** The zone an entity counts its payroll windows and rostered days in: its own, else its governing version's
+ * `payroll.timezone` (as the engine counts them), else the workspace's. */
 export const entityTimeZone = (
-	entity: { readonly time_zone?: string | null } | null | undefined
-): string => entity?.time_zone ?? PAYROLL_TIME_ZONE;
+	entity: { readonly time_zone?: string | null } | null | undefined,
+	version: { readonly payroll?: { readonly timezone?: string | null } | null } | null | undefined
+): string => entity?.time_zone ?? version?.payroll?.timezone ?? PAYROLL_TIME_ZONE;

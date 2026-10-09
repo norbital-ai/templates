@@ -73,7 +73,7 @@ export function electionKeysOf(schema: unknown): readonly string[] {
 	return isJsonObject(node) ? Object.keys(node) : [];
 }
 
-export function refuseStatutoryFacts(
+function refuseStatutoryFacts(
 	facts: readonly StatutoryFact[],
 	electionKeys: readonly string[]
 ): string | null {

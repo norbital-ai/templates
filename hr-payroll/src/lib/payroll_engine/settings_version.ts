@@ -15,7 +15,7 @@ export type SettingsLineage = {
 	readonly void_reason?: string | null;
 };
 
-export const SETTINGS_WRITE_FIELDS = [
+const SETTINGS_WRITE_FIELDS = [
 	'code',
 	'jurisdiction_code',
 	'name',
@@ -53,9 +53,7 @@ export type SettingsDiffLine = {
 	readonly right?: unknown;
 };
 
-export function asLineage(
-	row: SettingsLineage
-): Lineage & { readonly id: Id<'jurisdiction_settings'> } {
+function asLineage(row: SettingsLineage): Lineage & { readonly id: Id<'jurisdiction_settings'> } {
 	return {
 		id: row.id,
 		period: row.effective_range,

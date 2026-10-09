@@ -1,0 +1,52 @@
+[
+	{
+		"id": "b5cb1aac-888f-54fe-a1a0-29d923ac2da8",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "BONA_FIDE_SUSPENSION",
+		"name": "Bona fide suspension of operations",
+		"counts_as_attended": "",
+		"scheduled": "false",
+		"pay": "",
+		"authority": "Labor Code art.301; Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20, https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf: the employment relationship is suspended up to six months, extendable by six in a declared national emergency; no wages unless agreement or policy; not attended, not a scheduled day"
+	},
+	{
+		"id": "b903f32e-c10f-56e1-b1ea-3e987b32f85a",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "FORCE_MAJEURE",
+		"name": "Natural disaster, calamity or other force majeure stopping work",
+		"counts_as_attended": "",
+		"scheduled": "false",
+		"pay": "",
+		"authority": "no work, no pay — DOLE Handbook 2024 ch.2 §I, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day"
+	},
+	{
+		"id": "36edc9b4-58c7-5c2f-96f6-4db4589c650e",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "STRIKE",
+		"name": "Strike",
+		"counts_as_attended": "",
+		"scheduled": "false",
+		"pay": "",
+		"authority": "the employees absent from work: no work, no pay; any backwages are adjudicated, not payroll; not attended, not a scheduled day"
+	},
+	{
+		"id": "aad90e22-dfa3-514d-950e-9f4ad2370060",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "LOCKOUT",
+		"name": "Lockout by the employer",
+		"counts_as_attended": "",
+		"scheduled": "false",
+		"pay": "",
+		"authority": "a lawful lockout pays no wage — no work, no pay; an unlawful one is adjudicated; not attended, not a scheduled day"
+	},
+	{
+		"id": "3fa988a0-e3b0-5ca1-baff-bd277646ade6",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "WORK_STOPPAGE_ORDER",
+		"name": "DOLE work stoppage order or OSH suspension for imminent danger",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "day.day_type == \"WORK\" && !day.worked && (has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : 0.0",
+		"authority": "DO 198-18 s.24, OSH Standards 2020 edition, https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf: the employer at fault — presumed when the order follows an imminent danger — pays the affected workers their wages during the stoppage; attended and scheduled, the daily-paid paid the day"
+	}
+]

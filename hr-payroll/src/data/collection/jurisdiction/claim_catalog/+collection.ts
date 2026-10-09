@@ -9,13 +9,8 @@ const create_columns = [
 	'bands',
 	'eligibility',
 	'qualifies_when',
-	'evidence',
+	'amount_required',
 	'counts_toward',
-	'leave_code',
-	'unit_cap',
-	'claim_window_months',
-	'employer_premium_scheme',
-	'minimum_service_months',
 	'settings_id'
 ] as const;
 const update_columns = [
@@ -27,13 +22,8 @@ const update_columns = [
 	'bands',
 	'eligibility',
 	'qualifies_when',
-	'evidence',
-	'counts_toward',
-	'leave_code',
-	'unit_cap',
-	'claim_window_months',
-	'employer_premium_scheme',
-	'minimum_service_months'
+	'amount_required',
+	'counts_toward'
 ] as const;
 
 export default collection('claim_catalog', {

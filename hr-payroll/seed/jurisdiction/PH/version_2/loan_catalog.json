@@ -12,8 +12,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"loan_type": "GOVERNMENT"
+		]
 	},
 	{
 		"id": "1b7ba700-a96b-5c4b-a3aa-a35079aeb51d",
@@ -28,8 +27,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"loan_type": "GOVERNMENT"
+		]
 	},
 	{
 		"id": "c7752923-3a58-5693-9d1a-4f55b13bd255",
@@ -44,8 +42,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"loan_type": "GOVERNMENT"
+		]
 	},
 	{
 		"id": "941d5436-2889-598d-9b68-2fb25ddb3686",
@@ -60,8 +57,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"loan_type": "STAFF"
+		]
 	},
 	{
 		"id": "24ec9168-7ba5-5551-877a-28dc89225c90",
@@ -76,7 +72,6 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE"
+		]
 	}
 ]

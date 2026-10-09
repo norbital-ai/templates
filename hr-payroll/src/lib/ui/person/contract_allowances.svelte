@@ -2,13 +2,15 @@
 	/** L-TPL-hr-payroll-094: monthly allowance lines on a contract's terms, prorated with salary. */
 	import { Button, Input } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
+	import type { Schema } from 'effect';
 	import { t } from '../i18n/t.js';
 
 	let {
 		lines = $bindable(),
 		disabled = false
 	}: {
-		lines: { code: string; amount: string }[];
+		/** `source` is the stored line an edit came from; its other keys are kept. */
+		lines: { code: string; amount: string; source?: Schema.Json }[];
 		disabled?: boolean;
 	} = $props();
 
@@ -38,7 +40,7 @@
 			/>
 			<Input
 				type="number"
-				aria-label={t('component.base_salary')}
+				aria-label={t('component.allowance_amount')}
 				value={line.amount}
 				{disabled}
 				onchange={(event: Event & { currentTarget: HTMLInputElement }) => {

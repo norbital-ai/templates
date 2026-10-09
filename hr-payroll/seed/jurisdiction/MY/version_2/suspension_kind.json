@@ -1,0 +1,12 @@
+[
+	{
+		"id": "b5d440d8-6680-58bb-9447-218a10dac268",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Work stopped by the employer (shutdown, lay-off day, lack of work)",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? terms.base_salary / 26.0 : 0.0",
+		"authority": "EA s.24(1): no deduction from wages other than in accordance with the Act, so the contract wage stands; EA s.60E(1) proviso: not an absence without permission for annual leave. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+	}
+]

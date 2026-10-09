@@ -1,19 +1,14 @@
 <script lang="ts">
 	/**
-	 * A leave request as a month calendar: pick the first and last day, half a day at either end if it is, and the
-	 * chargeable days fall out of it. The grid shows the days this person is not rostered to work that month — a
-	 * shift cycle's rest and off days and the entity's published holidays — and the count skips them rather than
-	 * the range, so a request spanning a week off still costs only the working days.
+	 * A leave request as a month calendar: pick a class, the first and last day, half a day at either end if it is.
+	 * What the range charges is the server's count (`leave_days`, `preview_leave`) over this person's own plan, the
+	 * published holidays and the class's unit; the grid marks the days that charge nothing and the form only shows it.
 	 */
 	import { bolt } from '$bolt';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
-	import { PlainDate } from '@norbital-ai/std/date';
-	import { toast } from 'svelte-sonner';
-	import { Button, Combobox, DateInput, Label, Sheet } from '@norbital-ai/ui';
+	import { monthOf, PlainDate } from '@norbital-ai/std/date';
+	import { Button, Combobox, DateInput, Label, Sheet, toast } from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { Schema } from 'effect';
-	import { chargeableDays } from '../../../lib/payroll_engine/leave.js';
-	import { cycleDayOn, cycleDays } from '../../payroll_engine/shift_pattern.js';
 	import { datesBetween, weeksOf } from '../roster/month_board.js';
 	import { live, liveRows } from '../state/live.svelte.js';
 	import { t } from '../i18n/t.js';
@@ -31,8 +26,6 @@
 		onclose: () => void;
 	} = $props();
 
-	const Variant = Schema.Struct({ day_type: Schema.optional(Schema.String) });
-	const Range = Schema.Struct({ from: Schema.optional(Schema.String) });
 	const WEEKDAYS = [
 		'component.weekday_sun_short',
 		'component.weekday_mon_short',
@@ -50,31 +43,17 @@
 	let halfEnd = $state(false);
 	let saving = $state(false);
 	let note = $state('');
+	let catalogId = $state<Id<'leave_catalog'> | null>(null);
+	/** What the server's counts read: a change to any re-counts. */
+	const READS = ['leave_catalog_entry', 'roster_entry', 'holiday', 'employment_contract'] as const;
 
-	const lastDay = $derived(
-		String(new Date(Date.parse(`${month}-01T00:00:00Z`) + 31 * 86400000).getUTCDate())
-	);
 	const first = $derived(`${month}-01`);
-	const last = $derived(`${month}-${lastDay.padStart(2, '0')}`);
+	const last = $derived(String(monthOf(first).to));
 	const dates = $derived(datesBetween(first, last));
 
-	const patterns = liveRows(() =>
-		bolt.read('shift_pattern', {
-			where: { company_id: { eq: companyId } },
-			select: { id: true, pattern: true, effective_range: true },
-			all: true
-		})
-	);
-	const definitions = liveRows(() =>
-		bolt.read('shift_definition', {
-			where: { company_id: { eq: companyId } },
-			select: { id: true, variant: true },
-			all: true
-		})
-	);
 	const holidays = liveRows(() =>
 		bolt.read('holiday', {
-			where: { company_id: { eq: companyId } },
+			where: { company_id: { eq: companyId }, published_at: { isNull: false } },
 			select: { date: true, name: true },
 			all: true
 		})
@@ -86,42 +65,41 @@
 			all: true
 		})
 	);
-	const balances = live(() =>
-		bolt.query('leave_catalog_entry.leave_balances', { employment_id: employmentId })
+	const balances = live(
+		() => bolt.query('leave_catalog_entry.leave_balances', { employment_id: employmentId }),
+		READS
 	);
-
-	/** Definition id → kind, so a cycle day reads as working, rest or off. */
-	const kinds = $derived(
-		new Map(
-			(definitions.current ?? []).map((row) => [
-				String(row.id),
-				Schema.is(Variant)(row.variant) ? (row.variant.day_type ?? 'WORK') : 'WORK'
-			])
-		)
+	/** The shown month as the chosen class counts it: the days that charge nothing. */
+	const monthDays = live(
+		() =>
+			catalogId == null
+				? null
+				: bolt.query('leave_catalog_entry.leave_days', {
+						employment_id: employmentId,
+						catalog_id: catalogId,
+						from: PlainDate(first),
+						to: PlainDate(last)
+					}),
+		READS
 	);
-
-	/** The dates this person is not rostered to work in the shown month. */
-	const nonWorking = $derived.by((): ReadonlySet<string> => {
-		const held = new Set<string>();
-		for (const row of holidays.current ?? []) {
-			const date = String(row.date ?? '').slice(0, 10);
-			if (date >= first && date <= last) held.add(date);
-		}
-		for (const pattern of patterns.current ?? []) {
-			const anchor = Schema.is(Range)(pattern.effective_range)
-				? (pattern.effective_range.from ?? null)
-				: null;
-			if (anchor == null) continue;
-			const days = cycleDays(pattern.pattern);
-			for (const date of dates) {
-				const rosterCodeId = cycleDayOn(days, anchor, date)?.roster_code_id;
-				const kind =
-					rosterCodeId != null && rosterCodeId !== '' ? kinds.get(String(rosterCodeId)) : undefined;
-				if (kind === 'REST' || kind === 'OFF') held.add(date);
-			}
-		}
-		return held;
-	});
+	/** The selection as the server charges it, and the balance after it. */
+	const preview = live(
+		() =>
+			catalogId == null || from == null
+				? null
+				: bolt.query('leave_catalog_entry.preview_leave', {
+						employment_id: employmentId,
+						catalog_id: catalogId,
+						from: PlainDate(from),
+						to: PlainDate(to ?? from),
+						half_day_start: halfStart,
+						half_day_end: halfEnd
+					}),
+		READS
+	);
+	const nonWorking = $derived(new Set(monthDays.current?.off ?? []));
+	const chargeable = $derived(preview.current?.requested ?? 0);
+	const unit = $derived(preview.current?.unit ?? monthDays.current?.unit ?? 'DAY');
 
 	const takenOn = $derived(
 		new Set(
@@ -132,26 +110,12 @@
 		)
 	);
 
-	const chargeable = $derived(
-		from == null
-			? 0
-			: chargeableDays({
-					from,
-					to,
-					half_day_start: halfStart,
-					half_day_end: halfEnd,
-					nonWorking: nonWorking
-				})
-	);
+	/** Every class of the version in force (its own view), metered or not. */
 	const classBalances = $derived(
-		(balances.current?.balances ?? []).filter((row) => row.metered && row.window_key === '')
+		(balances.current?.balances ?? []).filter((row) => row.window_key === '')
 	);
-	let catalogId = $state<Id<'leave_catalog'> | null>(null);
-	const chosen = $derived(
-		classBalances.find((row) => row.catalog_id === catalogId) ?? classBalances[0]
-	);
-	const selectedCatalogId = $derived(chosen?.catalog_id ?? null);
-	const remaining = $derived(chosen?.available ?? null);
+	const chosen = $derived(classBalances.find((row) => row.catalog_id === catalogId) ?? null);
+	const remaining = $derived(chosen?.metered === true ? chosen.available : null);
 
 	function select(date: string): void {
 		if (from == null || to != null) {
@@ -169,11 +133,12 @@
 	}
 
 	async function submit(): Promise<void> {
-		if (saving || from == null || selectedCatalogId == null || !(chargeable > 0)) return;
+		if (saving || from == null || catalogId == null || !(chargeable > 0)) return;
 		saving = true;
 		try {
+			// `days` is the server's count; the write counts it again and keeps its own.
 			const payload: ActInput<'leave_catalog_entry.create'> = {
-				catalog_id: selectedCatalogId,
+				catalog_id: catalogId,
 				employment_id: employmentId,
 				occurred_on: PlainDate(from),
 				activity: 'TIME_OFF',
@@ -224,7 +189,7 @@
 			class="w-full"
 			aria-label={t('component.catalogue_leave')}
 			options={classBalances.map((row) => ({ value: row.catalog_id, label: row.name }))}
-			value={selectedCatalogId}
+			value={catalogId}
 			disabled={classBalances.length === 0}
 			onChange={(next) => (catalogId = next)}
 		/>
@@ -269,7 +234,7 @@
 
 		<Cluster gap="md">
 			<span class="text-sm">
-				{t('leave.chargeable_days')}
+				{t(unit === 'HOUR' ? 'leave.chargeable_hours' : 'leave.chargeable_days')}
 				<strong>{chargeable === 0 ? '—' : chargeable}</strong>
 			</span>
 			{#if remaining != null}
@@ -279,6 +244,10 @@
 				<span class="text-meta">{from}{to == null ? ' → …' : ` → ${to}`}</span>
 			{/if}
 		</Cluster>
+
+		{#if preview.error != null}
+			<p class="text-sm text-destructive">{preview.error}</p>
+		{/if}
 
 		<Cluster gap="md">
 			<Button
@@ -306,7 +275,7 @@
 		/>
 
 		<Cluster gap="sm">
-			<Button onclick={submit} disabled={!(chargeable > 0) || selectedCatalogId == null || saving}
+			<Button onclick={submit} disabled={!(chargeable > 0) || catalogId == null || saving}
 				>{t('leave.submit')}</Button
 			>
 			<Button variant="ghost" onclick={onclose}>{t('component.cancel')}</Button>

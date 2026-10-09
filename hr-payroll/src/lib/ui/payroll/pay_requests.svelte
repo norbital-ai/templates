@@ -9,13 +9,20 @@
 	import { EmptyState, Table } from '@norbital-ai/ui';
 	import Skeleton from '../components/skeleton.svelte';
 	import CompanyScope from '../scopes/company_picker.svelte';
-	import { companyScope, employmentNames } from '../scopes/company_scope.svelte.js';
+	import {
+		companyScope,
+		employmentNames,
+		offerPageEntity
+	} from '../scopes/company_scope.svelte.js';
 	import MonthPeriodPicker from '../components/month_period_picker.svelte';
 	import { createPayPeriodScope } from '../scopes/pay_period_scope.svelte.js';
-	import { formatNumeric } from '../format/display_formatters.js';
-	import { isJsonObject, moneyNumber } from '../../payroll_engine/foundation.js';
+	import { versionMoney } from '../format/version_money.svelte.js';
+	import { moneyNumber } from '../../payroll_engine/foundation.js';
+	import { bolt } from '$bolt';
+	import { liveRows } from '../state/live.svelte.js';
+	import { loanBalances } from './loan_balance.js';
 
-	/** The four captured-entry families, all one shape: reference, occurred_on, values, catalog_id. */
+	/** The four captured-entry families, all one shape: reference, occurred_on, amount, catalog_id. */
 	type EntryCollection =
 		'adhoc_catalog_entry' | 'claim_catalog_entry' | 'leave_catalog_entry' | 'loan_catalog_entry';
 
@@ -32,18 +39,46 @@
 		description: string;
 		icon: string;
 	} = $props();
-	const scope = companyScope();
+	const scope = offerPageEntity(companyScope());
 	const pay = createPayPeriodScope(() => scope.company);
 	const person = employmentNames(() => scope.id);
-	const amountOf = (values: unknown): number | null =>
-		isJsonObject(values) ? moneyNumber(values['amount']) : null;
+	const money = versionMoney(() => {
+		const lineage = scope.company?.settings_code;
+		return lineage == null || lineage === '' ? null : { lineage };
+	});
+	/** Loans: every instalment of the entity's loans, read once, for each one's outstanding balance. */
+	const instalments = liveRows(() =>
+		collection !== 'loan_catalog_entry' || scope.id == null
+			? null
+			: bolt.read('loan_catalog_entry', {
+					where: { employment_id: { is: { company_id: { eq: scope.id } } } },
+					select: {
+						employment_id: true,
+						catalog_id: true,
+						occurred_on: true,
+						activity: true,
+						amount: true,
+						facts: true
+					},
+					all: true
+				})
+	);
+	const balances = $derived(loanBalances(instalments.current ?? []));
 </script>
 
-{#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
-{#snippet amountCell({ value }: { value: unknown })}{#if amountOf(value) == null}
+{#snippet balanceCell({ row }: { row: { readonly id: string }; value: unknown })}{@const left =
+		balances.get(String(row.id))}{#if left == null}
 		—
 	{:else}
-		{formatNumeric(amountOf(value))}
+		{money(left)}
+	{/if}{/snippet}
+
+{#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
+{#snippet amountCell({ value }: { value: unknown })}{@const amount =
+		moneyNumber(value)}{#if amount == null}
+		—
+	{:else}
+		{money(amount)}
 	{/if}{/snippet}
 
 <AppShell {icon} {title} {description}>
@@ -80,7 +115,10 @@
 					{ field: 'employment_id', label: t('component.person'), cell: personCell },
 					{ field: 'amount', label: t('component.amount'), cell: amountCell },
 					{ field: 'occurred_on', label: dateLabel },
-					{ field: 'reference', label: t('component.reference') }
+					{ field: 'reference', label: t('component.reference') },
+					...(collection === 'loan_catalog_entry'
+						? [{ field: 'facts' as const, label: t('component.outstanding'), cell: balanceCell }]
+						: [])
 				]}
 			/>
 		{/key}

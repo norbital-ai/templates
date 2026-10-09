@@ -6,7 +6,7 @@
 		"name": "Basic salary",
 		"component_code": "BASIC",
 		"quantity": "period.paid_days / period.days",
-		"rate": "terms.base_salary",
+		"rate": "terms.base_salary / double(period.parts)",
 		"eligibility": "true",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -20,12 +20,12 @@
 		"name": "Overtime",
 		"component_code": "OVERTIME",
 		"quantity": "sum(work.days.map(d, d.overtime_hours <= 0.0 ? 0.0 : ((d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" ? ladder(d.overtime_hours, [[1.0, 1.5], [null, 2.0]]) : (terms.facts.working_days_per_week == 6.0 ? (d.day_type == \"WORK\" && d.scheduled_hours <= 5.0 ? ladder(d.overtime_hours, [[5.0, 2.0], [6.0, 3.0], [null, 4.0]]) : ladder(d.overtime_hours, [[7.0, 2.0], [8.0, 3.0], [null, 4.0]])) : ladder(d.overtime_hours, [[8.0, 2.0], [9.0, 3.0], [null, 4.0]])))))",
-		"rate": "(terms.employment_type == \"DAILY\" && has(terms.facts.daily_wage) ? terms.facts.daily_wage * (has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0 ? 25.0 : 21.0) : (terms.monthly_wage < 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) ? 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) : terms.monthly_wage)) / 173.0",
-		"eligibility": "work.overtime_hours > 0.0 && terms.work_classification != \"MANAGERIAL\"",
+		"rate": "(terms.statutory_work_category == \"PIECE_RATE\" ? max((size(earned.months) > 0 ? sum(earned.months.map(m, m.gross - (has(m.OVERTIME) ? m.OVERTIME : 0.0))) / double(size(earned.months)) : terms.monthly_wage), (((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) ? rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] : 0.0)) : (terms.employment_type == \"DAILY\" && has(terms.facts.daily_wage) ? terms.facts.daily_wage * (has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0 ? 25.0 : 21.0) : (terms.monthly_wage < 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) ? 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) : terms.monthly_wage))) / 173.0",
+		"eligibility": "work.overtime_hours > 0.0 && !(terms.work_classification == \"MANAGERIAL\" && has(company.facts.managerial_group_defined) && company.facts.managerial_group_defined == true)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["PPH21", "PPH26"],
-		"authority": "PP 35/2021 arts.31–32: the overtime hour is 1/173 of the monthly wage (art.32(2)), on basic plus fixed allowances (art.32(3), `terms.monthly_wage`). Each day of the attendance window (`work.days`) is priced on its approved overtime hours (an order and the worker's consent, art.28): on an ordinary working day the first hour at 1.5× and every further hour at 2× (art.31(1)); on a weekly rest day or an official holiday (`holiday_kind`) every hour worked is overtime — for a 6-day / 40-hour week hours 1–7 at 2×, hour 8 at 3×, hours 9–11 at 4× (art.31(2)(a)), and when the holiday falls on the shortest working day (scheduled 5 hours or less) hours 1–5 at 2×, hour 6 at 3×, hours 7–9 at 4× (art.31(2)(b)); for a 5-day / 40-hour week hours 1–8 at 2×, hour 9 at 3×, hours 10–12 at 4× (art.31(3)). The week is the terms fact `working_days_per_week` (5 or 6); a rest-day or holiday hour without it refuses. Hours beyond the last listed hour stay at 4× (the article lists none beyond; the art.26 daily limit keeps them rare). A daily-paid worker's month is the agreed daily wage × 25 on a 6-day week or × 21 on a 5-day week (art.33(1)). No overtime wage for a golongan jabatan tertentu (art.27(2)–(3), `MANAGERIAL`) — only where the agreement, company regulation or collective agreement defines that group (art.27(4)–(5)). https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf Where basic plus fixed allowances are below 75% of the whole wage (customer input `terms.facts.non_fixed_allowances_monthly`), the base is 75% of the whole wage (art.32(4))."
+		"authority": "PP 35/2021 arts.31–32: the overtime hour is 1/173 of the monthly wage (art.32(2)), on basic plus fixed allowances (art.32(3), `terms.monthly_wage`). Each day of the attendance window (`work.days`) is priced on its approved overtime hours (an order and the worker's consent, art.28): on an ordinary working day the first hour at 1.5× and every further hour at 2× (art.31(1)); on a weekly rest day or an official holiday (`holiday_kind`) every hour worked is overtime — for a 6-day / 40-hour week hours 1–7 at 2×, hour 8 at 3×, hours 9–11 at 4× (art.31(2)(a)), and when the holiday falls on the shortest working day (scheduled 5 hours or less) hours 1–5 at 2×, hour 6 at 3×, hours 7–9 at 4× (art.31(2)(b)); for a 5-day / 40-hour week hours 1–8 at 2×, hour 9 at 3×, hours 10–12 at 4× (art.31(3)). The week is the terms fact `working_days_per_week` (5 or 6); a rest-day or holiday hour without it refuses. Hours beyond the last listed hour stay at 4× (the article lists none beyond; the art.26 daily limit keeps them rare). A daily-paid worker's month is the agreed daily wage × 25 on a 6-day week or × 21 on a 5-day week (art.33(1)). No overtime wage for a golongan jabatan tertentu (art.27(2)–(3), `MANAGERIAL`) — only where the agreement, company regulation or collective agreement defines that group (art.27(4)–(5)). https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf Where basic plus fixed allowances are below 75% of the whole wage (customer input `terms.facts.non_fixed_allowances_monthly`), the base is 75% of the whole wage (art.32(4)). PP 35/2021 art.27(2)–(5): the golongan jabatan tertentu is exempt only where the employment agreement, company regulation or collective agreement defines it (`company.facts.managerial_group_defined`); otherwise a MANAGERIAL worker is paid overtime. Art.33(2)–(3): output pay (PIECE_RATE) takes the average of the last 12 months (`earned.months`, gross less overtime), floored at the worksite minimum wage."
 	},
 	{
 		"id": "4363050a-6ffc-574f-b743-c3e9de51ad6a",
@@ -34,11 +34,12 @@
 		"name": "No-pay leave",
 		"component_code": "NO_PAY_LEAVE",
 		"quantity": "sum(leave.rows.filter(r, r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days))",
-		"rate": "terms.base_salary / period.days",
+		"rate": "terms.monthly_wage / double(period.month_days)",
 		"eligibility": "leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.days > 0.0)",
 		"destination": "PAY",
 		"direction": "SUBTRACT",
-		"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"]
+		"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"],
+		"authority": "PP 36/2021 art.40(1) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): no wage is paid for a day not worked; the day of the wage — basic plus fixed allowances (`terms.monthly_wage`) — ÷ the days of the month is deducted for each unpaid day."
 	},
 	{
 		"id": "90114bf5-8fa7-53b6-b355-401d4011fc27",
@@ -47,12 +48,12 @@
 		"name": "Leave encashment",
 		"component_code": "ENCASHMENT",
 		"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\" && !(employment.exit_date != \"\" && r.from == employment.exit_date)).map(r, r.days))",
-		"rate": "terms.base_salary / double(company.facts.leave_cash_out_day_divisor)",
+		"rate": "terms.monthly_wage / double(company.facts.leave_cash_out_day_divisor)",
 		"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0 && !(employment.exit_date != \"\" && r.from == employment.exit_date))",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["PPH21", "PPH26"],
-		"authority": "UU 13/2003 art.79 as amended by UU 6/2023 and PP 35/2021 art.40(4)(a): unused annual leave not yet lapsed is paid. Owner ruling (ID): a day is the basic wage ÷ the entity fact `leave_cash_out_day_divisor` (20 for KDIT, as its payroll pays). In service it is ordinary income under PPh 21 TER."
+		"authority": "UU 13/2003 art.79 as amended by UU 6/2023 and PP 35/2021 art.40(4)(a): unused annual leave not yet lapsed is paid. Owner ruling (ID): a day is the usual wage (basic plus fixed allowances, PP 36/2021 art.46) ÷ the entity fact `leave_cash_out_day_divisor` (20 for KDIT, as its payroll pays). In service it is ordinary income under PPh 21 TER."
 	},
 	{
 		"id": "c937be0a-e05c-52ca-a2ef-374a3cd43fef",
@@ -61,12 +62,12 @@
 		"name": "Leave paid on termination (uang penggantian hak)",
 		"component_code": "EXIT_ENCASHMENT",
 		"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\" && employment.exit_date != \"\" && r.from == employment.exit_date).map(r, r.days))",
-		"rate": "terms.base_salary / double(company.facts.leave_cash_out_day_divisor)",
+		"rate": "terms.monthly_wage / double(company.facts.leave_cash_out_day_divisor)",
 		"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0 && employment.exit_date != \"\" && r.from == employment.exit_date)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["PPH21_FINAL_SEVERANCE", "PPH26"],
-		"authority": "PP 35/2021 art.40(4)(a): on termination the unused, unlapsed annual leave is paid as uang penggantian hak, at the basic wage ÷ `company.facts.leave_cash_out_day_divisor` (owner ruling). PP 68/2009 art.1 angka 4: \"Uang Pesangon\" includes the uang penggantian hak paid because the employment ends, so it is withheld under the final PP 68/2009 art.4 bands (PPH21_FINAL_SEVERANCE), not TER. The exit encashment is the leave movement the exit behaviour writes on the last day (`r.from == employment.exit_date`)."
+		"authority": "PP 35/2021 art.40(4)(a): on termination the unused, unlapsed annual leave is paid as uang penggantian hak, at the usual wage (basic plus fixed allowances, PP 36/2021 art.46) ÷ `company.facts.leave_cash_out_day_divisor` (owner ruling). PP 68/2009 art.1 angka 4: \"Uang Pesangon\" includes the uang penggantian hak paid because the employment ends, so it is withheld under the final PP 68/2009 art.4 bands (PPH21_FINAL_SEVERANCE), not TER. The exit encashment is the leave movement the exit behaviour writes on the last day (`r.from == employment.exit_date`)."
 	},
 	{
 		"id": "0b0630a7-4547-59cf-b81a-16b277ebe6c9",
@@ -75,12 +76,26 @@
 		"name": "Leave paid at a reduced rate",
 		"component_code": "PARTIAL_PAY_LEAVE",
 		"quantity": "sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl && r.pay_fraction < 1.0).map(r, r.days * (1.0 - r.pay_fraction)))",
-		"rate": "terms.base_salary / period.days",
+		"rate": "terms.monthly_wage / double(period.month_days)",
 		"eligibility": "leave.rows.exists(r, r.activity == \"TIME_OFF\" && !r.is_npl && r.pay_fraction < 1.0 && r.days > 0.0)",
 		"destination": "PAY",
 		"direction": "SUBTRACT",
 		"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"],
-		"authority": "Leave paid at less than the full wage: the class's `pay_fraction` per leave row (evaluated by the engine on the row's `month_index` of its absence event). UU 13/2003 art.93(3): a sick worker is paid 100% for the first four months, 75% for the next four, 50% for the next four and 25% thereafter until dismissal (MEDICAL_LEAVE); UU 4/2024 art.5(2): maternity leave is paid in full for the first four months and 75% for the fifth and sixth (MATERNITY_LEAVE). The unpaid share of each day is deducted at the basic wage ÷ the month's days.",
+		"authority": "Leave paid at less than the full wage: the class’s `pay_fraction` per leave row (on the row’s `month_index`). PP 36/2021 art.41(1) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): a sick worker is paid 100% of the wage for the first four months, 75% for the next four, 50% for the next four and 25% thereafter until dismissal; UU 4/2024 art.5(2): maternity leave in full for four months and 75% for the fifth and sixth; PP 44/2015 as amended by PP 82/2019: STMB in full for 12 months, then 50%. The unpaid share of each day is deducted at the wage (basic plus fixed allowances, “Upah”) ÷ the month’s days.",
 		"prorated": false
+	},
+	{
+		"id": "5e57c07c-5f91-5789-baa8-d07e320b943c",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "SUSPENSION_PAY_ADJUSTMENT",
+		"name": "Work suspension: unpaid days",
+		"component_code": "SUSPENSION_PAY_ADJUSTMENT",
+		"quantity": "1.0",
+		"rate": "sum(work.days.filter(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\").map(d, max(0.0, (terms.monthly_wage / double(period.month_days)) - d.suspended.pay)))",
+		"eligibility": "work.days.exists(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\")",
+		"destination": "PAY",
+		"direction": "SUBTRACT",
+		"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"],
+		"authority": "UU 13/2003 arts.93, 145 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 art.40 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf): a suspended working day keeps the monthly wage when its kind pays it; otherwise the day of the wage (basic plus fixed allowances ÷ the days of the month, as an unpaid day: NO_PAY_LEAVE) is deducted."
 	}
 ]

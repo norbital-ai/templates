@@ -1,48 +1,42 @@
 /**
- * The pay period an event page steps its one-off entries by, in the selected entity's grammar.
+ * The pay period an event page steps its one-off entries by, in the selected entity's schedule.
  *
  * Four catalogue pages step the same way — a month at a monthly company, a half at a semi-monthly
  * one — and each needs the period, whether halves are offered, and the dates whose entries settle
- * in it. One owner, so the four pages cannot drift.
+ * in it. One owner, so the four pages cannot drift. The schedule is effective-dated (`frequencyOn`):
+ * a month reads the periods of the frequencies in force on its days (`periodsIn`).
  */
 import { PlainDate } from '@norbital-ai/std/date';
-import { payPeriodWindow } from '../../payroll_engine/foundation.js';
-import { periodInCompanyGrammar, todayKey } from '../format/calendar.js';
+import { frequencyOn } from '../../payroll_engine/foundation.js';
+import { todayKey } from '../format/calendar.js';
+import { periodIn, type PayingEntity } from '../payroll/pay_periods.js';
 
-type PayGridCompany = {
-	readonly pay_frequency: string;
-	readonly pay_cutoff_day: number | null;
-};
-
-export function createPayPeriodScope(company: () => PayGridCompany | null | undefined) {
+export function createPayPeriodScope(company: () => PayingEntity | null | undefined) {
 	let chosen = $state<string>(todayKey().slice(0, 7));
-	const period = $derived(periodInCompanyGrammar(chosen, company()?.pay_frequency, todayKey()));
-	const window = $derived.by(() => {
+	const found = $derived.by(() => {
 		const row = company();
-		if (row == null) return null;
-		try {
-			const { start, end } = payPeriodWindow(period, {
-				pay_frequency: row.pay_frequency,
-				pay_cutoff_day: row.pay_cutoff_day ?? 0
-			});
-			return { start: PlainDate(start), end: PlainDate(end) };
-		} catch {
-			return null;
-		}
+		return row == null ? null : periodIn(row, chosen, todayKey());
+	});
+	/** The frequency the chosen period is paid at: the one in force on its first day. */
+	const frequency = $derived.by(() => {
+		const row = company();
+		return row == null ? null : frequencyOn(row, found?.from ?? `${chosen.slice(0, 7)}-01`);
 	});
 	return {
 		get period() {
-			return period;
+			return found?.key ?? chosen.slice(0, 7);
 		},
 		get halves() {
-			return company()?.pay_frequency === 'SEMI_MONTHLY';
+			return frequency === 'SEMI_MONTHLY';
 		},
 		get weeks() {
-			return company()?.pay_frequency === 'WEEKLY';
+			return frequency === 'WEEKLY';
 		},
 		/** The `start`..`end` days (both inclusive) whose entries settle in the period, or null without an entity. */
 		get window() {
-			return window;
+			return found == null
+				? null
+				: { start: PlainDate(found.window.from), end: PlainDate(found.window.to) };
 		},
 		select(next: string): void {
 			if (/^\d{4}-(0[1-9]|1[0-2])(-[12])?$/.test(next)) chosen = next;

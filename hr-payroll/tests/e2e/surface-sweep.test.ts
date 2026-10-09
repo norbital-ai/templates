@@ -3,6 +3,7 @@
  * Every page renders for every holder: the real shell over this template on the test kit with public seed data,
  * one member per policy, every page that member's navigation offers plus the inbox and runs. A console error, a thrown
  * page or a live view the host refuses as over budget is a finding.
+ * `sweep()` walks app navigation only, so the attendance kiosk (`src/kiosk/attendance/`) is not visited.
  *
  * happy-dom `sweep()` is the template surface walk. Real Chromium is Vitest browser mode
  * (`@vitest/browser-playwright`, `page` from `vitest/browser`) — https://vitest.dev/guide/browser/.
@@ -50,8 +51,7 @@ it(
 			expect.arrayContaining([
 				'/app/hr_controller/people/people',
 				'/app/hr_controller/payroll/payroll',
-				'/app/hr_employee/self_service',
-				'/app/kiosk/kiosk'
+				'/app/hr_employee/self_service'
 			])
 		);
 		for (const collection of Object.keys(representations)) {

@@ -50,7 +50,7 @@ export function sourcesFrom(value: unknown): DriftSources {
 	};
 }
 
-export function originOf(url: string): string | null {
+function originOf(url: string): string | null {
 	try {
 		return new URL(url).origin.toLowerCase();
 	} catch {

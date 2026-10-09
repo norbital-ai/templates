@@ -26,6 +26,18 @@ export default model({
 			min: 0,
 			optional: true
 		},
+		banked_overtime_hours: {
+			kind: 'decimal',
+			scale: 2,
+			min: 0,
+			optional: true,
+			help: 'Of the approved overtime, the hours the employee elected to bank as time off instead of pay.'
+		},
+		banked_overtime_band: {
+			kind: 'text',
+			optional: true,
+			help: 'The overtime band (rate code) the banked hours were earned in.'
+		},
 		overtime_consented_at: {
 			kind: 'instant',
 			optional: true
@@ -48,5 +60,7 @@ export default model({
 			},
 			default: {}
 		}
-	}
+	},
+	// one person-day per employment: the work-day sheet matches and sets rows by it
+	key: ['employment_id', 'work_date']
 });

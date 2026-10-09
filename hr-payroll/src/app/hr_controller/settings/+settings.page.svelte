@@ -6,7 +6,6 @@
 	 * under it offers a create.
 	 */
 	import { t } from '../../../lib/ui/i18n/t.js';
-	import { Toaster } from 'svelte-sonner';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Combobox, EmptyState, RecordShell, Table, Tabs } from '@norbital-ai/ui';
@@ -129,7 +128,6 @@
 	<SnapshotChanges {version} {versions} />
 {/snippet}
 
-<Toaster />
 <AppShell
 	icon="lucide:settings-2"
 	title={t('app.settings.header_title')}

@@ -1,0 +1,1015 @@
+[
+	{
+		"id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "TH",
+		"jurisdiction_code": "TH",
+		"name": "Thailand — 1 January 2032",
+		"sealed_at": "2026-10-06T12:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2032-01-01",
+			"to": null
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"tax_year_start_month": 1,
+			"pay_date": "period.to",
+			"week_start": 0,
+			"semi_monthly_split": 15,
+			"roster_week": "ROLLING",
+			"rolling_hours_months": 3,
+			"base_salary_required": true,
+			"off_cycle_families": ["ADHOC", "CLAIM"],
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.filter(a, (has(a.code) && a.code == \"FIXED_ALLOWANCE\") || (has(a.catalogue_id) && a.catalogue_id in [\"fc9a212c-9211-5c59-9aeb-85a201239776\", \"809d9c7c-1bc6-5d54-9156-ef55401b4e79\", \"f650c89d-d8ab-58d1-80f3-6e64da1dda7d\", \"2a210c86-30c6-5cd1-84f6-cadc4d2ecf93\", \"3f512ae5-3e16-5787-90c6-c8ba68404cbd\", \"60b8520e-a707-5cbd-91c5-299840c94ff7\", \"d13ea036-7c8c-546d-b931-37096d29b205\"])).map(a, a.amount))",
+			"negative_net": "refuse"
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.go.th/wp-content/uploads/sites/2/2024/12/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8913%E0%B8%A3%E0%B8%B2%E0%B8%8A%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%88%E0%B8%B2.pdf",
+				"https://www.sso.go.th/",
+				"https://www.rd.go.th/english/6045.html",
+				"https://ratchakitcha.soc.go.th/",
+				"https://www.mol.go.th/",
+				"https://www.forvismazars.com/th/en/insights/doing-business-in-thailand/legal/lpa-amendments-new-leave-obligations",
+				"https://www.bakermckenzie.com/en/insight/publications/alerts/2025/12/thailand-higher-wage-base-for-ssf-contributions",
+				"https://www.rd.go.th/",
+				"https://ratchakitcha.soc.go.th/documents/86102.pdf",
+				"https://ratchakitcha.soc.go.th/documents/76681.pdf",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47435",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/47436",
+				"https://www.sso.go.th/wpr/download/download_by_pool_file/14479",
+				"https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf",
+				"https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf"
+			],
+			"instructions": "Sources are the primary instrument first: the Royal Gazette (ratchakitcha.soc.go.th) for Acts, Royal Decrees, Ministerial Regulations and Wage Committee notifications; the Ministry of Labour (mol.go.th) for the minimum-wage notifications and their explanatory notes; the Social Security Office (sso.go.th) for the contribution base and the WCF; the Revenue Department (rd.go.th) for the Revenue Code, PND1/PND1 Kor and 50 Tawi. Each month look for a new Wage Committee notification on minimum wage rates (No. 15 onward), a Ministerial Regulation on SSO contribution rates or the wage base, a Labour Protection Act amendment, a Revenue Code amendment or Royal Decree on allowances or rates, and the Ministry of Finance e-filing extension. Law firm alerts (Baker McKenzie, Tilleke & Gibbins, DLA Piper) are discovery only; cite the gazette instrument."
+		},
+		"change_summary": "The Ministerial Regulation on the s.33 contribution wage base B.E. 2568 raises the maximum to 23,000 baht from 1 January 2032 (1,150 baht each side at most).",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null && has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "retract-exit-effects",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+					"reads": {
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"payslip_id": {
+									"isNull": true
+								}
+							},
+							"select": ["reference"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key", "facts"]
+						}
+					},
+					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.approval_id == null && event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "event.row.approval_id == null",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "withdraw-run-duties",
+					"target_collection": "payroll_run",
+					"events": ["deleted"],
+					"reads": {
+						"obligations": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["amount_settled"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-at-window-end",
+					"target_collection": "calendar",
+					"events": ["daily"],
+					"when": "event.row.approval_id == null && size(event.leave_balances) > 0",
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_at_window_end": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"activity": {
+									"eq": "\"ENCASHMENT\""
+								}
+							},
+							"select": ["reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "event.row.approval_id == null",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"engagement",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": [
+								"nationality",
+								"gender",
+								"date_of_birth",
+								"marital_status",
+								"solo_parent",
+								"children",
+								"dependents_count",
+								"facts"
+							]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"gte": "add_days(event.day, -400)"
+								}
+							},
+							"select": ["occurrence_key"]
+						},
+						"subject_tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"subject_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
+					"events": ["created", "updated", "daily", "after_exit", "calendar"]
+				},
+				{
+					"id": "write-public-holidays",
+					"target_collection": "entity",
+					"events": ["created", "calendar"],
+					"when": "event.row.approval_id == null",
+					"reads": {
+						"calendar": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"public_holidays\""
+								}
+							},
+							"select": ["rules"]
+						},
+						"held": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["date"]
+						}
+					},
+					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "TH employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "THB"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "THB"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "THB"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "FIXED_TERM", "PROBATION", "PART_TIME"],
+								"description": "Labour Protection Act B.E. 2541 (1998) s.17 (a contract with or without a definite term) and s.118 para 3 (a fixed-term contract for specific project, seasonal or occasional work of up to two years owes no severance pay). PROBATION is a contract on probation (s.17 para 2); PART_TIME is recorded for reporting only."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "HAZARDOUS"],
+								"description": "Labour Protection Act B.E. 2541 (1998) s.23 and Ministerial Regulation No. 2 (B.E. 2541): normal working time is at most 8 hours a day and 48 a week; work that may harm health and safety is at most 7 hours a day and 42 a week. The hourly wage for overtime and holiday work divides the day wage by these hours (s.68; Wage Committee Notification No. 14 cl.19)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["RESIDENT", "NON_RESIDENT"],
+								"description": "Revenue Code s.41: a person present in Thailand for 180 days or more in a tax year is resident. Employment income for work in Thailand is withheld under s.50(1) either way; recorded for the annual return."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"pay_basis": {
+										"type": "string",
+										"enum": ["MONTHLY", "DAILY", "PIECE"],
+										"default": "MONTHLY",
+										"title": "Pay basis",
+										"description": "Labour Protection Act B.E. 2541 ss.5, 56, 60-63, 68: DAILY when the wage is fixed by the day (base_salary is then the day rate); PIECE when paid by the unit of work (piece_rate per unit; the roster day records units and overtime_units); unrecorded is a monthly wage."
+									},
+									"normal_hours_per_day": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 8,
+										"title": "Average normal hours a day",
+										"description": "Labour Protection Act B.E. 2541 s.68: the hourly wage divides the day wage by the average normal working hours a day; unrecorded is 8 (7 for hazardous work)."
+									},
+									"overtime_category": {
+										"type": "string",
+										"enum": ["MANAGER", "SECTION_65_OTHER"],
+										"title": "Overtime-exempt category (LPA s.65)",
+										"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
+									},
+									"continuous_work": {
+										"type": "boolean",
+										"default": false,
+										"title": "Continuous or emergency work",
+										"description": "Labour Protection Act B.E. 2541 ss.24-25: work that must continue by its nature, or emergency work, needs no consent."
+									},
+									"skill_standard_day_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Skill-standard day rate of the trade",
+										"description": "Wage Committee notification on wage rates by skill standard: the day rate for the worker's certified trade and level."
+									},
+									"annual_leave_carry_forward_days": {
+										"type": "number",
+										"minimum": 0,
+										"default": 0,
+										"title": "Annual leave days carried forward by agreement",
+										"description": "Labour Protection Act B.E. 2541 s.30: untaken annual leave may be carried forward by agreement; paid on any exit (s.67 para 2)."
+									},
+									"security_deposit_post": {
+										"type": "boolean",
+										"default": false,
+										"title": "Post allowed to take a security deposit",
+										"description": "Labour Protection Act B.E. 2541 s.10 with the Minister's notification on security money."
+									},
+									"piece_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Piece rate (baht a unit)",
+										"description": "Labour Protection Act B.E. 2541 ss.61-63: the wage per unit of work of a piece worker."
+									},
+									"weekly_normal_hours": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 48,
+										"title": "Normal hours a week (weekly basis)",
+										"description": "Labour Protection Act B.E. 2541 ss.23, 69: normal time fixed by the week; overtime is counted over the week with holidays and leave as working days."
+									}
+								}
+							}
+						},
+						"required": ["employment_type", "work_classification", "residency_status"]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes.",
+					"properties": {
+						"section_119_ground": {
+							"type": "boolean",
+							"default": false,
+							"title": "Dismissed on a section 119 ground",
+							"description": "Labour Protection Act B.E. 2541 (1998) s.119: no severance pay where the employee was dismissed for dishonesty, an intentional offence against the employer, wilful damage, a serious breach of work rules after a written warning, three consecutive working days' absence without cause, or imprisonment; s.67 then also withholds annual-leave pay for the year of dismissal."
+						},
+						"fixed_term_project": {
+							"type": "boolean",
+							"default": false,
+							"title": "End of a fixed-term project, seasonal or occasional contract of up to two years",
+							"description": "Labour Protection Act B.E. 2541 s.118 para 3: no severance."
+						},
+						"special_severance_ground": {
+							"type": "string",
+							"enum": ["TECHNOLOGY", "RELOCATION"],
+							"title": "Special severance ground",
+							"description": "Labour Protection Act B.E. 2541 ss.120-122."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"description": "Stored at employment_profile.facts.employment_statutory_facts: one standing per scheme per instant; the CEL reads the standing in force as scheme.standing / scheme.elections.* (elections.CODE.* from another scheme).",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["INSURED", "MEMBER", "TAXPAYER"],
+										"description": "SSO: INSURED (SSA s.33). PVD: MEMBER of the employer's registered fund (Provident Fund Act s.10). PND1: TAXPAYER, the standing that carries the Lor Yor 01 declaration (Revenue Code s.50(1))."
+									},
+									"reference_number": {
+										"type": "string"
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"employee_percent": {
+												"type": "number",
+												"minimum": 2,
+												"maximum": 15,
+												"title": "PVD: member contribution rate (%)",
+												"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
+											},
+											"child_allowance_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: children qualifying for the child allowance",
+												"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent."
+											},
+											"second_child_from_2018_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: of those, second and later children born in or after 2018",
+												"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
+											},
+											"other_annual_deductions": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: other annual allowances and deductions declared on Lor Yor 01",
+												"description": "Revenue Code s.47: parent and disabled-dependant allowances, life and health insurance premiums, home-loan interest and the other deductions the employee declares, in baht for the year. Spouse, child, social security and provident fund deductions are computed from their own inputs and must not be repeated here."
+											},
+											"previous_employer_income": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: income from an earlier employer this year",
+												"description": "Tor Por 4/2528: joins the annual estimate (50 Tawi of the earlier employer)."
+											},
+											"previous_employer_tax": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: tax withheld by an earlier employer this year",
+												"description": "Credited against the year's tax."
+											},
+											"parents_count": {
+												"type": "integer",
+												"minimum": 0,
+												"maximum": 4,
+												"default": 0,
+												"title": "PND1: parents allowance (count)",
+												"description": "Revenue Code s.47(1)(g): 30,000 for each parent of the taxpayer or of a spouse without income, aged 60+ with income of at most 30,000."
+											},
+											"disabled_dependants_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: disabled dependants (count)",
+												"description": "Revenue Code s.47(1)(h): 60,000 for each disabled or incapacitated dependant with income of at most 30,000."
+											},
+											"parents_health_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: parents' health insurance paid",
+												"description": "Up to 15,000."
+											},
+											"life_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: life insurance premiums paid",
+												"description": "Up to 100,000."
+											},
+											"home_loan_interest": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: home-loan interest paid",
+												"description": "Up to 100,000."
+											},
+											"pension_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: pension life insurance premiums paid",
+												"description": "Up to 15% of income and 200,000, within 500,000 with the provident fund."
+											},
+											"exempt_190k_used_elsewhere": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: part of the 190,000 exemption used on other income",
+												"description": "The exemption for a taxpayer aged 65+ or disabled is at most 190,000 across all income."
+											},
+											"severance_separate": {
+												"type": "boolean",
+												"default": false,
+												"title": "PND1: tax severance separately (s.48(5))",
+												"description": "With five years' service, the lump sum on leaving is taxed apart from other income."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts, stored as the other keys of employment_profile.facts; the CEL reads them as employee.facts.*. Profile columns (gender, marital_status, spouse_status, nationality as ISO 3166-1 alpha-2, children) are model fields, not keys here.",
+					"properties": {
+						"tax_id": {
+							"type": "string",
+							"pattern": "^[0-9]{13}$",
+							"title": "13-digit taxpayer identification number (the citizen ID for a Thai national)"
+						},
+						"sso_number": {
+							"type": "string",
+							"title": "Social security number of the insured person"
+						},
+						"work_permit_basis": {
+							"type": "string",
+							"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
+							"title": "Basis of a foreign worker's permission to work",
+							"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
+						},
+						"deduction_consent": {
+							"type": "boolean",
+							"default": false,
+							"title": "Prior consent to deductions above the s.76 limits",
+							"description": "Labour Protection Act s.76 para 2: the 10% and one-fifth limits do not apply \"where prior consent is given by the employee\" (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+						},
+						"sso_excluded_category": {
+							"type": "string",
+							"enum": [
+								"FOREIGN_GOVERNMENT_OR_INTERNATIONAL",
+								"POSTED_FROM_ABROAD",
+								"PRIVATE_SCHOOL_TEACHER",
+								"HOUSEHOLD_NO_BUSINESS",
+								"SEASONAL_AGRICULTURE",
+								"OTHER_EXCLUDED"
+							],
+							"title": "Outside the Social Security Act (s.4)",
+							"description": "SSA s.4 and the Royal Decree under it: employment the Act does not cover. https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+						},
+						"pregnant": {
+							"type": "boolean",
+							"default": false,
+							"title": "Pregnant",
+							"description": "Labour Protection Act B.E. 2541 s.39: no night, overtime or holiday work."
+						},
+						"security_deposit_held": {
+							"type": "boolean",
+							"default": false,
+							"title": "Security deposit held",
+							"description": "Labour Protection Act B.E. 2541 s.10: returned within 7 days of the exit."
+						},
+						"work_permit_expires_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Work permit expiry",
+							"description": "Royal Ordinance B.E. 2560 ss.8-9: renew before expiry."
+						},
+						"sso_continuing_insured": {
+							"type": "boolean",
+							"default": false,
+							"title": "Insured under SSA s.33 before 60 and still insured",
+							"description": "SSA s.33 para 2: an employee who was an insured person before reaching 60 and joins this employer without a break in insured employment stays insured after 60; true registers and charges them whatever their age at this contract’s start."
+						},
+						"name_title": {
+							"type": "string",
+							"enum": ["นาย", "นางสาว", "นาง"],
+							"title": "Name title",
+							"description": "The title on the SSO contribution file (prefix code 003 นาย, 004 นางสาว, 005 นาง; other titles need a code from the SSO) and the PND1 attachment. Unrecorded: from gender and marital status. https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/949575a913c647db4f68facd08402585.zip"
+						},
+						"given_name": {
+							"type": "string",
+							"title": "First name (as on the ID card)",
+							"description": "SSO FNAME (30) and RD FNAME; unrecorded: the profile name before its first space."
+						},
+						"family_name": {
+							"type": "string",
+							"title": "Surname (as on the ID card)",
+							"description": "SSO LNAME (35) and RD SNAME; unrecorded: the profile name after its first space."
+						},
+						"address_district": {
+							"type": "string",
+							"title": "District (amphoe / khet)",
+							"description": "RD central format AMPHUR, mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						},
+						"address_province": {
+							"type": "string",
+							"title": "Province",
+							"description": "RD central format PROVINCE, mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						},
+						"address_postcode": {
+							"type": "string",
+							"pattern": "^[0-9]{5}$",
+							"title": "Postcode",
+							"description": "RD central format POSTAL_CODE (5 digits), mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "TH entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts. entity.region names the minimum-wage area of the workplace, one of the keys of the PAYROLL rule set minimum_wage.by_region (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); entity.risk_class is the WCF business code the Social Security Office assigned (Table 1 of the Ministry of Labour notification of 21 February 2019, five digits such as 01111), which sets the base WCF rate.",
+			"properties": {
+				"tax_id": {
+					"type": "string",
+					"pattern": "^[0-9]{13}$",
+					"title": "Employer 13-digit taxpayer identification number (PND1 / PND1 Kor filer)"
+				},
+				"sso_employer_account_number": {
+					"type": "string",
+					"pattern": "^[0-9]{10}$",
+					"title": "Social Security employer account number",
+					"description": "Social Security Act B.E. 2533 (1990) s.34: the employer registers with the Social Security Office within 30 days of employing an insured person."
+				},
+				"sso_branch_number": {
+					"type": "string",
+					"pattern": "^[0-9]{6}$",
+					"title": "Social Security branch (establishment) number"
+				},
+				"wcf_rate_percent": {
+					"type": "number",
+					"minimum": 0.2,
+					"maximum": 1,
+					"title": "Experience-rated WCF rate the SSO notified (%)",
+					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.19: from the fifth year of contributions the rate is lowered or raised by the employer's loss ratio and notified by the SSO; recorded here it overrides the Table 1 rate of entity risk_class. https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+				},
+				"pvd_employer_percent": {
+					"type": "number",
+					"minimum": 2,
+					"maximum": 15,
+					"title": "Provident fund employer contribution rate under the fund rules (%)",
+					"description": "Provident Fund Act B.E. 2530 (1987) s.10: the employer contributes not less than the member's rate and not more than 15% of wages; a member rate above this figure governs."
+				},
+				"minimum_wage_400_business": {
+					"type": "boolean",
+					"default": false,
+					"title": "Hotel (category 2-4) or service establishment",
+					"description": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024): 400 baht a day applies nationwide to hotel businesses of categories 2, 3 and 4 under the hotel law and to service establishments under the Service Establishments Act B.E. 2509, whatever the province."
+				},
+				"first_employee_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Day the business first employed an employee",
+					"description": "Social Security Act s.34 and Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.44: the employer registers within 30 days of this day."
+				},
+				"minimum_wage_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Outside the minimum-wage notification",
+					"description": "Wage Committee Notification No. 13 explanatory note item 7 (repeated for No. 14): the minimum wage does not bind central, regional and local government, state enterprises under the state-enterprise labour relations law, employers whose work is not for economic profit, sea-cargo loading or unloading, home work, or agricultural work not employed all year round. https://www.mol.go.th/"
+				},
+				"files_online": {
+					"type": "boolean",
+					"default": false,
+					"title": "Files PND1 / PND1 Kor online",
+					"description": "Ministry of Finance e-filing extension: an online PND1 is due the 15th after month-end and an online PND1 Kor by 8 March, for returns due to 31 January 2027 (https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf, https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf)."
+				},
+				"business_closed_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Day the business ceased",
+					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.14 para 2: the wage statement is due within 30 days of this day."
+				},
+				"ewf_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Undertaking outside the Employee Welfare Fund",
+					"description": "Labour Protection Act B.E. 2541 s.130 para 2: the employer provides a provident fund, or termination and death welfare, meeting the Ministerial Regulation."
+				},
+				"wcf_instalments": {
+					"type": "boolean",
+					"default": false,
+					"title": "WCF contribution paid by instalments (SSO approval)",
+					"description": "Ministry of Labour notification of 21 February 2019 cl.16-18: a 25% deposit in January and four quarterly instalments."
+				},
+				"sdf_trained_employees": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "Employees trained in the year (Skill Development Fund)",
+					"description": "The year's employees trained under a course the registrar approved, tested to the national skill standard or certified for competence, counted once each (leavers included), as the Sor Tor 2 return reports them. Unrecorded is none trained."
+				},
+				"rd_branch_number": {
+					"type": "string",
+					"pattern": "^[0-9]{6}$",
+					"default": "000000",
+					"title": "Revenue Department branch number (000000 head office)",
+					"description": "RD central format for PND1 / PND1 Kor (BRANCH_NO): the VAT or SBT branch, 000000 for the head office. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_branch_type": {
+					"type": "string",
+					"enum": ["V", "S"],
+					"title": "Revenue Department branch type",
+					"description": "RD central format BRANCH_TYPE: V a VAT branch, S a specific-business-tax branch (V when both; unrecorded when neither). https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_large_taxpayer": {
+					"type": "boolean",
+					"default": false,
+					"title": "Large taxpayer (LTO)",
+					"description": "RD central format LTO flag. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_filing_reference": {
+					"type": "string",
+					"maxLength": 20,
+					"title": "RD e-filing registration reference (USER_ID)",
+					"description": "RD central format USER_ID: the registration reference for a file upload. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				}
+			}
+		},
+		"cloned_from_id": "fc4a2bdc-a8bf-56c4-ada0-2eaad013b28c"
+	}
+]

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
 	import { RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { readableTitle } from '../../../../lib/ui/format/display_formatters.js';
 
 	let { view }: { view: RecordView<'regulatory_task'> } = $props();
 	const record = $derived(view.mode === 'update' ? view.record : null);
@@ -10,7 +11,9 @@
 <RecordShell
 	of="regulatory_task"
 	mode={view.mode}
-	{...record == null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
+	{...record == null
+		? { values: view.mode === 'create' ? view.values : {} }
+		: { id: record.id, title: readableTitle(record.title) }}
 	sections={[
 		{
 			name: 'duty',

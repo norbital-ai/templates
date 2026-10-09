@@ -1,106 +1,31 @@
 /**
  * L-TPL-hr-payroll-032/033/036: effective-dated terms live on `employment_contract.facts.contract_terms`.
- * A successor closes the predecessor the day before; overlapping ranges are refused.
+ * A successor closes the predecessor the day before; overlapping ranges are refused. A term is opaque JSON shaped by
+ * the governing version's `employee_input_schema.properties.contract_terms.items`: every key it holds is kept.
  */
 import { addDays, contains, overlaps, PlainDate, type DatePeriod } from '@norbital-ai/std/date';
 import { Option, Schema } from 'effect';
-import { isJsonObject, moneyNumber, stableJson } from './foundation.js';
+import { isJsonObject, moneyNumber, stableJson, type JsonObject } from './foundation.js';
 
 const isString = Schema.is(Schema.String);
 
-export type ContractAllowance = {
+/** A stored term as written, with its range read. */
+export type ContractTerm = JsonObject & { readonly effective_range: DatePeriod };
+
+/** A term's keys as edited, without its range. */
+export type TermValues = { readonly [key: string]: Schema.Json };
+
+/** An allowance line as edited; `source` is the stored line it came from (its other keys are kept). */
+export type AllowanceDraft = {
 	readonly code: string;
-	readonly amount: { readonly value: number };
+	readonly amount: number;
+	readonly source?: Schema.Json;
 };
-
-export type ContractTerm = {
-	readonly effective_range: DatePeriod;
-	readonly base_salary: { readonly value: number; readonly currency: string };
-	readonly allowances: readonly ContractAllowance[];
-	readonly residency_status?: string;
-	readonly residency_since?: string;
-	readonly work_classification?: string;
-	readonly statutory_work_category?: string;
-	readonly employment_type?: string;
-	readonly pay_frequency?: string;
-	readonly grade?: string;
-	readonly job_title?: string;
-	readonly department?: string;
-	readonly payroll_group?: string;
-	readonly shift_pattern_id?: string;
-};
-
-export type TermDraft = {
-	readonly start: string;
-	readonly salary: number;
-	readonly currency: string;
-	readonly employment_type: string;
-	readonly residency_status: string;
-	/** When the residency status began; a status carried over from the replaced terms keeps its own date. */
-	readonly residency_since?: string;
-	readonly work_classification: string;
-	readonly statutory_work_category?: string;
-	readonly pay_frequency?: string;
-	readonly grade?: string;
-	readonly job_title?: string;
-	readonly department?: string;
-	readonly payroll_group?: string;
-	readonly shift_pattern_id?: string;
-	readonly allowances?: readonly { readonly code: string; readonly amount: number }[];
-};
-
-/** Optional string members, absent when unset — facts hold JSON, which has no `undefined`. */
-function jsonFields(fields: {
-	readonly [key: string]: string | undefined;
-}): Record<string, string> {
-	return Object.fromEntries(
-		Object.entries(fields).filter((entry): entry is [string, string] => entry[1] != null)
-	);
-}
 
 export function parseAmount(text: string): number | null {
 	const parsed = Schema.decodeUnknownOption(Schema.NumberFromString)(text.trim());
-	if (Option.isNone(parsed) || !(parsed.value > 0)) return null;
+	if (Option.isNone(parsed) || !(parsed.value >= 0)) return null;
 	return parsed.value;
-}
-
-function optionalText(value: string | undefined): string | undefined {
-	const trimmed = value?.trim();
-	return trimmed == null || trimmed === '' ? undefined : trimmed;
-}
-
-function termFromDraft(draft: TermDraft, to: string | null): ContractTerm | string {
-	if (!(draft.salary > 0)) return 'Enter a valid base salary.';
-	if (draft.start === '') return 'Choose the first day these terms govern.';
-	const currency = draft.currency.trim();
-	if (currency === '') return 'Choose the salary currency.';
-	const allowances: ContractAllowance[] = [];
-	for (const line of draft.allowances ?? []) {
-		const code = line.code.trim();
-		if (code === '' && !(line.amount > 0)) continue;
-		if (code === '') return 'Each allowance needs a catalogue code.';
-		if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
-		allowances.push({ code, amount: { value: line.amount } });
-	}
-	const residency_since = optionalText(draft.residency_since) ?? draft.start;
-	return {
-		effective_range: { from: PlainDate(draft.start), to: to == null ? null : PlainDate(to) },
-		base_salary: { value: draft.salary, currency },
-		allowances,
-		work_classification: draft.work_classification,
-		employment_type: draft.employment_type,
-		residency_status: draft.residency_status,
-		...jsonFields({
-			residency_since,
-			statutory_work_category: optionalText(draft.statutory_work_category),
-			pay_frequency: optionalText(draft.pay_frequency),
-			grade: optionalText(draft.grade),
-			job_title: optionalText(draft.job_title),
-			department: optionalText(draft.department),
-			payroll_group: optionalText(draft.payroll_group),
-			shift_pattern_id: optionalText(draft.shift_pattern_id)
-		})
-	};
 }
 
 function periodFromUnknown(value: unknown): DatePeriod | null {
@@ -111,71 +36,40 @@ function periodFromUnknown(value: unknown): DatePeriod | null {
 	return { from: PlainDate(value.from), to: to == null || to === '' ? null : PlainDate(to) };
 }
 
-function salaryFromUnknown(
-	value: unknown
+/** The base salary of a term, or null when it states none. */
+export function salaryOf(
+	term: JsonObject
 ): { readonly value: number; readonly currency: string } | null {
-	const amount = moneyNumber(value);
-	if (!isJsonObject(value) || amount == null || !(amount > 0)) return null;
-	return { value: amount, currency: isString(value.currency) ? value.currency : '' };
+	const value = moneyNumber(term.base_salary);
+	if (value == null) return null;
+	const held = isJsonObject(term.base_salary) ? term.base_salary.currency : undefined;
+	return { value, currency: isString(held) ? held : '' };
 }
 
-function allowancesFromUnknown(value: unknown): readonly ContractAllowance[] {
-	if (!Array.isArray(value)) return [];
-	const out: ContractAllowance[] = [];
-	for (const line of value) {
-		if (!isJsonObject(line) || !isString(line.code) || line.code === '') continue;
-		const amount = moneyNumber(line.amount) ?? 0;
-		if (!(amount > 0)) continue;
-		out.push({ code: line.code, amount: { value: amount } });
-	}
-	return out;
+/** A term's allowance lines as stored. */
+export function allowancesOf(term: JsonObject): readonly AllowanceDraft[] {
+	const held = term.allowances;
+	if (!Array.isArray(held)) return [];
+	return held.flatMap((line) =>
+		isJsonObject(line)
+			? [
+					{
+						code: isString(line.code) ? line.code : '',
+						amount: moneyNumber(line.amount) ?? 0,
+						source: line
+					}
+				]
+			: []
+	);
 }
 
-function termFromUnknown(value: unknown): ContractTerm | null {
-	if (!isJsonObject(value)) return null;
-	const effective_range = periodFromUnknown(value.effective_range);
-	const base_salary = salaryFromUnknown(value.base_salary);
-	if (effective_range == null || base_salary == null) return null;
-	const text = (key: string): string | undefined => {
-		const next = value[key];
-		return isString(next) && next !== '' ? next : undefined;
-	};
-	const residency_status = text('residency_status');
-	const residency_since = text('residency_since');
-	const work_classification = text('work_classification');
-	const statutory_work_category = text('statutory_work_category');
-	const employment_type = text('employment_type');
-	const pay_frequency = text('pay_frequency');
-	const grade = text('grade');
-	const job_title = text('job_title');
-	const department = text('department');
-	const payroll_group = text('payroll_group');
-	const shift_pattern_id = text('shift_pattern_id');
-	return {
-		effective_range,
-		base_salary,
-		allowances: allowancesFromUnknown(value.allowances),
-		...jsonFields({
-			residency_status,
-			residency_since,
-			work_classification,
-			statutory_work_category,
-			employment_type,
-			pay_frequency,
-			grade,
-			job_title,
-			department,
-			payroll_group,
-			shift_pattern_id
-		})
-	};
-}
-
+/** Every stored term that states a range; nothing else of it is read or dropped. */
 export function termsFromFacts(facts: unknown): readonly ContractTerm[] {
 	if (!isJsonObject(facts) || !Array.isArray(facts.contract_terms)) return [];
 	return facts.contract_terms.flatMap((row) => {
-		const term = termFromUnknown(row);
-		return term == null ? [] : [term];
+		if (!isJsonObject(row)) return [];
+		const effective_range = periodFromUnknown(row.effective_range);
+		return effective_range == null ? [] : [{ ...row, effective_range }];
 	});
 }
 
@@ -191,32 +85,65 @@ export function termInForceOn(
 
 export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | null {
 	for (const term of terms) {
-		for (const line of term.allowances) {
+		for (const line of allowancesOf(term)) {
 			if (line.code.trim() === '') return 'Each allowance needs a catalogue code.';
-			if (!(line.amount.value > 0)) return 'Each allowance needs a monthly amount.';
+			if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
 		}
 	}
 	const ordered = [...terms].toSorted((left, right) =>
 		left.effective_range.from.localeCompare(right.effective_range.from)
 	);
-	for (let i = 0; i < ordered.length; i++) {
-		const current = ordered[i];
-		if (current == null) continue;
-		for (let j = i + 1; j < ordered.length; j++) {
-			const other = ordered[j];
-			if (other == null) continue;
+	for (const [i, current] of ordered.entries())
+		for (const other of ordered.slice(i + 1))
 			if (overlaps(current.effective_range, other.effective_range))
 				return 'Employment terms cannot overlap.';
-		}
-	}
 	return null;
+}
+
+/** A term from its edited values: blank values are left out, allowance lines keep their stored keys. */
+function termFromDraft(
+	start: string,
+	values: TermValues,
+	allowances: readonly AllowanceDraft[]
+): ContractTerm | string {
+	if (start === '') return 'Choose the first day these terms govern.';
+	const salary = salaryOf(values);
+	if (salary == null || !(salary.value >= 0)) return 'Enter a valid base salary.';
+	if (salary.currency === '') return 'Choose the salary currency.';
+	const lines: Schema.Json[] = [];
+	for (const line of allowances) {
+		const code = line.code.trim();
+		if (code === '' && !(line.amount > 0)) continue;
+		if (code === '') return 'Each allowance needs a catalogue code.';
+		if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
+		const source = isJsonObject(line.source) ? line.source : {};
+		const amount = isJsonObject(source.amount) ? source.amount : {};
+		lines.push({ ...source, code, amount: { ...amount, value: line.amount } });
+	}
+	return {
+		...withoutBlanks(values),
+		allowances: lines,
+		effective_range: { from: PlainDate(start), to: null }
+	};
+}
+
+/** Drops `''` and `null` members (recursively in objects): an unset key is absent, never a blank that decides law. */
+function withoutBlanks(values: JsonObject): JsonObject {
+	const out: { [key: string]: Schema.Json } = {};
+	for (const [key, value] of Object.entries(values)) {
+		if (value === '' || value === null) continue;
+		out[key] = isJsonObject(value) ? withoutBlanks(value) : value;
+	}
+	return out;
 }
 
 export function hireContractSet(input: {
 	readonly employee_id: string;
 	readonly company_id: string;
 	readonly employee_number: string;
-	readonly draft: TermDraft;
+	readonly start: string;
+	readonly values: TermValues;
+	readonly allowances: readonly AllowanceDraft[];
 }):
 	| {
 			employee_id: string;
@@ -228,7 +155,7 @@ export function hireContractSet(input: {
 	| string {
 	if (input.employee_number.trim() === '') return 'Enter an employee number.';
 	if (input.company_id === '') return 'Choose the legal entity.';
-	const term = termFromDraft(input.draft, null);
+	const term = termFromDraft(input.start, input.values, input.allowances);
 	if (isString(term)) return term;
 	const overlap = refuseTermsOverlap([term]);
 	if (overlap != null) return overlap;
@@ -237,49 +164,48 @@ export function hireContractSet(input: {
 		company_id: input.company_id,
 		employee_number: input.employee_number.trim(),
 		effective_range: { from: term.effective_range.from, to: null },
-		facts: { contract_terms: [term] }
+		facts: { contract_terms: [{ ...term, id: crypto.randomUUID() }] }
 	};
 }
 
+/**
+ * The terms after a change from `start`: the term in force the day before closes then, every other term is kept as
+ * stored, and the successor is the edited values under a new id.
+ */
 export function changeTermsSet(
 	terms: readonly ContractTerm[],
-	draft: TermDraft
+	change: {
+		readonly start: string;
+		readonly values: TermValues;
+		readonly allowances: readonly AllowanceDraft[];
+	}
 ): { facts: { contract_terms: readonly ContractTerm[] } } | string {
-	if (draft.start === '') return 'Choose the first day these terms govern.';
-	if (terms.length === 0) return 'No terms are in force today, so there is nothing to change.';
-	const current = termInForceOn(terms, addDays(draft.start, -1));
+	if (change.start === '') return 'Choose the first day these terms govern.';
+	const current = termInForceOn(terms, addDays(change.start, -1));
 	if (current == null) return 'No terms are in force today, so there is nothing to change.';
-	const term = termFromDraft(
-		draft.residency_since == null &&
-			draft.residency_status === current.residency_status &&
-			current.residency_since != null
-			? { ...draft, residency_since: current.residency_since }
-			: draft,
-		null
-	);
+	const { id: _id, effective_range: _range, ...values } = change.values;
+	const term = termFromDraft(change.start, values, change.allowances);
 	if (isString(term)) return term;
-	const closeOn = addDays(term.effective_range.from, -1);
 	if (term.effective_range.from <= current.effective_range.from)
 		return 'New terms must start after the terms they replace.';
 	const closed: ContractTerm = {
 		...current,
-		effective_range: { from: current.effective_range.from, to: closeOn }
+		effective_range: {
+			from: current.effective_range.from,
+			to: addDays(term.effective_range.from, -1)
+		}
 	};
 	const next = [
-		...terms.filter(
-			(row) =>
-				row.effective_range.from !== current.effective_range.from ||
-				row.effective_range.to !== current.effective_range.to
-		),
+		...terms.filter((row) => row !== current),
 		closed,
-		term
+		{ ...term, id: crypto.randomUUID() }
 	];
 	const overlap = refuseTermsOverlap(next);
 	if (overlap != null) return overlap;
 	return { facts: { contract_terms: next } };
 }
 
-/** A term as it governs a day: everything but the range it is stored with. */
+/** A term as it governs a day: every key but the range it is stored with. */
 const termOnDay = (terms: readonly ContractTerm[], day: string): string => {
 	const term = termInForceOn(terms, day);
 	if (term == null) return '';

@@ -14,8 +14,6 @@
 			"LABOR_PENSION",
 			"OCC_INJURY",
 			"WAGE_ARREARS_FUND",
-			"INCOME_TAX",
-			"INCOME_TAX_NON_RESIDENT",
 			"WELFARE_FUND",
 			"LABOR_PENSION_RESERVE",
 			"NHI_PART_TIME"
@@ -43,10 +41,11 @@
 			"INCOME_TAX_NON_RESIDENT",
 			"WELFARE_FUND",
 			"LABOR_PENSION_RESERVE",
-			"NHI_PART_TIME"
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
 		],
 		"name": "全勤獎金 (full-attendance bonus)",
-		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
-		"amount": "allowance.amount / double(period.parts) * period.paid_days / period.days"
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. A sick-leave day taken for a miscarriage under three months without maternity leave (§9(1)(2)) is recorded with entry facts miscarriage_under_three_months and takes nothing. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"amount": "max(0.0, allowance.amount / double(period.parts) * period.paid_days / period.days - round(sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && r.code in [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\", \"SICK_LEAVE_UNPAID\", \"PERSONAL_LEAVE\"] && !(r.code in [\"SICK_LEAVE\", \"HOSPITALISED_SICK_LEAVE\"] && has(r.facts) && r.facts != null && has(r.facts.miscarriage_under_three_months) && r.facts.miscarriage_under_three_months == true)).map(r, r.days)) * allowance.amount / 30.0, 1.0, \"DOWN\"))"
 	}
 ]

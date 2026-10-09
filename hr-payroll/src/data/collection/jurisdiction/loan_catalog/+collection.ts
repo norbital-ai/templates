@@ -3,33 +3,23 @@ import { collection } from '@norbital-ai/bolt';
 const create_columns = [
 	'code',
 	'name',
+	'authority',
 	'destination',
 	'direction',
 	'bands',
-	'loan_type',
-	'minimum_repayment',
-	'approval_reference_required',
-	'order_recovery_rule',
-	'order_payment_when',
-	'order_authority',
 	'eligibility',
-	'evidence',
+	'amount_required',
 	'settings_id'
 ] as const;
 const update_columns = [
 	'code',
 	'name',
+	'authority',
 	'destination',
 	'direction',
 	'bands',
-	'loan_type',
-	'minimum_repayment',
-	'approval_reference_required',
-	'order_recovery_rule',
-	'order_payment_when',
-	'order_authority',
 	'eligibility',
-	'evidence'
+	'amount_required'
 ] as const;
 
 export default collection('loan_catalog', {

@@ -1,11 +1,11 @@
 [
 	{
-		"id": "a6bc290f-10d0-4010-a38b-50d508e9a241",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "f685b421-7ff8-5c2c-86b6-d740bb90664c",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"code": "LOAN_RECOVERY_AIR_TICKET",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Air ticket loan recovery",
 		"bands": [
 			{
@@ -15,12 +15,12 @@
 		]
 	},
 	{
-		"id": "1bff9f01-3e5e-49e4-af7f-86ad69bd3c11",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "e7da6167-1c2c-5052-997e-e2986512e699",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Hari Raya (festive) advance recovery",
 		"bands": [
 			{
@@ -30,36 +30,33 @@
 		]
 	},
 	{
-		"id": "ca20c758-9d06-46e0-ba2c-77f3ce50deb6",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "ba58eb73-cffe-5557-9cb0-ae728802edcd",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"code": "AIR_TICKET_DEDUCTION",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Air ticket deduction",
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "REQUIRED"
+		]
 	},
 	{
-		"id": "fada01b8-2f54-444a-aa51-c77e3f53c7f5",
-		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"id": "9f189884-d73b-54a5-9201-5bd54c49be39",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
 		"code": "APPROVED_HOUSING_LOAN",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Housing loan with Director General approval",
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"loan_type": "STAFF"
+		]
 	}
 ]

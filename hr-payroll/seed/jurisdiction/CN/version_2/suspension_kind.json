@@ -1,0 +1,42 @@
+[
+	{
+		"id": "61ebca3a-183c-48b1-af9b-9ba8a0ddde62",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "STOPPAGE_EMPLOYER",
+		"name": "停工停产 (stoppage for the employer's operational reasons)",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+		"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either."
+	},
+	{
+		"id": "3d3d14ab-2050-4345-a219-91d726df0bdf",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "FORCE_MAJEURE",
+		"name": "不可抗力停工 (natural disaster or accident)",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+		"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A disaster is a cause not the employee's: 第十二条 applies."
+	},
+	{
+		"id": "d760ffbc-1724-46a2-bb4b-df23e29b80aa",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "GOVERNMENT_ORDER",
+		"name": "政府措施停工 (shutdown ordered by a government measure)",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+		"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A government measure (e.g. the epidemic controls of 人社厅明电〔2020〕5号) is a cause not the employee's: 第十二条 applies."
+	},
+	{
+		"id": "ed783a2e-d767-41d0-9d9f-908f99da4e8d",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "EMPLOYEE_CAUSED",
+		"name": "劳动者原因停工 (stoppage caused by the employees)",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "0.0",
+		"authority": "劳动法 第五十条 and 工资支付暂行规定 第十二条 a contrario: wages are paid for labour provided; a stoppage the employees cause is outside 第十二条, unpaid and not attended. PRC law has no statutory strike pay. https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+	}
+]

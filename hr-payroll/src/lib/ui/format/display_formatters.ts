@@ -16,22 +16,95 @@ export type Translator = (
 	vars?: { readonly [name: string]: string | number }
 ) => string;
 
+// `negative`: a zero (a −0 total, an amount rounding to nothing) prints unsigned.
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,
-	maximumFractionDigits: 2
+	maximumFractionDigits: 2,
+	signDisplay: 'negative'
 });
 
-/** A `numeric()` column arrives as a string; render it without inventing precision. */
-export function formatNumeric(value: unknown): string {
+/** An amount of a currency at that currency's minor units (JPY and VND none, SGD two), as `Intl` knows them. */
+const inCurrency = (currency: string): Intl.NumberFormat => {
+	try {
+		const digits = new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency
+		}).resolvedOptions().maximumFractionDigits;
+		return new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: digits,
+			maximumFractionDigits: digits,
+			signDisplay: 'negative'
+		});
+	} catch {
+		return DECIMAL;
+	}
+};
+
+/**
+ * A `numeric()` column arrives as a string; render it without inventing precision: `minorUnits` (the version's
+ * `payroll.minor_units`) when given, else the currency's own digits (IDR and JPY none, SGD two), else two.
+ */
+export function formatNumeric(
+	value: unknown,
+	currency?: string | null,
+	minorUnits?: number | null
+): string {
 	if (value == null || value === '') return '—';
 	const parsed = decodeNumber(value);
-	return Number.isFinite(parsed) ? DECIMAL.format(parsed) : String(value);
+	if (!Number.isFinite(parsed)) return String(value);
+	if (minorUnits != null) return atDigits(minorUnits).format(parsed);
+	return (currency == null || currency === '' ? DECIMAL : inCurrency(currency)).format(parsed);
 }
+
+const atDigits = (digits: number): Intl.NumberFormat =>
+	new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits,
+		signDisplay: 'negative'
+	});
 
 const HOURS = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 0,
 	maximumFractionDigits: 2
 });
+
+/**
+ * A task title that is still its rule code (`REST_DAY_ROSTER`, where the lineage names its rows by code) as words:
+ * "Rest day roster". Short tokens and tokens with digits stay as written (EPF, CP22). A real title passes through.
+ */
+/** Short English words a code spells, lower-cased like the rest; every other short token reads as an acronym. */
+const WORDS = new Set([
+	'a',
+	'an',
+	'and',
+	'by',
+	'day',
+	'end',
+	'for',
+	'in',
+	'new',
+	'of',
+	'on',
+	'out',
+	'pay',
+	'tax',
+	'the',
+	'to'
+]);
+export function readableTitle(title: string): string {
+	if (!/^[A-Z0-9_]+$/.test(title) || !title.includes('_')) return title;
+	// ponytail: acronyms longer than three letters (SOCSO) read lower-case; a named seed row is the real fix
+	return title
+		.split('_')
+		.filter((word) => word !== '')
+		.map((word) =>
+			/\d/.test(word) || (word.length <= 3 && !WORDS.has(word.toLowerCase()))
+				? word
+				: word.toLowerCase()
+		)
+		.join(' ')
+		.replace(/^[a-z]/, (c) => c.toUpperCase());
+}
 
 /**
  * An integer-minutes column presented as hours.

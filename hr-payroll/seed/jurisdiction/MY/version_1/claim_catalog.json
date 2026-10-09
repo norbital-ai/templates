@@ -13,8 +13,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "REQUIRED"
+		]
 	},
 	{
 		"id": "1a78feee-fa9d-4b29-9951-5d678e4c6a1b",
@@ -30,13 +29,12 @@
 				"when": "",
 				"amount": "entry.amount",
 				"limit": {
-					"period": "CALENDAR_YEAR",
-					"on_exceed": "ALLOW",
-					"amount": "576.0"
+					"on_exceed": "BLOCK",
+					"amount": "max(0.0, 576.0 - earlier.calendar_year)"
 				}
 			}
 		],
-		"evidence": "REQUIRED"
+		"authority": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
 	},
 	{
 		"id": "cbdc579e-b5dc-4c4f-a5e4-b7630cd36370",
@@ -52,12 +50,11 @@
 				"when": "",
 				"amount": "entry.amount",
 				"limit": {
-					"period": "CALENDAR_YEAR",
-					"on_exceed": "ALLOW",
-					"amount": "576.0"
+					"on_exceed": "BLOCK",
+					"amount": "max(0.0, 576.0 - earlier.calendar_year)"
 				}
 			}
 		],
-		"evidence": "REQUIRED"
+		"authority": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
 	}
 ]

@@ -2,13 +2,13 @@ import { policy } from '@norbital-ai/bolt';
 import { MEMBER_LIMITS } from './grants.js';
 
 /**
- * The attendance-kiosk device: one app, punches for people, and enrolments that land PENDING for HR. `previous`
+ * The attendance-kiosk device: the attendance kiosk (opening it and running inside it), punches for people, and enrolments that land PENDING for HR. `previous`
  * keeps APPROVED out of kiosk reach: it may enrol NONE → APPROVED or refresh an APPROVED face, never undo one.
  */
 export default policy({
 	description:
-		'Attendance-kiosk device access: the kiosk app only, time entries for people, and kiosk enrollments that always land pending HR review.',
-	capabilities: { apps: ['kiosk'] },
+		'Attendance-kiosk device access: the attendance kiosk only, time entries for people, and kiosk enrollments that always land pending HR review.',
+	capabilities: { kiosks: ['attendance'] },
 	grants: {
 		sys_file: {
 			read: {
@@ -88,7 +88,7 @@ export default policy({
 			}
 		},
 		roster_entry: {
-			read: true,
+			read: { fields: ['id', 'employment_id', 'work_date', 'worked_intervals', 'approval_id'] },
 			create: { fields: ['employment_id', 'work_date', 'worked_intervals'] },
 			update: { fields: ['worked_intervals'] }
 		}

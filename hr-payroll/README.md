@@ -28,7 +28,10 @@ each one configures, and its gaps, is tracked in the [jurisdiction trackers](doc
 | Events                | Roster and attendance, leave, claims, one-time payments, loans |
 | Payroll               | Regular and off-cycle runs, payslips and exports               |
 | Settings              | Jurisdiction versions, catalogues, rules and behaviours        |
-| Kiosk                 | Attendance capture                                             |
+
+## Kiosk
+
+`attendance` (`/kiosk/attendance`): the chromeless attendance-capture device, opened by the Attendance Kiosk team.
 
 ## Automations
 

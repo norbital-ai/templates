@@ -1,0 +1,52 @@
+[
+	{
+		"id": "42caaa6f-4005-5f76-baa2-86934185c4bf",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Shutdown or stoppage the employer causes",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "民法 §487 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=487): the employer’s delay in accepting the work leaves the wage owed; the day is not an absence."
+	},
+	{
+		"id": "1eda7a88-6bd9-5fbc-ae07-433c689ca05b",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"code": "GOVERNMENT_STOP_WORK",
+		"name": "Stop-work ordered by the labour inspection authority",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "職業安全衛生法 §36(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=36): 勞工於停工期間應由雇主照給工資."
+	},
+	{
+		"id": "66ce4d19-2fd7-504c-bd4c-0a84ff00c087",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"code": "NATURAL_DISASTER",
+		"name": "Work stopped by a typhoon or other natural disaster",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "天然災害發生事業單位勞工出勤管理及工資給付要點 (https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468): not an absence and the attendance bonus untouched; the day’s wage may be withheld (the suspension’s facts.withhold_wage)."
+	},
+	{
+		"id": "fa6aa9ef-8ea5-5289-8ff3-56066f1f239b",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"code": "STRIKE",
+		"name": "Lawful strike",
+		"counts_as_attended": "false",
+		"scheduled": "true",
+		"pay": "",
+		"authority": "勞資爭議處理法 §54 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020007&flno=54); 民法 §482: no work, no wage for the strike days; not attended."
+	},
+	{
+		"id": "637e1433-5d58-5ffd-a3b2-a78937ff4676",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"code": "REDUCED_WORK_AGREEMENT",
+		"name": "減班休息 agreed in writing to reduce hours",
+		"counts_as_attended": "false",
+		"scheduled": "false",
+		"pay": "",
+		"authority": "因應景氣影響勞雇雙方協商減少工時應行注意事項 (https://www.mol.gov.tw/1607/1632/1640/12438/post): days off unpaid, a monthly-paid full-time worker’s month never below the minimum wage; insurance and pension kept."
+	}
+]

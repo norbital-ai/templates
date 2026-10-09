@@ -9,6 +9,7 @@ const columns = [
 	'quantity',
 	'rate',
 	'prorated',
+	'denominator',
 	'destination',
 	'direction',
 	'counts_toward'

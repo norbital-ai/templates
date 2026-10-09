@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // `bolt test` brings svelte, `$bolt` and the kit's timeouts. Kernel suites stay `test:node` (`tests/*.test.ts`).
-// Human's `exports` list `node` first and no `browser`: the sweep's kiosk page takes the browser ESM build by path,
+// Human's `exports` list `node` first and no `browser`: the sweep's face-enrolment page takes the browser ESM build by path,
 // not the node one (which needs tfjs-node).
 const human = fileURLToPath(
 	new URL('node_modules/@vladmandic/human/dist/human.esm.js', import.meta.url)

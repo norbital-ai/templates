@@ -2,7 +2,7 @@ import { model } from '@norbital-ai/bolt';
 
 export default model({
 	description:
-		'The ad hoc catalogue of one jurisdiction settings version: the classes of one-off pay — bonus, back pay, ex-gratia, festival and separation payments, claw-backs — with the bands that price and cap them, the schemes each counts toward, the evidence a request demands and who raises one. Sealed with its version; the run cites the version it priced against.',
+		'The ad hoc catalogue of one jurisdiction settings version: the classes of one-off pay — bonus, back pay, ex-gratia, festival and separation payments, claw-backs — with the bands that price and cap them and the schemes each counts toward. Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:hand-coins',
 	label: 'name',
 	fields: {
@@ -34,25 +34,24 @@ export default model({
 					kind: 'object',
 					fields: {
 						when: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						amount: {
-							kind: 'text'
+							kind: 'text',
+							format: 'cel'
 						},
 						limit: {
 							kind: 'object',
 							optional: true,
 							fields: {
-								period: {
-									kind: 'enum',
-									values: ['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']
-								},
 								on_exceed: {
 									kind: 'enum',
 									values: ['BLOCK', 'ALLOW']
 								},
 								amount: {
-									kind: 'text'
+									kind: 'text',
+									format: 'cel'
 								}
 							}
 						}
@@ -62,16 +61,18 @@ export default model({
 		},
 		eligibility: {
 			kind: 'text',
+			format: 'cel',
 			default: ''
 		},
 		qualifies_when: {
 			kind: 'text',
+			format: 'cel',
 			optional: true
 		},
-		evidence: {
-			kind: 'enum',
-			values: ['NONE', 'OPTIONAL', 'REQUIRED'],
-			default: 'NONE'
+		amount_required: {
+			kind: 'bool',
+			default: true,
+			help: 'An entry must carry an amount; a class priced by its bands alone (piece units) need not.'
 		},
 		counts_toward: {
 			kind: 'json',
@@ -82,34 +83,15 @@ export default model({
 				}
 			}
 		},
-		raised_by: {
-			kind: 'enum',
-			values: ['MANUAL', 'SEPARATION', 'SCHEDULED'],
-			default: 'MANUAL'
+		raise_on_exit: {
+			kind: 'bool',
+			default: false,
+			help: 'The final slip raises this class itself when its eligibility holds on the exit (termination benefit, severance, notice in lieu), priced by its bands on an empty entry of the exit day; an entry of the class HR makes instead wins. A moved or undone exit takes it back.'
 		},
-		schedule: {
-			kind: 'json',
-			shape: {
-				kind: 'object',
-				fields: {
-					due: {
-						kind: 'text'
-					},
-					raise_days_before: {
-						kind: 'int',
-						min: 0,
-						optional: true
-					},
-					population: {
-						kind: 'text',
-						optional: true
-					},
-					duty: {
-						kind: 'text'
-					}
-				}
-			},
-			optional: true
+		payable_after_exit: {
+			kind: 'bool',
+			default: false,
+			help: 'Entries of this class may fall after the employment ends (non-compete pay, instalments of a separation payment) and are paid on a payslip of their own period.'
 		}
 	}
 });

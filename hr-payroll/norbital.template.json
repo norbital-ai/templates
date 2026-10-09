@@ -6,8 +6,8 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 25,
-		"apps": 7,
+		"collections": 28,
+		"apps": 6,
 		"automations": 5
 	},
 	"tags": ["HR", "Finance", "Approvals"],
@@ -25,7 +25,8 @@
 				"claim_catalog",
 				"adhoc_catalog",
 				"allowance_catalog",
-				"work_catalog"
+				"work_catalog",
+				"suspension_kind"
 			],
 			["employment_profile", "holiday"],
 			["employment_contract"],

@@ -1,0 +1,62 @@
+[
+	{
+		"id": "97504a42-cf1e-55b4-aad1-ea323a28d720",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "EMPLOYER_FAULT",
+		"name": "Stoppage by the employer’s fault — full contract wage",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) : 0.0",
+		"authority": "Labour Code art.99(1); counted service, Decree 145/2020 art.65(9) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	},
+	{
+		"id": "95bcac07-a7ad-5dcf-923f-36d052cc4dc7",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WORKER_FAULT",
+		"name": "Stoppage by the worker’s own fault — unpaid, not counted service",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "0.0",
+		"authority": "Labour Code art.99(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	},
+	{
+		"id": "7af2966d-6da1-5bd4-b636-91b9212965c3",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "COWORKER_FAULT",
+		"name": "Stoppage by another worker’s fault — agreed wage, at least the regional minimum",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
+		"authority": "Labour Code art.99(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	},
+	{
+		"id": "91deb1e0-0ee4-5978-853d-9ebfe86b968a",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OBJECTIVE_CAUSE",
+		"name": "Utility failure, natural disaster, fire, epidemic, enemy action, State-ordered relocation or economic reasons — agreed wage, at least the regional minimum for the first 14 working days",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? (double(suspension.working_days_elapsed) <= 14.0 ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0) : 0.0",
+		"authority": "Labour Code art.99(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	},
+	{
+		"id": "ad489c3e-ca39-5318-a786-2e4ceee0bc2d",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "STRIKE_PARTICIPANT",
+		"name": "On strike — unpaid unless the parties agree otherwise",
+		"counts_as_attended": "false",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : 0.0) / 100.0 : 0.0",
+		"authority": "Labour Code art.207(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	},
+	{
+		"id": "c1d0e22e-7b8f-5d10-abbb-13fe05a38987",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "STRIKE_NON_PARTICIPANT",
+		"name": "Stopped by a strike without taking part — paid as art.99(2), at least the regional minimum",
+		"counts_as_attended": "true",
+		"scheduled": "",
+		"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
+		"authority": "Labour Code art.207(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+	}
+]

@@ -13,9 +13,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "f54286f3-9b7c-4258-a02c-43f252b7626e",
@@ -32,14 +30,11 @@
 				"when": "",
 				"amount": "entry.amount",
 				"limit": {
-					"period": "CALENDAR_YEAR",
 					"on_exceed": "ALLOW",
 					"amount": "2700000.0"
 				}
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "d326b479-ae16-4f6c-ba8f-e13d66ae2126",
@@ -55,9 +50,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "507dbd44-3e80-456c-8cfb-349f9e106677",
@@ -73,9 +66,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "aba2f4a5-c474-42f1-afe7-87848ec2ceac",
@@ -91,9 +82,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "cf721e46-4c65-4f86-8037-ac975e1358ec",
@@ -110,8 +99,8 @@
 				"amount": "entry.amount"
 			}
 		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		"qualifies_when": "has(entry.facts.deduction_kind) && entry.facts.deduction_kind in [\"FINE\", \"DAMAGES\", \"WAGE_ADVANCE\", \"RENT\", \"DEBT\", \"OVERPAYMENT\", \"THIRD_PARTY\"] && (entry.facts.deduction_kind == \"OVERPAYMENT\" || (has(entry.facts.basis_reference) && entry.facts.basis_reference != \"\"))",
+		"authority": "PP 36/2021 arts.58, 63–64 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): a wage deduction names its kind (`entry.facts.deduction_kind`): fines, damages and wage advances only as the employment agreement, company regulation or collective agreement provides; rent of company property and debts only on a written agreement; payments to a third party only on the worker’s written power of attorney — each by its reference (`entry.facts.basis_reference`); an overpaid wage needs no consent (art.63(4)). Art.65 caps the total at 50% (WAGE_DEDUCTION_CEILING)."
 	},
 	{
 		"id": "e4286d03-8917-4003-bb8c-9c75ac61e201",
@@ -127,9 +116,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "7a0678a8-c8c7-4a64-bb3e-efa71ff1c1bb",
@@ -145,9 +132,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "c1c29931-0148-47f0-9b10-884469777322",
@@ -163,9 +148,7 @@
 				"when": "",
 				"amount": "entry.amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "MANUAL"
+		]
 	},
 	{
 		"id": "7a9279fd-7afa-5917-ad54-bbdf9e630950",
@@ -176,15 +159,13 @@
 		"eligibility": "employment.service_months >= 1.0 && has(entry.facts.holiday_date) && (employment.exit_date == \"\" || employment.exit_date >= entry.facts.holiday_date || (terms.employment_type == \"PERMANENT\" && employment.exit_date >= add_days(entry.facts.holiday_date, -30)))",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"name": "THR (religious holiday allowance)",
-		"authority": "Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends in the thirty days before the religious holiday is owed THR; art.7(3): a PKWT that ends by its term is not. Off-boarding raises the row for an exit from 18 February to 12 March 2026 (Idulfitri 20 March, SKB 3 Menteri 2026; art.5(4) pays by 13 March, so a later leaver was paid in the run). Permenaker 6/2016 art.7: a PKWTT employee whose employment ends within thirty days before the religious holiday keeps the THR; Idulfitri 1447 H is 21 March 2026 (SKB 3 Menteri 2026, the published holiday rows), so the thirty days run from 19 February and the THR is due by 14 March (art.5(4), seven days before). the version in force in December 2025 measures a Christian or Catholic leaver against Christmas 2025 (25 December 2025; a PKWTT leaver from 25 November), not Christmas 2026. art.3(3)–(4): for a worker paid by the day (or hour) one month’s wage is the average wage received each month over the last twelve months before the holiday, or over the months worked where fewer — `employment.earned_monthly_average(12)` over the earlier payslips (basic, standing allowances, overtime, less unpaid days), a part first month counted as its share; a month of service no payslip settles is refused. the window is no longer written as dates of one year. A departure is judged against the declared departure input `thr_holiday_date` — the employee’s own religious holiday (art.1(2)) on the SKB date of its year, the first on or after the thirtieth day before the last day — so a 2027 or later leaver is measured against that year’s holiday: employed on it (the last day on or after it) is owed the THR, and a PKWTT whose last day falls within the thirty days (720 hours) before it keeps it (art.7(1)). Permenaker 6/2016 art.5(1): THR is given once a year, on the worker’s own religious holiday; SE Menaker M/3/HK.04.00/III/2026 item 7 (2 March 2026): it is paid in full and may not be paid in instalments. The band’s own amount is its calendar-year ceiling, so a second THR request in the year — an instalment or a duplicate — is refused rather than paid again. art.5(2) (signed PDF, jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf): where the same religious holiday falls more than once in one year, THR is given for each occurrence, so the calendar-year ceiling is one THR for each published holiday of the year tagged with the worker’s religion (`entry.religious_holidays`, `jurisdiction_holidays.religion`), and never less than one (art.5(1)).",
+		"authority": "Permenaker 6/2016 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf) art.2(1): a worker of one month’s continuous service or more is owed THR; art.3(1): one month’s wage (basic plus fixed allowances) at 12 months’ service, pro rata (service ÷ 12) below it; art.3(3): for a worker paid by the day or by output the month’s wage is the average received each month over the last 12 months, or over the months worked when fewer (`entry.facts.average_monthly_wage_12m`; without it the entered amount stands); art.7(1): a PKWTT worker whose employment ends within 30 days before the religious holiday keeps the THR; art.7(3): a PKWT that ends before the holiday does not. `entry.facts.holiday_date` is the holiday (Idul Fitri 1447 H: 21 March 2026, SKB 1497/2/5 of 2025); art.5(4): paid at the latest 7 days before it (LATE_THR_FINE after).",
 		"bands": [
 			{
 				"when": "",
-				"amount": "terms.employment_type == \"DAILY\" ? entry.amount : round(terms.monthly_wage * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")"
+				"amount": "(terms.employment_type == \"DAILY\" || terms.statutory_work_category == \"PIECE_RATE\") ? (has(entry.facts.average_monthly_wage_12m) ? round(double(entry.facts.average_monthly_wage_12m) * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\") : entry.amount) : round(terms.monthly_wage * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "b342b7bb-0184-5ac9-9ca4-0ce5b4feeb65",
@@ -195,15 +176,13 @@
 		"eligibility": "employment.service_months >= 1.0",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"name": "THR (religious holiday, in service)",
-		"authority": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri for ISLAM, Natal for CHRISTIAN and CATHOLIC, Nyepi for HINDU, Waisak for BUDDHIST, Imlek for CONFUCIAN — `jurisdiction_holidays.religion`); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday. Raised by its schedule three weeks ahead of that day for everyone in service; a leaver in the thirty days before the holiday is settled by THR (SEPARATION, art.7). A worker with no recorded religion is owed nothing this class can date.",
+		"authority": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri, Natal / Kelahiran Yesus Kristus, Nyepi, Waisak, Imlek); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday (THR_PAYMENT duty). art.3(1): one month’s wage at 12 months’ service, pro rata below; art.3(3): the 12-month average for a daily or output-paid worker (`entry.facts.average_monthly_wage_12m`).",
 		"bands": [
 			{
 				"when": "",
-				"amount": "terms.employment_type == \"DAILY\" ? entry.amount : round(terms.monthly_wage * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")"
+				"amount": "(terms.employment_type == \"DAILY\" || terms.statutory_work_category == \"PIECE_RATE\") ? (has(entry.facts.average_monthly_wage_12m) ? round(double(entry.facts.average_monthly_wage_12m) * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\") : entry.amount) : round(terms.monthly_wage * min(employment.service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SCHEDULED"
+		]
 	},
 	{
 		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",
@@ -218,11 +197,9 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pesangon_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 12 ? 1.0 : employment.service_months < 24 ? 2.0 : employment.service_months < 36 ? 3.0 : employment.service_months < 48 ? 4.0 : employment.service_months < 60 ? 5.0 : employment.service_months < 72 ? 6.0 : employment.service_months < 84 ? 7.0 : employment.service_months < 96 ? 8.0 : 9.0) * (employment.exit_facts.termination_cause in [\"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"DEATH\"] ? 2.0 : employment.exit_facts.termination_cause == \"RETIREMENT\" ? 1.75 : employment.exit_facts.termination_cause == \"FORCE_MAJEURE_NO_CLOSURE\" ? 0.75 : employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_NO_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\"] ? 1.0 : 0.5), 1, 'HALF_UP'))"
+				"amount": "(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pesangon_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? max(employment.exit_facts.output_average_12m, (((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) ? rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] : rules.minimum_wage.by_region[company.region])) : terms.monthly_wage) * (employment.service_months < 12 ? 1.0 : employment.service_months < 24 ? 2.0 : employment.service_months < 36 ? 3.0 : employment.service_months < 48 ? 4.0 : employment.service_months < 60 ? 5.0 : employment.service_months < 72 ? 6.0 : employment.service_months < 84 ? 7.0 : employment.service_months < 96 ? 8.0 : 9.0) * (employment.exit_facts.termination_cause in [\"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"DEATH\"] ? 2.0 : employment.exit_facts.termination_cause == \"RETIREMENT\" ? 1.75 : employment.exit_facts.termination_cause == \"FORCE_MAJEURE_NO_CLOSURE\" ? 0.75 : employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_NO_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\"] ? 1.0 : 0.5), 1, 'HALF_UP'))"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "0497b4dd-be21-52c8-b1f2-87a7df6b3275",
@@ -237,11 +214,9 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_upmk_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 36 ? 0.0 : employment.service_months < 72 ? 2.0 : employment.service_months < 108 ? 3.0 : employment.service_months < 144 ? 4.0 : employment.service_months < 180 ? 5.0 : employment.service_months < 216 ? 6.0 : employment.service_months < 252 ? 7.0 : employment.service_months < 288 ? 8.0 : 10.0), 1, 'HALF_UP'))"
+				"amount": "(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_upmk_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? max(employment.exit_facts.output_average_12m, (((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) ? rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] : rules.minimum_wage.by_region[company.region])) : terms.monthly_wage) * (employment.service_months < 36 ? 0.0 : employment.service_months < 72 ? 2.0 : employment.service_months < 108 ? 3.0 : employment.service_months < 144 ? 4.0 : employment.service_months < 180 ? 5.0 : employment.service_months < 216 ? 6.0 : employment.service_months < 252 ? 7.0 : employment.service_months < 288 ? 8.0 : 10.0), 1, 'HALF_UP'))"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "c746e6e3-c341-56aa-9004-1ee481f71f07",
@@ -249,18 +224,16 @@
 		"code": "PKWT_COMPENSATION",
 		"destination": "PAY",
 		"direction": "ADD",
-		"eligibility": "terms.employment_type == \"CONTRACT\" && terms.residency_status == \"CITIZEN\" && employment.service_months >= 1.0",
+		"eligibility": "terms.employment_type == \"CONTRACT\" && !(has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && employee.nationality != \"ID\") && employment.service_months >= 1.0",
 		"counts_toward": ["PPH21_FINAL_SEVERANCE", "PPH26"],
 		"name": "Uang kompensasi PKWT (fixed-term compensation)",
-		"authority": "PP 35/2021 arts.15–17: a non-foreign fixed-term worker with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010.",
+		"authority": "PP 35/2021 arts.15–17: a fixed-term worker who is not a foreign national (art.15(5): “tidak berlaku bagi tenaga kerja asing”, read on `employee.nationality`, not on tax residency) with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010. Art.15(4): when a PKWT is extended the compensation for the period before the extension is paid when that period ends (PKWT_TERM_END_COMPENSATION duty), and the extension’s when it ends: the band prices the months of the term in force (`terms.effective_from` to the exit or the term’s end), one month’s wage per 12 (art.16(1)): “masa kerja/12 × 1 (satu) bulan Upah”, the service counted in completed calendar months and the part month at ÷30 a calendar day (as PKWT_EARLY_TERMINATION), so a term ending part-way through a month is paid for those days.",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pkwt_compensation_amount : terms.monthly_wage * employment.service_months / 12.0, 1, 'HALF_UP')"
+				"amount": "round(employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pkwt_compensation_amount : terms.monthly_wage * (double(calendar_completed_months((terms.effective_from != \"\" ? terms.effective_from : employment.start_date), add_days(employment.exit_date != \"\" ? employment.exit_date : (terms.effective_to != \"\" ? terms.effective_to : entry.occurred_on), 1))) + double(calendar_distance_days(add_months((terms.effective_from != \"\" ? terms.effective_from : employment.start_date), calendar_completed_months((terms.effective_from != \"\" ? terms.effective_from : employment.start_date), add_days(employment.exit_date != \"\" ? employment.exit_date : (terms.effective_to != \"\" ? terms.effective_to : entry.occurred_on), 1))), add_days(employment.exit_date != \"\" ? employment.exit_date : (terms.effective_to != \"\" ? terms.effective_to : entry.occurred_on), 1))) / 30.0) / 12.0, 1, 'HALF_UP')"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "3cced122-ec0a-40c2-b457-9c3fd388832e",
@@ -277,9 +250,7 @@
 				"when": "",
 				"amount": "employment.exit_facts.separation_pay_amount"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "83b4c4f2-52f0-4598-a64b-07f0f4ecf27e",
@@ -296,27 +267,200 @@
 				"when": "",
 				"amount": "round(employment.exit_facts.employer_funded_pension_benefit < ((employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\"] ? (employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pesangon_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 12 ? 1.0 : employment.service_months < 24 ? 2.0 : employment.service_months < 36 ? 3.0 : employment.service_months < 48 ? 4.0 : employment.service_months < 60 ? 5.0 : employment.service_months < 72 ? 6.0 : employment.service_months < 84 ? 7.0 : employment.service_months < 96 ? 8.0 : 9.0) * (employment.exit_facts.termination_cause in [\"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"DEATH\"] ? 2.0 : employment.exit_facts.termination_cause == \"RETIREMENT\" ? 1.75 : employment.exit_facts.termination_cause == \"FORCE_MAJEURE_NO_CLOSURE\" ? 0.75 : employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_NO_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\"] ? 1.0 : 0.5), 1, 'HALF_UP')) : 0.0) + (employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\", \"DETENTION_NO_LOSS\"] && employment.service_months >= 36 ? (employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_upmk_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 36 ? 0.0 : employment.service_months < 72 ? 2.0 : employment.service_months < 108 ? 3.0 : employment.service_months < 144 ? 4.0 : employment.service_months < 180 ? 5.0 : employment.service_months < 216 ? 6.0 : employment.service_months < 252 ? 7.0 : employment.service_months < 288 ? 8.0 : 10.0), 1, 'HALF_UP')) : 0.0) + (employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"] ? employment.exit_facts.separation_pay_amount : 0.0)) ? employment.exit_facts.employer_funded_pension_benefit : ((employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\"] ? (employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_pesangon_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 12 ? 1.0 : employment.service_months < 24 ? 2.0 : employment.service_months < 36 ? 3.0 : employment.service_months < 48 ? 4.0 : employment.service_months < 60 ? 5.0 : employment.service_months < 72 ? 6.0 : employment.service_months < 84 ? 7.0 : employment.service_months < 96 ? 8.0 : 9.0) * (employment.exit_facts.termination_cause in [\"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"DEATH\"] ? 2.0 : employment.exit_facts.termination_cause == \"RETIREMENT\" ? 1.75 : employment.exit_facts.termination_cause == \"FORCE_MAJEURE_NO_CLOSURE\" ? 0.75 : employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_NO_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\"] ? 1.0 : 0.5), 1, 'HALF_UP')) : 0.0) + (employment.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"ACQUISITION_TERMS_CHANGE_REJECTED\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DEATH\", \"DETENTION_NO_LOSS\"] && employment.service_months >= 36 ? (employment.exit_facts.micro_small_enterprise ? employment.exit_facts.agreed_upmk_amount : round((employment.exit_facts.separation_wage_basis == \"DAILY\" ? employment.exit_facts.separation_daily_wage * 30.0 : employment.exit_facts.separation_wage_basis == \"OUTPUT\" ? (employment.exit_facts.output_average_12m < rules.minimum_wage.by_region[company.region] ? rules.minimum_wage.by_region[company.region] : employment.exit_facts.output_average_12m) : terms.monthly_wage) * (employment.service_months < 36 ? 0.0 : employment.service_months < 72 ? 2.0 : employment.service_months < 108 ? 3.0 : employment.service_months < 144 ? 4.0 : employment.service_months < 180 ? 5.0 : employment.service_months < 216 ? 6.0 : employment.service_months < 252 ? 7.0 : employment.service_months < 288 ? 8.0 : 10.0), 1, 'HALF_UP')) : 0.0) + (employment.exit_facts.termination_cause in [\"EMPLOYEE_REQUEST_REJECTED\", \"VOLUNTARY_RESIGNATION\", \"UNEXCUSED_ABSENCE\", \"URGENT_VIOLATION\", \"DETENTION_CAUSED_LOSS\"] ? employment.exit_facts.separation_pay_amount : 0.0)), 1, 'HALF_UP')"
 			}
-		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		]
 	},
 	{
 		"id": "ef265741-5ceb-581c-850b-32d37b306bc9",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "UPH_TRAVEL_HOME",
 		"name": "Uang penggantian hak — travel home",
-		"authority": "PP 35/2021 art.40(4)(b): on termination the worker's and family's travel back to where the worker was hired is paid (customer input: the cost entered). PP 68/2009 art.1 angka 4: uang penggantian hak is part of the final severance base.",
+		"authority": "PP 35/2021 art.40(4)(b): on termination the cost or fare home for the worker and family to the place where the worker was accepted for work is paid (customer input: the cost entered; `entry.facts.hired_at_other_place` — the worker was taken on elsewhere). PP 68/2009 art.1 angka 4: uang penggantian hak is part of the final severance base.",
 		"destination": "PAY",
 		"direction": "ADD",
-		"eligibility": "employment.exit_date != \"\"",
+		"eligibility": "employment.exit_date != \"\" && has(entry.facts.hired_at_other_place) && entry.facts.hired_at_other_place == true",
 		"counts_toward": ["PPH21_FINAL_SEVERANCE", "PPH26"],
 		"bands": [
 			{
 				"when": "",
 				"amount": "entry.amount"
 			}
+		]
+	},
+	{
+		"id": "a492d03a-531f-5d9c-9fa6-e606c2aeabbd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "LATE_WAGE_FINE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"name": "Late wage fine (to the worker)",
+		"authority": "PP 36/2021 art.61(1)–(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): an employer paying the wage late owes a fine counted from the day it was due (`entry.facts.wage_due_on`, `wage_paid_on`, `wage_due_amount`): from the 4th to the 8th day 5% of the wage due for each day late; after the 8th day 1% more for each further day, the month’s fine at most 50%; after a month the highest state-bank interest rate on top (`entry.facts.late_interest_amount`, computed by the employer at that rate). The wage itself stays due (art.61(2)); the fine is income received in connection with the work (PPh 21 additional). Days are counted from the due day as day 1 (“terhitung tanggal seharusnya Upah dibayarkan”, art.61(1)(a)): a wage paid three days after its due day is paid on the 4th day and carries 5%. The record takes this reading, the worker’s, of the counting the regulation leaves open.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(double(entry.facts.wage_due_amount) * min(0.5, 0.05 * max(min((calendar_distance_days(entry.facts.wage_due_on, entry.facts.wage_paid_on) + 1.0), 8.0) - 3.0, 0.0) + 0.01 * max((calendar_distance_days(entry.facts.wage_due_on, entry.facts.wage_paid_on) + 1.0) - 8.0, 0.0)) + (has(entry.facts.late_interest_amount) ? double(entry.facts.late_interest_amount) : 0.0), 1.0, \"HALF_UP\")"
+			}
 		],
-		"evidence": "NONE",
-		"raised_by": "SEPARATION"
+		"qualifies_when": "has(entry.facts.wage_due_on) && has(entry.facts.wage_paid_on) && has(entry.facts.wage_due_amount)"
+	},
+	{
+		"id": "fd382665-149b-5140-ba62-67eaeba86699",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "LATE_THR_FINE",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Late THR fine (5%, workers’ welfare)",
+		"authority": "PP 36/2021 art.62(1)–(2); Permenaker 6/2016 art.10(1)–(2): an employer paying THR late owes a fine of 5% of the THR due (`entry.facts.thr_due_amount`), managed and used for the workers’ welfare — an employer cost, not the worker’s pay; the THR stays due.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(0.05 * double(entry.facts.thr_due_amount), 1.0, \"HALF_UP\")"
+			}
+		],
+		"qualifies_when": "has(entry.facts.thr_due_amount)"
+	},
+	{
+		"id": "b6420225-79fe-53d5-ac60-7781f7a6f23c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "DETENTION_FAMILY_AID",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employee.dependents_count >= 1.0",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"name": "Aid to a detained worker’s family",
+		"authority": "PP 35/2021 art.53(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (`employee.dependents_count`) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(terms.monthly_wage * [0.25, 0.35, 0.45, 0.5][int(min(employee.dependents_count, 4.0)) - 1], 1.0, \"HALF_UP\")"
+			}
+		],
+		"qualifies_when": "size(earlier.rows.filter(r, r.activity != \"REVERSAL\")) < 6"
+	},
+	{
+		"id": "db983afc-ab40-5ba1-87bb-cb37ef4ef822",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PENSION_LUMPSUM",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PPH21_FINAL_PENSION", "PPH26"],
+		"name": "Lump-sum pension, THT or JHT paid by the employer",
+		"authority": "PP 68/2009 art.5: the pension benefit, old-age savings or JHT paid at once carries the final PPh 21 of art.5 (PPH21_FINAL_PENSION), outside the TER base.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "1e554755-1a23-511b-b3c9-c8027a6f9a60",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "NATURA",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"name": "Benefit in kind (natura / kenikmatan)",
+		"authority": "UU 36/2008 art.4(1)(a) as amended by UU 7/2021; PMK 66/2023 (official text, jdih.kemenkeu.go.id) arts.3–8 and Lampiran A: a benefit in kind is taxable income of the employee at its value (`entry.amount`), except (`entry.facts.natura_kind`): food and drink at the workplace for all employees (art.5(1)(a)); meal coupons for field staff up to Rp2,000,000 a month, or the workplace meal value if higher (art.5(4)); facilities required for safety at work — uniforms, safety equipment, shuttle transport, crew lodging (art.6); facilities in a DJP-designated remote area (art.8); religious-holiday parcels for all employees (Lampiran A.1); other gifts up to Rp3,000,000 a year (A.2); work equipment such as laptops and phone credit (A.3); medical care for work accidents (A.4); sports facilities up to Rp1,500,000 a year (A.5); communal housing (A.6); individual housing up to Rp2,000,000 a month (A.7); a company car for an employee without equity and with average gross up to Rp100,000,000 a month (A.8, `entry.facts.car_user_qualifies`); employer pension contributions to an OJK-approved fund (A.9); worship facilities (A.10). The excess over a ceiling is taxable (art.7(4)). Not paid in cash: the line is DISPLAY and reaches only the PPh 21 base.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.natura_kind) ? (entry.facts.natura_kind in [\"WORKPLACE_MEALS\", \"SAFETY_REQUIRED\", \"REMOTE_AREA_FACILITY\", \"RELIGIOUS_HOLIDAY_PARCEL\", \"WORK_EQUIPMENT\", \"WORK_ACCIDENT_CARE\", \"COMMUNAL_HOUSING\", \"EMPLOYER_PENSION_CONTRIBUTION\", \"WORSHIP_FACILITY\"] ? 0.0 : (entry.facts.natura_kind == \"MEAL_COUPON\" ? max(entry.amount - max(2000000.0, has(entry.facts.workplace_meal_value) ? double(entry.facts.workplace_meal_value) : 0.0), 0.0) : (entry.facts.natura_kind == \"INDIVIDUAL_HOUSING\" ? max(entry.amount - 2000000.0, 0.0) : (entry.facts.natura_kind == \"OTHER_GIFT\" ? max(entry.amount - max(3000000.0 - sum(earlier.rows.filter(r, has(r.natura_kind) && r.natura_kind == \"OTHER_GIFT\" && r.occurred_on.substring(0, 4) == entry.occurred_on.substring(0, 4)).map(r, r.amount)), 0.0), 0.0) : (entry.facts.natura_kind == \"SPORTS_FACILITY\" ? max(entry.amount - max(1500000.0 - sum(earlier.rows.filter(r, has(r.natura_kind) && r.natura_kind == \"SPORTS_FACILITY\" && r.occurred_on.substring(0, 4) == entry.occurred_on.substring(0, 4)).map(r, r.amount)), 0.0), 0.0) : (entry.facts.natura_kind == \"COMPANY_CAR\" && has(entry.facts.car_user_qualifies) && entry.facts.car_user_qualifies == true ? 0.0 : entry.amount)))))) : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "94d8fc0d-4e9c-5eac-beb8-995cd3a6bd84",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "COURT_GARNISHMENT",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Court-ordered wage seizure",
+		"authority": "PP 36/2021 art.51 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): a seizure of the wage money by a bailiff on a court order may not exceed 20% of the wage payable (GARNISHMENT_CEILING holds the slip above it).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"qualifies_when": "has(entry.facts.court_order_reference) && entry.facts.court_order_reference != \"\""
+	},
+	{
+		"id": "a72d2445-ee47-52f5-94a7-0e7f02e708e4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "BANKRUPTCY_ESTATE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Payment to a bankrupt worker’s estate",
+		"authority": "PP 36/2021 art.50 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021): a bankrupt worker’s wage falls outside the estate except as the judge decides, at most 25% of the wage and payments of the employment (BANKRUPTCY_CEILING).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"qualifies_when": "has(entry.facts.court_order_reference) && entry.facts.court_order_reference != \"\""
+	},
+	{
+		"id": "7da5e39b-5e52-573a-8cb2-f4b5522e5b5d",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "NON_EMPLOYEE_FEE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "(has(employment.engagement) && employment.engagement == \"PAYEE\")",
+		"counts_toward": ["PPH21_BUKAN_PEGAWAI", "PPH26"],
+		"name": "Fee to a non-employee (bukan pegawai)",
+		"authority": "PMK 168/2023 art.12(3)–(4): a payment for services to an individual outside employment, on a PAYEE engagement; PPh 21 on 50% of each payment (PPH21_BUKAN_PEGAWAI), PPh 26 for a non-resident. One entry per payment, its gross net of reimbursed materials and third-party costs.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "28beee44-7ec4-5411-8c28-1bfbd7640823",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PKWT_EARLY_TERMINATION",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.employment_type == \"CONTRACT\" && employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\"]",
+		"counts_toward": ["PPH21_FINAL_SEVERANCE", "PPH26"],
+		"name": "Ganti rugi PKWT — the employer ends the PKWT early (UU 13/2003 art.62)",
+		"authority": "UU 13/2003 art.62 (kept by UU 6/2023; https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003): a party that ends a fixed-term agreement (PKWT) before its term, other than on the art.61(1) grounds (death, the term or the work ending, a court decision, an event the agreement names), pays the other party damages of the worker’s wage up to the end of the term. Priced here as the monthly wage (basic plus fixed allowances, `terms.monthly_wage`) for each whole month from the day after the exit to the term’s last day (`entry.facts.term_end_date`, else the term’s own end `terms.effective_to`), and the part month at ÷30 a calendar day (the record’s reading). It is owed beside the PP 35/2021 art.15–17 compensation (PKWT_COMPENSATION). Paid by the employer when it ends the employment (exit ground DISMISSAL, REDUNDANCY, RETRENCHMENT or UNILATERAL); as income paid in connection with the end of the work it carries the PP 68/2009 final severance rates (PPH21_FINAL_SEVERANCE), a non-resident’s PPh 26.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "employment.exit_date != \"\" && (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to) != \"\" && (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to) > employment.exit_date ? round(terms.monthly_wage * double(calendar_completed_months(add_days(employment.exit_date, 1), add_days((has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to), 1))) + terms.monthly_wage / 30.0 * double(calendar_distance_days(add_months(add_days(employment.exit_date, 1), calendar_completed_months(add_days(employment.exit_date, 1), add_days((has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to), 1))), (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to)) + 1.0), 1.0, \"HALF_UP\") : 0.0"
+			}
+		],
+		"amount_required": false
+	},
+	{
+		"id": "b4747541-3e22-5fa6-88b1-4a742987756c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PKWT_EARLY_TERMINATION_BY_WORKER",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "terms.employment_type == \"CONTRACT\" && employment.exit_ground == \"RESIGNATION\"",
+		"counts_toward": [],
+		"name": "Ganti rugi PKWT — the worker ends the PKWT early (UU 13/2003 art.62)",
+		"authority": "UU 13/2003 art.62 (kept by UU 6/2023; https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003): a party that ends a fixed-term agreement (PKWT) before its term, other than on the art.61(1) grounds (death, the term or the work ending, a court decision, an event the agreement names), pays the other party damages of the worker’s wage up to the end of the term. Priced here as the monthly wage (basic plus fixed allowances, `terms.monthly_wage`) for each whole month from the day after the exit to the term’s last day (`entry.facts.term_end_date`, else the term’s own end `terms.effective_to`), and the part month at ÷30 a calendar day (the record’s reading). It is owed beside the PP 35/2021 art.15–17 compensation (PKWT_COMPENSATION). Owed by the worker who resigns before the term ends; recovered from the final pay as damages, within the PP 36/2021 art.65 50% deduction ceiling (WAGE_DEDUCTION_CEILING), the rest being a debt outside payroll.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "employment.exit_date != \"\" && (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to) != \"\" && (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to) > employment.exit_date ? round(terms.monthly_wage * double(calendar_completed_months(add_days(employment.exit_date, 1), add_days((has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to), 1))) + terms.monthly_wage / 30.0 * double(calendar_distance_days(add_months(add_days(employment.exit_date, 1), calendar_completed_months(add_days(employment.exit_date, 1), add_days((has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to), 1))), (has(entry.facts.term_end_date) && entry.facts.term_end_date != \"\" ? entry.facts.term_end_date : terms.effective_to)) + 1.0), 1.0, \"HALF_UP\") : 0.0"
+			}
+		],
+		"amount_required": false
 	}
 ]

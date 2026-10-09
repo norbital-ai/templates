@@ -2,11 +2,27 @@
 	/** L-TPL-hr-payroll-032: create a contract with its first open terms on `facts.contract_terms`. */
 	import { bolt } from '$bolt';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
-	import { toast } from 'svelte-sonner';
-	import { Button, Combobox, DateInput, Input, Label, openRecord, Sheet } from '@norbital-ai/ui';
+	import {
+		Button,
+		Combobox,
+		DateInput,
+		Input,
+		Label,
+		openRecord,
+		Sheet,
+		toast
+	} from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import * as Predicate from 'effect/Predicate';
-	import { hireContractSet, parseAmount } from '../../payroll_engine/contract_terms.js';
+	import {
+		hireContractSet,
+		parseAmount,
+		type AllowanceDraft
+	} from '../../payroll_engine/contract_terms.js';
+	import type { JsonObject } from '../../payroll_engine/foundation.js';
+	import { governingVersion } from './governing_version.svelte.js';
+	import { missingRequired, schemaAt, TERM_KEYS } from './input_schema.js';
+	import SchemaFields from './schema_fields.svelte';
 	import ContractAllowances from './contract_allowances.svelte';
 	import { t } from '../i18n/t.js';
 	import { todayKey } from '../format/calendar.js';
@@ -20,62 +36,39 @@
 		name: string;
 	} = $props();
 
-	const EMPLOYMENT_TYPES = [
-		'PERMANENT',
-		'CONTRACT',
-		'PROBATION',
-		'INTERN',
-		'CONSULTANT',
-		'PART_TIME',
-		'APPRENTICE',
-		'DOMESTIC'
-	] as const;
-	const RESIDENCY = ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'] as const;
-	const CLASSIFICATION = ['EA_COVERED', 'NON_EA', 'MANAGERIAL'] as const;
-
 	let saving = $state(false);
 	let sheetOpen = $state(false);
 	let employeeNumber = $state('');
 	let companyId = $state<Id<'entity'> | null>(null);
 	let start = $state<string | null>(null);
 	let salary = $state('');
-	let employmentType = $state('PERMANENT');
-	let residency = $state('CITIZEN');
-	let classification = $state('EA_COVERED');
+	let values = $state<JsonObject>({});
 	let patternId = $state<string | null>(null);
 	let allowances = $state<{ code: string; amount: string }[]>([]);
+	/** The payment account the bank file pays (`employment_contract.bank`, as the export reads it). */
+	const BANK_FIELDS = [
+		'bank_name',
+		'bank_code',
+		'bank_account_number',
+		'bank_account_name'
+	] as const;
+	let bank = $state<Record<(typeof BANK_FIELDS)[number], string>>({
+		bank_name: '',
+		bank_code: '',
+		bank_account_number: '',
+		bank_account_name: ''
+	});
 
 	const entities = liveRows(() =>
-		sheetOpen
-			? bolt.read('entity', { select: { id: true, name: true, settings_code: true }, all: true })
-			: null
+		sheetOpen ? bolt.read('entity', { select: { id: true, name: true }, all: true }) : null
 	);
-	const settingsCode = $derived(
-		(entities.current ?? []).find((row) => row.id === companyId)?.settings_code ?? null
+	/** The version governing the start day: its term schema is the form, its payroll currency the salary's. */
+	const version = governingVersion(
+		() => (sheetOpen ? companyId : null),
+		() => start
 	);
-	const versions = liveRows(() =>
-		sheetOpen && settingsCode != null
-			? bolt.read('jurisdiction_settings', {
-					where: {
-						code: { eq: settingsCode },
-						sealed_at: { isNull: false },
-						voided_at: { isNull: true }
-					},
-					select: { effective_range: true, payroll: true },
-					all: true
-				})
-			: null
-	);
-	/** The salary currency is the payroll currency of the version governing the start day. */
-	const currency = $derived(
-		(versions.current ?? []).find(
-			(row) =>
-				start != null &&
-				row.effective_range != null &&
-				row.effective_range.from <= start &&
-				(row.effective_range.to == null || start <= row.effective_range.to)
-		)?.payroll?.currency ?? ''
-	);
+	const termSchema = $derived(schemaAt(version.current?.employee_input_schema, 'contract_terms'));
+	const currency = $derived(version.current?.payroll?.currency ?? '');
 	const patterns = liveRows(() =>
 		sheetOpen && companyId != null
 			? bolt.read('shift_pattern', {
@@ -86,20 +79,15 @@
 			: null
 	);
 
-	function labelled(values: readonly string[]): { value: string; label: string }[] {
-		return values.map((value) => ({ value, label: value }));
-	}
-
 	function open(): void {
 		employeeNumber = '';
 		companyId = null;
 		start = todayKey();
 		salary = '';
-		employmentType = 'PERMANENT';
-		residency = 'CITIZEN';
-		classification = 'EA_COVERED';
+		values = {};
 		patternId = null;
 		allowances = [];
+		bank = { bank_name: '', bank_code: '', bank_account_number: '', bank_account_name: '' };
 		sheetOpen = true;
 	}
 
@@ -110,7 +98,7 @@
 			toast.error(t('offboarding.need_valid_salary'));
 			return;
 		}
-		const allowanceLines: { code: string; amount: number }[] = [];
+		const allowanceLines: AllowanceDraft[] = [];
 		for (const line of allowances) {
 			if (line.code.trim() === '' && line.amount.trim() === '') continue;
 			const amount = parseAmount(line.amount);
@@ -120,21 +108,24 @@
 			}
 			allowanceLines.push({ code: line.code, amount });
 		}
+		const term: JsonObject = {
+			...$state.snapshot(values),
+			...(currency === '' ? {} : { currency }),
+			base_salary: { value: salaryAmount, currency },
+			...(patternId == null || patternId === '' ? {} : { shift_pattern_id: patternId })
+		};
+		const missing = missingRequired(termSchema, term);
+		if (missing.length > 0) {
+			toast.error(t('component.required_missing', { fields: missing.join(', ') }));
+			return;
+		}
 		const set = hireContractSet({
 			employee_id: employeeId,
 			company_id: companyId,
 			employee_number: employeeNumber,
-			draft: {
-				start,
-				salary: salaryAmount,
-				currency,
-				employment_type: employmentType,
-				residency_status: residency,
-				work_classification: classification,
-				statutory_work_category: 'NON_MANUAL',
-				...(patternId == null || patternId === '' ? {} : { shift_pattern_id: patternId }),
-				allowances: allowanceLines
-			}
+			start,
+			values: term,
+			allowances: allowanceLines
 		});
 		if (Predicate.isString(set)) {
 			toast.error(set);
@@ -147,7 +138,18 @@
 				company_id: companyId,
 				employee_number: set.employee_number,
 				effective_range: set.effective_range,
-				facts: set.facts
+				facts: set.facts,
+				// the account is recorded whole or not at all: the bank file needs every field
+				...(BANK_FIELDS.every((field) => bank[field].trim() !== '')
+					? {
+							bank: {
+								bank_name: bank.bank_name.trim(),
+								bank_code: bank.bank_code.trim(),
+								bank_account_number: bank.bank_account_number.trim(),
+								bank_account_name: bank.bank_account_name.trim()
+							}
+						}
+					: {})
 			};
 			const outcome = await bolt.act('employment_contract.create', payload);
 			if (outcome.kind === 'committed' || outcome.kind === 'pendingApproval') {
@@ -201,6 +203,7 @@
 				onChange={(next) => {
 					companyId = next;
 					patternId = null;
+					values = {};
 				}}
 			/>
 		</Stack>
@@ -225,39 +228,17 @@
 					(salary = event.currentTarget.value)}
 			/>
 		</Stack>
-		<Stack gap="xs">
-			<Label for="hire-type">{t('component.employment_type')}</Label>
-			<Combobox
-				id="hire-type"
-				class="w-full"
-				options={labelled(EMPLOYMENT_TYPES)}
-				value={employmentType}
-				disabled={saving}
-				onChange={(next) => next != null && (employmentType = next)}
-			/>
-		</Stack>
-		<Stack gap="xs">
-			<Label for="hire-residency">{t('component.residency_status')}</Label>
-			<Combobox
-				id="hire-residency"
-				class="w-full"
-				options={labelled(RESIDENCY)}
-				value={residency}
-				disabled={saving}
-				onChange={(next) => next != null && (residency = next)}
-			/>
-		</Stack>
-		<Stack gap="xs">
-			<Label for="hire-class">{t('component.classification')}</Label>
-			<Combobox
-				id="hire-class"
-				class="w-full"
-				options={labelled(CLASSIFICATION)}
-				value={classification}
-				disabled={saving}
-				onChange={(next) => next != null && (classification = next)}
-			/>
-		</Stack>
+		{#if companyId != null && start != null && version.current == null && !version.loading}
+			<p class="text-sm text-destructive">{t('component.no_governing_version')}</p>
+		{/if}
+		<SchemaFields
+			node={termSchema}
+			value={values}
+			onChange={(next) => (values = next)}
+			skip={TERM_KEYS}
+			id="hire-term"
+			disabled={saving}
+		/>
 		{#if (patterns.current ?? []).length > 0}
 			<Stack gap="xs">
 				<Label for="hire-pattern">{t('component.shift_pattern')}</Label>
@@ -275,12 +256,29 @@
 			</Stack>
 		{/if}
 		<ContractAllowances bind:lines={allowances} disabled={saving} />
+		{#each BANK_FIELDS as field (field)}
+			<Stack gap="xs">
+				<Label for={`hire-${field}`}>{t(`component.${field}`)}</Label>
+				<Input
+					id={`hire-${field}`}
+					value={bank[field]}
+					disabled={saving}
+					onchange={(event: Event & { currentTarget: HTMLInputElement }) =>
+						(bank = { ...bank, [field]: event.currentTarget.value })}
+				/>
+			</Stack>
+		{/each}
 		<Cluster gap="sm" justify="end">
 			<Button variant="outline" disabled={saving} onclick={() => (sheetOpen = false)}>
 				{t('component.cancel')}
 			</Button>
 			<Button
-				disabled={saving || companyId == null || start == null || start === '' || salary === ''}
+				disabled={saving ||
+					companyId == null ||
+					start == null ||
+					start === '' ||
+					salary === '' ||
+					version.current == null}
 				onclick={() => void submit()}
 			>
 				{t('component.hire')}

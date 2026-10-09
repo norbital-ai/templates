@@ -19,9 +19,9 @@
 			new: true,
 			actions: [
 				{
-					start: 'site_handover',
-					input: (ids) => ({ ids }),
-					label: t('app.field_ops_controller.site_handover'),
+					icon: 'lucide:key-round',
+					name: t('app.field_ops_controller.site_handover'),
+					run: (ids) => bolt.start('site_handover', { ids }),
 					requiresSelection: true
 				}
 			]

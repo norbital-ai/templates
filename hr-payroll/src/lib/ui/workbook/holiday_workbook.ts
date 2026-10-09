@@ -7,6 +7,8 @@ export type HolidayDraft = {
 	readonly company_id: Id<'entity'>;
 	readonly date: string;
 	readonly name: string;
+	/** A kind of the entity's governing version (`holiday_kinds`); the write judges it. */
+	readonly kind: string;
 	readonly replaces?: string;
 };
 
@@ -42,15 +44,19 @@ export function parseEntityHolidaySheets(
 		);
 		const dateColumn = columns.indexOf('date');
 		const nameColumn = columns.indexOf('name');
+		const kindColumn = columns.indexOf('kind');
 		const replacesColumn = columns.indexOf('replaces');
-		if (dateColumn < 0 || nameColumn < 0)
-			return { error: `Sheet "${sheetName}" needs a date and a name column.` };
+		if (dateColumn < 0 || nameColumn < 0 || kindColumn < 0)
+			return { error: `Sheet "${sheetName}" needs a date, a name and a kind column.` };
 		for (const row of body) {
 			const date = cell(row, dateColumn);
 			if (date === '') continue;
 			if (!DATE.test(date))
 				return { error: `Sheet "${sheetName}" has a date that is not YYYY-MM-DD (${date}).` };
 			const name = cell(row, nameColumn);
+			const kind = cell(row, kindColumn);
+			if (kind === '')
+				return { error: `Sheet "${sheetName}" has a holiday without a kind (${date}).` };
 			const replaces = replacesColumn < 0 ? '' : cell(row, replacesColumn);
 			if (replaces !== '' && !DATE.test(replaces))
 				return {
@@ -60,6 +66,7 @@ export function parseEntityHolidaySheets(
 				company_id,
 				date,
 				name,
+				kind,
 				...(replaces === '' ? {} : { replaces })
 			});
 		}

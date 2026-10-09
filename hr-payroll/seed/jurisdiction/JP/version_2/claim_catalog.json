@@ -8,7 +8,6 @@
 		"direction": "ADD",
 		"eligibility": "",
 		"qualifies_when": "",
-		"evidence": "REQUIRED",
 		"counts_toward": [],
 		"bands": [],
 		"authority": "A reimbursement of a business expense the employee paid is not remuneration (健康保険法 art.3(5): 労働の対償), not a wage and not salary income; it is paid outside gross pay against receipts."
@@ -22,7 +21,6 @@
 		"direction": "ADD",
 		"eligibility": "",
 		"qualifies_when": "",
-		"evidence": "REQUIRED",
 		"counts_toward": [],
 		"bands": [],
 		"authority": "所得税法 art.9(1)(iv): travel expenses for business travel within what is ordinarily necessary are not taxable; not remuneration or wages."

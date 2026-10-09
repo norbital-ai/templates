@@ -7,17 +7,15 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["IIT.SEPARATION"],
-		"raised_by": "SEPARATION",
-		"evidence": "NONE",
-		"eligibility": "",
-		"qualifies_when": "has(entry.facts.qualifying_months) && double(entry.facts.qualifying_months) > 0.0 && has(entry.facts.local_average_monthly_wage)",
+		"eligibility": "(employment.exit_ground in [\"MUTUAL_EMPLOYER_PROPOSED\", \"INCAPACITY\", \"ECONOMIC_LAYOFF\", \"EMPLOYER_DEFAULT\", \"BANKRUPTCY\", \"CLOSURE\"] || (employment.exit_ground == \"CONTRACT_EXPIRY\" && !(employment.exit_facts != null && has(employment.exit_facts.employee_refused_renewal_on_equal_terms) && employment.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
+		"qualifies_when": "has(entry.facts.qualifying_months) && double(entry.facts.qualifying_months) >= 0.0 && has(entry.facts.local_average_monthly_wage)",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round(((has(entry.facts.local_average_monthly_wage) && entry.amount > 3.0 * double(entry.facts.local_average_monthly_wage)) ? 3.0 * double(entry.facts.local_average_monthly_wage) * min((round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0))), 12.0) : entry.amount * (round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0)))), 0.01, \"HALF_UP\")"
+				"amount": "(company.region in rules.regions.by_region) ? (round(((max(entry.amount, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)) > 3.0 * double(entry.facts.local_average_monthly_wage)) ? 3.0 * double(entry.facts.local_average_monthly_wage) * min((round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0))), 12.0) : max(entry.amount, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)) * (round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") + ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : ((double(entry.facts.qualifying_months) - round(double(entry.facts.qualifying_months) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0)))) + (max(entry.amount, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)) * ((employment.exit_ground == \"MUTUAL_EMPLOYER_PROPOSED\" || (has(entry.facts.pre_2008_capped) && entry.facts.pre_2008_capped == true)) ? min(((has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0) > 0.0 ? round((has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0) / 12.0, 1.0, \"UP\") : 0.0), 12.0) : ((has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0) > 0.0 ? round((has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0) / 12.0, 1.0, \"UP\") : 0.0))), 0.01, \"HALF_UP\")) : 0.0"
 			}
 		],
-		"authority": "劳动合同法 第四十六条 (owed grounds), 第四十七条: 按劳动者在本单位工作的年限, 每满一年支付一个月工资; 六个月以上不满一年的按一年计算; 不满六个月的支付半个月工资. 劳动者月工资高于用人单位所在直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资三倍的, 按职工月平均工资三倍的数额支付, 年限最高不超过十二年; 月工资是劳动者在劳动合同解除或者终止前十二个月的平均工资. The entry amount is that 12-month average wage; `qualifying_months` the service months and `local_average_monthly_wage` the city's published average (both entered from the record). IIT: 财税〔2018〕164号 五(一) — the excess over 3 × the local average annual wage is taxed separately on the annual table (IIT part `separation`)."
+		"authority": "劳动合同法 第四十六条 (owed grounds: 第三十八条 employer default, the employer proposing a mutual termination, 第四十条 incapacity, 第四十一条 layoff, fixed-term expiry unless the employee refused renewal on equal or better terms, 第四十四条第四、五项 bankruptcy or closure), 第四十七条: 每满一年支付一个月工资; 六个月以上不满一年的按一年计算; 不满六个月的支付半个月工资; 月工资高于本地区上年度职工月平均工资三倍的按三倍支付, 年限最高不超过十二年. 劳动合同法实施条例 第二十七条: 月工资按照劳动者应得工资计算; 解除或者终止前十二个月的平均工资低于当地最低工资标准的, 按照当地最低工资标准计算 (`rules.regions` minimum_wage on the entry day). 劳动合同法 第九十七条第三款: 本法施行之日存续的劳动合同在施行后解除或者终止的, 施行前的年限按照当时有关规定计算 — 劳动部《违反和解除劳动合同的经济补偿办法》(劳部发〔1994〕481号): 每满一年 (不满一年按一年) 一个月, no 3× wage cap; capped at 12 months for an employer-proposed mutual termination and the other capped grounds (`pre_2008_capped`). Entry: amount = the 12-month average wage; `qualifying_months` (service from 2008-01-01), `pre_2008_months`, `local_average_monthly_wage`. IIT: 财税〔2018〕164号 五(一), part `separation`."
 	},
 	{
 		"id": "1a875989-2ee5-4354-9890-9cf2266e58cc",
@@ -27,9 +25,7 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["IIT.SEPARATION"],
-		"raised_by": "SEPARATION",
-		"evidence": "NONE",
-		"eligibility": "",
+		"eligibility": "employment.exit_ground == \"INCAPACITY\"",
 		"qualifies_when": "",
 		"bands": [
 			{
@@ -47,8 +43,6 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["IIT.BONUS", "UNION_FUND"],
-		"raised_by": "MANUAL",
-		"evidence": "NONE",
 		"eligibility": "",
 		"qualifies_when": "",
 		"bands": [
@@ -67,8 +61,6 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["IIT", "UNION_FUND"],
-		"raised_by": "MANUAL",
-		"evidence": "NONE",
 		"eligibility": "",
 		"qualifies_when": "",
 		"bands": [
@@ -87,8 +79,6 @@
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"counts_toward": [],
-		"raised_by": "MANUAL",
-		"evidence": "REQUIRED",
 		"eligibility": "",
 		"qualifies_when": "",
 		"bands": [
@@ -96,12 +86,192 @@
 				"when": "",
 				"amount": "entry.amount",
 				"limit": {
-					"period": "MONTH",
 					"on_exceed": "BLOCK",
-					"amount": "max(0.0, min(0.2 * terms.monthly_wage, terms.monthly_wage - (first(rules.minimum_wage.by_region[(company.region == \"SH\" ? \"SH\" : \"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\"))].filter(e, e[\"from\"] <= entry.occurred_on).map(e, double(e.amount))) == null ? 0.0 : first(rules.minimum_wage.by_region[(company.region == \"SH\" ? \"SH\" : \"KM_\" + (has(company.facts.km_hpf_zone) ? string(company.facts.km_hpf_zone) : \"1\"))].filter(e, e[\"from\"] <= entry.occurred_on).map(e, double(e.amount))))))"
+					"amount": "(company.region in rules.regions.by_region) ? (max(0.0, min(0.2 * terms.monthly_wage, terms.monthly_wage - (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount))))) : 0.0"
 				}
 			}
 		],
-		"authority": "工资支付暂行规定 第十六条: 因劳动者本人原因给用人单位造成经济损失的, 用人单位可按照劳动合同的约定要求其赔偿经济损失; 经济损失的赔偿可从劳动者本人的工资中扣除, 但每月扣除的部分不得超过劳动者当月工资的20%; 若扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付. Capped at 20% of the contract monthly wage and at what leaves the minimum wage (`rules.minimum_wage` on the entry day); SH from 2026-08-01: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第二十二条, same rule."
+		"authority": "工资支付暂行规定 第十六条: 因劳动者本人原因给用人单位造成经济损失的, 用人单位可按照劳动合同的约定要求其赔偿经济损失; 经济损失的赔偿可从劳动者本人的工资中扣除, 但每月扣除的部分不得超过劳动者当月工资的20%; 若扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付. Capped at 20% of the contract monthly wage and at what leaves the minimum wage (`rules.regions` minimum_wage on the entry day); SH from 2026-08-01: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第二十二条, same rule."
+	},
+	{
+		"id": "e06f1f6a-9a8b-4dba-8a1a-9da0e3265868",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
+		"name": "违法解除赔偿金 (2N, unlawful termination)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.SEPARATION"],
+		"eligibility": "",
+		"qualifies_when": "has(entry.facts.qualifying_months) && double(entry.facts.qualifying_months) > 0.0 && has(entry.facts.local_average_monthly_wage)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(company.region in rules.regions.by_region) ? (round(2.0 * ((max(entry.amount, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)) > 3.0 * double(entry.facts.local_average_monthly_wage)) ? 3.0 * double(entry.facts.local_average_monthly_wage) * min((round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") + (((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) - round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : (((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) - round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0))), 12.0) : max(entry.amount, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)) * (round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") + (((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) - round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") * 12.0) >= 6.0 ? 1.0 : (((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) - round((double(entry.facts.qualifying_months) + (has(entry.facts.pre_2008_months) ? double(entry.facts.pre_2008_months) : 0.0)) / 12.0, 1.0, \"DOWN\") * 12.0) > 0.0 ? 0.5 : 0.0)))), 0.01, \"HALF_UP\")) : 0.0"
+			}
+		],
+		"authority": "劳动合同法 第四十八条、第八十七条: 依照本法第四十七条规定的经济补偿标准的二倍向劳动者支付赔偿金; 劳动合同法实施条例 第二十五条: 支付了赔偿金的, 不再支付经济补偿; 赔偿金的计算年限自用工之日起计算 https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html — so pre-2008 service (`pre_2008_months`) is counted with the rest on the 第四十七条 method (6 months or more a year, under 6 a half, the 3× wage cap with 12 years), not on 劳部发〔1994〕481号. Same facts as ECONOMIC_COMPENSATION."
+	},
+	{
+		"id": "60c9032f-624b-42a8-82a5-c0c6153d8461",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "MATERNITY_ALLOWANCE_PASSTHROUGH",
+		"name": "生育津贴代发 (fund maternity allowance paid through the employer)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "财税〔2008〕8号: 生育津贴和生育医疗费免征个人所得税. Used where the fund pays the employer (Kunming before 2025-06-13: \"由用人单位统一领取\", 昆明市医疗保障局 2024-04-03); from then the allowance goes to the employee directly."
+	},
+	{
+		"id": "25d05f9b-efdd-48a9-bc73-795d963e3f14",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "EQUITY_INCENTIVE",
+		"name": "股权激励所得 (stock options, restricted shares)",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.EQUITY"],
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "财税〔2018〕164号 二(一): 居民个人取得股票期权、股票增值权、限制性股票、股权奖励等股权激励, 不并入当年综合所得, 全额单独适用综合所得税率表; 一个纳税年度内取得两次以上的合并计算 (财政部 税务总局公告2023年第25号 延续至2027年12月31日); non-residents ÷6 (公告2019年第35号 三(二)3). A DISPLAY line: taxed, not paid in cash."
+	},
+	{
+		"id": "88021ba4-faf3-4c66-be0c-02833d258956",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "EARLY_RETIREMENT_LUMP_SUM",
+		"name": "提前退休一次性补贴 (early-retirement lump sum)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.EARLY_RETIREMENT"],
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "财税〔2018〕164号 五(二): 个人办理提前退休手续而取得的一次性补贴收入, 应按照办理提前退休手续至法定离退休年龄之间实际年度数平均分摊, 确定适用税率和速算扣除数, 单独适用综合所得税率表 — tax = [(收入 ÷ 年度数 − 60000) × 税率 − 速算扣除数] × 年度数; the years run to the statutory retirement day of the 2025 schedule."
+	},
+	{
+		"id": "1f8c9ed2-636b-4907-8ed3-b1c16d974c49",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "WAGE_ARREARS_PENALTY",
+		"name": "欠薪加付赔偿金 (labour-bureau ordered arrears penalty)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT"],
+		"eligibility": "",
+		"qualifies_when": "has(entry.facts.penalty_rate) && double(entry.facts.penalty_rate) >= 0.5 && double(entry.facts.penalty_rate) <= 1.0",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(entry.amount * double(entry.facts.penalty_rate), 0.01, \"HALF_UP\")"
+			}
+		],
+		"authority": "劳动合同法 第八十五条: 劳动行政部门责令限期支付; 逾期不支付的, 责令按应付金额50%以上100%以下的标准向劳动者加付赔偿金. Entry: amount = the unpaid sum, `penalty_rate` 0.5–1.0 per the order."
+	},
+	{
+		"id": "a55754b2-7d3e-44f9-bc22-235ced72022c",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "WORK_INJURY_DISABILITY_SUBSIDY",
+		"name": "一次性伤残就业补助金 (grades 5–10, months by city)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "(company.region in rules.regions.by_region)",
+		"qualifies_when": "(company.region in rules.regions.by_region) && (has(entry.facts.disability_grade) && (has(entry.facts.disability_grade) ? string(int(entry.facts.disability_grade)) : \"\") in [\"5\", \"6\", \"7\", \"8\", \"9\", \"10\"] && has(entry.facts.local_average_monthly_wage) && !(rules.regions.by_region[company.region].disability_subsidy.exclude_retirement_exit && employment.exit_ground == \"RETIREMENT\"))",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(company.region in rules.regions.by_region) ? (round(double(rules.regions.by_region[company.region].disability_subsidy.months[(has(entry.facts.disability_grade) ? string(int(entry.facts.disability_grade)) : \"\")]) * double(entry.facts.local_average_monthly_wage) * ((double(rules.regions.by_region[company.region].disability_subsidy.near_retirement_reduction) > 0.0 && employment.exit_ground == \"RESIGNATION\" && round(double(calendar_completed_months(entry.occurred_on, (employee.date_of_birth == \"\" ? \"\" : (employee.gender == \"MALE\" ? (employee.date_of_birth < \"1965-01-01\" ? add_years(employee.date_of_birth, 60) : add_months(add_years(employee.date_of_birth, 60), min(36.0, round(double(calendar_completed_months(\"1965-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : ((has(employee.facts.retirement_category) && employee.facts.retirement_category == \"FEMALE_55\") ? (employee.date_of_birth < \"1970-01-01\" ? add_years(employee.date_of_birth, 55) : add_months(add_years(employee.date_of_birth, 55), min(36.0, round(double(calendar_completed_months(\"1970-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : (employee.date_of_birth < \"1975-01-01\" ? add_years(employee.date_of_birth, 50) : add_months(add_years(employee.date_of_birth, 50), min(60.0, round(double(calendar_completed_months(\"1975-01-01\", month_start(employee.date_of_birth))) / 2.0, 1.0, \"DOWN\") + 1.0)))))) == \"\" ? add_years(entry.occurred_on, 10) : (employee.date_of_birth == \"\" ? \"\" : (employee.gender == \"MALE\" ? (employee.date_of_birth < \"1965-01-01\" ? add_years(employee.date_of_birth, 60) : add_months(add_years(employee.date_of_birth, 60), min(36.0, round(double(calendar_completed_months(\"1965-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : ((has(employee.facts.retirement_category) && employee.facts.retirement_category == \"FEMALE_55\") ? (employee.date_of_birth < \"1970-01-01\" ? add_years(employee.date_of_birth, 55) : add_months(add_years(employee.date_of_birth, 55), min(36.0, round(double(calendar_completed_months(\"1970-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : (employee.date_of_birth < \"1975-01-01\" ? add_years(employee.date_of_birth, 50) : add_months(add_years(employee.date_of_birth, 50), min(60.0, round(double(calendar_completed_months(\"1975-01-01\", month_start(employee.date_of_birth))) / 2.0, 1.0, \"DOWN\") + 1.0)))))))) / 12.0, 1.0, \"DOWN\") < 5.0) ? max(0.0, 1.0 - double(rules.regions.by_region[company.region].disability_subsidy.near_retirement_reduction) * (5.0 - round(double(calendar_completed_months(entry.occurred_on, (employee.date_of_birth == \"\" ? \"\" : (employee.gender == \"MALE\" ? (employee.date_of_birth < \"1965-01-01\" ? add_years(employee.date_of_birth, 60) : add_months(add_years(employee.date_of_birth, 60), min(36.0, round(double(calendar_completed_months(\"1965-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : ((has(employee.facts.retirement_category) && employee.facts.retirement_category == \"FEMALE_55\") ? (employee.date_of_birth < \"1970-01-01\" ? add_years(employee.date_of_birth, 55) : add_months(add_years(employee.date_of_birth, 55), min(36.0, round(double(calendar_completed_months(\"1970-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : (employee.date_of_birth < \"1975-01-01\" ? add_years(employee.date_of_birth, 50) : add_months(add_years(employee.date_of_birth, 50), min(60.0, round(double(calendar_completed_months(\"1975-01-01\", month_start(employee.date_of_birth))) / 2.0, 1.0, \"DOWN\") + 1.0)))))) == \"\" ? add_years(entry.occurred_on, 10) : (employee.date_of_birth == \"\" ? \"\" : (employee.gender == \"MALE\" ? (employee.date_of_birth < \"1965-01-01\" ? add_years(employee.date_of_birth, 60) : add_months(add_years(employee.date_of_birth, 60), min(36.0, round(double(calendar_completed_months(\"1965-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : ((has(employee.facts.retirement_category) && employee.facts.retirement_category == \"FEMALE_55\") ? (employee.date_of_birth < \"1970-01-01\" ? add_years(employee.date_of_birth, 55) : add_months(add_years(employee.date_of_birth, 55), min(36.0, round(double(calendar_completed_months(\"1970-01-01\", month_start(employee.date_of_birth))) / 4.0, 1.0, \"DOWN\") + 1.0))) : (employee.date_of_birth < \"1975-01-01\" ? add_years(employee.date_of_birth, 50) : add_months(add_years(employee.date_of_birth, 50), min(60.0, round(double(calendar_completed_months(\"1975-01-01\", month_start(employee.date_of_birth))) / 2.0, 1.0, \"DOWN\") + 1.0)))))))) / 12.0, 1.0, \"DOWN\"))) : 1.0), 0.01, \"HALF_UP\")) : 0.0"
+			}
+		],
+		"authority": "工伤保险条例 第三十六条、第三十七条 (标准由省、自治区、直辖市人民政府规定): the months by grade, the wage base (the entry fact `local_average_monthly_wage` — the city or provincial average the city's rule names), any near-retirement reduction and a retirement exclusion are the city's, in `rules.regions` (SH: 沪府令第93号 第四十条、第四十一条, 18/15/12/9/6/3 months, less 20% a year within 5 years of retirement on resignation; KM: 云政发〔2011〕255号 第三十六条至第三十八条, 33/29/22/18/13/7 months, none once retired). Exempt from IIT (财税〔2012〕40号)."
+	},
+	{
+		"id": "d3a837a1-4caf-4c6e-8b59-4a7622f848ce",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "MATERNITY_TOPUP",
+		"name": "生育津贴差额补足 (maternity top-up)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT", "UNION_FUND"],
+		"eligibility": "(company.region in rules.regions.by_region) && rules.regions.by_region[company.region].maternity_topup && employee.gender == \"FEMALE\"",
+		"qualifies_when": "has(entry.facts.pre_leave_monthly_wage) && has(entry.facts.leave_days) && has(entry.facts.allowance_received)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round(max(0.0, double(entry.facts.pre_leave_monthly_wage) / 30.0 * double(entry.facts.leave_days) - double(entry.facts.allowance_received)), 0.01, \"HALF_UP\")"
+			}
+		],
+		"authority": "Where the fund's maternity allowance (the employer's average wage ÷ 30 × the leave days) is below the pre-leave wage, the employer pays the difference: 女职工劳动保护特别规定 第五条; 妇女权益保障法 第四十八条; SH 沪府发〔2013〕5号 https://www.shanghai.gov.cn/nw31029/20200820/0001-31029_34638.html; KM on the national rule https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html. Cities owing it carry `maternity_topup` in `rules.regions`. Entry facts: `pre_leave_monthly_wage`, `leave_days`, `allowance_received` (itself exempt, 财税〔2008〕8号)."
+	},
+	{
+		"id": "4c4b99a8-2d0c-4aed-b7fd-9774a40cd571",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "INTERNAL_RETIREMENT_LUMP_SUM",
+		"name": "内部退养一次性补贴 (internal-retirement lump sum)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT.INTERNAL_RETIREMENT"],
+		"eligibility": "",
+		"qualifies_when": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "财税〔2018〕164号 五(三): 个人办理内部退养手续而取得的一次性补贴收入, 按照国税发〔1999〕58号规定计算纳税 — 按办理内部退养手续后至法定离退休年龄之间的所属月份进行平均, 并与领取当月的\"工资、薪金\"所得合并后减除当月费用扣除标准, 以余额为基数确定适用税率, 再将当月工资、薪金加上取得的一次性收入, 减去费用扣除标准, 按适用税率计征 https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html. Under cumulative withholding (国家税务总局浙江省税务局《个人所得税综合所得年度汇算政策百问百答》 2020-03-30, 问21): 不需纳入综合所得进行年度汇算; 先与当月工资合并查找税率、计算税额, 再减除当月工资收入应缴的税额 (月度税率表), 即为该项补贴收入应纳税额; 当月工资仍并入综合所得累计预扣 https://zhejiang.chinatax.gov.cn/attach/0/ef5123227e644feeabbbec34d20e0bcd.pdf (example: 7,000 wage, 100,000 over 20 months → 9,990 − 60 = 9,930). The months run from the month paid to the statutory retirement day of the 2025 schedule (completed months, at least 1)."
+	},
+	{
+		"id": "3edfe891-fffb-4d18-9d30-4d7662cd1d82",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "NON_COMPETE_COMPENSATION",
+		"name": "竞业限制经济补偿 (non-compete compensation, monthly after exit)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["IIT"],
+		"payable_after_exit": true,
+		"eligibility": "employment.exit_date != \"\"",
+		"qualifies_when": "employment.exit_date != \"\" && entry.occurred_on > employment.exit_date && entry.occurred_on <= add_years(employment.exit_date, 2) && (has(entry.facts.agreed_monthly_compensation) || has(entry.facts.pre_exit_average_monthly_wage) || months_through(employment.exit_date, entry.occurred_on) <= 13.0)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(company.region in rules.regions.by_region) ? (has(entry.facts.agreed_monthly_compensation) ? double(entry.facts.agreed_monthly_compensation) : round(max(0.3 * (has(entry.facts.pre_exit_average_monthly_wage) ? double(entry.facts.pre_exit_average_monthly_wage) : (size(earned.history.filter(m, m.month <= employment.exit_date.substring(0, 7) && m.month >= add_months(employment.exit_date, -11).substring(0, 7))) == 0 ? 0.0 : sum(earned.history.filter(m, m.month <= employment.exit_date.substring(0, 7) && m.month >= add_months(employment.exit_date, -11).substring(0, 7)).map(m, m.gross)) / double(size(earned.history.filter(m, m.month <= employment.exit_date.substring(0, 7) && m.month >= add_months(employment.exit_date, -11).substring(0, 7)))))), double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)), 0.01, \"HALF_UP\")) : 0.0"
+			}
+		],
+		"authority": "劳动合同法 第二十三条第二款: 约定竞业限制条款, 并约定在解除或者终止劳动合同后, 在竞业限制期限内按月给予劳动者经济补偿; 第二十四条: 竞业限制期限不得超过二年. 最高人民法院关于审理劳动争议案件适用法律问题的解释（一）(法释〔2020〕26号) 第三十六条: 未约定经济补偿的, 按照劳动者在劳动合同解除或者终止前十二个月平均工资的30%按月支付; 月平均工资的30%低于劳动合同履行地最低工资标准的, 按照劳动合同履行地最低工资标准支付. Both read 2026-10-07 on the 云南省人社厅 service pack https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html. Entry facts: `agreed_monthly_compensation` (the agreed sum, paid as agreed), else the 30% default on the 12 months to the exit month from `earned.history` (gross per month with a slip), or `pre_exit_average_monthly_wage` when those months are past the 24-month history (the second year). Owner ruling (2026-10-07, binding): non-compete compensation is taxed as wages (工资、薪金所得)."
+	},
+	{
+		"id": "104d98be-a4d4-4444-9ade-cea180d66976",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "WORK_INJURY_DISABILITY_ALLOWANCE",
+		"name": "伤残津贴 (grade 5–6, employer-paid monthly)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["PENSION", "MEDICAL", "MAJOR_MEDICAL"],
+		"eligibility": "",
+		"qualifies_when": "has(entry.facts.disability_grade) && string(int(entry.facts.disability_grade)) in [\"5\", \"6\"] && has(entry.facts.own_wage)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(company.region in rules.regions.by_region) ? (round(max((string(int(entry.facts.disability_grade)) == \"5\" ? 0.7 : 0.6) * double(entry.facts.own_wage), double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount)), 0.01, \"HALF_UP\")) : 0.0"
+			}
+		],
+		"authority": "工伤保险条例 第三十六条第一款第(二)项: 难以安排工作的, 由用人单位按月发给伤残津贴, 标准为: 五级伤残为本人工资的70%, 六级伤残为本人工资的60%, 并由用人单位按照规定为其缴纳应缴纳的各项社会保险费; 伤残津贴实际金额低于当地最低工资标准的, 由用人单位补足差额; 云南省实施《工伤保险条例》办法 第三十六条 (以伤残津贴为基数缴纳社会保险) https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html. One entry a month; entry facts `disability_grade`, `own_wage` (本人工资, the 12 months before the injury). It is the base for pension and medical insurance (工伤保险条例 第三十六条第一款第(二)项: 以伤残津贴为基数缴纳基本养老保险费和基本医疗保险费): it counts toward PENSION and MEDICAL, and DISABILITY_ALLOWANCE_SI_BASE warns until it is the declared base (`terms.facts.si_contribution_base`). Exempt from IIT (工伤待遇, 财税〔2012〕40号)."
 	}
 ]

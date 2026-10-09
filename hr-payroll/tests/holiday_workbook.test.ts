@@ -13,9 +13,9 @@ describe('holiday workbook', () => {
 				[
 					'Omni',
 					[
-						['date', 'name', 'replaces'],
-						['2026-01-01', 'New Year', ''],
-						['2026-02-17', 'Holiday', '2026-02-16']
+						['date', 'name', 'kind', 'replaces'],
+						['2026-01-01', 'New Year', 'PUBLIC_HOLIDAY', ''],
+						['2026-02-17', 'Holiday', 'SUBSTITUTE', '2026-02-16']
 					]
 				]
 			],
@@ -29,8 +29,33 @@ describe('holiday workbook', () => {
 		]);
 		assert.equal(skipped, 1);
 		assert.deepEqual(insert, [
-			{ company_id: 'c1', date: '2026-02-17', name: 'Holiday', replaces: '2026-02-16' }
+			{
+				company_id: 'c1',
+				date: '2026-02-17',
+				name: 'Holiday',
+				kind: 'SUBSTITUTE',
+				replaces: '2026-02-16'
+			}
 		]);
+	});
+
+	it('refuses a sheet without a kind column or a holiday without a kind: no kind is defaulted', () => {
+		const parse = (rows: (readonly string[])[]) =>
+			parseEntityHolidaySheets([['Omni', rows]], [{ id: 'c1', name: 'Omni' }]);
+		assert.ok(
+			'error' in
+				parse([
+					['date', 'name'],
+					['2026-01-01', 'X']
+				])
+		);
+		assert.ok(
+			'error' in
+				parse([
+					['date', 'name', 'kind'],
+					['2026-01-01', 'X', '']
+				])
+		);
 	});
 
 	it('L-TPL-hr-payroll-115 refuses a sheet that names no entity', () => {

@@ -138,6 +138,8 @@ export const ROSTER_ENTRY_FULL_FIELDS = [
 	'approved_overtime_hours',
 	'overtime_consented_at',
 	'incentive_hours',
+	'banked_overtime_hours',
+	'banked_overtime_band',
 	'worked_intervals',
 	'worksite',
 	'facts'
@@ -192,7 +194,8 @@ export const JURISDICTION_READ = {
 	claim_catalog: { read: true },
 	leave_catalog: { read: true },
 	loan_catalog: { read: true },
-	work_catalog: { read: true }
+	work_catalog: { read: true },
+	suspension_kind: { read: true }
 } as const;
 
 /** Editing jurisdiction settings: drafts are created unsealed; a live (not voided) version may be sealed, shortened, or voided. */
@@ -213,7 +216,8 @@ export const JURISDICTION_EDIT = {
 	claim_catalog: DRAFT_ROW,
 	leave_catalog: DRAFT_ROW,
 	loan_catalog: DRAFT_ROW,
-	work_catalog: DRAFT_ROW
+	work_catalog: DRAFT_ROW,
+	suspension_kind: DRAFT_ROW
 } as const;
 
 /** What a payroll run's own build writes: the payslips, their entry and roster pins, the run's hash and warnings. */
@@ -244,7 +248,7 @@ export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' }
 /** An automation's budget. */
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
 
-export const LEAVE_ENTRY_QUERIES = ['leave_balances', 'preview_leave'] as const;
+export const LEAVE_ENTRY_QUERIES = ['leave_balances', 'leave_days', 'preview_leave'] as const;
 
 /** Self-service: a person's own records, their own time off and claims (reviewed), every jurisdiction record. */
 export const SELF = {
@@ -326,7 +330,9 @@ export const STAFF_READ = {
 	payroll_run: { read: true },
 	payslip: { read: true },
 	obligation: { read: true },
-	regulatory_task: { read: true }
+	regulatory_task: { read: true },
+	workplace_case: { read: true },
+	work_suspension: { read: true }
 } as const;
 
 /** One entry family as HR keeps it: raised (reviewed when `approval` is given), edited and withdrawn until a run settles it. */
@@ -358,7 +364,7 @@ export const HR_ADMIN = {
 	holiday: { read: true, create: true, update: true },
 	shift_pattern: { read: true, create: true, update: true },
 	shift_definition: { read: true, create: true, update: true },
-	employment_profile: { read: true, create: true, update: true },
+	employment_profile: { read: true, create: true, update: true, actions: ['anonymise'] },
 	employment_contract: { read: true, create: true, update: true },
 	roster: { read: true, create: true, update: true },
 	roster_entry: {
@@ -369,7 +375,8 @@ export const HR_ADMIN = {
 			where: { or: [UNPINNED, PINNED] },
 			fields: [...ROSTER_ENTRY_FULL_FIELDS, 'payslip_id'],
 			approval: ROSTER_ENTRY_UPDATE_APPROVAL
-		}
+		},
+		delete: UNPINNED
 	},
 	claim_catalog_entry: hrEntries(CLAIM_ENTRY_FIELDS, CLAIM_ENTRY_EDIT, undefined),
 	leave_catalog_entry: {
@@ -392,7 +399,9 @@ export const HR_ADMIN = {
 				'facts'
 			]
 		},
-		update: true
+		update: true,
+		// withdrawn with the run that raised it
+		delete: { state: { eq: 'OPEN' } }
 	},
 	regulatory_task: {
 		read: true,
@@ -413,7 +422,9 @@ export const HR_ADMIN = {
 			]
 		},
 		update: true
-	}
+	},
+	workplace_case: { read: true, create: true, update: true },
+	work_suspension: { read: true, create: true, update: true, delete: true }
 } as const;
 export const HR_ENTRIES_REVIEWED = {
 	adhoc_catalog_entry: hrEntries(ADHOC_ENTRY_FIELDS, ADHOC_ENTRY_EDIT, PAY_APPROVAL),
@@ -439,7 +450,8 @@ export const PAYROLL_AUTHORITY = {
 	payslip: {
 		read: true,
 		create: { fields: PAYSLIP_BUILD_FIELDS },
-		update: { fields: ['status', 'paid_at'] }
+		update: { fields: ['status', 'paid_at'] },
+		moves: { status: ['DRAFT->ON_HOLD', 'ON_HOLD->DRAFT', 'DRAFT->PAID', 'ON_HOLD->PAID'] }
 	}
 } as const;
 /** A controller's run is held for the HR Manager; the controller's build still writes the payslips. */

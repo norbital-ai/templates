@@ -17,19 +17,17 @@
 	import { Schema } from 'effect';
 	import { liveRows } from '../../../../lib/ui/state/live.svelte.js';
 	import ShiftCycle from '../../../../lib/ui/entity/shift_cycle.svelte';
+	import { createValues } from '../../../../lib/ui/scopes/create_values.js';
 
 	let { view }: { view: RecordView<'shift_pattern'> } = $props();
 	const record = $derived(view.mode === 'update' ? view.record : null);
-	const values = $derived(view.mode === 'create' ? view.values : {});
+	// opened from an entity: its pattern is that entity's
+	const preset = createValues();
+	const values = $derived(view.mode === 'create' ? { ...preset, ...view.values } : {});
 	const t = bolt.t;
+	// a create has no record yet: the cycle offers the definitions of the entity its form names
 	const definitions = liveRows(() =>
-		record?.company_id == null
-			? null
-			: bolt.read('shift_definition', {
-					where: { company_id: { eq: record.company_id } },
-					select: { id: true, code: true },
-					all: true
-				})
+		bolt.read('shift_definition', { select: { id: true, code: true, company_id: true }, all: true })
 	);
 	const daysOf = (value: unknown): readonly Json[] => {
 		const obj = Schema.is(Schema.Record(Schema.String, Schema.Json))(value) ? value : null;
@@ -45,9 +43,7 @@
 <RecordShell
 	of="shift_pattern"
 	mode={view.mode}
-	{...record == null
-		? { values: view.mode === 'create' ? view.values : {} }
-		: { id: record.id, subtitle: ['code'] }}
+	{...record == null ? { values } : { id: record.id, subtitle: ['code'] }}
 >
 	{#key record?.revision}
 		<Form
@@ -62,9 +58,11 @@
 				if (created) openRecord('shift_pattern', created.id);
 			}}
 		>
-			{#snippet children()}
+			{#snippet children(form)}
+				{@const company = record?.company_id ?? form.get('company_id')}
 				<Section first name="identity" title={t('section.identity')}>
 					<Grid minimum="card">
+						{#if record == null}<Field name="company_id" />{/if}
 						<Field name="code" />
 						<Field name="name" />
 						<Field name="effective_range" />
@@ -75,10 +73,12 @@
 						{#snippet editor(field)}
 							<ShiftCycle
 								days={daysOf(field.value)}
-								definitions={(definitions.current ?? []).map((row) => ({
-									id: row.id,
-									code: row.code ?? undefined
-								}))}
+								definitions={(definitions.current ?? [])
+									.filter((row) => row.company_id === company)
+									.map((row) => ({
+										id: row.id,
+										code: row.code ?? undefined
+									}))}
 								onChange={(days) => field.onChange(withDays(field.value, [...days]))}
 								disabled={field.disabled}
 							/>
