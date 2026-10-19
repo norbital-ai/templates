@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"key": "norbital_trade_operations",
+	"name": "Trade Operations",
+	"industry": "Trading and Manufacturing",
+	"description": "Order-centered B2B trading, distribution and manufacturing commerce with sealed pricing and contracts, purchasing, fulfillment and ERP collection integrations.",
+	"visibility": "public",
+	"counts": {
+		"collections": 19,
+		"apps": 5,
+		"automations": 2
+	},
+	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],
+	"name_zh": "贸易运营",
+	"description_zh": "以订单为核心的商务工作区，封存合同与定价，整合采购、履约和ERP集合。"
+}

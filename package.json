@@ -1,0 +1,36 @@
+{
+	"name": "@template/trade-operations",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check": "bolt check",
+		"build": "bolt build",
+		"dev": "bolt dev",
+		"test": "bolt build && bolt test",
+		"format": "prettier --write .",
+		"lint": "prettier --check ."
+	},
+	"dependencies": {
+		"@norbital-ai/bolt": "0.0.1",
+		"@norbital-ai/std": "0.0.1",
+		"@norbital-ai/ui": "0.0.1",
+		"runed": "^0.37.1",
+		"svelte": "^5.57.1",
+		"vite": "^8.2.2",
+		"effect": "4.0.0-rc.112",
+		"@marcbachmann/cel-js": "8.0.0"
+	},
+	"devDependencies": {
+		"@norbital-ai/bolt-server": "0.0.1",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@types/node": "^26.4.0",
+		"happy-dom": "^20.11.6",
+		"prettier": "^3.9.6",
+		"prettier-plugin-svelte": "^4.1.1",
+		"svelte-check": "^4.7.6",
+		"typescript": "6.0.3",
+		"vitest": "4.1.11",
+		"@effect/vitest": "4.0.0-rc.112"
+	}
+}
