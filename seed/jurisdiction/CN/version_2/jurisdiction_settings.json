@@ -1,0 +1,1087 @@
+[
+	{
+		"id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "CN",
+		"jurisdiction_code": "CN",
+		"name": "China — 1 January 2026",
+		"sealed_at": "2026-10-06T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-06-30"
+		},
+		"payroll": {
+			"currency": "CNY",
+			"timezone": "Asia/Shanghai",
+			"tax_year_start_month": 1,
+			"pay_date": "period.to",
+			"week_start": 0,
+			"semi_monthly_split": 15,
+			"roster_week": "ROLLING",
+			"rolling_hours_months": 3,
+			"base_salary_required": true,
+			"off_cycle_families": ["ADHOC", "CLAIM"],
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
+			"negative_net": "refuse"
+		},
+		"sources": {
+			"entries": [
+				{
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "rsj.sh.gov.cn. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "shanghai.chinatax.gov.cn. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网_中央人民政府门户网站. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.kunming.cn/",
+					"instructions": "昆明信息港-昆明门户网|昆明新闻|昆明旅游|昆明资讯|昆明头条|昆明热点-昆明城市门户网站. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument. This is an official government information/news portal: accept only clearly attributed regulator releases; a summary that omits the annex or commencement clause cannot close that detail."
+				},
+				{
+					"url": "https://www.shanghai.gov.cn/",
+					"instructions": "上海市人民政府. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://ybj.sh.gov.cn/",
+					"instructions": "上海市医疗保障局. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.mohrss.gov.cn/",
+					"instructions": "Ministry of Human Resources and Social Security (MOHRSS). Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.cac.gov.cn/",
+					"instructions": "Cyberspace Administration of China (CAC). Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://fgk.chinatax.gov.cn/",
+					"instructions": "State Taxation Administration tax regulations database. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				}
+			],
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+		},
+		"cloned_from_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
+		"change_summary": "1 January 2026: the phased 1% unemployment-insurance rate (人社部发〔2024〕40号, 沪人社规〔2024〕25号 art.1, 云人社发〔2025〕9号) ran to 31 December 2025 and no extension was located: by owner ruling 0.5% / 0.5% is charged in both cities, provisional until a 2026 rate notice, with a warning on every payslip; Yunnan 2026 contribution-year limits 4403–22017 for pension, unemployment and work injury (云人社发〔2026〕8号, published 21 August 2026 for the 2026 calendar year); Kunming 2026 housing provident fund standard (upper 32543, zone floors 2270/2120/1970). Shanghai medical insurance continues at 9%/2% under 沪医保规〔2026〕2号 from 1 March 2026.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "retract-exit-effects",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+					"reads": {
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"payslip_id": {
+									"isNull": true
+								}
+							},
+							"select": ["reference"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key", "facts"]
+						}
+					},
+					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "withdraw-run-duties",
+					"target_collection": "payroll_run",
+					"events": ["deleted"],
+					"reads": {
+						"obligations": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["amount_settled"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-at-window-end",
+					"target_collection": "calendar",
+					"events": ["daily"],
+					"when": "size(event.leave_balances) > 0",
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_at_window_end": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"activity": {
+									"eq": "\"ENCASHMENT\""
+								}
+							},
+							"select": ["reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "true",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"engagement",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": [
+								"nationality",
+								"gender",
+								"date_of_birth",
+								"marital_status",
+								"solo_parent",
+								"children",
+								"dependents_count",
+								"facts"
+							]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"gte": "add_days(event.day, -400)"
+								}
+							},
+							"select": ["occurrence_key"]
+						},
+						"subject_tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"subject_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
+					"events": ["created", "updated", "daily", "after_exit", "calendar"]
+				},
+				{
+					"id": "write-public-holidays",
+					"target_collection": "entity",
+					"events": ["created", "calendar"],
+					"when": "true",
+					"reads": {
+						"calendar": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"public_holidays\""
+								}
+							},
+							"select": ["rules"]
+						},
+						"held": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["date"]
+						}
+					},
+					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "CN employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "CNY"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "CNY"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "CNY"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": [
+									"PERMANENT",
+									"FIXED_TERM",
+									"PROJECT",
+									"PART_TIME",
+									"INTERN",
+									"RETIREE_REHIRE"
+								],
+								"description": "劳动合同法 第十二条: PERMANENT 无固定期限, FIXED_TERM 固定期限, PROJECT 以完成一定工作任务为期限; PART_TIME 非全日制用工 (第六十八条, work-injury insurance only); INTERN a student intern and RETIREE_REHIRE a re-hired retiree are not in a labour relationship and outside social insurance and the housing provident fund."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["STANDARD", "COMPREHENSIVE", "FLEXIBLE"],
+								"description": "劳动法 第三十六条、第三十九条; 劳动部《关于企业实行不定时工作制和综合计算工时工作制的审批办法》(劳部发〔1994〕503号): standard hours, approved comprehensive hours, or approved flexible hours."
+							},
+							"statutory_work_category": {
+								"type": "string"
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["RESIDENT", "NON_RESIDENT"],
+								"description": "个人所得税法 第一条: RESIDENT has a domicile in China or stays 183 days or more in the tax year; NON_RESIDENT otherwise. IIT refuses any other value."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"si_contribution_base": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Declared social insurance and HPF contribution base (月缴费基数)",
+										"description": "社会保险法 第十二条; 住房公积金管理条例 第十六条: the prior-year monthly average wage declared each contribution year (a new hire: the first month's wage). Stored on the contract terms (`terms.facts`). Unrecorded is the contract monthly wage. The city floor and ceiling apply."
+									},
+									"written_contract_signed_on": {
+										"type": "string",
+										"format": "date",
+										"title": "Written labour contract signed on",
+										"description": "劳动合同法 第十条、第八十二条: the day the written contract was concluded; absent one month after hire raises WRITTEN_CONTRACT_OVERDUE (double wages), absent after a year DEEMED_OPEN_ENDED_CONTRACT."
+									},
+									"hourly_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Hourly rate (part-time)",
+										"description": "劳动合同法 第七十二条: checked against the local hourly minimum wage."
+									},
+									"probation": {
+										"type": "boolean",
+										"default": false,
+										"title": "Probation term (试用期)",
+										"description": "劳动合同法 第十九条、第二十条."
+									},
+									"contract_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Agreed post-probation wage",
+										"description": "劳动合同法 第二十条: probation pay at least 80% of it."
+									},
+									"post_lowest_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Lowest wage of the same post",
+										"description": "劳动合同法 第二十条."
+									},
+									"comprehensive_cycle_months": {
+										"type": "integer",
+										"enum": [1, 3, 12],
+										"title": "Comprehensive-hours cycle (months)",
+										"description": "劳部发〔1994〕503号: the approved cycle (month, quarter, year)."
+									},
+									"high_temperature_exposed": {
+										"type": "boolean",
+										"default": false,
+										"title": "Outdoor or uncooled work in summer (Shanghai)",
+										"description": "沪人社规〔2019〕19号."
+									},
+									"social_insurance_waived": {
+										"type": "boolean",
+										"default": false,
+										"title": "Social insurance waiver (void)",
+										"description": "法释〔2025〕12号 第十九条: refused."
+									},
+									"school_vacation_days": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Statutory school vacation days a year (寒暑假)",
+										"description": "职工带薪年休假条例 第四条(一); 实施办法 第七条: annual leave is reduced by these days, none when they reach it."
+									},
+									"employee_requested_fixed_term": {
+										"type": "boolean",
+										"default": false,
+										"title": "Employee asked for a fixed term (劳动者提出订立固定期限劳动合同)",
+										"description": "劳动合同法 第十四条第二款: after 10 years or two consecutive fixed terms, a fixed-term renewal stands only at the employee's request."
+									}
+								}
+							}
+						},
+						"required": ["employment_type", "work_classification", "residency_status"]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"layoff_batch_size": {
+							"type": "integer",
+							"minimum": 1,
+							"title": "People cut in the same layoff",
+							"description": "劳动合同法 第四十一条: 20 or more, or 10% of the workforce, needs the 30-day explanation and report."
+						},
+						"employee_refused_renewal_on_equal_terms": {
+							"type": "boolean",
+							"default": false,
+							"title": "Employee refused renewal on equal or better terms",
+							"description": "劳动合同法 第四十六条第五项: no compensation on expiry."
+						},
+						"occupational_disease_or_injury": {
+							"type": "boolean",
+							"default": false,
+							"title": "Occupational disease, suspected, or work injury (protected)",
+							"description": "劳动合同法 第四十二条第一、二项."
+						}
+					},
+					"description": "Stored on employment_contract.exit_facts."
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "Social security number or tax identification number of the person for this scheme."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"children_education_children": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "Children in education (子女教育)",
+												"description": "国发〔2023〕13号: 2000 a month for each child from age 3 to the end of full-time education."
+											},
+											"children_education_split": {
+												"type": "boolean",
+												"default": false,
+												"title": "Children education split 50/50 with the other parent",
+												"description": "国发〔2018〕41号 第六条: one parent takes 100% or each takes 50%."
+											},
+											"infant_care_children": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "Children under 3 (3岁以下婴幼儿照护)",
+												"description": "国发〔2022〕8号 as raised by 国发〔2023〕13号: 2000 a month for each child under 3."
+											},
+											"infant_care_split": {
+												"type": "boolean",
+												"default": false,
+												"title": "Infant care split 50/50 with the other parent",
+												"description": "国发〔2022〕8号 第二条."
+											},
+											"continuing_education_degree": {
+												"type": "boolean",
+												"default": false,
+												"title": "Degree continuing education (学历继续教育)",
+												"description": "国发〔2018〕41号 第八条: 400 a month during the degree education, at most 48 months."
+											},
+											"housing_loan_interest": {
+												"type": "boolean",
+												"default": false,
+												"title": "First-home loan interest (住房贷款利息)",
+												"description": "国发〔2018〕41号 第十四条: 1000 a month, at most 240 months; not with housing rent."
+											},
+											"housing_rent": {
+												"type": "boolean",
+												"default": false,
+												"title": "Housing rent (住房租金)",
+												"description": "国发〔2018〕41号 第十七条第一项: 1500 a month in a municipality or provincial capital (Shanghai, Kunming); not with loan interest."
+											},
+											"elderly_support_only_child": {
+												"type": "boolean",
+												"default": false,
+												"title": "Only child supporting a parent aged 60+ (赡养老人)",
+												"description": "国发〔2023〕13号: 3000 a month for an only child."
+											},
+											"elderly_support_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"maximum": 1500,
+												"default": 0,
+												"title": "Agreed elderly-support share (not an only child)",
+												"description": "国发〔2023〕13号: siblings share 3000 a month, at most 1500 each."
+											},
+											"annual_bonus_separate": {
+												"type": "boolean",
+												"default": false,
+												"title": "Tax the annual one-time bonus separately",
+												"description": "财政部 税务总局公告2023年第30号: to 31 December 2027 the annual bonus may be taxed apart from comprehensive income, once a year."
+											},
+											"prior_year_60000": {
+												"type": "boolean",
+												"default": false,
+												"title": "Prior-year wages ≤ 60,000 here (公告2020年第19号)",
+												"description": "The 60,000 deduction applies from January."
+											},
+											"first_job_in_year": {
+												"type": "boolean",
+												"default": false,
+												"title": "First wage income of the year (公告2020年第13号)",
+												"description": "Cumulative deduction from January in the hire month."
+											},
+											"personal_pension_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Personal pension contribution a month",
+												"description": "财政部 税务总局公告2022年第34号: 12,000 a year."
+											},
+											"commercial_health_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Tax-qualified health insurance a month",
+												"description": "财税〔2017〕39号: 200 a month."
+											},
+											"annuity_employee_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Enterprise annuity employee contribution a month",
+												"description": "财税〔2013〕103号: up to 4% of the base."
+											},
+											"foreign_allowance_exemption": {
+												"type": "boolean",
+												"default": false,
+												"title": "Foreign allowance exemption instead of special deductions",
+												"description": "财政部 税务总局公告2023年第29号."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"china_workday_share": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1,
+							"default": 1,
+							"title": "Share of the month worked in China (non-resident)",
+							"description": "财政部 税务总局公告2019年第35号 第二条: a non-resident's wage 收入额 is the China-workday share (境内工作天数 ÷ 当期公历天数). Customer input; default 1."
+						},
+						"retirement_category": {
+							"type": "string",
+							"enum": ["FEMALE_50", "FEMALE_55"],
+							"title": "Original statutory retirement age (women)",
+							"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
+						},
+						"only_child": {
+							"type": "boolean",
+							"default": false,
+							"title": "Only child (独生子女)",
+							"description": "上海市老年人权益保障条例 (陪护假 7 days); 云南省老年人权益保障条例 第二十四条 (护理假 20 days)."
+						},
+						"si_exempt_schemes": {
+							"type": "array",
+							"items": {
+								"type": "string",
+								"enum": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"]
+							},
+							"title": "Schemes exempted by a social-security agreement",
+							"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
+						},
+						"hpf_voluntary": {
+							"type": "boolean",
+							"default": false,
+							"title": "Joins the housing provident fund voluntarily (foreign / HK / MO / TW)",
+							"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号."
+						},
+						"non_domiciled_resident": {
+							"type": "boolean",
+							"default": false,
+							"title": "Resident without domicile in China",
+							"description": "财政部 税务总局公告2019年第35号 第二条: wages apportioned by the China-workday share."
+						},
+						"minor_employment_approved": {
+							"type": "boolean",
+							"default": false,
+							"title": "Approved employment under 16 (文艺、体育、特种工艺)",
+							"description": "劳动法 第十五条: an arts, sports or special-crafts unit may employ a person under 16 with approval."
+						},
+						"offshore_paid_share": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1,
+							"title": "Share of wages paid from abroad (境外支付工资 ÷ 境内外工资总额)",
+							"description": "财政部 税务总局公告2019年第35号 二(二): only wages paid from abroad for work abroad are excluded. 0 when the PRC entity pays everything."
+						},
+						"consecutive_resident_years": {
+							"type": "integer",
+							"minimum": 0,
+							"title": "Completed consecutive 183-day years before this one",
+							"description": "公告2019年第35号 二(二)2: from the 7th consecutive year all wages are taxed."
+						}
+					},
+					"description": "Person facts on employment_profile.facts; no CN rule reads one."
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "CN entity inputs",
+			"additionalProperties": false,
+			"properties": {
+				"hpf_rate_percent": {
+					"type": "integer",
+					"minimum": 5,
+					"maximum": 12,
+					"title": "Housing provident fund rate (%)",
+					"description": "住房公积金管理条例 第十八条: employer and employee at the same rate; Shanghai 5–7%, Kunming 5–12%."
+				},
+				"hpf_supplementary_rate_percent": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 5,
+					"title": "Shanghai supplementary HPF rate (%)",
+					"description": "Shanghai 补充住房公积金 1–5%; unrecorded is none."
+				},
+				"work_injury_rate_percent": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 5,
+					"title": "Notified work-injury rate (%)",
+					"description": "人社部发〔2015〕71号: the floated rate the social insurance agency notified; unrecorded is the industry-class base rate (risk_class 1–8)."
+				},
+				"union_established": {
+					"type": "boolean",
+					"default": false,
+					"title": "Trade union established",
+					"description": "工会法 第四十三条: a unit with a union remits 2% of total wages."
+				},
+				"state_owned": {
+					"type": "boolean",
+					"default": false,
+					"title": "State-owned unit (全民所有制)",
+					"description": "国务院关于职工探亲待遇的规定 第二条: home-visit leave and its fares bind 国家机关、人民团体和全民所有制企业、事业单位."
+				},
+				"unified_social_credit_code": {
+					"type": "string",
+					"title": "统一社会信用代码",
+					"description": "The employer registration number for tax (IIT withholding) and social insurance registration."
+				},
+				"si_registration_number": {
+					"type": "string",
+					"title": "Social insurance employer number (单位社保编号)"
+				},
+				"hpf_account_number": {
+					"type": "string",
+					"title": "Housing provident fund employer account (单位公积金账号)"
+				},
+				"rest_day_work_compensated": {
+					"type": "boolean",
+					"default": false,
+					"title": "Rest-day work compensated by time off (补休)",
+					"description": "劳动法 第四十四条第二项: rest-day work is paid at 200% only when no compensatory rest is arranged; an entity that arranges it records true."
+				},
+				"wi_voluntary_interns_and_retirees": {
+					"type": "boolean",
+					"default": false,
+					"title": "Shanghai: interns and over-age workers in work-injury insurance",
+					"description": "沪人社规〔2025〕22号 (from 2025-12-01): the employer may insure interns and workers past retirement age for work injury only."
+				},
+				"established_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Date of establishment (成立日期)",
+					"description": "社会保险法 第五十七条; 住房公积金管理条例 第十四条: the 30-day unit registrations run from it."
+				},
+				"local_average_annual_wage": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Local average annual wage (上年职工平均工资)",
+					"description": "财税〔2018〕164号 五(一): termination pay within 3 × this figure is exempt from IIT. The city's published figure."
+				},
+				"employs_migrant_workers": {
+					"type": "boolean",
+					"default": false,
+					"title": "Employs migrant workers (农民工)",
+					"description": "保障农民工工资支付条例 第十五条: wage ledger kept 3 years."
+				},
+				"wage_payday": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 31,
+					"title": "Agreed pay day (day of month)",
+					"description": "工资支付暂行规定 第七条."
+				},
+				"wage_payday_month_offset": {
+					"type": "integer",
+					"enum": [0, 1],
+					"title": "Pay day month (0 the same month, 1 the next)",
+					"description": "工资支付暂行规定 第七条."
+				},
+				"union_preparatory": {
+					"type": "boolean",
+					"default": false,
+					"title": "Trade union preparatory organisation established (工会筹备组织)",
+					"description": "上海市工会条例 第四十一条: a Shanghai unit with a union preparatory organisation remits 2% of total wages from its establishment."
+				},
+				"transfers_hr_data_abroad": {
+					"type": "boolean",
+					"default": false,
+					"title": "Sends employee data to an overseas group (跨境人力资源管理)",
+					"description": "促进和规范数据跨境流动规定 第五条(二); 个人信息保护法 第三十九条."
+				},
+				"prior_year_average_headcount": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year average headcount (上年用人单位在职职工人数)",
+					"description": "财税〔2015〕72号 第八条."
+				},
+				"prior_year_disabled_employees": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year disabled employees (上年实际安排残疾人就业人数)",
+					"description": "财税〔2015〕72号 第八条."
+				},
+				"prior_year_average_wage": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year average annual wage of the entity (上年在职职工年平均工资)",
+					"description": "财税〔2015〕72号 第八条; capped at 2× the local average."
+				},
+				"wage_zone": {
+					"type": "string",
+					"enum": ["1", "2", "3"],
+					"default": "1",
+					"title": "Minimum-wage zone of the region (最低工资档次)",
+					"description": "The zone key of the region's minimum-wage table (`rules.regions`; Kunming classes 1–3); blank = the region's default zone. Also the Kunming housing-fund floor."
+				},
+				"sick_pay_percent": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 100,
+					"title": "Sick pay (% of wage, employer policy)",
+					"description": "Where the region sets only a floor (`rules.regions.*.sick_pay.scale` null): the share of the wage the employer pays on sick leave; unrecorded is the floor (80% of the minimum wage, 劳部发〔1995〕309号 第59条)."
+				}
+			}
+		},
+		"suspension_kinds": [
+			{
+				"code": "STOPPAGE_EMPLOYER",
+				"name": "停工停产 (stoppage for the employer's operational reasons)",
+				"counts_as_attended": "true",
+				"scheduled": "",
+				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either."
+			},
+			{
+				"code": "FORCE_MAJEURE",
+				"name": "不可抗力停工 (natural disaster or accident)",
+				"counts_as_attended": "true",
+				"scheduled": "",
+				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A disaster is a cause not the employee's: 第十二条 applies."
+			},
+			{
+				"code": "GOVERNMENT_ORDER",
+				"name": "政府措施停工 (shutdown ordered by a government measure)",
+				"counts_as_attended": "true",
+				"scheduled": "",
+				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
+				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A government measure (e.g. the epidemic controls of 人社厅明电〔2020〕5号) is a cause not the employee's: 第十二条 applies."
+			},
+			{
+				"code": "EMPLOYEE_CAUSED",
+				"name": "劳动者原因停工 (stoppage caused by the employees)",
+				"counts_as_attended": "false",
+				"scheduled": "",
+				"pay": "0.0",
+				"authority": "劳动法 第五十条 and 工资支付暂行规定 第十二条 a contrario: wages are paid for labour provided; a stoppage the employees cause is outside 第十二条, unpaid and not attended. PRC law has no statutory strike pay. https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		]
+	}
+]
