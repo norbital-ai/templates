@@ -1,0 +1,272 @@
+[
+	{
+		"id": "7ac5aa0f-2c07-56d4-b1c5-fa7ee92ad335",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CPF",
+		"name": "Central Provident Fund",
+		"authority": "Central Provident Fund Act 1953, section 7 and First Schedule; CPF Board contribution tables effective 1 January 2027, Tables 1–5. Ordinary Wages are capped at SGD 8,000 per month. Additional Wages, including bonuses and leave encashment, use the SGD 102,000 annual ceiling less the year's capped Ordinary Wages. Before year end, remaining Ordinary Wages are projected; year-end and departure calculations reconcile against actual wages. Cash wage allowances enter their declared Ordinary or Additional Wage part; official expense reimbursements do not. Rate bands change in the month after the relevant birthday. SPR year two starts in the month after the first anniversary; year three starts in the month after the second anniversary. First- and second-year SPRs use graduated rates unless CPF Board approves full employer/full employee or full employer/graduated employee rates. These are separate elections with an approval reference. The total contribution rounds half-up to whole dollars, the employee share rounds down, and the employer pays the difference. Published tables: https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/jan2027cpfcontributionrates.pdf . CPF Board: the AW ceiling is per employee, employer and calendar year; related-company transfer may share one ceiling only under Board approval and stated conditions. https://www.cpf.gov.sg/service/article/how-do-i-apply-the-additional-wage-ceiling-for-the-following-scenarios-a-employee-a-is-working-for-two-entities-concurrently-b-employee-b-is-transferred-from-another-entity ; https://www.cpf.gov.sg/service/article/as-an-employer-how-do-i-apply-to-the-board-for-a-single-additional-wage-aw-ceiling-if-my-employees-were-transferred-to-another-related-company-during-the-year . An incomplete registration does not waive the statutory or fund contribution for an otherwise covered worker; assess the declared liability and retain the registration warning. CPF Act First Schedule para 2 — the December AW ceiling is charged against every AW of the year, an opening (prior-system) AW included; the year's AW paid is read as at least the AW already charged to date (`scheme.year_to_date.base − .ordinary`). Ceiling: an opening AW plus earlier payslip AW in one year still undercounts; the full fix is an opening-AW context field. CPF Board internship FAQ (read 3 October 2026): MOE-subsidised student internships endorsed by the institution, including endorsed extensions, are exempt; retain institution documentation. Exemption Order 2018 para.2 exempts Schedule student employees from both CPF s.7 and community funds s.76(3). This bounded branch requires evidence and an approved interval covering the entire assessment period. Partial-period and other Schedule classes are not inferred. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-interns-undergoing-an-internship-programme ; https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251217 . CPF Board overseas-based temporary Singapore service FAQ (read 3 October 2026) excludes temporary meetings, conferences, training or remote work for personal reasons; non-temporary Singapore stints remain chargeable. Contract base and dated temporary scope must both be evidenced, with legal employer identified. The guard requires the full assessment period inside the temporary stint. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-if-i-am-on-an-overseas-based-contract-and-working-in-singapore-temporarily . National Service training: employer CPF is based on typical civilian wages as though NS had not interrupted work, including usual variable components. Only evidenced ordinary civilian wages missing from the payroll base are added as notional CPF wages; this does not create cash pay. CPF Board: https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-the-national-service-ns-make-up-pay-when-i-am-away-from-work-for-ns-training ; official wages table https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/6jan2026_which_allowances_and_payments_attract_cpf_contributions.pdf (retrieved 2026-10-03). Concurrent employment: each employer pays its own employer CPF and uses its own OW/AW ceilings. Only the employee OW share may be limited to this employer’s amount in a CPF Board-approved allocation, effective after approval, without retrospective application; changed circumstances require refreshed approval. https://www.cpf.gov.sg/service/article/if-i-am-concurrently-employed-by-more-than-one-employer-can-i-choose-to-contribute-cpf-for-one-of-my-employee_profiles-only (retrieved 2026-10-03). CPF Exemption Order2018 para5 after31May2026: citizen seaman under current qualifying contract entered and employment begun before1June2026 is exempt from CPF s7 and all community-fund s76(3) contributions. Exact classes: Swedish ship on Swedish-seamen terms, Norwegian ship on Norwegian-seamen terms, or East Asiatic Co Ltd Denmark under Danish Shipowners Association/Seamen Union agreement. Prior-connected-contract continuation is not inferred from a seaman title. https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251230 (S325/2026, retrieved2026-10-03). CPF Exemption Order2018 para4 (S325/2026): only private domestic household employment by an individual, exclusively domestic and unconnected to any trade/business/profession; citizen/SPR, qualifying pre-June current contract, its applicable pre-June hours test and every rolling7-day window in the charged calendar month <=14hours. Saved daily records, including explicit zero-hour dates, supply actual hours; missing dates cannot establish exemption. Prior connected contracts are not inferred. https://sso.agc.gov.sg/SL/CPFA1953-OR10 (retrieved2026-10-03).",
+		"configuration": {
+			"person": {
+				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))"
+			},
+			"assessable": {
+				"ordinary": "min(month.ordinary, 8000.0)",
+				"additional": "min(month.additional, max(0.0, 102000.0 - (year.ordinary + (period.salary_paid || wage.ordinary != 0.0 ? max(0.0, min(month.ordinary, 8000.0)) : min(max(0.0, terms.monthly_wage), 8000.0)) + min(max(0.0, terms.monthly_wage), 8000.0) * (12.0 - period.month)) - year.additional))"
+			},
+			"refuse_when": [
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age == null",
+					"message": "CPF needs the employee’s date of birth."
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && (person.residency_since == null || person.residency_since == \"\")",
+					"message": "CPF needs the permanent resident’s residency start date."
+				}
+			],
+			"rules": [
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age < 55 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.17, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.17 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.22, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 55 && person.age < 60 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.165, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.165 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.215, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 60 && person.age < 65 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.13, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.13 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.18, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 65 && person.age < 70 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.14, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 70 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.075, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.075 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.125, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age < 55 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.17, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.45 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.17 + 0.45 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.45 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.15, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.32, 1.0, \"HALF_UP\") - round(base.assessed * 0.15, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 55 && person.age < 60 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.165, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.375 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.165 + 0.375 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.375 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.125, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.29, 1.0, \"HALF_UP\") - round(base.assessed * 0.125, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 60 && person.age < 65 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.13, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.13 + 0.225 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.075, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.205, 1.0, \"HALF_UP\") - round(base.assessed * 0.075, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 65 && person.age < 70 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.14, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 70 && has(scheme.elections.spr_employer_full_rates) && scheme.elections.spr_employer_full_rates == true && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.075, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.075 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.125, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age < 55 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.04, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.04 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 55 && person.age < 60 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.04, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.04 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 60 && person.age < 65 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.035, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.035 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.085, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from <= month_end(add_years(person.residency_since, 1)) && person.age >= 65 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.035, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.035 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.085, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age < 55 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.45 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09 + 0.45 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.45 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.15, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.24, 1.0, \"HALF_UP\") - round(base.assessed * 0.15, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 55 && person.age < 60 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.06, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.375 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.06 + 0.375 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.375 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.125, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.185, 1.0, \"HALF_UP\") - round(base.assessed * 0.125, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 60 && person.age < 65 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.035, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.035 + 0.225 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.075, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.11, 1.0, \"HALF_UP\") - round(base.assessed * 0.075, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "person.residency_status == \"PERMANENT_RESIDENT\" && period.from > month_end(add_years(person.residency_since, 1)) && period.from <= month_end(add_years(person.residency_since, 2)) && person.age >= 65 && !(has(scheme.elections.spr_full_rates) && scheme.elections.spr_full_rates == true)",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.035, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.035 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.085, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age < 55",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.17, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.6 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.17 + 0.6 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.6 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.2, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.37, 1.0, \"HALF_UP\") - round(base.assessed * 0.2, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age >= 55 && person.age < 60",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.165, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.57 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.165 + 0.57 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.57 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.19, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.355, 1.0, \"HALF_UP\") - round(base.assessed * 0.19, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age >= 60 && person.age < 65",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.13, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.39 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.13 + 0.39 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.39 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.13, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.26, 1.0, \"HALF_UP\") - round(base.assessed * 0.13, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age >= 65 && person.age < 70",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.09, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.09 + 0.225 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.225 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.075, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.165, 1.0, \"HALF_UP\") - round(base.assessed * 0.075, 1.0, \"DOWN\")}"
+				},
+				{
+					"when": "(person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.age >= 70",
+					"contribution": "base.assessed <= 50.0 ? {\"employee\": 0.0, \"employer\": 0.0} : base.assessed <= 500.0 ? {\"employee\": 0.0, \"employer\": round(base.assessed * 0.075, 1.0, \"HALF_UP\")} : base.assessed <= 750.0 ? {\"employee\": round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.075 + 0.15 * (base.assessed - 500.0), 1.0, \"HALF_UP\") - round(0.15 * (base.assessed - 500.0), 1.0, \"DOWN\")} : {\"employee\": round(base.assessed * 0.05, 1.0, \"DOWN\"), \"employer\": round(base.assessed * 0.125, 1.0, \"HALF_UP\") - round(base.assessed * 0.05, 1.0, \"DOWN\")}"
+				}
+			],
+			"limitation": "The age band is the age at the end of the previous month, so a band changes the month after the birthday. SPR years one and two use the graduated employer and graduated employee rates (Tables 2–3); an SPR jointly or employer-only elected to full rates pays Table 1 or Tables 4–5 from the standing’s elections."
+		}
+	},
+	{
+		"id": "20560d6d-c823-540a-b1d0-a48666767d4a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CDAC",
+		"name": "Chinese Development Assistance Council Fund",
+		"authority": "CPF Board self-help group contribution schedule: Chinese Development Assistance Council Fund. Monthly employee-borne wage-band deductions apply to Chinese Singapore Citizens and Permanent Residents. CDAC Rules 1992 r.2: the Chinese community is every citizen or permanent resident of Chinese descent; read in the ICA-sourced Myinfo RaceCode list (Myinfo API code tables, public.cloud.myinfo.gov.sg, v1.11, read 2026-09-28) as CHINESE and the mixed codes naming Chinese descent first (SINO INDIAN, SINO JAPANESE, SINO KADAZAN), the Board's first-race rule applied to a single code. The base includes cash wage allowances, overtime and leave encashment, less unpaid absence; official expense reimbursements are excluded. The published wage band applies unless a dated fund instruction records an opt-out or a different monthly amount. Explicit zero is distinct from no instruction. The instruction reference is required; MBMF changes use the approved total after any component changes. CPF Board: https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups . CDAC employer FAQ 18 allows an employee with multiple jobs to opt out for selected employers: https://www.cdac.org.sg/cdac-funding-info-information-for-employers . CPF Board mixed-race example permits an Indian-Chinese employee to elect both SINDA and CDAC by informing the fund: https://www.cpf.gov.sg/service/article/how-do-i-determine-which-self-help-group-shg-my-employee-should-contribute-to . An incomplete registration does not waive the statutory or fund contribution for an otherwise covered worker; assess the declared liability and retain the registration warning. CPF Board internship FAQ (read 3 October 2026): MOE-subsidised student internships endorsed by the institution, including endorsed extensions, are exempt; retain institution documentation. Exemption Order 2018 para.2 exempts Schedule student employees from both CPF s.7 and community funds s.76(3). This bounded branch requires evidence and an approved interval covering the entire assessment period. Partial-period and other Schedule classes are not inferred. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-interns-undergoing-an-internship-programme ; https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251217 . CPF Exemption Order2018 para5 after31May2026: citizen seaman under current qualifying contract entered and employment begun before1June2026 is exempt from CPF s7 and all community-fund s76(3) contributions. Exact classes: Swedish ship on Swedish-seamen terms, Norwegian ship on Norwegian-seamen terms, or East Asiatic Co Ltd Denmark under Danish Shipowners Association/Seamen Union agreement. Prior-connected-contract continuation is not inferred from a seaman title. https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251230 (S325/2026, retrieved2026-10-03). CPF Exemption Order2018 para4 (S325/2026): only private domestic household employment by an individual, exclusively domestic and unconnected to any trade/business/profession; citizen/SPR, qualifying pre-June current contract, its applicable pre-June hours test and every rolling7-day window in the charged calendar month <=14hours. Saved daily records, including explicit zero-hour dates, supply actual hours; missing dates cannot establish exemption. Prior connected contracts are not inferred. https://sso.agc.gov.sg/SL/CPFA1953-OR10 (retrieved2026-10-03).",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.race in [\"CHINESE\", \"SINO INDIAN\", \"SINO JAPANESE\", \"SINO KADAZAN\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":2000,\"amount\":0.5},{\"up_to\":3500,\"amount\":1},{\"up_to\":5000,\"amount\":1.5},{\"up_to\":7500,\"amount\":2},{\"up_to\":null,\"amount\":3}]))",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "A written opt-out (shg_opted_out) or a changed amount (shg_monthly_amount) on the fund’s standing applies from the standing’s effective date."
+		}
+	},
+	{
+		"id": "45c55f92-60b1-5560-8d19-cde5d178841b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "ECF",
+		"name": "Eurasian Community Fund",
+		"authority": "CPF Board self-help group contribution schedule: Eurasian Community Fund. Monthly employee-borne wage-band deductions apply to Eurasian Singapore Citizens and Permanent Residents. CPF (Contributions to Community Fund — Eurasian Association) Rules 1995 r.2 (SSO, 2025 Revised Edition, read 2026-09-28): every citizen or permanent resident of Eurasian descent, including anyone whose identity card states the Eurasian race; read in the ICA-sourced Myinfo RaceCode list (Myinfo API code tables, public.cloud.myinfo.gov.sg, v1.11, read 2026-09-28) as EURASIAN, OTHER EURASIAN and the ANGLO codes (ANGLO BURMESE, ANGLO CHINESE, ANGLO FILIPINO, ANGLO INDIAN, ANGLO THAI), which name a European and an Asian descent. BURGHER, DUTCH BURGHER and SERANI (whose descent the code does not state as European and Asian) are not read as ECF's. The base includes cash wage allowances, overtime and leave encashment, less unpaid absence; official expense reimbursements are excluded. The published wage band applies unless a dated fund instruction records an opt-out or a different monthly amount. Explicit zero is distinct from no instruction. The instruction reference is required; MBMF changes use the approved total after any component changes. CPF Board: https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups . An incomplete registration does not waive the statutory or fund contribution for an otherwise covered worker; assess the declared liability and retain the registration warning. CPF Board internship FAQ (read 3 October 2026): MOE-subsidised student internships endorsed by the institution, including endorsed extensions, are exempt; retain institution documentation. Exemption Order 2018 para.2 exempts Schedule student employees from both CPF s.7 and community funds s.76(3). This bounded branch requires evidence and an approved interval covering the entire assessment period. Partial-period and other Schedule classes are not inferred. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-interns-undergoing-an-internship-programme ; https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251217 . CPF Exemption Order2018 para5 after31May2026: citizen seaman under current qualifying contract entered and employment begun before1June2026 is exempt from CPF s7 and all community-fund s76(3) contributions. Exact classes: Swedish ship on Swedish-seamen terms, Norwegian ship on Norwegian-seamen terms, or East Asiatic Co Ltd Denmark under Danish Shipowners Association/Seamen Union agreement. Prior-connected-contract continuation is not inferred from a seaman title. https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251230 (S325/2026, retrieved2026-10-03). CPF Exemption Order2018 para4 (S325/2026): only private domestic household employment by an individual, exclusively domestic and unconnected to any trade/business/profession; citizen/SPR, qualifying pre-June current contract, its applicable pre-June hours test and every rolling7-day window in the charged calendar month <=14hours. Saved daily records, including explicit zero-hour dates, supply actual hours; missing dates cannot establish exemption. Prior connected contracts are not inferred. https://sso.agc.gov.sg/SL/CPFA1953-OR10 (retrieved2026-10-03).",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.race in [\"EURASIAN\", \"OTHER EURASIAN\", \"ANGLO BURMESE\", \"ANGLO CHINESE\", \"ANGLO FILIPINO\", \"ANGLO INDIAN\", \"ANGLO THAI\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":2},{\"up_to\":1500,\"amount\":4},{\"up_to\":2500,\"amount\":6},{\"up_to\":4000,\"amount\":9},{\"up_to\":7000,\"amount\":12},{\"up_to\":10000,\"amount\":16},{\"up_to\":null,\"amount\":20}]))",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "A written opt-out (shg_opted_out) or a changed amount (shg_monthly_amount) on the fund’s standing applies from the standing’s effective date."
+		}
+	},
+	{
+		"id": "d2aaa1a2-1b28-5234-8f93-fb437f5bb120",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "MBMF",
+		"name": "Mosque Building and Mendaki Fund",
+		"authority": "CPF Board self-help group contribution schedule: Mosque Building and Mendaki Fund. Monthly employee-borne wage-band deductions apply to Muslim employees, including foreigners. The base includes cash wage allowances, overtime and leave encashment, less unpaid absence; official expense reimbursements are excluded. The published wage band applies unless a dated fund instruction records an opt-out or a different monthly amount. Explicit zero is distinct from no instruction. The instruction reference is required; MBMF changes use the approved total after any component changes. CPF Board: https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups . MUIS change form: https://www.muis.gov.sg/give-back/mbmf/mbmf-forms/ . An incomplete registration does not waive the statutory or fund contribution for an otherwise covered worker; assess the declared liability and retain the registration warning. CPF Board internship FAQ (read 3 October 2026): MOE-subsidised student internships endorsed by the institution, including endorsed extensions, are exempt; retain institution documentation. Exemption Order 2018 para.2 exempts Schedule student employees from both CPF s.7 and community funds s.76(3). This bounded branch requires evidence and an approved interval covering the entire assessment period. Partial-period and other Schedule classes are not inferred. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-for-interns-undergoing-an-internship-programme ; https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251217 . CPF Exemption Order2018 para5 after31May2026: citizen seaman under current qualifying contract entered and employment begun before1June2026 is exempt from CPF s7 and all community-fund s76(3) contributions. Exact classes: Swedish ship on Swedish-seamen terms, Norwegian ship on Norwegian-seamen terms, or East Asiatic Co Ltd Denmark under Danish Shipowners Association/Seamen Union agreement. Prior-connected-contract continuation is not inferred from a seaman title. https://sso.agc.gov.sg/SL/CPFA1953-OR10?DocDate=20251230 (S325/2026, retrieved2026-10-03). CPF Exemption Order2018 para4 (S325/2026): only private domestic household employment by an individual, exclusively domestic and unconnected to any trade/business/profession; citizen/SPR, qualifying pre-June current contract, its applicable pre-June hours test and every rolling7-day window in the charged calendar month <=14hours. Saved daily records, including explicit zero-hour dates, supply actual hours; missing dates cannot establish exemption. Prior connected contracts are not inferred. https://sso.agc.gov.sg/SL/CPFA1953-OR10 (retrieved2026-10-03).",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && person.religion == \"ISLAM\" && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":3},{\"up_to\":2000,\"amount\":4.5},{\"up_to\":3000,\"amount\":6.5},{\"up_to\":4000,\"amount\":15},{\"up_to\":6000,\"amount\":19.5},{\"up_to\":8000,\"amount\":22},{\"up_to\":10000,\"amount\":24},{\"up_to\":null,\"amount\":26}]))",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "A written opt-out (shg_opted_out) or a changed amount (shg_monthly_amount) on the fund’s standing applies from the standing’s effective date."
+		}
+	},
+	{
+		"id": "3592e764-19cd-501f-9d5f-e33aa0dca485",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SINDA",
+		"name": "Singapore Indian Development Association Fund",
+		"authority": "CPF Act 1953 s.76(3) and the SINDA Fund Rules; CPF Board, Contributions to self-help groups (read 2026-10-07): the Indian community — including Bangladeshis, Pakistanis, Sri Lankans and Sindhis — who are Singapore Citizens, SPRs or Employment Pass holders; the monthly wage-band schedule.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\" || (has(employee.facts.immigration_status) && employee.facts.immigration_status == \"EMPLOYMENT_PASS\")) && person.race in [\"SRI LANKAN\", \"SINDHI\", \"BANGLADESHI\", \"PAKISTANI\", \"INDIAN\", \"BENGALI\", \"GUJARATI\", \"MALAYALEE\", \"PUNJABI\", \"SIKH\", \"TAMIL\", \"TELUGU\", \"SINHALESE\", \"PARSEE\", \"PATHAN\", \"KANNADA\", \"KASHMIRI\", \"GOAN\", \"CEYLONESE\", \"CEYLON MOOR\", \"MALABARI\", \"OTHER INDIAN\", \"ASSAMI\", \"BRAHMIN\", \"HINDUSTANI\", \"KHASI\", \"MAHRATTA\", \"MANIPURI\", \"MARATHI\", \"RAJPUT\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":1},{\"up_to\":1500,\"amount\":3},{\"up_to\":2500,\"amount\":5},{\"up_to\":4500,\"amount\":7},{\"up_to\":7500,\"amount\":9},{\"up_to\":10000,\"amount\":12},{\"up_to\":15000,\"amount\":18},{\"up_to\":null,\"amount\":30}]))",
+					"employer": "0.0"
+				}
+			],
+			"limitation": "A written opt-out (shg_opted_out) or a changed amount (shg_monthly_amount) on the fund’s standing applies from the standing’s effective date."
+		}
+	},
+	{
+		"id": "e5d57084-86d8-57d5-bd9b-b5d654b6ab9a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SDL",
+		"name": "Skills Development Levy",
+		"authority": "Skills Development Levy Act 1979 ss.2–4 and Skills Development Levy (Exemption) Order 2014 para.2(1)(a): a matriculated or registered student of one of twelve named local institutions employed for institution-approved training is exempt. Other student paths are not inferred from an internship label. Skills Development Levy Act 1979 ss.2–3: levy applies to an employee serving wholly or partly in Singapore during the month, or on leave attributable to earlier Singapore service; it excludes a domestic servant, gardener or chauffeur wholly and exclusively employed by an individual outside that individual’s trade, business, profession or vocation. The employer owes 0.25% of monthly money wages, minimum SGD 2 and maximum SGD 11.25. Student exemptions under the 2014 Order para.2 are priced separately: local institution-approved training; institution-required overseas tertiary training lasting no more than six calendar months with the institution letter submitted to the Agency; and Education Act registered school students working during gazetted holidays who have not completed A-level examinations. The exemption must cover all employment days in the assessed month; mixed qualifying/nonqualifying months refuse pending wage allocation. The CPF Board rounds the employer-month total for local employees, paid with CPF, down to the nearest dollar; the levy for foreign employees is submitted at the actual amount (SkillsFuture Singapore FAQs on the October 2023 SDL Notice of Assessment, F.7, https://file.go.gov.sg/sdl-noa2023faqs.pdf, kept as historical evidence of the practice). Since 1 July 2026 the Agency is the Skills and Workforce Development Agency (SWDA) (SDL Act s.2 as amended by Act 17 of 2026), and the CPF Board collects SDL on its behalf. Sources: https://sso.agc.gov.sg/Act/SDLA1979?ProvIds=pr2-,pr3- ; https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy .",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && !(has(scheme.elections.sdl_service_scope) && scheme.elections.sdl_service_scope == \"OUTSIDE_SINGAPORE\") && !(has(scheme.elections.sdl_household_role) && scheme.elections.sdl_household_role in [\"DOMESTIC_SERVANT\", \"GARDENER\", \"CHAUFFEUR\"] && has(scheme.elections.sdl_wholly_exclusive) && scheme.elections.sdl_wholly_exclusive == true && has(scheme.elections.sdl_nonbusiness) && scheme.elections.sdl_nonbusiness == true)",
+					"employee": "0.0",
+					"employer": "max(2.0, min(11.25, round(base.assessed * 0.0025, 0.01, \"HALF_UP\")))"
+				}
+			],
+			"limitation": "SDL Act 1979 s.2: no levy for a month with no services in Singapore (sdl_service_scope OUTSIDE_SINGAPORE) or for a household domestic servant, gardener or chauffeur wholly and exclusively employed by an individual outside any business (elections on the SDL standing)."
+		}
+	},
+	{
+		"id": "dc13f2d3-ffe3-5535-b5fd-f10159470aff",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WHT_NR_DIRECTOR",
+		"name": "Withholding tax on non-resident director fees",
+		"authority": "Income Tax Act 1947 s.45 (s.12(2) source); IRAS: 24% of director fees and remuneration paid to a non-resident director (YA 2024 onwards). The base is the director-fee lines (counts_toward WHT_NR_DIRECTOR); a director recorded as tax_resident is assessed annually through IR8A instead.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && has(employee.facts.tax_resident) && employee.facts.tax_resident == false",
+					"employee": "round(base.assessed * 0.24, 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "1fe4597e-ad94-52f6-8b64-444bb884a79d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WHT_NR_ENTERTAINER",
+		"name": "Withholding tax on non-resident public entertainers",
+		"authority": "Income Tax Act 1947 s.45 (s.12(5) source); IRAS, Tax obligations of non-resident public entertainer (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer), read 2026-10-07: 15% of the taxable gross income from services performed in Singapore (the 10% concession lapsed after 31 Mar 2022); non-resident = in Singapore under 183 days in the calendar year (employee.facts.tax_resident == false). The base is the NR_PUBLIC_ENTERTAINER_FEE lines.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "base.assessed > 0.0 && has(employee.facts.tax_resident) && employee.facts.tax_resident == false",
+					"employee": "round(base.assessed * 0.15, 0.01, \"HALF_UP\")",
+					"employer": "0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "f4857ce3-43a4-54cc-8194-f070f6710038",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "APPENDIX_8A",
+		"name": "Appendix 8A benefits-in-kind (Form IR8A item d8)",
+		"authority": "Income Tax Act 1947 ss.10(1)(b), 68(2); IRAS, Explanatory Notes for Completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf) and Appendix 8A (IR8A(A/1/2027)), read 2026-10-08, note 11: the total value of benefits-in-kind (items 2 to 4) is entered in item d8 of Form IR8A. A reporting base, not a contribution: Singapore withholds no tax on employment income, so nothing is charged; the base is the value the BIK_* classes carry here, which the IR8A worksheet reads.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "906d5ed8-c1bd-546c-b358-19f811f7fed4",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "APPENDIX_8B",
+		"name": "Appendix 8B share-plan gains (Form IR8A item d7)",
+		"authority": "Income Tax Act 1947 ss.10(1)(b), (6)–(7), 68(2); IRAS, Explanatory Notes for the Completion of Appendix 8B for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf) and Appendix 8B (App8B(1/2027)), read 2026-10-08, note 4: the total gross ESOP/ESOW gains are entered in item d7 of Form IR8A. A reporting base: nothing is charged; the base is the gain SHARE_PLAN_GAIN and SHARE_PLAN_DEEMED_GAIN carry here.",
+		"configuration": {
+			"rules": [
+				{
+					"when": "true",
+					"employee": "0.0",
+					"employer": "0.0"
+				}
+			]
+		}
+	}
+]

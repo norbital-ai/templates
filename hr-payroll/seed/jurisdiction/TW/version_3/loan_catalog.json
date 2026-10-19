@@ -1,0 +1,12 @@
+[
+	{
+		"id": "967732f7-92d7-539b-a66f-bbdf52020521",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "SALARY_ADVANCE",
+		"name": "Salary advance (預借工資)",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"bands": []
+	}
+]

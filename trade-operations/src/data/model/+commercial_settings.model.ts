@@ -1,0 +1,29 @@
+import { model } from '@norbital-ai/bolt';
+export default model({
+	description: 'commercial settings',
+	label: 'code',
+	fields: {
+		freight_treatment: { kind: 'enum', values: ['deduct', 'include'], default: 'deduct' },
+		code: {
+			kind: 'enum',
+			values: ['default'],
+			default: 'default',
+			hidden: true
+		},
+		require_floor: {
+			kind: 'bool',
+			default: false
+		},
+		credit_fresh_minutes: {
+			kind: 'int',
+			min: 1,
+			default: 60
+		},
+		stock_fresh_minutes: {
+			kind: 'int',
+			min: 1,
+			default: 30
+		}
+	},
+	key: ['code']
+});

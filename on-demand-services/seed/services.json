@@ -1,0 +1,36 @@
+[
+	{
+		"id": "0d500001-0000-4000-8000-000000000001",
+		"name": "Home cleaning (3 h)",
+		"skill": "home_cleaning",
+		"duration_minutes": 180,
+		"price": "75.00",
+		"description": "Routine cleaning of living areas, bedrooms, kitchen and bathrooms.",
+		"active": true
+	},
+	{
+		"id": "0d500001-0000-4000-8000-000000000002",
+		"name": "Deep cleaning (5 h)",
+		"skill": "deep_cleaning",
+		"duration_minutes": 300,
+		"price": "180.00",
+		"description": "Top-to-bottom cleaning including cabinets, grout and appliances.",
+		"active": true
+	},
+	{
+		"id": "0d500001-0000-4000-8000-000000000003",
+		"name": "Move-in / move-out cleaning",
+		"skill": "move_in_out",
+		"duration_minutes": 360,
+		"price": "260.00",
+		"active": true
+	},
+	{
+		"id": "0d500001-0000-4000-8000-000000000004",
+		"name": "Ironing (2 h)",
+		"skill": "laundry_ironing",
+		"duration_minutes": 120,
+		"price": "50.00",
+		"active": true
+	}
+]

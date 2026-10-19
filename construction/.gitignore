@@ -1,0 +1,9 @@
+node_modules/
+
+# Generated, never edited (§3.1).
+.norbital/
+
+.pi/
+.svelte-check/
+.tmp/
+.vite/

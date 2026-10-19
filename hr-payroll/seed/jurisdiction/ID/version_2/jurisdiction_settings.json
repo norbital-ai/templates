@@ -1,0 +1,1205 @@
+[
+	{
+		"id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "ID",
+		"jurisdiction_code": "ID",
+		"name": "Indonesia — 2026-01-01",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"payroll": {
+			"currency": "IDR",
+			"timezone": "Asia/Jakarta",
+			"tax_year_start_month": 1,
+			"pay_date": "period.to",
+			"week_start": 0,
+			"semi_monthly_split": 15,
+			"roster_week": "ROLLING",
+			"rolling_hours_months": 3,
+			"base_salary_required": true,
+			"off_cycle_families": ["ADHOC", "CLAIM"],
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
+			"negative_net": "refuse"
+		},
+		"sources": {
+			"entries": [
+				{
+					"url": "https://bantenprov.go.id/",
+					"instructions": "Beranda  - Website Resmi Pemerintah Provinsi Banten. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://gunungkidulkab.go.id/",
+					"instructions": "Pemerintah Kabupaten Gunungkidul. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.jakarta.go.id/",
+					"instructions": "Beranda - JDIH Provinsi DKI Jakarta. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.jambiprov.go.id/",
+					"instructions": "JDIH Pemerintah Provinsi Jambi. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.jatengprov.go.id/",
+					"instructions": "JDIH PROVINSI JAWA TENGAH. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.kemnaker.go.id/",
+					"instructions": "jdih.kemnaker.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.lampungprov.go.id/",
+					"instructions": "Home - Jaringan Dokumentasi dan Informasi Hukum | Kantor Biro Hukum Provinsi Lampung. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.pontianak.go.id/",
+					"instructions": "JDIH Kota Pontianak. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://lamongankab.go.id/",
+					"instructions": "RUMAH LAYANAN Pemerintah Kabupaten Lamongan. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://nakertrans.jogjaprov.go.id/",
+					"instructions": "nakertrans.jogjaprov.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.bpjsketenagakerjaan.go.id/",
+					"instructions": "www.bpjsketenagakerjaan.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.pajak.go.id/",
+					"instructions": "Direktorat Jenderal Pajak. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://jdih.setneg.go.id/",
+					"instructions": "JDIH Kementerian Sekretariat Negara. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://disnakertrans.jatimprov.go.id/",
+					"instructions": "Dinas Tenaga Kerja dan Transmigrasi Provinsi Jawa Timur. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://oss.go.id/",
+					"instructions": "Online Single Submission (OSS) Indonesia. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				}
+			],
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+		},
+		"cloned_from_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"change_summary": "The 2026 provincial and city minimum wages under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) from 1 January 2026, which lift the ordinary-PPU BPJS Kesehatan floor. Round 7: national holidays (SKB 3 Menteri) as PAYROLL public_holidays; worksite minimum wages with daily and hourly floors; all 38 provincial UMPs and big-city UMKs; JKK 50% discount to the January 2026 wage month (PP 36/2025); PPh 21 DTP (PMK 105/2025); leave paid at the usual wage; paid-absence classes; late-wage and late-THR fines; PKWT, probation, child and night-work checks.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "retract-exit-effects",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+					"reads": {
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"payslip_id": {
+									"isNull": true
+								}
+							},
+							"select": ["reference"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key", "facts"]
+						}
+					},
+					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "withdraw-run-duties",
+					"target_collection": "payroll_run",
+					"events": ["deleted"],
+					"reads": {
+						"obligations": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["amount_settled"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-at-window-end",
+					"target_collection": "calendar",
+					"events": ["daily"],
+					"when": "size(event.leave_balances) > 0",
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_at_window_end": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"activity": {
+									"eq": "\"ENCASHMENT\""
+								}
+							},
+							"select": ["reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "true",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"engagement",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": [
+								"nationality",
+								"gender",
+								"date_of_birth",
+								"marital_status",
+								"solo_parent",
+								"children",
+								"dependents_count",
+								"facts"
+							]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"gte": "add_days(event.day, -400)"
+								}
+							},
+							"select": ["occurrence_key"]
+						},
+						"subject_tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"subject_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
+					"events": ["created", "updated", "daily", "after_exit", "calendar"]
+				},
+				{
+					"id": "write-public-holidays",
+					"target_collection": "entity",
+					"events": ["created", "calendar"],
+					"when": "true",
+					"reads": {
+						"calendar": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"public_holidays\""
+								}
+							},
+							"select": ["rules"]
+						},
+						"held": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["date"]
+						}
+					},
+					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "ID employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "IDR"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "IDR"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string",
+											"enum": ["HOUSE_ALLOWANCE", "CAR_ALLOWANCE", "SPECIAL_ALLOWANCE"]
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "IDR"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								},
+								"description": "Tunjangan tetap: fixed allowances paid with the basic wage; with it they make the monthly wage (terms.monthly_wage) for BPJS, overtime, THR and severance (PP 36/2021 art.7; PP 35/2021 art.32(2))."
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PART_TIME", "DAILY"],
+								"description": "PERMANENT: PKWTT (open-ended); CONTRACT: PKWT (fixed term, UU 13/2003 art.56 as amended by UU 6/2023; PP 35/2021 arts.4–16 — compensation on expiry, no pesangon); PART_TIME: PKWTT or PKWT under 35 hours a week (PP 35/2021 art.21(3)); DAILY: a pegawai tidak tetap paid by the day (PP 35/2021 art.10; PMK 168/2023 art.12(2) TER harian)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "MANAGERIAL"],
+								"description": "MANAGERIAL: a golongan jabatan tertentu under PP 35/2021 art.27(2) — no overtime wage."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+								"description": "How the wage is set: by time, by output (satuan hasil, PP 36/2021 art.15) or by task."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "RESIDENT_FOREIGNER", "NON_RESIDENT"],
+								"description": "Tax residency (UU PPh art.2(3)–(4)) with nationality: CITIZEN is an Indonesian national resident for tax (PPh 21; JP and PKWT compensation apply); RESIDENT_FOREIGNER a foreigner present more than 183 days in 12 months or intending to reside (PPh 21; no JP); NON_RESIDENT is withheld PPh 26 at 20%. PPh 21 refuses any other value."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"description": "Stored on the term; CEL reads them as terms.facts.*.",
+								"properties": {
+									"daily_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Agreed daily wage",
+										"description": "For a DAILY worker: the day's wage. PPh 21 TER harian is priced on it (PMK 168/2023 art.12(2)), and JHT, JKK and JKM take the month as 25 days of it (PP 44/2015 art.19(3); PP 46/2015 art.17(3))."
+									},
+									"working_days_per_week": {
+										"type": "integer",
+										"enum": [5, 6],
+										"title": "Working days a week",
+										"description": "The working-time system of PP 35/2021 art.21(2): 6 days of 7 hours (40 a week) or 5 days of 8 hours. Prices rest-day and holiday overtime (art.31(2)–(3)); required before such hours are paid."
+									},
+									"worksite_kbli": {
+										"type": "string",
+										"pattern": "^[0-9]{5}$",
+										"title": "Worksite KBLI",
+										"description": "The five-digit KBLI of the worksite's activity; selects the governor's sector minimum wage."
+									},
+									"umsp_job_category": {
+										"type": "string",
+										"enum": ["BUS_DRIVER_MECHANIC", "NURSING_MIDWIFERY", "MEDICAL_SUPPORT"],
+										"title": "Job category (sector minimum wage)",
+										"description": "DKI Kep. Gubernur 33/2026 rows 58–59 (bus drivers and mechanics of private companies) and 61 (nursing and midwifery, medical support at a class A private hospital)."
+									},
+									"tax_subject_from": {
+										"type": "string",
+										"format": "date",
+										"title": "Resident tax subject from",
+										"description": "The day this person became an Indonesian resident tax subject, where that is in the current year (PMK 168/2023 art.15(3))."
+									},
+									"tax_subject_until": {
+										"type": "string",
+										"format": "date",
+										"title": "Resident tax subject until",
+										"description": "The last day as an Indonesian resident tax subject, where it ends in the current year (leaving Indonesia for good); that month is the last tax period."
+									},
+									"non_fixed_allowances_monthly": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Non-fixed allowances a month",
+										"description": "Allowances that vary with attendance or output; with basic plus fixed allowances below 75% of the whole wage, overtime is priced on 75% of the whole (PP 35/2021 art.32(4))."
+									},
+									"worksite_region": {
+										"type": "string",
+										"title": "Worksite region",
+										"description": "Where the worker works, as a key of rules.minimum_wage.by_region (“Provinsi X” or “Provinsi X/Kota|Kabupaten Y”). The minimum wage, the sector minimum wage and the BPJS Kesehatan floor are read here (UU 13/2003 art.88E; Perpres 82/2018 art.32); absent, the company region."
+									},
+									"hourly_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Agreed hourly wage",
+										"description": "A part-time worker’s hourly wage; at least the monthly minimum ÷ 126 (PP 36/2021 art.16)."
+									},
+									"probation_months": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Probation (months)",
+										"description": "The agreed probation period: none in a PKWT, at most 3 months in a PKWTT (UU 13/2003 arts.58, 60)."
+									},
+									"written_in_indonesian": {
+										"type": "boolean",
+										"title": "PKWT written in Indonesian",
+										"description": "The PKWT is in writing in Indonesian and Latin script (UU 13/2003 art.57(1) as amended)."
+									},
+									"indonesia_work_months_planned": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Planned months of work in Indonesia",
+										"description": "For a foreign worker: the planned period of work in Indonesia; under 6 months the worker is insured privately, not by BPJS (UU 24/2011 art.14; PP 34/2021 art.8)."
+									},
+									"dplk_employee_monthly": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Employee pension-fund contribution a month",
+										"description": "The employee’s own monthly contribution to an OJK-approved pension fund (DPLK/DPPK), deducted from the year’s gross for PPh 21 (PMK 168/2023 art.10(1)(b))."
+									},
+									"weather_dependent": {
+										"type": "boolean",
+										"title": "Piece work depends on the weather",
+										"description": "BPJS averages a piece-rate wage over 12 months instead of 3 (PP 44/2015 art.19(5); PP 46/2015 art.17(5))."
+									},
+									"personnel_position": {
+										"type": "boolean",
+										"title": "Personnel (HR) position",
+										"description": "The position handles personnel; a foreign worker may not hold it (PP 34/2021 art.11)."
+									},
+									"dkptka_exempt": {
+										"type": "boolean",
+										"title": "Exempt from DKPTKA",
+										"description": "The foreign worker’s position is exempt from the DKPTKA compensation (PP 34/2021)."
+									},
+									"pre_employment_exam_on": {
+										"type": "string",
+										"format": "date",
+										"title": "Accepted pre-employment examination date",
+										"description": "PER.02/MEN/1980 art.2(7): an examination within the previous three calendar months can remove the need for another pre-employment examination."
+									},
+									"pre_employment_exam_accepted": {
+										"type": "boolean",
+										"title": "Previous examination meets statutory requirements",
+										"description": "A physician satisfying art.1(d) performed the recorded examination and there is no doubt about its suitability (art.2(7)). A date alone does not qualify."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts; CEL reads them as employment.exit_facts.*.",
+					"properties": {
+						"termination_cause": {
+							"type": "string",
+							"enum": [
+								"MERGER_CONSOLIDATION_SEPARATION",
+								"ACQUISITION",
+								"ACQUISITION_TERMS_CHANGE_REJECTED",
+								"EFFICIENCY_ACTUAL_LOSS",
+								"EFFICIENCY_PREVENT_LOSS",
+								"CLOSURE_LOSS",
+								"CLOSURE_NO_LOSS",
+								"FORCE_MAJEURE_CLOSURE",
+								"FORCE_MAJEURE_NO_CLOSURE",
+								"DEBT_SUSPENSION_LOSS",
+								"DEBT_SUSPENSION_NO_LOSS",
+								"BANKRUPTCY",
+								"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
+								"EMPLOYEE_REQUEST_REJECTED",
+								"VOLUNTARY_RESIGNATION",
+								"UNEXCUSED_ABSENCE",
+								"VIOLATION_AFTER_WARNINGS",
+								"URGENT_VIOLATION",
+								"DETENTION_CAUSED_LOSS",
+								"DETENTION_NO_LOSS",
+								"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
+								"RETIREMENT",
+								"DEATH"
+							],
+							"title": "PP 35/2021 termination cause",
+							"description": "The statutory ground (PP 35/2021 arts.41–57); it chooses the pesangon multiplier and whether UPMK or uang pisah is owed. Required for a PKWTT exit."
+						},
+						"separation_wage_basis": {
+							"type": "string",
+							"enum": ["MONTHLY", "DAILY", "OUTPUT"],
+							"title": "Separation wage basis",
+							"description": "PP 35/2021 art.157 basis: the monthly wage (basic plus fixed allowances), 30 × a daily wage, or the 12-month output average floored at the regional minimum wage (rules.minimum_wage.by_region[company.region])."
+						},
+						"separation_daily_wage": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Daily wage for separation",
+							"description": "Art.157(2): the separation month is 30 times this daily wage."
+						},
+						"output_average_12m": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Average output-paid income, last 12 months",
+							"description": "Art.157(3)–(4)."
+						},
+						"micro_small_enterprise": {
+							"type": "boolean",
+							"title": "Micro or small enterprise",
+							"description": "PP 35/2021 art.59: a micro or small enterprise pays the severance agreed with the worker instead of the statutory formula."
+						},
+						"micro_small_agreement_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Micro/small-enterprise agreement reference"
+						},
+						"agreed_pesangon_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed pesangon amount",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"agreed_upmk_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed service-award amount",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"agreed_pkwt_compensation_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Agreed fixed-term compensation",
+							"description": "PP 35/2021 art.59(1)."
+						},
+						"separation_pay_amount": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Contract-defined separation pay (uang pisah)",
+							"description": "PP 35/2021 arts.50–54: the amount the agreement, company regulation or collective agreement fixes."
+						},
+						"separation_pay_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Separation-pay agreement reference"
+						},
+						"pension_offset_applies": {
+							"type": "boolean",
+							"title": "Employer-funded pension offset applies",
+							"description": "PP 35/2021 art.58: an employer pension programme's benefit is set against the separation pay."
+						},
+						"employer_funded_pension_benefit": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Employer-funded pension benefit",
+							"description": "PP 35/2021 art.58(2)."
+						},
+						"pension_offset_reference": {
+							"type": "string",
+							"minLength": 1,
+							"title": "Pension offset agreement reference"
+						},
+						"notice_given_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Termination notice given on",
+							"description": "The day the written termination notice reached the worker (PP 35/2021 art.37(3)–(4))."
+						},
+						"in_probation": {
+							"type": "boolean",
+							"title": "Dismissed during probation",
+							"description": "The notice period is 7 working days instead of 14 (PP 35/2021 art.37(4))."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["REGISTERED", "NOT_REGISTERED"],
+										"description": "The participant registration with the scheme (BPJS Ketenagakerjaan or Kesehatan). A missing registration does not waive a contribution (UU 24/2011 art.19)."
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The KPJ (BPJS Ketenagakerjaan) or JKN card number."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"extra_members": {
+												"type": "integer",
+												"minimum": 0,
+												"title": "Extra BPJS Kesehatan family members",
+												"description": "KESEHATAN: family members beyond the spouse and three children the worker enrols (Perpres 82/2018 arts.30(1)(b), 36): 1% of the capped wage each, deducted from the worker."
+											}
+										}
+									},
+									"reason": {
+										"type": "string",
+										"description": "Why the standing is what it is (e.g. the source evidence for a missing registration)."
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as the other keys of employment_profile.facts; CEL reads them as employee.facts.*. PTKP reads the profile columns marital_status and dependents_count (at most three) and gender: MARRIED is status K; with the dependants it fixes the TER category (A = TK/0, TK/1, K/0; B = TK/2, TK/3, K/1, K/2; C = K/3).",
+					"properties": {
+						"husband_no_income_certified": {
+							"type": "boolean",
+							"default": false,
+							"title": "Husband has no income (kelurahan statement)",
+							"description": "A married female employee takes PTKP TK/0 unless she holds a statement from the kelurahan/desa that her husband receives no income; then she takes K plus her dependants (PMK 168/2023; UU PPh art.8(1))."
+						},
+						"zakat_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Zakat paid through the employer a month",
+							"description": "Zakat or a compulsory religious contribution paid through the employer to a recognised body; deducted from gross income (PMK 168/2023 art.10(1)(c))."
+						},
+						"pph26_treaty_rate": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 0.2,
+							"title": "PPh 26 treaty rate",
+							"description": "The tax-treaty rate for a non-resident who has given the certificate of domicile (PMK 168/2023 art.14(1)–(2))."
+						},
+						"tax_id_validated": {
+							"type": "boolean",
+							"title": "NPWP or DJP-validated NIK",
+							"description": "True when the employee has an NPWP or a NIK validated by DJP; false applies the 20% higher rate (UU 36/2008 art.21(5a)) and bars the DTP incentive (PMK 105/2025 art.4)."
+						},
+						"pph21_dtp_reference_gross": {
+							"type": "number",
+							"minimum": 0,
+							"title": "DTP reference gross",
+							"description": "The fixed and regular gross of January of the incentive year, or of the first month worked in it (PMK 105/2025 art.4(2)(b); PMK 10/2025 art.4(2)(b))."
+						},
+						"pph21_dtp_reference_year": {
+							"type": "integer",
+							"minimum": 2025,
+							"title": "DTP reference year",
+							"description": "The year the DTP reference gross was measured in."
+						},
+						"night_work_pregnancy_risk": {
+							"type": "boolean",
+							"title": "Pregnant, night work a risk (doctor)",
+							"description": "A doctor certifies that night work endangers the pregnancy or the worker (UU 13/2003 art.76(2))."
+						},
+						"passport_number": {
+							"type": "string",
+							"title": "Passport number",
+							"description": "A foreign employee’s passport (Coretax CounterpartPassport on BPMP, BPA1 and BP26)."
+						},
+						"foreign_tin": {
+							"type": "string",
+							"title": "Foreign tax identification number",
+							"description": "A non-resident’s TIN in the country of residence (Coretax BP26 CounterpartTin); blank = the passport number."
+						},
+						"bp26_country": {
+							"type": "string",
+							"pattern": "^[A-Z]{3}$",
+							"title": "Country of residence (ISO 3166-1 alpha-3)",
+							"description": "A non-resident’s country on the Coretax BP26 (CounterpartCountry, e.g. USA)."
+						},
+						"birth_city": {
+							"type": "string",
+							"title": "City of birth",
+							"description": "A non-resident’s birth city on the Coretax BP26 (CounterpartBirthCity)."
+						},
+						"bp21_tax_object_code": {
+							"type": "string",
+							"enum": [
+								"21-100-04",
+								"21-100-05",
+								"21-100-06",
+								"21-100-07",
+								"21-100-18",
+								"21-100-19",
+								"21-100-20",
+								"21-100-21",
+								"21-100-22",
+								"21-100-23",
+								"21-100-33",
+								"21-100-34"
+							],
+							"title": "BP21 tax object code of a bukan pegawai",
+							"description": "The DJP tax object code of a non-employee’s fees on the Coretax BP21 (BP21 converter REF sheet, deemed 50%); blank = 21-100-20, services in any field."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "ID entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts; CEL reads them as company.facts.*. The entity columns region (a key of rules.minimum_wage.by_region: the BPJS Kesehatan floor and the art.157 output floor) and risk_class (JKK group I–V, PP 44/2015 art.16(1)) are read beside them.",
+			"properties": {
+				"leave_cash_out_day_divisor": {
+					"type": "number",
+					"minimum": 1,
+					"maximum": 25,
+					"title": "Leave cash-out daily divisor",
+					"description": "The number of days the basic wage is divided by to value one day of unused annual leave (owner ruling: basic ÷ this divisor; KDIT pays ÷ 20), at most 25 — the PP 36/2021 art.17 divisor of a six-day week, so a day is never valued below it. Required before any annual leave is cashed out (UU 13/2003 art.79; PP 35/2021 art.40(4)(a))."
+				},
+				"enterprise_size_class": {
+					"type": "string",
+					"enum": ["OTHER", "MICRO_OR_SMALL"],
+					"title": "Enterprise size for BPJS Kesehatan",
+					"description": "Perpres 82/2018 art.32(4)–(5) as amended by Perpres 59/2024: micro and small enterprises are outside the ordinary UMP/UMK contribution floor."
+				},
+				"npwp": {
+					"type": "string",
+					"pattern": "^[0-9]{15,16}$",
+					"title": "Employer NPWP",
+					"description": "The withholder's tax identity on SPT Masa PPh 21/26 and BPA1 (16 digits from 2024; PMK 112/2022)."
+				},
+				"nib": {
+					"type": "string",
+					"title": "Nomor Induk Berusaha",
+					"description": "The OSS business identity (PP 5/2021); WLKP and PKWT registration key on it."
+				},
+				"bpjs_ketenagakerjaan_npp": {
+					"type": "string",
+					"title": "BPJS Ketenagakerjaan NPP",
+					"description": "Employer registration number (nomor pendaftaran perusahaan) for JHT, JKK, JKM, JP and JKP."
+				},
+				"bpjs_kesehatan_kode_badan_usaha": {
+					"type": "string",
+					"title": "BPJS Kesehatan employer code",
+					"description": "The badan usaha code of the employer's BPJS Kesehatan registration."
+				},
+				"wlkp_registration": {
+					"type": "string",
+					"title": "WLKP registration number",
+					"description": "Wajib Lapor Ketenagakerjaan di Perusahaan registration (UU 7/1981; Permenaker 18/2017)."
+				},
+				"wlkp_first_reported_on": {
+					"type": "string",
+					"format": "date",
+					"title": "First WLKP report",
+					"description": "The day the company first reported under UU 7/1981 art.6; the annual report falls on its anniversary (art.8)."
+				},
+				"company_regulation_valid_until": {
+					"type": "string",
+					"format": "date",
+					"title": "Company regulations valid until",
+					"description": "The last day of the ratified Peraturan Perusahaan (at most 2 years, UU 13/2003 art.111(3))."
+				},
+				"umsp_export_oriented": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exporter (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_assets_over_1_trillion": {
+					"type": "boolean",
+					"default": false,
+					"title": "Assets above Rp1 trillion (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_astra_group": {
+					"type": "boolean",
+					"default": false,
+					"title": "Astra group member (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_class_a_private_hospital": {
+					"type": "boolean",
+					"default": false,
+					"title": "Class A private hospital (sector minimum wage)",
+					"description": "A Keterangan condition of the DKI Kep. Gubernur 33/2026 Lampiran; record it only where the employer meets it."
+				},
+				"umsp_hotel_star": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5,
+					"default": 0,
+					"title": "Hotel star class (sector minimum wage)",
+					"description": "DKI Kep. Gubernur 33/2026 Lampiran row 60: star hotels of 4 and 5 stars; Banten Kep. 704/2025 Lampiran V (Kota Tangerang sector 3): 3, 4 and 5 stars. Sumatera Utara Kep. 188.44/909/KPTS/2025 annex XI (Medan): exact 3-, 4- or 5-star class selects a separate rate."
+				},
+				"klu": {
+					"type": "string",
+					"pattern": "^[0-9]{5}$",
+					"title": "Main KLU (DJP)",
+					"description": "The main business classification code in the DJP database (on 1 January of the year, or the registration day): selects the PPh 21 DTP incentive (PMK 105/2025 art.3; PMK 10/2025 art.3)."
+				},
+				"jkk_labour_intensive_industry": {
+					"type": "string",
+					"enum": [
+						"FOOD_BEVERAGE_TOBACCO",
+						"TEXTILE_GARMENT",
+						"LEATHER_GOODS",
+						"FOOTWEAR",
+						"CHILDREN_TOYS",
+						"FURNITURE"
+					],
+					"title": "Labour-intensive industry (JKK discount)",
+					"description": "The PP 7/2025 art.3(4) industry, as BPJS Ketenagakerjaan verified it: with 50 or more active participants the JKK is halved for wage months up to January 2026 (PP 36/2025 art.10A)."
+				},
+				"managerial_group_defined": {
+					"type": "boolean",
+					"title": "Golongan jabatan tertentu defined",
+					"description": "The employment agreement, company regulation or collective agreement defines the art.27(2) managerial group exempt from overtime pay (PP 35/2021 art.27(4)–(5))."
+				},
+				"lks_bipartit_formed_on": {
+					"type": "string",
+					"format": "date",
+					"title": "LKS Bipartit formed on",
+					"description": "The day the bipartite cooperation body was formed (UU 13/2003 art.106)."
+				},
+				"k3_high_hazard": {
+					"type": "boolean",
+					"title": "High hazard potential",
+					"description": "The workplace has a high hazard potential: SMK3 applies whatever the headcount (PP 50/2012 art.5(2))."
+				},
+				"long_leave_granted": {
+					"type": "boolean",
+					"title": "Long leave granted",
+					"description": "The employment agreement, company regulation or collective agreement grants long leave (UU 13/2003 art.79(5) as amended)."
+				},
+				"dkptka_usd_idr_rate": {
+					"type": "number",
+					"minimum": 0,
+					"title": "DKPTKA USD rate",
+					"description": "Rupiah per US dollar the DKPTKA (USD 100 a foreign worker a month) is paid at."
+				},
+				"construction_services": {
+					"type": "boolean",
+					"title": "Construction services (jasa konstruksi)",
+					"description": "The employer is in the construction-services sector (PP 44/2015 art.1(10), BAB VI): its daily, piece, task and PKWT workers pay JKK at 1.74% of the monthly wage (art.54(1))."
+				},
+				"umsp_rayon_viscose": {
+					"type": "boolean",
+					"default": false,
+					"title": "Rayon viscose staple fibre (sector minimum wage)",
+					"description": "Kep. Gubernur Jawa Barat 561.7/Kep.876-Kesra/2025, Purwakarta: KBLI 20302 rayon viscose (5,193,876) rather than polyester (5,062,344); record it only where the worksite makes rayon viscose."
+				},
+				"nitku": {
+					"type": "string",
+					"pattern": "^[0-9]{22}$",
+					"title": "ID TKU (NITKU)",
+					"description": "The 22-digit place-of-business identity of the withholder on Coretax slips (IDPlaceOfBusinessActivity); blank = the NPWP + 000000 of the head office."
+				},
+				"umsp_freeport_area": {
+					"type": "boolean",
+					"default": false,
+					"title": "Works in the PT Freeport Indonesia area (Mimika sector minimum wage)",
+					"description": "Kep. Gubernur Papua Tengah 100.3.3.1/337/2025 diktum KETIGA (2026: any company) and 258/2024 diktum KESATU 3 (2025: a construction company): a company working in the PT Freeport Indonesia area pays the Mimika mining sector minimum wage. Unrecorded is false."
+				},
+				"umsp_bank_category": {
+					"type": "string",
+					"enum": ["PRIVATE_CONVENTIONAL_FOREX", "SYARIAH_FOREX", "OTHER"],
+					"title": "Bank category (sector minimum wage)",
+					"description": "Medan annex XI of Kep. 188.44/909/KPTS/2025: private conventional foreign-exchange bank (printed KBLI 2015 64125, KBLI 2020 64121), foreign-exchange syariah bank (2015 64131, 2020 64122), or another bank. Declare actual licensed status; the broader KBLI 2020 code does not establish it."
+				}
+			}
+		},
+		"suspension_kinds": [
+			{
+				"code": "EMPLOYER_CAUSED",
+				"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
+				"counts_as_attended": "true",
+				"scheduled": "",
+				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
+				"authority": "PP 36/2021 art.40(2)(d) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+			},
+			{
+				"code": "FORCE_MAJEURE",
+				"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
+				"counts_as_attended": "false",
+				"scheduled": "",
+				"pay": "0.0",
+				"authority": "UU 13/2003 art.93(1); PP 36/2021 art.40(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+			},
+			{
+				"code": "STRIKE_NORMATIVE",
+				"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
+				"counts_as_attended": "false",
+				"scheduled": "",
+				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
+				"authority": "UU 13/2003 art.145 — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+			},
+			{
+				"code": "STRIKE_OTHER",
+				"name": "Any other strike — no work, no wage",
+				"counts_as_attended": "false",
+				"scheduled": "",
+				"pay": "0.0",
+				"authority": "UU 13/2003 art.93(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
+			}
+		]
+	}
+]

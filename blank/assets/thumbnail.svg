@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Blank workspace">
+	<rect width="1600" height="900" fill="#f2f1ed" />
+	<rect x="80" y="80" width="1440" height="740" rx="24" fill="none" stroke="#d8d5cc" stroke-width="4" stroke-dasharray="16 16" />
+	<g fill="none" stroke="#e0552b" stroke-width="10" stroke-linecap="round">
+		<line x1="800" y1="380" x2="800" y2="520" />
+		<line x1="730" y1="450" x2="870" y2="450" />
+	</g>
+	<text x="800" y="620" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="56" font-weight="600" fill="#1a1a1a">Blank</text>
+</svg>

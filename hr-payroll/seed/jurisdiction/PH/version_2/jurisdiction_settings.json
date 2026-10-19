@@ -1,0 +1,972 @@
+[
+	{
+		"id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "PH",
+		"jurisdiction_code": "PH",
+		"name": "Philippines — 6 January 2026 (RR 29-2025)",
+		"sealed_at": "2026-09-30T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": null
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1,
+			"pay_date": "period.to",
+			"week_start": 0,
+			"semi_monthly_split": 15,
+			"roster_week": "ROLLING",
+			"rolling_hours_months": 3,
+			"base_salary_required": true,
+			"off_cycle_families": ["ADHOC", "CLAIM"],
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
+			"negative_net": "refuse"
+		},
+		"sources": {
+			"entries": [
+				{
+					"url": "https://elibrary.judiciary.gov.ph/",
+					"instructions": "The Book Shelf - Supreme Court E-Library. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "National Wages and Productivity Commission &#8211; The official website of the NWPC.. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.bir.gov.ph/",
+					"instructions": "www.bir.gov.ph. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument. This public portal needs JavaScript: use TAX INFORMATION & REGULATIONS, Tax Code, Revenue Issuances and the search box. Follow PDFs linked to the Bureau-owned bir-cdn.bir.gov.ph; confirm document type/number and final effective text, not a draft.",
+					"document_origins": ["https://bir-cdn.bir.gov.ph/"]
+				},
+				{
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "PhilHealth. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "Republic of the Philippines Social Security System. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.pagibigfund.gov.ph/",
+					"instructions": "Home Development Mutual Fund (Pag-IBIG Fund). Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				}
+			],
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+		},
+		"cloned_from_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"change_summary": "RR 29-2025 (dated 27 October 2025, posted on the BIR website 22 December 2025, in force fifteen days later, 6 January 2026; s.3) raises every de minimis ceiling of RR 2-98 s.2.78.1(A)(3): monetised leave 10 → 12 days, dependants’ medical ₱1,500 → ₱2,000 a semester, rice ₱2,000 → ₱2,500 and laundry ₱300 → ₱400 a month, uniform ₱7,000 → ₱8,000, medical assistance, achievement awards and CBA/productivity ₱10,000 → ₱12,000, Christmas gifts ₱5,000 → ₱6,000, the overtime/night meal 25% → 30% of the regional minimum wage. Later regional wage orders are dated entries of the PAYROLL rule `minimum_wage`, not versions.",
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "retract-exit-effects",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+					"reads": {
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"payslip_id": {
+									"isNull": true
+								}
+							},
+							"select": ["reference"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key", "facts"]
+						}
+					},
+					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "withdraw-run-duties",
+					"target_collection": "payroll_run",
+					"events": ["deleted"],
+					"reads": {
+						"obligations": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["amount_settled"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-at-window-end",
+					"target_collection": "calendar",
+					"events": ["daily"],
+					"when": "size(event.leave_balances) > 0",
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_at_window_end": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"activity": {
+									"eq": "\"ENCASHMENT\""
+								}
+							},
+							"select": ["reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "true",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"engagement",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": [
+								"nationality",
+								"gender",
+								"date_of_birth",
+								"marital_status",
+								"solo_parent",
+								"children",
+								"dependents_count",
+								"facts"
+							]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"gte": "add_days(event.day, -400)"
+								}
+							},
+							"select": ["occurrence_key"]
+						},
+						"subject_tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"subject_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
+					"events": ["created", "updated", "daily", "after_exit", "calendar"]
+				},
+				{
+					"id": "write-public-holidays",
+					"target_collection": "entity",
+					"events": ["created", "calendar"],
+					"when": "true",
+					"reads": {
+						"calendar": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"public_holidays\""
+								}
+							},
+							"select": ["rules"]
+						},
+						"held": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["date"]
+						}
+					},
+					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+				}
+			]
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "PHP"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "PHP"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "PHP"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": [
+									"PERMANENT",
+									"PROBATION",
+									"FIXED_TERM",
+									"PROJECT",
+									"SEASONAL",
+									"CASUAL",
+									"PART_TIME",
+									"APPRENTICE",
+									"INTERN",
+									"DOMESTIC",
+									"CAREGIVER"
+								],
+								"description": "Labor Code arts.295–296 (regular, project, seasonal, casual, probationary), fixed-term employment, arts.58–72 apprentices, RA 12063 trainees and RA 10361 (Batas Kasambahay) DOMESTIC: a kasambahay takes ANNUAL_LEAVE_DOMESTIC, no company loan, the domestic wage floor and the household contribution rules. CAREGIVER: RA 11965 (Caregivers’ Welfare Act) — the regional minimum wage, twice-monthly pay, 13th month, five-day SIL, overtime and night-shift pay, SSS/PhilHealth/Pag-IBIG from the first day."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["RANK_AND_FILE", "SUPERVISORY", "MANAGERIAL"],
+								"description": "Labor Code arts.82, 219(m): managerial employees are outside SIL, 13th month, premium, overtime and night pay; SUPERVISORY and MANAGERIAL fringe benefits bear the FBT (NIRC s.33), rank-and-file’s are compensation."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_FIELD", "FIELD_PERSONNEL", "TASK_BASIS", "PIECE_RATE"],
+								"description": "Labor Code art.82 field personnel and task-basis workers are outside service incentive leave; task-basis workers outside 13th-month pay, piece-rate workers inside it (PD 851 Revised Guidelines)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": [
+									"CITIZEN",
+									"PERMANENT_RESIDENT",
+									"RESIDENT_ALIEN",
+									"NON_RESIDENT_ALIEN_ETB",
+									"NON_RESIDENT_ALIEN_NETB"
+								],
+								"description": "NIRC ss.22(E)–(G), 24(A), 25(A)–(B): NON_RESIDENT_ALIEN_NETB (not engaged in trade or business) is withheld 25% final on gross compensation; the others on the graduated tables."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"days_per_year": {
+										"type": "integer",
+										"enum": [253, 261, 305, 313, 365],
+										"default": 313,
+										"title": "Days-per-year factor",
+										"description": "The factor that turns the monthly basic into a daily rate (DOLE Handbook 2024 ch.2 §D–E): 365 when rest days, special days and regular holidays are paid; 313 on a six-day week; 261 on a five-day week; 305 / 253 where the special days are unpaid. Read by every day- and hour-rated line, retirement pay, the kasambahay pay, the WTAX leave ceiling and the minimum-wage-earner floor. Unrecorded is 313."
+									},
+									"ebet_program": {
+										"type": "string",
+										"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
+										"title": "Registered EBET programme",
+										"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
+									},
+									"rate_basis": {
+										"type": "string",
+										"enum": ["MONTHLY", "DAILY"],
+										"default": "MONTHLY",
+										"title": "Rate basis",
+										"description": "Customer input. MONTHLY: `base_salary` is the monthly salary. DAILY: `base_salary` is the daily rate, paid for each day worked or on paid leave plus unworked regular holidays (Omnibus Rules Book III Rule IV s.2)."
+									},
+									"hours_per_day": {
+										"type": "number",
+										"minimum": 1,
+										"maximum": 24,
+										"default": 8,
+										"title": "Normal hours a day",
+										"description": "Customer input. A part-time contract’s normal hours; the hourly rate and the minimum-wage and MWE tests read the rate for an 8-hour day. Unrecorded is 8."
+									},
+									"wage_region": {
+										"type": "string",
+										"title": "Workplace wage-order key",
+										"description": "Customer input. The key of the PAYROLL rule `minimum_wage` for the employee’s place of work (RA 6727 s.4: the floor follows the workplace), when it differs from the entity’s `region`."
+									},
+									"mine_worker": {
+										"type": "string",
+										"enum": ["UNDERGROUND", "SURFACE"],
+										"title": "Mine worker",
+										"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
+									},
+									"wage_payment_medium": {
+										"type": "string",
+										"enum": ["CASH", "CHEQUE", "BANK_TRANSFER", "E_WALLET", "TOKEN_OR_VOUCHER"],
+										"title": "Wage payment medium",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.1: wages in legal tender; tokens, promissory notes, vouchers or coupons are absolutely prohibited. s.2: cheques or money orders only where customary, under a CBA, or on all four conditions (the entity fact `wage_payment_conditions_met`)."
+									},
+									"wage_payment_place": {
+										"type": "string",
+										"enum": [
+											"AT_OR_NEAR_WORKPLACE",
+											"ELSEWHERE_EMERGENCY",
+											"ELSEWHERE_FREE_TRANSPORT",
+											"ELSEWHERE_ANALOGOUS",
+											"BAR_CLUB_OR_GAMING_PLACE"
+										],
+										"title": "Wage payment place",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.4: at or near the place of undertaking; elsewhere only when peace and order or a calamity prevents it, the employer gives free transport both ways, or in analogous circumstances (the collecting time is hours worked); never in a bar, club, drinking, massage, dance or gaming place unless the employee works there."
+									},
+									"employed_at_payment_place": {
+										"type": "boolean",
+										"title": "Employee works at the bar, club or gaming place",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.4(d): the exception for persons employed in those places."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Stored on employment_contract.exit_facts when the contract closes (with the offboarding ground, last_day and note).",
+					"properties": {
+						"termination_cause": {
+							"type": "string",
+							"enum": [
+								"LABOR_SAVING_DEVICES",
+								"REDUNDANCY",
+								"RETRENCHMENT",
+								"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES",
+								"CLOSURE_DUE_TO_SERIOUS_LOSSES",
+								"DISEASE",
+								"SECURITY_GUARD_NO_ASSIGNMENT",
+								"CONTRACTOR_NO_ASSIGNMENT",
+								"IMPOSSIBLE_REINSTATEMENT",
+								"SUSPENSION_OVER_SIX_MONTHS"
+							],
+							"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
+						},
+						"terminated_for_disease": {
+							"type": "boolean",
+							"description": "Labor Code art.299: separation pay of one month or half a month a year, whichever is greater."
+						},
+						"kasambahay_unjust_dismissal": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
+						},
+						"kasambahay_unjustified_departure": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The member number for the scheme: SSS number, PhilHealth Identification Number, Pag-IBIG MID number or BIR TIN."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"covered_before_60": {
+												"type": "boolean",
+												"default": false,
+												"title": "SSS member covered before sixty",
+												"description": "SSS standing election (RA 11199 s.9(a)), an override: coverage past sixty is derived from the employment — hired before sixty, or an SSS charge on this payroll in the twelve months before; set this when the member was first covered before sixty through an earlier employer. Nothing is charged from sixty-five (s.12-B)."
+											},
+											"exempt_by_totalisation": {
+												"type": "boolean",
+												"default": false,
+												"title": "Exempt from SSS under a social security agreement",
+												"description": "SSS standing election (customer input): a foreign employee covered by their own system under a Philippine bilateral social security agreement."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts on employment_profile.facts (CEL employee.facts.*).",
+					"properties": {
+						"previous_employer_taxable_compensation": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Previous employer’s taxable compensation this year",
+							"description": "Customer input from the previous employer’s BIR Form 2316 (RR 2-98 s.2.79(B)(5)(b) Step 2): added to the year-end annualisation. Its presence also disqualifies substituted filing."
+						},
+						"previous_employer_tax_withheld": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Tax withheld by the previous employer this year",
+							"description": "Customer input from the previous employer’s 2316: credited in the annualisation."
+						},
+						"coe_requested_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Certificate of employment requested on",
+							"description": "Customer input: the day a current employee asked for a certificate of employment (DOLE LA 06-20 Part III: within three days)."
+						},
+						"night_work_alternative_until": {
+							"type": "string",
+							"format": "date",
+							"title": "Alternative to night work until",
+							"description": "Customer input: the last day of an additional period, during pregnancy or after the post-childbirth period, for which a medical certificate states that an alternative to night work is necessary for the health of the mother or child (Labor Code art.158(b) as inserted by RA 10151)."
+						},
+						"last_name": {
+							"type": "string",
+							"title": "Last name",
+							"description": "Customer input: the surname as the BIR records it (with its particles, e.g. DELA CRUZ). When set, the 1604-C alphalist reads the declared name parts instead of splitting `name`."
+						},
+						"first_name": {
+							"type": "string",
+							"title": "First name",
+							"description": "Customer input: the given name(s) for the BIR alphalist (with last_name)."
+						},
+						"middle_name": {
+							"type": "string",
+							"title": "Middle name",
+							"description": "Customer input: the middle name for the BIR alphalist (with last_name)."
+						},
+						"retirement_plan_exemption_availed": {
+							"type": "boolean",
+							"default": false,
+							"title": "RA 4917 retirement exemption already availed",
+							"description": "Customer input: the employee already received a tax-exempt retirement benefit under a private plan (NIRC s.32(B)(6)(a): the exemption is availed of only once)."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH entity inputs",
+			"description": "entity.facts (CEL company.facts.*). The entity `region` column names the wage-order floor key of the PAYROLL rule `minimum_wage` (by_region, or by_employment_type.DOMESTIC for a household employer).",
+			"additionalProperties": false,
+			"properties": {
+				"small_establishment": {
+					"type": "boolean",
+					"title": "Regularly fewer than ten employees",
+					"description": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1(e): outside service incentive leave."
+				},
+				"retirement_exempt_establishment": {
+					"type": "boolean",
+					"title": "Retail, service or agricultural establishment of ten or fewer",
+					"description": "Labor Code art.302 (RA 7641): outside retirement pay."
+				},
+				"bmbe_certificate_of_authority": {
+					"type": "boolean",
+					"default": false,
+					"title": "Certified BMBE",
+					"description": "RA 9178 s.8: a Barangay Micro Business Enterprise with a current Certificate of Authority is exempt from the Minimum Wage Law, so its non-household employees are not minimum wage earners for WTAX."
+				},
+				"sss_employer_number": {
+					"type": "string",
+					"title": "SSS employer number",
+					"description": "RA 11199 s.24."
+				},
+				"philhealth_employer_number": {
+					"type": "string",
+					"title": "PhilHealth Employer Number (PEN)",
+					"description": "RA 11223 s.10; its last digit picks the remittance window (PhilHealth Circular 0001 s.2014)."
+				},
+				"hdmf_employer_id": {
+					"type": "string",
+					"title": "Pag-IBIG employer ID",
+					"description": "RA 9679 s.6; HDMF Circular 275."
+				},
+				"bir_tin": {
+					"type": "string",
+					"title": "BIR TIN of the withholding agent",
+					"description": "NIRC s.236."
+				},
+				"bir_rdo_code": {
+					"type": "string",
+					"title": "BIR Revenue District Office"
+				},
+				"hdmf_remittance_group": {
+					"type": "integer",
+					"enum": [1, 2, 3, 4],
+					"title": "Pag-IBIG remittance group",
+					"description": "HDMF Circular 275 §E.2: the first letter of the employer’s registered name picks the window in the month after the period — 1 = A–D (10th–14th), 2 = E–L (15th–19th), 3 = M–Q (20th–24th), 4 = R–Z or a numeral (25th to month-end). Unrecorded, the earliest window governs."
+				},
+				"nsd_small_retail_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment of five workers or fewer",
+					"description": "DOLE Handbook 2024 ch.5 §B.2 (Labor Code art.86; Omnibus Rules Book III Rule II s.1): outside the night-shift differential. Unrecorded, the differential is paid."
+				},
+				"minimum_wage_exemption_approved": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempted from the wage order by the regional board",
+					"description": "RA 6727 s.4(c): an establishment the regional wages board exempted from the wage order in force. Unrecorded, no exemption."
+				},
+				"retail_or_service_establishment": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment",
+					"description": "Customer input. With the entity’s headcount: holiday pay excludes one regularly employing fewer than ten (Omnibus Rules Book III Rule IV s.1(b)), the night-shift differential one of five or fewer."
+				},
+				"maternity_differential_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempt from the maternity salary differential",
+					"description": "Customer input. RA 11210 s.5(c) and IRR Rule VI: distressed, retail/service of ten or fewer, micro business, or already paying the equivalent."
+				},
+				"collects_service_charges": {
+					"type": "boolean",
+					"default": false,
+					"title": "Collects service charges",
+					"description": "Customer input. Labor Code art.96 as amended by RA 11360: hotels, restaurants and similar establishments."
+				},
+				"wage_payment_conditions_met": {
+					"type": "boolean",
+					"title": "Cheque or bank payment conditions met",
+					"description": "Customer input, one per establishment. Omnibus Rules Book III Rule VIII s.2: payment of wages by cheque, money order, bank transfer or e-wallet is customary since the Code took effect or stipulated in a CBA, or all hold — an encashment facility within one kilometre of the workplace, no pecuniary benefit to the employer, reasonable paid time to withdraw, and the employees’ written consent."
+				},
+				"bir_qualified_retirement_plan": {
+					"type": "boolean",
+					"default": false,
+					"title": "BIR-qualified retirement plan",
+					"description": "Customer input: the employer maintains a reasonable private benefit plan the BIR has approved as tax-qualified (NIRC s.32(B)(6)(a), RA 4917)."
+				},
+				"processes_sensitive_pi_1000": {
+					"type": "boolean",
+					"default": false,
+					"title": "Processes sensitive personal information of 1,000 or more individuals",
+					"description": "Customer input (NPC Circular 2022-04 s.5): mandatory NPC registration below 250 employees."
+				},
+				"npc_registered_on": {
+					"type": "string",
+					"format": "date",
+					"title": "NPC registration date",
+					"description": "Customer input: the issue date of the current NPC Certificate of Registration (NPC Circular 2022-04 s.18: valid one year, renewed in the thirty days before it expires)."
+				}
+			}
+		},
+		"suspension_kinds": [
+			{
+				"code": "BONA_FIDE_SUSPENSION",
+				"name": "Bona fide suspension of operations",
+				"counts_as_attended": "",
+				"scheduled": "false",
+				"pay": "",
+				"authority": "Labor Code art.301; Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20, https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf: the employment relationship is suspended up to six months, extendable by six in a declared national emergency; no wages unless agreement or policy; not attended, not a scheduled day"
+			},
+			{
+				"code": "FORCE_MAJEURE",
+				"name": "Natural disaster, calamity or other force majeure stopping work",
+				"counts_as_attended": "",
+				"scheduled": "false",
+				"pay": "",
+				"authority": "no work, no pay — DOLE Handbook 2024 ch.2 §I, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day"
+			},
+			{
+				"code": "STRIKE",
+				"name": "Strike",
+				"counts_as_attended": "",
+				"scheduled": "false",
+				"pay": "",
+				"authority": "the employees absent from work: no work, no pay; any backwages are adjudicated, not payroll; not attended, not a scheduled day"
+			},
+			{
+				"code": "LOCKOUT",
+				"name": "Lockout by the employer",
+				"counts_as_attended": "",
+				"scheduled": "false",
+				"pay": "",
+				"authority": "a lawful lockout pays no wage — no work, no pay; an unlawful one is adjudicated; not attended, not a scheduled day"
+			},
+			{
+				"code": "WORK_STOPPAGE_ORDER",
+				"name": "DOLE work stoppage order or OSH suspension for imminent danger",
+				"counts_as_attended": "true",
+				"scheduled": "true",
+				"pay": "day.day_type == \"WORK\" && !day.worked && (has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : 0.0",
+				"authority": "DO 198-18 s.24, OSH Standards 2020 edition, https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf: the employer at fault — presumed when the order follows an imminent danger — pays the affected workers their wages during the stoppage; attended and scheduled, the daily-paid paid the day"
+			}
+		]
+	}
+]

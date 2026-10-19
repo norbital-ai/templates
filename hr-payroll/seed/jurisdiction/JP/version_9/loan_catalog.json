@@ -1,0 +1,35 @@
+[
+	{
+		"id": "872f5236-7ede-5df7-aadc-74082b61866b",
+		"settings_id": "301b75a8-f537-5517-9d56-7d6ec0daf4ab",
+		"code": "SALARY_ADVANCE",
+		"name": "給与の前払 (salary advance recovery)",
+		"authority": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; company.facts.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(company.facts.wage_deduction_agreement) && company.facts.wage_deduction_agreement == true",
+		"bands": []
+	},
+	{
+		"id": "c3357947-a1d9-593f-8ea2-97db1d6b940f",
+		"settings_id": "301b75a8-f537-5517-9d56-7d6ec0daf4ab",
+		"code": "STAFF_LOAN",
+		"name": "社内貸付金 (staff loan repayment)",
+		"authority": "労働基準法 art.24(1) proviso (賃金控除協定 required) and art.17: a loan may not be set off against wages as a condition of work (前借金相殺の禁止); recovery by deduction is only the employee's voluntary repayment under the agreement.",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(company.facts.wage_deduction_agreement) && company.facts.wage_deduction_agreement == true",
+		"bands": []
+	},
+	{
+		"id": "e69e8033-5e01-5cac-a6f0-47a1048cc1e5",
+		"settings_id": "301b75a8-f537-5517-9d56-7d6ec0daf4ab",
+		"code": "EMERGENCY_ADVANCE",
+		"name": "非常時払 (emergency payment of earned wages)",
+		"authority": "労働基準法 art.25 with 施行規則 art.9: for childbirth, illness, disaster, marriage, death or an unavoidable trip of the worker or a dependant, the wages already earned are paid on request before the pay day; the advance is settled from that pay (task EMERGENCY_PAYMENT).",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"bands": []
+	}
+]

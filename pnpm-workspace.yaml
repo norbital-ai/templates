@@ -1,0 +1,20 @@
+allowBuilds:
+  esbuild: true
+  isolated-vm: true
+  msgpackr-extract: false
+
+# The root installs `@norbital-ai/bolt` for `bolt templates`. Like every template's own policy, only
+# these exact, reviewed first-party releases bypass the minimum-release-age gate.
+minimumReleaseAgeExclude:
+  - '@norbital-ai/bolt@0.0.1'
+  - '@norbital-ai/doctor@0.0.1'
+  - '@norbital-ai/std@0.0.1'
+  - '@norbital-ai/ui@0.0.1'
+
+# As in every template: pnpm 11 would reinstall the published Bolt over a local overlay before
+# running any script, so `pnpm templates:*` would run the registry's `bolt` instead of the linked one.
+verifyDepsBeforeRun: false
+
+overrides:
+  # platform-node asks for `^4.0.0-rc.112`, which a stable 4.x satisfies; hold it on the rc line.
+  '@effect/platform-node-shared': 4.0.0-rc.112

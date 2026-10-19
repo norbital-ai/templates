@@ -1,0 +1,1607 @@
+[
+	{
+		"id": "04f345bd-7068-587d-888d-b0c073163300",
+		"code": "SG",
+		"name": "Singapore — 1 July 2026",
+		"sealed_at": "2026-09-26T12:52:34.636Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"jurisdiction_code": "SG",
+		"change_summary": "1 July 2026: Retirement and Re-employment Act 1993 — minimum retirement age 63 → 64 and re-employment age 68 → 69, Employment Assistance Payment 3.5 months’ salary (minimum $6,250, maximum $14,750); with the MOM lower-wage factsheet of 3 March 2026 paras 10–11: the full-time Local Qualifying Salary rises from $1,600 to $1,800 a month and the half-count band to $900–<$1,800, and the driver PWM roles restructured. The retail PWM floors take their 1 September 2026 step as a dated step inside pwm_wages (MOM retail-sector page).",
+		"payroll": {
+			"currency": "SGD",
+			"timezone": "Asia/Singapore",
+			"tax_year_start_month": 1,
+			"pay_date": "period.to",
+			"week_start": 0,
+			"semi_monthly_split": 15,
+			"roster_week": "ROLLING",
+			"rolling_hours_months": 3,
+			"base_salary_required": true,
+			"off_cycle_families": ["ADHOC", "CLAIM"],
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
+			"negative_net": "refuse"
+		},
+		"sources": {
+			"entries": [
+				{
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Central Provident Fund Board (CPFB). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "IRAS. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave (GPL) Portal | Government-Paid Leave (GPL) Portal. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://sso.agc.gov.sg/",
+					"instructions": "Singapore Statutes Online (SSO). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.pdpc.gov.sg/",
+					"instructions": "Personal Data Protection Commission (PDPC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.muis.gov.sg/",
+					"instructions": "Islamic Religious Council of Singapore (MUIS). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				},
+				{
+					"url": "https://www.cdac.org.sg/",
+					"instructions": "Chinese Development Assistance Council (CDAC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+				}
+			],
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "SG entity inputs",
+			"additionalProperties": false,
+			"properties": {
+				"uen": {
+					"type": "string",
+					"title": "Unique Entity Number",
+					"description": "ACRA UEN: the employer’s IRAS tax reference for AIS (Form IR8A) and IR21 filing, and its MOM employer identity for work passes and the foreign worker levy."
+				},
+				"cpf_submission_number": {
+					"type": "string",
+					"title": "CPF Submission Number (CSN)",
+					"description": "CPF Board CSN: the UEN (9–10 characters), payment type and serial number, written UEN-TYPE-SERIAL (e.g. 201912345A-PTE-01): the account the month’s CPF, SDL and self-help-group contributions are submitted under, and every record of the CPF EZPay (FTP) file (EXPORTS CPF_EZPAY_FTP).",
+					"pattern": "^[0-9A-Z]{9,10}-[A-Z]{3}-[0-9]{2}$"
+				},
+				"foreign_worker_levy_payer": {
+					"type": "boolean",
+					"title": "Pays the foreign worker levy",
+					"description": "True while the entity employs any S Pass or Work Permit holder; false stops the monthly FOREIGN_WORKER_LEVY obligation. Unrecorded raises it."
+				},
+				"ns_direct_scheme": {
+					"type": "boolean",
+					"description": "Registered for MINDEF/MHA DIRECT (Direct Reimbursement to Employers of Claims for NS Training): the employer keeps paying wages during NS training and is reimbursed (NS_LEAVE pay_fraction 1); otherwise NS days are an incomplete month under EA s.20A(1)(d) (pay_fraction 0). Customer input."
+				},
+				"industrial_undertaking": {
+					"type": "boolean",
+					"description": "The entity is an industrial undertaking (EA s.2) for the young-person notification. Customer input."
+				},
+				"dpo_contact": {
+					"type": "string",
+					"description": "Business contact of the designated data protection officer (PDPA s.11(5)). Customer input."
+				},
+				"full_time_weekly_hours": {
+					"type": "number",
+					"exclusiveMinimum": 0,
+					"maximum": 168,
+					"description": "The entity’s normal full-time week in hours: the comparable full-time hours a part-timer’s leave is prorated against when the employee records none (Part-Time Regulations reg.7). Customer input."
+				}
+			}
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "SG employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "SGD"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								},
+								"description": "Monthly basic salary (CEL terms.base_salary)."
+							},
+							"currency": {
+								"type": "string",
+								"const": "SGD"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "SGD"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PART_TIME", "INTERN"],
+								"description": "PART_TIME is an employee contracted to work under 35 hours a week (Employment Act 1968 s.66A; Employment (Part-Time Employees) Regulations reg.2): the PT_ANNUAL_HOURLY_* allowances and the EAP part-time pro-ration read it; HOLIDAY_WORK does not price it."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["EA_COVERED", "MANAGERIAL", "NON_EA"],
+								"description": "NON_EA is outside the Employment Act 1968 (s.2: seafarers, domestic workers, statutory-board and civil servants): statutory leave, holiday work and the EA deductions are not offered. MANAGERIAL is a manager or executive, covered by the Act but not by Part 4."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+								"description": "Employment Act 1968 s.2 workman (manual labour or its supervision) or not: OVERTIME computes a non-workman’s rate on at most SGD 2,250 (s.38(8), Fourth Schedule)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+								"description": "CPF and the self-help-group funds charge only a Singapore Citizen or SPR (CPF Act 1953 s.7); a FOREIGNER pays SDL only. NS leave and EAP read it."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date",
+								"description": "SPR status grant date: the CPF graduated first- and second-year rates run from it (First Schedule Tables 2–3)."
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"mom_declared_monthly_salary": {
+										"type": "number",
+										"minimum": 0,
+										"description": "The fixed monthly salary declared to MOM for the employee’s Employment Pass or S Pass (MOM_DECLARED_SALARY). Customer input."
+									},
+									"pwm_role": {
+										"type": "string",
+										"enum": [
+											"ADMIN_ASSISTANT",
+											"ADMIN_EXECUTIVE",
+											"ADMIN_SUPERVISOR",
+											"CLEAN_CONSERVANCY_GENERAL",
+											"CLEAN_CONSERVANCY_MULTI_SKILLED",
+											"CLEAN_CONSERVANCY_SUPERVISOR",
+											"CLEAN_CONSERVANCY_TRUCK_DRIVER",
+											"CLEAN_FNB_DISHWASHER",
+											"CLEAN_FNB_GENERAL",
+											"CLEAN_FNB_MULTI_SKILLED",
+											"CLEAN_FNB_SUPERVISOR",
+											"CLEAN_FNB_TABLE_TOP",
+											"CLEAN_OFFICE_GENERAL",
+											"CLEAN_OFFICE_MULTI_SKILLED",
+											"CLEAN_OFFICE_OUTDOOR",
+											"CLEAN_OFFICE_SUPERVISOR",
+											"DRIVER_GROUP_A_LEVEL_1",
+											"DRIVER_GROUP_A_LEVEL_2",
+											"DRIVER_GROUP_B_LEVEL_1",
+											"DRIVER_GROUP_B_LEVEL_2",
+											"FOOD_FS_COOK",
+											"FOOD_FS_KITCHEN_ASSISTANT",
+											"FOOD_FS_WAITER",
+											"FOOD_FS_WAITER_SUPERVISOR",
+											"FOOD_QS_COOK",
+											"FOOD_QS_KITCHEN_ASSISTANT",
+											"FOOD_QS_STALL_ASSISTANT",
+											"LANDSCAPE_ASSISTANT_SUPERVISOR",
+											"LANDSCAPE_SUPERVISOR",
+											"LANDSCAPE_TECHNICIAN",
+											"LANDSCAPE_WORKER",
+											"LIFT_ASSISTANT_SPECIALIST",
+											"LIFT_PRINCIPAL_SPECIALIST",
+											"LIFT_SENIOR_SPECIALIST",
+											"LIFT_SPECIALIST",
+											"LIFT_SUPERVISOR",
+											"RETAIL_ASSISTANT",
+											"RETAIL_ASSISTANT_SUPERVISOR",
+											"RETAIL_SENIOR_ASSISTANT",
+											"SECURITY_INHOUSE_OFFICER",
+											"SECURITY_INHOUSE_SENIOR_OFFICER",
+											"SECURITY_INHOUSE_SUPERVISOR",
+											"SECURITY_OUTSOURCED_OFFICER",
+											"SECURITY_OUTSOURCED_SENIOR_OFFICER",
+											"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+											"SECURITY_OUTSOURCED_SUPERVISOR",
+											"WASTE_COLLECTION_CREW",
+											"WASTE_COLLECTION_DRIVER",
+											"WASTE_COLLECTION_HOOKLIFT_DRIVER",
+											"WASTE_COLLECTION_SENIOR_CREW",
+											"WASTE_COLLECTION_SENIOR_DRIVER",
+											"WASTE_COLLECTION_SUPERVISOR",
+											"WASTE_COLLECTION_TEAM_LEAD",
+											"WASTE_MRF_PLANT_SUPERVISOR",
+											"WASTE_MRF_SENIOR_SORTER",
+											"WASTE_MRF_SORTER",
+											"WASTE_MRF_TEAM_LEAD"
+										],
+										"description": "The employee’s Progressive Wage Model role and job level (PWM_WAGE_FLOOR reads PAYROLL pwm_wages). Customer input."
+									},
+									"notice_period_days": {
+										"type": "integer",
+										"minimum": 1,
+										"description": "The written contractual notice period in days, the same for both parties (EA s.10(2)); when absent, salary in lieu of notice is at least the s.10(3) period. Customer input."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						],
+						"allOf": [
+							{
+								"if": {
+									"properties": {
+										"residency_status": {
+											"const": "PERMANENT_RESIDENT"
+										}
+									},
+									"required": ["residency_status"]
+								},
+								"then": {
+									"required": ["residency_since"]
+								}
+							}
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes (CEL employment.exit_facts).",
+					"properties": {
+						"dismissed_for_misconduct": {
+							"type": "boolean",
+							"default": false,
+							"title": "Dismissed for misconduct after due inquiry",
+							"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; the encash-leave-on-exit rule withholds it when this is true on a DISMISSAL."
+						},
+						"notice_served": {
+							"type": "boolean",
+							"title": "Resignation notice served in full",
+							"description": "Employment Act 1968 s.23: served, salary is due on the last day; not served, within 7 days."
+						},
+						"final_pay_not_possible": {
+							"type": "boolean",
+							"title": "Pay on the dismissal day not possible",
+							"description": "Employment Act 1968 s.22: then within 3 days, excluding rest days and public holidays."
+						},
+						"eap_decision": {
+							"type": "string",
+							"enum": ["AWARD", "NOT_AWARDED"],
+							"description": "Retirement and Re-employment Act 1993 s.7C: AWARD when an eligible employee could not be re-employed and no alternate-employer offer was accepted; EMPLOYMENT_ASSISTANCE_PAYMENT is offered only then."
+						},
+						"eap_contract_retirement_months": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "A contractual retirement age above the statutory one, in months of age."
+						},
+						"eap_contract_reemployment_months": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "A contractual re-employment age above the statutory one, in months of age."
+						},
+						"eap_gross_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Last drawn monthly gross pay (Tripartite Guidelines)."
+						},
+						"eap_previous_gross_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Gross before a transfer to a lower-paid job within 3 months of the exit."
+						},
+						"eap_transfer_started_on": {
+							"type": "string",
+							"format": "date",
+							"description": "Start of that transfer."
+						},
+						"eap_prorate_bounds": {
+							"type": "boolean",
+							"description": "Pro-rate the EAP minimum and maximum for a part-time employee."
+						},
+						"eap_weekly_hours": {
+							"type": "number",
+							"minimum": 0
+						},
+						"eap_fulltime_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0
+						},
+						"retrenchment_notified_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Employees notified of the retrenchment on",
+							"description": "MOM mandatory retrenchment notification: due within 5 working days after this day (RETRENCHMENT_NOTIFICATION)."
+						},
+						"ir21_clearance_on": {
+							"type": "string",
+							"format": "date",
+							"title": "IRAS tax clearance received on",
+							"description": "Income Tax Act 1947 s.68(7) / EA s.24: the day the Comptroller’s clearance (or permission to pay) arrived; until it is recorded the final pay of a non-Citizen is held (IR21_FINAL_PAY_HOLD)."
+						},
+						"ir21_exemption": {
+							"type": "string",
+							"enum": ["SPR_UNDERTAKING", "SHORT_STINT_60_DAYS", "BELOW_21000"],
+							"description": "IRAS, Tax clearance for employees: no IR21 for an SPR not leaving Singapore permanently who gives a letter of undertaking, for an employment of 60 days or less (not a director), or for income below $21,000 a year under the IRAS conditions. Recorded, the IR21 task is not raised and the final pay is released. Customer input."
+						},
+						"ir21_additional_clearance_on": {
+							"type": "string",
+							"format": "date",
+							"title": "IRAS clearance of the Additional/Amended IR21 received on",
+							"description": "Income Tax Act 1947 s.68(7); IRAS, Tax clearance for employees: a payment after the IR21 clearance waits for clearance of an Additional/Amended Form IR21; until this is recorded such a payment is held (IR21_ADDITIONAL_PAYMENT_HOLD)."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"elections": {
+										"type": "object",
+										"properties": {
+											"sdl_household_role": {
+												"type": "string",
+												"enum": ["NONE", "DOMESTIC_SERVANT", "GARDENER", "CHAUFFEUR"],
+												"description": "SDL Act 1979 s.2: a domestic servant, gardener or chauffeur wholly and exclusively employed by an individual otherwise than in connection with a trade, business, profession or vocation is not an “employee” (with sdl_wholly_exclusive and sdl_nonbusiness true)."
+											},
+											"sdl_nonbusiness": {
+												"type": "boolean",
+												"description": "Employed otherwise than in connection with the employer’s trade, business, profession or vocation (SDL Act s.2)."
+											},
+											"sdl_service_scope": {
+												"type": "string",
+												"enum": ["SINGAPORE_SERVICE", "OUTSIDE_SINGAPORE"],
+												"description": "SDL Act 1979 s.2 “employee”: one rendering services wholly or partly in Singapore in the month (or on leave attributable to such services). OUTSIDE_SINGAPORE: none in the month — no levy."
+											},
+											"sdl_student_class": {
+												"type": "string",
+												"description": "Recorded only; no SDL exemption for students was found in the SDL Act (read 2026-10-07), so no rule reads it."
+											},
+											"sdl_wholly_exclusive": {
+												"type": "boolean",
+												"description": "Wholly and exclusively employed by the individual employer (SDL Act s.2)."
+											},
+											"spr_full_rates": {
+												"type": "boolean",
+												"default": false,
+												"title": "SPR full rates jointly elected (CPF)",
+												"description": "CPF Board: an SPR in the first or second year of status and the employer may jointly apply to contribute at the full (Table 1) rates; record it on the CPF standing from the month the Board approves. The employer-only full / employee graduated (F/G) election is not applied."
+											},
+											"spr_employer_full_rates": {
+												"type": "boolean",
+												"default": false,
+												"title": "SPR employer full rate elected (CPF, F/G)",
+												"description": "CPF Board Tables 4–5: the employer of an SPR in the first or second year of status may apply to contribute at the full employer rate while the employee stays on the graduated rate; record it on the CPF standing from the month the Board approves. spr_full_rates (both full) takes precedence."
+											},
+											"shg_opted_out": {
+												"type": "boolean",
+												"default": false,
+												"description": "CPF Board, Contributions to self-help groups: an employee who opts out of a fund in writing (the fund’s form) stops its deduction from the effective date recorded as the standing’s effective_range.from. Set on that fund’s standing (CDAC, ECF, MBMF or SINDA)."
+											},
+											"shg_monthly_amount": {
+												"type": "number",
+												"minimum": 0,
+												"description": "A changed monthly contribution the employee instructed through the fund, in place of the schedule amount, on that fund’s standing."
+											}
+										},
+										"additionalProperties": false
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts stored beside employment_statutory_facts on employment_profile.facts (CEL employee.facts.*).",
+					"properties": {
+						"working_days_per_week": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 7,
+							"title": "Average days required to work a week",
+							"description": "MOM, Monthly and daily salary: a monthly-rated employee’s daily basic rate is 12 × monthly basic ÷ (52 × the average number of days the employee is required to work a week). HOLIDAY_WORK prices only when it is recorded (CEL employee.facts.working_days_per_week)."
+						},
+						"immigration_status": {
+							"type": "string",
+							"enum": [
+								"CITIZEN",
+								"PERMANENT_RESIDENT",
+								"EMPLOYMENT_PASS",
+								"PERSONALISED_EMPLOYMENT_PASS",
+								"ONE_PASS",
+								"S_PASS",
+								"WORK_PERMIT",
+								"OTHER_PASS"
+							],
+							"title": "Singapore immigration status",
+							"description": "MOM work pass types (https://www.mom.gov.sg/passes-and-permits). The hire and exit obligation rules read it (IR21 for every non-Citizen; work pass in force and cancellation for a pass holder); keep it consistent with the contract terms’ residency_status, which those rules cannot see."
+						},
+						"rest_day_work_requester": {
+							"type": "string",
+							"enum": ["EMPLOYER", "EMPLOYEE"],
+							"description": "EA s.37(2)–(3): who asks the employee to work on rest days, which sets the rest-day pay (REST_DAY_WORK). Customer input."
+						},
+						"normal_daily_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 24,
+							"description": "The employee’s normal hours of work for one day (EA s.37: half of them is the rest-day pay threshold). Customer input."
+						},
+						"part_time_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 35,
+							"description": "Contracted weekly hours of a part-time employee (under 35, EA s.66A): the hourly basic rate divisor for PART_TIME_HOLIDAY_WORK. Customer input."
+						},
+						"tax_resident": {
+							"type": "boolean",
+							"description": "Income Tax Act 1947 s.2: Singapore tax resident. A non-resident director’s fees are withheld at 24% (WHT_NR_DIRECTOR). Customer input."
+						},
+						"leaves_singapore_from": {
+							"type": "string",
+							"format": "date",
+							"description": "Day a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months while employed (IR21_LEAVING_SINGAPORE). Customer input."
+						},
+						"ph_off_day_compensation": {
+							"type": "string",
+							"enum": ["PAY", "DAY_OFF"],
+							"default": "PAY",
+							"description": "EA s.88(1)(c): a public holiday on a non-working day is paid at the gross rate (PAY) or given as a day off in substitution (DAY_OFF). Customer input."
+						},
+						"full_time_daily_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 24,
+							"description": "Normal daily hours of a comparable full-time employee (default 8, EA s.38(1)(b)): a part-timer’s hours beyond them are paid at 1.5 × the hourly basic rate, those between the contracted and these hours at the plain rate (PART_TIME_EXTRA_HOURS, PART_TIME_OVERTIME). Customer input."
+						},
+						"full_time_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 168,
+							"description": "Weekly hours of a similar full-time employee, against which a part-timer’s leave is prorated (Employment (Part-Time Employees) Regulations reg.7); else the entity’s full_time_weekly_hours, else 44 (reg.2(2), no similar full-time employee). Customer input."
+						}
+					}
+				}
+			}
+		},
+		"behaviours": {
+			"version": 1,
+			"rules": [
+				{
+					"id": "payroll-run",
+					"catalog": "WORK",
+					"events": ["PAYROLL_CREATE"],
+					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
+				},
+				{
+					"id": "pin-settled-entries",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["pins"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
+				},
+				{
+					"id": "hold-payslips",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+					"fields": ["holds"],
+					"reads": {
+						"slips": {
+							"collection": "payslip",
+							"where": {
+								"payroll_run_id": {
+									"eq": "event.row.id"
+								},
+								"status": {
+									"eq": "\"DRAFT\""
+								}
+							},
+							"select": ["id", "employment_id"]
+						}
+					},
+					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+				},
+				{
+					"id": "retract-exit-effects",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+					"reads": {
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"payslip_id": {
+									"isNull": true
+								}
+							},
+							"select": ["reference"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key", "facts"]
+						}
+					},
+					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-on-exit",
+					"target_collection": "employment_contract",
+					"events": ["updated"],
+					"when": "event.row.exit_facts != null && event.row.effective_range.to != null && !(event.row.exit_ground == \"DISMISSAL\" && has(event.row.exit_facts.dismissed_for_misconduct) && event.row.exit_facts.dismissed_for_misconduct == true)",
+					"fields": ["exit_facts", "effective_range"],
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_on_exit": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code", "unit", "entitlement"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["catalog_id", "activity", "days", "reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-obligations",
+					"target_collection": "payroll_run",
+					"events": ["created"],
+					"when": "true",
+					"fields": ["period", "company_id"],
+					"reads": {
+						"duties": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"OBLIGATIONS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["name", "region", "risk_class", "time_zone", "facts"]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["duty_code"]
+						}
+					},
+					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"authority\": d.rules.authority, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+				},
+				{
+					"id": "withdraw-run-duties",
+					"target_collection": "payroll_run",
+					"events": ["deleted"],
+					"reads": {
+						"obligations": {
+							"collection": "obligation",
+							"where": {
+								"trigger_ref": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["amount_settled"]
+						},
+						"tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"subject_id": {
+									"eq": "event.row.id"
+								},
+								"state": {
+									"eq": "\"OPEN\""
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
+				},
+				{
+					"id": "encash-leave-at-window-end",
+					"target_collection": "calendar",
+					"events": ["daily"],
+					"when": "size(event.leave_balances) > 0",
+					"reads": {
+						"catalogues": {
+							"collection": "leave_catalog",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"encash_at_window_end": {
+									"eq": true
+								}
+							},
+							"select": ["id", "code"]
+						},
+						"movements": {
+							"collection": "leave_catalog_entry",
+							"where": {
+								"employment_id": {
+									"eq": "event.row.id"
+								},
+								"activity": {
+									"eq": "\"ENCASHMENT\""
+								}
+							},
+							"select": ["reference"]
+						}
+					},
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+				},
+				{
+					"id": "raise-tasks",
+					"when": "true",
+					"fields": [
+						"period",
+						"company_id",
+						"employment_id",
+						"status",
+						"employee_id",
+						"effective_range",
+						"facts"
+					],
+					"reads": {
+						"tasks": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"TASKS\""
+								}
+							},
+							"select": ["code", "name", "rules"]
+						},
+						"company": {
+							"collection": "entity",
+							"where": {
+								"id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": [
+								"name",
+								"region",
+								"risk_class",
+								"time_zone",
+								"registration_number",
+								"facts"
+							]
+						},
+						"contract": {
+							"collection": "employment_contract",
+							"where": {
+								"id": {
+									"in": "(event.employment_id == null ? [] : [event.employment_id])"
+								}
+							},
+							"select": [
+								"id",
+								"company_id",
+								"employee_id",
+								"effective_range",
+								"prior_service_months",
+								"engagement",
+								"exit_ground",
+								"exit_facts",
+								"facts"
+							]
+						},
+						"employee": {
+							"collection": "employment_profile",
+							"where": {
+								"id": {
+									"in": "(event.employee_id == null ? [] : [event.employee_id])"
+								}
+							},
+							"select": [
+								"nationality",
+								"gender",
+								"date_of_birth",
+								"marital_status",
+								"solo_parent",
+								"children",
+								"dependents_count",
+								"facts"
+							]
+						},
+						"holidays": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"published_at": {
+									"isNull": false
+								},
+								"date": {
+									"gte": "add_days(event.day, -31)",
+									"lte": "add_days(event.day, 400)"
+								}
+							},
+							"select": ["date", "name", "kind"]
+						},
+						"raised": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"triggered_on": {
+									"gte": "add_days(event.day, -400)"
+								}
+							},
+							"select": ["occurrence_key"]
+						},
+						"subject_tasks": {
+							"collection": "regulatory_task",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								},
+								"subject_id": {
+									"eq": "event.row.id"
+								}
+							},
+							"select": ["occurrence_key"]
+						}
+					},
+					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && d.rules.trigger.event == event.action && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"authority\": has(d.rules.authority) ? d.rules.authority : \"\", \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
+					"events": ["created", "updated", "daily", "after_exit", "calendar"]
+				},
+				{
+					"id": "write-public-holidays",
+					"target_collection": "entity",
+					"events": ["created", "calendar"],
+					"when": "true",
+					"reads": {
+						"calendar": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"public_holidays\""
+								}
+							},
+							"select": ["rules"]
+						},
+						"held": {
+							"collection": "holiday",
+							"where": {
+								"company_id": {
+									"eq": "event.company_id"
+								}
+							},
+							"select": ["date"]
+						}
+					},
+					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+				}
+			]
+		},
+		"reference_tables": {
+			"PWM_ROLE": {
+				"ADMIN_ASSISTANT": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2170,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"ADMIN_EXECUTIVE": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2760,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"ADMIN_SUPERVISOR": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"CLEAN_CONSERVANCY_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_DISHWASHER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_TABLE_TOP": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2180,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_OUTDOOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"DRIVER_GROUP_A_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2370,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_A_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2485,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_B_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2505,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_B_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2555,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"FOOD_FS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2520,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_WAITER": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_WAITER_SUPERVISOR": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2875,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2470,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2295,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_STALL_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2220,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2685,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 3060,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_TECHNICIAN": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_WORKER": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2095,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LIFT_ASSISTANT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 2750,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_PRINCIPAL_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3720,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SENIOR_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3420,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3090,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SUPERVISOR": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3660,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"RETAIL_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2435,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+				},
+				"RETAIL_ASSISTANT_SUPERVISOR": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2950,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+				},
+				"RETAIL_SENIOR_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2680,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+				},
+				"SECURITY_INHOUSE_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2475,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_INHOUSE_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2675,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_INHOUSE_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2905,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3090,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3390,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3990,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3690,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"WASTE_COLLECTION_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2840,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SENIOR_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SENIOR_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3540,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_PLANT_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_SENIOR_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2940,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2740,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3140,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				}
+			},
+			"RACE": [
+				"ACHEHNESE",
+				"AFGHAN",
+				"AFRICAN",
+				"ALBANIAN",
+				"AMBONESE",
+				"AMERICAN",
+				"AMERINDIAN",
+				"ANGLO BURMESE",
+				"ANGLO CHINESE",
+				"ANGLO FILIPINO",
+				"ANGLO INDIAN",
+				"ANGLO SAXON",
+				"ANGLO THAI",
+				"ANNAMITE",
+				"ARAB",
+				"ARMENIAN",
+				"ARYAN",
+				"ASSAMI",
+				"AUSTRALIAN",
+				"AUSTRIAN",
+				"AZERI",
+				"BAJAU",
+				"BALINESE",
+				"BAMAR",
+				"BANGALA",
+				"BANGLADESHI",
+				"BANJARESE",
+				"BANTEN",
+				"BASQUE",
+				"BATAK",
+				"BELGIAN",
+				"BENGALI",
+				"BETAWI",
+				"BHUTANESE",
+				"BIDAYUH",
+				"BISAYA",
+				"BOSNIAK",
+				"BOYANESE",
+				"BRAHMIN",
+				"BRAZILIAN",
+				"BRITISH",
+				"BUGIS",
+				"BULGARIAN",
+				"BURGHER",
+				"BURMESE",
+				"BUTONESE",
+				"CAMBODIAN",
+				"CANADIAN",
+				"CAPE COLOURED",
+				"CARIBBEAN",
+				"CAUCASIAN",
+				"CEYLON MOOR",
+				"CEYLONESE",
+				"CHAMORRO",
+				"CHINESE",
+				"COCOS",
+				"CORNISH",
+				"CREOLE",
+				"CROAT",
+				"CZECH",
+				"CZECHOSLOVAK",
+				"DANE",
+				"DAYAK",
+				"DUSUN",
+				"DUTCH",
+				"DUTCH BURGHER",
+				"EGYPTIAN",
+				"ENGLISH",
+				"ETHIOPIAN",
+				"EURASIAN",
+				"EUROPEAN",
+				"FIJIAN",
+				"FILIPINO",
+				"FINN",
+				"FLEMISH",
+				"FRENCH",
+				"GERMAN",
+				"GHANAIAN",
+				"GOAN",
+				"GOANESE",
+				"GREEK",
+				"GUJARATI",
+				"GURKHA",
+				"HAITIAN",
+				"HAWAIIAN",
+				"HINDUSTANI",
+				"HISPANIC",
+				"HOLLANDER",
+				"HUNGARIAN",
+				"IBAN",
+				"ICELANDER",
+				"INDIAN",
+				"INDONESIAN",
+				"INUIT",
+				"IRANIAN",
+				"IRAQI",
+				"IRISH",
+				"ISOKO",
+				"ISRAELI",
+				"ITALIAN",
+				"JAKUN",
+				"JAMAICAN",
+				"JAPANESE",
+				"JAVANESE",
+				"JEW",
+				"JORDANIAN",
+				"KACHIN",
+				"KADAZAN",
+				"KAMPUCHEAN",
+				"KAREN",
+				"KAYAH",
+				"KAYAN",
+				"KAYIN",
+				"KAZAKH",
+				"KELABIT",
+				"KENYAH",
+				"KENYAN",
+				"KHASI",
+				"KHMER",
+				"KINH",
+				"KOREAN",
+				"KYRGYZ",
+				"LAO",
+				"LATIN",
+				"LATVIAN",
+				"LEBANESE",
+				"LIBYAN",
+				"LISU",
+				"LITHUANIAN",
+				"LUXEMBOURGER",
+				"MADURESE",
+				"MAGYARS",
+				"MAHRATTA",
+				"MAKASARESE",
+				"MALABARI",
+				"MALAGASY",
+				"MALAY",
+				"MALAYALEE",
+				"MALDIVIAN",
+				"MALTESE",
+				"MANIPURI",
+				"MANX",
+				"MAORI",
+				"MARATHI",
+				"MAURITIAN",
+				"MELANAU",
+				"MELANESIAN",
+				"MESTIZO",
+				"METIS",
+				"MEXICAN",
+				"MINANGKABAU",
+				"MOLDAVIAN",
+				"MON",
+				"MONGOLIAN",
+				"MOROCCAN",
+				"MURUT",
+				"NAGA",
+				"NAURUAN",
+				"NEGRO",
+				"NEPALESE",
+				"NETHERLANDER",
+				"NEW ZEALANDER",
+				"NEWAR",
+				"NIGERIAN",
+				"NORWEGIAN",
+				"OTHER EURASIAN",
+				"OTHER INDIAN",
+				"OTHER INDONESIAN",
+				"OTHERS",
+				"PAKISTANI",
+				"PALESTINE",
+				"PARSEE",
+				"PATHAN",
+				"PENAN",
+				"PERSIAN",
+				"PERUVIAN",
+				"POLE",
+				"POLISH",
+				"POLYNESIAN",
+				"PORTUGUESE",
+				"PUNAN",
+				"PUNJABI",
+				"RAJPUT",
+				"RAKHINE",
+				"ROMANIAN",
+				"RUSSIAN",
+				"SAMMARINESE",
+				"SAMOAN",
+				"SCOT",
+				"SERANI",
+				"SERBIA/MONTENGERIN",
+				"SEYCHELLOIS",
+				"SHAN",
+				"SIKH",
+				"SINDHI",
+				"SINHALESE",
+				"SINO INDIAN",
+				"SINO JAPANESE",
+				"SINO KADAZAN",
+				"SLAVIC",
+				"SLOVAK",
+				"SOMALI",
+				"SPANISH",
+				"SRI LANKAN",
+				"SUDANESE",
+				"SUMATRAN",
+				"SUNDANESE",
+				"SWEDE",
+				"SWEDISH",
+				"SWISS",
+				"TAJIK",
+				"TAMIL",
+				"TELEGU",
+				"TELUGU",
+				"THAI",
+				"TIBETAN",
+				"TIMOR",
+				"TONGAN",
+				"TURK",
+				"TURKMEN",
+				"UKRAINIAN",
+				"UNKNOWN",
+				"UYGHUR",
+				"UZBEK",
+				"VENEZUELAN",
+				"VIETNAMESE",
+				"WELSH",
+				"YUGOSLAV",
+				"ZIMBABWEAN"
+			],
+			"RELIGION": [
+				"BUDDHISM",
+				"CHRISTIANITY",
+				"HINDUISM",
+				"ISLAM",
+				"NO_RELIGION",
+				"OTHER",
+				"SIKHISM",
+				"TAOISM"
+			],
+			"PWM_BASE": {
+				"BASIC": "the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator).",
+				"GROSS_EX_OT": "monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+			}
+		},
+		"suspension_kinds": [
+			{
+				"code": "EMPLOYER_SHUTDOWN",
+				"name": "Employer shutdown or temporary closure",
+				"counts_as_attended": "true",
+				"scheduled": "true",
+				"pay": "",
+				"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A shutdown or temporary closure by the employer is not the employee’s absence: the day counts as attended and the monthly salary is paid whole."
+			},
+			{
+				"code": "LOCKOUT",
+				"name": "Lockout by the employer",
+				"counts_as_attended": "true",
+				"scheduled": "true",
+				"pay": "",
+				"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A lockout keeps the employee from work by the employer’s act: attended, salary whole."
+			},
+			{
+				"code": "GOVERNMENT_ORDER",
+				"name": "Government order closing the workplace",
+				"counts_as_attended": "true",
+				"scheduled": "true",
+				"pay": "",
+				"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. Workplace Safety and Health Act 2006 s.21 (https://sso.agc.gov.sg/Act/WSHA2006?ProvIds=pr21-): a stop-work order ceases the work, not the contract; for a work-pass holder the declared fixed salary stays payable (EFM (Work Passes) Regulations 2012 Fourth Schedule)."
+			},
+			{
+				"code": "NATURAL_DISASTER",
+				"name": "Natural disaster or force majeure closure",
+				"counts_as_attended": "true",
+				"scheduled": "true",
+				"pay": "",
+				"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A workplace closed by a natural disaster or other force majeure is not the employee’s absence; Singapore has no statutory shutdown allowance. An employee who cannot reach an open workplace is absent (NO_PAY_LEAVE)."
+			},
+			{
+				"code": "STRIKE",
+				"name": "Strike",
+				"counts_as_attended": "false",
+				"scheduled": "true",
+				"pay": "",
+				"authority": "Employment Act 1968 ss.27(1)(a), 28(1) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr27-,pr28-), read 2026-10-07: a deduction from salary only for the employee’s own absence from the place they are required to work. A striking employee is absent from work: the day is not attended and the employer may deduct for it under s.28(2) through a NO_PAY_LEAVE entry; there is no suspension pay."
+			}
+		]
+	}
+]

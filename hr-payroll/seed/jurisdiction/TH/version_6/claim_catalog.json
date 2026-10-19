@@ -1,0 +1,20 @@
+[
+	{
+		"id": "b7f28042-9337-5351-b256-8dcb075ce554",
+		"settings_id": "fc4a2bdc-a8bf-56c4-ada0-2eaad013b28c",
+		"code": "TRAVEL_REIMBURSEMENT",
+		"name": "Travel and transport for work (reimbursed)",
+		"authority": "Revenue Code s.42(1): travelling allowances paid for the performance of work are exempt; Labour Protection Act B.E. 2541 s.73: the employer bears transport for work away from the usual locality. Reimbursed at cost, outside PND1, SSO and WCF. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "",
+		"counts_toward": []
+	}
+]

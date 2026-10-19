@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output. Migrations and doctor configuration are authored and stay tracked.
+**/build/
+**/.svelte-kit/
+**/.generated/
+**/.norbital/*
+!**/.norbital/migrations/
+!**/.norbital/migrations/**
+!**/.norbital/config/
+!**/.norbital/config/**
+*.tsbuildinfo
+
+# Package-manager lockfiles other than the committed pnpm lockfiles
+**/package-lock.json
+**/yarn.lock
+
+# Tool caches and reports
+.turbo/
+**/.svelte-check/
+.tmp/
+/dist/
+coverage/
+test-results/
+
+# Local yalc overlay. Committed package.json keeps an exact @norbital-ai/bolt pin.
+**/.yalc/
+**/yalc.lock
+
+# Environment and local files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+vite.config.*.timestamp-*

@@ -1,0 +1,26 @@
+{
+	"name": "@norbital-ai/templates",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@11.22.0",
+	"engines": {
+		"node": ">=26.0.0"
+	},
+	"scripts": {
+		"check": "pnpm templates:check && pnpm format:check && pnpm templates:lock:check && pnpm templates:verify",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"templates:check": "bolt templates check",
+		"templates:lock": "bolt templates lock",
+		"templates:lock:check": "bolt templates lock --check",
+		"templates:lock:verify": "bolt templates lock --check --verify-install",
+		"templates:verify": "bolt templates verify"
+	},
+	"devDependencies": {
+		"prettier": "^3.9.6",
+		"prettier-plugin-svelte": "^4.1.1",
+		"svelte": "^5.56.10",
+		"@norbital-ai/bolt": "0.0.1"
+	}
+}

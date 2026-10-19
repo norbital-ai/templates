@@ -1,0 +1,42 @@
+[
+	{
+		"id": "00000000-0000-4000-8000-000000000501",
+		"kind": "quotation",
+		"locale": "en",
+		"version": "1",
+		"title": "Quotation",
+		"body": "{agreement}",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000502",
+		"kind": "contract",
+		"locale": "en",
+		"version": "1",
+		"title": "Commercial agreement",
+		"body": "{agreement}",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000503",
+		"kind": "quotation",
+		"locale": "zh",
+		"version": "1",
+		"title": "报价单",
+		"body": "{agreement}",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000504",
+		"kind": "contract",
+		"locale": "zh",
+		"version": "1",
+		"title": "商务协议",
+		"body": "{agreement}",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z"
+	}
+]

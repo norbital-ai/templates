@@ -1,0 +1,44 @@
+[
+	{
+		"id": "01990000-0000-7000-8003-000000000001",
+		"site_code": "PUB-SITE-AMBER-QUAY",
+		"name": "Amber Quay Public Yard (PUB-SITE-AMBER-QUAY)",
+		"client_name": "Public Fixture Client",
+		"house_type": "industrial"
+	},
+	{
+		"id": "01990000-0000-7000-8003-000000000002",
+		"site_code": "PUB-SITE-CEDAR-WHARF",
+		"name": "Cedar Wharf Public Slip",
+		"client_name": "Public Fixture Client",
+		"house_type": "commercial"
+	},
+	{
+		"id": "01990000-0000-7000-8003-000000000003",
+		"site_code": "PUB-SITE-FLINT-BASIN",
+		"name": "Flint Basin Public Works",
+		"client_name": "Public Fixture Client",
+		"house_type": "industrial"
+	},
+	{
+		"id": "01990000-0000-7000-8003-000000000004",
+		"site_code": "PUB-SITE-IVORY-REACH",
+		"name": "Ivory Reach Public Court",
+		"client_name": "Public Fixture Client",
+		"house_type": "condo"
+	},
+	{
+		"id": "01990000-0000-7000-8003-000000000005",
+		"site_code": "PUB-SITE-MAPLE-HOLLOW",
+		"name": "Maple Hollow Public Terrace",
+		"client_name": "Public Fixture Client",
+		"house_type": "landed"
+	},
+	{
+		"id": "01990000-0000-7000-8003-000000000006",
+		"site_code": "PUB-SITE-QUARTZ-PIER",
+		"name": "Quartz Pier Public Depot",
+		"client_name": "Public Fixture Client",
+		"house_type": "other"
+	}
+]

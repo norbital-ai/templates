@@ -1,0 +1,422 @@
+[
+	{
+		"id": "9f5f3d52-1bcf-4b38-b756-2cd986f4f2ca",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "BPAYBS",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"name": "Back pay – basic",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "5fb64781-231b-4afe-b17f-71fc136e1fb4",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "ADJ",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO",
+			"HRDF"
+		],
+		"name": "Adjustment",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "Encoded 2026-10-07 (round 7): a salary adjustment is wages for EPF (KWSP FAQ 20) and for the HRD levy, as BPAYBS is."
+	},
+	{
+		"id": "415795ea-9907-50f8-9f26-0d29aa822e6f",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "BONUS",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL"
+		],
+		"name": "Annual bonus",
+		"authority": "EPF Act 1991 (Act 452) s.2 \"wages\" includes any bonus (AGC text as at 1 July 2022); PCB additional remuneration (LHDN MTD Specification 2026 D(b)(2)). Excluded from SOCSO, EIS and SKBBK wages by Act 4 s.2(24)(e) \"bonus tahunan\" (PERKESO BM reprint as at 1 July 2021, p.18) and Act 800 s.2 \"wages\" (e) \"any annual bonus\", and from HRD wages by Act 612 s.2 \"wages\" (e) \"any bonus or commission\" (AGC reprint 2017).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "d688aefe-0946-5ad1-a529-48b08969a9f0",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "LONG_SERVICE_AWARD",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["EIS", "PCB.ADDITIONAL_NON_EPF", "SKBBK", "SOCSO"],
+		"name": "Long service award",
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "02253eea-939d-56a3-98e4-f50e0b525ecb",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "EXCELLENCE_AWARD",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"name": "Past achievement, service excellence, innovation or productivity award",
+		"authority": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a perquisite consisting of a past achievement, service excellence, innovation or productivity award, whether in money or otherwise, is exempt up to RM2,000 per employee per year of assessment — one cap shared with the long service award (which counts only after more than ten years with the same employer); LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.1.1 and Example 11 (p.18): the RM2,000 covers the awards together. LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item v: the exempt part is excluded from MTD remuneration and the rest is additional remuneration (D(b)(2) “bonus/incentive”); PCB.assessed_on subtracts the shared exemption. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an award is a bonus or incentive, so EPF wages (additional). Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus: an in-service award is none of these, so SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: an award is no fixed allowance and is a bonus, so outside the HRD levy. A long service award is its own class, LONG_SERVICE_AWARD.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "a0b0f1fe-14ec-5646-a331-0887b07ce18f",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "TRAVEL_OFFICIAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PCB.NON_EPF"],
+		"name": "Travelling, petrol or toll allowance for official duties",
+		"authority": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item i: petrol card, petrol allowance, travelling allowance or toll payment, or any combination, for official duties is exempt up to RM6,000 a year; LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.1 (pp.20–21, Example 17: RM7,200 + RM3,600 → RM6,000 exempt, RM4,800 taxable). PCB.assessed_on and PCB.ordinary_on subtract annual_exempt(…, 6,000); the rest is normal remuneration (spec D(1)). EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser); Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus; Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission; Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: so this class enters no contribution base, no First Schedule wage and no ordinary rate of pay. An ad hoc class, not a contract allowance, because `terms.monthly_wage` (the s.60I ordinary rate) sums every contract allowance. Travel between home and work is not this class.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "cc79f18c-aa36-540d-afe5-45064808bf0f",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "BIK_VOLA",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": ["PCB.NON_EPF"],
+		"name": "Benefit in kind or living accommodation (monthly value, MTD Y1)",
+		"authority": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(11)–(12), p.23, read 28 September 2026: benefits-in-kind (BIK) and the value of living accommodation (VOLA) are treated as part of Y1 in the current year only and are used only for the MTD calculation — they “shall not appear in the pay slip and EA Form as gross salary/remuneration”; the entry is the monthly amount the employer keys in (method i), or the year's value ÷ the remaining working months including the current one (method ii, which the employer computes before entry). E(9) items iii–iv (one device and its bills per asset category) and viii (subsidised housing, education or car loan interest where the loans do not exceed RM300,000, else the A × B ÷ C formula) are exempt, so only a taxable excess is entered here. Income Tax Act 1967 (AGC text as at 1 January 2026) s.13(1)(b) (a benefit or amenity not convertible into money) and (c) (living accommodation) make them gross employment income; LHDN Public Ruling 11/2019 Benefits in Kind (https://www.hasil.gov.my/wp-content/uploads/PR_11_2019.pdf, 12 December 2019, replacing PR 3/2013) paras 4.2–4.4 values the benefit, and Public Ruling 3/2005 living accommodation. Destination DISPLAY: printed on the payslip as information, never paid and never gross. Non-cash, so outside every contribution base: EPF Act 1991 s.2 (AGC text as at 1 July 2022) “wages” means all remuneration in money; Act 4 s.2(24) (AGC text 2026) and Act 800 s.2 all remuneration payable in money; Act 612 s.2 wages are paid in cash; Employment Act 1955 s.2 wages are payments in cash.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "d0ca5105-eca2-4ec0-a781-6153bd0c7b7c",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "BACKPAY_ADD_WAGES",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"EIS",
+			"EPF.ADDITIONAL",
+			"EPF_NON_CITIZEN.ADDITIONAL",
+			"EPF_PR.ADDITIONAL",
+			"HRDF",
+			"PCB.ADDITIONAL",
+			"SKBBK",
+			"SOCSO"
+		],
+		"name": "Back pay – additional wages",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"authority": "Encoded 2026-10-07 (round 7): arrears of wages are EPF wages paid as the current month's contribution (KWSP Employer Mandatory Contribution FAQ 8 and 20, https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution) and HRD levy wages (\"includes … arrears of wages\")."
+	},
+	{
+		"id": "857a357a-b287-438b-b32f-dc087850ec33",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "TERMINATION_BENEFIT",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.service_months >= 12 && employment.exit_date != \"\" && (terms.employment_type != \"DOMESTIC\" && (terms.monthly_wage <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"] || ((has(terms.facts) && has(terms.facts.overtime_by_contract)) && terms.facts.overtime_by_contract == true))) && !(employment.exit_ground == \"RETIREMENT\" || (employment.exit_ground == \"DISMISSAL\" && has(employment.exit_facts.misconduct_dismissal) && employment.exit_facts.misconduct_dismissal == true) || (employment.exit_ground == \"RESIGNATION\" && !(has(employment.exit_facts.notice_exception) && employment.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])))",
+		"counts_toward": ["PCB.ADDITIONAL_NON_EPF"],
+		"name": "Termination benefit",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it. Encoded 2026-10-07 (round 7): Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3–4 and 6: not less than 10 / 15 / 20 days' wages for every year of continuous service (under two, two to under five, five or more years), pro rata to the nearest month, a day's wages being the average true day's wages over the twelve completed months before (earned.months gross ÷ months × 12 ÷ 365; terms.monthly_wage × 12 ÷ 365 without history — JTKSM: \"12 Months/365 days' salary\", read 2026-10-07), the entered amount if higher; not on contractual retirement, a misconduct dismissal after inquiry or a resignation other than under s.13(2) / s.14(3); First Schedule para 1A takes s.60J from a non-manual employee above RM4,000. Taxable compensation for loss of employment above RM10,000 a completed year of service (ITA Sch.6 para 15(1)(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf; the RM20,000 rate applied only to exits in 2020–2021) — PCB.ADDITIONAL_NON_EPF with the exemption taken in PCB's assessable.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(entry.amount, (size(earned.months) > 0 ? sum(earned.months.map(m, m.gross)) / double(size(earned.months)) : terms.monthly_wage) * 12.0 / 365.0 * (employment.service_months < 24 ? 10.0 : employment.service_months < 60 ? 15.0 : 20.0) * (double(employment.service_months) / 12.0))"
+			}
+		],
+		"raise_on_exit": true
+	},
+	{
+		"id": "a43ab503-1a90-4c19-8198-c375fb1f1436",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "NOTICE_IN_LIEU",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && !(has(employment.exit_facts.notice_termination_party) && employment.exit_facts.notice_termination_party == \"EMPLOYEE\")",
+		"counts_toward": ["PCB.ADDITIONAL_NON_EPF"],
+		"name": "Notice in lieu",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved. Encoded 2026-10-07 (round 7): EA ss.12–13 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the indemnity is the wages that would have accrued over the notice, or its unexpired part — the written contract's notice (terms.facts.contract_notice_weeks), else not less than 4 / 6 / 8 weeks by service, the floor also applying on the s.12(3) structural grounds — less the days served from exit_facts.notice_given_on and the waived days; the wages of a day are terms.monthly_wage × 12 ÷ 365. The entered amount if higher.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(entry.amount, max(0.0, ((has(terms.facts) && has(terms.facts.contract_notice_weeks)) && !(has(employment.exit_facts.notice_structural_ground) && employment.exit_facts.notice_structural_ground != \"NONE\") ? double(terms.facts.contract_notice_weeks) : max((has(terms.facts) && has(terms.facts.contract_notice_weeks)) ? double(terms.facts.contract_notice_weeks) : 0.0, employment.service_months < 24 ? 4.0 : employment.service_months < 60 ? 6.0 : 8.0)) * 7.0 - (has(employment.exit_facts.notice_given_on) && employment.exit_facts.notice_given_on != \"\" ? double(calendar_distance_days(employment.exit_facts.notice_given_on, employment.exit_date) + 1.0) : 0.0) - (has(employment.exit_facts.notice_waived_days) ? double(employment.exit_facts.notice_waived_days) : 0.0)) * terms.monthly_wage * 12.0 / 365.0)"
+			}
+		],
+		"raise_on_exit": true
+	},
+	{
+		"id": "8ea4725c-bad6-4d11-8b65-25c52a94cb9d",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "NOTICE_INDEMNITY",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "employment.exit_date != \"\"",
+		"counts_toward": [],
+		"name": "Indemnity owed for unserved notice",
+		"authority": "Employment Act 1955 ss.13(1),24(2)(b): indemnity owed by the party ending employment to the other party. A supported manual request retains required evidence and review; its entered amount does not override the calculated unserved-period wages. Employee recovery remains NET/SUBTRACT, subject to the applicable deduction limits and the separate final-wages exception in s.24(9)(b). Section 24(9)(a) concerns compensation paid BY the employer, not this employee debt. Statutory exceptions, the approved-and-filed apprenticeship exclusion and domestic scope are evaluated from declared facts. Constant-monthly valuation and outstanding wage/contract branches share NOTICE_IN_LIEU.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "78638044-f442-536c-ae32-13ce194ad5f7",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "TASK_MONTHLY_WAGE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.statutory_work_category == \"TASK_BASIS\" || ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"PCB.ORDINARY",
+			"SOCSO",
+			"SKBBK",
+			"HRDF"
+		],
+		"name": "Monthly task remuneration",
+		"authority": "Minimum Wages Order 2024 para 5(2); EPF Act 1991 s.43; PERKESO wage guidance; LHDN 2026 MTD specification s.D; HRD Corp levy guideline",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "8a3ac811-6cef-59bd-8059-aa5a17f5e9d1",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "TRIP_MONTHLY_WAGE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.statutory_work_category == \"TASK_BASIS\" || ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"PCB.ORDINARY",
+			"SOCSO",
+			"SKBBK",
+			"HRDF"
+		],
+		"name": "Monthly trip remuneration (not travel reimbursement)",
+		"authority": "Minimum Wages Order 2024 para 5(2); EPF Act 1991 s.43; PERKESO wage guidance; LHDN 2026 MTD specification s.D; HRD Corp levy guideline",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "6b0f1684-3164-54ba-a198-603d73cc4f1a",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "COMMISSION_MONTHLY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.statutory_work_category == \"TASK_BASIS\" || ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"PCB.ORDINARY",
+			"SOCSO",
+			"SKBBK"
+		],
+		"name": "Commission paid monthly under the contract",
+		"authority": "Minimum Wages Order 2024 para 5(2); EPF Act 1991 s.43; PERKESO wage guidance; LHDN 2026 MTD specification s.D; HRD Corp levy guideline",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "72f15d4b-73fa-510c-91bb-3851cdb720c5",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "COMMISSION_IRREGULAR",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "terms.statutory_work_category == \"TASK_BASIS\" || ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"counts_toward": [
+			"EIS",
+			"EPF.ORDINARY",
+			"EPF_NON_CITIZEN.ORDINARY",
+			"EPF_PR.ORDINARY",
+			"PCB.ADDITIONAL",
+			"SOCSO",
+			"SKBBK"
+		],
+		"name": "Commission not paid monthly",
+		"authority": "Minimum Wages Order 2024 para 5(2); EPF Act 1991 s.43; PERKESO wage guidance; LHDN 2026 MTD specification s.D; HRD Corp levy guideline",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "9f0642b4-85cc-567d-a6e4-3d5132fdd032",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "RESULTS_ZERO_MONTH",
+		"destination": "DISPLAY",
+		"direction": "ADD",
+		"eligibility": "terms.statutory_work_category == \"TASK_BASIS\" || ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"counts_toward": [],
+		"name": "Attestation of no task, trip or commission results for a full calendar month",
+		"authority": "Minimum Wages Order 2024 para 5(2); monthly zero-result evidence is an employer attestation",
+		"bands": [
+			{
+				"when": "",
+				"amount": "0.0"
+			}
+		]
+	},
+	{
+		"id": "6491b4a6-ab50-56d0-a410-808df1d317a9",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "ACCOMMODATION_RENT",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date. Encoded 2026-10-07 (round 7): EA s.24(4)(e)–(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a deduction for accommodation, services, food or meals only at the employee's written request (entry fact written_request) with the Director General's prior permission. The cap comes from the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations, not s.24.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"on_exceed": "BLOCK",
+					"amount": "min((has(entry.facts.written_variation) && entry.facts.written_variation ? entry.facts.varied_monthly_charge : has(entry.facts.contract_monthly_charge) ? entry.facts.contract_monthly_charge : entry.amount), 150.0)"
+				}
+			}
+		],
+		"qualifies_when": "has(entry.facts.written_request) && entry.facts.written_request == true"
+	},
+	{
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"id": "c89b52c4-1b32-59fb-9262-1f163f3a431d",
+		"code": "CP38_INSTALMENT",
+		"name": "CP38 tax instalment",
+		"authority": "Income Tax Act 1967 s.107 direction (Form CP38): LHDN directs the employer to deduct a fixed instalment of the employee's own tax and remit it with the month's MTD (PCB_REMITTANCE). It is not MTD: it never enters the accumulated MTD X (MTD Specification 2026 D, X \"shall not include … payment of tax installment\", https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf) and is not an EA s.24(8) exception. Customer input: the directed amount per month.",
+		"counts_toward": [],
+		"eligibility": "",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["PCB.ADDITIONAL_NON_EPF"],
+		"id": "fbb4db48-8c70-5e77-8891-bfbdb1c693ac",
+		"code": "LAYOFF_BENEFIT",
+		"name": "Lay-off benefit",
+		"eligibility": "employment.service_months >= 12 && (terms.employment_type != \"DOMESTIC\" && (terms.monthly_wage <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"] || ((has(terms.facts) && has(terms.facts.overtime_by_contract)) && terms.facts.overtime_by_contract == true)))",
+		"bands": [
+			{
+				"when": "",
+				"amount": "max(entry.amount, (size(earned.months) > 0 ? sum(earned.months.map(m, m.gross)) / double(size(earned.months)) : terms.monthly_wage) * 12.0 / 365.0 * (employment.service_months < 24 ? 10.0 : employment.service_months < 60 ? 15.0 : 20.0) * (double(employment.service_months) / 12.0))"
+			}
+		],
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3(1)(b), 5 and 6: an employee whose pay depends on being given work, not given it on at least twelve normal working days in four consecutive weeks (rest days, holidays and leave not counted), is paid the reg.6 benefit; not EPF, SOCSO or EIS wages (lay-off benefits are excluded from each Act's wages). The entered amount if higher; the lay-off itself is the employer's record. A day's wages (reg.6(2), \"average true day's wages … over the period of twelve completed months' service\"): the twelve months' wages ÷ 365, JTKSM's published formula (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and, read 2026-10-07) — earned.months gross ÷ months × 12 ÷ 365, terms.monthly_wage × 12 ÷ 365 without history."
+	},
+	{
+		"id": "c6c615ef-858f-5fdc-beca-374bcf2934be",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "PAYEE_PAYMENT",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "(has(employment.engagement) && employment.engagement == \"PAYEE\")",
+		"counts_toward": [],
+		"name": "Payment to an agent, dealer or distributor (payee)",
+		"authority": "Income Tax Act 1967 s.83A(4): a payment arising from sales, transactions or schemes carried out as the company’s agent, dealer or distributor, on a PAYEE engagement; not employment income, so no EPF, SOCSO, EIS, HRD levy or MTD; reported on CP58 (CP58_AGENT_STATEMENT).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	}
+]

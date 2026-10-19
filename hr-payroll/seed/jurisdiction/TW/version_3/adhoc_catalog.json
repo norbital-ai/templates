@@ -1,0 +1,499 @@
+[
+	{
+		"id": "6b65df05-ff0e-5d6b-acd2-e8ced9ec9106",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "bonus",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"NHI_SUPPLEMENT.ADDITIONAL",
+			"NHI_PART_TIME"
+		],
+		"name": "獎金 (bonus)",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "24230e07-94d7-57ea-a217-e9fded00d147",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "SEVERANCE_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"counts_toward": ["SEVERANCE_TAX"],
+		"name": "資遣費 (severance pay)",
+		"authority": "勞工退休金條例 §12(1): half a month’s 平均工資 for each year of new-system service, pro rata for a part year, up to six months; §11(2) with 勞動基準法 §17: one month’s 平均工資 for each year of retained old-system service (exit_facts.old_system_service_months; a part year pro rata, a part month counted whole), uncapped. 平均工資 (勞動基準法 §2(4)): exit_facts.average_daily_wage × 30, else the declared entry facts.average_monthly_wage, else the last six months’ wages from the payslips (gross less bonus, severance, notice, retirement and leave pay) ÷ their calendar days × 30 — the 施行細則 §2 exclusions (maternity, injury, parental periods) need the declared figure. Owed on a §11, §13-proviso, §14 or §20 termination; withheld through SEVERANCE_TAX.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) > 0.0 ? round((has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) * (min(6.0, 0.5 * max(0.0, double(employment.service_months) - (has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0))) / 12.0) + round((has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0)), 1.0, \"UP\") / 12.0), 1.0, \"HALF_UP\") : entry.amount"
+			}
+		],
+		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
+	},
+	{
+		"id": "52438345-c4dd-556d-8313-4279dbf25761",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "NOTICE_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
+		"counts_toward": ["SEVERANCE_TAX"],
+		"name": "預告期間工資 (notice pay)",
+		"authority": "勞動基準法 §16(1), (3): notice of 10 days (three months to a year of service), 20 (one to three years) or 30 (three years or more); notice not given is paid as wages. 勞動部 109年10月29日勞動關2字第1090128292A號令 (https://www.mol.gov.tw/1607/28162/28296/81778/81787/81925/post): 雇主應預告期間之日數乘以勞工一日工資 — for a monthly-paid worker the last month’s normal-hours wage ÷ 30 (the contract’s monthly wage), or the 平均工資 where that is higher (exit_facts.average_daily_wage). Owed on a §11, §13-proviso or §20 termination (§20 applies the §16 periods). Withheld as 退職所得 through SEVERANCE_TAX (財政部 83年8月9日台財稅第831604301號). Without exit_facts.notice_days_given the line pays the entered amount.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "has(employment.exit_facts.notice_days_given) ? round(max(0.0, (employment.service_months < 3.0 ? 0.0 : (employment.service_months < 12.0 ? 10.0 : (employment.service_months < 36.0 ? 20.0 : 30.0))) - double(employment.exit_facts.notice_days_given)) * max(terms.monthly_wage / 30.0, has(employment.exit_facts.average_daily_wage) ? double(employment.exit_facts.average_daily_wage) : 0.0), 1.0, \"HALF_UP\") : entry.amount"
+			}
+		]
+	},
+	{
+		"id": "669abe51-8713-5130-8787-07fdc48c2b2f",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "RETIREMENT_PAY",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && employment.exit_ground == \"RETIREMENT\" && ((employee.age != null && ((employment.service_months >= 180.0 && employee.age >= 55.0) || (employment.service_months >= 120.0 && employee.age >= 60.0) || employee.age >= 65.0)) || employment.service_months >= 300.0 || (has(employment.exit_facts.retirement_disability) && employment.exit_facts.retirement_disability == true))",
+		"counts_toward": ["SEVERANCE_TAX"],
+		"name": "舊制退休金 (old-system retirement pay)",
+		"authority": "勞動基準法 §53–§55 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55) with 勞工退休金條例 §11(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=11): old-system seniority — the whole service of a worker who never left the old system, or seniority retained on choosing the new one (exit fact `old_system_service_months`) — is paid retirement pay on a §53 or §54 retirement. §53: the worker may retire after fifteen years’ service at 55, twenty-five years, or ten years at 60; §54: the employer may retire a worker at 65 or one whose 身心障礙不堪勝任工作 (exit fact `retirement_disability`). §55(1)(1): two bases for each year of seniority, one for each year beyond fifteen, 45 at most; a part year under six months counts half, six months or more a whole year. §55(1)(2): 20% more where the §54(1)(2) disability was caused by the job (exit fact `retirement_disability_duty_caused`). §55(2): one base is the average wage of a month at approved retirement — 勞基法 §2(4)’s six-month figure read as SEVERANCE_PAY reads it (`exit_facts.average_daily_wage` × 30, or `employment.average_monthly_wage(6, …)`). §55(3): due within thirty days of retirement. Readings, not statute text: §53’s years of service are the whole service with the employer, old and new system together (§57: 工作年資以服務同一事業者為限; the pension system chosen does not end the contract); a §54(1) age retirement is read as the age reached on the exit date, not a later age agreed under §54(2). Not modelled: §84-2 seniority before the Act applied (priced under the rules of its day; a leaver with such seniority states only the post-application months), §55(3)’s pre-Act better company standard, and settlement in instalments. Withholding: 所得稅法 §14(1)(9) (退休金 is 退職所得) through SEVERANCE_TAX; the line counts toward no other base. Eligibility: a RETIREMENT exit meeting 勞動基準法 §53 (fifteen years’ service at 55, twenty-five years’ service, or ten years’ service at 60) or §54(1) (age 65, or retired for disability: exit_facts.retirement_disability) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=53).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_monthly_wage) && has(entry.facts.old_system_service_months) ? round(entry.facts.average_monthly_wage * min(45.0, (round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) <= 15.0 ? 2.0 * (round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) : 30.0 + ((round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") + (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") >= 6.0 ? 1.0 : (entry.facts.old_system_service_months - 12.0 * round(entry.facts.old_system_service_months / 12.0, 1.0, \"DOWN\") > 0.0 ? 0.5 : 0.0))) - 15.0)), 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "d472ba7b-046d-5228-a900-e232b293f8d6",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_INJURY_OFFSET",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害補償抵充 (§59 insurance offset)",
+		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "d18703f9-c0fe-5efb-bf39-49c1cc81159b",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "COURT_GARNISHMENT",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. §115-1 predates every version. The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "6a0fd0b2-b0f2-5b5e-8000-8be71701c34f",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_INJURY_MEDICAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害醫療費用補償 (§59(1) medical costs)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(1): 勞工受傷或罹患職業病時，雇主應補償其必需之醫療費用 — the necessary medical costs, entered as incurred (the receipt is the evidence). 勞動部: 必需之醫療費用 is not limited to what labour insurance pays and is judged case by case, so the run prices the amount entered. The §59 但書 offset of an insurer’s 醫療給付 is OCC_INJURY_OFFSET. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "6a1b089e-ac52-541f-a0da-f5f1a7edf37b",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_INJURY_LUMP_SUM",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害四十個月平均工資 (§59(2) proviso lump sum)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(2) 但書: 醫療期間屆滿二年仍未能痊癒，經指定之醫院診斷，審定為喪失原有工作能力，且不合第三款之失能給付標準者，雇主得一次給付四十個月之平均工資後，免除此項工資補償責任 — forty months’ 平均工資 in one payment, the employer’s election (得), ending the §59(2) wage compensation; raised by HR with the designated hospital’s assessment as evidence once the two years have run. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_monthly_wage) ? round(40.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "8dac55dc-42c0-5297-8877-1dc4bd00708c",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G01",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第1等級 (§59(3) disability, grade 1)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 1 at 1200 days: 1200 × 1.5 = 1800 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(1800.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "0fcf5308-cc13-5216-b422-d95760191d93",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G02",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第2等級 (§59(3) disability, grade 2)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 2 at 1000 days: 1000 × 1.5 = 1500 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(1500.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "28965e6b-9d94-501c-9467-a91f27744e8d",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G03",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第3等級 (§59(3) disability, grade 3)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 3 at 840 days: 840 × 1.5 = 1260 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(1260.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "f44faaf4-e2cc-582d-9ea3-fb93631ba30d",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G04",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第4等級 (§59(3) disability, grade 4)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 4 at 740 days: 740 × 1.5 = 1110 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(1110.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "82316b56-940e-5d6a-8f0f-e898413358d0",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G05",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第5等級 (§59(3) disability, grade 5)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 5 at 640 days: 640 × 1.5 = 960 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(960.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "33f5fc99-a551-5bc2-be54-3a09dd275126",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G06",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第6等級 (§59(3) disability, grade 6)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 6 at 540 days: 540 × 1.5 = 810 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(810.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "9cbc5cbf-8bd5-5775-92da-9570b3113812",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G07",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第7等級 (§59(3) disability, grade 7)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 7 at 440 days: 440 × 1.5 = 660 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(660.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "ee040426-f026-523b-89b7-378056a4224b",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G08",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第8等級 (§59(3) disability, grade 8)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 8 at 360 days: 360 × 1.5 = 540 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(540.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "b66ff69a-7700-5ac2-b7d1-d6a2fcd4df50",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G09",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第9等級 (§59(3) disability, grade 9)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 9 at 280 days: 280 × 1.5 = 420 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(420.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "37b28052-97b3-5dcd-aa17-bdf03c179bd6",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G10",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第10等級 (§59(3) disability, grade 10)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 10 at 220 days: 220 × 1.5 = 330 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(330.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "5908bb3c-2311-5a29-b291-dc6689b87b6e",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G11",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第11等級 (§59(3) disability, grade 11)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 11 at 160 days: 160 × 1.5 = 240 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(240.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "d1b6a95d-123b-562f-ad48-9c2ccad4bcb1",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G12",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第12等級 (§59(3) disability, grade 12)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 12 at 100 days: 100 × 1.5 = 150 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(150.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "e3ef392a-f0e4-5fd6-a9e1-ed55dcec6831",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G13",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第13等級 (§59(3) disability, grade 13)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 13 at 60 days: 60 × 1.5 = 90 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(90.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "b9854c3f-59d3-5d1b-8988-e9365ba3a95d",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G14",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第14等級 (§59(3) disability, grade 14)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 14 at 40 days: 40 × 1.5 = 60 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(60.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "d9dd147b-f3d2-5f7b-ab7d-393fc2411189",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DISABILITY_G15",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "職業災害失能補償 第15等級 (§59(3) disability, grade 15)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(3): 雇主應按其平均工資及其失能程度，一次給予失能補償。失能補償標準，依勞工保險條例有關之規定. 勞工保險條例 §54(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54) pays an occupational disability 依規定之給付標準，增給百分之五十, and 勞工保險失能給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023, 修正 111-03-30) sets grade 15 at 30 days: 30 × 1.5 = 45 days of the average daily wage. The grade is the designated hospital’s assessment (the evidence); a combined grade under §6 is the grade HR raises, and §6(1)(7)’s sum of separate days is not priced. 平均工資 is 勞基法 §2(4) over the six calendar months before the accident’s month (the request’s event date is the day of the accident), with the 施行細則 §2 periods left out as SEVERANCE_PAY leaves them. Owner rule 2026-09-28: §59 does not name the 計算事由發生之當日 for this payment; the default is the day of the accident, before any §2(2) medical period, recorded in the register. Not 工資 (施行細則 §10(7) 職業災害補償費), so it counts toward no insured, pension or NHI base; exempt from income tax as 傷害之損害賠償金 (所得稅法 §4(1)(3), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=4; 財政部 88-08-11 台財稅第881933640號 reads §59 compensation as 損害賠償性質).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_daily_wage) ? round(45.0 * entry.facts.average_daily_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "7850a5f1-fd7e-5153-8544-a30c731722d9",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DEATH_FUNERAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"counts_toward": [],
+		"name": "職業災害喪葬費 (§59(4) funeral costs)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(4): 勞工遭遇職業傷害或罹患職業病而死亡時，雇主除給與五個月平均工資之喪葬費外 — five months’ 平均工資. 平均工資 is 勞基法 §2(4) read as SEVERANCE_PAY reads it: `exit_facts.average_daily_wage` × 30 where stated, else the six calendar months before the month of death from the payslips with the 施行細則 §2 periods (including §2(2) 職業災害醫療期間) left out; a death after a medical period that fills all six months states the figure. Not 工資 (施行細則 §10(7)); exempt from income tax: 所得稅法 §4(1)(4) 個人因執行職務而死亡，其遺族依法令…領取之…死亡補償, and §4(1)(3) for the funeral costs. Paid through the final payslip; who among the survivors receives it (§59(4)(一)–(五)) is outside payroll.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_monthly_wage) ? round(5.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "5d98d81c-f8de-5fe0-8c60-70ddd5c86ce3",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "OCC_DEATH_COMPENSATION",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"counts_toward": [],
+		"name": "職業災害死亡補償 (§59(4) death compensation)",
+		"authority": "勞基法 §59 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59)(4): 並應一次給與其遺屬四十個月平均工資之死亡補償 — forty months’ 平均工資 in one payment to the survivors. 平均工資 as OCC_DEATH_FUNERAL. Not 工資 (施行細則 §10(7)); exempt from income tax: 所得稅法 §4(1)(4) 個人因執行職務而死亡，其遺族依法令…領取之…死亡補償, and §4(1)(3) for the funeral costs. Paid through the final payslip; who among the survivors receives it (§59(4)(一)–(五)) is outside payroll.",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(has(entry.facts.average_monthly_wage) ? round(40.0 * entry.facts.average_monthly_wage, 1.0, \"HALF_UP\") : entry.amount)"
+			}
+		]
+	},
+	{
+		"id": "6d4f40e2-64af-58b0-b923-246adfbb4db7",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "FOOD_LODGING",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(employee.facts.food_lodging_monthly_cap)",
+		"counts_toward": [],
+		"name": "膳宿費 (migrant worker food and lodging)",
+		"authority": "雇主聘僱外國人許可及管理辦法 and the 外國人入國工作費用及工資切結書: food and lodging may be deducted from a migrant worker’s wage only as the signed declaration states; the FOOD_LODGING_CAP validation refuses a month above employee.facts.food_lodging_monthly_cap (the declared amount).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "9e753e58-fec9-580d-9bae-b77db80986b7",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "NON_COMPETE_COMPENSATION",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"qualifies_when": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && entry.occurred_on > employment.exit_date && entry.occurred_on <= add_years(employment.exit_date, 2)",
+		"counts_toward": [
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"name": "離職後競業禁止補償 (non-compete compensation, monthly after exit)",
+		"authority": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete binds only with reasonable compensation, for at most two years (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1); 施行細則 §7-3: monthly compensation not below 50% of the average monthly wage at leaving, agreed as one sum paid in advance after leaving or monthly (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7-3). The monthly instalment is the agreed sum (entry amount), paid on a slip of its own after the exit within two years of it; withheld as a monthly salary payment (INCOME_TAX / INCOME_TAX_NON_RESIDENT). The former worker is no longer insured through the unit, so each payment of at least the minimum wage bears the 2.11% 兼職薪資 premium (NHI_PART_TIME) and enters the unit’s §34 salary total with no insured amount (NHI_SUPPLEMENT_EMPLOYER). The VALIDATIONS row NON_COMPETE_BELOW_HALF_WAGE warns below the §7-3 floor. Owner ruling (2026-10-07, binding): taxed as salary income (所得稅法 §14(1)(3)) — withheld and charged the NHI supplementary premium as salary; no 財政部 ruling on its category was found (ttc.mof.gov.tw, law-out.mof.gov.tw, dot.gov.tw and the 國稅局 sites searched 2026-10-07).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"payable_after_exit": true
+	},
+	{
+		"id": "f9beebe0-ef45-553d-8fc8-b43f146affbc",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"code": "NON_COMPETE_LUMP_SUM",
+		"destination": "PAY",
+		"direction": "ADD",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
+		"qualifies_when": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && entry.occurred_on > employment.exit_date",
+		"counts_toward": [
+			"INCOME_TAX_BONUS",
+			"INCOME_TAX_NON_RESIDENT",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
+		],
+		"name": "離職後競業禁止補償一次給付 (non-compete compensation, one sum after exit)",
+		"authority": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete binds only with reasonable compensation, for at most two years (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1); 施行細則 §7-3: monthly compensation not below 50% of the average monthly wage at leaving, agreed as one sum paid in advance after leaving or monthly (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=7-3). The one sum agreed for the whole restriction (entry amount), paid after the exit on a slip of its own; withheld as a non-monthly salary payment (5% of a payment at the 起扣標準, INCOME_TAX_BONUS; INCOME_TAX_NON_RESIDENT), with the 2.11% 兼職薪資 premium (NHI_PART_TIME) and the unit’s §34 total (NHI_SUPPLEMENT_EMPLOYER). The 50% floor over the agreed months is the agreement’s: the class holds no restriction length. Owner ruling (2026-10-07, binding): taxed as salary income (所得稅法 §14(1)(3)) — withheld and charged the NHI supplementary premium as salary; no 財政部 ruling on its category was found (ttc.mof.gov.tw, law-out.mof.gov.tw, dot.gov.tw and the 國稅局 sites searched 2026-10-07).",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		],
+		"payable_after_exit": true
+	}
+]

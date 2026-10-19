@@ -1,0 +1,45 @@
+# Build & generated artifacts
+**/.svelte-kit/
+**/.svelte-check/
+**/build/
+**/.generated/
+**/.norbital/
+
+# Generated migration history. Not merely regenerated output — `migrationFingerprint` hashes the
+# RAW BYTES of every file under this directory into `historySha256`, so reformatting one rewrites
+# the fingerprint and the build reads that as a changed migration history.
+**/.norbital/migrations/
+
+# Tooling / CI
+.turbo/
+.tmp/
+**/test-results/
+**/coverage/
+
+# Dependencies & lockfiles
+**/node_modules/
+**/pnpm-lock.yaml
+**/pnpm-workspace.yaml
+**/package-lock.json
+**/yarn.lock
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+vite.config.js*
+
+# Vendored dependency builds injected by `pnpm yalc:link`. Not ours to format, and
+# `prettier --check .` reports ~1100 style warnings on them, which drowns the real ones.
+.yalc/
+
+# Vendored face-model JSONs for kiosk matching. Not ours to format.
+**/assets/models/
+
+# Rendered from contexts.ts by scripts/render-expression-context.ts; a test holds it byte-for-byte.
+hr-payroll/docs/expression-context.md

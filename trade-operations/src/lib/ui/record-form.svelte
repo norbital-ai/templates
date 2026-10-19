@@ -1,0 +1,193 @@
+<script lang="ts" module>
+	import type { Snippet } from 'svelte';
+	import {
+		type FieldEditor,
+		type FormState,
+		type RecordView,
+		type RecordHistoryConfig,
+		type RecordTab
+	} from '@norbital-ai/ui';
+	import type { CollectionName } from '@norbital-ai/bolt';
+	// Remember the tab when opening a related record, as RecordShell does.
+	const lastTab = new Map<string, string>();
+	/** One titled group of fields. */
+	export type FormSection = {
+		/** The stable key the viewer's open state is remembered under. */
+		name: string;
+		title?: string;
+		/** In form order, each labelled from the catalog. */
+		fields: readonly string[];
+		readonlyFields?: readonly string[];
+		/** A secondary section: closed until opened, showing this line ("No notes", "Not set"). */
+		closed?: string;
+		actions?: Snippet;
+		body?: Snippet;
+	};
+	export type RecordFormProps = {
+		view: RecordView<CollectionName>;
+		/** The fields under the record's label, each shown by its kind. */
+		subtitle?: readonly string[];
+		/** Ordered sections; the shared controller keeps readable fields visible and makes permitted fields editable. */
+		sections: readonly FormSection[];
+		/** A field's own editor (a picker filtered by another field, say). */
+		editors?: {
+			readonly [field: string]: Snippet<[FormState, FieldEditor]>;
+		};
+		actions?: Snippet;
+		formActions?: Snippet<[FormState]>;
+		/** Tabs beside the form, on a stored record (a document's lines). */
+		tabs?: readonly RecordTab[];
+		mainTitle?: string;
+		readonly?: boolean;
+		afterForm?: Snippet;
+		history?: RecordHistoryConfig;
+	};
+</script>
+
+<script lang="ts">
+	/**
+	 * A collection's record view: the record frame with its subtitle, and the form in its sections; `status`
+	 * offers the moves out of the stored state (the kit's form never edits a state). A record in a final state (no moves
+	 * out, nothing editable) is shown readonly.
+	 */
+	import {
+		Combobox,
+		Field,
+		Form,
+		Section,
+		Tabs,
+		openRecord,
+		RecordShell,
+		useEnumText,
+		useKinds
+	} from '@norbital-ai/ui';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	let {
+		view,
+		subtitle,
+		sections,
+		editors = {},
+		actions,
+		formActions,
+		tabs,
+		mainTitle,
+		readonly = false,
+		afterForm,
+		history
+	}: RecordFormProps = $props();
+	const kinds = useKinds();
+	const words = useEnumText();
+	const record = $derived(view.mode !== 'create' ? view.record : null);
+	const cells: {
+		readonly [field: string]: unknown;
+	} | null = $derived(view.mode !== 'create' ? view.record : null);
+	const values = $derived(view.mode === 'create' ? view.values : {});
+	// a create its parent scopes (a document's add-line form, `values` given) stays open for the next one
+	const scoped = $derived(Object.keys(values).length > 0);
+	let added = $state(0);
+	const final = $derived.by(() => {
+		if (cells === null) return false;
+		const fields = kinds.catalog?.[view.collection]?.fields ?? {};
+		const state = Object.entries(fields).find(([, k]) => k.kind === 'state');
+		if (state?.[1].kind !== 'state') return false;
+		const at = state[1].states[String(cells[state[0]])];
+		return at !== undefined && (at.to ?? []).length === 0 && at.edit === 'none';
+	});
+</script>
+
+{#snippet field(name: string, form: FormState, readonlyField: boolean | undefined = undefined)}
+	{#if Object.entries(values).some(([field, value]) => field === name && value != null)}
+		<!-- the parent scoping this create: fixed, not asked -->
+	{:else if editors[name]}
+		<Field {name} {...readonlyField ? { readonly: true } : {}}>
+			{#snippet editor(field)}{@render editors[name]!(form, field)}{/snippet}
+		</Field>
+	{:else if name === 'status' && cells}
+		<!-- a state moves along its edges: the stored state and the moves out of it -->
+		<Field {name} {...readonlyField ? { readonly: true } : {}}>
+			{#snippet editor(field)}
+				{@const from = String(cells.status)}
+				<Combobox
+					size="sm"
+					options={[
+						from,
+						...(field.kind.kind === 'state' ? (field.kind.states[from]?.to ?? []) : [])
+					].map((s) => ({ value: s, label: words(s, name) }))}
+					value={String(field.value)}
+					disabled={field.disabled}
+					onChange={(s) => s !== null && field.onChange(s)}
+				/>
+			{/snippet}
+		</Field>
+	{:else}
+		<Field {name} {...readonlyField ? { readonly: true } : {}} />
+	{/if}
+{/snippet}
+
+{#snippet general()}
+	<Stack gap="md">
+		{#key added}<Form
+				of={view.collection}
+				mode={view.mode}
+				readonly={readonly || final}
+				{...formActions ? { actions: formActions } : {}}
+				{...record ? { id: record.id, record } : { values }}
+				onOutcome={(o) => {
+					// a new record opens once it exists
+					if (record || o.kind !== 'committed' || !o.records[0]) return;
+					if (scoped) added++;
+					else openRecord(view.collection, o.records[0].id);
+				}}
+			>
+				{#snippet children(form)}
+					{#each sections as section, i (section.name)}
+						<Section
+							first={i === 0}
+							name={section.name}
+							{...section.actions ? { actions: section.actions } : {}}
+							{...section.title === undefined ? {} : { title: section.title }}
+							{...section.closed === undefined
+								? {}
+								: {
+										defaultOpen: false,
+										...(typeof section.closed === 'string' ? { summary: section.closed } : {})
+									}}
+						>
+							<Grid gap="md" minimum="compact">
+								{#each section.fields as name (name)}{@render field(
+										name,
+										form,
+										section.readonlyFields?.includes(name) ? true : undefined
+									)}{/each}
+							</Grid>
+							{#if section.body}{@render section.body()}{/if}
+						</Section>
+					{/each}
+				{/snippet}
+			</Form>{/key}
+
+		{#if afterForm}{@render afterForm()}{/if}
+	</Stack>
+{/snippet}
+<RecordShell
+	of={view.collection}
+	mode={view.mode}
+	{...record
+		? {
+				id: record.id,
+				...(subtitle ? { subtitle } : {}),
+				...(!mainTitle && tabs ? { tabs } : {})
+			}
+		: { values }}
+	{...actions ? { actions } : {}}
+	{...history === undefined ? {} : { history }}
+>
+	{#if mainTitle && record}<Tabs
+			value={lastTab.get(`${view.collection}/${record.id}`) ?? 'general'}
+			onValueChange={(value) => lastTab.set(`${view.collection}/${record!.id}`, value)}
+			tabs={[
+				{ name: 'general', title: mainTitle, body: general, keepAlive: true },
+				...(tabs ?? [])
+			]}
+		/>{:else}{@render general()}{/if}
+</RecordShell>

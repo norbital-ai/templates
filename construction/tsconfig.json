@@ -1,0 +1,7 @@
+{
+	"extends": "./.norbital/tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ES2024", "DOM", "DOM.Iterable", "WebWorker"],
+		"types": ["vite/client", "node"]
+	}
+}
