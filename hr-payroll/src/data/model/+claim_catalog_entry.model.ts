@@ -6,10 +6,6 @@ export default model({
 	icon: 'lucide:receipt',
 	label: 'occurred_on',
 	fields: {
-		reference: {
-			kind: 'text',
-			optional: true
-		},
 		occurred_on: {
 			kind: 'date'
 		},
@@ -46,7 +42,7 @@ export default model({
 		facts: {
 			kind: 'json',
 			optional: true,
-			help: 'Anything this claim carries that the fields above do not name.'
+			help: 'Payroll inputs required by the selected claim item.'
 		}
 	}
 });

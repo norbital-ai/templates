@@ -231,15 +231,15 @@ const transformed = Effect.fnUntraced(function* (...args: TransformArguments) {
 						options.existing?.map((id) => stored.find((row) => row.id === fixtureId(id))) ?? []
 					);
 				}
-				case 'loan_catalog_entry': {
+				case 'loan_repayment_entry': {
 					const stored =
 						options.existing === undefined
 							? []
-							: (yield* t.storedRead('loan_catalog_entry', {
+							: (yield* t.storedRead('loan_repayment_entry', {
 									where: {
 										id: {
 											in: options.existing.map((id) =>
-												nativeId('loan_catalog_entry', fixtureId(id))
+												nativeId('loan_repayment_entry', fixtureId(id))
 											)
 										}
 									},
@@ -465,6 +465,7 @@ const reset = () => {
 			'adhoc_catalog_entry',
 			'claim_catalog_entry',
 			'leave_catalog_entry',
+			'loan_repayment_entry',
 			'loan_catalog_entry',
 			'roster_entry',
 			'holiday',
@@ -525,6 +526,7 @@ const catalog = <C extends CatalogName<EntryCollection>>(name: C, code: string, 
 				);
 				const range = rangeOf(version.effective_range);
 				return (
+					version.voided_at == null &&
 					row.code === code &&
 					range.from <= `${period}-01` &&
 					(range.to == null || range.to >= `${period}-01`)
@@ -540,9 +542,32 @@ const entry = (
 	occurred_on: string,
 	fields: Row,
 	activity?: string
-) =>
+) => {
+	if (collection === 'loan_repayment_entry') {
+		const principal = moneyNumber(fields.amount);
+		assert.ok(principal != null);
+		required(tables.get('loan_catalog_entry')).push({
+			id: fixtureId(`principal-${id}`),
+			employment_id: nativeId('employment_contract', fixtureId(`k-${person}`)),
+			company_id: COMPANY,
+			catalog_id: fixtureId(catalogId),
+			principal_amount: Decimal.of(String(principal)),
+			repayment_period: { from: PlainDate(occurred_on), to: PlainDate(occurred_on) },
+			repayment_frequency: 'MONTHLY',
+			...(isDynObject(fields.facts)
+				? Object.fromEntries(
+						Object.entries(fields.facts).filter(([key]) =>
+							['advance_purpose', 'written_agreement_reference', 'advance_made_on'].includes(key)
+						)
+					)
+				: {})
+		});
+	}
 	required(tables.get(collection)).push({
 		id: fixtureId(id),
+		...(collection === 'loan_repayment_entry'
+			? { loan_id: fixtureId(`principal-${id}`), sequence: 1, activity: activity ?? 'AWARD' }
+			: {}),
 		employment_id: nativeId('employment_contract', fixtureId(`k-${person}`)),
 		company_id: COMPANY,
 		catalog_id: fixtureId(catalogId),
@@ -550,15 +575,21 @@ const entry = (
 		occurred_on: PlainDate(occurred_on),
 		// These three columns are decimal in all four native entry models.
 		...Object.fromEntries(
-			Object.entries(fields).map(([key, value]) => [
-				key,
-				['amount', 'quantity', 'days'].includes(key) && typeof value === 'number'
-					? Decimal.of(String(value))
-					: value
-			])
+			Object.entries(fields)
+				.filter(
+					([key]) =>
+						collection !== 'loan_repayment_entry' || !['reference', 'label', 'facts'].includes(key)
+				)
+				.map(([key, value]) => [
+					key,
+					['amount', 'quantity', 'days'].includes(key) && typeof value === 'number'
+						? Decimal.of(String(value))
+						: value
+				])
 		),
 		...(activity == null ? {} : { activity })
 	});
+};
 
 it('payroll guards retain strict nested values and recursive Decimal conversion without losing masks', () => {
 	const json = { nested: { values: [1, 'two', null, true] } };
@@ -797,6 +828,124 @@ it.effect(
 );
 
 it.effect(
+	'a regular run checks over 1000 open candidates and excludes reservations before asynchronous backlinks',
+	Effect.fnUntraced(function* () {
+		reset();
+		tables.set('employment_contract', [contractOf(required(people[1]))]);
+		const catalogId = catalog('adhoc_catalog', 'bonus', '2026-03');
+		const candidates = Array.from(
+			{ length: 1002 },
+			(_, index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+		);
+		for (const id of candidates)
+			entry('adhoc_catalog_entry', id, 'e2', catalogId, '2026-03-05', { amount: 1 });
+		const reservations = [
+			[required(candidates[0])],
+			[required(candidates.at(-1))],
+			[required(candidates[1]), required(candidates[1000])]
+		];
+		const reserved = reservations.flat();
+		const sharedLedgerId = fixtureId('candidate-reservation-2');
+		// Separate ledgers force the final candidate's reservation to be found in its own query partition.
+		tables.set(
+			'payroll_run',
+			reservations.map((ids, index) => ({
+				id: fixtureId(`candidate-reservation-${index}`),
+				company_id: COMPANY,
+				settings_id: versionOn('2026-03'),
+				period: '2026-03',
+				kind: 'OFF_CYCLE',
+				sequence: index + 1,
+				sources: ids,
+				pay_date: PlainDate('2026-03-05'),
+				salary_from: PlainDate('2026-03-01'),
+				salary_to: PlainDate('2026-03-31'),
+				attendance_from: PlainDate('2026-03-01'),
+				attendance_to: PlainDate('2026-03-31'),
+				pins: ids.map((id) => ({
+					collection: 'adhoc_catalog_entry',
+					id,
+					employment_id: fixtureId('k-e2')
+				}))
+			}))
+		);
+		yield* world(fixtureTables()).withRead((read) =>
+			Effect.gen(function* () {
+				const open = (yield* read('adhoc_catalog_entry', {
+					where: { payslip_id: { isNull: true } },
+					select: { id: true, payslip_id: true },
+					all: true
+				})).rows;
+				assert.deepEqual(
+					open.map((row) => row.id),
+					candidates
+				);
+				const native = yield* NativeReads;
+				const run = native.run;
+				const returnedLedgers: string[] = [];
+				const counted = vi.spyOn(native, 'run').mockImplementation((batch, reader, bindings) =>
+					run(batch, reader, bindings).pipe(
+						Effect.tap((answers) =>
+							Effect.sync(() => {
+								for (const [index, query] of batch.entries())
+									if (
+										query.kind === 'read' &&
+										query.collection === 'payroll_run' &&
+										query.select.fields?.includes('pins')
+									)
+										returnedLedgers.push(
+											...records(record(answers[index]).rows).map((row) => String(row.id))
+										);
+							})
+						)
+					)
+				);
+				yield* Effect.addFinalizer(() => Effect.sync(() => counted.mockRestore()));
+				const plan = yield* buildPayrollRun({
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'REGULAR'
+				}).pipe(Effect.provideService(Reads, readsFrom(read)));
+				assert.equal(returnedLedgers.filter((id) => id === sharedLedgerId).length, 1);
+				const payslip = slip(plan, 'e2');
+				const unreserved = candidates.filter((id) => !reserved.includes(id));
+				assert.deepEqual(
+					payslip.pins
+						.filter((pin) => pin.collection === 'adhoc_catalog_entry')
+						.map((pin) => pin.id)
+						.sort(),
+					unreserved
+				);
+				assert.deepEqual(payslip.adjustments.map((row) => row.source_id).sort(), unreserved);
+				assert.equal(
+					payslip.adjustments.reduce((sum, row) => sum + row.amount, 0),
+					998
+				);
+				assert.equal(payslip.gross, 6498);
+				const locks = yield* PayrollAdmission.entrySettlementLocks(
+					readsFrom(read).read,
+					'adhoc_catalog_entry',
+					candidates
+				);
+				assert.deepEqual([...locks.keys()].sort(), [...reserved].sort());
+				assert.ok([...locks.values()].every((allowed) => allowed.size === 0));
+				for (const id of reserved) {
+					const source = required(
+						(yield* read('adhoc_catalog_entry', {
+							where: { id: { eq: nativeId('adhoc_catalog_entry', id) } },
+							select: { payslip_id: true },
+							all: true
+						})).rows[0]
+					);
+					assert.equal(source.payslip_id, null);
+				}
+			})
+		);
+	}),
+	15_000
+);
+
+it.effect(
 	'a June run pages a roster over 4 MiB and prices overtime from its last page',
 	Effect.fnUntraced(function* () {
 		reset();
@@ -827,6 +976,7 @@ it.effect(
 			id: last,
 			employment_id: nativeId('employment_contract', contract.id),
 			work_date: PlainDate('2026-06-10'),
+			planned_overtime_hours: 4,
 			worked_intervals: clocked('2026-06-10', 4)
 		});
 		assert.ok(Buffer.byteLength(JSON.stringify(roster)) > 4 * 1024 * 1024);
@@ -894,6 +1044,789 @@ it.effect(
 );
 
 it.effect(
+	'a batch cannot create two salary runs that consume the same work period',
+	Effect.fnUntraced(function* () {
+		reset();
+		tables.set('employment_contract', [contractOf({ ...required(people[2]), salary: 2000 })]);
+		const workId = fixtureId('batch-payroll-work');
+		required(tables.get('roster_entry')).push({
+			id: workId,
+			employment_id: nativeId('employment_contract', fixtureId('k-e3')),
+			work_date: PlainDate('2026-03-10'),
+			planned_overtime_hours: 2,
+			worked_intervals: clocked('2026-03-10', 2)
+		});
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.member(['hr_manager']));
+				const request = { company_id: COMPANY, period: '2026-03', kind: 'REGULAR' as const };
+				const refused = yield* Effect.flip(actor.act('payroll_run.create', [request, request]));
+				assert.match(refused.message, /one payroll run per entity at a time/i);
+				assert.equal((yield* actor.read('payroll_run', { all: true })).rows.length, 0);
+				assert.equal((yield* actor.read('payslip', { all: true })).rows.length, 0);
+				assert.equal((yield* actor.read('roster_entry', { all: true })).rows[0]?.payslip_id, null);
+				const accepted = yield* actor.act('payroll_run.create', request);
+				assert.equal(accepted.kind, 'committed');
+				yield* t.runDue();
+				const slips = (yield* actor.read('payslip', { select: { base: true }, all: true })).rows;
+				assert.equal(slips.length, 1);
+				const paidWork = yield* Effect.fromResult(
+					fieldValue(required(slips[0]).base, 'payslip.base')
+				);
+				assert.equal(
+					required(paidWork?.find((line) => line.component_code === 'OVERTIME')).amount,
+					31.47
+				);
+				const work = (yield* actor.read('roster_entry', { all: true })).rows;
+				assert.equal(
+					required(work.find((row) => row.id === workId)).payslip_id,
+					required(slips[0]).id
+				);
+				const repeated = yield* Effect.flip(actor.act('payroll_run.create', request));
+				assert.match(repeated.message, /already has a salary run/i);
+				assert.equal((yield* actor.read('payslip', { all: true })).rows.length, 1);
+			})
+		);
+	}),
+	15_000
+);
+
+const pendingPayrollSources = () => {
+	reset();
+	tables.set('employment_contract', [
+		contractOf(required(people[1]), {
+			allowances: [{ code: 'FIXED_MONTHLY', amount: { value: 310, currency: 'SGD' } }]
+		})
+	]);
+	payrollOf('2026-03', { off_cycle_families: ['ADHOC', 'CLAIM', 'LOAN_REPAYMENT'] });
+	entry(
+		'adhoc_catalog_entry',
+		'pending-bonus',
+		'e2',
+		catalog('adhoc_catalog', 'bonus', '2026-03'),
+		'2026-03-05',
+		{ amount: Decimal.of('1000') }
+	);
+	entry(
+		'loan_repayment_entry',
+		'pending-repayment',
+		'e2',
+		catalog('loan_catalog', 'SALARY_ADVANCE', '2026-03'),
+		'2026-03-20',
+		{ amount: Decimal.of('250') }
+	);
+	return [fixtureId('pending-bonus'), fixtureId('pending-repayment')];
+};
+
+it.effect(
+	'concurrent payroll creates reserve exact source entries before asynchronous pins and release them after unpaid deletion',
+	Effect.fnUntraced(function* () {
+		const sources = pendingPayrollSources();
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.member(['hr_manager']));
+				const request = {
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'OFF_CYCLE' as const,
+					sources
+				};
+				const results = yield* Effect.all(
+					[
+						Effect.result(actor.act('payroll_run.create', request)),
+						Effect.result(actor.act('payroll_run.create', request))
+					],
+					{ concurrency: 'unbounded' }
+				);
+				const successes = results.filter(Result.isSuccess);
+				assert.equal(successes.length, 1);
+				assert.equal(results.filter(Result.isFailure).length, 1);
+				const first = required(successes[0]).success;
+				assert.equal(first.kind, 'committed');
+				const originalRun = required(first.records.find((row) => row.collection === 'payroll_run'));
+				assert.equal((yield* actor.read('payroll_run', { all: true })).rows.length, 1);
+				assert.equal(
+					(yield* actor.read('loan_repayment_entry', { all: true })).rows[0]?.payslip_id,
+					null
+				);
+				const repeated = yield* Effect.flip(actor.act('payroll_run.create', request));
+				assert.match(repeated.message, /not an approved, unpaid entry/i);
+				yield* actor.act('payroll_run.delete', {
+					target: [nativeId('payroll_run', originalRun.id)]
+				});
+				const reused = yield* actor.act('payroll_run.create', request);
+				assert.equal(reused.kind, 'committed');
+				const reusedRun = required(reused.records.find((row) => row.collection === 'payroll_run'));
+				assert.notEqual(reusedRun.id, originalRun.id);
+				const regular = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'REGULAR'
+				});
+				assert.equal(regular.kind, 'committed');
+				const regularRun = required(
+					regular.records.find((row) => row.collection === 'payroll_run')
+				);
+				const regularSlip = required(
+					(yield* actor.read('payslip', {
+						where: { payroll_run_id: { eq: nativeId('payroll_run', regularRun.id) } },
+						select: { base: true, adjustments: true },
+						all: true
+					})).rows[0]
+				);
+				const base = yield* Effect.fromResult(fieldValue(regularSlip.base, 'payslip.base'));
+				assert.equal(
+					required(base?.find((row) => row.component_code === 'FIXED_MONTHLY')).amount,
+					310
+				);
+				const adjustments = yield* Effect.fromResult(
+					fieldValue(regularSlip.adjustments, 'payslip.adjustments')
+				);
+				assert.ok(!(adjustments ?? []).some((row) => sources.includes(row.source_id)));
+				yield* t.runDue();
+				const repayment = required(
+					(yield* actor.read('loan_repayment_entry', { all: true })).rows[0]
+				);
+				const offSlip = required(
+					(yield* actor.read('payslip', {
+						where: { payroll_run_id: { eq: nativeId('payroll_run', reusedRun.id) } },
+						all: true
+					})).rows[0]
+				);
+				assert.equal(repayment.payslip_id, offSlip.id);
+				assert.notEqual(repayment.payslip_id, regularSlip.id);
+				assert.equal(
+					moneyNumber(
+						(yield* actor.read('loan_catalog_entry', { all: true })).rows[0]?.principal_amount
+					),
+					250
+				);
+				assert.equal((yield* actor.read('payslip', { all: true })).rows.length, 2);
+			})
+		);
+	}),
+	15_000
+);
+
+it.effect(
+	'a payroll batch requires sequential calculations for one entity, including disjoint entries and different periods',
+	Effect.fnUntraced(function* () {
+		const sources = pendingPayrollSources();
+		entry(
+			'adhoc_catalog_entry',
+			'next-bonus',
+			'e2',
+			catalog('adhoc_catalog', 'bonus', '2026-03'),
+			'2026-03-06',
+			{ amount: Decimal.of('500') }
+		);
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.member(['hr_manager']));
+				const off = { company_id: COMPANY, period: '2026-03', kind: 'OFF_CYCLE' as const, sources };
+				const next = { ...off, sources: [fixtureId('next-bonus')] };
+				const regular = { company_id: COMPANY, period: '2026-03', kind: 'REGULAR' as const };
+				for (const requests of [
+					[off, off],
+					[regular, off],
+					[off, regular],
+					[off, next],
+					[regular, { ...regular, period: '2026-04' }]
+				]) {
+					const refused = yield* Effect.flip(actor.act('payroll_run.create', requests));
+					assert.match(refused.message, /one payroll run per entity at a time/i);
+					assert.equal((yield* actor.read('payroll_run', { all: true })).rows.length, 0);
+					assert.equal((yield* actor.read('payslip', { all: true })).rows.length, 0);
+					assert.equal(
+						(yield* actor.read('loan_repayment_entry', { all: true })).rows[0]?.payslip_id,
+						null
+					);
+				}
+				assert.equal((yield* actor.act('payroll_run.create', off)).kind, 'committed');
+				assert.equal((yield* actor.act('payroll_run.create', next)).kind, 'committed');
+				const slips = (yield* actor.read('payslip', { select: { statutory: true }, all: true }))
+					.rows;
+				assert.equal(slips.length, 2);
+				const statutory = yield* Effect.all(
+					slips.map((slip) => Effect.fromResult(fieldValue(slip.statutory, 'payslip.statutory')))
+				);
+				const sdl = statutory
+					.flatMap((lines) => lines ?? [])
+					.filter((line) => line.scheme_code === 'SDL');
+				assert.deepEqual(
+					sdl.map((line) => line.employer_amount).sort((a, b) => a - b),
+					[1.25, 2.5]
+				);
+			})
+		);
+	}),
+	15_000
+);
+
+it.effect(
+	'a loan principal generates monthly repayments; payroll prorates standing allowances and locks only due repayments',
+	Effect.fnUntraced(function* () {
+		reset();
+		const contract = contractOf(required(people[1]), {
+			effective_range: { from: PlainDate('2026-03-16'), to: null },
+			allowances: [{ code: 'FIXED_MONTHLY', amount: { value: 310, currency: 'SGD' } }]
+		});
+		contract.effective_range = { from: PlainDate('2026-03-16'), to: null };
+		tables.set('employment_contract', [contract]);
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.admin);
+				const created = yield* actor.act('loan_catalog_entry.create', {
+					catalog_id: catalog('loan_catalog', 'SALARY_ADVANCE', '2026-03'),
+					employment_id: nativeId('employment_contract', fixtureId('k-e2')),
+					principal_amount: Decimal.of('1000'),
+					repayment_period: { from: PlainDate('2026-03-20'), to: PlainDate('2026-06-20') },
+					repayment_frequency: 'MONTHLY'
+				});
+				assert.ok(created.kind === 'committed');
+				const loan = required(
+					created.records.find((row) => row.collection === 'loan_catalog_entry')
+				);
+				const repayments = (yield* actor.read('loan_repayment_entry', {
+					where: { loan_id: { eq: nativeId('loan_catalog_entry', loan.id) } },
+					select: { occurred_on: true, amount: true, payslip_id: true },
+					all: true
+				})).rows.toSorted((a, b) => a.occurred_on.localeCompare(b.occurred_on));
+				assert.deepEqual(
+					repayments.map((row) => [row.occurred_on, moneyNumber(row.amount)]),
+					[
+						['2026-03-20', 250],
+						['2026-04-20', 250],
+						['2026-05-20', 250],
+						['2026-06-20', 250]
+					]
+				);
+				const due = required(repayments[0]);
+				const built = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'REGULAR'
+				});
+				assert.ok(built.kind === 'committed');
+				yield* t.runDue();
+				const run = required(built.records.find((row) => row.collection === 'payroll_run'));
+				const slips = (yield* actor.read('payslip', {
+					where: { payroll_run_id: { eq: nativeId('payroll_run', run.id) } },
+					select: { base: true, adjustments: true, employment_id: true, gross: true },
+					all: true
+				})).rows;
+				const slip = required(slips.find((row) => row.employment_id === fixtureId('k-e2')));
+				const base = yield* Effect.fromResult(fieldValue(slip.base, 'payslip.base'));
+				// One standing allowance pays 12 of March's 22 working days, alongside the partial-month salary.
+				assert.equal(required(base?.find((line) => line.component_code === 'BASIC')).amount, 3000);
+				assert.equal(
+					required(base?.find((line) => line.component_code === 'FIXED_MONTHLY')).amount,
+					169.09
+				);
+				assert.equal(moneyNumber(slip.gross), 3169.09);
+				const adjustments = yield* Effect.fromResult(
+					fieldValue(slip.adjustments, 'payslip.adjustments')
+				);
+				const adjustment = required(adjustments?.find((line) => line.family === 'LOAN_REPAYMENT'));
+				assert.equal(adjustment.amount, -250);
+				assert.equal(adjustment.source_id, due.id);
+				assert.notEqual(adjustment.source_id, loan.id);
+				const pinned = (yield* actor.read('loan_repayment_entry', {
+					where: { loan_id: { eq: nativeId('loan_catalog_entry', loan.id) } },
+					select: { payslip_id: true },
+					all: true
+				})).rows;
+				assert.equal(required(pinned.find((row) => row.id === due.id)).payslip_id, slip.id);
+				assert.equal(pinned.filter((row) => row.payslip_id != null).length, 1);
+				const edit = yield* Effect.flip(
+					actor.act('loan_repayment_entry.update', {
+						target: [due.id],
+						set: { amount: Decimal.of('200') }
+					})
+				);
+				assert.match(edit.message, /settled|consumed|payroll|payslip/i);
+				const unlink = yield* Effect.flip(
+					actor.act('loan_repayment_entry.update', {
+						target: [due.id],
+						set: { payslip_id: null }
+					})
+				);
+				assert.match(unlink.message, /settled|payroll|payslip/i);
+				const parentEdit = yield* Effect.flip(
+					actor.act('loan_catalog_entry.update', {
+						target: [nativeId('loan_catalog_entry', loan.id)],
+						set: {
+							repayments: {
+								update: [
+									{ target: due.id, set: { amount: Decimal.of('200') } },
+									{ target: required(repayments[1]).id, set: { amount: Decimal.of('300') } }
+								]
+							}
+						}
+					})
+				);
+				assert.match(parentEdit.message, /settled|payslip/i);
+				const currentContract = required(
+					(yield* actor.read('employment_contract', {
+						where: { id: { eq: nativeId('employment_contract', fixtureId('k-e2')) } },
+						select: { facts: true },
+						all: true
+					})).rows[0]
+				);
+				const facts = yield* Effect.fromResult(
+					fieldValue(currentContract.facts, 'employment_contract.facts')
+				);
+				assert.ok(facts?.contract_terms);
+				const changedAllowance = {
+					...facts,
+					contract_terms: facts.contract_terms.map((term) => ({
+						...term,
+						...(term.allowances == null
+							? {}
+							: {
+									allowances: term.allowances.map((allowance) => ({
+										...allowance,
+										amount: { ...allowance.amount, value: 620 }
+									}))
+								})
+					}))
+				};
+				const allowanceEdit = yield* Effect.flip(
+					actor.act('employment_contract.update', {
+						target: [currentContract.id],
+						set: { facts: changedAllowance }
+					})
+				);
+				assert.match(allowanceEdit.message, /paid through 2026-03-31/i);
+				yield* actor.act('payroll_run.delete', { target: [nativeId('payroll_run', run.id)] });
+				yield* t.runDue();
+				const released = (yield* actor.read('loan_repayment_entry', {
+					where: { id: { eq: due.id } },
+					select: { payslip_id: true },
+					all: true
+				})).rows;
+				assert.equal(required(released[0]).payslip_id, null);
+				yield* actor.act('loan_repayment_entry.update', {
+					target: [due.id],
+					set: { occurred_on: PlainDate('2026-03-23') }
+				});
+				const rebuilt = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'REGULAR'
+				});
+				assert.ok(rebuilt.kind === 'committed');
+				yield* t.runDue();
+				const repinned = (yield* actor.read('loan_repayment_entry', {
+					where: { id: { eq: due.id } },
+					select: { payslip_id: true, occurred_on: true, amount: true },
+					all: true
+				})).rows;
+				const rebuiltSlipId = required(required(repinned[0]).payslip_id);
+				assert.notEqual(rebuiltSlipId, slip.id);
+				assert.equal(required(repinned[0]).occurred_on, '2026-03-23');
+				assert.equal(moneyNumber(required(repinned[0]).amount), 250);
+				const rebuiltSlip = required(
+					(yield* actor.read('payslip', {
+						where: { id: { eq: rebuiltSlipId } },
+						select: { base: true, adjustments: true },
+						all: true
+					})).rows[0]
+				);
+				const rebuiltAdjustments = yield* Effect.fromResult(
+					fieldValue(rebuiltSlip.adjustments, 'payslip.adjustments')
+				);
+				assert.equal(
+					required(rebuiltAdjustments?.find((line) => line.family === 'LOAN_REPAYMENT')).source_id,
+					due.id
+				);
+				assert.equal(
+					required(rebuiltAdjustments?.find((line) => line.family === 'LOAN_REPAYMENT')).amount,
+					-250
+				);
+				const april = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-04',
+					kind: 'REGULAR'
+				});
+				assert.ok(april.kind === 'committed');
+				yield* t.runDue();
+				const aprilRun = required(april.records.find((row) => row.collection === 'payroll_run'));
+				const aprilSlip = required(
+					(yield* actor.read('payslip', {
+						where: { payroll_run_id: { eq: nativeId('payroll_run', aprilRun.id) } },
+						select: { base: true, adjustments: true, gross: true },
+						all: true
+					})).rows[0]
+				);
+				const aprilBase = yield* Effect.fromResult(fieldValue(aprilSlip.base, 'payslip.base'));
+				assert.equal(
+					required(aprilBase?.find((line) => line.component_code === 'FIXED_MONTHLY')).amount,
+					310
+				);
+				assert.equal(moneyNumber(aprilSlip.gross), 5810);
+				const aprilAdjustments = yield* Effect.fromResult(
+					fieldValue(aprilSlip.adjustments, 'payslip.adjustments')
+				);
+				assert.equal(
+					required(aprilAdjustments?.find((line) => line.family === 'LOAN_REPAYMENT')).source_id,
+					required(repayments[1]).id
+				);
+				assert.equal(
+					required(aprilAdjustments?.find((line) => line.family === 'LOAN_REPAYMENT')).amount,
+					-250
+				);
+				yield* actor.act('payslip.update', {
+					target: [rebuiltSlipId],
+					set: { status: 'PAID', paid_at: Instant('2026-04-01T00:00:00.000Z') }
+				});
+				yield* Effect.flip(
+					actor.act('payslip.update', {
+						target: [rebuiltSlipId],
+						set: { base: [] }
+					})
+				);
+				const paidState = required(
+					(yield* actor.read('payslip', {
+						where: { id: { eq: rebuiltSlipId } },
+						select: { status: true, payroll_run_id: true },
+						all: true
+					})).rows[0]
+				);
+				assert.equal(paidState.status, 'PAID');
+				assert.equal(
+					paidState.payroll_run_id,
+					required(rebuilt.records.find((row) => row.collection === 'payroll_run')).id
+				);
+				const paidDelete = yield* Effect.flip(
+					t.as(t.member(['hr_manager'])).act('payroll_run.delete', {
+						target: [
+							nativeId(
+								'payroll_run',
+								required(rebuilt.records.find((row) => row.collection === 'payroll_run')).id
+							)
+						]
+					})
+				);
+				assert.match(paidDelete.message, /paid payslip/i);
+				const paidSlip = required(
+					(yield* actor.read('payslip', {
+						where: { id: { eq: rebuiltSlipId } },
+						select: { base: true, adjustments: true },
+						all: true
+					})).rows[0]
+				);
+				assert.deepEqual(paidSlip.base, rebuiltSlip.base);
+				assert.deepEqual(paidSlip.adjustments, rebuiltSlip.adjustments);
+			})
+		);
+	}),
+	15_000
+);
+
+it.effect(
+	'the salary export query lists actual consumed loan repayment amounts, keeping the principal out',
+	Effect.fnUntraced(function* () {
+		reset();
+		entry(
+			'loan_repayment_entry',
+			'export-repayment',
+			'e2',
+			catalog('loan_catalog', 'SALARY_ADVANCE', '2026-03'),
+			'2026-03-20',
+			{ amount: Decimal.of('250') }
+		);
+		yield* run('2026-03', 'REGULAR');
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.admin);
+				const run = required(
+					(yield* actor.read('payroll_run', { all: true })).rows.find(
+						(row) => row.period === '2026-03'
+					)
+				);
+				const exported = yield* actor.query('payroll_run.export_payroll', {
+					ids: [run.id],
+					kind: 'SALARY'
+				});
+				assert.equal(exported.documents.length, 0);
+				assert.equal(exported.salary_reports.length, 1);
+				const listing = required(exported.salary_reports[0]);
+				const loanColumn = listing.columns.findIndex(
+					(column) => column.family === 'LOAN_REPAYMENT' && column.code === 'SALARY_ADVANCE'
+				);
+				assert.ok(loanColumn >= 0);
+				const employeeRow = required(listing.rows.find((row) => row.employee_number === 'e2'));
+				assert.equal(employeeRow.amounts[loanColumn], 250);
+				assert.equal(listing.columns.at(-1)?.label, 'Total company payment');
+			})
+		);
+	})
+);
+
+it.effect(
+	'the salary export query flags only a consumed outside-net cost, using the governing snapshot rather than the source amount',
+	Effect.fnUntraced(function* () {
+		reset();
+		const plan = yield* run('2026-03', 'REGULAR');
+		const storedRun = required(required(tables.get('payroll_run')).at(-1));
+		for (const storedSlip of required(tables.get('payslip')))
+			storedSlip.bank_charges = Decimal.of('0');
+		const governing = required(
+			required(tables.get('jurisdiction_settings')).find((row) => row.id === storedRun.settings_id)
+		);
+		const earlier = required(
+			required(tables.get('jurisdiction_settings')).find((row) => row.id !== governing.id)
+		);
+		governing.code = 'ID';
+		const code = 'KESEHATAN_TERMINATION_MONTH_EMPLOYER';
+		const sourceClass = fixtureId('older-employer-cost');
+		required(tables.get('adhoc_catalog')).push(
+			{
+				id: sourceClass,
+				settings_id: earlier.id,
+				code,
+				name: 'Employer BPJS',
+				destination: 'PAY',
+				direction: 'ADD',
+				counts_toward: [],
+				bands: [{ when: '', amount: 'entry.amount' }]
+			},
+			{
+				id: fixtureId('governing-employer-cost'),
+				settings_id: governing.id,
+				code,
+				name: 'Employer BPJS',
+				destination: 'EMPLOYER',
+				direction: 'ADD',
+				counts_toward: [],
+				bands: [{ when: '', amount: 'entry.amount' }]
+			}
+		);
+		entry('adhoc_catalog_entry', 'consumed-outside-net', 'e2', sourceClass, '2026-03-10', {
+			amount: Decimal.of('999999'),
+			payslip_id: lastSlipId('e2')
+		});
+		entry('adhoc_catalog_entry', 'not-consumed-outside-net', 'e1', sourceClass, '2026-03-10', {
+			amount: Decimal.of('999999')
+		});
+		entry('adhoc_catalog_entry', 'other-run-outside-net', 'e3', sourceClass, '2026-03-10', {
+			amount: Decimal.of('999999'),
+			payslip_id: fixtureId('paid')
+		});
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const listing = required(
+					(yield* t.as(t.admin).query('payroll_run.export_payroll', {
+						ids: [nativeId('payroll_run', storedRun.id)],
+						kind: 'SALARY'
+					})).salary_reports[0]
+				);
+				const company = listing.columns.findIndex((column) => column.code === 'COMPANY_PAYMENT');
+				const net = listing.columns.findIndex(
+					(column) => column.family === 'TOTAL' && column.code === 'NET'
+				);
+				const affected = required(listing.rows.find((row) => row.employee_number === 'e2'));
+				assert.equal(affected.amounts[company], null);
+				assert.equal(affected.amounts[net], slip(plan, 'e2').net);
+				for (const employee of ['e1', 'e3'])
+					assert.equal(
+						typeof required(listing.rows.find((row) => row.employee_number === employee)).amounts[
+							company
+						],
+						'number'
+					);
+				assert.match(listing.warnings[0] ?? '', /KESEHATAN_TERMINATION_MONTH_EMPLOYER/);
+				assert.ok(!listing.columns.some((column) => column.code === code));
+			})
+		);
+	})
+);
+
+it.effect(
+	'the salary export uses captured company-paid claim limits and reversals, separate from employee pay',
+	Effect.fnUntraced(function* () {
+		reset();
+		const settings_id = versionOn('2026-03');
+		const code = 'DIRECT_MEDICAL_TEST';
+		const catalog_id = fixtureId('direct-medical-test');
+		required(tables.get('claim_catalog')).push({
+			id: catalog_id,
+			settings_id,
+			code,
+			name: 'Company-paid medical',
+			destination: 'EMPLOYER',
+			direction: 'ADD',
+			counts_toward: [],
+			bands: [
+				{
+					when: '',
+					amount: 'entry.amount',
+					limit: { on_exceed: 'BLOCK', amount: '100.0', window: 'PERIOD' }
+				}
+			]
+		});
+		const profile = required(
+			required(tables.get('rule_set')).find(
+				(row) => row.settings_id === settings_id && row.code === 'salary_report'
+			)
+		);
+		const rules = record(profile.rules);
+		profile.rules = {
+			...rules,
+			items: [...records(rules.items), { family: 'CLAIM', code, payment: 'OUTSIDE_NET' }]
+		};
+		entry('claim_catalog_entry', 'direct-visit-1', 'e2', catalog_id, '2026-03-05', { amount: 70 });
+		entry('claim_catalog_entry', 'direct-visit-2', 'e2', catalog_id, '2026-03-06', { amount: 70 });
+		entry(
+			'claim_catalog_entry',
+			'direct-reversal',
+			'e2',
+			catalog_id,
+			'2026-03-07',
+			{ amount: 10 },
+			'REVERSAL'
+		);
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.admin);
+				const built = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-03',
+					kind: 'REGULAR'
+				});
+				assert.ok(built.kind === 'committed');
+				yield* t.runDue();
+				const storedRun = required(built.records.find((row) => row.collection === 'payroll_run'));
+				const runId = nativeId('payroll_run', storedRun.id);
+				const slips = (yield* actor.read('payslip', {
+					where: { payroll_run_id: { eq: runId } },
+					select: {
+						employment_id: true,
+						company_payments: true,
+						adjustments: true,
+						statutory: true,
+						gross: true,
+						net: true
+					},
+					all: true
+				})).rows;
+				const settled = required(slips.find((row) => row.employment_id === fixtureId('k-e2')));
+				assert.equal(moneyNumber(settled.gross), 5500);
+				assert.equal(moneyNumber(settled.net), 4398);
+				assert.deepEqual(
+					yield* Effect.fromResult(fieldValue(settled.adjustments, 'payslip.adjustments')),
+					[]
+				);
+				const payments = yield* Effect.fromResult(
+					fieldValue(settled.company_payments, 'payslip.company_payments')
+				);
+				assert.equal(payments?.length, 3);
+				assert.deepEqual(
+					Object.fromEntries(payments?.map((payment) => [payment.source_id, payment.amount]) ?? []),
+					{
+						[fixtureId('direct-visit-1')]: 70,
+						[fixtureId('direct-visit-2')]: 30,
+						[fixtureId('direct-reversal')]: -10
+					}
+				);
+				const run = required(
+					(yield* actor.read('payroll_run', {
+						where: { id: { eq: runId } },
+						select: { pins: true },
+						all: true
+					})).rows[0]
+				);
+				const pins = records(yield* Effect.fromResult(fieldValue(run.pins, 'payroll_run.pins')));
+				const sources = (yield* actor.read('claim_catalog_entry', {
+					where: { catalog_id: { eq: nativeId('claim_catalog', catalog_id) } },
+					select: { payslip_id: true },
+					all: true
+				})).rows;
+				assert.equal(sources.length, 3);
+				for (const source of sources) {
+					assert.equal(source.payslip_id, settled.id);
+					assert.ok(
+						pins.some((pin) => pin.collection === 'claim_catalog_entry' && pin.id === source.id)
+					);
+				}
+				yield* actor.act(
+					'payslip.update',
+					slips.map((slip) => ({ target: slip.id, set: { bank_charges: Decimal.of('0') } }))
+				);
+				const listing = required(
+					(yield* actor.query('payroll_run.export_payroll', {
+						ids: [runId],
+						kind: 'SALARY'
+					})).salary_reports[0]
+				);
+				const row = required(listing.rows.find((row) => row.employee_number === 'e2'));
+				const companyPaid = listing.columns.findIndex(
+					(column) => column.family === 'CLAIM' && column.code === code
+				);
+				assert.equal(row.amounts[companyPaid], 90);
+				assert.equal(listing.columns[companyPaid]?.external, true);
+				const charges = yield* Effect.fromResult(
+					fieldValue(settled.statutory, 'payslip.statutory')
+				);
+				const statutory = (charges ?? []).reduce(
+					(sum, line) =>
+						sum
+							.plus(Decimal.of(String(line.employee_amount)))
+							.plus(Decimal.of(String(line.employer_amount))),
+					Decimal.of('0')
+				);
+				assert.equal(
+					row.amounts.at(-1),
+					Decimal.of(String(moneyNumber(settled.net)))
+						.plus(statutory)
+						.plus(Decimal.of('90'))
+						.toNumber()
+				);
+				assert.deepEqual(listing.warnings, []);
+			})
+		);
+	}),
+	15_000
+);
+
+it.effect(
+	'loan eligibility uses the principal loan, while its payslip line uses only the repayment amount',
+	Effect.fnUntraced(function* () {
+		reset();
+		const loanClass = catalog('loan_catalog', 'SALARY_ADVANCE', '2026-03');
+		required(required(tables.get('loan_catalog')).find((row) => row.id === loanClass)).eligibility =
+			'entry.facts.principal <= 1000.0';
+		entry('loan_repayment_entry', 'actual-principal', 'e2', loanClass, '2026-03-20', {
+			amount: Decimal.of('250')
+		});
+		const parent = required(required(tables.get('loan_catalog_entry'))[0]);
+		parent.principal_amount = Decimal.of('1001');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /not available/);
+		parent.principal_amount = Decimal.of('1000');
+		const plan = yield* run('2026-03', 'REGULAR');
+		const repayment = required(
+			slip(plan, 'e2').adjustments.find((row) => row.family === 'LOAN_REPAYMENT')
+		);
+		assert.equal(repayment.amount, -250);
+		assert.equal(repayment.source_id, fixtureId('actual-principal'));
+		assert.ok(
+			slip(plan, 'e2').pins.some(
+				(pin) => pin.collection === 'loan_repayment_entry' && pin.id === repayment.source_id
+			)
+		);
+		assert.ok(!slip(plan, 'e2').pins.some((pin) => pin.id === parent.id));
+	})
+);
+
+it.effect(
 	'a reversal subtracts, a loan deducts from net, no-pay leave prorates',
 	Effect.fnUntraced(function* () {
 		reset();
@@ -907,7 +1840,7 @@ it.effect(
 			'REVERSAL'
 		);
 		entry(
-			'loan_catalog_entry',
+			'loan_repayment_entry',
 			'l',
 			'e2',
 			catalog('loan_catalog', 'SALARY_ADVANCE', '2026-03'),
@@ -1002,6 +1935,7 @@ it.effect(
 			employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 			payslip_id: null,
 			work_date: PlainDate('2026-03-10'),
+			planned_overtime_hours: 4,
 			worked_intervals: clocked('2026-03-10', 4)
 		});
 		const plan = yield* run('2026-03', 'REGULAR');
@@ -1060,13 +1994,13 @@ it.effect(
 				refusals
 			})
 		);
-		assert.match(required(refusals.at(-1)), /settled on a payslip/);
-		const [pin] = yield* transformed(
-			'adhoc_catalog_entry',
-			[{ payslip_id: nativeId('payslip', fixtureId('p2')) }],
-			{ refusals }
+		assert.match(required(refusals.at(-1)), /(settled on a payslip|captured by payroll)/);
+		yield* assertFailure(
+			transformed('adhoc_catalog_entry', [{ payslip_id: nativeId('payslip', fixtureId('p2')) }], {
+				refusals
+			})
 		);
-		assert.deepEqual(pin, { payslip_id: nativeId('payslip', fixtureId('p2')) });
+		assert.match(required(refusals.at(-1)), /Only the payroll run that consumed/);
 	})
 );
 
@@ -1172,7 +2106,7 @@ it.effect(
 			'e1',
 			catalog('leave_catalog', 'ANNUAL_LEAVE', '2026-03'),
 			'2026-03-31',
-			{ days: 5, incurred_on: PlainDate('2026-03-31') },
+			{ days: 5 },
 			'ENCASHMENT'
 		);
 		const plan = yield* run('2026-03', 'REGULAR');
@@ -1191,7 +2125,11 @@ const versionOn = (period: string): string =>
 		required(
 			required(tables.get('jurisdiction_settings')).find((settings) => {
 				const range = rangeOf(settings.effective_range);
-				return range.from <= `${period}-01` && (range.to == null || range.to >= `${period}-01`);
+				return (
+					settings.voided_at == null &&
+					range.from <= `${period}-01` &&
+					(range.to == null || range.to >= `${period}-01`)
+				);
 			})
 		).id
 	);
@@ -1227,6 +2165,7 @@ it.effect(
 				id: fixtureId('settled-overflow'),
 				employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 				work_date: PlainDate('2026-03-02'),
+				planned_overtime_hours: 12,
 				worked_intervals: clocked('2026-03-02', 12),
 				payslip_id: nativeId('payslip', fixtureId('paid'))
 			},
@@ -1234,6 +2173,7 @@ it.effect(
 				id: fixtureId('new-approved-overtime'),
 				employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 				work_date: PlainDate('2026-03-03'),
+				planned_overtime_hours: 3,
 				worked_intervals: clocked('2026-03-03', 3),
 				payslip_id: null
 			}
@@ -1273,6 +2213,9 @@ it.effect(
 			id: fixtureId('approved-rest-holiday'),
 			employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 			work_date: PlainDate('2026-03-08'),
+			// an explicit rest-day approval: three hours in the approved window, all of them overtime
+			planned_overtime_hours: 3,
+			approved_overtime_intervals: clocked('2026-03-08', 3),
 			worked_intervals: clocked('2026-03-08', 3),
 			banked_overtime_hours: Decimal.of('1'),
 			payslip_id: null
@@ -1426,8 +2369,7 @@ it.effect(
 					occurred_on: PlainDate('2026-03-31'),
 					activity: 'ENCASHMENT',
 					reference: `exit:${fixtureId('k-e1')}:ANNUAL_LEAVE_ON_EXIT:2026-03-31/`,
-					days: 3,
-					incurred_on: PlainDate('2026-03-31')
+					days: 3
 				}
 			}
 		]);
@@ -1563,6 +2505,9 @@ it.effect(
 			employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 			payslip_id: null,
 			work_date: PlainDate('2026-03-08'),
+			// an explicit rest-day approval: four hours in the approved window, all of them overtime
+			planned_overtime_hours: 4,
+			approved_overtime_intervals: clocked('2026-03-08', 4),
 			worked_intervals: clocked('2026-03-08', 4)
 		});
 		const plan = yield* run('2026-03', 'REGULAR');
@@ -1652,32 +2597,39 @@ it.effect(
 		required(required(tables.get('entity'))[0]).time_zone = 'Asia/Singapore';
 		shows('WORKED', 'sum(work.days.map(d, d.worked_hours))');
 		shows('PIECES', 'double(sum(work.days.map(d, size(d.intervals))))');
-		const day = (id: string, date: string, intervals: object[]) =>
+		const day = (id: string, date: string, intervals: object[], plannedOvertimeHours = 0) =>
 			required(tables.get('roster_entry')).push({
 				id: fixtureId(id),
 				employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 				payslip_id: null,
 				work_date: date,
 				shift_definition_id: nativeId('shift_definition', fixtureId('sd-day')),
+				planned_overtime_hours: plannedOvertimeHours,
 				worked_intervals: intervals
 			});
 		// 09:00–18:00 Singapore time, one pair: 8 hours, split around 13:00–14:00
 		day('one', '2026-03-10', [
 			{ start: Instant('2026-03-10T01:00:00.000Z'), end: Instant('2026-03-10T10:00:00.000Z') }
 		]);
-		// a recorded break is the person's own: 09:00–12:00 and 12:30–18:00, nothing more is cut
-		day('two', '2026-03-11', [
-			{ start: Instant('2026-03-11T01:00:00.000Z'), end: Instant('2026-03-11T04:00:00.000Z') },
-			{ start: Instant('2026-03-11T04:30:00.000Z'), end: Instant('2026-03-11T10:00:00.000Z') }
-		]);
-		// a morning half day ends before the planned break: nothing is cut
+		// A recorded break counts first: 09:00–12:00 and 12:30–18:30, with a planned half hour of overtime. The
+		// planned hour's other half is taken from the centre (13:00–13:30), so ordinary time stays 8 hours.
+		day(
+			'two',
+			'2026-03-11',
+			[
+				{ start: Instant('2026-03-11T01:00:00.000Z'), end: Instant('2026-03-11T04:00:00.000Z') },
+				{ start: Instant('2026-03-11T04:30:00.000Z'), end: Instant('2026-03-11T10:30:00.000Z') }
+			],
+			0.5
+		);
+		// a morning half day ends before the planned break: nothing is cut, and only its 4 attended hours are credited
 		day('half', '2026-03-12', [
 			{ start: Instant('2026-03-12T01:00:00.000Z'), end: Instant('2026-03-12T05:00:00.000Z') }
 		]);
 		const plan = yield* run('2026-03', 'REGULAR');
-		// paid hours: the shift's 8 ordinary hours on each attended day, the half day too, and 18:00's completed half hour
-		assert.equal(shown(plan, 'e3', 'WORKED'), 8 + 8.5 + 8);
-		assert.equal(shown(plan, 'e3', 'PIECES'), 2 + 2 + 1);
+		// paid hours: actual attendance inside the shift, plus 18:00's approved completed half hour
+		assert.equal(shown(plan, 'e3', 'WORKED'), 8 + 8.5 + 4);
+		assert.equal(shown(plan, 'e3', 'PIECES'), 2 + 3 + 1);
 		tables.set('rule_set', [
 			{
 				id: fixtureId('rule-LONG_DAY'),
@@ -1693,7 +2645,7 @@ it.effect(
 				}
 			}
 		]);
-		assert.equal(shown(plan, 'e3', 'PIECES'), 2 + 2 + 1);
+		assert.equal(shown(plan, 'e3', 'PIECES'), 2 + 3 + 1);
 		const findings = yield* provide(
 			rosterFindings(COMPANY, [
 				{
@@ -2199,19 +3151,34 @@ it.effect(
 				payslip_id: null,
 				...fields
 			});
-		day('r-dec', '2025-12-20', { worked_intervals: clocked('2025-12-20', 5) });
+		day('r-dec', '2025-12-20', {
+			planned_overtime_hours: 5,
+			worked_intervals: clocked('2025-12-20', 5)
+		});
 		day('r-jan', '2026-01-15', {
+			planned_overtime_hours: 4,
 			worked_intervals: clocked('2026-01-15', 4),
 			payslip_id: fixtureId('paid')
 		});
-		day('r-feb', '2026-02-10', { worked_intervals: clocked('2026-02-10', 3) });
+		day('r-feb', '2026-02-10', {
+			planned_overtime_hours: 3,
+			worked_intervals: clocked('2026-02-10', 3)
+		});
 		// Saturday 7 March is a rest day of the week pattern; 10 March a published public holiday.
+		// Its four hours are approved explicitly: the rest day has no shift to extend.
 		day('r-sat', '2026-03-07', {
+			planned_overtime_hours: 4,
+			approved_overtime_intervals: [
+				{ start: Instant('2026-03-07T01:00:00.000Z'), end: Instant('2026-03-07T05:00:00.000Z') }
+			],
 			worked_intervals: [
 				{ start: Instant('2026-03-07T01:00:00.000Z'), end: Instant('2026-03-07T05:00:00.000Z') }
 			]
 		});
-		day('r-hol', '2026-03-10', { worked_intervals: clocked('2026-03-10', 2) });
+		day('r-hol', '2026-03-10', {
+			planned_overtime_hours: 2,
+			worked_intervals: clocked('2026-03-10', 2)
+		});
 		required(tables.get('holiday')).push({
 			id: fixtureId('h-mar'),
 			company_id: COMPANY,
@@ -2298,7 +3265,7 @@ it.effect(
 );
 
 it.effect(
-	'a leave row spanning periods is priced by its working-day share of each and settled by the last',
+	'a leave row spanning periods is captured by the first and keeps pricing only each period’s working-day share',
 	Effect.fnUntraced(function* () {
 		reset();
 		// Monday 16 March to Friday 24 April: 12 working days in March, 18 in April.
@@ -2321,16 +3288,18 @@ it.effect(
 			[12, 30, 12, 12]
 		);
 		assert.equal(slip(march, 'e3').gross, 2181.82); // 4,800 − 12 × 4,800 / 22
-		assert.equal(required(required(tables.get('leave_catalog_entry'))[0]).payslip_id, null);
+		const capturedBy = lastSlipId('e3');
+		assert.equal(required(required(tables.get('leave_catalog_entry'))[0]).payslip_id, capturedBy);
 		const april = yield* run('2026-04', 'REGULAR');
 		assert.deepEqual(
 			['SHARE', 'UNPAID'].map((code) => shown(april, 'e3', code)),
 			[18, 18]
 		);
 		assert.equal(slip(april, 'e3').gross, 872.73); // 4,800 − 18 × 4,800 / 22
+		assert.equal(required(required(tables.get('leave_catalog_entry'))[0]).payslip_id, capturedBy);
 		assert.equal(
-			required(required(tables.get('leave_catalog_entry'))[0]).payslip_id,
-			lastSlipId('e3')
+			slip(april, 'e3').pins.some((pin) => pin.collection === 'leave_catalog_entry'),
+			false
 		);
 	})
 );
@@ -2379,8 +3348,8 @@ it.effect(
 		);
 		assert.deepEqual(
 			['ROSTERED', 'WORKED', 'HOURS', 'UNITS', 'SITE'].map((code) => shown(plan, 'e2', code)),
-			// 09:00–17:00 Singapore time on the 8-hour shift: attended, so its planned ordinary hours pay
-			[1, 1, 8, 40, 1]
+			// 09:00–17:00 Singapore time on the 09:00–18:00 shift: attended, credited its 7 actual hours net of the break
+			[1, 1, 7, 40, 1]
 		);
 	})
 );
@@ -2444,6 +3413,12 @@ it.effect(
 	'a scheme governed by the pay date is assessed on the version in force on the pay day',
 	Effect.fnUntraced(function* () {
 		reset();
+		// This version-selection scenario starts employment in December, with no missing earlier-year payroll.
+		for (const contract of required(tables.get('employment_contract')))
+			contract.effective_range = {
+				...rangeOf(contract.effective_range),
+				from: PlainDate('2026-12-01')
+			};
 		const cpfOf = (period: string) =>
 			required(
 				required(tables.get('statutory_contribution_catalog')).find(
@@ -2520,6 +3495,7 @@ it.effect(
 			employment_id: nativeId('employment_contract', fixtureId('k-e3')),
 			work_date: PlainDate('2025-12-10'),
 			payslip_id: fixtureId('paid'),
+			planned_overtime_hours: 5,
 			worked_intervals: clocked('2025-12-10', 5)
 		});
 		yield* run('2025-12', 'REGULAR');
@@ -2610,8 +3586,47 @@ it.effect(
 		assert.equal(slip(plan, 'e2').gross, 5500);
 		assert.equal(required(line(plan, 'e2', 'CPF')).base_amount, 6500);
 		assert.equal(slip(plan, 'e2').adjustments.length, 0);
+		assert.deepEqual(
+			slip(plan, 'e2').company_payments.map((payment) => [payment.source_id, payment.amount]),
+			[[fixtureId('b'), 1000]]
+		);
 		assert.equal(
 			required(required(tables.get('adhoc_catalog_entry'))[0]).payslip_id,
+			lastSlipId('e2')
+		);
+	})
+);
+
+it.effect(
+	'a company-paid claim alone retains a settlement and consumes its source without employee net pay',
+	Effect.fnUntraced(function* () {
+		reset();
+		const contract = required(
+			required(tables.get('employment_contract')).find((row) => row.id === fixtureId('k-e2'))
+		);
+		contract.engagement = 'PAYEE';
+		const catalog_id = fixtureId('outside-net-only');
+		required(tables.get('claim_catalog')).push({
+			id: catalog_id,
+			settings_id: versionOn('2026-03'),
+			code: 'OUTSIDE_NET_ONLY',
+			name: 'Company-paid claim',
+			destination: 'EMPLOYER',
+			direction: 'ADD',
+			counts_toward: [],
+			bands: [{ when: '', amount: 'entry.amount' }]
+		});
+		entry('claim_catalog_entry', 'outside-net-only-source', 'e2', catalog_id, '2026-03-05', {
+			amount: 40
+		});
+		const plan = yield* run('2026-03', 'REGULAR');
+		const settled = slip(plan, 'e2');
+		assert.equal(settled.gross, 0);
+		assert.equal(settled.net, 0);
+		assert.deepEqual(settled.adjustments, []);
+		assert.equal(settled.company_payments[0]?.amount, 40);
+		assert.equal(
+			required(required(tables.get('claim_catalog_entry'))[0]).payslip_id,
 			lastSlipId('e2')
 		);
 	})
@@ -3076,6 +4091,7 @@ it.effect(
 			id: fixtureId('r-ot'),
 			employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 			work_date: PlainDate('2026-03-03'),
+			planned_overtime_hours: 4,
 			worked_intervals: clocked('2026-03-03', 4),
 			banked_overtime_hours: 1.5
 		});
@@ -3376,8 +4392,9 @@ it.effect(
 			'sum(earned.months.filter(m, m.month == "2026-02").map(m, double(m.worked_days) * 1000.0 + m.worked_hours * 10.0 + double(m.suspended_days)))'
 		);
 		const march = yield* run('2026-03', 'REGULAR');
-		// Two attended days paying their planned eight hours each (the clock's shortfall is not deducted), two suspended.
-		assert.equal(shown(march, 'e1', 'FEBRUARY'), 2162);
+		// Two attended days credited their actual seven hours each (09:00–17:00 on the 09:00–18:00 shift, less the
+		// break: the clock's shortfall is not paid), two suspended.
+		assert.equal(shown(march, 'e1', 'FEBRUARY'), 2142);
 	})
 );
 
@@ -3421,6 +4438,7 @@ it.effect(
 			id: fixtureId('r-ot'),
 			employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 			work_date: PlainDate('2026-03-03'),
+			planned_overtime_hours: 4,
 			worked_intervals: clocked('2026-03-03', 4),
 			banked_overtime_hours: 1.5,
 			banked_overtime_band: 'FIRST_TWO'
@@ -3519,8 +4537,7 @@ it('the canonical window-end encashment pays a class’s untaken balance on its 
 			occurred_on: PlainDate('2026-12-31'),
 			activity: 'ENCASHMENT',
 			reference: `window:${fixtureId('k-e1')}:TIME_OFF_IN_LIEU:2026-12-31`,
-			days: 3.5,
-			incurred_on: PlainDate('2026-12-31')
+			days: 3.5
 		}
 	]);
 	assert.deepEqual(writes('2026-12-30'), []);
@@ -3813,6 +4830,7 @@ it.effect(
 				employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 				work_date: date,
 				payslip_id: date < '2026-03-01' ? fixtureId('paid') : null,
+				planned_overtime_hours: hours,
 				worked_intervals: clocked(date, hours)
 			});
 		// Two months rolling: February and March.
@@ -4092,7 +5110,7 @@ it.effect(
 			destination: 'NET',
 			direction: 'SUBTRACT'
 		});
-		entry('loan_catalog_entry', 'l1', 'e1', 'loan', '2026-03-05', { amount: Decimal.of('300') });
+		entry('loan_repayment_entry', 'l1', 'e1', 'loan', '2026-03-05', { amount: Decimal.of('300') });
 		entry(
 			'adhoc_catalog_entry',
 			'b1',
@@ -4349,12 +5367,12 @@ it.effect(
 				]
 			});
 		// March 2026 opens on a Sunday: its Monday week began on 23 February. Each day is clocked 09:00–16:00 Singapore
-		// time and attended, so it pays the shift's planned 8 hours.
+		// time and attended, so it credits its actual 6 hours (09:00–13:00 and 14:00–16:00 around the break).
 		shows(
 			'WEEK_BEFORE',
 			'double(size(work.week_before)) * 100.0 + sum(work.week_before.filter(d, !d.in_period).map(d, d.worked_hours))'
 		);
-		assert.equal(shown(yield* run('2026-03', 'REGULAR'), 'e1', 'WEEK_BEFORE'), 616);
+		assert.equal(shown(yield* run('2026-03', 'REGULAR'), 'e1', 'WEEK_BEFORE'), 612);
 	})
 );
 
@@ -4377,11 +5395,11 @@ it.effect(
 			worked('2026-03-05');
 			worked('2026-03-20');
 		};
-		// Each day is clocked 09:00–16:00 Singapore time and attended: the shift's planned 8 hours.
+		// Each day is clocked 09:00–16:00 Singapore time and attended: its actual 6 hours net of the break.
 		semiMonthly();
 		shows('MONTH_TO_DATE', 'hours.month_to_date.worked_hours * 100.0 + hours.month.worked_hours');
 		// The first half reads its own day to date; the calendar month already holds the second half's.
-		assert.equal(shown(yield* run('2026-03-1', 'REGULAR'), 'e1', 'MONTH_TO_DATE'), 816);
+		assert.equal(shown(yield* run('2026-03-1', 'REGULAR'), 'e1', 'MONTH_TO_DATE'), 612);
 		semiMonthly();
 		shows(
 			'MONTH_DAYS',
@@ -4542,18 +5560,21 @@ it.effect(
 			kind: 'PUBLIC_HOLIDAY',
 			published_at: '2026-01-01T00:00:00.000Z'
 		});
-		const day = (date: string, overtime: number) =>
+		const day = (date: string, overtime: number, rest = false) =>
 			required(tables.get('roster_entry')).push({
 				id: fixtureId(`r-${date}`),
 				employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 				work_date: date,
 				payslip_id: fixtureId('paid'),
+				planned_overtime_hours: overtime,
+				// a rest day has no shift to extend: its overtime is approved as an explicit window
+				...(rest ? { approved_overtime_intervals: clocked(date, overtime) } : {}),
 				worked_intervals: clocked(date, overtime)
 			});
 		// February: a Tuesday (2 h OT), the Wednesday holiday (1 h), a Saturday rest day (3 h).
 		day('2026-02-03', 2);
 		day('2026-02-04', 1);
-		day('2026-02-07', 3);
+		day('2026-02-07', 3, true);
 		shows(
 			'FEB_REST',
 			'first(hours.months.filter(m, m.month == "2026-02")).day_type.REST.overtime_hours * 100.0 + first(hours.months.filter(m, m.month == "2026-02")).day_type.HOLIDAY.overtime_hours * 10.0 + first(hours.months.filter(m, m.month == "2026-02")).day_type.WORK.worked_hours / 8.0',
@@ -5448,6 +6469,7 @@ it.effect(
 			employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 			work_date: PlainDate('2024-06-04'),
 			payslip_id: fixtureId('paid'),
+			planned_overtime_hours: 3,
 			worked_intervals: clocked('2024-06-04', 3)
 		});
 		shows(
@@ -5473,6 +6495,7 @@ it.effect(
 			employment_id: nativeId('employment_contract', fixtureId('k-e1')),
 			work_date: PlainDate('2024-06-04'),
 			payslip_id: fixtureId('paid'),
+			planned_overtime_hours: 3,
 			worked_intervals: clocked('2024-06-04', 3)
 		});
 		shows('OLD_ROLLING', 'hours.rolling.overtime_hours', '1.0', 'terms.base_salary == 6500.0');

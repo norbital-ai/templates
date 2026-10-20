@@ -4,28 +4,25 @@
 	on a payslip shows, never edits. The server is the judge: a refusal is its own sentence, in a toast.
 -->
 <script lang="ts">
-	import { Effect, Schema } from 'effect';
+	import { Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import {
-		Button,
-		Section,
-		Sheet,
-		TimeRangeInput,
-		toast,
-		type TimeRangeInputProps
-	} from '@norbital-ai/ui';
+	import { PlainDate } from '@norbital-ai/std/date';
+	import { Button, Input, Label, Picker, Section, Sheet, toast } from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { t } from '../i18n/t.js';
 	import { formatCalendarDate, formatDurationHours } from '../format/display_formatters.js';
+	import { parseAmount } from '../../payroll_engine/contract_terms.js';
+	import { plannedShift } from '../../payroll_engine/shift_pattern.js';
 	import {
 		clocksOf,
+		clockStampOf,
+		completionOf,
+		dayEdit,
 		describeDay,
+		hoursLabel,
 		intervalsFrom,
-		isWeekend,
-		overtimeOf,
 		workedMinutes,
 		type Clock,
 		type Day,
@@ -33,6 +30,8 @@
 	} from './month_board.js';
 	let {
 		open,
+		companyId,
+		definitions,
 		timeZone,
 		onClose
 	}: {
@@ -42,52 +41,82 @@
 			readonly person: string;
 			readonly day: Day;
 		} | null;
+		companyId: Id<'entity'>;
+		definitions: readonly {
+			readonly id: Id<'shift_definition'>;
+			readonly code?: string | null;
+			readonly variant?: unknown;
+		}[];
 		timeZone: string;
 		onClose: () => void;
 	} = $props();
 	// reassigned while editing; a new day resets it
+	const originalClocks = $derived(clocksOf(open?.day.intervals ?? null, timeZone));
 	let clocks = $derived<Clock[]>(clocksOf(open?.day.intervals ?? null, timeZone));
+	const clocksChanged = $derived(JSON.stringify(clocks) !== JSON.stringify(originalClocks));
+	let shiftId = $derived(open?.day.shiftId ?? null);
+	let plannedOvertime = $derived(
+		open?.day.plannedOvertime == null ? '' : String(open.day.plannedOvertime)
+	);
+	const definition = $derived(definitions.find((row) => row.id === shiftId));
+	const planned = $derived(
+		shiftId == null
+			? (open?.day.pattern ?? null)
+			: definition == null
+				? null
+				: plannedShift(definition)
+	);
+	const plannedHours = $derived(
+		plannedOvertime.trim() === '' ? null : parseAmount(plannedOvertime)
+	);
+	const invalidPlan = $derived(
+		(shiftId != null && definition == null) ||
+			(plannedOvertime.trim() !== '' &&
+				(plannedHours == null || !Number.isFinite(plannedHours) || definition == null))
+	);
 	let saving = $state(false);
-	const ClockValue = Schema.Struct({
-		start: Schema.NullOr(Schema.String),
-		end: Schema.NullOr(Schema.String)
-	});
-	const ClockValues = Schema.Array(Schema.NullOr(ClockValue));
-	function changeClocks(value: TimeRangeInputProps['value']): void {
-		if (!Schema.is(ClockValues)(value)) {
-			toast.error(t('component.error'));
-			return;
-		}
-		clocks = value.map((clock) => clock ?? { start: null, end: null });
+	function changeClock(index: number, edge: 'start' | 'end', value: string): void {
+		clocks = clocks.map((clock, at) =>
+			at === index ? { ...clock, [edge]: value === '' ? null : value } : clock
+		);
 	}
-	const draft = $derived(open == null ? null : intervalsFrom(open.day.date, clocks, timeZone));
+	const draft = $derived(
+		open == null
+			? null
+			: !clocksChanged && open.day.intervals != null
+				? { intervals: open.day.intervals }
+				: intervalsFrom(clocks, timeZone)
+	);
 	const minutes = $derived(
 		draft == null || !('intervals' in draft) ? null : workedMinutes(draft.intervals)
 	);
-	/** The overtime the edited clock would count: its time past the planned shift's ordinary hours. */
-	const overtime = $derived(
+	const completion = $derived(
 		open == null || draft == null || !('intervals' in draft)
 			? null
-			: overtimeOf(draft.intervals, open.day.planned)
+			: completionOf(
+					draft.intervals,
+					planned,
+					open.day.date,
+					timeZone,
+					shiftId == null ? 0 : plannedHours,
+					open.day.approvedOvertimeIntervals
+				)
 	);
+	const overtime = $derived(completion?.overtime_hours ?? null);
 	/** The calendar layer: the holiday or leave that governs the day, else its rest or work expectation. */
-	const projectedOf = (day: Day): string =>
-		day.holiday ??
-		(day.leave == null ? null : day.leave.name) ??
-		(isWeekend(day.date)
-			? t('roster.rest_day')
-			: new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'long' }));
+	const projectedOf = (day: Day): string => {
+		const labels = [
+			shiftId == null ? (day.pattern?.code ?? null) : null,
+			day.leave == null
+				? null
+				: `${day.leave.name}${day.leave.half ? ` (${t('roster.half_day')})` : ''}`,
+			day.holiday
+		].filter((label) => label != null);
+		return labels.length === 0 ? '—' : labels.join(' · ');
+	};
 	function save(worked: readonly Interval[] | null): void {
-		if (open == null || open.day.locked) return;
-		const set = {
-			worked_intervals:
-				worked == null
-					? null
-					: worked.map((interval) => ({
-							start: Instant(interval.start),
-							end: interval.end == null ? null : Instant(interval.end)
-						}))
-		};
+		if (open == null || open.day.locked || invalidPlan) return;
+		const set = dayEdit(open.day, definition?.id ?? null, plannedHours, worked);
 		const selected = open;
 		saving = true;
 		fork(
@@ -128,6 +157,10 @@
 	}
 	const saveDraft = () => {
 		if (draft == null || !('intervals' in draft)) return;
+		if (!clocksChanged && open != null) {
+			void save(open.day.intervals);
+			return;
+		}
 		// no interval is no attendance recorded; "Mark absent" is the reviewed empty day
 		void save(draft.intervals.length === 0 ? null : draft.intervals);
 	};
@@ -167,30 +200,123 @@
 			<Section name="planned" title={t('roster.plan_recorded')}>
 				<Grid as="dl" gap="sm" minimum="compact" class="text-sm">
 					<Stack gap="none">
-						<dt class="text-meta">{t('component.shift')}</dt>
-						<dd class="font-medium">{open.day.shift ?? '—'}</dd>
+						<dt><Label for="work-day-shift">{t('component.shift')}</Label></dt>
+						<dd>
+							<Picker
+								of="shift_definition"
+								id="work-day-shift"
+								where={{ company_id: { eq: companyId } }}
+								value={shiftId}
+								readonly={locked}
+								disabled={saving}
+								onChange={(next) => (shiftId = next)}
+							/>
+						</dd>
 					</Stack>
 					<Stack gap="none">
-						<dt class="text-meta">{t('roster.day_sheet_approved_overtime')}</dt>
-						<dd class="font-medium">{overtime ?? open.day.overtime ?? '—'}</dd>
+						<dt><Label for="work-day-planned-ot">{t('roster.planned_overtime')}</Label></dt>
+						<dd>
+							<Input
+								id="work-day-planned-ot"
+								type="number"
+								min="0"
+								step="0.5"
+								value={plannedOvertime}
+								readonly={locked}
+								disabled={saving}
+								aria-invalid={invalidPlan}
+								onchange={(event: Event & { currentTarget: HTMLInputElement }) =>
+									(plannedOvertime = event.currentTarget.value)}
+							/>
+						</dd>
 					</Stack>
 				</Grid>
+				{#if invalidPlan}<p class="text-sm text-destructive">
+						{t('roster.planned_overtime_invalid')}
+					</p>{/if}
 			</Section>
 			<Section name="actual" title={t('component.work_day_actual')}>
 				<Stack gap="sm">
-					{#if clocks.length === 0}
+					{#if open.day.approvedOvertimeIntervals != null && open.day.approvedOvertimeIntervals.length > 0}
+						<Stack gap="xs">
+							<span class="text-meta">{t('roster.approved_overtime_times')}</span>
+							{#each open.day.approvedOvertimeIntervals as interval}
+								<p class="text-sm tabular-nums">
+									<time datetime={interval.start}>{clockStampOf(interval.start, timeZone)}</time> –
+									<time datetime={interval.end}>{clockStampOf(interval.end, timeZone)}</time
+									>{#if interval.break_minutes != null && interval.break_minutes > 0}<span
+											class="text-muted-foreground"
+										>
+											· {t('roster.approved_break', { minutes: interval.break_minutes })}</span
+										>{/if}
+								</p>
+							{/each}
+						</Stack>
+					{/if}
+					{#if open.day.intervals != null && open.day.intervals.length > 0}
+						<Stack gap="xs">
+							<span class="text-meta">{t('roster.recorded_clocks')}</span>
+							{#each open.day.intervals as interval}
+								<p class="text-sm tabular-nums">
+									<time datetime={interval.start}>{clockStampOf(interval.start, timeZone)}</time>
+									– {#if interval.end != null}<time datetime={interval.end}
+											>{clockStampOf(interval.end, timeZone)}</time
+										>{:else}{t('roster.progress_open')}{/if}
+								</p>
+							{/each}
+						</Stack>
+					{/if}
+					{#if clocks.length === 0 && open.day.intervals == null}
 						<p class="text-meta">{t('roster.day_sheet_unrecorded_attendance')}</p>
 					{/if}
-					{#if !locked || clocks.length > 0}
-						<TimeRangeInput
-							of="time"
-							precision="minute"
-							value={clocks.length === 0 && !locked ? [{ start: null, end: null }] : clocks}
-							readonly={locked}
+					{#if !locked}
+						<p class="text-meta">{t('roster.clock_zone', { zone: timeZone })}</p>
+						{#each clocks as clock, index (index)}
+							<Stack gap="xs">
+								<Grid gap="sm" minimum="compact">
+									<Stack gap="xs">
+										<Label for={`work-clock-in-${index}`}>{t('roster.clock_in')}</Label>
+										<Input
+											id={`work-clock-in-${index}`}
+											type="datetime-local"
+											step="0.001"
+											value={clock.start ?? ''}
+											disabled={saving}
+											onchange={(event: Event & { currentTarget: HTMLInputElement }) =>
+												changeClock(index, 'start', event.currentTarget.value)}
+										/>
+									</Stack>
+									<Stack gap="xs">
+										<Label for={`work-clock-out-${index}`}>{t('roster.clock_out')}</Label>
+										<Input
+											id={`work-clock-out-${index}`}
+											type="datetime-local"
+											step="0.001"
+											value={clock.end ?? ''}
+											disabled={saving}
+											onchange={(event: Event & { currentTarget: HTMLInputElement }) =>
+												changeClock(index, 'end', event.currentTarget.value)}
+										/>
+									</Stack>
+								</Grid>
+								<Cluster justify="end"
+									><Button
+										size="sm"
+										variant="ghost"
+										disabled={saving}
+										onclick={() => (clocks = clocks.filter((_, at) => at !== index))}
+										>{t('roster.remove_clock_pair')}</Button
+									></Cluster
+								>
+							</Stack>
+						{/each}
+						<Button
+							size="sm"
+							variant="outline"
 							disabled={saving}
-							aria-label={t('roster.day_sheet_intervals')}
-							onChange={changeClocks}
-						/>
+							onclick={() => (clocks = [...clocks, { start: null, end: null }])}
+							>{t('roster.add_clock_pair')}</Button
+						>
 					{/if}
 					{#if locked}
 						<p class="text-meta">{t('roster.lock_rung_consumed')}</p>
@@ -205,14 +331,34 @@
 							</p>
 						{/if}
 					{/if}
+					<p class="text-meta">
+						{t('roster.actual_overtime')}: {overtime == null
+							? '—'
+							: formatDurationHours(overtime * 60, t)}
+					</p>
+					{#if completion?.percent != null}
+						<p class="text-meta">
+							{t(shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')}: {t(
+								'roster.completion_details',
+								{
+									percent: Math.floor(completion.percent),
+									credited: hoursLabel(completion.credited_hours * 60),
+									target: hoursLabel(completion.target_hours * 60)
+								}
+							)}
+						</p>
+					{/if}
 				</Stack>
 			</Section>
 			{#if !locked}
 				<Cluster gap="sm" justify="end">
-					<Button variant="outline" disabled={saving} onclick={() => void save([])}>
+					<Button variant="outline" disabled={saving || invalidPlan} onclick={() => void save([])}>
 						{t('roster.day_sheet_mark_absent')}
 					</Button>
-					<Button disabled={saving || draft == null || 'problem' in draft} onclick={saveDraft}>
+					<Button
+						disabled={saving || invalidPlan || draft == null || 'problem' in draft}
+						onclick={saveDraft}
+					>
 						{t('roster.save_attendance')}
 					</Button>
 				</Cluster>

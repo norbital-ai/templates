@@ -21,6 +21,6 @@
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
 		"svelte": "^5.56.10",
-		"@norbital-ai/bolt": "0.0.3"
+		"@norbital-ai/bolt": "0.0.4"
 	}
 }

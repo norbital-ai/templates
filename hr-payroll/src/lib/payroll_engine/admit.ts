@@ -70,6 +70,7 @@ import {
 	subjectContext,
 	dayPlanner,
 	workDay,
+	recordedWork,
 	attendanceDays,
 	leaveSubject,
 	governanceMembers,
@@ -86,6 +87,172 @@ type DeleteInput = Extract<
 	Parameters<Parameters<typeof adhocEntries.transform>[0]>[0][number],
 	{ readonly $delete: true }
 >;
+export const reservedPinsFrom = (
+	runs: readonly { readonly id: string; readonly pins: unknown }[],
+	except?: string
+) =>
+	Result.gen(function* () {
+		const reserved = new Set<string>();
+		for (const run of runs) {
+			if (run.id === except) continue;
+			const pins = yield* fieldValue(run.pins, 'payroll_run.pins');
+			const decoded = Schema.decodeUnknownResult(
+				Schema.Array(
+					Schema.Struct({
+						collection: Schema.String,
+						id: Schema.String
+					})
+				)
+			)(pins ?? []);
+			if (Result.isFailure(decoded))
+				return yield* Result.fail(
+					new Refusal({
+						message:
+							'A payroll run has an invalid settlement ledger. Review it before calculating another run.'
+					})
+				);
+			for (const pin of decoded.success) reserved.add(`${pin.collection}:${pin.id}`);
+		}
+		return reserved;
+	});
+/** Exact ledger lookups keep each predicate list and each wide run answer within the native read boundary. */
+export const readSettlementRuns = Effect.fnUntraced(function* (
+	read: Read,
+	pins: readonly ({ readonly collection: string; readonly id: string } | { readonly id: string })[],
+	company_id?: PayrollRunRequest['company_id']
+) {
+	const seen: Id<'payroll_run'>[] = [];
+	const matches = yield* Effect.forEach(
+		Array.from({ length: Math.ceil(pins.length / 1000) }, (_, index) =>
+			pins.slice(index * 1000, (index + 1) * 1000)
+		),
+		Effect.fnUntraced(function* (batch) {
+			const where = {
+				...(company_id === undefined ? {} : { company_id: { eq: company_id } }),
+				...(seen.length === 0
+					? {}
+					: {
+							and: Array.from({ length: Math.ceil(seen.length / 1000) }, (_, index) => ({
+								id: { nin: seen.slice(index * 1000, (index + 1) * 1000) }
+							}))
+						}),
+				or: batch.map((pin) => ({ pins: { contains: [pin] } }))
+			};
+			const first = yield* read('payroll_run', { where, select: { pins: true }, limit: 1 });
+			const rows = [...first.rows];
+			let after = first.next;
+			while (after !== null) {
+				const page = yield* read('payroll_run', { where, select: { pins: true }, limit: 1, after });
+				rows.push(...page.rows);
+				after = page.next;
+			}
+			seen.push(...rows.map((run) => run.id));
+			return rows;
+		})
+	);
+	return matches.flat();
+});
+/** Each candidate a run pins, with the payslips of that run and the pin's employment it may attach to. */
+const settlementLocksFrom = Effect.fnUntraced(function* (
+	collection: EntryCollection,
+	candidates: ReadonlySet<string>,
+	runs: readonly { readonly id: string; readonly pins: unknown }[],
+	slips: readonly {
+		readonly id: string;
+		readonly payroll_run_id: string;
+		readonly employment_id: string;
+	}[]
+) {
+	const locked = new Map<string, Set<string>>();
+	for (const run of runs) {
+		const pins = yield* Effect.fromResult(fieldValue(run.pins, 'payroll_run.pins'));
+		const decoded = Schema.decodeUnknownResult(
+			Schema.Array(
+				Schema.Struct({
+					collection: Schema.String,
+					id: Schema.String,
+					employment_id: Schema.String
+				})
+			)
+		)(pins ?? []);
+		if (Result.isFailure(decoded))
+			return yield* Effect.fail(
+				new Refusal({
+					message: 'A payroll settlement ledger needs review before its entries can change.'
+				})
+			);
+		for (const pin of decoded.success) {
+			if (pin.collection !== collection || !candidates.has(pin.id)) continue;
+			const allowed = locked.get(pin.id) ?? new Set<string>();
+			for (const slip of slips)
+				if (slip.payroll_run_id === run.id && slip.employment_id === pin.employment_id)
+					allowed.add(slip.id);
+			locked.set(pin.id, allowed);
+		}
+	}
+	return locked;
+});
+/** A committed settlement locks its source immediately, before its asynchronous backlink is attached. */
+export const entrySettlementLocks = Effect.fnUntraced(function* (
+	read: Read,
+	collection: EntryCollection,
+	ids: readonly string[]
+) {
+	if (ids.length === 0) return new Map<string, Set<string>>();
+	const runs = yield* readSettlementRuns(
+		read,
+		ids.map((id) => ({ collection, id }))
+	);
+	const slips = (yield* Effect.forEach(
+		Array.from({ length: Math.ceil(runs.length / 1000) }, (_, index) =>
+			runs.slice(index * 1000, (index + 1) * 1000).map((run) => run.id)
+		),
+		(runIds) =>
+			read('payslip', {
+				where: { payroll_run_id: { in: runIds } },
+				select: { employment_id: true, payroll_run_id: true },
+				all: true
+			})
+	)).flatMap((page) => page.rows);
+	return yield* settlementLocksFrom(collection, new Set(ids), runs, slips);
+});
+/**
+ * The settlement backlink proves itself: the named payslips and the runs they belong to in one keyed read, instead of
+ * scanning every run's ledger for the entries. The result has `entrySettlementLocks`' shape for the attached entries.
+ */
+const attachmentLocks = Effect.fnUntraced(function* (
+	read: Read,
+	collection: EntryCollection,
+	attachments: readonly { readonly id: string; readonly payslip_id: Id<'payslip'> }[]
+) {
+	if (attachments.length === 0) return new Map<string, Set<string>>();
+	// ponytail: one member holds the named runs' whole ledgers (one run per backlink batch), the same 4 MiB ceiling
+	// as `readSettlementRuns`' one-run page; page the runs if a batch ever names several large ones.
+	const got = yield* read({
+		slips: {
+			collection: 'payslip',
+			where: { id: { in: [...new Set(attachments.map((row) => row.payslip_id))] } },
+			select: { employment_id: true, payroll_run_id: true },
+			all: true
+		},
+		runs: {
+			collection: 'payroll_run',
+			where: { id: { in: { member: 'slips', field: 'payroll_run_id' } } },
+			select: { pins: true },
+			all: true
+		}
+	});
+	return yield* settlementLocksFrom(
+		collection,
+		new Set(attachments.map((row) => row.id)),
+		got.runs.rows,
+		got.slips.rows
+	);
+});
+/** A backlink's payslip id as the input names it; `attachmentLocks` reads it, so an unknown id finds no slip. */
+const AttachedSlip = Schema.declare((value): value is Id<'payslip'> =>
+	Schema.is(Schema.String)(value)
+);
 export const admitPayrollRun = (request: PayrollRunRequest) =>
 	Effect.gen(function* () {
 		const salaryRun = SALARY_RUNS.includes(request.kind);
@@ -109,7 +276,7 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 			runs: {
 				collection: 'payroll_run',
 				where: { company_id: { eq: request.company_id } },
-				select: { kind: true, period: true, salary_from: true, salary_to: true },
+				select: { kind: true, period: true, salary_from: true, salary_to: true, settings_id: true },
 				all: true
 			},
 			lineage: {
@@ -131,7 +298,7 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 				all: true
 			},
 			source_loan: {
-				collection: 'loan_catalog_entry',
+				collection: 'loan_repayment_entry',
 				where: { company_id: { eq: request.company_id }, payslip_id: { isNull: true } },
 				select: { id: true },
 				all: true
@@ -158,6 +325,16 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 			facts: yield* Effect.fromResult(fieldValue(selectedEntity.facts, 'entity.facts'))
 		};
 		const runs = got.runs.rows;
+		const reservedPins = yield* Effect.fromResult(
+			reservedPinsFrom(
+				yield* readSettlementRuns(
+					read,
+					sources.map((id) => ({ id })),
+					request.company_id
+				),
+				request.run_id
+			)
+		);
 		// Every version's rule rows together can pass one crossing's limit: they come in pages.
 		const governed = got;
 		const lineage = got.lineage.rows.map((version) => ({
@@ -305,7 +482,9 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 							: family.collection === 'claim_catalog_entry'
 								? got.source_claim.rows
 								: got.source_loan.rows
-						).map((row) => row.id)
+						)
+							.filter((row) => !reservedPins.has(`${family.collection}:${row.id}`))
+							.map((row) => row.id)
 					)
 			);
 			const missing = sources.filter((id) => !open.has(id));
@@ -331,6 +510,7 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 			settlement,
 			salaryRun,
 			sources,
+			reservedPins,
 			runs,
 			lineage,
 			governedRows,
@@ -583,6 +763,52 @@ export const admitContractTerms = (input: {
 		);
 		if (changed.length === 0) return;
 		const entity = yield* entityOf(company_id);
+		const allowanceIds = [
+			...new Set(
+				changed
+					.flatMap((term) => term.allowances ?? [])
+					.flatMap((line) => (line.catalogue_id != null ? [line.catalogue_id] : []))
+			)
+		];
+		const allowanceCodes = new Map<string, string>();
+		if (allowanceIds.length > 0) {
+			const { read } = yield* Reads;
+			const catalogues = yield* read('allowance_catalog', {
+				mode: 'declared',
+				where: {
+					id: { in: allowanceIds },
+					settings_id: { is: { code: { eq: entity.settings_code } } }
+				},
+				select: ['id', 'code'],
+				all: true
+			});
+			for (const row of catalogues.rows) {
+				const code = yield* Effect.fromResult(fieldValue(row['code'], 'allowance_catalog.code'));
+				const decoded = Schema.decodeUnknownResult(Schema.String)(code);
+				if (Result.isFailure(decoded))
+					return yield* Effect.fail(
+						new Refusal({ message: 'A contract allowance catalogue requires its actual code.' })
+					);
+				allowanceCodes.set(row.id, decoded.success);
+			}
+			if (allowanceCodes.size !== allowanceIds.length)
+				return yield* Effect.fail(
+					new Refusal({
+						message:
+							'A contract allowance names no actual allowance catalogue in this entity’s jurisdiction.'
+					})
+				);
+		}
+		if (allowanceCodes.size > 0) {
+			for (const term of changed)
+				for (const line of term.allowances ?? []) {
+					if (line.catalogue_id == null) continue;
+					if (line.code != null && line.code.trim() !== allowanceCodes.get(line.catalogue_id))
+						return yield* Effect.fail(
+							new Refusal({ message: 'A contract allowance code must match its catalogue item.' })
+						);
+				}
+		}
 		const [employee] = yield* readAll(
 			'employment_profile',
 			{ id: { eq: employee_id } },
@@ -623,7 +849,8 @@ export const admitContractTerms = (input: {
 					term,
 					day,
 					headcount: yield* headcountOn(company_id, day),
-					version
+					version,
+					allowanceCodes
 				})
 			);
 			// `employment.terms[]`: this employment's other terms; `person.contracts[]`: the person's other contracts
@@ -706,6 +933,8 @@ export type RosterDraft = {
 	readonly employment_id: Id<'employment_contract'>;
 	readonly work_date: string;
 	readonly shift_definition_id?: Id<'shift_definition'> | null;
+	readonly planned_overtime_hours?: number | null;
+	readonly approved_overtime_intervals?: Row<'roster_entry'>['approved_overtime_intervals'];
 	readonly worked_intervals?: Row<'roster_entry'>['worked_intervals'];
 	readonly banked_overtime_hours?: number | null;
 	readonly overtime_consented_at?: Row<'roster_entry'>['overtime_consented_at'];
@@ -822,7 +1051,9 @@ export const rosterFindings = (company_id: Id<'entity'>, drafts: readonly Roster
 export const rosterFindingsFrom = (
 	company_id: Id<'entity'>,
 	drafts: readonly RosterDraft[],
-	got: RosterRead
+	got: RosterRead,
+	/** Kept neighbor days still supply the week; a write need only judge the refs it can refuse. */
+	checkedRefs?: ReadonlySet<number>
 ) =>
 	Effect.gen(function* () {
 		if (drafts.length === 0) return [];
@@ -846,6 +1077,7 @@ export const rosterFindingsFrom = (
 			{
 				version: SettingsRow;
 				checks: readonly Validation[];
+				headcount: number;
 			}
 		>();
 		for (const date of days) {
@@ -867,7 +1099,11 @@ export const rosterFindingsFrom = (
 				};
 				checksOf.set(version.id, held);
 			}
-			if (held.checks.length > 0) governed.set(date, held);
+			if (held.checks.length > 0)
+				governed.set(date, {
+					...held,
+					headcount: yield* Effect.fromResult(inForce(got.contracts.rows, date))
+				});
 		}
 		if (governed.size === 0) return [];
 		const rules = new Map<string, DynObject>();
@@ -881,7 +1117,13 @@ export const rosterFindingsFrom = (
 				)
 			);
 		const contracts = got.contracts.rows;
-		const ids = new Set(drafts.map((draft) => draft.employment_id));
+		const byEmployment = new Map<string, RosterDraft[]>();
+		for (const draft of drafts) {
+			const own = byEmployment.get(draft.employment_id);
+			if (own === undefined) byEmployment.set(draft.employment_id, [draft]);
+			else own.push(draft);
+		}
+		const ids = new Set(byEmployment.keys());
 		const mine = contracts.filter((contract) => ids.has(contract.id));
 		const employees = new Map<string, EmployeeRow>(got.people.rows.map((row) => [row.id, row]));
 		const definitions = new Map<string, ShiftDefinitionRow>(
@@ -894,7 +1136,8 @@ export const rosterFindingsFrom = (
 		const zone = yield* Effect.fromResult(zoneOf(entity, [...checksOf.values()][0]?.version));
 		const out: RosterFinding[] = [];
 		for (const contract of mine) {
-			const own = drafts.filter((draft) => draft.employment_id === contract.id);
+			const own = byEmployment.get(contract.id) ?? [];
+			if (checkedRefs !== undefined && !own.some((draft) => checkedRefs.has(draft.ref))) continue;
 			const byDate = new Map(own.map((draft) => [draft.work_date, draft]));
 			const rosterOn = new Map(own.map((draft) => [draft.work_date, draft]));
 			const planOn = dayPlanner({
@@ -904,16 +1147,48 @@ export const rosterFindingsFrom = (
 				definitions,
 				patterns
 			});
-			const dayOf = (date: string) =>
+			const calculateDay = (date: string) =>
 				Result.gen(function* () {
-					return yield* workDay({
-						date,
-						planned: yield* planOn(date),
-						row: rosterOn.get(date),
-						holiday: holidays.get(date),
-						zone
-					});
+					const planned = yield* planOn(date);
+					const row = rosterOn.get(date);
+					// Week context needs raw attendance, not paid-window geometry; every judged row keeps the full guard.
+					const day =
+						checkedRefs === undefined ||
+						(row != null && checkedRefs.has(row.ref)) ||
+						num(row?.banked_overtime_hours) > 0
+							? yield* workDay({
+									date,
+									planned,
+									row,
+									holiday: holidays.get(date),
+									zone
+								})
+							: {
+									day_type: planned?.day_type ?? '',
+									holiday_kind: holidays.get(date)?.kind ?? ''
+								};
+					const intervals = yield* fieldValue(
+						row?.worked_intervals,
+						'roster_entry.worked_intervals'
+					);
+					const actual = recordedWork(intervals ?? [], date, planned?.break, zone);
+					return {
+						...day,
+						worked_hours: round2(actual.hours),
+						worked: actual.hours > 0,
+						intervals: actual.intervals,
+						overtime_hours:
+							planned == null ? 0 : round2(Math.max(0, actual.hours - planned.scheduled_hours))
+					};
 				});
+			const calculatedDays = new Map<string, ReturnType<typeof calculateDay>>();
+			const dayOf = (date: string) => {
+				const held = calculatedDays.get(date);
+				if (held !== undefined) return held;
+				const day = calculateDay(date);
+				calculatedDays.set(date, day);
+				return day;
+			};
 			const clocks = (
 				date: string
 			): {
@@ -929,6 +1204,7 @@ export const rosterFindingsFrom = (
 					: null;
 			};
 			for (const draft of own.toSorted((a, b) => a.work_date.localeCompare(b.work_date))) {
+				if (checkedRefs !== undefined && !checkedRefs.has(draft.ref)) continue;
 				const held = governed.get(draft.work_date);
 				if (held == null) continue;
 				const day = yield* Effect.fromResult(dayOf(draft.work_date));
@@ -997,7 +1273,7 @@ export const rosterFindingsFrom = (
 							entity,
 							term,
 							day: draft.work_date,
-							headcount: yield* Effect.fromResult(inForce(contracts, draft.work_date)),
+							headcount: held.headcount,
 							version: held.version
 						})
 					)),
@@ -1106,12 +1382,19 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 				all: true
 			}
 		});
+		const companyByEmployment = new Map(
+			companies.contracts.rows.map((row) => [row.id, row.company_id])
+		);
 		for (const company_id of new Set(companies.contracts.rows.map((row) => row.company_id))) {
-			const mine = touched.filter((touch) =>
-				companies.contracts.rows.some(
-					(row) => row.id === touch.employment_id && row.company_id === company_id
-				)
+			const mine = touched.filter(
+				(touch) => companyByEmployment.get(touch.employment_id) === company_id
 			);
+			const touchesByEmployment = new Map<string, RosterTouch[]>();
+			for (const touch of mine) {
+				const own = touchesByEmployment.get(touch.employment_id);
+				if (own === undefined) touchesByEmployment.set(touch.employment_id, [touch]);
+				else own.push(touch);
+			}
 			const dates = mine.map((touch) => touch.work_date).toSorted();
 			// ponytail: a cycle is judged on the days read; patterns longer than 31 days need a wider span.
 			const span = { from: addDays(dates[0] ?? '', -31), to: addDays(dates.at(-1) ?? '', 31) };
@@ -1127,6 +1410,8 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 						employment_id: true,
 						work_date: true,
 						shift_definition_id: true,
+						planned_overtime_hours: true,
+						approved_overtime_intervals: true,
 						worked_intervals: true,
 						banked_overtime_hours: true,
 						overtime_consented_at: true
@@ -1142,6 +1427,8 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 					employment_id: row.employment_id,
 					work_date,
 					shift_definition_id: row.shift_definition_id,
+					planned_overtime_hours: moneyNumber(row.planned_overtime_hours),
+					approved_overtime_intervals: row.approved_overtime_intervals,
 					worked_intervals: row.worked_intervals,
 					banked_overtime_hours: moneyNumber(row.banked_overtime_hours),
 					overtime_consented_at: row.overtime_consented_at,
@@ -1161,7 +1448,8 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 					});
 			}
 			const list = [...drafts.values()];
-			const refused = (yield* rosterFindingsFrom(company_id, list, got)).find(
+			const checkedRefs = new Set(mine.map((_, ref) => ref));
+			const refused = (yield* rosterFindingsFrom(company_id, list, got, checkedRefs)).find(
 				(found) => found.kind === 'refuse' && found.ref >= 0
 			);
 			if (refused != null) return `${mine[refused.ref]?.work_date}: ${refused.message}`;
@@ -1172,7 +1460,7 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 				got.patterns.rows.map((row) => [row.id, row])
 			);
 			for (const contract of got.contracts.rows) {
-				const own = mine.filter((touch) => touch.employment_id === contract.id);
+				const own = touchesByEmployment.get(contract.id) ?? [];
 				if (own.length === 0) continue;
 				const breach = yield* Effect.fromResult(
 					cycleBreach({
@@ -1206,7 +1494,9 @@ export const rosterOvertime = (ids: readonly Id<'roster_entry'>[]) =>
 					work_date: true,
 					shift_definition_id: true,
 					worked_intervals: true,
-					banked_overtime_hours: true
+					banked_overtime_hours: true,
+					planned_overtime_hours: true,
+					approved_overtime_intervals: true
 				},
 				all: true
 			}
@@ -1217,7 +1507,9 @@ export const rosterOvertime = (ids: readonly Id<'roster_entry'>[]) =>
 			work_date: String(row.work_date).slice(0, 10),
 			shift_definition_id: row.shift_definition_id,
 			worked_intervals: row.worked_intervals,
-			banked_overtime_hours: moneyNumber(row.banked_overtime_hours)
+			banked_overtime_hours: moneyNumber(row.banked_overtime_hours),
+			planned_overtime_hours: moneyNumber(row.planned_overtime_hours),
+			approved_overtime_intervals: row.approved_overtime_intervals
 		}));
 		const companies = yield* read({
 			contracts: {
@@ -1458,7 +1750,7 @@ export const admitCase = (input: {
 type CatalogueIdentities = {
 	readonly [C in EntryCollection]?: readonly Id<CatalogName<C>>[];
 };
-const loadEntry = Effect.fnUntraced(function* (
+export const loadEntry = Effect.fnUntraced(function* (
 	read: Read,
 	collection: EntryCollection,
 	inputs: readonly {
@@ -1474,6 +1766,49 @@ const loadEntry = Effect.fnUntraced(function* (
 		return yield* Effect.fail(new Refusal({ message: 'The entry requires its declared family.' }));
 	const nativeLeaveIds =
 		collection === 'leave_catalog_entry' ? catalogueIds?.leave_catalog_entry : undefined;
+	const nativeLoanIds =
+		collection === 'loan_repayment_entry' ? catalogueIds?.loan_repayment_entry : undefined;
+	if (nativeLoanIds !== undefined) {
+		const got = yield* read({
+			...leaveStateMembers(
+				inputs.map((input) => ({ employment_id: input.employment_id, asOf: input.occurred_on }))
+			),
+			picked: {
+				collection: 'loan_catalog',
+				where: { id: { in: nativeLoanIds } },
+				select: CATALOG.loan_catalog,
+				all: true
+			},
+			entry_classes: {
+				collection: 'loan_catalog',
+				where: { settings_id: { in: { member: 'versions', field: 'id' } } },
+				select: CATALOG.loan_catalog,
+				all: true
+			},
+			earlier: {
+				collection: 'loan_repayment_entry',
+				where: { employment_id: { in: { member: 'employment', field: 'id' } } },
+				select: ENTRY.loan_repayment_entry,
+				all: true
+			},
+			codes: {
+				collection: 'loan_catalog',
+				where: { id: { in: { member: 'earlier', field: 'catalog_id' } } },
+				select: { code: true },
+				all: true
+			}
+		});
+		return {
+			subject: got,
+			loanCatalogues: got.entry_classes.rows,
+			data: {
+				picked: got.picked,
+				classes: got.entry_classes,
+				earlier: got.earlier,
+				codes: got.codes
+			}
+		};
+	}
 	if (nativeLeaveIds !== undefined) {
 		// The native leave writer's identities let its admission and subject share one complete statement.
 		const got = yield* read({
@@ -1637,9 +1972,9 @@ const loadEntry = Effect.fnUntraced(function* (
 									all: true
 								},
 								earlier: {
-									collection: 'loan_catalog_entry',
+									collection: 'loan_repayment_entry',
 									where: employment,
-									select: ENTRY.loan_catalog_entry,
+									select: ENTRY.loan_repayment_entry,
 									all: true
 								},
 								codes: {
@@ -1821,7 +2156,8 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 	collection: C,
 	inputs: readonly (TransformRow<C> | DeleteInput)[],
 	ctx: EntryTransformCtx<C>,
-	catalogueIds?: CatalogueIdentities
+	catalogueIds?: CatalogueIdentities,
+	entryValues?: readonly EntryColumns[]
 ) {
 	const pinOnly = (input: object) =>
 		Object.keys(input).every((key) => key === 'payslip_id' || key === 'id');
@@ -1845,28 +2181,91 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 			}
 		];
 	});
-	const prefetched =
-		admissible.length === 0
-			? undefined
-			: yield* loadEntry(ctx.db.read, collection, admissible, catalogueIds).pipe(
-					Effect.catchTag('Refusal', (failure) => ctx.refuse(failure.message))
-				);
+	// A run's own backlink (an unsettled entry gaining its payslip) is judged against the run that slip belongs to;
+	// every other existing row against every run's ledger.
+	const attachments = inputs.flatMap((input, i) => {
+		const stored = entryRow(ctx.existing[i]);
+		if ('$delete' in input || !pinOnly(input) || stored.id == null || stored.payslip_id != null)
+			return [];
+		const payslip_id = 'payslip_id' in input ? input.payslip_id : null;
+		return Schema.is(AttachedSlip)(payslip_id) ? [{ id: stored.id, payslip_id }] : [];
+	});
+	const attached = new Set(attachments.map((row) => row.id));
+	const [prefetched, ledgerLocks, attachedLocks] = yield* Effect.all(
+		[
+			admissible.length === 0
+				? Effect.succeed(undefined)
+				: loadEntry(ctx.db.read, collection, admissible, catalogueIds),
+			entrySettlementLocks(
+				ctx.db.read,
+				collection,
+				ctx.existing.flatMap((row) => (row === undefined || attached.has(row.id) ? [] : [row.id]))
+			),
+			attachmentLocks(ctx.db.read, collection, attachments)
+		],
+		{ concurrency: 'unbounded' }
+	).pipe(Effect.catchTag('Refusal', (failure) => ctx.refuse(failure.message)));
+	const locked = new Map([...ledgerLocks, ...attachedLocks]);
+	// Every sibling in this write sees the same final leave set, including edits and deletions.
+	const replacedLeaveIds = new Set(
+		collection === 'leave_catalog_entry'
+			? ctx.existing.flatMap((row) => (row === undefined ? [] : [String(row.id)]))
+			: []
+	);
+	const pendingLeave =
+		collection === 'leave_catalog_entry'
+			? inputs.flatMap((input, index) =>
+					'$delete' in input ? [] : [{ index, row: entryRow({ ...ctx.existing[index], ...input }) }]
+				)
+			: [];
 	return yield* eachBatched(
 		inputs,
 		ctx.db.read,
 		Effect.fnUntraced(function* (input, i, read) {
 			const stored = entryRow(ctx.existing[i]);
-			if (stored.payslip_id != null) {
-				if ('$delete' in input || !pinOnly(input))
+			const settlement = stored.id == null ? undefined : locked.get(stored.id);
+			if ('$delete' in input) {
+				if (settlement !== undefined)
+					return yield* ctx.refuse(
+						'This entry is captured by payroll. Delete that unpaid payroll run to change it.'
+					);
+				if (stored.payslip_id != null)
 					return yield* ctx.refuse(
 						'This entry is settled on a payslip. Delete that payroll run to change it.'
 					);
 				return input;
 			}
-			if ('$delete' in input || pinOnly(input)) {
+			const updated = entryRow(input);
+			if (settlement !== undefined) {
+				if (
+					!pinOnly(input) ||
+					!Schema.is(Schema.String)(updated.payslip_id) ||
+					!settlement.has(updated.payslip_id)
+				)
+					return yield* ctx.refuse(
+						'This entry is captured by payroll. Delete that unpaid payroll run to change it.'
+					);
 				return input;
 			}
-			const merged: LooseEntryRow = { ...stored, ...entryRow(input) };
+			if (updated.payslip_id != null && updated.payslip_id !== stored.payslip_id)
+				return yield* ctx.refuse(
+					'Only the payroll run that consumed this entry can attach it to a payslip.'
+				);
+			if (stored.payslip_id != null) {
+				if (updated.payslip_id !== undefined && updated.payslip_id !== stored.payslip_id)
+					return yield* ctx.refuse(
+						'This entry is settled on a payslip. Delete that unpaid payroll run to release it.'
+					);
+				if (!pinOnly(input))
+					return yield* ctx.refuse(
+						'This entry is settled on a payslip. Delete that payroll run to change it.'
+					);
+				return input;
+			}
+			if (pinOnly(input)) {
+				return input;
+			}
+			const merged: LooseEntryRow = { ...stored, ...updated };
 			const identity = { ...ctx.existing[i], ...input };
 			if (identity.employment_id == null)
 				return yield* ctx.refuse('This entry needs an actual employment.');
@@ -1881,7 +2280,7 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 					employment_id: identity.employment_id,
 					occurred_on: identity.occurred_on,
 					activity: merged.activity ?? null,
-					values: merged,
+					values: entryValues?.[i] ?? merged,
 					...(prefetched === undefined ? {} : { prefetched })
 				}),
 				read,
@@ -1904,6 +2303,7 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 					...coded.flatMap((row) =>
 						row.catalog?.code == null ? [] : [[String(row.catalog_id), row.catalog.code] as const]
 					),
+					...(prefetched?.data.picked.rows.map((row) => [String(row.id), row.code] as const) ?? []),
 					...(catalog == null ? [] : [[String(catalog.id), String(catalog.code)] as const])
 				]);
 				const subject = yield* runEngine(
@@ -1926,6 +2326,7 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 					rows: coded
 						.filter(
 							(row) =>
+								!replacedLeaveIds.has(String(row.id)) &&
 								!(
 									exitOwn &&
 									row.payslip_id == null &&
@@ -1934,6 +2335,26 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 						)
 						.map(({ catalog: _catalog, ...row }) => row)
 				};
+				const siblings = pendingLeave.flatMap(({ index, row }) => {
+					if (index === i || row.employment_id !== identity.employment_id) return [];
+					const cls = classes.find(
+						(held) => held.id === row.catalog_id || held.code === codeOf.get(row.catalog_id ?? '')
+					);
+					if (cls === undefined) return [];
+					return [
+						movementFromRow({
+							id: row.id ?? `pending:${index}`,
+							catalog_id: cls.id,
+							employment_id: row.employment_id ?? null,
+							activity: row.activity ?? 'TIME_OFF',
+							occurred_on: row.occurred_on ?? null,
+							days: row.days ?? null,
+							from: row.from ?? null,
+							to: row.to ?? null,
+							facts: row.facts ?? null
+						})
+					];
+				});
 				const message = refuseLeaveWrite({
 					context: { ...subject.context, entry: entryContext(merged, asOf) },
 					employmentStart: subject.employmentStart,
@@ -1950,7 +2371,10 @@ export const transformEntries = Effect.fnUntraced(function* <C extends EntryColl
 						facts: merged.facts ?? null
 					}),
 					classes,
-					movements: movementsByCode(movementPage.rows.map(movementFromRow), classes, codeOf),
+					movements: [
+						...movementsByCode(movementPage.rows.map(movementFromRow), classes, codeOf),
+						...siblings
+					],
 					serviceMonths: serviceMonthsAt(
 						dayKey(contract?.effective_range),
 						asOf,

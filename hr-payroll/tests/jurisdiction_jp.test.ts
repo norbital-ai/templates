@@ -3782,6 +3782,9 @@ describe('JP public lineage', () => {
 										paid_on: '2026-02-25',
 										catalog_code: 'X',
 										occurred_on: '2026-02-03',
+										...(trigger === 'loan_catalog_entry.created'
+											? { advance_made_on: '2026-02-03' }
+											: {}),
 										from: '2026-02-03',
 										to: '2026-02-20',
 										days: 5
@@ -4296,7 +4299,7 @@ describe('JP public lineage', () => {
 				}
 			);
 			assert.deepEqual(
-				entry('loan_catalog_entry', 'EMERGENCY_ADVANCE', { occurred_on: '2026-05-20' }),
+				entry('loan_catalog_entry', 'EMERGENCY_ADVANCE', { advance_made_on: '2026-05-20' }),
 				{
 					EMERGENCY_PAYMENT: '2026-05-20'
 				}
@@ -7135,6 +7138,7 @@ describe('JP public lineage', () => {
 								'claim_catalog_entry',
 								'leave_catalog_entry',
 								'loan_catalog_entry',
+								'loan_repayment_entry',
 								'roster_entry',
 								'shift_pattern',
 								'holiday',

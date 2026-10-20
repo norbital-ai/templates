@@ -237,13 +237,17 @@
 						mode="update"
 						id={record.id}
 						record={view.mode !== 'create' ? view.record : null}
-						fields={['status', 'paid_at']}
+						fields={['bank_charges', 'status', 'paid_at']}
 						submit={bolt.t('app.payroll.save_payment')}
 					>
 						<Grid gap="sm" minimum="compact">
+							<Field name="bank_charges" label={bolt.t('app.payroll.bank_charges')} />
 							<Field name="status" label={bolt.t('component.status')} />
 							<Field name="paid_at" label={bolt.t('app.payroll.actual_payment_date')} />
 						</Grid>
+						<p class="text-sm text-muted-foreground">
+							{bolt.t('app.payroll.bank_charges_help', { currency: record.currency })}
+						</p>
 					</Form>
 				</Stack>
 			{/if}
@@ -288,6 +292,14 @@
 					<tr class="text-muted-foreground">
 						<td class="py-1 pr-3" colspan="2">{bolt.t('component.payslip_employer_cost_total')}</td>
 						<td class="py-1 pr-1 text-right">{settled(record.employer_cost)}</td>
+					</tr>
+					<tr class="text-muted-foreground">
+						<td class="py-1 pr-3" colspan="2">{bolt.t('app.payroll.bank_charges')}</td>
+						<td class="py-1 pr-1 text-right">
+							{record.bank_charges == null
+								? bolt.t('app.payroll.bank_charges_unknown')
+								: settled(record.bank_charges)}
+						</td>
 					</tr>
 				</tbody>
 			</table>

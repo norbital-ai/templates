@@ -590,6 +590,16 @@ export const STATUTORY_FIELDS = {
 					governed_by: { kind: 'text', optional: true },
 					order: { kind: 'number', optional: true },
 					as_of: { kind: 'text', optional: true },
+					annual_reconciliation: {
+						kind: 'object',
+						optional: true,
+						fields: {
+							when: { kind: 'text', format: 'cel' },
+							part: { kind: 'text' },
+							ceiling: { kind: 'text', format: 'cel' },
+							through: { kind: 'text', format: 'cel' }
+						}
+					},
 					warn_when: {
 						kind: 'list',
 						of: {

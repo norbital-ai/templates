@@ -239,8 +239,7 @@
 				{ field: 'catalog_id', label: t('component.catalogue_leave') },
 				{ field: 'activity', label: t('leave.activity') },
 				{ field: 'amount', label: t('component.amount'), cell: amountCell },
-				{ field: 'occurred_on', label: t('component.day') },
-				{ field: 'reference', label: t('component.reference') }
+				{ field: 'occurred_on', label: t('component.day') }
 			]}
 		/>
 	</Cover>
@@ -256,8 +255,7 @@
 			columns={[
 				{ field: 'catalog_id', label: t('component.component') },
 				{ field: 'amount', label: t('component.amount'), cell: amountCell },
-				{ field: 'occurred_on', label: t('component.incurred_on') },
-				{ field: 'reference', label: t('component.reference') }
+				{ field: 'incurred_on', label: t('component.incurred_on') }
 			]}
 		/>
 	</Cover>
@@ -269,12 +267,12 @@
 			key="my-loans"
 			toolbar={{ title: t('app.hr_employee.my_loans_title'), new: false }}
 			where={mine}
-			orderBy={{ occurred_on: 'desc' }}
+			orderBy={{ created_at: 'desc' }}
 			columns={[
 				'catalog_id',
-				{ field: 'amount', label: t('component.amount'), cell: amountCell },
-				'occurred_on',
-				'reference'
+				{ field: 'principal_amount', cell: amountCell },
+				'repayment_period',
+				'repayment_frequency'
 			]}
 		/>
 	</Cover>

@@ -6,7 +6,9 @@
 	 * leave class is narrowed further to those the employee is eligible for (the balances the server lists).
 	 */
 	import * as Predicate from 'effect/Predicate';
-	import { PlainDate } from '@norbital-ai/std/date';
+	import { Schema } from 'effect';
+	import { inputSchema } from '@norbital-ai/std/kind';
+	import { isPlainDate, PlainDate } from '@norbital-ai/std/date';
 	import { Field, Picker, type FormState } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
@@ -26,6 +28,9 @@
 	} = $props();
 
 	const page = pageEntity();
+	const loanCatalogId = inputSchema({ kind: 'id', of: 'loan_catalog' });
+	const isLoanCatalogId = (value: unknown): value is Id<'loan_catalog'> =>
+		Schema.is(loanCatalogId)(value);
 	const employmentId = $derived.by(() => {
 		const held = form.get('employment_id');
 		// the form holds the picked id as text; it is a row id of `employment_contract`
@@ -44,7 +49,26 @@
 	const lineage = $derived(
 		employment.current?.[0]?.company_id?.settings_code ?? page?.company?.settings_code ?? null
 	);
+	const loan = liveRows(() => {
+		const id = form.get('catalog_id');
+		return catalog !== 'loan_catalog' || !isLoanCatalogId(id)
+			? null
+			: bolt.read('loan_catalog', {
+					where: { id: { eq: id } },
+					select: { eligibility: true },
+					limit: 1
+				});
+	});
+	/** The loan class's own rule names the agreement facts it reads; only those are asked for. */
+	const loanReads = $derived(loan.current?.[0]?.eligibility ?? '');
 	const day = $derived.by(() => {
+		if (catalog === 'loan_catalog') {
+			const period = form.get('repayment_period');
+			if (Predicate.isObject(period)) {
+				const from = Reflect.get(period, 'from');
+				if (isPlainDate(from)) return from;
+			}
+		}
 		const held = form.get('occurred_on');
 		return Predicate.isString(held) && held !== '' ? held : todayKey();
 	});
@@ -129,4 +153,11 @@
 	{#each fields as name (name)}
 		<Field {name} />
 	{/each}
+	{#if catalog === 'loan_catalog'}
+		{#each ['advance_purpose', 'written_agreement_reference', 'advance_made_on'] as name (name)}
+			{#if loanReads.includes(name)}
+				<Field {name} />
+			{/if}
+		{/each}
+	{/if}
 </Grid>

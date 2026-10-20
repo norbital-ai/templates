@@ -8,7 +8,7 @@
 		"voided_at": null,
 		"effective_range": {
 			"from": "2026-07-08",
-			"to": "2026-11-30"
+			"to": "2026-09-30"
 		},
 		"payroll": {
 			"currency": "MYR",
@@ -184,7 +184,7 @@
 							"select": ["catalog_id", "activity", "days", "reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-obligations",
@@ -305,7 +305,7 @@
 							"select": ["reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-tasks",

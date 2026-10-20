@@ -19,9 +19,13 @@ field projections govern access, not a role description.
   and `facts.contract_terms`: base salary, allowances, residency status, work classification).
 - `roster` and `roster_entry` (one person-day: the planned shift and the worked clock intervals; overtime
   is derived as the recorded time past the planned shift's ordinary hours, in completed half-hours).
-- `adhoc_catalog_entry`, `claim_catalog_entry`, `leave_catalog_entry`, `loan_catalog_entry`: one entry
+- `adhoc_catalog_entry`, `claim_catalog_entry`, `leave_catalog_entry`: one entry
   each, naming its class (`catalog_id`), the employment and the day it occurred, with the family's own
-  columns (leave `days`/`from`/`to`; claim, ad hoc and loan `amount`) and open `facts`.
+  columns (leave `days`/`from`/`to`; claim and ad hoc `amount`) and open `facts`.
+- `loan_catalog_entry`: one loan principal with its class, employment, optional grant date,
+  `principal_amount`, closed `repayment_period` and `repayment_frequency` (monthly by default or
+  twice monthly). It owns the `loan_repayment_entry` schedule; payroll settles each repayment on its
+  own payslip.
 - `payroll_run` and its owned `payslip`s; `obligation` (remittances a run owes an authority, with their
   amounts) and `regulatory_task` (filings, registrations and notices raised by row events), both done outside
   the system and closed here.
@@ -36,10 +40,17 @@ yourself; the payroll run computes it.
 
 - New hire: look the person up first. Create the `employment_profile` only if absent, then the
   `employment_contract` with its contract terms.
-- Leave, claims, ad hoc pay and loan instalments: create the family's entry with its class, the
+- Leave, claims and ad hoc pay: create the family's entry with its class, the
   employment, the day and the amount (or days for leave). The class may be picked from any version: the
   entry is pinned to the same class of the version in force on its day. An entry already settled on a
   payslip cannot change; deleting that payroll run releases it.
+- Loans: create the principal with the employment, class, principal amount and closed repayment
+  period; give the grant date if known and choose monthly or twice-monthly frequency. The system
+  creates the initial schedule when none is supplied. HR may adjust unprocessed repayment dates and
+  amounts, or change terms and the schedule together through the principal's `repayments` relation.
+  The final repayments must total the principal and fall within its repayment period. Payroll-linked
+  repayments cannot change. The recalculate control redistributes the remaining balance only when
+  selected; changing terms does not silently replace an existing schedule.
 - Attendance: write `roster_entry` rows (create or update the person-day's `worked_intervals`).
 - Payroll: create a `payroll_run` with the company, the period in the entity’s pay frequency (`YYYY-MM` monthly, `YYYY-MM-<part>` for a part of the month, `YYYY-MM-DD` daily) and kind. A REGULAR run pays salary
   and every approved, unsettled entry dated in the period; one per period. An OFF_CYCLE run pays only the

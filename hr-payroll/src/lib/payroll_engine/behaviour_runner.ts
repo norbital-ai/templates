@@ -450,7 +450,14 @@ export const describeFrom = Effect.fnUntraced(function* <
 	return rows.map((row) => {
 		const catalog = catalogues.get(text(row['catalog_id']) ?? '') ?? null;
 		const details = { catalog_code: catalog?.code ?? null, catalog };
-		const described: Row & typeof details = { ...row, ...details };
+		const described: Row & typeof details = {
+			...row,
+			...details,
+			// Older sealed JP emergency-payment rules name the removed column; use only the actual advance date.
+			...(collection === 'loan_catalog_entry'
+				? { occurred_on: row['advance_made_on'] ?? null }
+				: {})
+		};
 		return described;
 	});
 });

@@ -2277,7 +2277,7 @@
 				"event": "created"
 			},
 			"when": "has(row.catalog_code) && row.catalog_code == \"EMERGENCY_ADVANCE\"",
-			"due": "row.occurred_on"
+			"due": "row.advance_made_on"
 		}
 	},
 	{
@@ -5234,6 +5234,62 @@
 			"message": "Employment insurance coverage does not match the weekly hours: 20 hours or more a week is insured (雇用保険法 art.6(i)).",
 			"description": "雇用保険の適用 (employment insurance by weekly hours)",
 			"authority": "雇用保険法 art.6(i): a worker of under 20 scheduled hours a week is outside employment insurance (20 before 1 October 2028; 雇用保険法等の一部を改正する法律, 令和6年法律第26号, lowers it to 10 from that day); a daytime student (art.6(iv), terms.facts.daytime_student) is outside it whatever the hours. terms.statutory_work_category records the coverage."
+		}
+	},
+	{
+		"id": "313d0c16-1da9-54ff-86fb-fd468b186eda",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"authority": "Payroll application reporting configuration: grouped salary listing and company-payment classification, following the requested export format. Dated catalogue and rule-set authorities govern payroll calculations.",
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "EMERGENCY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "STAFF_LOAN",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "ANNUAL_LEAVE_PAY",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				}
+			]
 		}
 	}
 ]

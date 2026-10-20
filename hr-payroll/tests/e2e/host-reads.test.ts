@@ -152,7 +152,13 @@ const probe = (n: number) =>
 		yield* record('behaviour_taps after release', t.runDue());
 		yield* record('payslip pay (all)', move('PAID', all));
 		yield* record('behaviour_taps after pay', t.runDue());
-		yield* record('export_payroll', hr.query('payroll_run.export_payroll', { ids: [runId] }));
+		const salaryExport = yield* record(
+			'export_payroll',
+			hr.query('payroll_run.export_payroll', { ids: [runId], kind: 'SALARY' })
+		);
+		expect(salaryExport.documents).toHaveLength(0);
+		expect(salaryExport.salary_reports.length).toBeGreaterThan(0);
+		expect(salaryExport.salary_reports[0]?.columns.at(-1)?.label).toBe('Total company payment');
 
 		const adhocClass = yield* catalogue('adhoc_catalog', 'BPAYBS');
 		const bonusCreated = yield* record(
@@ -184,8 +190,8 @@ const probe = (n: number) =>
 			hr.act('loan_catalog_entry.create', {
 				catalog_id: loanClass,
 				employment_id: contract,
-				occurred_on: '2026-01-20',
-				amount: '10.00'
+				principal_amount: '10.00',
+				repayment_period: { from: '2026-01-20', to: '2026-01-20' }
 			})
 		);
 		yield* record('behaviour_taps after loan_catalog_entry', t.runDue());

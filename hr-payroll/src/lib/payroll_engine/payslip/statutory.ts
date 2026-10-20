@@ -16,6 +16,7 @@ import {
 	slipPeriod
 } from './context.js';
 import { severityOf, type Severity } from '../admit.js';
+import { reconcileAdditionalWages } from './additional_wages.js';
 
 export const CARRY_FAMILY = 'STATUTORY_CARRY';
 /** The adjustment families of an exit's own pay (`raise_on_exit`) and of a paid period repriced after its exit moved. */
@@ -56,6 +57,9 @@ export const assessStatutory = (input: {
 	readonly statutoryRows: readonly StatutoryRow[];
 	readonly schemeCodes: ReadonlyMap<string, string>;
 	readonly standing: ReturnType<typeof statutoryFactsFromFacts>;
+	readonly salaryRun?: boolean;
+	readonly statutoryConfigurations?: ReadonlyMap<string, readonly StatutoryRow[]>;
+	readonly runWindows?: ReadonlyMap<string, { readonly from: string; readonly to: string }>;
 	/** The run's period key and its settlement window (a calendar month, or a part of one). */
 	readonly period: string;
 	readonly window: { readonly from: string; readonly to: string };
@@ -102,7 +106,8 @@ export const assessStatutory = (input: {
 			...input.periodExtras,
 			salary_paid: monthPrior.some((slip) =>
 				isSalaryRun(input.runKind.get(String(slip.payroll_run_id ?? '')))
-			)
+			),
+			salary_run: input.salaryRun === true
 		};
 		const assessed: PayslipStatutoryLine[] = [];
 		const amounts = (
@@ -308,9 +313,48 @@ export const assessStatutory = (input: {
 				chargedOn = assessedOn;
 				break;
 			}
+			const reconciliation = configuration.annual_reconciliation;
+			if (reconciliation != null && (yield* evaluateBoolean(reconciliation.when, context, where))) {
+				const original = configuration.rules.filter((rule) => rule.when === appliedWhen);
+				if (charge == null || original.length !== 1)
+					return yield* Effect.fail(
+						new Refusal({
+							message: `${input.who}: ${row.code} reconciliation needs an unambiguous current contribution rule.`
+						})
+					);
+				const through = yield* evaluate(reconciliation.through, context, where);
+				if (!Schema.is(Schema.String)(through))
+					return yield* Effect.fail(
+						new Refusal({ message: `${where}: the reconciliation cutoff must be a date.` })
+					);
+				const reconciled = yield* reconcileAdditionalWages({
+					who: input.who,
+					code: row.code,
+					part: reconciliation.part,
+					ceiling: yield* evaluateNumber(reconciliation.ceiling, context, where),
+					month,
+					through,
+					currentWindow: input.window,
+					salaryRun: input.salaryRun === true,
+					yearStart,
+					subject: held,
+					currentRule: original[0]!,
+					currentParts: monthAssessed,
+					currentWages: monthToDate,
+					history: input.history,
+					runKind: input.runKind,
+					runWindows: input.runWindows ?? new Map(),
+					configurations: input.statutoryConfigurations ?? new Map(),
+					money
+				});
+				charge = reconciled.monthCharge;
+				monthAssessed[reconciliation.part] = reconciled.assessedPart;
+				chargedOn = reconciled.chargedBase;
+				warnings.push(...reconciled.warnings);
+			}
 			// A scheme the month paid wages toward keeps its line even when nothing is charged: a later slip of the month
 			// reads the month's earlier wage from these parts.
-			const month = charge ?? { employee: 0, employer: 0 };
+			const monthCharge = charge ?? { employee: 0, employer: 0 };
 			const slipParts = Object.fromEntries(
 				[...parts].map((part) => [part, money((monthAssessed[part] ?? 0) - (prior[part] ?? 0))])
 			);
@@ -320,10 +364,12 @@ export const assessStatutory = (input: {
 				parts: slipParts,
 				wages: wage,
 				employee_amount: money(
-					month.employee - monthLines.reduce((sum, line) => sum + num(line.employee_amount), 0)
+					monthCharge.employee -
+						monthLines.reduce((sum, line) => sum + num(line.employee_amount), 0)
 				),
 				employer_amount: money(
-					month.employer - monthLines.reduce((sum, line) => sum + num(line.employer_amount), 0)
+					monthCharge.employer -
+						monthLines.reduce((sum, line) => sum + num(line.employer_amount), 0)
 				),
 				charged_base: money(chargedOn),
 				...(appliedWhen == null ? {} : { rule_when: appliedWhen })

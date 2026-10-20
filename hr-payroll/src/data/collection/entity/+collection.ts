@@ -16,6 +16,7 @@ const create_columns = [
 	'facts',
 	'time_zone',
 	'disbursement_account',
+	'payment_bank_id',
 	'effective_range',
 	'hotline',
 	'validation_severity'
@@ -33,6 +34,7 @@ const update_columns = [
 	'facts',
 	'time_zone',
 	'disbursement_account',
+	'payment_bank_id',
 	'effective_range',
 	'hotline',
 	'validation_severity'

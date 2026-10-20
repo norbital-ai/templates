@@ -4,6 +4,7 @@ import { it } from '@effect/vitest';
 import { vi } from 'vitest';
 import { isMasked } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
+import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import {
@@ -23,6 +24,7 @@ import {
 } from '../src/lib/payroll_engine/foundation.ts';
 import { termsFromFacts } from '../src/lib/payroll_engine/contract_terms.ts';
 import { assertFailure, lineage, world, type Row } from './jurisdiction_kit.ts';
+import { evaluateStrict } from '../src/lib/payroll_engine/expressions.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';
 
 const LAW = lineage('SG');
@@ -1330,7 +1332,7 @@ it.effect(
 					target_collection: 'work_suspension',
 					events: ['probed'],
 					effect:
-						'{"collection": "adhoc_catalog_entry", "operation": "create", "data": {"reference": "probe-1"}}'
+						'{"collection": "adhoc_catalog_entry", "operation": "create", "data": {"label": "probe-1"}}'
 				},
 				{
 					id: 'read-staged',
@@ -1339,7 +1341,7 @@ it.effect(
 					reads: {
 						staged: {
 							collection: 'adhoc_catalog_entry',
-							where: { reference: { like: '"probe%"' } }
+							where: { label: { like: '"probe%"' } }
 						}
 					}
 				}
@@ -1362,5 +1364,48 @@ it.effect(
 		} finally {
 			version.behaviours = saved;
 		}
+	})
+);
+
+it.effect(
+	'old sealed JP emergency-payment deadlines use the typed advance date without storing the retired loan column',
+	Effect.fnUntraced(function* () {
+		const jp = lineage('JP');
+		const jpSettings = jp.settingsOf('version_1');
+		const catalogue = jp.byCode('version_1', 'loan_catalog', 'EMERGENCY_ADVANCE');
+		const source = new Map(tables);
+		source.set('jurisdiction_settings', [
+			...(tables.get('jurisdiction_settings') ?? []),
+			jpSettings
+		]);
+		source.set('loan_catalog', [catalogue]);
+		yield* withNative(
+			({ read }) =>
+				Effect.gen(function* () {
+					const input = {
+						catalog_id: nativeId('loan_catalog', catalogue.id),
+						advance_made_on: PlainDate('2026-05-20')
+					};
+					const row = yield* describeTrigger(
+						{ collection: 'loan_catalog_entry', row: input },
+						read
+					);
+					assert.equal(evaluateStrict('row.occurred_on', { row }), '2026-05-20');
+					assert.equal(row['advance_made_on'], '2026-05-20');
+					assert.equal(Object.hasOwn(input, 'occurred_on'), false);
+					const unknown = yield* describeTrigger(
+						{
+							collection: 'loan_catalog_entry',
+							row: {
+								catalog_id: input.catalog_id,
+								repayment_period: { from: '2026-06-01', to: '2026-07-01' }
+							}
+						},
+						read
+					);
+					assert.equal(unknown['occurred_on'], null);
+				}),
+			source
+		);
 	})
 );

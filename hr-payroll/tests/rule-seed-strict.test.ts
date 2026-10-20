@@ -538,7 +538,8 @@ const failures = (
 						const hours = {
 							...sums,
 							day_type: { WORK: sums, REST: sums, OFF: sums, HOLIDAY: sums },
-							holiday_kind: {}
+							holiday_kind: {},
+							day_type_holiday_kind: {}
 						};
 						const earnedMonth = { gross: 1000, net: 900, statutory: {} };
 						const context =

@@ -194,6 +194,19 @@ export default model({
 			kind: 'text',
 			optional: true
 		},
+		supporting_documents: {
+			kind: 'file',
+			accept: [
+				'application/pdf',
+				'image/jpeg',
+				'image/png',
+				'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			],
+			max: '20MiB',
+			multiple: true,
+			optional: true
+		},
 		check_hash: {
 			kind: 'text',
 			optional: true,

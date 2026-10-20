@@ -27,7 +27,11 @@ export const plannedShiftOf = (input: {
 	const shifts = new Map(input.definitions.map((row) => [String(row.id), plannedShift(row)]));
 	const terms = new Map(input.contracts.map((row) => [String(row.id), termsFromFacts(row.facts)]));
 	const patterns = new Map(input.patterns.map((row) => [String(row.id), row]));
-	return (employmentId: string, date: string, rostered: string | null): PlannedShift | null => {
+	return (
+		employmentId: string,
+		date: string,
+		rostered: string | null
+	): (PlannedShift & { readonly id: string }) | null => {
 		const patternId = termInForceOn(terms.get(employmentId) ?? [], date)?.shift_pattern_id;
 		const pattern = Predicate.isString(patternId) ? patterns.get(patternId) : undefined;
 		const range = pattern?.effective_range;
@@ -39,6 +43,6 @@ export const plannedShiftOf = (input: {
 			rostered,
 			pattern: pattern == null || !inRange ? null : { pattern: pattern.pattern, anchor: from }
 		});
-		return id == null ? null : (shifts.get(id) ?? plannedShift({ code: id }));
+		return id == null ? null : { ...(shifts.get(id) ?? plannedShift({ code: id })), id };
 	};
 };

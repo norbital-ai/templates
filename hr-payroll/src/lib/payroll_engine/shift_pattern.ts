@@ -40,7 +40,7 @@ const Variant = Schema.Struct({
 	end_time: Schema.optional(Schema.String),
 	break_minutes: Schema.optional(Schema.Number)
 });
-const CLOCK = /^\d{2}:\d{2}$/;
+const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const clockMinutes = (clock: string): number =>
 	Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5));
 
@@ -49,6 +49,9 @@ export type PlannedShift = {
 	readonly code: string;
 	readonly day_type: string;
 	readonly scheduled_hours: number;
+	/** Configured local bounds; overnight minutes may exceed 1440. */
+	readonly start_minute?: number | null;
+	readonly end_minute?: number | null;
 	/** The planned break, centred on the shift: its start in minutes after the day's local midnight (past 1440 on an
 	 * overnight shift) and its length; null when the shift names no clock or no break. */
 	readonly break?: { readonly from_minute: number; readonly minutes: number } | null;
@@ -63,36 +66,31 @@ export const plannedShift = (row: {
 	const { start_time: start, end_time: end } = variant;
 	let minutes = 0;
 	let held: PlannedShift['break'] = null;
+	let begins: number | null = null;
+	let ends: number | null = null;
 	if (start != null && end != null && CLOCK.test(start) && CLOCK.test(end)) {
-		const span = clockMinutes(end) - clockMinutes(start) + (end <= start ? 1440 : 0);
+		const opens = clockMinutes(start);
+		begins = opens;
+		const span = clockMinutes(end) - opens + (end <= start ? 1440 : 0);
 		const pause = Math.min(span, Math.max(0, variant.break_minutes ?? 0));
 		minutes = span - pause;
-		if (pause > 0) held = { from_minute: clockMinutes(start) + (span - pause) / 2, minutes: pause };
+		ends = opens + span;
+		if (pause > 0) held = { from_minute: opens + (span - pause) / 2, minutes: pause };
 	}
 	return {
 		code: row.code ?? '',
 		day_type: variant.day_type ?? '',
 		scheduled_hours: Math.round((minutes / 60) * 100) / 100,
+		start_minute: begins,
+		end_minute: ends,
 		break: held
 	};
 };
 
 /** Overtime counts in completed half-hours. */
 const OVERTIME_STEP_HOURS = 0.5;
-/**
- * A planned day's overtime: the hours recorded past its ordinary (scheduled) hours, in completed half-hours. The
- * shift's total sets the ordinary hours, never its clock times, so a swapped shift is still read right; a planned rest
- * or off day has none, so all its time is overtime. An unplanned day has none at all: nothing unplanned pays.
- */
-export const overtimeHours = (
-	recorded: number,
-	planned: Pick<PlannedShift, 'scheduled_hours'> | null
-): number =>
-	planned == null || recorded <= 0
-		? 0
-		: Math.floor((Math.max(0, recorded - planned.scheduled_hours) + 1e-9) / OVERTIME_STEP_HOURS) *
-			OVERTIME_STEP_HOURS;
-
+export const completedHalfHours = (hours: number): number =>
+	Math.floor((Math.max(0, hours) + 1e-9) / OVERTIME_STEP_HOURS) * OVERTIME_STEP_HOURS;
 /**
  * The shift definition planned for one date: the roster entry's own, else the cycle day of the pattern its terms
  * name, anchored at the pattern's effective start; null when neither names one.

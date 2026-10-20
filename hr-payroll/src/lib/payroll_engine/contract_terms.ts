@@ -96,7 +96,7 @@ export function termInForceOn(
 export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | null {
 	for (const term of terms) {
 		for (const line of allowancesOf(term)) {
-			if (line.code.trim() === '') return 'Each allowance needs a catalogue code.';
+			if (!identifiesAllowance(line)) return 'Each allowance needs a catalogue code or item.';
 			if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
 		}
 	}
@@ -109,6 +109,12 @@ export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | nul
 				return 'Employment terms cannot overlap.';
 	return null;
 }
+
+const identifiesAllowance = (line: AllowanceDraft): boolean =>
+	line.code.trim() !== '' ||
+	(isJsonObject(line.source) &&
+		isString(line.source.catalogue_id) &&
+		line.source.catalogue_id.trim() !== '');
 
 /** A term from its edited values: blank values are left out, allowance lines keep their stored keys. */
 function termFromDraft(
@@ -123,12 +129,17 @@ function termFromDraft(
 	const lines: Schema.Json[] = [];
 	for (const line of allowances) {
 		const code = line.code.trim();
-		if (code === '' && !(line.amount > 0)) continue;
-		if (code === '') return 'Each allowance needs a catalogue code.';
+		if (!identifiesAllowance(line) && !(line.amount > 0)) continue;
+		if (!identifiesAllowance(line)) return 'Each allowance needs a catalogue code or item.';
 		if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
 		const source = isJsonObject(line.source) ? line.source : {};
 		const amount = isJsonObject(source.amount) ? source.amount : {};
-		lines.push({ ...source, code, amount: { ...amount, value: line.amount } });
+		const { code: _sourceCode, ...fields } = source;
+		lines.push({
+			...fields,
+			...(code === '' ? {} : { code }),
+			amount: { ...amount, value: line.amount }
+		});
 	}
 	return {
 		...withoutBlanks(values),

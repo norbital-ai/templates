@@ -24,6 +24,15 @@ export function readSeedRows(directory: string, name: string) {
 			JSON.parse(readFileSync(resolve(directory, 'jurisdiction_settings.json'), 'utf8'))
 		);
 		for (const row of settings) {
+			if (
+				rows.some(
+					(rule) =>
+						rule['settings_id'] === row['id'] &&
+						rule['family'] === 'PAYROLL' &&
+						rule['code'] === 'overtime_classification'
+				)
+			)
+				continue;
 			const policy = overtimeRule(row);
 			if (policy !== null) rows.push(policy);
 		}

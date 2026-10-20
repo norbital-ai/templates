@@ -5,7 +5,7 @@
 		"code": "LOAN_RECOVERY_AIR_TICKET",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL_TREATMENT\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Air ticket loan recovery",
 		"bands": [
 			{
@@ -20,7 +20,7 @@
 		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL_TREATMENT\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Hari Raya (festive) advance recovery",
 		"bands": [
 			{
@@ -35,7 +35,7 @@
 		"code": "AIR_TICKET_DEDUCTION",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL_TREATMENT\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Air ticket deduction",
 		"bands": [
 			{
@@ -50,7 +50,7 @@
 		"code": "APPROVED_HOUSING_LOAN",
 		"destination": "NET",
 		"direction": "SUBTRACT",
-		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
+		"eligibility": "!has(entry.facts.principal) || double(entry.facts.principal) <= terms.monthly_wage || (has(entry.facts.advance_purpose) && entry.facts.advance_purpose in [\"HOUSE\", \"LAND\", \"VEHICLE\", \"EMPLOYER_SHARES\", \"COMPUTER\", \"MEDICAL_TREATMENT\", \"SOCSO_DISABLEMENT\", \"EDUCATION\", \"DG_APPROVED\"])",
 		"name": "Housing loan with Director General approval",
 		"bands": [
 			{

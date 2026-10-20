@@ -1866,12 +1866,13 @@ describe('VN jurisdiction seed', () => {
 						}
 					})[0]
 				);
-			// 2024, 2025 and 2026: 13 days each (one more after five years); 4 taken in 2025.
+			// 2024: 12 days (59 months of service at its end); 2025 and 2026: 13 each (one more after five years);
+			// 4 taken in 2025.
 			assert.equal(balance(undefined).carried, 0, version);
 			assert.equal(balance(false).available, 13, version);
-			// Agreed: 2026 holds 2025's 9 unused and 2024's 13 — three years at once.
-			assert.equal(balance(true).carried, 22, version);
-			assert.equal(balance(true).available, 35, version);
+			// Agreed: 2026 holds 2025's 9 unused and 2024's 12 — three years at once.
+			assert.equal(balance(true).carried, 21, version);
+			assert.equal(balance(true).available, 34, version);
 			// In 2027 the 2024 days have lapsed: 2026's 13 and 2025's 9 carry in (not 35).
 			assert.equal(balance(true, '2027-03-01').carried, 22, version);
 		}

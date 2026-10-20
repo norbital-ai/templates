@@ -2957,5 +2957,70 @@
 			"when": "row.kind == \"RELOCATION_BOARD_ORDER\"",
 			"due": "add_days(row.opened_on, 30)"
 		}
+	},
+	{
+		"id": "739cbfc1-e9d5-5546-9bf3-7d569f5939eb",
+		"settings_id": "8e548e69-bf35-5d4f-8e6e-3e2de580f71e",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "SECURITY_DEPOSIT",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "WELFARE_LOAN",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC_DAILY",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "PIECE_PAID_DAYS",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "PIECE_WORK",
+					"group": "Basic pay"
+				}
+			]
+		}
 	}
 ]

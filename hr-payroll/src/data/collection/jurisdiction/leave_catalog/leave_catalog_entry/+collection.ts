@@ -41,7 +41,6 @@ const c = collection('leave_catalog_entry', {
 				'from',
 				'to',
 				'amount',
-				'incurred_on',
 				'label',
 				'facts',
 				'reference'
@@ -61,7 +60,6 @@ const c = collection('leave_catalog_entry', {
 				'from',
 				'to',
 				'amount',
-				'incurred_on',
 				'label',
 				'facts',
 				'reference',
@@ -119,7 +117,16 @@ const c = collection('leave_catalog_entry', {
 });
 export default c;
 /** The range columns a time-off row's charge is counted from. */
-const RANGE = ['catalog_id', 'from', 'to', 'half_day_start', 'half_day_end', 'activity'] as const;
+const RANGE = [
+	'catalog_id',
+	'employment_id',
+	'from',
+	'to',
+	'half_day_start',
+	'half_day_end',
+	'activity',
+	'days'
+] as const;
 c.transform(function* (inputs, ctx: TransformCtx<'leave_catalog_entry'>) {
 	// A time-off range charges what the server counts on the employment's own plan, never a client's number: every
 	// row counted at once over one batched reader.

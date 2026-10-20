@@ -1473,5 +1473,90 @@
 				}
 			]
 		}
+	},
+	{
+		"id": "3cb44b93-98cd-5daf-9309-7f2c31f2fc63",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "EMPLOYEE_UNLAWFUL_TERMINATION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "EMPLOYER_PENSION_CONTRIBUTION",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "NON_ACCUMULATING_INSURANCE",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PROPERTY_DAMAGE_COMPENSATION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "TRAINING_COST_REFUND",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "TRAINING_SUPPORT",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "HOUSING",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "OVERTIME_TAXABLE_PART",
+					"payment": "INFORMATION"
+				}
+			]
+		}
 	}
 ]

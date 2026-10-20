@@ -49,10 +49,6 @@ export default model({
 			optional: true,
 			help: 'The last day is the first half of that day.'
 		},
-		incurred_on: {
-			kind: 'date',
-			optional: true
-		},
 		label: {
 			kind: 'text',
 			optional: true
@@ -60,7 +56,7 @@ export default model({
 		facts: {
 			kind: 'json',
 			optional: true,
-			help: 'Anything this movement carries that the fields above do not name.'
+			help: 'Payroll inputs required by the selected leave item, such as the event whose leave balance is used.'
 		}
 	}
 });

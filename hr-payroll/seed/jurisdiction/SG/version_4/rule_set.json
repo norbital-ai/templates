@@ -3200,5 +3200,155 @@
 			"when": "row.kind in [\"OCCUPATIONAL_DISEASE_DIAGNOSIS\"]",
 			"due": "add_days(row.opened_on, 10)"
 		}
+	},
+	{
+		"id": "13f34f9e-0274-5acc-a105-64c43531a181",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "ACCOMMODATION_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "AMENITIES_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "APPROVED_DAMAGE_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "CONSENT_EMPLOYEE_BENEFIT",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "ADHOC",
+					"code": "COOPERATIVE_DUES",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "CPF_MISSED_SHARE_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "DAMAGE_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "FOOD_ABSENCE_COST",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PRIOR_WAGE_CASH_REPAYMENT",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "CLAIM",
+					"code": "ADOPTION_REIMBURSEMENT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "CLAIM",
+					"code": "GPCL_REIMBURSEMENT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "CLAIM",
+					"code": "GPML_REIMBURSEMENT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "CLAIM",
+					"code": "GPPL_REIMBURSEMENT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "CLAIM",
+					"code": "GPSPL_REIMBURSEMENT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "CLAIM",
+					"code": "WICA_MEDICAL",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "FESTIVE_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_OVERPAYMENT",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "TRAVEL_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "UNEARNED_BENEFIT_RECOVERY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "WICA_MEDICAL_LEAVE_WAGES",
+					"group": "Leave pay"
+				}
+			]
+		}
 	}
 ]

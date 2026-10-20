@@ -13,7 +13,8 @@ import { Effect, Option, Schema } from 'effect';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
 import { RunHandlers, type Json } from '@norbital-ai/bolt/engine';
 import { addDays, PlainDate } from '@norbital-ai/std/date';
-import { fieldValue } from '../../src/lib/payroll_engine/foundation.ts';
+import { Decimal } from '@norbital-ai/std/decimal';
+import { fieldValue, numberOf } from '../../src/lib/payroll_engine/foundation.ts';
 import { nativeId } from '../fixture_values.ts';
 import { workspace } from '../kit.ts';
 
@@ -21,6 +22,27 @@ const sample = existsSync(`${process.cwd()}/.norbital/seed/sample/pack.json`);
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 // Stored days retain their native date type while the workbook carries their ISO text.
 const iso = (value: PlainDate): string => value;
+/** The first planned day with `need` ordinary (not REST/OFF), unattended days of its employment `from`..`to` days on. */
+const firstWindow = <
+	R extends { employment_id: string; work_date: PlainDate; shift_definition_id: string | null }
+>(
+	rows: readonly R[],
+	rest: ReadonlySet<string>,
+	from: number,
+	to: number,
+	need: number
+): R | undefined =>
+	rows.find(
+		(row) =>
+			rows.filter(
+				(other) =>
+					other.employment_id === row.employment_id &&
+					other.shift_definition_id !== null &&
+					!rest.has(other.shift_definition_id) &&
+					other.work_date >= addDays(row.work_date, from) &&
+					other.work_date <= addDays(row.work_date, to)
+			).length >= need
+	);
 type Cell = string | number | null;
 
 class WorkbookIoFailed extends Schema.TaggedError<WorkbookIoFailed>()('WorkbookIoFailed', {
@@ -110,11 +132,19 @@ it.live.skipIf(!sample)(
 				return out.output.id;
 			});
 
-			const [seed] = (yield* hr.read('roster_entry', {
+			// the source bank's weeks carry real attendance: take a week with three ordinary middle days, then clear
+			// its clocks below so the edits start from plain planned days
+			const open = (yield* hr.read('roster_entry', {
 				where: { shift_definition_id: { isNull: false }, payslip_id: { isNull: true } },
 				orderBy: { work_date: 'asc' },
-				limit: 1
+				all: true
 			})).rows;
+			const rest = new Set(
+				(yield* hr.read('shift_definition', { select: { code: true }, all: true })).rows
+					.filter((row) => ['REST', 'OFF'].includes(String(row.code)))
+					.map((row) => row.id)
+			);
+			const seed = firstWindow(open, rest, 1, 5, 3);
 			const selected = required(seed, 'The sample requires an unsettled planned work day');
 			const employment_id = yield* Effect.fromResult(
 				fieldValue(selected.employment_id, 'roster_entry.employment_id')
@@ -134,6 +164,25 @@ it.live.skipIf(!sample)(
 			);
 			const to = addDays(from, 6);
 			const context = { company_id, from, to };
+			for (const row of open)
+				if (
+					row.employment_id === employment_id &&
+					row.worked_intervals !== null &&
+					row.work_date >= context.from &&
+					row.work_date <= context.to
+				)
+					expect(
+						yield* t
+							.as(t.admin)
+							.act('roster_entry.update', { target: row.id, set: { worked_intervals: null } })
+					).toMatchObject({ kind: 'committed' });
+			// Planned overtime belongs to HR's plan authority, including an older file without that optional column.
+			expect(
+				yield* hr.act('roster_entry.update', {
+					target: selected.id,
+					set: { planned_overtime_hours: Decimal.of('3') }
+				})
+			).toMatchObject({ kind: 'committed' });
 
 			// the template follows the page: this entity, this week
 			const cells = yield* storedSheet(t, yield* run({ mode: 'template', context }));
@@ -164,9 +213,36 @@ it.live.skipIf(!sample)(
 				updated: 0,
 				deleted: 0
 			});
+			expect(col('Planned OT hours')).toBe(10);
+			const legacy = yield* run({
+				mode: 'import',
+				file: yield* upload([header.slice(0, 10), ...mine.map((row) => row.slice(0, 10))]),
+				context,
+				accept: true
+			});
+			expect(legacy, JSON.stringify(legacy)).toMatchObject({
+				applied: true,
+				created: 0,
+				updated: 0,
+				deleted: 0
+			});
+			const preserved = required(
+				yield* hr.get('roster_entry', selected.id),
+				'The unchanged old-format upload keeps the planned work day'
+			);
+			expect(
+				numberOf(
+					yield* Effect.fromResult(
+						fieldValue(preserved.planned_overtime_hours, 'roster_entry.planned_overtime_hours')
+					)
+				)
+			).toBe(3);
 
 			// edit: blank a middle day with a shift, overtime on another, a leave code on a third
-			const plain = (row: Cell[]) => row[col('Leave')] == null && row[col('Clock in')] == null;
+			const plain = (row: Cell[]) =>
+				row[col('Leave')] == null &&
+				row[col('Clock in')] == null &&
+				!['REST', 'OFF'].includes(String(row[col('Shift')]));
 			const middle = mine.slice(1, -1);
 			const blank = middle.find((row) => row[col('Shift')] != null && plain(row));
 			const overtime = middle.find(
@@ -202,6 +278,7 @@ it.live.skipIf(!sample)(
 						// a 13-hour clock: past any of the sample's shifts
 						out[col('Clock in')] = '07:00';
 						out[col('Clock out')] = '20:00';
+						out[col('Planned OT hours')] = 6;
 					}
 					if (leave && row === leaveDay) out[col('Leave')] = code;
 					return out;
@@ -311,16 +388,21 @@ it.live.skipIf(!sample)(
 				where: { company_id: { eq: company_id } },
 				all: true
 			})).rows;
-			const [seed] = (yield* hr.read('roster_entry', {
+			const rest = new Set(
+				(yield* hr.read('shift_definition', { select: { code: true }, all: true })).rows
+					.filter((row) => ['REST', 'OFF'].includes(String(row.code)))
+					.map((row) => row.id)
+			);
+			const open = (yield* hr.read('roster_entry', {
 				where: {
 					employment_id: { in: contracts.map((row) => row.id) },
 					shift_definition_id: { isNull: false },
-					worked_intervals: { isNull: true },
 					payslip_id: { isNull: true }
 				},
 				orderBy: { work_date: 'asc' },
-				limit: 1
+				all: true
 			})).rows;
+			const seed = firstWindow(open, rest, 0, 6, 2);
 			const selected = required(seed, 'The ID sample requires an unsettled planned work day');
 			const employment_id = yield* Effect.fromResult(
 				fieldValue(selected.employment_id, 'roster_entry.employment_id')
@@ -336,6 +418,18 @@ it.live.skipIf(!sample)(
 				yield* Effect.fromResult(fieldValue(selected.work_date, 'roster_entry.work_date'))
 			);
 			const context = { company_id, from, to: addDays(from, 6) };
+			for (const row of open)
+				if (
+					row.employment_id === employment_id &&
+					row.worked_intervals !== null &&
+					row.work_date >= context.from &&
+					row.work_date <= context.to
+				)
+					expect(
+						yield* t
+							.as(t.admin)
+							.act('roster_entry.update', { target: row.id, set: { worked_intervals: null } })
+					).toMatchObject({ kind: 'committed' });
 			const cells = yield* storedSheet(t, yield* run({ mode: 'template', context }));
 			const header = required(cells[0], 'The roster template needs its header');
 			const col = (label: string) => header.indexOf(label);
@@ -344,6 +438,7 @@ it.live.skipIf(!sample)(
 			const plain = mine.filter(
 				(row) =>
 					row[col('Shift')] != null &&
+					!['REST', 'OFF'].includes(String(row[col('Shift')])) &&
 					row[col('Leave')] == null &&
 					row[col('Clock in')] == null &&
 					row[col('OT consent')] == null
@@ -358,6 +453,7 @@ it.live.skipIf(!sample)(
 					if (row === without || row === consented) {
 						out[col('Clock in')] = '07:00';
 						out[col('Clock out')] = '20:00';
+						out[col('Planned OT hours')] = 6;
 					}
 					if (row === consented) out[col('OT consent')] = 'Y';
 					return out;

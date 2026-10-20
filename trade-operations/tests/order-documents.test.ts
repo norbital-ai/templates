@@ -1,7 +1,9 @@
 import { fixtureId, firstRow } from './test-runtime.js';
 import { Schema, Effect, Layer } from 'effect';
+import { Decimal } from '@norbital-ai/std/decimal';
+import { fileRef } from '@norbital-ai/bolt/page';
 import { expect, it as test } from '@effect/vitest';
-import { workspace, draft, confirm, committed } from './kit.js';
+import { workspace, draft, confirm, committed, CUSTOMER, PRODUCT } from './kit.js';
 import { Convert } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { renderOrderDocument, validateDocumentTemplate } from '../src/lib/order-document.js';
@@ -230,6 +232,113 @@ test.live(
 			yield* t.runDue();
 			expect(converted).toEqual([original.html]);
 		})
+);
+test.live('supporting documents belong to the sales order and stop changing once confirmed', () =>
+	Effect.scoped(
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const sales = t.member(['sales'], { teams: ['Sales'], teamPath: ['Sales'] });
+			const owner = t.as(sales);
+			const unrelated = t.as(t.member(['sales'], { teams: ['Sales'], teamPath: ['Sales'] }));
+			const admin = t.as(t.admin);
+			const bytes = new TextEncoder().encode('%PDF-1.4\n% Synthetic supporting document\n%%EOF\n');
+			const upload = Effect.fnUntraced(function* (who: typeof owner, name: string) {
+				const outcome = yield* who.upload('orders.supporting_documents', {
+					name,
+					mime: 'application/pdf',
+					bytes
+				});
+				if (outcome.kind !== 'committed') throw new Error('Supporting document upload failed');
+				return fileRef(outcome.output);
+			});
+			const first = yield* upload(owner, 'customer-brief.pdf');
+			const order = committed(
+				'orders',
+				yield* owner.act('orders.create', {
+					title: 'Order supporting documents',
+					direction: 'sales',
+					party: CUSTOMER,
+					currency: 'SGD',
+					payment_terms: 'Net 30',
+					supporting_documents: [first]
+				})
+			);
+			expect(yield* owner.get('orders', order)).toMatchObject({
+				owner: sales.id,
+				status: 'draft',
+				supporting_documents: [first]
+			});
+			const cookie = yield* t.session(sales.id);
+			const downloaded = yield* t.handle(
+				new Request(`http://localhost/__bolt/files/${first.id}`, { headers: { cookie } })
+			);
+			expect(downloaded.status).toBe(200);
+			expect(downloaded.headers.get('content-type')).toBe('application/pdf');
+			expect(
+				new Uint8Array(
+					yield* Effect.tryPromise({
+						try: () => downloaded.arrayBuffer(),
+						catch: (cause) => new TestIoFailed({ message: String(cause) })
+					})
+				)
+			).toEqual(bytes);
+			const foreign = yield* upload(unrelated, 'another-customer.pdf');
+			expect(yield* unrelated.get('orders', order)).toBeNull();
+			expect(
+				yield* Effect.flip(
+					unrelated.act('orders.update', {
+						target: order,
+						set: { supporting_documents: [foreign] }
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect((yield* owner.get('orders', order))?.supporting_documents).toEqual([first]);
+			const replacement = yield* upload(owner, 'revised-brief.pdf');
+			committed(
+				'orders',
+				yield* owner.act('orders.update', {
+					target: order,
+					set: { supporting_documents: [replacement] }
+				})
+			);
+			expect((yield* owner.get('orders', order))?.supporting_documents).toEqual([replacement]);
+			committed(
+				'orders',
+				yield* owner.act('orders.update', { target: order, set: { supporting_documents: [] } })
+			);
+			expect((yield* owner.get('orders', order))?.supporting_documents).toEqual([]);
+			committed(
+				'orders',
+				yield* owner.act('orders.update', {
+					target: order,
+					set: { supporting_documents: [first, replacement] }
+				})
+			);
+			committed(
+				'order_lines',
+				yield* owner.act('order_lines.create', {
+					order,
+					product: PRODUCT,
+					quantity: Decimal.of('10')
+				})
+			);
+			yield* confirm(t, order);
+			const confirmed = yield* owner.get('orders', order);
+			expect(confirmed).toMatchObject({
+				status: 'confirmed',
+				supporting_documents: [first, replacement]
+			});
+			for (const who of [owner, admin]) {
+				for (const documents of [[], [replacement]]) {
+					const refused = yield* Effect.flip(
+						who.act('orders.update', { target: order, set: { supporting_documents: documents } })
+					);
+					expect(refused).toMatchObject({ _tag: 'ActRefused' });
+					expect(yield* owner.get('orders', order)).toEqual(confirmed);
+				}
+			}
+		})
+	)
 );
 class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {
 	message: Schema.String

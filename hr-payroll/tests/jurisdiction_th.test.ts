@@ -1865,6 +1865,7 @@ describe('TH jurisdiction seed', () => {
 							'claim_catalog_entry',
 							'leave_catalog_entry',
 							'loan_catalog_entry',
+							'loan_repayment_entry',
 							'roster_entry',
 							'holiday',
 							'payslip',

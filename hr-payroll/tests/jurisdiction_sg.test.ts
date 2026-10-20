@@ -23,7 +23,8 @@ import { workspace } from './kit.js';
 import { effectWrites, planBehaviours, Behaviours } from '../src/lib/payroll_engine/behaviours.ts';
 import { electionKeysOf } from '../src/lib/payroll_engine/employment_facts.ts';
 import { dutiesOf, DUTY_KEYS, raiseDuties, triggerOf, SEEDED_PAYROLL } from './duties.ts';
-import { Effect } from 'effect';
+import { Effect, Result } from 'effect';
+import { Refusal } from '../src/lib/payroll_engine/foundation.js';
 import { leaveBalances, movementFromRow } from '../src/lib/payroll_engine/leave.ts';
 import { admitAnonymise, rosterFindings } from '../src/lib/payroll_engine/admit.ts';
 import {
@@ -73,6 +74,7 @@ const fixtureLinks = new Set([
 	'shift_pattern_id',
 	'shift_definition_id',
 	'payroll_run_id',
+	'loan_id',
 	'payslip_id',
 	'settings_id',
 	'cloned_from_id',
@@ -610,8 +612,9 @@ const addDaysIso = (day: string, n: number): string =>
 const versionOn = LAW_KIT.versionOn;
 const row = LAW_KIT.byCode;
 /** Only the read-only statutory expressions are shared; mutable law-row fixtures still read their own rows. */
+const configurationVersions = readdirSync(LAW).filter((version) => /^version_\d+$/.test(version));
 const configurations: ReadonlyMap<string, ReadonlyMap<string, Configuration>> = new Map(
-	versions.map((version): [string, ReadonlyMap<string, Configuration>] => {
+	configurationVersions.map((version): [string, ReadonlyMap<string, Configuration>] => {
 		const byCode = new Map<string, Configuration>();
 		for (const entry of load(version, 'statutory_contribution_catalog')) {
 			const code = fixtureString(entry.code);
@@ -745,6 +748,8 @@ const SC: Record<string, readonly (readonly number[])[]> = {
 	]
 };
 SC.version_3 = fixturePresent(SC.version_2);
+SC.version_5 = fixturePresent(SC.version_2);
+SC.version_6 = fixturePresent(SC.version_4);
 /** SPR graduated employer and graduated employee rates (Tables 2–3), first and second year. */
 const PR1 = [
 	[400, 500, 1500],
@@ -949,6 +954,7 @@ const engine = () => {
 		'claim_catalog_entry',
 		'leave_catalog_entry',
 		'loan_catalog_entry',
+		'loan_repayment_entry',
 		'roster_entry',
 		'holiday',
 		'payslip',
@@ -985,9 +991,67 @@ const engine = () => {
 		})
 	};
 };
+/** Current annual assessments use real captured salary runs, including months with no bonus. */
+const openingSalary = Effect.fnUntraced(function* (
+	fixture: ReturnType<typeof engine>,
+	period: string
+) {
+	const configuration = fixtureRecord(
+		row(versionOn(`${period.slice(0, 4)}-12-01`), 'statutory_contribution_catalog', 'CPF')
+			.configuration
+	);
+	if (configuration.annual_reconciliation == null) return;
+	for (let month = 1; month < Number(period.slice(5, 7)); month++) {
+		const key = `${period.slice(0, 4)}-${String(month).padStart(2, '0')}`;
+		if (
+			fixturePresent(fixture.tables.get('payroll_run')).some(
+				(run) => run.period === key && run.kind === 'REGULAR'
+			)
+		)
+			continue;
+		yield* fixture.run(key, 'REGULAR');
+	}
+});
+const annualEngine = (spr = false, exit = false) => {
+	const current = engine();
+	const contract = fixturePresent(
+		current.tables.get('employment_contract')?.find((row) => row.id === fixtureKey('k-p2'))
+	);
+	const employee = fixturePresent(
+		current.tables.get('employment_profile')?.find((row) => row.id === fixtureKey('p2'))
+	);
+	employee.date_of_birth = spr ? '1990-06-15' : '1971-06-15';
+	contract.effective_range = { from: '2026-01-01', to: exit ? '2026-11-30' : null };
+	if (exit) contract.exit_ground = 'VOLUNTARY_RESIGNATION';
+	const facts = fixtureRecord(contract.facts);
+	const original = fixturePresent(fixtureRecords(facts.contract_terms)[0]);
+	const drop = exit ? '2026-11-01' : '2026-07-01';
+	const firstEnd = exit ? '2026-10-31' : '2026-06-30';
+	const residency = spr
+		? { residency_status: 'PERMANENT_RESIDENT', residency_since: '2025-06-15' }
+		: { residency_status: 'CITIZEN' };
+	contract.facts = {
+		...facts,
+		contract_terms: [
+			{
+				...original,
+				...residency,
+				effective_range: { from: '2026-01-01', to: firstEnd },
+				base_salary: { value: 8000, currency: 'SGD' }
+			},
+			{
+				...original,
+				...residency,
+				effective_range: { from: drop, to: null },
+				base_salary: { value: 4000, currency: 'SGD' }
+			}
+		]
+	};
+	return current;
+};
 describe('SG public seed', () => {
-	it('holds four contiguous, inclusive, cloned settings versions ending open', () => {
-		assert.deepEqual(versions, ['version_1', 'version_2', 'version_3', 'version_4']);
+	it('holds contiguous, inclusive, cloned settings versions ending open', () => {
+		assert.deepEqual(versions, ['version_1', 'version_2', 'version_3', 'version_5', 'version_6']);
 		let previous: Row | undefined;
 		for (const version of versions) {
 			for (const table of TABLES)
@@ -1023,6 +1087,31 @@ describe('SG public seed', () => {
 			previous = settings;
 		}
 		assert.equal(fixtureValue3(fixturePresent(previous).effective_range).to, null);
+	});
+	it('October and the future successor apply the corrected Part 4 scope without repricing historical snapshots', () => {
+		assert.equal(versionOn('2026-09-30'), 'version_3');
+		assert.equal(versionOn('2026-10-01'), 'version_5');
+		assert.equal(versionOn('2027-01-01'), 'version_6');
+		assert.ok(fixtureString(row('version_3', 'work_catalog', 'OVERTIME').rate).includes('2250.0'));
+		assert.ok(fixtureString(row('version_4', 'work_catalog', 'OVERTIME').rate).includes('2250.0'));
+		for (const version of ['version_5', 'version_6']) {
+			const policy = fixtureRecord(row(version, 'rule_set', 'overtime_classification').rules);
+			for (const limit of fixtureRecords(policy.limits)) {
+				const applies = fixtureString(limit.applies);
+				for (const work_classification of ['MANAGERIAL', 'NON_EA'])
+					assert.equal(
+						evaluateConfigured(
+							applies,
+							fixtureContext(subject({ terms: { base_salary: 2500, work_classification } }))
+						),
+						false
+					);
+				assert.equal(
+					evaluateConfigured(applies, fixtureContext(subject({ terms: { base_salary: 2500 } }))),
+					true
+				);
+			}
+		}
 	});
 	it('every row id is unique across versions and every child names its own version', () => {
 		const seen = new Set<string>();
@@ -2626,6 +2715,8 @@ describe('SG public seed', () => {
 			]
 		};
 		FG.version_3 = fixturePresent(FG.version_2);
+		FG.version_5 = fixturePresent(FG.version_2);
+		FG.version_6 = fixturePresent(FG.version_4);
 		const exact = ([low, ee, total]: readonly number[], cents: number) => {
 			const halfUp = (n: number) => Math.floor((2 * n + 1e6) / 2e6);
 			const k = fixturePresent(ee) * 3; // the 500–750 coefficient is three times the employee rate
@@ -2724,6 +2815,7 @@ describe('SG public seed', () => {
 					const company = fixtureKey('c-sg');
 					const first = yield* world(before.tables).useRun((history) =>
 						Effect.gen(function* () {
+							if (period === '2027-02') yield* history(company, '2027-01', 'REGULAR');
 							return [
 								yield* history(company, period, 'OFF_CYCLE', [fixtureId('bonus-1')]),
 								yield* history(company, period, 'REGULAR')
@@ -2733,6 +2825,7 @@ describe('SG public seed', () => {
 					const after = engine();
 					const second = yield* world(after.tables).useRun((history) =>
 						Effect.gen(function* () {
+							if (period === '2027-02') yield* history(company, '2027-01', 'REGULAR');
 							const regular = yield* history(company, period, 'REGULAR');
 							after.bonus(period, 9000);
 							return [
@@ -2749,9 +2842,100 @@ describe('SG public seed', () => {
 						);
 					// The bonus is Additional Wage: CPF on it is charged, so the month total exceeds the salary-only month.
 					assert.ok(total(first, 'CPF') > 0);
-				}).pipe(Effect.provide(workspace({ seed: 'none' })))
+				}).pipe(Effect.provide(workspace({ seed: 'none' }))),
+			period === '2025-12' ? 15_000 : undefined
 		);
 	}
+	for (const scenario of [
+		{
+			name: 'year-end across the age55 boundary',
+			spr: false,
+			exit: false,
+			employee: 3520,
+			employer: 3020
+		},
+		{
+			name: 'year-end across the SPR first/second-year boundary',
+			spr: true,
+			exit: false,
+			employee: 1300,
+			employer: 920
+		},
+		{
+			name: 'departure before December stops OW projection',
+			spr: false,
+			exit: true,
+			employee: 3120,
+			employer: 2680
+		}
+	]) {
+		it.effect(
+			`captured AW history reconciles ${scenario.name} with no new AW`,
+			() =>
+				Effect.gen(function* () {
+					const current = annualEngine(scenario.spr, scenario.exit);
+					current.bonus('2026-01', 20000);
+					const target = (plan: PayrollPlan) =>
+						fixturePresent(
+							fixturePresent(
+								plan.payslips.find((slip) => slip.employment_id === fixtureKey('k-p2'))
+							).statutory.find((line) => line.scheme_code === 'CPF')
+						);
+					yield* world(current.tables).useRun((history) =>
+						Effect.gen(function* () {
+							const last = scenario.exit ? 11 : 12;
+							for (let month = 1; month < last; month++) {
+								const plan = yield* history(
+									fixtureKey('c-sg'),
+									`2026-${String(month).padStart(2, '0')}`,
+									'REGULAR'
+								);
+								if (month === 1) assert.equal(target(plan).parts.additional, 6000);
+							}
+							const previous = [...fixturePresent(current.tables.get('payslip'))];
+							const unchanged = JSON.stringify(previous);
+							const final = yield* history(fixtureKey('c-sg'), `2026-${last}`, 'REGULAR');
+							const cpf = target(final);
+							assert.equal(cpf.wages?.additional, 0);
+							assert.equal(cpf.employee_amount, scenario.employee);
+							assert.equal(cpf.employer_amount, scenario.employer);
+							assert.equal(
+								JSON.stringify(
+									fixturePresent(current.tables.get('payslip')).slice(0, previous.length)
+								),
+								unchanged
+							);
+							if (!scenario.exit) {
+								current.bonus('2026-12', 1000);
+								const entries = fixturePresent(current.tables.get('adhoc_catalog_entry'));
+								fixturePresent(entries.at(-1)).id = fixtureKey('bonus-2');
+								const next = target(
+									yield* history(fixtureKey('c-sg'), '2026-12', 'OFF_CYCLE', [fixtureId('bonus-2')])
+								);
+								assert.equal(next.parts.additional, 1000);
+								assert.equal(next.employee_amount, scenario.spr ? 150 : 180);
+								assert.equal(next.employer_amount, scenario.spr ? 90 : 160);
+							}
+						})
+					);
+				}).pipe(Effect.provide(workspace({ seed: 'none' }))),
+			15_000
+		);
+	}
+	it.effect('annual AW reconciliation refuses missing pre-system salary history', () =>
+		Effect.gen(function* () {
+			const current = annualEngine();
+			current.bonus('2026-10', 20000);
+			yield* world(current.tables).useRun((history) =>
+				Effect.gen(function* () {
+					const result = yield* Effect.result(history(fixtureKey('c-sg'), '2026-10', 'REGULAR'));
+					assert.ok(Result.isFailure(result));
+					assert.ok(result.failure instanceof Refusal);
+					assert.match(result.failure.message, /salary history for 2026-01 is incomplete/);
+				})
+			);
+		}).pipe(Effect.provide(workspace({ seed: 'none' })))
+	);
 	it('the SG sample records resolve: every reference names a seeded row and every catalogue code is SG’s', () => {
 		const bank = resolve(ROOT, '../../seed_bank/norbital_hr/records');
 		const entities = ['norbital', 'opssg'].filter((entity) => existsSync(resolve(bank, entity)));
@@ -2819,7 +3003,8 @@ describe('SG public seed', () => {
 			'leave_catalog_entry',
 			'claim_catalog_entry',
 			'adhoc_catalog_entry',
-			'loan_catalog_entry'
+			'loan_catalog_entry',
+			'loan_repayment_entry'
 		])
 			for (const item of all(collection))
 				assert.ok(contracts.has(String(item.employment_id)), `${collection} ${item.id}`);
@@ -2864,8 +3049,8 @@ describe('SG public seed', () => {
 						amount: 2000
 					})
 				);
-				// Overtime is derived from the clock past the planned shift: k-p4 on a daily 09:00–18:00 shift (8 hours
-				// net of its hour's break) clocks 07:00–23:00 on eleven days, 7 overtime hours each — 77 in the month.
+				// k-p4 on a daily 09:00–18:00 shift (8 hours net of its hour's break) clocks 07:00–23:00 on eleven days,
+				// with 7 planned overtime hours each, approved as 07:00–09:00 and 18:00–23:00 — 77 approved hours in the month.
 				fixturePresent(fixturePresent(fixture.tables.get('entity'))[0]).time_zone =
 					'Asia/Singapore';
 				fixturePresent(fixture.tables.get('shift_definition')).push(
@@ -2894,6 +3079,17 @@ describe('SG public seed', () => {
 							id: `ot-${day}`,
 							employment_id: 'k-p4',
 							work_date: date,
+							planned_overtime_hours: 7,
+							approved_overtime_intervals: [
+								{
+									start: new Date(`${date}T07:00:00+08:00`).toISOString(),
+									end: new Date(`${date}T09:00:00+08:00`).toISOString()
+								},
+								{
+									start: new Date(`${date}T18:00:00+08:00`).toISOString(),
+									end: new Date(`${date}T23:00:00+08:00`).toISOString()
+								}
+							],
 							worked_intervals: [
 								{
 									start: new Date(`${date}T07:00:00+08:00`).toISOString(),
@@ -2904,6 +3100,7 @@ describe('SG public seed', () => {
 						})
 					);
 				}
+				yield* openingSalary(fixture, period);
 				const plan = yield* fixture.run(period, 'REGULAR');
 				const slip = (id: string) =>
 					fixturePresent(plan.payslips.find((item) => item.employment_id === fixtureKey(id)));
@@ -2924,6 +3121,7 @@ describe('SG public seed', () => {
 				);
 				held.effective_range = { from: '2019-01-01', to: end };
 				held.exit_facts = { ir21_clearance_on: end };
+				yield* openingSalary(cleared, period);
 				assert.equal(
 					fixturePresent(
 						(yield* cleared.run(period, 'REGULAR')).payslips.find(
@@ -2933,7 +3131,8 @@ describe('SG public seed', () => {
 					null
 				);
 			}
-		})
+		}),
+		15_000
 	);
 	it('self-help group opt-outs and changed amounts, and the SDL Act s.2 exclusions, read the scheme standing', () => {
 		for (const version of versions) {
@@ -3674,7 +3873,9 @@ describe('SG public seed', () => {
 			version_1: 15,
 			version_2: 14,
 			version_3: 26,
-			version_4: 12
+			version_4: 12,
+			version_5: 26,
+			version_6: 12
 		};
 		for (const version of versions) {
 			const calendar = fixtureValue18(row(version, 'rule_set', 'public_holidays').rules);
@@ -3788,7 +3989,32 @@ describe('SG public seed', () => {
 			};
 			assert.deepEqual(price('OVERTIME', workman, ordinary), [2, (1.5 * 3000 * 12) / 2288]);
 			assert.deepEqual(price('INCENTIVE', workman, overflow), [2, (1.5 * 3000 * 12) / 2288]);
-			assert.deepEqual(price('INCENTIVE', clerk, overflow), [2, (1.5 * 2250 * 12) / 2288]);
+			const corrected = ['version_5', 'version_6'].includes(version);
+			assert.deepEqual(price('INCENTIVE', clerk, overflow), [
+				2,
+				corrected ? 1.5 * 13.6 : (1.5 * 2250 * 12) / 2288
+			]);
+			if (corrected) {
+				// MOM's current non-workman ceiling: $2,600, $13.60/hour, two hours = $40.80.
+				assert.deepEqual(price('OVERTIME', clerk, ordinary), [2, 1.5 * 13.6]);
+				assert.deepEqual(price('OVERTIME', { ...clerk, base_salary: 2500 }, ordinary), [
+					2,
+					1.5 * ((2500 * 12) / 2288)
+				]);
+				for (const work_classification of ['MANAGERIAL', 'NON_EA']) {
+					assert.equal(price('OVERTIME', { ...clerk, work_classification }, ordinary), null);
+					assert.equal(price('INCENTIVE', { ...clerk, work_classification }, overflow), null);
+					assert.equal(
+						price(
+							'REST_DAY_WORK',
+							{ ...clerk, work_classification },
+							{ days: [otDay(4, 0, { day_type: 'REST', scheduled_hours: 0 })] },
+							{ normal_daily_hours: 8, rest_day_work_requester: 'EMPLOYER' }
+						),
+						null
+					);
+				}
+			}
 			assert.ok(
 				fixtureValue12(row(version, 'work_catalog', 'INCENTIVE').counts_toward).includes(
 					'CPF.ORDINARY'
@@ -4003,15 +4229,35 @@ describe('SG public seed', () => {
 	it.effect(
 		'deduction caps: a quarter for damage (s.29), accommodation (s.30) and each instalment (s.31); no recovery of levy or pass costs; CPF missed shares within six months',
 		Effect.fnUntraced(function* () {
-			const deduct = Effect.fnUntraced(function* (code: string, amount: number, family = 'adhoc') {
+			const deduct = Effect.fnUntraced(function* (
+				code: string,
+				amount: number,
+				family: 'adhoc' | 'loan' = 'adhoc'
+			) {
 				const fixture = engine();
 				const version = 'version_2';
-				fixturePresent(fixture.tables.get(`${family}_catalog_entry`)).push(
+				const catalog_id = fixtureString(row(version, `${family}_catalog`, code).id);
+				if (family === 'loan')
+					fixturePresent(fixture.tables.get('loan_catalog_entry')).push(
+						fixtureRow({
+							id: `principal-${code}`,
+							employment_id: 'k-p3',
+							company_id: 'c-sg',
+							catalog_id,
+							advance_made_on: '2026-03-10',
+							principal_amount: amount,
+							repayment_period: { from: '2026-03-10', to: '2026-03-10' }
+						})
+					);
+				fixturePresent(
+					fixture.tables.get(family === 'loan' ? 'loan_repayment_entry' : 'adhoc_catalog_entry')
+				).push(
 					fixtureRow({
 						id: `d-${code}`,
+						...(family === 'loan' ? { loan_id: `principal-${code}` } : {}),
 						employment_id: 'k-p3',
 						company_id: 'c-sg',
-						catalog_id: fixtureString(row(version, `${family}_catalog`, code).id),
+						catalog_id,
 						payslip_id: null,
 						occurred_on: '2026-03-10',
 						amount
@@ -4672,6 +4918,7 @@ describe('SG public seed', () => {
 					);
 					leaver.effective_range = { from: '2019-01-01', to: last };
 					leaver.exit_facts = exit_facts;
+					yield* openingSalary(fixture, period);
 					const final = yield* fixture.run(period, 'REGULAR');
 					fixturePresent(fixture.tables.get('adhoc_catalog_entry')).push(
 						fixtureRow({
@@ -4699,7 +4946,8 @@ describe('SG public seed', () => {
 					[null, null],
 					period
 				);
-			})
+			}),
+			period !== '2025-12' ? 15_000 : undefined
 		);
 	}
 	for (const scenario of [
@@ -4760,12 +5008,15 @@ describe('SG public seed', () => {
 					if (scenario === `${year} no bonus`) {
 						const none = engine();
 						termOf(none, 'k-p3').facts = { pwm_role: role };
-						if (year !== '2025')
+						if (year !== '2025') {
+							yield* openingSalary(none, `${year}-11`);
 							assert.equal(
 								warned(yield* none.run(`${year}-11`, 'REGULAR')),
 								false,
 								`${year} November`
 							);
+						}
+						yield* openingSalary(none, `${year}-12`);
 						assert.ok(warned(yield* none.run(`${year}-12`, 'REGULAR')), `${year} December`);
 					}
 					// A June bonus of two weeks satisfies the year; one dollar short does not.
@@ -4778,8 +5029,10 @@ describe('SG public seed', () => {
 						termOf(paid, 'k-p3').facts = { pwm_role: role };
 						if (year !== '2025') {
 							bonusOf(paid, 'june', `${year}-06-10`, amount);
+							yield* openingSalary(paid, `${year}-06`);
 							yield* paid.run(`${year}-06`, 'OFF_CYCLE', ['june']);
 						} else bonusOf(paid, 'june', `${year}-12-05`, amount);
+						yield* openingSalary(paid, `${year}-12`);
 						assert.equal(
 							warned(yield* paid.run(`${year}-12`, 'REGULAR')),
 							expected,
@@ -4804,6 +5057,14 @@ describe('SG public seed', () => {
 					if (scenario !== name) continue;
 					const fixture = engine();
 					change(fixtureContext(termOf(fixture, 'k-p3')));
+					if (name === 'foreigner')
+						fixture.tables.set(
+							'employment_contract',
+							fixturePresent(fixture.tables.get('employment_contract')).filter(
+								(contract) => contract.id === fixtureKey('k-p3')
+							)
+						);
+					else yield* openingSalary(fixture, '2026-12');
 					assert.equal(warned(yield* fixture.run('2026-12', 'REGULAR')), false);
 				}
 				if (scenario === 'recent hire') {
@@ -4816,6 +5077,7 @@ describe('SG public seed', () => {
 					hire.effective_range = { from: '2026-03-01', to: null };
 					termOf(recent, 'k-p3').effective_range = { from: '2026-03-01', to: null };
 					termOf(recent, 'k-p3').facts = { pwm_role: 'CLEAN_OFFICE_GENERAL' };
+					yield* openingSalary(recent, '2026-12');
 					assert.equal(warned(yield* recent.run('2026-12', 'REGULAR')), false);
 				}
 				if (scenario === 'dated floors') {
@@ -4851,7 +5113,13 @@ describe('SG public seed', () => {
 					] as const)
 						assert.equal(below(day, role, salary), expected, `${day} ${role} ${salary}`);
 				}
-			})
+			}),
+			scenario.startsWith('2026 ') ||
+				scenario.startsWith('2027 ') ||
+				scenario === 'security role' ||
+				scenario === 'recent hire'
+				? 15_000
+				: undefined
 		);
 	}
 	it('CPF: wages repaid under their conditions raise the refund application, due one year on', () => {

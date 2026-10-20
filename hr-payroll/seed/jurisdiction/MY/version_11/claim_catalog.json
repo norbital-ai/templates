@@ -1,0 +1,60 @@
+[
+	{
+		"id": "95774473-b47a-554f-91c5-0f78e27ef8a5",
+		"settings_id": "75b1ec23-d990-5afc-936c-75b799522477",
+		"code": "DENTAL_CLAIM",
+		"destination": "NET",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Dental claim",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "679eb2bf-d284-5808-a441-5ce371a545f3",
+		"settings_id": "75b1ec23-d990-5afc-936c-75b799522477",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Medical claim (paid by the company direct)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"on_exceed": "BLOCK",
+					"amount": "max(0.0, 576.0 - earlier.calendar_year)"
+				}
+			}
+		],
+		"authority": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
+	},
+	{
+		"id": "f173de91-18c3-55f9-b846-488c31449225",
+		"settings_id": "75b1ec23-d990-5afc-936c-75b799522477",
+		"code": "MEDICAL_CLAIM",
+		"destination": "NET",
+		"direction": "ADD",
+		"eligibility": "",
+		"counts_toward": [],
+		"name": "Medical claim",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"on_exceed": "BLOCK",
+					"amount": "max(0.0, 576.0 - earlier.calendar_year)"
+				}
+			}
+		],
+		"authority": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
+	}
+]

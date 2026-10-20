@@ -125,6 +125,15 @@ export default {
 			}
 		}
 		for (const settings of rows['jurisdiction_settings'] ?? []) {
+			if (
+				(rows['rule_set'] ?? []).some(
+					(row) =>
+						row['settings_id'] === settings['id'] &&
+						row['family'] === 'PAYROLL' &&
+						row['code'] === 'overtime_classification'
+				)
+			)
+				continue;
 			const policy = overtimeRule(settings);
 			if (policy !== null) (rows['rule_set'] ??= []).push(policy);
 		}

@@ -4,28 +4,40 @@
 	/**
 	 * The payroll runs of one legal entity; a run opens on its own payslips. Creating a run is the whole tap: the
 	 * transform assembles its payslips from the records in force and the `behaviour_taps` automation pins every
-	 * consumed catalogue entry to its slip. Export bundles the bank file and per-employee payslip CSVs in one ZIP.
+	 * consumed catalogue entry to its slip. Selected runs have separate bank-file and salary-listing export actions.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import { downloadTextFiles, EmptyState, Table, toast } from '@norbital-ai/ui';
+	import { downloadSalaryReport } from '../../../lib/ui/payroll/salary_report.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
 	const scope = companyScope();
 	let creating = $state(false);
-	function exportPayroll(ids: Id<'payroll_run'>[]): void {
-		if (ids.length === 0) return;
+	let exporting = $state(false);
+	function exportPayroll(ids: Id<'payroll_run'>[], kind: 'BANK' | 'SALARY'): void {
+		if (ids.length === 0 || exporting) return;
+		exporting = true;
 		fork(
-			bolt.query('payroll_run.export_payroll', { ids }).pipe(
-				Effect.tap(({ documents }) =>
-					Effect.sync(() => downloadTextFiles(documents, 'payroll-exports.zip'))
-				),
+			bolt.query('payroll_run.export_payroll', { ids, kind }).pipe(
+				Effect.flatMap(({ documents, salary_reports }) => {
+					if (kind === 'SALARY') return downloadSalaryReport(salary_reports);
+					return Effect.sync(() => {
+						if (documents.length === 0) toast.info(bolt.t('app.payroll.no_bank_payments'));
+						else downloadTextFiles(documents, 'bank-files.zip');
+					});
+				}),
 				Effect.catch((failure) =>
 					Effect.sync(() =>
 						toast.error(failure instanceof Error ? failure.message : bolt.t('component.error'))
 					)
+				),
+				Effect.ensuring(
+					Effect.sync(() => {
+						exporting = false;
+					})
 				)
 			)
 		);
@@ -48,16 +60,26 @@
 				where={{ company_id: { eq: scope.id } }}
 				orderBy={{ period: 'desc' }}
 				toolbar={{
+					export: false,
 					title: bolt.t('app.payroll.runs_title'),
 					new: () => (creating = true),
 					delete: true,
 					actions: [
 						{
-							run: exportPayroll,
+							run: (ids: Id<'payroll_run'>[]) => exportPayroll(ids, 'BANK'),
 							requiresSelection: true,
-							icon: 'lucide:download',
-							name: bolt.t('app.payroll.export'),
-							description: bolt.t('app.payroll.export_description')
+							icon: 'lucide:landmark',
+							name: bolt.t('app.payroll.export_bank_file'),
+							description: bolt.t('app.payroll.export_bank_file_help'),
+							disabled: () => (exporting ? bolt.t('component.loading') : null)
+						},
+						{
+							run: (ids: Id<'payroll_run'>[]) => exportPayroll(ids, 'SALARY'),
+							requiresSelection: true,
+							icon: 'lucide:file-spreadsheet',
+							name: bolt.t('app.payroll.export_salary_listing'),
+							description: bolt.t('app.payroll.export_salary_listing_help'),
+							disabled: () => (exporting ? bolt.t('component.loading') : null)
 						}
 					]
 				}}

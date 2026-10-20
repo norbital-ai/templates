@@ -9,7 +9,7 @@
 		"cloned_from_id": "91aec78c-9674-563c-8a1c-5390d670520b",
 		"effective_range": {
 			"from": "2026-07-01",
-			"to": "2026-12-31"
+			"to": "2026-09-30"
 		},
 		"jurisdiction_code": "SG",
 		"change_summary": "1 July 2026: Retirement and Re-employment Act 1993 — minimum retirement age 63 → 64 and re-employment age 68 → 69, Employment Assistance Payment 3.5 months’ salary (minimum $6,250, maximum $14,750); with the MOM lower-wage factsheet of 3 March 2026 paras 10–11: the full-time Local Qualifying Salary rises from $1,600 to $1,800 a month and the half-count band to $900–<$1,800, and the driver PWM roles restructured. The retail PWM floors take their 1 September 2026 step as a dated step inside pwm_wages (MOM retail-sector page).",
@@ -690,7 +690,7 @@
 							"select": ["catalog_id", "activity", "days", "reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))), \"incurred_on\": event.row.effective_range.to } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-obligations",
@@ -811,7 +811,7 @@
 							"select": ["reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))), \"incurred_on\": event.day } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-tasks",

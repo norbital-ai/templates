@@ -62,7 +62,6 @@ export const ENTRY = {
 		catalog_id: true,
 		employment_id: true,
 		company_id: true,
-		reference: true,
 		occurred_on: true,
 		activity: true,
 		amount: true,
@@ -76,7 +75,6 @@ export const ENTRY = {
 		catalog_id: true,
 		employment_id: true,
 		company_id: true,
-		reference: true,
 		occurred_on: true,
 		activity: true,
 		amount: true,
@@ -101,28 +99,36 @@ export const ENTRY = {
 		payslip_id: true,
 		days: true,
 		from: true,
-		to: true,
-		incurred_on: true
+		to: true
 	},
-	loan_catalog_entry: {
+	loan_repayment_entry: {
 		id: true,
+		loan_id: true,
 		catalog_id: true,
 		employment_id: true,
 		company_id: true,
-		reference: true,
 		occurred_on: true,
 		activity: true,
 		amount: true,
-		label: true,
-		facts: true,
 		payslip_id: true
 	}
 } as const satisfies {
 	adhoc_catalog_entry: StoredSelect<'adhoc_catalog_entry'>;
 	claim_catalog_entry: StoredSelect<'claim_catalog_entry'>;
 	leave_catalog_entry: StoredSelect<'leave_catalog_entry'>;
-	loan_catalog_entry: StoredSelect<'loan_catalog_entry'>;
+	loan_repayment_entry: StoredSelect<'loan_repayment_entry'>;
 };
+
+export const LOAN = {
+	id: true,
+	catalog_id: true,
+	employment_id: true,
+	company_id: true,
+	principal_amount: true,
+	advance_purpose: true,
+	written_agreement_reference: true,
+	advance_made_on: true
+} as const satisfies StoredSelect<'loan_catalog_entry'>;
 
 export const STATUTORY = {
 	id: true,
@@ -157,6 +163,8 @@ export const ROSTER = {
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
+	planned_overtime_hours: true,
+	approved_overtime_intervals: true,
 	worked_intervals: true,
 	banked_overtime_hours: true,
 	banked_overtime_band: true,
@@ -312,6 +320,7 @@ export const TRIGGER = {
 		proration: true,
 		statutory: true,
 		adjustments: true,
+		company_payments: true,
 		status: true,
 		paid_at: true,
 		currency: true,
@@ -414,7 +423,6 @@ export const TRIGGER = {
 		amount: true,
 		half_day_start: true,
 		half_day_end: true,
-		incurred_on: true,
 		label: true,
 		facts: true,
 		catalog_id: true,
@@ -429,7 +437,6 @@ export const TRIGGER = {
 	},
 	claim_catalog_entry: {
 		id: true,
-		reference: true,
 		occurred_on: true,
 		activity: true,
 		amount: true,
@@ -450,7 +457,6 @@ export const TRIGGER = {
 	},
 	adhoc_catalog_entry: {
 		id: true,
-		reference: true,
 		occurred_on: true,
 		activity: true,
 		amount: true,
@@ -469,16 +475,15 @@ export const TRIGGER = {
 	},
 	loan_catalog_entry: {
 		id: true,
-		reference: true,
-		occurred_on: true,
-		activity: true,
-		amount: true,
-		label: true,
-		facts: true,
+		principal_amount: true,
+		repayment_period: true,
+		repayment_frequency: true,
+		advance_purpose: true,
+		written_agreement_reference: true,
+		advance_made_on: true,
 		catalog_id: true,
 		company_id: true,
 		employment_id: true,
-		payslip_id: true,
 		revision: true,
 		created_at: true,
 		created_by: true,
@@ -488,6 +493,8 @@ export const TRIGGER = {
 	roster_entry: {
 		id: true,
 		work_date: true,
+		planned_overtime_hours: true,
+		approved_overtime_intervals: true,
 		worked_intervals: true,
 		banked_overtime_hours: true,
 		banked_overtime_band: true,
