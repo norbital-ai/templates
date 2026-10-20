@@ -309,6 +309,7 @@ export default messages({
 	'models.orders.fields.payment_terms': '付款条款',
 	'models.orders.fields.delivery_terms': '交付条款',
 	'models.orders.fields.notes': '备注',
+	'models.orders.fields.supporting_documents': '相关文件',
 	'models.orders.fields.reason': '备注',
 	'models.orders.fields.sealed_at': '封存时间',
 	'models.orders.fields.sealed_by': '封存人',

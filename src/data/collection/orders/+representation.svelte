@@ -510,6 +510,7 @@
 			'payment_terms',
 			'delivery_terms',
 			'notes',
+			'supporting_documents',
 			'contract_version'
 		],
 		sources: id
@@ -569,6 +570,11 @@
 				draftContract || view.mode === 'create'
 					? ['valid_from', 'payment_terms', 'delivery_terms', 'notes']
 					: []
+		},
+		{
+			name: 'documents',
+			title: bolt.t('section.documents'),
+			fields: ['supporting_documents']
 		}
 	]}
 	tabs={id

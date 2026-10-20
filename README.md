@@ -96,6 +96,8 @@ private connectivity and source privileges require source-environment verificati
 
 - **base** — `seed/*.json`: synthetic commercial settings, document templates, parties, products and
   warehouses. No credentials or live financial facts ship with the starter.
+- **sample** — optional native demo rows supplied separately at build time. They extend the public
+  defaults by identity; no private sample rows are included in the public starter.
 
 ## Checks
 

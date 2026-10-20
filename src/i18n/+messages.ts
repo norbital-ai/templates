@@ -321,6 +321,7 @@ export default messages({
 	'models.orders.fields.payment_terms': 'Payment terms',
 	'models.orders.fields.delivery_terms': 'Delivery terms',
 	'models.orders.fields.notes': 'Remarks',
+	'models.orders.fields.supporting_documents': 'Supporting documents',
 	'models.orders.fields.reason': 'Remarks',
 	'models.orders.fields.sealed_at': 'Sealed at',
 	'models.orders.fields.sealed_by': 'Sealed by',

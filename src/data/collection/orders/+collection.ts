@@ -42,7 +42,8 @@ const terms = [
 	'valid_until',
 	'payment_terms',
 	'delivery_terms',
-	'notes'
+	'notes',
+	'supporting_documents'
 ] as const;
 const c = collection('orders', {
 	read: { fields: 'all' },
