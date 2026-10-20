@@ -1854,5 +1854,80 @@
 			"message": "Overtime recorded on a day without the worker’s consent to it (勞動基準法 §32(1)): record the day’s consent.",
 			"description": "勞動基準法 §32(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32): the worker’s agreement to work the day’s overtime — owner ruling: recorded per day (overtime_consented_at), never as a company or contract fact. Distinct from the collective union / labour-management conference approval that unlocks the 54-hour month (company facts overtime_extension_approval_on), which the payslip caps read."
 		}
+	},
+	{
+		"id": "a785ff1d-dcbc-523b-85e4-9d824d80d682",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "COURT_GARNISHMENT",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "FOOD_LODGING",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "ADHOC",
+					"code": "OCC_INJURY_OFFSET",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "COMP_TIME_PAYOUT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "MEAL_TAXABLE_EXCESS",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "WORK",
+					"code": "OVERTIME_TAXABLE_EXCESS",
+					"payment": "INFORMATION"
+				}
+			]
+		}
 	}
 ]

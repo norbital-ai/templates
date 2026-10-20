@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import { Effect } from 'effect';
+import { PlainDate } from '@norbital-ai/std/date';
+import { Decimal } from '@norbital-ai/std/decimal';
+import { actBehaviourWrites, effectWrites } from '../src/lib/payroll_engine/behaviours.ts';
 import { runBehaviours, versionLookup } from '../src/lib/payroll_engine/behaviour_runner.ts';
 import {
 	isJsonObject,
@@ -13,7 +16,7 @@ import { fixtureId, nativeId } from './fixture_values.ts';
 import { lineage, world, type Row } from './jurisdiction_kit.ts';
 
 const LAW = lineage('SG');
-const settings = LAW.settingsOf('version_4');
+const settings = LAW.settingsOf('version_2');
 const COMPANY = nativeId('entity', fixtureId('c1'));
 const EMPLOYMENT = nativeId('employment_contract', fixtureId('k1'));
 const PERSON = nativeId('employment_profile', fixtureId('p1'));
@@ -50,7 +53,7 @@ const reset = () => {
 	tables.set('employment_profile', [{ id: PERSON, name: 'Test employee', facts: {} }]);
 	tables.set('leave_catalog', [
 		{
-			...LAW.byCode('version_4', 'leave_catalog', 'ANNUAL_LEAVE'),
+			...LAW.byCode('version_2', 'leave_catalog', 'ANNUAL_LEAVE'),
 			id: fixtureId('al'),
 			settings_id: settings['id'],
 			unit: 'DAY',
@@ -94,7 +97,6 @@ const snapshot = Effect.fnUntraced(function* (read: CallerRead) {
 				amount: true,
 				half_day_start: true,
 				half_day_end: true,
-				incurred_on: true,
 				label: true,
 				facts: true,
 				company_id: true,
@@ -352,6 +354,62 @@ it.effect(
 				[fixtureId('t1'), 'DISMISSED', `RETURN:${COMPANY}:2026-03:withdrawn:2026-03-01`],
 				[fixtureId('t2'), 'DONE', `FILED:${COMPANY}:2026-03`]
 			]
+		);
+	})
+);
+
+it.effect(
+	'old sealed leave effects omit only the retired cost date while manual writes still reject it',
+	Effect.fnUntraced(function* () {
+		reset();
+		const rule = {
+			id: 'sealed-legacy-leave-encashment',
+			events: ['updated'],
+			effect: JSON.stringify({
+				collection: 'leave_catalog_entry',
+				operation: 'create',
+				data: {
+					catalog_id: fixtureId('al'),
+					employment_id: EMPLOYMENT,
+					occurred_on: '2026-03-31',
+					activity: 'ENCASHMENT',
+					days: 1,
+					reference: 'legacy-encashment',
+					incurred_on: '2026-03-31'
+				}
+			})
+		};
+		const writes = effectWrites(rule, {});
+		assert.equal(Object.hasOwn(writes[0]?.data ?? {}, 'incurred_on'), false);
+		assert.equal(writes[0]?.data['reference'], 'legacy-encashment');
+		assert.equal(
+			effectWrites(
+				{
+					...rule,
+					effect:
+						'{"collection":"leave_catalog_entry","operation":"create","data":{"unrecognised":true}}'
+				},
+				{}
+			)[0]?.data['unrecognised'],
+			true
+		);
+		yield* world(tables).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* actBehaviourWrites(t.bodyActs(t.admin), writes);
+				assert.equal((yield* t.storedRead('leave_catalog_entry', { all: true })).rows.length, 1);
+				const manual = {
+					catalog_id: nativeId('leave_catalog', fixtureId('al')),
+					employment_id: EMPLOYMENT,
+					occurred_on: PlainDate('2026-03-31'),
+					activity: 'ENCASHMENT' as const,
+					days: Decimal.of('1'),
+					incurred_on: PlainDate('2026-03-31')
+				};
+				const refused = yield* Effect.flip(t.as(t.admin).act('leave_catalog_entry.create', manual));
+				assert.match(refused.message, /incurred_on/);
+				assert.equal((yield* t.storedRead('leave_catalog_entry', { all: true })).rows.length, 1);
+			})
 		);
 	})
 );

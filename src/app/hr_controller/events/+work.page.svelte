@@ -88,31 +88,33 @@
 	{:else if pay.window != null}
 		{@const companyId = scope.id}
 		{@const window = pay.window}
-		<CustomView
-			collection="roster_entry"
-			of={people}
-			key="work"
-			fields={[
-				{ field: 'number', label: t('component.employee_number') },
-				{ field: 'name', label: t('component.name') }
-			]}
-			toolbar={{
-				title: t('app.scheduling.board_title'),
-				controls: workTools,
-				new: false,
-				context: { company_id: companyId, from: window.start, to: window.end }
-			}}
-		>
-			{#snippet children(shown)}
-				<MonthBoard
-					people={shown}
-					{companyId}
-					from={window.start}
-					to={window.end}
-					{timeZone}
-					{today}
-				/>
-			{/snippet}
-		</CustomView>
+		{#key `${companyId}:${window.start}:${window.end}`}
+			<CustomView
+				collection="roster_entry"
+				of={people}
+				key="work"
+				fields={[
+					{ field: 'number', label: t('component.employee_number') },
+					{ field: 'name', label: t('component.name') }
+				]}
+				toolbar={{
+					title: t('app.scheduling.board_title'),
+					controls: workTools,
+					new: false,
+					context: { company_id: companyId, from: window.start, to: window.end }
+				}}
+			>
+				{#snippet children(shown)}
+					<MonthBoard
+						people={shown}
+						{companyId}
+						from={window.start}
+						to={window.end}
+						{timeZone}
+						{today}
+					/>
+				{/snippet}
+			</CustomView>
+		{/key}
 	{/if}
 </AppShell>

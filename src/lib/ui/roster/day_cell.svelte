@@ -7,23 +7,54 @@
 <script lang="ts">
 	import { t } from '../i18n/t.js';
 	import { cn, Icon } from '@norbital-ai/ui';
-	import { Imposter, Stack } from '@norbital-ai/ui/layout';
-	import { clockWindow, hoursLabel, workedMinutes, type Day } from './month_board.js';
+	import { Bound, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { hoursLabel, isAbsent, workedMinutes, type Day } from './month_board.js';
 
-	let { day, timeZone, dense = false }: { day: Day; timeZone: string; dense?: boolean } = $props();
+	let { day, dense = false }: { day: Day; dense?: boolean } = $props();
 
 	const minutes = $derived(day.intervals == null ? null : workedMinutes(day.intervals));
-	const absent = $derived(day.intervals?.length === 0);
+	const absent = $derived(isAbsent(day));
 	const open = $derived(day.intervals != null && day.intervals.length > 0 && minutes == null);
-	const plan = $derived(
-		day.leave != null
-			? `${day.leave.code || t('roster.leave')}${day.leave.half ? ' ½' : ''}`
-			: (day.shift ?? (day.holiday != null ? t('roster.public_holiday_mark') : '—'))
+	const projected = $derived(
+		day.projectedShift ??
+			(day.leave != null
+				? `${day.leave.code || t('roster.leave')}${day.leave.half ? ' ½' : ''}`
+				: day.holiday != null
+					? t('roster.public_holiday_mark')
+					: '—')
 	);
-	const clock = $derived(
-		day.intervals == null || day.intervals.length === 0 ? '' : clockWindow(day.intervals, timeZone)
+	const plannedExtra = $derived(
+		day.plannedOvertime != null && day.plannedOvertime > 0
+			? `+${hoursLabel(day.plannedOvertime * 60)}`
+			: ''
 	);
-	const extra = $derived(day.overtime != null && day.overtime > 0 ? `+${day.overtime}h` : '');
+	const percent = $derived(
+		day.completion?.percent == null ? null : Math.floor(day.completion.percent)
+	);
+	const progressName = $derived(
+		t(day.shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')
+	);
+	const progressText = $derived(
+		day.completion?.percent == null
+			? ''
+			: `${progressName}: ${t('roster.completion_details', {
+					percent: percent ?? 0,
+					credited: hoursLabel(day.completion.credited_hours * 60),
+					target: hoursLabel(day.completion.target_hours * 60)
+				})}`
+	);
+	const credits = $derived.by(() => {
+		const completion = day.completion;
+		if (completion == null || completion.target_hours <= 0) return [];
+		return completion.segments.flatMap((segment) =>
+			segment.credited_intervals.map((interval) => ({
+				left:
+					(100 * (segment.offset_hours + (interval.start - segment.start) / 3_600_000)) /
+					completion.target_hours,
+				width: (100 * (interval.end - interval.start)) / 3_600_000 / completion.target_hours
+			}))
+		);
+	});
 </script>
 
 <Stack
@@ -41,26 +72,76 @@
 	)}
 >
 	{#if day.employed}
-		<span class={cn('block truncate text-xs leading-4', !dense && 'font-medium')}>{plan}</span>
+		<Inline
+			data-work-layer="projected"
+			gap="xs"
+			justify={dense ? 'center' : 'start'}
+			class="min-w-0 text-micro leading-3 text-muted-foreground"
+		>
+			<span class="truncate">{projected}</span>
+			{#if day.projectedShift != null && day.leave != null}
+				<span class="truncate"
+					>{day.leave.code || t('roster.leave')}{day.leave.half ? ' ½' : ''}</span
+				>
+			{/if}
+			{#if day.holiday != null && (day.projectedShift != null || day.leave != null)}
+				<span class="shrink-0 text-tiny">{t('roster.public_holiday_mark')}</span>
+			{/if}
+		</Inline>
 		{#if !dense && day.holiday != null}
 			<span class="block truncate text-micro leading-3 text-muted-foreground">{day.holiday}</span>
 		{/if}
-		<span class="block truncate text-micro leading-3 text-muted-foreground">
-			{absent ? t('roster.absent') : clock}
-		</span>
-		<span
-			class={cn(
-				'block truncate text-micro leading-3',
-				open ? 'text-warning' : 'text-muted-foreground',
-				extra !== '' && 'font-medium text-brand'
-			)}
+		<Inline
+			data-work-layer="planned"
+			gap="xs"
+			justify={dense ? 'center' : 'start'}
+			class="min-w-0 text-xs leading-4"
 		>
-			{open
-				? t('roster.open_punch')
-				: minutes != null && minutes > 0
-					? hoursLabel(minutes)
-					: ''}{extra === '' ? '' : ` ${extra}`}
-		</span>
+			<span class="truncate">{day.shift ?? '—'}</span>
+			{#if plannedExtra !== ''}<span class="shrink-0 text-micro">{plannedExtra}</span>{/if}
+		</Inline>
+		<Inline
+			data-work-layer="actual"
+			gap="xs"
+			justify={dense ? 'center' : 'start'}
+			class="min-w-0 text-micro leading-3"
+		>
+			{#if percent != null}
+				<Bound grow>
+					<svg
+						class="h-2 w-full"
+						viewBox="0 0 100 8"
+						preserveAspectRatio="none"
+						role="progressbar"
+						aria-label={progressName}
+						aria-valuemin={0}
+						aria-valuemax={100}
+						aria-valuenow={percent}
+						aria-valuetext={progressText}
+					>
+						<rect x={0} y={0} width={100} height={8} rx={3} class="fill-secondary" />
+						{#each credits as credit}
+							<rect
+								data-credit-interval
+								x={credit.left}
+								y={0}
+								width={credit.width}
+								height={8}
+								class="fill-primary"
+							/>
+						{/each}
+					</svg>
+				</Bound>
+				<span class="shrink-0 text-tiny tabular-nums" title={progressText}>{percent}%</span>
+			{:else}
+				<span
+					class="text-muted-foreground"
+					aria-label={open ? t('roster.open_punch') : t('roster.progress_unknown')}
+				>
+					{open ? t('roster.progress_open') : '—'}
+				</span>
+			{/if}
+		</Inline>
 		{#if day.locked}
 			<Imposter as="span" placement="top-end" layer="under" aria-hidden="true">
 				<Icon name="lucide:lock-keyhole" class="size-3 text-brand" />

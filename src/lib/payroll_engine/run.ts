@@ -1,4 +1,5 @@
 import { Effect, Result, Schema } from 'effect';
+import { loanRuleFacts } from '../loan_values.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { type SuspensionKind } from './suspension_kinds.js';
 import { addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
@@ -30,9 +31,9 @@ import {
 	ROLLING_MONTHS,
 	hoursStart
 } from './payslip/context.js';
-import { CONTRACT, PROFILE, ENTRY, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
+import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
 import { CYCLES, payrollWindow } from './frequency.js';
-import { admitPayrollRun, inForce, validationsOf } from './admit.js';
+import { admitPayrollRun, inForce, validationsOf, reservedPinsFrom } from './admit.js';
 import { buildPayslip } from './payslip/lines.js';
 export const buildPayrollRun = (
 	request: PayrollRunRequest,
@@ -45,6 +46,7 @@ export const buildPayrollRun = (
 			settlement,
 			salaryRun,
 			sources,
+			reservedPins,
 			runs,
 			lineage,
 			governedRows,
@@ -179,6 +181,20 @@ export const buildPayrollRun = (
 		// One read: the entity's calendar and every contract in force with its person and entries. Each
 		// entry carries its class's code (`catalog`), whatever version holds that class.
 		const got = yield* hostRead({
+			// A committed run's ledger reserves its rows before the behaviour attaches their backlinks: the recent
+			// runs' pins ride this read instead of a lookup per thousand candidates.
+			// ponytail: runs older than two months are assumed backlinked; widen the window if that behaviour lags.
+			settlements: {
+				collection: 'payroll_run',
+				where: {
+					company_id: { eq: request.company_id },
+					salary_to: {
+						gte: PlainDate(String(addMonths(String(monthOf(window.salary_from).from), -2)))
+					}
+				},
+				select: { pins: true },
+				all: true
+			},
 			contracts: {
 				collection: 'employment_contract',
 				where: { company_id: { eq: request.company_id } },
@@ -234,9 +250,15 @@ export const buildPayrollRun = (
 				all: true
 			},
 			loan: {
-				collection: 'loan_catalog_entry',
+				collection: 'loan_repayment_entry',
 				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: ENTRY.loan_catalog_entry,
+				select: ENTRY.loan_repayment_entry,
+				all: true
+			},
+			loan_principals: {
+				collection: 'loan_catalog_entry',
+				where: { id: { in: { member: 'loan', field: 'loan_id' } } },
+				select: LOAN,
 				all: true
 			},
 			loan_codes: {
@@ -298,6 +320,39 @@ export const buildPayrollRun = (
 				: row
 		);
 		const contracts = got.contracts.rows;
+		const repayments: EntryRow[] = [];
+		for (const row of got.loan.rows) {
+			const parent = got.loan_principals.rows.find((loan) => loan.id === row.loan_id);
+			if (
+				parent == null ||
+				parent.company_id !== row.company_id ||
+				parent.employment_id !== row.employment_id
+			)
+				return yield* Effect.fail(
+					new Refusal({ message: 'A repayment must belong to its employee’s actual loan.' })
+				);
+			const principal = yield* Effect.fromResult(
+				fieldValue(parent.principal_amount, 'loan_catalog_entry.principal_amount')
+			);
+			repayments.push({
+				...row,
+				facts: loanRuleFacts({
+					principal_amount: principal,
+					advance_purpose: yield* Effect.fromResult(
+						fieldValue(parent.advance_purpose, 'loan_catalog_entry.advance_purpose')
+					),
+					written_agreement_reference: yield* Effect.fromResult(
+						fieldValue(
+							parent.written_agreement_reference,
+							'loan_catalog_entry.written_agreement_reference'
+						)
+					),
+					advance_made_on: yield* Effect.fromResult(
+						fieldValue(parent.advance_made_on, 'loan_catalog_entry.advance_made_on')
+					)
+				})
+			});
+		}
 		const contractIds = contracts.map((contract) => contract.id);
 		const byEmployee = new Map<string, EmployeeRow>(
 			got.people.rows.map((person) => [person.id, person])
@@ -317,7 +372,7 @@ export const buildPayrollRun = (
 					? coded(got.claim.rows, got.claim_codes.rows)
 					: collection === 'leave_catalog_entry'
 						? coded(got.leave.rows, got.leave_codes.rows)
-						: coded(got.loan.rows, got.loan_codes.rows);
+						: coded(repayments, got.loan_codes.rows);
 		type Coded = { readonly catalog: { readonly id: string; readonly code: string } | null };
 		// A contract allowance names the class of the version it was captured under: one read maps every such id
 		// to its code for the whole run (a read per slip would spend the transform's crossings).
@@ -378,7 +433,8 @@ export const buildPayrollRun = (
 					.filter(
 						(row) =>
 							// An off-cycle slip prices no leave but reads the period's rows, settled or not.
-							!(salaryRun || !leave) || row.payslip_id == null
+							!(salaryRun || !leave) ||
+							(row.payslip_id == null && !reservedPins.has(`${family.collection}:${row.id}`))
 					)
 					.map(strip)
 			);
@@ -405,9 +461,27 @@ export const buildPayrollRun = (
 			1000,
 			ROSTER
 		);
+		if (salaryRun) {
+			for (const key of yield* Effect.fromResult(
+				reservedPinsFrom(got.settlements.rows, request.run_id)
+			))
+				reservedPins.add(key);
+			for (const family of FAMILIES)
+				entries.set(
+					family.collection,
+					(entries.get(family.collection) ?? []).filter(
+						(row) => !reservedPins.has(`${family.collection}:${row.id}`)
+					)
+				);
+		}
 		const roster = !salaryRun
 			? []
-			: rosterRead.filter((row) => row.payslip_id == null && attended(row.work_date));
+			: rosterRead.filter(
+					(row) =>
+						row.payslip_id == null &&
+						!reservedPins.has(`roster_entry:${row.id}`) &&
+						attended(row.work_date)
+				);
 		const hoursRoster = rosterRead.filter((row) => row.work_date <= monthEnd);
 		const holidayRead = got.holidays.rows;
 		const holidays = !salaryRun ? [] : holidayRead.filter((holiday) => attended(holiday.date));
@@ -450,6 +524,16 @@ export const buildPayrollRun = (
 			if (held == null || day < held) eventStart.set(key, day);
 		}
 		const runKind = new Map(runs.map((run) => [run.id, run.kind ?? '']));
+		const statutoryConfigurations = new Map(
+			runs.map(
+				(run) =>
+					[
+						run.id,
+						lineage.find((held) => held.id === run.settings_id)?.statutory_contribution_catalog ??
+							[]
+					] as const
+			)
+		);
 		// each salary run's settlement window: a paid period an exit since moved or undone is repriced over its days
 		const runWindows = new Map(
 			runs.flatMap((run) =>
@@ -537,6 +621,7 @@ export const buildPayrollRun = (
 				history: {
 					payslips: history.filter((slip) => slip.employment_id === contract.id),
 					runKind,
+					statutoryConfigurations,
 					runWindows
 				}
 			});

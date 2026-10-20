@@ -6,6 +6,7 @@ export default relationship({
 	'employment_profile.user_id': { to: 'sys_user', optional: true, onDelete: 'setNull' },
 	'employment_contract.employee_id': { to: 'employment_profile', inverse: 'employment_contract' },
 	'employment_contract.company_id': { to: 'entity', inverse: 'employment_contract' },
+	'entity.payment_bank_id': { to: 'bank', inverse: 'entities', optional: true },
 	/** The WhatsApp number the entity's payroll hotline answers on (`payroll_hotline` scopes its turns to it). */
 	'entity.hotline': {
 		to: 'sys_integration',
@@ -98,9 +99,20 @@ export default relationship({
 		inverse: 'loan_catalog_entry',
 		optional: true
 	},
-	'loan_catalog_entry.payslip_id': {
+	'loan_repayment_entry.loan_id': {
+		to: 'loan_catalog_entry',
+		inverse: 'repayments',
+		owned: true
+	},
+	'loan_repayment_entry.catalog_id': { to: 'loan_catalog', inverse: 'repayments' },
+	'loan_repayment_entry.company_id': { to: 'entity', inverse: 'loan_repayment_entry' },
+	'loan_repayment_entry.employment_id': {
+		to: 'employment_contract',
+		inverse: 'loan_repayment_entry'
+	},
+	'loan_repayment_entry.payslip_id': {
 		to: 'payslip',
-		inverse: 'loan_catalog_entry',
+		inverse: 'loan_repayment_entry',
 		optional: true,
 		onDelete: 'setNull'
 	},

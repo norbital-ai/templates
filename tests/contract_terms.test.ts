@@ -4,6 +4,7 @@ import { describe, it } from '@effect/vitest';
 import { PlainDate } from '@norbital-ai/std/date';
 import {
 	changeTermsSet,
+	allowancesOf,
 	hireContractSet,
 	refusePaidTermsChange,
 	refuseTermsOverlap,
@@ -39,6 +40,36 @@ const hire = (overrides: object = {}) => {
 };
 
 describe('contract terms', () => {
+	it('keeps an allowance identified by its catalogue item when changing terms', () => {
+		const stored = termsFromFacts({
+			contract_terms: [
+				{
+					...values,
+					effective_range: { from: '2020-01-01', to: null },
+					allowances: [{ catalogue_id: 'catalogue-1', amount: { value: 200, currency: 'SGD' } }]
+				}
+			]
+		});
+		assert.equal(refuseTermsOverlap(stored), null);
+		const changed = changeTermsSet(stored, {
+			start: '2026-04-01',
+			values,
+			allowances: allowancesOf(stored[0]!)
+		});
+		assert.ok(typeof changed !== 'string');
+		assert.deepEqual(changed.facts.contract_terms.at(-1)?.allowances, [
+			{ catalogue_id: 'catalogue-1', amount: { value: 200, currency: 'SGD' } }
+		]);
+		assert.equal(
+			refuseTermsOverlap(
+				termsFromFacts({
+					contract_terms: [{ ...stored[0], allowances: [{ amount: { value: 200 } }] }]
+				})
+			),
+			'Each allowance needs a catalogue code or item.'
+		);
+	});
+
 	it('L-TPL-hr-payroll-032 writes the first open term onto the new contract', () => {
 		const set = hire();
 		assert.equal(set.employee_number, 'E-12');

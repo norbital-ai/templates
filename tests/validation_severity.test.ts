@@ -154,6 +154,7 @@ const tablesWith = (severity: unknown, rules: readonly Row[]): Tables => {
 			'claim_catalog_entry',
 			'leave_catalog_entry',
 			'loan_catalog_entry',
+			'loan_repayment_entry',
 			'roster_entry',
 			'holiday',
 			'payslip',

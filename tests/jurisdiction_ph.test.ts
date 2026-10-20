@@ -954,6 +954,7 @@ const harness = (pay_frequency = 'MONTHLY') => {
 			'claim_catalog_entry',
 			'leave_catalog_entry',
 			'loan_catalog_entry',
+			'loan_repayment_entry',
 			'roster_entry',
 			'holiday',
 			'payslip',
@@ -3872,6 +3873,102 @@ describe('PH: the whole tracker, row by row', () => {
 			assert.equal(floorOn(small, '2027-01-20'), 18727.83); // ₱718, not ₱743
 		}
 	});
+	it('PH-SETTINGS: Rosario Cavite resolves its historical floor across the January regime change', () => {
+		for (const [version, on] of [
+			[fixturePresent(versions[0]), '2026-01-05'],
+			[latest, '2026-01-06']
+		] as const) {
+			const table = fixtureValue11(payrollRules(version).minimum_wage);
+			const entries = fixturePresent(table.by_region['IV-A-ROSARIO-CAVITE']);
+			assert.equal(
+				fixturePresent(entries.find((entry) => fixtureString(entry.from) <= on)).monthly,
+				15650
+			);
+			const expression = fixtureString(
+				fixturePresent(scheme('WTAX', version).configuration.person).mwe
+			);
+			const mwe = (base_salary: number) =>
+				evaluateConfigured(
+					expression,
+					fixtureContext({
+						...SUBJECT,
+						terms: {
+							...terms,
+							base_salary,
+							facts: { rate_basis: 'DAILY', wage_region: 'IV-A-ROSARIO-CAVITE' }
+						},
+						rules: payrollRules(version),
+						period: { to: on }
+					})
+				);
+			assert.equal(mwe(600), true, `${version} ${on} at the predecessor floor`);
+			assert.equal(mwe(601), false, `${version} ${on} above the predecessor floor`);
+		}
+	});
+	it('PH-SETTINGS: CALABARZON private and domestic floors change on 26 October, never a day early', () => {
+		const table = fixtureValue11(payrollRules(latest).minimum_wage);
+		for (const [key, before, after] of [
+			['IV-A', 15650, 16823.75],
+			['IV-A-ROSARIO-CAVITE', 15650, 16823.75],
+			['IV-A-1ST', 14345.83, 15389.17],
+			['IV-A-RECLASSIFIED-1ST', 14345.83, 15389.17],
+			['IV-A-2ND-5TH', 13693.75, 14345.83],
+			['IV-A-AGRI-COMPONENT-1ST', 13693.75, 14345.83],
+			['IV-A-AGRI-RECLASSIFIED-1ST', 13693.75, 14345.83],
+			['IV-A-AGRI-2ND-5TH', 13250.33, 14345.83],
+			['IV-A-RETAIL-SMALL', 13250.33, 14345.83]
+		] as const) {
+			const entries = fixturePresent(table.by_region[key]);
+			assert.equal(
+				fixturePresent(entries.find((entry) => fixtureString(entry.from) <= '2026-10-25')).monthly,
+				before,
+				key
+			);
+			assert.equal(
+				fixturePresent(entries.find((entry) => fixtureString(entry.from) <= '2026-10-26')).monthly,
+				after,
+				key
+			);
+		}
+		const domestic = fixturePresent(fixturePresent(table.by_employment_type.DOMESTIC)['IV-A']);
+		assert.equal(
+			fixturePresent(domestic.find((entry) => fixtureString(entry.from) <= '2026-10-25')).monthly,
+			6750
+		);
+		assert.equal(
+			fixturePresent(domestic.find((entry) => fixtureString(entry.from) <= '2026-10-26')).monthly,
+			7500
+		);
+		const expression = fixtureString(
+			fixtureRecord(
+				fixturePresent(
+					load(latest, 'rule_set').find((entry) => entry.code === 'MINIMUM_WAGE_FLOOR_CONTRACT')
+				).rules
+			).when
+		);
+		const below = (on: string, base_salary: number, domestic = false) =>
+			evaluateConfigured(
+				expression,
+				fixtureContext({
+					...SUBJECT,
+					company: { ...company, region: 'IV-A' },
+					terms: {
+						...terms,
+						base_salary,
+						employment_type: domestic ? 'DOMESTIC' : 'PERMANENT',
+						facts: domestic ? {} : { rate_basis: 'DAILY' }
+					},
+					rules: payrollRules(latest),
+					day: on
+				})
+			);
+		assert.equal(below('2026-10-25', 600), false);
+		assert.equal(below('2026-10-26', 600), true);
+		assert.equal(below('2026-10-26', 645), false);
+		assert.equal(below('2026-10-25', 7000, true), false);
+		assert.equal(below('2026-10-26', 7000, true), true);
+		assert.equal(below('2026-10-26', 7500, true), false);
+	});
 	it('PH-SETTINGS: RXIII-DW-06 sets one ₱6,500 kasambahay floor for cities and other municipalities alike', () => {
 		for (const version of versions) {
 			const domestic = fixtureValue13(payrollRules(version).minimum_wage).by_employment_type
@@ -5440,7 +5537,7 @@ describe('opsph sample records', {}, () => {
 		for (const [file, table] of [
 			['leave_catalog_entry', 'leave_catalog'],
 			['adhoc_catalog_entry', 'adhoc_catalog'],
-			['loan_catalog_entry', 'loan_catalog']
+			['loan_repayment_entry', 'loan_catalog']
 		] as const)
 			for (const row of sample(file)) {
 				assert.ok(contracts.has(fixtureString(row.employment_id)), `${file} ${row.id}`);
@@ -5452,6 +5549,18 @@ describe('opsph sample records', {}, () => {
 				for (const derived of ['payslip_id', 'pay', 'statutory'])
 					assert.equal(derived in row, false);
 			}
+		const loans = new Map(sample('loan_catalog_entry').map((row) => [row.id, row]));
+		for (const loan of loans.values()) {
+			assert.ok(contracts.has(fixtureString(loan.employment_id)));
+			assert.equal(loan.principal_amount, undefined);
+			assert.equal(loan.repayment_period, undefined);
+			assert.equal('amount' in loan || 'payslip_id' in loan, false);
+		}
+		for (const repayment of sample('loan_repayment_entry')) {
+			const loan = fixturePresent(loans.get(repayment.loan_id));
+			for (const field of ['catalog_id', 'company_id', 'employment_id'])
+				assert.equal(repayment[field], loan[field]);
+		}
 		const counts = Object.fromEntries(
 			[
 				'entity',
@@ -5465,21 +5574,23 @@ describe('opsph sample records', {}, () => {
 				'leave_catalog_entry',
 				'adhoc_catalog_entry',
 				'loan_catalog_entry',
+				'loan_repayment_entry',
 				'sys_user'
 			].map((name): [string, number] => [name, sample(name).length])
 		);
 		assert.deepEqual(counts, {
 			entity: 1,
-			shift_definition: 4,
+			shift_definition: 5,
 			shift_pattern: 3,
 			holiday: 30,
 			employment_profile: 20,
 			employment_contract: 20,
 			roster: 39,
 			roster_entry: 689,
-			leave_catalog_entry: 98,
-			adhoc_catalog_entry: 3,
-			loan_catalog_entry: 13,
+			leave_catalog_entry: 10,
+			adhoc_catalog_entry: 19,
+			loan_catalog_entry: 8,
+			loan_repayment_entry: 13,
 			sys_user: 17
 		});
 	});
@@ -5505,7 +5616,8 @@ describe('opsph sample records', {}, () => {
 				'roster_entry',
 				'leave_catalog_entry',
 				'adhoc_catalog_entry',
-				'loan_catalog_entry'
+				'loan_catalog_entry',
+				'loan_repayment_entry'
 			])
 				tables.set(name, fixtureRows(sample(name).map((row) => ({ ...row }))));
 			for (const name of ['claim_catalog_entry', 'payslip', 'payroll_run'])

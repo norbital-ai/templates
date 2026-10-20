@@ -62,6 +62,7 @@ const fixtureLinks = new Set([
 	'employee_id',
 	'company_id',
 	'catalog_id',
+	'loan_id',
 	'employment_id',
 	'statutory_contribution_id',
 	'shift_pattern_id',
@@ -997,6 +998,7 @@ const tw = () => {
 			'claim_catalog_entry',
 			'leave_catalog_entry',
 			'loan_catalog_entry',
+			'loan_repayment_entry',
 			'roster_entry',
 			'holiday',
 			'payslip',
@@ -3006,7 +3008,8 @@ describe('TW public lineage', () => {
 				catalog: string,
 				code: string,
 				id: string,
-				amount: number
+				amount: number,
+				extra: Row = {}
 			) => {
 				const row = fixturePresent(file('version_2', catalog).find((item) => item.code === code));
 				fixturePresent(tables.get(table)).push(
@@ -3018,12 +3021,27 @@ describe('TW public lineage', () => {
 						payslip_id: null,
 						occurred_on: '2026-03-20',
 						amount,
-						activity: 'AWARD'
+						activity: 'AWARD',
+						...extra
 					})
 				);
 			};
 			entryOf('claim_catalog_entry', 'claim_catalog', 'BUSINESS_EXPENSE_REIMBURSEMENT', 'c1', 5000);
-			entryOf('loan_catalog_entry', 'loan_catalog', 'SALARY_ADVANCE', 'n1', 3000);
+			fixturePresent(tables.get('loan_catalog_entry')).push(
+				fixtureRow({
+					id: 'n1-loan',
+					catalog_id: fixturePresent(
+						file('version_2', 'loan_catalog').find((item) => item.code === 'SALARY_ADVANCE')
+					).id,
+					employment_id: 'k-p1',
+					company_id: fixturePresent(fixturePresent(tables.get('entity'))[0]).id,
+					principal_amount: 3000,
+					repayment_period: { from: '2026-03-20', to: '2026-03-20' }
+				})
+			);
+			entryOf('loan_repayment_entry', 'loan_catalog', 'SALARY_ADVANCE', 'n1', 3000, {
+				loan_id: 'n1-loan'
+			});
 			entryOf('adhoc_catalog_entry', 'adhoc_catalog', 'COURT_GARNISHMENT', 'g1', 1000);
 			entryOf('adhoc_catalog_entry', 'adhoc_catalog', 'OCC_INJURY_OFFSET', 'o1', 500);
 			const plan = yield* run('2026-03', 'REGULAR');

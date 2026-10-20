@@ -40,7 +40,7 @@ import {
 	serviceMonthsAt
 } from '../leave.js';
 import {
-	overtimeHours,
+	completedHalfHours,
 	type PlannedShift,
 	plannedShift,
 	plannedShiftId
@@ -122,7 +122,7 @@ export type PinnedCollection =
 	| 'adhoc_catalog_entry'
 	| 'claim_catalog_entry'
 	| 'leave_catalog_entry'
-	| 'loan_catalog_entry'
+	| 'loan_repayment_entry'
 	| 'roster_entry';
 export type PayslipLine = {
 	readonly family: string;
@@ -147,6 +147,13 @@ export type PayslipPlan = {
 		rate?: number;
 	}[];
 	readonly adjustments: readonly PayslipLine[];
+	readonly company_payments: readonly {
+		readonly family: string;
+		readonly source_id: string;
+		readonly component_code: string;
+		readonly amount: number;
+		readonly label?: string;
+	}[];
 	readonly statutory: readonly PayslipStatutoryLine[];
 	readonly gross: number;
 	readonly total_deductions: number;
@@ -319,20 +326,18 @@ export interface EntryColumns {
 	readonly incurred_on?: string | null | undefined;
 	readonly due_on?: string | null | undefined;
 	readonly label?: string | null | undefined;
+	readonly reference?: string | null | undefined;
 	readonly facts?: unknown;
 }
 type NativeEntryRow =
 	| Row<'adhoc_catalog_entry'>
 	| Row<'claim_catalog_entry'>
 	| Row<'leave_catalog_entry'>
-	| Row<'loan_catalog_entry'>;
+	| Row<'loan_repayment_entry'>;
 export type EntryRow = EntryColumns &
 	Pick<NativeEntryRow, 'id'> &
 	Partial<
-		Pick<
-			NativeEntryRow,
-			'catalog_id' | 'employment_id' | 'reference' | 'occurred_on' | 'activity' | 'payslip_id'
-		>
+		Pick<NativeEntryRow, 'catalog_id' | 'employment_id' | 'occurred_on' | 'activity' | 'payslip_id'>
 	>;
 /** Stored rows and transform inputs: only fields `transformEntries` reads, excess keys stripped. */
 const LooseEntryRowSchema = Schema.Struct({
@@ -453,6 +458,8 @@ type RosterRow = Pick<
 	| 'employment_id'
 	| 'work_date'
 	| 'shift_definition_id'
+	| 'planned_overtime_hours'
+	| 'approved_overtime_intervals'
 	| 'worked_intervals'
 	| 'banked_overtime_hours'
 	| 'banked_overtime_band'
@@ -466,6 +473,7 @@ export type RosterInput = Partial<
 	Pick<
 		RosterRow,
 		| 'worked_intervals'
+		| 'approved_overtime_intervals'
 		| 'banked_overtime_band'
 		| 'overtime_consented_at'
 		| 'worksite'
@@ -474,6 +482,7 @@ export type RosterInput = Partial<
 	>
 > & {
 	readonly banked_overtime_hours?: RosterRow['banked_overtime_hours'] | number;
+	readonly planned_overtime_hours?: RosterRow['planned_overtime_hours'] | number;
 };
 /** A work suspension: an entity's blocked-out days of one kind, for a worksite or named employments (else all). */
 interface SuspensionRow {
@@ -611,7 +620,7 @@ export const FAMILIES = [
 	{ collection: 'adhoc_catalog_entry', catalog: 'adhoc_catalog', family: 'ADHOC' },
 	{ collection: 'claim_catalog_entry', catalog: 'claim_catalog', family: 'CLAIM' },
 	{ collection: 'leave_catalog_entry', catalog: 'leave_catalog', family: 'LEAVE' },
-	{ collection: 'loan_catalog_entry', catalog: 'loan_catalog', family: 'LOAN_REPAYMENT' }
+	{ collection: 'loan_repayment_entry', catalog: 'loan_catalog', family: 'LOAN_REPAYMENT' }
 ] as const;
 /** A version with every catalogue row a payroll build prices from. */
 export const governanceMembers = (
@@ -991,6 +1000,8 @@ export const subjectContext = (input: {
 	readonly headcount: number;
 	/** The governing version: its `payroll.monthly_wage` CEL defines `terms.monthly_wage`. */
 	readonly version?: SettingsRow | undefined;
+	/** Captured allowance identities resolved once by the caller, including earlier snapshot assignments. */
+	readonly allowanceCodes?: ReadonlyMap<string, string>;
 }) =>
 	Result.gen(function* () {
 		const { term, day } = input;
@@ -1108,7 +1119,9 @@ export const subjectContext = (input: {
 				effective_from: term?.effective_range?.from ?? '',
 				effective_to: term?.effective_range?.to ?? '',
 				allowances: (term?.allowances ?? []).map((line) => ({
-					code: line.code ?? '',
+					code:
+						line.code ??
+						(line.catalogue_id == null ? '' : (input.allowanceCodes?.get(line.catalogue_id) ?? '')),
 					catalogue_id: line.catalogue_id ?? '',
 					amount: moneyValue(line.amount?.value)
 				})),
@@ -1314,6 +1327,15 @@ const localClock = (instant: unknown, zone: string): string | null => {
 			)
 		: null;
 };
+/** A configured local minute anchored to its work date, including the next day of an overnight shift. */
+const calendarMinute = (date: string, minute: number, zone: string): number => {
+	const rounded = Math.round(minute);
+	return cachedCalendarValue(breakBoundaries, `${zone}:${date}:${rounded}`, () =>
+		toZoned(parseDateTime(`${date}T00:00`).add({ minutes: rounded }), zone)
+			.toDate()
+			.getTime()
+	);
+};
 /**
  * The planner of one employment's days: the roster entry's shift definition, else the cycle day of the pattern its
  * terms in force name (anchored at the pattern's effective start, inside its range), else none.
@@ -1368,16 +1390,8 @@ const netOfBreak = (
 ): NonNullable<RosterRow['worked_intervals']> => {
 	const [only] = intervals;
 	if (pause == null || intervals.length !== 1 || only?.end == null) return intervals;
-	const at = (minute: number) => {
-		const rounded = Math.round(minute);
-		return cachedCalendarValue(breakBoundaries, `${zone}:${date}:${rounded}`, () =>
-			toZoned(parseDateTime(`${date}T00:00`).add({ minutes: rounded }), zone)
-				.toDate()
-				.getTime()
-		);
-	};
-	const from = at(pause.from_minute);
-	const to = at(pause.from_minute + pause.minutes);
+	const from = calendarMinute(date, pause.from_minute, zone);
+	const to = calendarMinute(date, pause.from_minute + pause.minutes, zone);
 	const start = Date.parse(only.start);
 	const end = Date.parse(only.end);
 	if (!(start < to && from < end)) return intervals;
@@ -1385,6 +1399,29 @@ const netOfBreak = (
 		...(start < from ? [{ start: only.start, end: Instant(new Date(from)) }] : []),
 		...(to < end ? [{ start: Instant(new Date(to)), end: only.end }] : [])
 	];
+};
+/** Recorded work for compliance, before paid shift hours and overtime rounding are applied. */
+export const recordedWork = (
+	intervals: NonNullable<RosterRow['worked_intervals']>,
+	date: string,
+	pause: PlannedShift['break'],
+	zone: string
+) => {
+	const spans = netOfBreak(intervals, date, pause, zone)
+		.flatMap((interval) =>
+			interval.end == null ? [] : [[Date.parse(interval.start), Date.parse(interval.end)] as const]
+		)
+		.filter(([start, end]) => Number.isFinite(start) && start < end)
+		.toSorted(([a], [b]) => a - b);
+	return {
+		spans,
+		hours: spans.reduce((sum, [start, end]) => sum + (end - start), 0) / 3600000,
+		intervals: spans.flatMap(([start, end]) => {
+			const from = localClock(new Date(start).toISOString(), zone);
+			const to = localClock(new Date(end).toISOString(), zone);
+			return from == null || to == null ? [] : [{ start: from, end: to }];
+		})
+	};
 };
 /** Sorted spans (epoch milliseconds) split after their first `hours`: the spans within them and the rest. */
 const splitSpans = (
@@ -1402,6 +1439,275 @@ const splitSpans = (
 	}
 	return [within, rest];
 };
+
+type CreditSpan = { readonly start: number; readonly end: number };
+type CreditSegment = CreditSpan & {
+	readonly kind: 'NORMAL' | 'OT';
+	readonly offset_hours: number;
+	readonly hours: number;
+	readonly credited_intervals: readonly CreditSpan[];
+};
+
+/** Actual clock intersections with configured ordinary time and separately approved overtime windows. */
+export const creditAttendance = (input: {
+	readonly date: string;
+	readonly intervals: readonly { readonly start: string; readonly end?: string | null }[] | null;
+	readonly planned: PlannedShift | null;
+	readonly plannedOvertimeHours?: number | null;
+	readonly approvedOvertimeIntervals?:
+		| readonly {
+				readonly start: string;
+				readonly end?: string | null;
+				readonly break_minutes?: number | null;
+		  }[]
+		| null;
+	readonly timeZone: string;
+}) => {
+	const recorded = recordedWork(
+		(input.intervals ?? []).map((interval) => ({
+			start: Instant(interval.start),
+			end: interval.end == null ? null : Instant(interval.end)
+		})),
+		input.date,
+		input.planned?.break,
+		input.timeZone
+	);
+	const complete =
+		input.intervals != null && input.intervals.every((interval) => interval.end != null);
+	const ordinaryAnchored = input.planned?.start_minute != null && input.planned.end_minute != null;
+	const approved = Number.isFinite(input.plannedOvertimeHours)
+		? Math.max(0, input.plannedOvertimeHours ?? 0)
+		: 0;
+	const mergeSpans = (spans: readonly CreditSpan[]): CreditSpan[] => {
+		const joined: CreditSpan[] = [];
+		for (const span of spans.toSorted((left, right) => left.start - right.start)) {
+			const previous = joined.at(-1);
+			if (previous != null && span.start <= previous.end)
+				joined[joined.length - 1] = {
+					start: previous.start,
+					end: Math.max(previous.end, span.end)
+				};
+			else joined.push(span);
+		}
+		return joined;
+	};
+	const spansOf = (intervals: typeof input.intervals) =>
+		mergeSpans(
+			(intervals ?? []).flatMap((interval) => {
+				const start = Date.parse(interval.start),
+					end = interval.end == null ? Number.NaN : Date.parse(interval.end);
+				return Number.isFinite(start) && start < end ? [{ start, end }] : [];
+			})
+		);
+	const explicitOvertime = (input.approvedOvertimeIntervals ?? []).flatMap((interval) => {
+		const start = Date.parse(interval.start),
+			end = interval.end == null ? Number.NaN : Date.parse(interval.end);
+		return Number.isFinite(start) && start < end
+			? [{ start, end, break_minutes: interval.break_minutes ?? 0 }]
+			: [];
+	});
+	const anchored = ordinaryAnchored || (approved > 0 && explicitOvertime.length > 0);
+	if (!complete)
+		return {
+			anchored,
+			ordinary_anchored: ordinaryAnchored,
+			complete,
+			recorded_hours: recorded.hours,
+			matched_hours: 0,
+			normal_hours: 0,
+			overtime_hours: 0,
+			target_hours: 0,
+			credited_hours: 0,
+			percent: null,
+			segments: [],
+			normal_intervals: [],
+			overtime_intervals: [],
+			recorded_intervals: recorded.spans.map(([start, end]) => ({ start, end }))
+		};
+	const windows: (CreditSpan & { readonly kind: 'NORMAL' | 'OT' })[] = [];
+	const actual = spansOf(input.intervals);
+	const subtract = (spans: readonly CreditSpan[], cuts: readonly CreditSpan[]): CreditSpan[] => {
+		let remaining = [...spans];
+		for (const cut of cuts)
+			remaining = remaining.flatMap((span) =>
+				cut.end <= span.start || span.end <= cut.start
+					? [span]
+					: [
+							...(span.start < cut.start ? [{ start: span.start, end: cut.start }] : []),
+							...(cut.end < span.end ? [{ start: cut.end, end: span.end }] : [])
+						]
+			);
+		return remaining;
+	};
+	const paidWindows = (
+		frame: CreditSpan,
+		breakMinutes: number,
+		configuredCentre?: CreditSpan
+	): CreditSpan[] => {
+		let breakBudget = Math.min(frame.end - frame.start, Math.max(0, breakMinutes) * 60000);
+		if (!(breakBudget > 0)) return [frame];
+		const interior: CreditSpan[] = [];
+		const inside = actual.flatMap((span) => {
+			const start = Math.max(frame.start, span.start),
+				end = Math.min(frame.end, span.end);
+			return start < end ? [{ start, end }] : [];
+		});
+		for (let index = 1; index < inside.length; index++) {
+			const previous = inside[index - 1]!,
+				next = inside[index]!;
+			if (previous.end < next.start) interior.push({ start: previous.end, end: next.start });
+		}
+		const breaks: CreditSpan[] = [];
+		const centre = [
+			configuredCentre ?? {
+				start: (frame.start + frame.end - breakBudget) / 2,
+				end: (frame.start + frame.end + breakBudget) / 2
+			}
+		];
+		const allocate = (candidates: readonly CreditSpan[]) => {
+			for (const span of subtract(candidates, breaks)) {
+				const take = Math.min(span.end - span.start, Math.max(0, breakBudget));
+				if (take > 0) breaks.push({ start: span.start, end: span.start + take });
+				breakBudget -= take;
+			}
+		};
+		allocate(
+			interior.flatMap((gap) =>
+				centre.flatMap((center) => {
+					const start = Math.max(gap.start, center.start),
+						end = Math.min(gap.end, center.end);
+					return start < end ? [{ start, end }] : [];
+				})
+			)
+		);
+		allocate(interior);
+		allocate(centre);
+		return subtract([frame], breaks);
+	};
+	const frame =
+		input.planned?.start_minute != null && input.planned.end_minute != null
+			? {
+					start: calendarMinute(input.date, input.planned.start_minute, input.timeZone),
+					end: calendarMinute(input.date, input.planned.end_minute, input.timeZone)
+				}
+			: null;
+	if (frame != null && input.planned != null) {
+		const pause = input.planned.break;
+		for (const window of paidWindows(
+			frame,
+			pause?.minutes ?? 0,
+			pause == null
+				? undefined
+				: {
+						start: calendarMinute(input.date, pause.from_minute, input.timeZone),
+						end: calendarMinute(input.date, pause.from_minute + pause.minutes, input.timeZone)
+					}
+		))
+			windows.push({ kind: 'NORMAL', ...window });
+	}
+	if (approved > 0)
+		for (const window of input.approvedOvertimeIntervals != null
+			? subtract(
+					mergeSpans(
+						explicitOvertime.flatMap((window) => paidWindows(window, window.break_minutes))
+					),
+					frame == null ? [] : [frame]
+				)
+			: frame == null
+				? []
+				: [{ start: frame.end, end: frame.end + approved * 3600000 }])
+			windows.push({ kind: 'OT', ...window });
+	const portions = windows
+		.filter((window) => window.start < window.end)
+		.toSorted((left, right) => left.start - right.start)
+		.map((window) => ({
+			...window,
+			intersections: complete
+				? actual.flatMap(({ start, end }) => {
+						const from = Math.max(start, window.start),
+							to = Math.min(end, window.end);
+						return from < to ? [{ start: from, end: to }] : [];
+					})
+				: []
+		}));
+	const duration = (spans: readonly CreditSpan[]) =>
+		spans.reduce((sum, span) => sum + span.end - span.start, 0) / 3600000;
+	const ordinaryTarget = duration(portions.filter((portion) => portion.kind === 'NORMAL'));
+	const ordinaryActual = duration(
+		portions
+			.filter((portion) => portion.kind === 'NORMAL')
+			.flatMap((portion) => portion.intersections)
+	);
+	let normalBudget =
+		complete && anchored
+			? ordinaryActual + 1e-9 >= ordinaryTarget
+				? ordinaryTarget
+				: completedHalfHours(ordinaryActual)
+			: 0;
+	let overtimeBudget =
+		complete && anchored
+			? completedHalfHours(
+					Math.min(
+						approved,
+						duration(
+							portions
+								.filter((portion) => portion.kind === 'OT')
+								.flatMap((portion) => portion.intersections)
+						)
+					)
+				)
+			: 0;
+	const normalHours = normalBudget,
+		overtime = overtimeBudget;
+	const segments: CreditSegment[] = [];
+	let offset = 0;
+	for (const portion of portions) {
+		const credits: CreditSpan[] = [];
+		let budget = portion.kind === 'NORMAL' ? normalBudget : overtimeBudget;
+		for (const span of portion.intersections) {
+			const take = Math.min(span.end - span.start, Math.max(0, budget * 3600000));
+			if (take > 0) credits.push({ start: span.start, end: span.start + take });
+			budget -= take / 3600000;
+		}
+		if (portion.kind === 'NORMAL') normalBudget = budget;
+		else overtimeBudget = budget;
+		const hours = (portion.end - portion.start) / 3600000;
+		segments.push({
+			kind: portion.kind,
+			start: portion.start,
+			end: portion.end,
+			offset_hours: offset,
+			hours,
+			credited_intervals: credits
+		});
+		offset += hours;
+	}
+	const normal = segments
+		.filter((segment) => segment.kind === 'NORMAL')
+		.flatMap((segment) => segment.credited_intervals);
+	const over = segments
+		.filter((segment) => segment.kind === 'OT')
+		.flatMap((segment) => segment.credited_intervals);
+	return {
+		anchored,
+		ordinary_anchored: ordinaryAnchored,
+		complete,
+		recorded_hours: recorded.hours,
+		matched_hours: duration(portions.flatMap((portion) => portion.intersections)),
+		normal_hours: normalHours,
+		overtime_hours: overtime,
+		target_hours: offset,
+		credited_hours: normalHours + overtime,
+		percent:
+			complete && anchored && offset > 0
+				? Math.min(100, ((normalHours + overtime) / offset) * 100)
+				: null,
+		segments,
+		normal_intervals: normal,
+		overtime_intervals: over,
+		recorded_intervals: recorded.spans.map(([start, end]) => ({ start, end }))
+	};
+};
 /** One planned and recorded person-day as the CEL root `work.days[]` reads it. */
 export const workDay = (input: {
 	readonly date: string;
@@ -1414,11 +1720,18 @@ export const workDay = (input: {
 }) =>
 	Result.gen(function* () {
 		const { row } = input;
-		const recorded =
-			(yield* fieldValue(row?.worked_intervals, 'roster_entry.worked_intervals')) ?? [];
+		const recorded = yield* fieldValue(row?.worked_intervals, 'roster_entry.worked_intervals');
 		const banked = yield* fieldValue(
 			row?.banked_overtime_hours,
 			'roster_entry.banked_overtime_hours'
+		);
+		const plannedOvertime = yield* fieldValue(
+			row?.planned_overtime_hours,
+			'roster_entry.planned_overtime_hours'
+		);
+		const approvedOvertime = yield* fieldValue(
+			row?.approved_overtime_intervals,
+			'roster_entry.approved_overtime_intervals'
 		);
 		const band = yield* fieldValue(row?.banked_overtime_band, 'roster_entry.banked_overtime_band');
 		const consent = yield* fieldValue(
@@ -1427,30 +1740,41 @@ export const workDay = (input: {
 		);
 		const worksite = yield* fieldValue(row?.worksite, 'roster_entry.worksite');
 		const facts = yield* fieldValue(row?.facts, 'roster_entry.facts');
-		const stored = netOfBreak(recorded, input.date, input.planned?.break, input.zone);
-		const spans = stored
-			.flatMap((interval) =>
-				interval.end == null
-					? []
-					: [[Date.parse(interval.start), Date.parse(interval.end)] as const]
-			)
-			.filter(([start, end]) => Number.isFinite(start) && start < end)
-			.toSorted(([a], [b]) => a - b);
-		const recordedHours = spans.reduce((sum, [start, end]) => sum + (end - start), 0) / 3600000;
-		// Only planned time pays: the shift's ordinary hours (its total, never its clock — shifts swap), then the time
-		// recorded past them as overtime in completed half-hours. A planned rest or off day has no ordinary hours; an
-		// unplanned day pays nothing.
+		const credit = creditAttendance({
+			date: input.date,
+			intervals: recorded ?? null,
+			planned: input.planned,
+			plannedOvertimeHours: num(plannedOvertime),
+			approvedOvertimeIntervals: approvedOvertime ?? null,
+			timeZone: input.zone
+		});
+		const recordedHours = credit.recorded_hours;
 		const scheduled = input.planned?.scheduled_hours ?? 0;
-		const attended = input.planned != null && recordedHours > 0;
-		const overtime = overtimeHours(recordedHours, input.planned);
+		const overtime = credit.overtime_hours;
+		// Without an explicit window, untimed rest/off retains its statutory base-premium context.
+		const untimedPremium =
+			!credit.anchored && (input.planned?.day_type === 'REST' || input.planned?.day_type === 'OFF');
+		const attended =
+			credit.complete &&
+			input.planned != null &&
+			(untimedPremium ? recordedHours : credit.matched_hours) > 0;
+		const premiumHours = completedHalfHours(recordedHours);
 		if (num(banked) > overtime + 1e-9)
 			return yield* Result.fail(
 				new Refusal({
 					message: `${input.date}: banked overtime cannot exceed the day's ${overtime} overtime hours.`
 				})
 			);
-		const [ordinary, past] = splitSpans(attended ? spans : [], scheduled);
-		const [overtimeSpans] = splitSpans(past, overtime);
+		const [premiumSpans] = splitSpans(
+			attended && untimedPremium
+				? credit.recorded_intervals.map((span) => [span.start, span.end] as const)
+				: [],
+			premiumHours
+		);
+		const ordinary = credit.normal_intervals.map((span) => [span.start, span.end] as const);
+		const overtimeSpans = untimedPremium
+			? premiumSpans
+			: credit.overtime_intervals.map((span) => [span.start, span.end] as const);
 		const clocks = (list: readonly (readonly [number, number])[]) =>
 			list.flatMap(([start, end]) => {
 				const from = localClock(new Date(start).toISOString(), input.zone);
@@ -1464,9 +1788,13 @@ export const workDay = (input: {
 			holiday_kind: input.holiday?.kind ?? '',
 			holiday_name: input.holiday?.name ?? '',
 			scheduled_hours: scheduled,
-			/** The paid hours: the planned ordinary hours plus the overtime past them, on a planned day attended. */
-			worked_hours: attended ? round2(scheduled + overtime) : 0,
-			/** Attendance was recorded on a planned day (a planned rest or off day too). */
+			planned_overtime_hours: plannedOvertime == null ? null : num(plannedOvertime),
+			/** Precise attendance, before approval caps and completed-half-hour payroll quantities. */
+			recorded_hours: recordedHours,
+			attendance_complete: credit.complete,
+			/** Clock-intersected hourly credit; fixed monthly salary remains the catalogue's own calculation. */
+			worked_hours: attended ? round2(untimedPremium ? premiumHours : credit.credited_hours) : 0,
+			/** Closed attendance met a credited window, or the catalogue's untimed rest/off premium context. */
 			worked: attended,
 			overtime_hours: round2(overtime - num(banked)),
 			approved_overtime_hours: overtime,
@@ -1488,17 +1816,19 @@ export const workDay = (input: {
 							to: input.suspension.ends_on,
 							facts: isJsonObject(input.suspension.facts) ? input.suspension.facts : {}
 						},
-			/** The paid time as local wall clock: the ordinary hours from the first arrival, then the overtime. */
+			/** Credited clock intersections, preserving lateness and internal gaps rather than shifting paid time. */
 			intervals: clocks(
-				[...ordinary, ...overtimeSpans].reduce<(readonly [number, number])[]>((joined, span) => {
-					const last = joined.at(-1);
-					if (last !== undefined && last[1] === span[0])
-						joined[joined.length - 1] = [last[0], span[1]];
-					else joined.push(span);
-					return joined;
-				}, [])
+				[...(untimedPremium ? premiumSpans : ordinary), ...overtimeSpans]
+					.toSorted(([a], [b]) => a - b)
+					.reduce<(readonly [number, number])[]>((joined, span) => {
+						const last = joined.at(-1);
+						if (last !== undefined && span[0] <= last[1])
+							joined[joined.length - 1] = [last[0], Math.max(last[1], span[1])];
+						else joined.push(span);
+						return joined;
+					}, [])
 			),
-			/** The overtime's own time, starting where the ordinary hours run out. */
+			/** Time available to the catalogue's bands; rest/off retain their actual premium-day timing. */
 			overtime_intervals: clocks(overtimeSpans)
 		};
 	});
@@ -2058,6 +2388,8 @@ export type SlipContext = {
 	readonly history: {
 		readonly payslips: readonly PayslipRow[];
 		readonly runKind: ReadonlyMap<string, string>;
+		/** Immutable contribution configurations captured by each earlier payroll run. */
+		readonly statutoryConfigurations?: ReadonlyMap<string, readonly StatutoryRow[]>;
 		/** Each salary run's settlement window, by run id. */
 		readonly runWindows: ReadonlyMap<
 			string,

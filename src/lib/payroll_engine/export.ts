@@ -5,8 +5,16 @@
  */
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Result, Schema } from 'effect';
+import { ExportRules, type ExportField } from '../bank_template.js';
 import { evaluateConfigured } from './expressions.js';
-import { isJsonObject, type Json, type JsonObject, numberOf, celValues } from './foundation.js';
+import {
+	isJsonObject,
+	type Json,
+	type JsonObject,
+	numberOf,
+	celValues,
+	Refusal
+} from './foundation.js';
 import { FAMILIES } from './payslip/context.js';
 
 const isString = Schema.is(Schema.String);
@@ -175,49 +183,6 @@ export function payrollExportDocuments(input: {
 	return [...(bank == null ? [] : [bank]), ...payments.map(payslipDocument)];
 }
 
-/** A statutory return as a record: an `EXPORTS` rule-set row of the run's version. */
-/** One field of a record: its CEL value and, in a `FIXED` file, its width, alignment (`left`) and pad (a space). */
-const ExportField = Schema.Struct({
-	header: Schema.optional(Schema.String),
-	value: Schema.String,
-	width: Schema.optional(Schema.Number),
-	align: Schema.optional(Schema.Literals(['left', 'right'])),
-	pad: Schema.optional(Schema.String)
-});
-type ExportField = typeof ExportField.Type;
-const ExportRules = Schema.Struct({
-	/** CEL over `runs[]`: the file name. */
-	file: Schema.String,
-	/** `CSV` (default: a header row of the column headers) or `FIXED` (each field padded to its width). */
-	format: Schema.optional(Schema.Literals(['CSV', 'FIXED'])),
-	/** CEL over `runs[]` and `company`: whether the file is made at all (a bank's layout for its own payers). */
-	applies_when: Schema.optional(Schema.String),
-	/** CEL per employment row: whether it is listed. */
-	when: Schema.optional(Schema.String),
-	/** One column each: its CEL value per employment row (`index` = its 1-based row number). */
-	columns: Schema.Array(ExportField),
-	/** Instead of one record per row: each record type's `each` (CEL list on the row) gives one record per `item`. */
-	records: Schema.optional(
-		Schema.Array(Schema.Struct({ each: Schema.String, fields: Schema.Array(ExportField) }))
-	),
-	/**
-	 * One record per distinct `key` (CEL on each item's context): `key`, `items[]`, `count`. Over the detail records,
-	 * or over `each` (a CEL list on the file's context: a summary with no detail record). `position` `before` puts the
-	 * summaries ahead of the details (default `after`).
-	 */
-	summary: Schema.optional(
-		Schema.Struct({
-			key: Schema.String,
-			fields: Schema.Array(ExportField),
-			each: Schema.optional(Schema.String),
-			position: Schema.optional(Schema.Literals(['before', 'after']))
-		})
-	),
-	/** Records before and after the rows, read on `runs[]`, `rows[]` (each its context), `items[]` and `count`. */
-	header: Schema.optional(Schema.Array(ExportField)),
-	trailer: Schema.optional(Schema.Array(ExportField))
-});
-
 /** One employment's slips over the selected runs and the entries they pinned, as a return's row reads it. */
 type ExportRow = {
 	readonly employee: JsonObject;
@@ -270,14 +235,18 @@ export function recordDocuments(
 	/** The runs' entity, its facts included: every record reads it as `company`. */
 	company: JsonObject = {},
 	/** The instant the file is made (the caller's clock): every record reads it as `generated_at`. */
-	generated_at: string = ''
+	generated_at: string = '',
+	/** Bank output must refuse overflow instead of changing an account or amount by truncation. */
+	strict: boolean = false,
+	/** The admitted bank file's payment currency, available to configured layout predicates. */
+	currency: string = ''
 ): ExportDocument[] {
 	return templates.flatMap((template) => {
 		if (!Schema.is(ExportRules)(template.rules)) return [];
 		const rules = template.rules;
 		if (
 			rules.applies_when != null &&
-			evaluateConfigured(rules.applies_when, { runs, company, generated_at }) !== true
+			evaluateConfigured(rules.applies_when, { runs, company, currency, generated_at }) !== true
 		)
 			return [];
 		const fixed = rules.format === 'FIXED';
@@ -285,9 +254,19 @@ export function recordDocuments(
 			const cells = fields.map((field) => {
 				const value = evaluateConfigured(field.value, context);
 				const text = value == null ? '' : String(value);
+				if (strict && /[\u0000-\u001f\u007f]/.test(text))
+					throw new Refusal({
+						message: `The bank layout ${template.code} contains a control character in ${field.header ?? 'a field'}. Correct the value before exporting.`
+					});
 				if (!fixed || field.width == null) return text;
 				const width = Math.max(0, field.width);
+				if (strict && (!Number.isInteger(width) || width < 1 || text.length > width))
+					throw new Refusal({
+						message: `The bank layout ${template.code} cannot fit ${field.header ?? 'a field'} in its configured width. Correct the value or bank layout before exporting.`
+					});
 				const pad = (field.pad ?? ' ').slice(0, 1) || ' ';
+				if (strict && /[\u0000-\u001f\u007f]/.test(pad))
+					throw new Refusal({ message: 'The bank layout uses an invalid padding character.' });
 				return field.align === 'right'
 					? text.slice(-width).padStart(width, pad)
 					: text.slice(0, width).padEnd(width, pad);
@@ -300,11 +279,16 @@ export function recordDocuments(
 				entries: row.entries ?? [],
 				runs,
 				company,
+				currency,
 				generated_at,
 				totals: totalsOf(row.slips)
 			}))
 			.filter((context) => rules.when == null || evaluateConfigured(rules.when, context) === true)
 			.map((context, i): JsonObject => ({ ...context, index: i + 1 }));
+		if (strict && listed.length !== rows.length)
+			throw new Refusal({
+				message: 'The bank layout excludes a payable employee. Correct the layout before exporting.'
+			});
 		// Each row's records: one per row (`columns`), or one per `item` of each record type's `each` list.
 		const items = listed.flatMap(
 			(context): { fields: readonly ExportField[]; context: JsonObject }[] =>
@@ -322,6 +306,7 @@ export function recordDocuments(
 		const framing: JsonObject = {
 			runs,
 			company,
+			currency,
 			generated_at,
 			rows: listed,
 			items: contexts,
@@ -350,6 +335,7 @@ export function recordDocuments(
 						record(summary.fields, {
 							runs,
 							company,
+							currency,
 							generated_at,
 							key,
 							items: group,
@@ -359,7 +345,7 @@ export function recordDocuments(
 		const before = summary?.position === 'before';
 		return [
 			{
-				name: String(evaluateConfigured(rules.file, { runs, company, generated_at })),
+				name: String(evaluateConfigured(rules.file, { runs, company, currency, generated_at })),
 				content: [
 					...(fixed ? [] : [csvRow(rules.columns.map((column) => column.header ?? ''))]),
 					...(rules.header == null ? [] : [record(rules.header, framing)]),

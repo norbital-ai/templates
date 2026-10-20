@@ -94,6 +94,21 @@ export default model({
 			},
 			optional: true
 		},
+		company_payments: {
+			kind: 'list',
+			of: {
+				kind: 'object',
+				fields: {
+					family: { kind: 'text' },
+					source_id: { kind: 'text' },
+					component_code: { kind: 'text' },
+					amount: { kind: 'number' },
+					label: { kind: 'text', optional: true }
+				}
+			},
+			optional: true,
+			help: 'Amounts the company settles outside employee net pay. The salary report uses the jurisdiction’s payment classification to distinguish cash payments from tax-only information.'
+		},
 		status: {
 			kind: 'state',
 			initial: 'DRAFT',
@@ -112,6 +127,13 @@ export default model({
 		paid_at: {
 			kind: 'instant',
 			optional: true
+		},
+		bank_charges: {
+			kind: 'decimal',
+			scale: 2,
+			min: 0,
+			optional: true,
+			help: 'The bank fee the company pays for this employee’s payment, in the payslip currency. Enter 0 if none; leave blank until confirmed. This does not change employee pay or statutory contributions.'
 		},
 		currency: {
 			kind: 'currency'

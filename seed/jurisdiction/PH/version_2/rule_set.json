@@ -450,17 +450,29 @@
 				],
 				"IV-A": [
 					{
+						"from": "2026-10-26",
+						"monthly": 16823.75
+					},
+					{
 						"from": "2025-12-01",
 						"monthly": 15650
 					}
 				],
 				"IV-A-1ST": [
 					{
+						"from": "2026-10-26",
+						"monthly": 15389.17
+					},
+					{
 						"from": "2025-12-01",
 						"monthly": 14345.83
 					}
 				],
 				"IV-A-2ND-5TH": [
+					{
+						"from": "2026-10-26",
+						"monthly": 14345.83
+					},
 					{
 						"from": "2026-04-01",
 						"monthly": 13693.75
@@ -472,6 +484,10 @@
 				],
 				"IV-A-AGRI-2ND-5TH": [
 					{
+						"from": "2026-10-26",
+						"monthly": 14345.83
+					},
+					{
 						"from": "2026-04-01",
 						"monthly": 13250.33
 					},
@@ -482,11 +498,19 @@
 				],
 				"IV-A-AGRI-COMPONENT-1ST": [
 					{
+						"from": "2026-10-26",
+						"monthly": 14345.83
+					},
+					{
 						"from": "2025-12-01",
 						"monthly": 13693.75
 					}
 				],
 				"IV-A-AGRI-RECLASSIFIED-1ST": [
+					{
+						"from": "2026-10-26",
+						"monthly": 14345.83
+					},
 					{
 						"from": "2026-04-01",
 						"monthly": 13693.75
@@ -498,6 +522,10 @@
 				],
 				"IV-A-RECLASSIFIED-1ST": [
 					{
+						"from": "2026-10-26",
+						"monthly": 15389.17
+					},
+					{
 						"from": "2026-04-01",
 						"monthly": 14345.83
 					},
@@ -506,7 +534,21 @@
 						"monthly": 13302.5
 					}
 				],
+				"IV-A-ROSARIO-CAVITE": [
+					{
+						"from": "2026-10-26",
+						"monthly": 16823.75
+					},
+					{
+						"from": "2025-12-01",
+						"monthly": 15650
+					}
+				],
 				"IV-A-RETAIL-SMALL": [
+					{
+						"from": "2026-10-26",
+						"monthly": 14345.83
+					},
 					{
 						"from": "2026-04-01",
 						"monthly": 13250.33
@@ -797,6 +839,10 @@
 					],
 					"IV-A": [
 						{
+							"from": "2026-10-26",
+							"monthly": 7500
+						},
+						{
 							"from": "2025-12-01",
 							"monthly": 6750.0
 						}
@@ -1031,6 +1077,10 @@
 					"orders": "Wage Order No. ROVII-27 Class B (cities and municipalities outside Class A): ₱500 → ₱542 — `VII-B`."
 				},
 				{
+					"from": "2026-10-26",
+					"orders": "Wage Order No. IVA (CALABARZON)-23: non-agriculture ₱645 in the Extended Metropolitan Area, component cities and Rosario, Cavite; ₱590 in other first-class municipalities; ₱550 in second- to fifth-class municipalities. Agriculture and retail/service of no more than ten workers: ₱550 across IV-A. RB-IVA (CALABARZON)-DW-06: domestic workers ₱6,750 → ₱7,500 a month in all areas. Published 10 October 2026, effective 26 October 2026; single increases, no 2027 tranche. Signed orders and effectivity: https://nwpc.dole.gov.ph/region-iva/."
+				},
+				{
 					"from": "2026-12-01",
 					"orders": "1 December 2026 second tranches: Wage Order No. RBV-23 ₱455 → ₱480; Wage Order No. BARMM-05 (s.2) Cotabato/Lamitan/Marawi non-agriculture ₱436 → ₱461, agriculture/retail ₱411 → ₱436."
 				},
@@ -1043,7 +1093,7 @@
 					"orders": "Kasambahay in other municipalities before the DW-06 orders: Region VIII ₱5,500 (RBVIII-DW-06 raised it ₱300 to ₱5,800; SunStar, https://www.sunstar.com.ph/cebu/p35-daily-pay-hike-for-e-visayas-workers-starts-dec-8) and Region IX ₱5,000 (RIX-DW-06 raised it ₱500 to ₱5,500; SunStar, https://www.sunstar.com.ph/manila/zamboanga-peninsula-kasambahays-to-get-pay-hike-on-may-20-2026). Secondary sources: the NWPC pages block the reader."
 				}
 			],
-			"authority": "the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the second tranche is a dated row of the same key from that day. Each figure is the daily rate × 313 ÷ 12. sector floors beside the area ones, for an establishment whose `company.region` names its sector — `NCR-AGRI-SMALL` is NCR agriculture, service/retail of 15 workers or fewer and manufacturing under 10 (₱658 under NCR-26, ₱718 under NCR-28; nwpc.dole.gov.ph/ncr/); `IV-A-RETAIL-SMALL` is IV-A retail/service of 10 workers or fewer (₱485 under IVA-22 from 5 Oct 2025, ₱508 from 1 Apr 2026; nwpc.dole.gov.ph/region-iva/). Each × 313 ÷ 12. The RA 9504 minimum-wage-earner test reads the same floor, so an employee of such an establishment above the sector floor is withheld on. RA 10361 (Batas Kasambahay) s.24: a domestic worker’s floor is the regional board’s domestic-worker wage order, a monthly figure, never the establishment order — `by_employment_type.DOMESTIC`, held on its own (scale 1). NCR only, from the wage orders themselves: NCR-DW-05 ₱7,000 a month from 4 January 2025, and NCR-DW-06 (approved 15 January 2026, published 22 January, effective 7 February 2026; nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf) ₱7,800, a dated row from 7 February 2026. the floor is mandatory — RA 6727 s.4 and Wage Order No. NCR-28 s.4 (the increase applies to “all minimum wage earners in the private sector within the region”) and s.6 (non-payment is dealt with under RA 6727 s.12); only an exemption the board approves on application (RA 6727 s.4(c)) lowers it, recorded as `company.facts.minimum_wage_exemption_approved` (default false: no approval, no exemption). A covered under-floor contract term is refused (validation MINIMUM_WAGE_FLOOR_CONTRACT) and a payslip below the floor of its period warns (MINIMUM_WAGE_FLOOR_PAYSLIP). a part-timer is refused too. The order’s daily rate is for normal working hours of at most eight a day and covers every minimum wage earner regardless of status (NCR-28 ss.3–4), and a worker on less than the normal hours is owed a proportion of it (DOLE Handbook 2024 ch.1 §L), so `wages.scale` multiplies a PART_TIME contract’s floor by its weekly hours over the full-time week of the person’s own factor (40 on a five-day week, 48 on a six-day one): the reference week is a recorded default, the orders naming none (20 hours on a five-day NCR-26 week: 695 × 261 ÷ 12 × 20 ÷ 40 = 7,558.13). The message quotes the floor on the person's own factor (₱755 × 261 ÷ 12 = 16,421.25 on a five-day week), not the 313-day basis. Signed NWPC board orders: additional private daily rates are II ₱500, CAR ₱505, IV-B ₱455; domestic monthly rates are I ₱6,700, II ₱6,500, III ₱6,500, IV-A ₱6,750, V ₱6,000, VI ₱6,500, XII ₱6,000, CAR ₱6,600, IV-B ₱7,000, XIII ₱6,500, X ₱6,500, BARMM ₱5,500, XI ₱6,500. The order PDFs are in this version’s sources. The private-sector exemption approval fact cannot displace a domestic floor; the inspected orders that address exemption expressly disallow it. Region V RBV-22 reaches ₱435 on 1 December 2025; Caraga RXIII-19 reaches ₱435 on 1 May 2025 and RXIII-20 sets ₱455 from 3 January 2026, ₱475 from 1 May 2026. Version design (the project’s accepted design for regional wage orders, coordinator design decision 2026-10-07): a sealed version is one national statutory regime — here the RR 29-2025 withholding and de minimis rules from 6 January 2026 — and the many regional wage orders (8, 15 and 30 Dec 2025; 1, 3, 8 and 16 Jan, 7 Feb, 13 Mar, 1, 8 and 16 Apr, 1 and 20 May, 1 Jun, 6 Aug, 1 and 26 Sep, 14 Oct and 1 Dec 2026) and the holiday proclamations are dated rows inside it, each key’s floor on a day being its first entry whose `from` is on or before the day (NWPC regional pages and signed orders read 2026-09-30). A settlement period spanning an order’s date takes the newer floor for the whole period (`from <= period.to`): for wages the stricter test, never an underpayment; for the minimum-wage-earner income-tax test (WTAX `person.mwe`) the same newer floor decides the whole period, so it can exempt days earned before the order — a recorded default whose exposure is nil in practice, a salary at or below the floor × 313 ÷ 12 being under the ₱250,000 annual zero bracket. A worksite whose predecessor rate is unread stays unseeded and refuses. VIII MANUFACTURING and OTHER_NONAGRI select the non-agriculture class (RB VIII-25 s.2 puts non-agriculture with retail of more than 10 workers); cottage/handicraft has no sector code of its own, so it is priced at the non-agriculture floor — a recorded default that never underpays. VIII domestic rows at the seven chartered cities select the chartered-city class (RBVIII-DW-06 s.1). BARMM/Cotabato City private rows follow BARMM-05 s.2: non-agriculture (manufacturing, other non-agriculture) and agriculture/retail. RA 9178 s.8 exempts a certified Barangay Micro Business Enterprise from the Minimum Wage Law, its employees keeping social security and health benefits, so `wages.applies_when` leaves a BMBE establishment (company fact `bmbe_certificate_of_authority`, default false) outside the private floor; a kasambahay stays covered by the domestic order. The contribution schemes do not read the fact. Wage Order No. IVA-22 s.2 (p.3 non-agriculture, p.5 agriculture, p.7 retail/service of 10 or fewer; nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf) lists the City of Santo Tomas, Batangas among the component cities: non-agriculture ₱600 (`IV-A`), agriculture ₱525 (`IV-A-AGRI-COMPONENT-1ST`), retail/service of 10 or fewer ₱485 then ₱508 (`IV-A-RETAIL-SMALL`) — the same class as the City of Calamba, so `Batangas/Santo Tomas` carries Calamba's rows. Each key holds its dated floors newest first ({from, monthly}); the floor on a day is the first entry whose `from` is on or before it. Kasambahay floors are monthly as the domestic orders state them. Verified against the NWPC regional pages on 7 October 2026. NCR-27 (effective 25 July 2026, ₱780 from 20 January 2027) is not carried: NWPC marks it subject to litigation before RTC Pasig Branch 152 and RTC Navotas Branch 287; NCR-28 governs from 26 September 2026. NCR-28’s recitals (signed order, nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf, read 2026-10-07) state that a Status Quo Ante Order (24 July 2026), a TRO and a writ of preliminary injunction mean \"Wage Order No. NCR-27 never took effect\": NCR-26 governs to 25 September 2026 and neither NCR-27 tranche (25 July 2026, 20 January 2027) is a floor; a lifted injunction is a new version from its date. RXIII-DW-06 s.1 (signed order read 2026-10-07) puts chartered cities, first-class and other municipalities on one row, ₱6,000 → ₱6,500, so Caraga has no other-municipality key."
+			"authority": "the wage orders state a daily rate; `by_region` carries it × 313/12 and `wages.scale` restates the floor on the person’s own factor — 365/12 for the monthly-paid, 261/12 on a five-day week, 313/12 on a six-day one — and the apprentice’s 75% (RA 6727; Labor Code arts.61, 75). Wage Order No. IVA-22 (effective 5 Oct 2025; nwpc.dole.gov.ph/region-iva): non-agriculture ₱600 in the Extended Metropolitan Area and the component cities (`IV-A`), ₱550 in 1st-class municipalities, ₱510 in reclassified 1st-class and 2nd–5th-class municipalities, the last two stepping to ₱550 and ₱525 on 1 April 2026 — the second tranche is a dated row of the same key from that day. Each figure is the daily rate × 313 ÷ 12. sector floors beside the area ones, for an establishment whose `company.region` names its sector — `NCR-AGRI-SMALL` is NCR agriculture, service/retail of 15 workers or fewer and manufacturing under 10 (₱658 under NCR-26, ₱718 under NCR-28; nwpc.dole.gov.ph/ncr/); `IV-A-RETAIL-SMALL` is IV-A retail/service of 10 workers or fewer (₱485 under IVA-22 from 5 Oct 2025, ₱508 from 1 Apr 2026; nwpc.dole.gov.ph/region-iva/). Each × 313 ÷ 12. The RA 9504 minimum-wage-earner test reads the same floor, so an employee of such an establishment above the sector floor is withheld on. RA 10361 (Batas Kasambahay) s.24: a domestic worker’s floor is the regional board’s domestic-worker wage order, a monthly figure, never the establishment order — `by_employment_type.DOMESTIC`, held on its own (scale 1). NCR only, from the wage orders themselves: NCR-DW-05 ₱7,000 a month from 4 January 2025, and NCR-DW-06 (approved 15 January 2026, published 22 January, effective 7 February 2026; nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf) ₱7,800, a dated row from 7 February 2026. the floor is mandatory — RA 6727 s.4 and Wage Order No. NCR-28 s.4 (the increase applies to “all minimum wage earners in the private sector within the region”) and s.6 (non-payment is dealt with under RA 6727 s.12); only an exemption the board approves on application (RA 6727 s.4(c)) lowers it, recorded as `company.facts.minimum_wage_exemption_approved` (default false: no approval, no exemption). A covered under-floor contract term is refused (validation MINIMUM_WAGE_FLOOR_CONTRACT) and a payslip below the floor of its period warns (MINIMUM_WAGE_FLOOR_PAYSLIP). a part-timer is refused too. The order’s daily rate is for normal working hours of at most eight a day and covers every minimum wage earner regardless of status (NCR-28 ss.3–4), and a worker on less than the normal hours is owed a proportion of it (DOLE Handbook 2024 ch.1 §L), so `wages.scale` multiplies a PART_TIME contract’s floor by its weekly hours over the full-time week of the person’s own factor (40 on a five-day week, 48 on a six-day one): the reference week is a recorded default, the orders naming none (20 hours on a five-day NCR-26 week: 695 × 261 ÷ 12 × 20 ÷ 40 = 7,558.13). The message quotes the floor on the person's own factor (₱755 × 261 ÷ 12 = 16,421.25 on a five-day week), not the 313-day basis. Signed NWPC board orders: additional private daily rates are II ₱500, CAR ₱505, IV-B ₱455; domestic monthly rates are I ₱6,700, II ₱6,500, III ₱6,500, IV-A ₱6,750, V ₱6,000, VI ₱6,500, XII ₱6,000, CAR ₱6,600, IV-B ₱7,000, XIII ₱6,500, X ₱6,500, BARMM ₱5,500, XI ₱6,500. The order PDFs are in this version’s sources. The private-sector exemption approval fact cannot displace a domestic floor; the inspected orders that address exemption expressly disallow it. Region V RBV-22 reaches ₱435 on 1 December 2025; Caraga RXIII-19 reaches ₱435 on 1 May 2025 and RXIII-20 sets ₱455 from 3 January 2026, ₱475 from 1 May 2026. Version design (the project’s accepted design for regional wage orders, coordinator design decision 2026-10-07): a sealed version is one national statutory regime — here the RR 29-2025 withholding and de minimis rules from 6 January 2026 — and the many regional wage orders (8, 15 and 30 Dec 2025; 1, 3, 8 and 16 Jan, 7 Feb, 13 Mar, 1, 8 and 16 Apr, 1 and 20 May, 1 Jun, 6 Aug, 1 and 26 Sep, 14 Oct and 1 Dec 2026) and the holiday proclamations are dated rows inside it, each key’s floor on a day being its first entry whose `from` is on or before the day (NWPC regional pages and signed orders read 2026-09-30). A settlement period spanning an order’s date takes the newer floor for the whole period (`from <= period.to`): for wages the stricter test, never an underpayment; for the minimum-wage-earner income-tax test (WTAX `person.mwe`) the same newer floor decides the whole period, so it can exempt days earned before the order — a recorded default whose exposure is nil in practice, a salary at or below the floor × 313 ÷ 12 being under the ₱250,000 annual zero bracket. A worksite whose predecessor rate is unread stays unseeded and refuses. VIII MANUFACTURING and OTHER_NONAGRI select the non-agriculture class (RB VIII-25 s.2 puts non-agriculture with retail of more than 10 workers); cottage/handicraft has no sector code of its own, so it is priced at the non-agriculture floor — a recorded default that never underpays. VIII domestic rows at the seven chartered cities select the chartered-city class (RBVIII-DW-06 s.1). BARMM/Cotabato City private rows follow BARMM-05 s.2: non-agriculture (manufacturing, other non-agriculture) and agriculture/retail. RA 9178 s.8 exempts a certified Barangay Micro Business Enterprise from the Minimum Wage Law, its employees keeping social security and health benefits, so `wages.applies_when` leaves a BMBE establishment (company fact `bmbe_certificate_of_authority`, default false) outside the private floor; a kasambahay stays covered by the domestic order. The contribution schemes do not read the fact. Wage Order No. IVA-22 s.2 (p.3 non-agriculture, p.5 agriculture, p.7 retail/service of 10 or fewer; nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf) lists the City of Santo Tomas, Batangas among the component cities: non-agriculture ₱600 (`IV-A`), agriculture ₱525 (`IV-A-AGRI-COMPONENT-1ST`), retail/service of 10 or fewer ₱485 then ₱508 (`IV-A-RETAIL-SMALL`) — the same class as the City of Calamba, so `Batangas/Santo Tomas` carries Calamba's rows. Each key holds its dated floors newest first ({from, monthly}); the floor on a day is the first entry whose `from` is on or before it. Kasambahay floors are monthly as the domestic orders state them. Verified against the NWPC regional pages on 7 October 2026. NCR-27 (effective 25 July 2026, ₱780 from 20 January 2027) is not carried: NWPC marks it subject to litigation before RTC Pasig Branch 152 and RTC Navotas Branch 287; NCR-28 governs from 26 September 2026. NCR-28’s recitals (signed order, nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf, read 2026-10-07) state that a Status Quo Ante Order (24 July 2026), a TRO and a writ of preliminary injunction mean \"Wage Order No. NCR-27 never took effect\": NCR-26 governs to 25 September 2026 and neither NCR-27 tranche (25 July 2026, 20 January 2027) is a floor; a lifted injunction is a new version from its date. RXIII-DW-06 s.1 (signed order read 2026-10-07) puts chartered cities, first-class and other municipalities on one row, ₱6,000 → ₱6,500, so Caraga has no other-municipality key. Wage Order No. IVA (CALABARZON)-23 ss.1–2 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/10/Wage-Order-No.-IVA-CALABARZON-23.pdf), published 10 October 2026, effective 26 October 2026 (https://nwpc.dole.gov.ph/region-iva/): non-agriculture in the Extended Metropolitan Area and component cities ₱645 (`IV-A`); Rosario, Cavite ₱645 (`IV-A-ROSARIO-CAVITE`, ₱600 under IVA-22); other first-class municipalities, including those reclassified, ₱590; second- to fifth-class municipalities ₱550; agriculture in all classes ₱550; retail/service regularly employing no more than ten workers ₱550. Each daily figure is stored × 313 ÷ 12. RB-IVA (CALABARZON)-DW-06 s.1 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/10/Wage-Order-No.-RB-IVA-CALABARZON-DW-06.pdf) sets a ₱7,500 monthly domestic-worker floor throughout IV-A from the same date. Both are single increases; neither order contains a 2027 tranche. The predecessor dated rows remain in force before 26 October."
 		}
 	},
 	{
@@ -2873,6 +2923,116 @@
 			"when": "has(company.facts.npc_registered_on) && company.facts.npc_registered_on != \"\" && (headcount >= 250 || (has(company.facts.processes_sensitive_pi_1000) && company.facts.processes_sensitive_pi_1000)) && (((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) || (today >= add_days((string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))))",
 			"repeat_key": "(((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) ? (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) : (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))).substring(0, 4)",
 			"due": "(((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) ? (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) : (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))))"
+		}
+	},
+	{
+		"id": "46adfb62-95df-50ca-a781-5df58d8208b0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Back pay and other earnings",
+				"Allowances",
+				"Overtime and other work",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Employee statutory",
+				"Employer statutory",
+				"Loans and other deductions",
+				"Claims and other pay",
+				"Total deductions",
+				"Net pay",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "FRINGE_BENEFIT",
+					"payment": "INFORMATION"
+				},
+				{
+					"family": "ADHOC",
+					"code": "HDMF_MP2",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "HDMF_VOLUNTARY",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "KASAMBAHAY_FORFEITURE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "LOSS_DAMAGE_DEDUCTION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PROTECTION_ORDER_SUPPORT",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "STATUTORY_ADJUSTMENT",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "ADHOC",
+					"code": "UNION_DUES",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "CLAIM",
+					"code": "MEDICAL_CLAIM_DIRECT",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "COMPANY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "LOAN_RECOVERY_COMPANY",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "LOAN_RECOVERY_SSS_SALARY",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				}
+			]
 		}
 	}
 ]

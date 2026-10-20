@@ -47,7 +47,7 @@ const policies: Record<string, Limit[]> = {
 		ceiling('DAILY_HOURS_CAP', 'day.date', 'max(0.0, 12.0 - day.scheduled_hours)', part4),
 		ceiling('OVERTIME_MONTHLY_CAP', month, '72.0', part4)
 	],
-	// The seeded warnings apply beyond the narrower ordinary-overtime payment eligibility.
+	// Historical fallback; corrected snapshots own their explicit overtime_classification row.
 	MY: [
 		ceiling('DAILY_HOURS_CAP', 'day.date', 'max(0.0, 12.0 - day.scheduled_hours)'),
 		ceiling('OVERTIME_MONTHLY_CAP', month, '104.0')

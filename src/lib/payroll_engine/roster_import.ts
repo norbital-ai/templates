@@ -6,12 +6,12 @@
  * changes to settled days (pinned, inside a regular run's attendance window, awaiting approval) and the version's
  * `roster` validations; `rosterSheet` is the template, the stored state of a window.
  */
-import { Effect, Result } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import type { Id, Insert, Row } from '@norbital-ai/bolt';
-import { addDays, Instant, PlainDate } from '@norbital-ai/std/date';
-import { numberOf, PAYROLL_TIME_ZONE, type Read } from './foundation.js';
-import { coverageRange } from './leave.js';
+import { addDays, Instant, parseInstant, PlainDate } from '@norbital-ai/std/date';
+import { numberOf, PAYROLL_TIME_ZONE, Refusal, type Read } from './foundation.js';
+import { coverageRange, movementFromRow, refuseCoveredWorkDay } from './leave.js';
 import {
 	isField,
 	SHEET_COLUMNS,
@@ -20,11 +20,13 @@ import {
 	type SheetFinding,
 	type SheetKnown,
 	type SheetRecord,
+	type ApprovedInterval,
 	type StoredInterval
 } from './roster_sheet.js';
 import { rosterFindingsFrom, type RosterDraft } from './admit.js';
 import { CONTRACT, ENTITY, PROFILE, ROSTER, SETTINGS, RULES, HOLIDAY } from './rows.js';
 import { versionOn, zoneOn, datesFrom } from './payslip/context.js';
+import { refuseApprovedOvertimeIntervals } from './roster_entry.js';
 
 type Range = { readonly from?: string | null; readonly to?: string | null };
 type Entry = Pick<
@@ -33,6 +35,8 @@ type Entry = Pick<
 	| 'employment_id'
 	| 'work_date'
 	| 'shift_definition_id'
+	| 'planned_overtime_hours'
+	| 'approved_overtime_intervals'
 	| 'worked_intervals'
 	| 'banked_overtime_hours'
 	| 'overtime_consented_at'
@@ -43,6 +47,8 @@ type Mapped = {
 	readonly employment_id: Id<'employment_contract'>;
 	readonly work_date: PlainDate;
 	readonly shift_definition_id: Id<'shift_definition'> | null;
+	readonly planned_overtime_hours: number | null;
+	readonly approved_overtime_intervals: readonly ApprovedInterval[] | null;
 	readonly worked_intervals: readonly StoredInterval[] | null;
 	readonly banked_overtime_hours: number | null;
 	readonly overtime_consented_at: Instant | null;
@@ -58,38 +64,104 @@ const clockOf = (instant: string, zone: string): string =>
 	toCalendarDateTime(fromAbsolute(Date.parse(instant), zone))
 		.toString()
 		.slice(11, 16);
-/** The first clock-in and last clock-out of a stored day, local; null when the day has no closed interval. */
+/** Stored boundaries retain their dates and seconds when a time-only pair would lose them. */
 const clocksOf = (
 	stored: readonly StoredInterval[] | null | undefined,
-	zone: string
+	zone: string,
+	day: string
 ): { in: string; out: string } | null => {
+	if (stored?.length === 0) return { in: '00:00', out: '00:00' };
 	const list = stored ?? [];
+	const first = list[0];
 	const last = list.at(-1)?.end;
-	return list[0] == null || last == null
-		? null
-		: { in: clockOf(list[0].start, zone), out: clockOf(last, zone) };
-};
-const clockText = (value: string | undefined): string | null => {
-	const match = /^(\d{1,2}):(\d{2})/.exec(value ?? '');
-	return match == null ? null : `${match[1]!.padStart(2, '0')}:${match[2]}`;
+	if (first == null || last == null) return null;
+	const start = clockOf(first.start, zone),
+		end = clockOf(last, zone);
+	const simple =
+		localDay(first.start, zone) === day &&
+		localDay(last, zone) === (end < start ? addDays(day, 1) : day) &&
+		start !== end &&
+		Date.parse(first.start) % 60_000 === 0 &&
+		Date.parse(last) % 60_000 === 0;
+	return simple ? { in: start, out: end } : { in: first.start, out: last };
 };
 /** A local day and clock in the zone as an instant. */
 const instantAt = (date: string, time: string, zone: string): string =>
 	toZoned(parseDateTime(`${date}T${time}`), zone)
 		.toDate()
 		.toISOString();
-/** One clock pair as a stored interval in the zone; a clock-out at or before the clock-in is the next day. */
-const intervalOf = (
-	day: string,
-	clock: { in: string; out: string },
-	zone: string
-): StoredInterval[] => [
-	{
-		start: Instant(instantAt(day, clock.in, zone)),
-		end: Instant(instantAt(clock.out <= clock.in ? addDays(day, 1) : day, clock.out, zone))
-	}
-];
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
+type ClockCell = {
+	readonly instant: Instant;
+	readonly time: string;
+	readonly explicitDate: boolean;
+	readonly precision: 'minute' | 'exact';
+};
+const numericCell = Schema.decodeUnknownResult(
+	Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Finite))
+);
+/** Native ISO/local date-time parsing, plus the existing time-only and Excel serial cells. */
+const clockCell = (value: string | undefined, day: string, zone: string): ClockCell | null => {
+	if (value == null) return null;
+	const text = value.trim();
+	const cell = (
+		instant: Instant,
+		explicitDate: boolean,
+		precision: ClockCell['precision']
+	): ClockCell => ({
+		instant,
+		explicitDate,
+		precision,
+		time: toCalendarDateTime(fromAbsolute(Date.parse(instant), zone))
+			.toString()
+			.slice(11)
+	});
+	const numeric = numericCell(text);
+	if (Result.isSuccess(numeric) && numeric.success >= 0 && numeric.success < 2_958_466) {
+		const stamp = new Date(EXCEL_EPOCH + Math.round(numeric.success * 86_400_000));
+		const iso = stamp.toISOString();
+		const parsed = parseInstant(
+			`${numeric.success <= 1 ? day : iso.slice(0, 10)} ${iso.slice(11, 19)}`,
+			zone
+		);
+		return parsed == null
+			? null
+			: cell(
+					Instant(new Date(Date.parse(parsed) + stamp.getUTCMilliseconds())),
+					numeric.success > 1,
+					'exact'
+				);
+	}
+	const time = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(text);
+	if (time != null) {
+		const parsed = parseInstant(
+			`${day} ${time[1]!.padStart(2, '0')}:${time[2]}${time[3] == null ? '' : `:${time[3]}`}`,
+			zone
+		);
+		return parsed == null ? null : cell(parsed, false, time[3] == null ? 'minute' : 'exact');
+	}
+	const parsed = parseInstant(text, zone);
+	return parsed == null ? null : cell(parsed, true, 'exact');
+};
+/** Equal midnight markers mean recorded no work; dated boundaries are never silently rolled over. */
+const intervalOf = (
+	clock: { in: ClockCell; out: ClockCell },
+	zone: string
+): StoredInterval[] | null => {
+	const start = clock.in.instant;
+	let end = clock.out.instant;
+	if (Date.parse(start) === Date.parse(end))
+		return /^00:00(?::00(?:\.0+)?)?$/.test(clock.in.time) ? [] : null;
+	if (end < start) {
+		if (clock.out.explicitDate) return null;
+		end = Instant(instantAt(addDays(localDay(start, zone), 1), clock.out.time, zone));
+	}
+	return end <= start ? null : [{ start, end }];
+};
+const sameBoundary = (left: string, right: string, precision: ClockCell['precision']) =>
+	precision === 'minute'
+		? Math.floor(Date.parse(left) / 60_000) === Math.floor(Date.parse(right) / 60_000)
+		: Date.parse(left) === Date.parse(right);
 /** An OT consent cell: `true` when marked, the ISO day when it is a date, null when blank, undefined when neither. */
 const consentCell = (cell: string | undefined): true | string | null | undefined => {
 	if (cell == null) return null;
@@ -123,6 +195,15 @@ const sameIntervals = (
 		)
 	);
 };
+const sameApprovedIntervals = (
+	left: readonly ApprovedInterval[] | null | undefined,
+	right: readonly ApprovedInterval[] | null | undefined
+): boolean =>
+	sameIntervals(left, right) &&
+	(left ?? []).every(
+		(interval, index) =>
+			(numberOf(interval.break_minutes) ?? 0) === (numberOf(right?.[index]?.break_minutes) ?? 0)
+	);
 const hours = (value: unknown): number => numberOf(value) ?? 0;
 
 const sheetSpan = (records: readonly Pick<SheetRecord, 'work_date'>[]) => {
@@ -168,7 +249,10 @@ const loadSheetScope = (
 			collection: 'roster_entry',
 			where: {
 				employment_id: { in: { member: 'named', field: 'id' } },
-				work_date: { gte: PlainDate(span.from), lte: PlainDate(span.to) }
+				work_date: {
+					gte: PlainDate(addDays(span.from, -6)),
+					lte: PlainDate(addDays(span.to, 6))
+				}
 			},
 			select: ROSTER,
 			all: true
@@ -189,7 +273,10 @@ const loadSheetScope = (
 			collection: 'holiday',
 			where: {
 				company_id: { in: { member: 'entity', field: 'id' } },
-				date: { gte: PlainDate(span.from), lte: PlainDate(span.to) },
+				date: {
+					gte: PlainDate(addDays(span.from, -6)),
+					lte: PlainDate(addDays(span.to, 6))
+				},
 				published_at: { isNull: false }
 			},
 			select: { ...HOLIDAY, company_id: true },
@@ -201,7 +288,12 @@ const loadSheetScope = (
 				code: { in: { member: 'entity', field: 'settings_code' } },
 				voided_at: { isNull: true },
 				sealed_at: { isNull: false },
-				effective_range: { overlaps: { from: PlainDate(span.from), to: PlainDate(span.to) } }
+				effective_range: {
+					overlaps: {
+						from: PlainDate(addDays(span.from, -6)),
+						to: PlainDate(addDays(span.to, 6))
+					}
+				}
 			},
 			select: SETTINGS,
 			all: true
@@ -234,7 +326,9 @@ const loadSheetScope = (
 				occurred_on: true,
 				days: true,
 				from: true,
-				to: true
+				to: true,
+				half_day_start: true,
+				half_day_end: true
 			},
 			all: true
 		},
@@ -332,23 +426,69 @@ const contractOf = (record: SheetRecord, known: SheetKnown) => {
 const shiftOf = (known: SheetKnown, company_id: string, code: string, day: string) =>
 	known.shifts.find(
 		(row) => row.company_id === company_id && row.code === code && inRange(day, row)
-	) ?? known.shifts.find((row) => row.company_id === company_id && row.code === code);
-const clocks = (record: SheetRecord) => {
-	const clockIn = clockText(record.clock_in),
-		clockOut = clockText(record.clock_out);
+	);
+const clocks = (record: SheetRecord, zone: string) => {
+	const clockIn = clockCell(record.clock_in, dayOf(record.work_date), zone),
+		clockOut = clockCell(record.clock_out, dayOf(record.work_date), zone);
 	return clockIn != null && clockOut != null ? { in: clockIn, out: clockOut } : null;
+};
+const APPROVAL_FIELDS = [
+	'approved_ot_1_start',
+	'approved_ot_1_end',
+	'approved_ot_2_start',
+	'approved_ot_2_end'
+] as const;
+const APPROVAL_BREAK_FIELDS = [
+	'approved_ot_1_break_minutes',
+	'approved_ot_2_break_minutes'
+] as const;
+const APPROVAL_ALL_FIELDS = [...APPROVAL_FIELDS, ...APPROVAL_BREAK_FIELDS] as const;
+const approvalCell = (value: string | undefined): Instant | null => {
+	if (
+		value == null ||
+		!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i.test(
+			value
+		)
+	)
+		return null;
+	if (Result.isFailure(Result.try(() => PlainDate(value.slice(0, 10))))) return null;
+	return parseInstant(value);
+};
+/** Blank approval cells preserve the stored windows; CLEAR is an explicit removal, never an inferred consent. */
+const approvedIntervals = (record: SheetRecord): readonly ApprovedInterval[] | null | undefined => {
+	if (APPROVAL_ALL_FIELDS.every((field) => record[field] == null)) return undefined;
+	if (record.approved_ot_1_start?.toUpperCase() === 'CLEAR') return null;
+	const out: ApprovedInterval[] = [];
+	for (const [startField, endField, breakField] of [
+		['approved_ot_1_start', 'approved_ot_1_end', 'approved_ot_1_break_minutes'],
+		['approved_ot_2_start', 'approved_ot_2_end', 'approved_ot_2_break_minutes']
+	] as const) {
+		const start = approvalCell(record[startField]);
+		const end = approvalCell(record[endField]);
+		if (start != null && end != null)
+			out.push({
+				start,
+				end,
+				...(record[breakField] == null ? {} : { break_minutes: record[breakField] })
+			});
+	}
+	return out;
 };
 const worksHours = (record: SheetRecord) =>
 	record.clock_in != null ||
 	record.clock_out != null ||
 	record.overtime_consent != null ||
-	record.banked_overtime_hours != null;
+	record.banked_overtime_hours != null ||
+	record.planned_overtime_hours != null ||
+	APPROVAL_ALL_FIELDS.some((field) => record[field] != null);
 
 /** A sheet row as its roster day: the columns the sheet sets. */
 type SheetDay = {
 	readonly employment_id: Id<'employment_contract'>;
 	readonly work_date: PlainDate;
 	readonly shift_definition_id: Id<'shift_definition'> | null;
+	readonly planned_overtime_hours: number | null;
+	readonly approved_overtime_intervals: Row<'roster_entry'>['approved_overtime_intervals'];
 	readonly worked_intervals: Row<'roster_entry'>['worked_intervals'];
 	readonly banked_overtime_hours: number | null;
 	readonly overtime_consented_at: Instant | null;
@@ -362,6 +502,8 @@ export const mappedOf = (row: SheetDay | null): Mapped | null =>
 				employment_id: row.employment_id,
 				work_date: row.work_date,
 				shift_definition_id: row.shift_definition_id,
+				planned_overtime_hours: row.planned_overtime_hours,
+				approved_overtime_intervals: row.approved_overtime_intervals,
 				worked_intervals: row.worked_intervals,
 				banked_overtime_hours: numberOf(row.banked_overtime_hours),
 				overtime_consented_at: row.overtime_consented_at
@@ -370,6 +512,16 @@ export const mappedOf = (row: SheetDay | null): Mapped | null =>
 /** Once per upload: what the sheet's employee numbers, shift codes and leave codes name, and the intervals it keeps. */
 export const sheetKnown = (records: readonly SheetRecord[], context: SheetContext, read: Read) =>
 	Effect.gen(function* () {
+		if (records.length === 0)
+			return {
+				failure: 'The file has no work-day rows.',
+				contracts: [],
+				shifts: [],
+				leave: {},
+				classes: {},
+				kept: {},
+				consented: {}
+			} satisfies SheetKnown;
 		const scope = yield* sheetScope(records, context, read);
 		const shifts = scope.got.definitions.rows;
 		const known: SheetKnown = {
@@ -400,6 +552,8 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 		const classes: { [key: string]: { [code: string]: Id<'leave_catalog'> } } = {};
 		const kept: { [key: string]: readonly StoredInterval[] } = {};
 		const consented: { [key: string]: Instant } = {};
+		const plannedOvertime: { [key: string]: number } = {};
+		const approvedOvertime: { [key: string]: readonly ApprovedInterval[] } = {};
 		const lineage = scope.got.versions.rows;
 		const leaveClasses = scope.got.classes.rows;
 		for (const record of records) {
@@ -407,21 +561,32 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 			if (contract == null) continue;
 			const day = dayOf(record.work_date);
 			const key = keyOf(contract.id, day);
+			const plannedHours = numberOf(scope.entries.get(key)?.planned_overtime_hours);
+			if (plannedHours != null) plannedOvertime[key] = plannedHours;
+			const approved = scope.entries.get(key)?.approved_overtime_intervals;
+			if (approved != null) approvedOvertime[key] = approved;
 			const consent = scope.entries.get(key)?.overtime_consented_at;
 			if (consent != null) consented[key] = consent;
 			const stored = scope.entries.get(key)?.worked_intervals ?? null;
-			const clock = clocks(record);
-			const storedClock = clocksOf(stored, contract.zone);
-			// a clock restating the stored first in and last out (to the minute) keeps the stored intervals and their
-			// breaks; a row without a clock that still states the day (a shift or hours) keeps one reviewed as nothing
-			// worked, or one still clocked in; a wholly blank row keeps nothing, so the day goes
+			const clock = clocks(record, contract.zone);
+			const incoming = clock == null ? null : intervalOf(clock, contract.zone);
+			const first = stored?.[0],
+				last = stored?.at(-1)?.end;
+			const incomingFirst = incoming?.[0],
+				incomingLast = incoming?.at(-1)?.end;
+			// Restated boundaries keep recorded breaks and legacy minute precision. Empty attendance has its own
+			// midnight markers; blank clocks keep only a still-open interval that this sheet cannot finish.
 			if (
 				stored != null &&
 				(clock == null
-					? storedClock == null && (record.shift_code != null || worksHours(record))
-					: storedClock?.in === clock.in &&
-						storedClock.out === clock.out &&
-						!sameIntervals(stored, intervalOf(day, clock, contract.zone)))
+					? first != null && last == null && (record.shift_code != null || worksHours(record))
+					: first != null &&
+						last != null &&
+						incomingFirst != null &&
+						incomingLast != null &&
+						sameBoundary(first.start, incomingFirst.start, clock.in.precision) &&
+						sameBoundary(last, incomingLast, clock.out.precision) &&
+						!sameIntervals(stored, incoming))
 			)
 				kept[key] = stored;
 			if (record.leave_code == null || known.leave[key] != null) continue;
@@ -444,6 +609,8 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 			classes,
 			kept,
 			consented,
+			plannedOvertime,
+			approvedOvertime,
 			checked: { rows: scope.got }
 		};
 	});
@@ -457,9 +624,9 @@ export const sheetRow = (record: SheetRecord, known: SheetKnown): SheetDay | nul
 	const shift =
 		record.shift_code == null ? null : shiftOf(known, contract.company_id, record.shift_code, day);
 	if (record.shift_code != null && shift == null) return null;
-	const clock = clocks(record);
-	const intervals =
-		known.kept[key] ?? (clock == null ? null : intervalOf(day, clock, contract.zone));
+	const clock = clocks(record, contract.zone);
+	const intervals = known.kept[key] ?? (clock == null ? null : intervalOf(clock, contract.zone));
+	const approved = approvedIntervals(record);
 	if (
 		shift == null &&
 		intervals == null &&
@@ -481,6 +648,9 @@ export const sheetRow = (record: SheetRecord, known: SheetKnown): SheetDay | nul
 		employment_id: contract.id,
 		work_date: PlainDate(day),
 		shift_definition_id: shift?.id ?? null,
+		planned_overtime_hours: record.planned_overtime_hours ?? known.plannedOvertime?.[key] ?? null,
+		approved_overtime_intervals:
+			approved === undefined ? (known.approvedOvertime?.[key] ?? null) : approved,
 		worked_intervals: intervals,
 		banked_overtime_hours: record.banked_overtime_hours ?? null,
 		overtime_consented_at: consent == null ? null : Instant(consent)
@@ -538,25 +708,31 @@ const lockOf = (
 	entry?.payslip_id != null
 		? 'settled on a payslip'
 		: (windows ?? []).some((window) => inRange(day, window))
-			? 'inside a period already paid'
+			? 'inside a period already captured by payroll'
 			: null;
 
 const changedFields = (row: Mapped, stored: Entry): readonly (keyof Mapped)[] =>
 	(
 		[
 			'shift_definition_id',
+			'planned_overtime_hours',
+			'approved_overtime_intervals',
 			'worked_intervals',
 			'banked_overtime_hours',
 			'overtime_consented_at'
 		] as const
 	).filter((field) =>
-		field === 'worked_intervals'
-			? !sameIntervals(row.worked_intervals, stored.worked_intervals)
-			: field === 'shift_definition_id'
-				? row.shift_definition_id !== (stored.shift_definition_id ?? null)
-				: field === 'overtime_consented_at'
-					? instantOf(row.overtime_consented_at) !== instantOf(stored.overtime_consented_at)
-					: hours(row[field]) !== hours(stored[field])
+		field === 'approved_overtime_intervals'
+			? !sameApprovedIntervals(row[field], stored[field])
+			: field === 'worked_intervals'
+				? !sameIntervals(row[field], stored[field])
+				: field === 'shift_definition_id'
+					? row.shift_definition_id !== (stored.shift_definition_id ?? null)
+					: field === 'planned_overtime_hours'
+						? numberOf(row[field]) !== numberOf(stored[field])
+						: field === 'overtime_consented_at'
+							? instantOf(row.overtime_consented_at) !== instantOf(stored.overtime_consented_at)
+							: hours(row[field]) !== hours(stored[field])
 	);
 
 /**
@@ -592,8 +768,15 @@ export const sheetFindings = (
 				? yield* sheetScope(records, input.context, read)
 				: yield* Effect.fromResult(scopeFrom(known.checked.rows, span.from, span.to));
 		const windows = settledWindows(scope.got);
+		const movements = scope.got.leave.rows.map(movementFromRow);
 		const seen = new Map<string, number>();
 		const drafts: { company_id: Id<'entity'>; draft: RosterDraft }[] = [];
+		const affected = new Set<string>();
+		const changedOn = (employment_id: string, day: string) => {
+			// The judge exposes this person's day, prior-day rest and a seven-day week; widen this before adding other roster context.
+			for (let after = 0; after < 7; after++)
+				affected.add(keyOf(employment_id, addDays(day, after)));
+		};
 		// the pipeline's scope: per employment, its first to its last mapped day
 		const spans = new Map<string, { from: string; to: string }>();
 		for (const row of rows) {
@@ -647,10 +830,25 @@ export const sheetFindings = (
 					record.clock_in == null ? 'clock_in' : 'clock_out',
 					'A clock-in needs its clock-out.'
 				);
-			if (record.clock_in != null && clockText(record.clock_in) == null)
-				return finding(record.row, 'clock_in', `"${record.clock_in}" is not a time (HH:MM).`);
-			if (record.clock_out != null && clockText(record.clock_out) == null)
-				return finding(record.row, 'clock_out', `"${record.clock_out}" is not a time (HH:MM).`);
+			if (record.clock_in != null && clockCell(record.clock_in, day, contract.zone) == null)
+				return finding(
+					record.row,
+					'clock_in',
+					`"${record.clock_in}" is not a clock time or dated timestamp.`
+				);
+			if (record.clock_out != null && clockCell(record.clock_out, day, contract.zone) == null)
+				return finding(
+					record.row,
+					'clock_out',
+					`"${record.clock_out}" is not a clock time or dated timestamp.`
+				);
+			const clock = clocks(record, contract.zone);
+			if (clock != null && intervalOf(clock, contract.zone) == null)
+				return finding(
+					record.row,
+					'clock_out',
+					'Clock out must be after clock in. Equal non-midnight times need explicit dates; only 00:00 / 00:00 means recorded no work.'
+				);
 			if (consentCell(record.overtime_consent) === undefined)
 				return finding(
 					record.row,
@@ -663,6 +861,70 @@ export const sheetFindings = (
 					'shift_code',
 					`${record.shift_code} is not a shift of this entity.`
 				);
+			if (
+				record.planned_overtime_hours != null &&
+				(!Number.isFinite(record.planned_overtime_hours) || record.planned_overtime_hours < 0)
+			)
+				return finding(
+					record.row,
+					'planned_overtime_hours',
+					'Planned OT hours must be a nonnegative duration.'
+				);
+			if (record.planned_overtime_hours != null && row?.shift_definition_id == null)
+				return finding(
+					record.row,
+					'planned_overtime_hours',
+					'Choose a shift code for the planned overtime.'
+				);
+			const clearing = record.approved_ot_1_start?.toUpperCase() === 'CLEAR';
+			if (
+				clearing &&
+				[...APPROVAL_FIELDS.slice(1), ...APPROVAL_BREAK_FIELDS].some(
+					(field) => record[field] != null
+				)
+			)
+				return finding(
+					record.row,
+					'approved_ot_1_start',
+					'CLEAR must be used alone; leave the other approved OT cells blank.'
+				);
+			if (!clearing) {
+				for (const [startField, endField, breakField] of [
+					['approved_ot_1_start', 'approved_ot_1_end', 'approved_ot_1_break_minutes'],
+					['approved_ot_2_start', 'approved_ot_2_end', 'approved_ot_2_break_minutes']
+				] as const) {
+					if (record[breakField] != null && record[startField] == null)
+						return finding(
+							record.row,
+							breakField,
+							'Approved OT break minutes need their matching approved OT window.'
+						);
+					if ((record[startField] == null) !== (record[endField] == null))
+						return finding(
+							record.row,
+							record[startField] == null ? startField : endField,
+							'An approved OT start needs its end.'
+						);
+					for (const field of [startField, endField])
+						if (record[field] != null && approvalCell(record[field]) == null)
+							return finding(
+								record.row,
+								field,
+								'Use a full dated ISO timestamp with an offset, such as 2026-03-02T17:00:00+08:00.'
+							);
+				}
+				if (
+					APPROVAL_FIELDS.some((field) => record[field] != null) &&
+					row?.planned_overtime_hours == null
+				)
+					return finding(
+						record.row,
+						'planned_overtime_hours',
+						'Approved OT windows need a numeric Planned OT hours limit.'
+					);
+				const invalid = refuseApprovedOvertimeIntervals(approvedIntervals(record));
+				if (invalid != null) return finding(record.row, 'approved_ot_1_start', invalid);
+			}
 			const recorded = known.leave[key];
 			const leave = record.leave_code ?? recorded ?? '';
 			if (record.leave_code != null && recorded != null && recorded !== record.leave_code)
@@ -682,12 +944,21 @@ export const sheetFindings = (
 				);
 			if (newLeave && lock != null) return finding(record.row, 'leave_code', `${who} is ${lock}.`);
 			const changes = row == null ? [] : stored == null ? ['created'] : changedFields(row, stored);
-			// a day on leave keeps what is stored (a planned shift); it takes no new shift, clock or hours
-			if (leave !== '' && changes.length > 0)
+			// Leave needs its planned shift; full-day absence excludes actual work, not the plan or a no-work marker.
+			const actualWork =
+				(row?.worked_intervals?.length ?? 0) > 0 ||
+				(row?.banked_overtime_hours ?? 0) > 0 ||
+				row?.overtime_consented_at != null;
+			if (
+				leave !== '' &&
+				changes.length > 0 &&
+				actualWork &&
+				(newLeave || refuseCoveredWorkDay(day, contract.id, movements) != null)
+			)
 				return finding(
 					record.row,
 					'leave_code',
-					`${who} is on ${leave} leave: it takes no new shift, clock or hours.`
+					`${who} is on full-day ${leave} leave: it cannot record actual work, banked overtime or overtime consent.`
 				);
 			if (lock != null && changes.length > 0)
 				return finding(
@@ -707,6 +978,15 @@ export const sheetFindings = (
 				else if (lock != null)
 					finding(record.row, '', `${who} is ${lock}; a blank row would delete it.`);
 			}
+			if (
+				newLeave ||
+				changes.length > 0 ||
+				(row == null &&
+					stored != null &&
+					spans.has(contract.id) &&
+					inRange(day, spans.get(contract.id)))
+			)
+				changedOn(contract.id, day);
 			drafts.push({
 				company_id: contract.company_id,
 				draft: {
@@ -714,6 +994,8 @@ export const sheetFindings = (
 					employment_id: contract.id,
 					work_date: day,
 					shift_definition_id: row?.shift_definition_id ?? null,
+					planned_overtime_hours: row?.planned_overtime_hours ?? null,
+					approved_overtime_intervals: row?.approved_overtime_intervals ?? null,
 					worked_intervals: row?.worked_intervals ?? null,
 					banked_overtime_hours: row?.banked_overtime_hours ?? null,
 					overtime_consented_at: row?.overtime_consented_at ?? null,
@@ -727,6 +1009,7 @@ export const sheetFindings = (
 			const span = spans.get(stored.employment_id);
 			if (span == null || day < span.from || day > span.to || named.has(key) || seen.has(key))
 				continue;
+			changedOn(stored.employment_id, day);
 			const lock = lockOf(stored, windows.get(stored.employment_id), day);
 			const number = known.contracts.find((row) => row.id === stored.employment_id)?.number ?? '';
 			if (lock != null)
@@ -769,17 +1052,60 @@ export const sheetFindings = (
 					)
 				}
 			};
+			// A file can complete a working week begun in a previous upload, or affect a later stored day.
+			const employmentIds = new Set(got.contracts.rows.map((row) => row.id));
+			const judged = new Map<string, RosterDraft>();
+			const neighbors = new Map<number, RosterDraft>();
+			let neighborRef = -1;
+			for (const [key, stored] of scope.entries) {
+				if (!employmentIds.has(stored.employment_id)) continue;
+				const span = spans.get(stored.employment_id);
+				const day = dayOf(stored.work_date);
+				if (span == null || inRange(day, span)) continue;
+				const draft: RosterDraft = {
+					ref: neighborRef--,
+					employment_id: stored.employment_id,
+					work_date: day,
+					shift_definition_id: stored.shift_definition_id,
+					planned_overtime_hours: numberOf(stored.planned_overtime_hours),
+					approved_overtime_intervals: stored.approved_overtime_intervals,
+					worked_intervals: stored.worked_intervals,
+					banked_overtime_hours: numberOf(stored.banked_overtime_hours),
+					overtime_consented_at: stored.overtime_consented_at,
+					leave_code: known.leave[key] ?? ''
+				};
+				judged.set(key, draft);
+				neighbors.set(draft.ref, draft);
+			}
+			for (const { draft } of drafts.filter((row) => row.company_id === company_id)) {
+				const span = spans.get(draft.employment_id);
+				if (span != null && inRange(draft.work_date, span))
+					judged.set(keyOf(draft.employment_id, draft.work_date), draft);
+			}
+			const checkedRefs = new Set(
+				[...judged.values()]
+					.filter((draft) => affected.has(keyOf(draft.employment_id, draft.work_date)))
+					.map((draft) => draft.ref)
+			);
+			if (checkedRefs.size === 0) continue;
 			for (const found of yield* rosterFindingsFrom(
 				company_id,
-				drafts.filter((row) => row.company_id === company_id).map((row) => row.draft),
-				got
-			))
+				[...judged.values()],
+				got,
+				checkedRefs
+			)) {
+				const neighbor = neighbors.get(found.ref);
+				const number = known.contracts.find((row) => row.id === neighbor?.employment_id)?.number;
 				out.push({
-					row: found.ref,
+					row: found.ref < 0 ? null : found.ref,
 					column: isField(found.column) ? SHEET_COLUMNS[found.column] : '',
-					message: found.message,
+					message:
+						neighbor == null
+							? found.message
+							: `${number ?? ''} ${neighbor.work_date}: ${found.message}`,
 					severity: found.kind === 'refuse' ? 'refuse' : 'warn'
 				});
+			}
 		}
 		return out;
 	});
@@ -853,7 +1179,9 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 					occurred_on: true,
 					days: true,
 					from: true,
-					to: true
+					to: true,
+					half_day_start: true,
+					half_day_end: true
 				},
 				all: true
 			},
@@ -878,6 +1206,13 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 		const entries = new Map(
 			got.entries.rows.map((row) => [keyOf(row.employment_id, dayOf(row.work_date)), row])
 		);
+		if (got.entries.rows.some((entry) => (entry.approved_overtime_intervals?.length ?? 0) > 2))
+			return yield* Effect.fail(
+				new Refusal({
+					message:
+						'This worksheet supports two approved OT windows per day. A stored day has more and cannot be exported without losing windows.'
+				})
+			);
 		const codes = new Map(got.definitions.rows.map((row) => [row.id, row.code]));
 		const names = new Map(got.people.rows.map((row) => [row.id, row.name]));
 		const holidays = new Map(
@@ -906,7 +1241,7 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 					const entry = entries.get(key);
 					const zone = zones.get(contract.company_id);
 					if (zone === undefined) return [];
-					const clock = clocksOf(entry?.worked_intervals, zone);
+					const clock = clocksOf(entry?.worked_intervals, zone, day);
 					return [
 						{
 							employee_number: contract.employee_number,
@@ -922,6 +1257,15 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 									? null
 									: localDay(String(entry.overtime_consented_at), zone),
 							banked_overtime_hours: amount(entry?.banked_overtime_hours),
+							planned_overtime_hours: numberOf(entry?.planned_overtime_hours),
+							approved_ot_1_start: entry?.approved_overtime_intervals?.[0]?.start ?? null,
+							approved_ot_1_end: entry?.approved_overtime_intervals?.[0]?.end ?? null,
+							approved_ot_2_start: entry?.approved_overtime_intervals?.[1]?.start ?? null,
+							approved_ot_2_end: entry?.approved_overtime_intervals?.[1]?.end ?? null,
+							approved_ot_1_break_minutes:
+								entry?.approved_overtime_intervals?.[0]?.break_minutes ?? null,
+							approved_ot_2_break_minutes:
+								entry?.approved_overtime_intervals?.[1]?.break_minutes ?? null,
 							leave_code: leave[key] || null,
 							name: names.get(contract.employee_id) ?? '',
 							holiday: holidays.get(`${contract.company_id}:${day}`) ?? null
@@ -951,6 +1295,13 @@ const sheetRecord = (cells: SheetCells): SheetRecord => {
 		...optional('clock_out'),
 		...optional('overtime_consent'),
 		...amount('banked_overtime_hours'),
+		...amount('planned_overtime_hours'),
+		...optional('approved_ot_1_start'),
+		...optional('approved_ot_1_end'),
+		...optional('approved_ot_2_start'),
+		...optional('approved_ot_2_end'),
+		...amount('approved_ot_1_break_minutes'),
+		...amount('approved_ot_2_break_minutes'),
 		...optional('leave_code')
 	};
 };

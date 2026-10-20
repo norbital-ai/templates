@@ -80,12 +80,22 @@ describe('complete statutory snapshots', () => {
 	it('preserves every section across all jurisdictions and supplies per-source portal instructions', () => {
 		for (const code of fs.readdirSync(root)) {
 			const versions = fs.readdirSync(path.join(root, code)).filter((n) => /^version_\d+$/.test(n));
+			let governing = 0;
 			for (const version of versions) {
 				const folder = path.join(root, code, version);
 				const [settings] = readSeedRows(folder, 'jurisdiction_settings');
 				assert.ok(settings);
 				const sources = sourcesFrom(settings.sources);
-				assert.equal(settings.voided_at ?? null, null, `${code}/${version}: voided seed snapshot`);
+				if (settings.voided_at == null) {
+					const range = Schema.decodeUnknownSync(
+						Schema.Struct({ from: Schema.String, to: Schema.NullOr(Schema.String) })
+					)(settings.effective_range);
+					if (range.from <= '2026-10-20' && (range.to == null || range.to >= '2026-10-20'))
+						governing++;
+				} else {
+					assert.match(String(settings.voided_at), /^\d{4}-\d{2}-\d{2}T/);
+					assert.ok(typeof settings.void_reason === 'string' && settings.void_reason.length > 20);
+				}
 				const entries = sources.entries;
 				assert.ok(entries?.length, `${code}/${version}`);
 				for (const entry of entries) {
@@ -97,6 +107,7 @@ describe('complete statutory snapshots', () => {
 					);
 				}
 			}
+			assert.equal(governing, 1, `${code} has one active snapshot governing 20 October 2026`);
 		}
 	});
 	it('indexes all rows and settings paths while keeping long legal data in memory', () => {

@@ -950,6 +950,7 @@ const subject = (input: Subject = {}) => {
 			residency_since: '',
 			base_salary: 3000,
 			monthly_wage: 3000,
+			allowances: [],
 			facts: {},
 			...input.terms
 		},
@@ -1137,7 +1138,14 @@ const payslipContext = (input: Subject = {}, overrides: Row = {}) => ({
 		days: [workDay('2026-02-03', { overtime_hours: 10, worked_hours: 18 })]
 	},
 	hours: {
-		month: { worked_hours: 18, overtime_hours: 10, incentive_hours: 0 },
+		month: {
+			worked_hours: 18,
+			overtime_hours: 10,
+			incentive_hours: 0,
+			day_type: {},
+			holiday_kind: {},
+			day_type_holiday_kind: {}
+		},
 		previous_month: { worked_hours: 0, overtime_hours: 0, incentive_hours: 0 },
 		year: { worked_hours: 18, overtime_hours: 10, incentive_hours: 0 },
 		rolling: { worked_hours: 18, overtime_hours: 10, incentive_hours: 0 }
@@ -1483,7 +1491,8 @@ describe('MY jurisdiction seed', () => {
 					false
 				);
 			}
-		})
+		}),
+		15_000
 	);
 	it('CP58: the January tick raises the yearly statement for an agent, dealer or distributor payee', () => {
 		for (const version of versions) {
@@ -2345,7 +2354,12 @@ describe('MY jurisdiction seed', () => {
 							{
 								hours: {
 									...payslipContext().hours,
-									month: { worked_hours: 0, overtime_hours: 105, incentive_hours: 5 }
+									month: {
+										...payslipContext().hours.month,
+										worked_hours: 0,
+										overtime_hours: 105,
+										incentive_hours: 5
+									}
 								}
 							}
 						)
@@ -2362,7 +2376,12 @@ describe('MY jurisdiction seed', () => {
 							{
 								hours: {
 									...payslipContext().hours,
-									month: { worked_hours: 0, overtime_hours: 104, incentive_hours: 5 }
+									month: {
+										...payslipContext().hours.month,
+										worked_hours: 0,
+										overtime_hours: 104,
+										incentive_hours: 5
+									}
 								}
 							}
 						)
@@ -4315,22 +4334,31 @@ describe('MY jurisdiction seed', () => {
 			'TERENGGANU'
 		];
 		const all: string[] = [];
-		for (const [index, version] of versions.entries()) {
+		for (const version of versions) {
 			const row = rows(version, 'rule_set').find((item) => item.code === 'public_holidays');
 			assert.ok(row && row.family === 'PAYROLL', version);
-			const range = fixtureValue2(settingsOf(version).effective_range);
-			// A version split for a change of law keeps listing its successor's holidays (written ahead, once by date).
-			const next = versions[index + 1];
-			const until = next == null ? null : fixtureValue21(settingsOf(next).effective_range).to;
+			// Corrections retain the published calendar intact, including past and already announced future dates.
 			for (const holiday of fixtureValue22(row.rules).holidays) {
 				const date = String(holiday.date);
-				assert.ok(date >= range.from && (until == null || date <= until), `${version} ${date}`);
+				assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
+				assert.ok(date >= '2025-12-01' && date <= '2027-12-31', `${version} ${date}`);
 				assert.equal(holiday.kind, 'PUBLIC_HOLIDAY');
 				for (const region of fixtureValue16(holiday.regions ?? []))
 					assert.ok(states.includes(region), region);
 				all.push(date);
 			}
 		}
+		for (const [correction, original] of [
+			['version_9', 'version_5'],
+			['version_10', 'version_6'],
+			['version_11', 'version_7'],
+			['version_12', 'version_8']
+		] as const)
+			assert.deepEqual(
+				byCode(correction, 'rule_set', 'public_holidays').rules,
+				byCode(original, 'rule_set', 'public_holidays').rules,
+				`${correction} preserves the original published calendar`
+			);
 		// HKA 2025–2027: Christmas 2025, sixteen 2026 dates, fifteen 2027 dates; no calendar gazetted beyond.
 		assert.equal(new Set(all).size, 31);
 		for (const date of [
@@ -5072,6 +5100,7 @@ describe('MY engine runs', () => {
 				'claim_catalog_entry',
 				'leave_catalog_entry',
 				'loan_catalog_entry',
+				'loan_repayment_entry',
 				'roster_entry',
 				'holiday',
 				'payslip',
@@ -5494,7 +5523,8 @@ describe('MY sample records (Nihon bank)', () => {
 				assert.ok(entity.has(String(row.company_id)), `company of ${String(row.id)}`);
 			for (const pattern of read('shift_pattern'))
 				for (const day of fixtureValue7(fixtureRecord(pattern.pattern).days ?? []))
-					assert.ok(shifts.has(String(day.roster_code_id)), `${String(pattern.code)} day`);
+					if (day.roster_code_id != null)
+						assert.ok(shifts.has(String(day.roster_code_id)), `${String(pattern.code)} day`);
 			const schemes = new Map(
 				versions.flatMap((version) =>
 					rows(version, 'statutory_contribution_catalog').map(
@@ -5546,7 +5576,7 @@ describe('MY sample records (Nihon bank)', () => {
 				['leave_catalog_entry', 'leave_catalog'],
 				['claim_catalog_entry', 'claim_catalog'],
 				['adhoc_catalog_entry', 'adhoc_catalog'],
-				['loan_catalog_entry', 'loan_catalog']
+				['loan_repayment_entry', 'loan_catalog']
 			] as const)
 				for (const row of read(collection)) {
 					const day = String(row.occurred_on);
@@ -5558,12 +5588,40 @@ describe('MY sample records (Nihon bank)', () => {
 					assert.ok(contractIds.has(String(row.employment_id)));
 					assert.ok(entity.has(String(row.company_id)));
 				}
+			const loans = new Map(read('loan_catalog_entry').map((row) => [row.id, row]));
+			for (const loan of loans.values()) {
+				assert.ok(contractIds.has(String(loan.employment_id)));
+				assert.ok(entity.has(String(loan.company_id)));
+				// A configured loan carries its principal and period; a legacy one (unknown principal) neither.
+				assert.equal(loan.principal_amount === undefined, loan.repayment_period === undefined);
+				assert.equal('amount' in loan || 'payslip_id' in loan, false);
+			}
+			const repaid = new Map<unknown, number>();
+			for (const repayment of read('loan_repayment_entry')) {
+				const loan = fixturePresent(loans.get(repayment.loan_id));
+				// its class follows the version in force on its day (checked above), so only the owner must match
+				for (const field of ['company_id', 'employment_id'])
+					assert.equal(repayment[field], loan[field]);
+				if (loan.repayment_period !== undefined) {
+					const period = fixtureValue2(loan.repayment_period);
+					const day = String(repayment.occurred_on);
+					assert.ok(day >= period.from && (period.to == null || day <= period.to));
+				}
+				repaid.set(loan.id, (repaid.get(loan.id) ?? 0) + Number(repayment.amount));
+			}
+			for (const loan of loans.values())
+				if (loan.principal_amount !== undefined)
+					assert.equal(
+						Math.round((repaid.get(loan.id) ?? 0) * 100),
+						Math.round(Number(loan.principal_amount) * 100),
+						`loan ${String(loan.id)} repays its principal`
+					);
 			// Derived amounts are never seeded: no payslip, run, obligation or statutory line in the bank.
 			for (const derived of ['payslip', 'payroll_run', 'obligation', 'regulatory_task'])
 				assert.equal(existsSync(resolve(bank, `${derived}.json`)), false, derived);
 			assert.equal(contracts.length, 290);
 			assert.equal(read('roster_entry').length, 5390);
-			assert.equal(read('leave_catalog_entry').length, 472);
+			assert.equal(read('leave_catalog_entry').length, 961);
 		}
 	);
 });

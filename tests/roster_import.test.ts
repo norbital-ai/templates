@@ -282,6 +282,158 @@ const overtimeRule = (kind: string): Row => ({
 
 describe('work-day sheet import', () => {
 	it.effect(
+		'imports exact historical approval windows before and after the shift without inventing consent',
+		Effect.fnUntraced(function* () {
+			const result = yield* plan([
+				{
+					row: 2,
+					employee_number: 'E1',
+					work_date: '2026-03-03',
+					shift_code: 'D',
+					planned_overtime_hours: 3.5,
+					approved_ot_1_start: '2026-03-03T07:00:17+08:00',
+					approved_ot_1_end: '2026-03-03T09:00:00+08:00',
+					approved_ot_2_start: '2026-03-03T18:00:00+08:00',
+					approved_ot_2_end: '2026-03-03T20:00:43+08:00',
+					approved_ot_1_break_minutes: 30
+				}
+			]);
+			assert.deepEqual(result.errors, []);
+			assert.deepEqual(at(result, '2026-03-03')?.approved_overtime_intervals, [
+				{ start: '2026-03-02T23:00:17.000Z', end: '2026-03-03T01:00:00.000Z', break_minutes: 30 },
+				{ start: '2026-03-03T10:00:00.000Z', end: '2026-03-03T12:00:43.000Z' }
+			]);
+			assert.equal(at(result, '2026-03-03')?.planned_overtime_hours, 3.5);
+			assert.equal(at(result, '2026-03-03')?.overtime_consented_at, null);
+			assert.equal(at(result, '2026-03-03')?.worked_intervals, null);
+		})
+	);
+	it.effect(
+		'blank approval cells preserve windows; explicit CLEAR removes only unlocked windows',
+		Effect.fnUntraced(function* () {
+			const windows = [
+				{ start: '2026-03-03T10:00:00.000Z', end: '2026-03-03T12:00:00.000Z', break_minutes: 30 }
+			];
+			const stored = entry('e2', 'k1', '2026-03-03', {
+				planned_overtime_hours: 2,
+				approved_overtime_intervals: windows
+			});
+			const row = { row: 2, employee_number: 'E1', work_date: '2026-03-03', shift_code: 'D' };
+			const source = fixture({ entries: [stored] });
+			const kept = yield* plan([row], source);
+			assert.deepEqual(kept.errors, []);
+			assert.deepEqual(at(kept, '2026-03-03')?.approved_overtime_intervals, windows);
+			const cleared = yield* plan([{ ...row, approved_ot_1_start: 'CLEAR' }], source);
+			assert.deepEqual(cleared.errors, []);
+			assert.equal(at(cleared, '2026-03-03')?.approved_overtime_intervals, null);
+			assert.equal(at(cleared, '2026-03-03')?.planned_overtime_hours, 2);
+			const pinned = fixture({ entries: [{ ...stored, payslip_id: fixtureId('p1') }] });
+			assert.deepEqual((yield* plan([row], pinned)).errors, []);
+			assert.match(
+				(yield* plan([{ ...row, approved_ot_1_start: 'CLEAR' }], pinned)).errors[0]?.message ?? '',
+				/settled on a payslip/
+			);
+			assert.match(
+				(yield* plan(
+					[
+						{
+							...row,
+							approved_ot_1_start: windows[0]!.start,
+							approved_ot_1_end: windows[0]!.end,
+							approved_ot_1_break_minutes: 60
+						}
+					],
+					pinned
+				)).errors[0]?.message ?? '',
+				/settled on a payslip/
+			);
+			const rows = yield* template({ from: '2026-03-03', to: '2026-03-03' }, '2026-03-01', source);
+			assert.equal(
+				rows.find((item) => item.employee_number === 'E1')?.approved_ot_1_start,
+				windows[0]!.start
+			);
+			assert.equal(
+				rows.find((item) => item.employee_number === 'E1')?.approved_ot_1_break_minutes,
+				30
+			);
+			yield* assertFailure(
+				template(
+					{ from: '2026-03-03', to: '2026-03-03' },
+					'2026-03-01',
+					fixture({
+						entries: [
+							{
+								...stored,
+								approved_overtime_intervals: [
+									...windows,
+									{ start: '2026-03-03T12:00:00.000Z', end: '2026-03-03T13:00:00.000Z' },
+									{ start: '2026-03-03T13:00:00.000Z', end: '2026-03-03T14:00:00.000Z' }
+								]
+							}
+						]
+					})
+				),
+				/supports two approved OT windows/
+			);
+		})
+	);
+	it.effect(
+		'approval cells refuse partial, undated, reversed, overlapping, uncapped and mixed CLEAR windows',
+		Effect.fnUntraced(function* () {
+			const unplanned = { row: 2, employee_number: 'E1', work_date: '2026-03-03', shift_code: 'D' };
+			const row = { ...unplanned, planned_overtime_hours: 2 };
+			const start = '2026-03-03T18:00:00+08:00',
+				end = '2026-03-03T20:00:00+08:00';
+			for (const invalid of [
+				{ ...row, approved_ot_1_start: start },
+				{ ...row, approved_ot_1_start: '18:00', approved_ot_1_end: '20:00' },
+				{ ...row, approved_ot_1_start: end, approved_ot_1_end: start },
+				{
+					...row,
+					approved_ot_1_start: start,
+					approved_ot_1_end: end,
+					approved_ot_2_start: '2026-03-03T19:00:00+08:00',
+					approved_ot_2_end: '2026-03-03T21:00:00+08:00'
+				},
+				{ ...unplanned, approved_ot_1_start: start, approved_ot_1_end: end },
+				{ ...row, approved_ot_1_start: 'CLEAR', approved_ot_1_end: end },
+				{ ...row, approved_ot_1_start: 'CLEAR', approved_ot_1_break_minutes: 60 },
+				{ ...row, approved_ot_1_break_minutes: 30 },
+				...[-1, 120, Number.POSITIVE_INFINITY].map((minutes) => ({
+					...row,
+					approved_ot_1_start: start,
+					approved_ot_1_end: end,
+					approved_ot_1_break_minutes: minutes
+				}))
+			])
+				assert.equal((yield* plan([invalid])).errors.length, 1);
+		})
+	);
+	it.effect(
+		'optional planned OT survives older ten-column files and cannot change once payroll locks its day',
+		Effect.fnUntraced(function* () {
+			const stored = entry('e2', 'k1', '2026-03-03', { planned_overtime_hours: 3 });
+			const oldRow = { row: 2, employee_number: 'E1', work_date: '2026-03-03', shift_code: 'D' };
+			const source = fixture({ entries: [stored] });
+			const kept = yield* plan([oldRow], source);
+			assert.deepEqual(kept.errors, []);
+			assert.equal(at(kept, '2026-03-03')?.planned_overtime_hours, 3);
+			const changed = yield* plan([{ ...oldRow, planned_overtime_hours: 1.5 }], source);
+			assert.deepEqual(changed.errors, []);
+			assert.equal(at(changed, '2026-03-03')?.planned_overtime_hours, 1.5);
+			const zero = yield* plan([{ ...oldRow, planned_overtime_hours: 0 }], source);
+			assert.equal(at(zero, '2026-03-03')?.planned_overtime_hours, 0);
+			const pinned = fixture({
+				entries: [{ ...stored, payslip_id: fixtureId('p1') }]
+			});
+			assert.deepEqual((yield* plan([oldRow], pinned)).errors, []);
+			const refused = yield* plan([{ ...oldRow, planned_overtime_hours: 0 }], pinned);
+			assert.match(refused.errors[0]?.message ?? '', /settled on a payslip/);
+			const rows = yield* template({ from: '2026-03-03', to: '2026-03-03' }, '2026-03-01', source);
+			assert.equal(rows.find((row) => row.employee_number === 'E1')?.planned_overtime_hours, 3);
+		})
+	);
+	it.effect(
 		'maps each row onto its day: kept intervals, overtime, an overnight clock; blanks, holidays and a leaver map to nothing',
 		Effect.fnUntraced(function* () {
 			const result = yield* plan(yield* xlsx(FILLED));
@@ -439,7 +591,10 @@ describe('work-day sheet import', () => {
 				paid.errors.map((finding) => finding.row),
 				[null]
 			);
-			assert.match(paid.errors[0]!.message, /E1 2026-03-03 is inside a period already paid/);
+			assert.match(
+				paid.errors[0]!.message,
+				/E1 2026-03-03 is inside a period already captured by payroll/
+			);
 		})
 	);
 

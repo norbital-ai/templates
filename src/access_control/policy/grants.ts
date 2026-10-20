@@ -24,7 +24,7 @@ export const DRAFT_VERSION = { sealed_at: { isNull: true }, voided_at: { isNull:
 const DRAFT_SETTINGS_ROW = { settings_id: { is: DRAFT_VERSION } } as const;
 
 /** What a person may say about a new entry; the company comes from the employment, the pin from the run. */
-/** Each entry family writes its own columns; `facts` is the one open field all four carry. */
+/** Each family writes its payroll inputs; descriptive labels become payslip descriptions. */
 const ADHOC_ENTRY_FIELDS = [
 	'catalog_id',
 	'employment_id',
@@ -33,8 +33,7 @@ const ADHOC_ENTRY_FIELDS = [
 	'amount',
 	'quantity',
 	'label',
-	'facts',
-	'reference'
+	'facts'
 ] as const;
 const ADHOC_ENTRY_EDIT = [
 	'catalog_id',
@@ -43,8 +42,7 @@ const ADHOC_ENTRY_EDIT = [
 	'amount',
 	'quantity',
 	'label',
-	'facts',
-	'reference'
+	'facts'
 ] as const;
 
 const CLAIM_ENTRY_FIELDS = [
@@ -57,8 +55,7 @@ const CLAIM_ENTRY_FIELDS = [
 	'incurred_on',
 	'due_on',
 	'label',
-	'facts',
-	'reference'
+	'facts'
 ] as const;
 const CLAIM_ENTRY_EDIT = [
 	'catalog_id',
@@ -69,8 +66,7 @@ const CLAIM_ENTRY_EDIT = [
 	'incurred_on',
 	'due_on',
 	'label',
-	'facts',
-	'reference'
+	'facts'
 ] as const;
 
 const LEAVE_ENTRY_FIELDS = [
@@ -84,7 +80,6 @@ const LEAVE_ENTRY_FIELDS = [
 	'from',
 	'to',
 	'amount',
-	'incurred_on',
 	'label',
 	'facts',
 	'reference'
@@ -99,7 +94,6 @@ const LEAVE_ENTRY_EDIT = [
 	'from',
 	'to',
 	'amount',
-	'incurred_on',
 	'label',
 	'facts',
 	'reference'
@@ -108,21 +102,13 @@ const LEAVE_ENTRY_EDIT = [
 const LOAN_ENTRY_FIELDS = [
 	'catalog_id',
 	'employment_id',
-	'occurred_on',
-	'activity',
-	'amount',
-	'label',
-	'facts',
-	'reference'
-] as const;
-const LOAN_ENTRY_EDIT = [
-	'catalog_id',
-	'occurred_on',
-	'activity',
-	'amount',
-	'label',
-	'facts',
-	'reference'
+	'principal_amount',
+	'repayment_period',
+	'repayment_frequency',
+	'advance_purpose',
+	'written_agreement_reference',
+	'advance_made_on',
+	'repayments'
 ] as const;
 /** Both sides of the day: the plan (roster code and overtime) and the clock. */
 export const ROSTER_ENTRY_ATTENDANCE_FIELDS = [
@@ -135,6 +121,8 @@ const ROSTER_ENTRY_FULL_FIELDS = [
 	'employment_id',
 	'work_date',
 	'shift_definition_id',
+	'planned_overtime_hours',
+	'approved_overtime_intervals',
 	'overtime_consented_at',
 	'banked_overtime_hours',
 	'banked_overtime_band',
@@ -195,7 +183,7 @@ const CLAIM_APPROVAL = {
 	],
 	superseded_by: REVIEWERS
 } as const;
-/** Pay an HR controller proposes (ad hoc pay, loan instalments) commits after the HR Manager approves. */
+/** Pay an HR controller proposes (ad hoc pay, loan terms) commits after the HR Manager approves. */
 const PAY_APPROVAL = {
 	steps: [['019f8a10-0000-7000-8000-000000000006', '019f8a10-0000-7000-8000-000000000004']],
 	superseded_by: ['019f8a10-0000-7000-8000-000000000004']
@@ -274,6 +262,7 @@ const PAYSLIP_BUILD_FIELDS = [
 	'proration',
 	'statutory',
 	'adjustments',
+	'company_payments',
 	'gross',
 	'total_deductions',
 	'net',
@@ -319,6 +308,7 @@ export const SELF = {
 	},
 	adhoc_catalog_entry: { read: OWN },
 	loan_catalog_entry: { read: OWN },
+	loan_repayment_entry: { read: { loan_id: { is: OWN } } },
 	roster_entry: { read: OWN },
 	payslip: { read: OWN },
 	payroll_run: {
@@ -354,6 +344,7 @@ export const STAFF_READ = {
 	...JURISDICTION_READ,
 	...STAFF_FILES,
 	entity: { read: true },
+	bank: { read: true },
 	holiday: { read: true },
 	shift_pattern: { read: true },
 	shift_definition: { read: true },
@@ -365,6 +356,7 @@ export const STAFF_READ = {
 	claim_catalog_entry: { read: true },
 	leave_catalog_entry: { read: true, queries: LEAVE_ENTRY_QUERIES },
 	loan_catalog_entry: { read: true },
+	loan_repayment_entry: { read: true },
 	payroll_run: { read: true },
 	payslip: { read: true },
 	obligation: { read: true },
@@ -396,11 +388,23 @@ const hrEntries = <
 		delete: UNPINNED
 	}) as const;
 
+/** Loan terms own their repayment schedule; the transform preserves settled rows and validates the balance. */
+const hrLoans = <A extends object | undefined>(approval: A) =>
+	({
+		read: true,
+		...(approval === undefined
+			? { create: { fields: LOAN_ENTRY_FIELDS } }
+			: { approval: { create: { ...approval, fields: LOAN_ENTRY_FIELDS } } }),
+		update: { fields: LOAN_ENTRY_FIELDS },
+		delete: true
+	}) as const;
+
 /** HR administration: people, contracts, the roster, holidays, entities and every entry family. */
 export const HR_ADMIN = {
 	...STAFF_READ,
 	...JURISDICTION_EDIT,
 	entity: { read: true, create: true, update: true },
+	bank: { read: true, create: true, update: true, delete: true },
 	/** The workspace's WhatsApp numbers: an entity names its hotline, and HR deploys the payroll hotline on it. */
 	sys_integration: {
 		read: { integration: { eq: 'whatsapp' }, owner: { isNull: true } },
@@ -419,7 +423,8 @@ export const HR_ADMIN = {
 		read: true,
 		create: { where: { worked_intervals: { isNull: true } }, fields: ROSTER_ENTRY_FULL_FIELDS },
 		update: {
-			previous: UNPINNED,
+			// Unchanged settled uploads reach the hook; it refuses every actual edit to a settled day.
+			previous: { or: [UNPINNED, PINNED] },
 			where: { or: [UNPINNED, PINNED] },
 			fields: [
 				...ROSTER_ENTRY_FULL_FIELDS.filter((field) => field !== 'worked_intervals'),
@@ -430,7 +435,7 @@ export const HR_ADMIN = {
 			create: { ...ROSTER_ENTRY_CREATE_APPROVAL, fields: ROSTER_ENTRY_FULL_FIELDS },
 			update: {
 				...ROSTER_ENTRY_UPDATE_APPROVAL,
-				previous: UNPINNED,
+				previous: { or: [UNPINNED, PINNED] },
 				where: { or: [UNPINNED, PINNED] },
 				fields: [...ROSTER_ENTRY_FULL_FIELDS, 'payslip_id']
 			}
@@ -438,6 +443,10 @@ export const HR_ADMIN = {
 		delete: UNPINNED
 	},
 	claim_catalog_entry: hrEntries(CLAIM_ENTRY_FIELDS, CLAIM_ENTRY_EDIT, undefined),
+	loan_repayment_entry: {
+		read: true,
+		update: { previous: UNPINNED, where: UNPINNED, fields: ['occurred_on', 'amount'] }
+	},
 	leave_catalog_entry: {
 		...hrEntries(LEAVE_ENTRY_FIELDS, LEAVE_ENTRY_EDIT, undefined),
 		queries: LEAVE_ENTRY_QUERIES
@@ -487,18 +496,29 @@ export const HR_ADMIN = {
 } as const;
 export const HR_ENTRIES_REVIEWED = {
 	adhoc_catalog_entry: hrEntries(ADHOC_ENTRY_FIELDS, ADHOC_ENTRY_EDIT, PAY_APPROVAL),
-	loan_catalog_entry: hrEntries(LOAN_ENTRY_FIELDS, LOAN_ENTRY_EDIT, PAY_APPROVAL)
+	loan_catalog_entry: hrLoans(PAY_APPROVAL)
 } as const;
 export const HR_ENTRIES_DIRECT = {
 	adhoc_catalog_entry: hrEntries(ADHOC_ENTRY_FIELDS, ADHOC_ENTRY_EDIT, undefined),
-	loan_catalog_entry: hrEntries(LOAN_ENTRY_FIELDS, LOAN_ENTRY_EDIT, undefined)
+	loan_catalog_entry: hrLoans(undefined)
 } as const;
 
 const RUN_FIELDS = ['company_id', 'period', 'kind', 'sources', 'pay_due_date'] as const;
 /** Payroll authority: runs created without review, deleted while unpaid, payslips held and paid. */
 const PAYROLL_EXPORT_QUERIES = ['export_payroll'] as const;
 
+/** Payroll ranks also hold HR schedule rights; settled repayments remain immutable. */
+const PAYROLL_LOAN_REPAYMENTS = {
+	read: true,
+	update: {
+		previous: UNPINNED,
+		where: { or: [UNPINNED, PINNED] },
+		fields: ['occurred_on', 'amount', 'payslip_id']
+	}
+} as const;
+
 export const PAYROLL_AUTHORITY = {
+	loan_repayment_entry: PAYROLL_LOAN_REPAYMENTS,
 	payroll_run: {
 		read: true,
 		create: { fields: RUN_FIELDS },
@@ -509,17 +529,22 @@ export const PAYROLL_AUTHORITY = {
 	payslip: {
 		read: true,
 		create: { fields: PAYSLIP_BUILD_FIELDS },
-		update: { fields: ['status', 'paid_at'] },
+		update: { fields: ['status', 'paid_at', 'bank_charges'] },
 		moves: { status: ['DRAFT->ON_HOLD', 'ON_HOLD->DRAFT', 'DRAFT->PAID', 'ON_HOLD->PAID'] }
 	}
 } as const;
 /** A controller proposes the run and its calculated payslips; the complete batch commits after HR Manager approval. */
 export const PAYROLL_CONTROLLER = {
+	loan_repayment_entry: PAYROLL_LOAN_REPAYMENTS,
 	payroll_run: {
 		read: true,
 		approval: { create: { ...CONTROLLER_RUN_APPROVAL, fields: RUN_FIELDS } },
 		update: { fields: ['configuration_hash', 'warnings'] },
 		queries: PAYROLL_EXPORT_QUERIES
 	},
-	payslip: { read: true, create: { fields: PAYSLIP_BUILD_FIELDS } }
+	payslip: {
+		read: true,
+		create: { fields: PAYSLIP_BUILD_FIELDS },
+		update: { fields: ['bank_charges'] }
+	}
 } as const;

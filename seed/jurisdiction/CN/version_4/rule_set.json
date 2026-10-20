@@ -2058,5 +2058,50 @@
 			"amount": "(has(company.facts.prior_year_average_headcount) && has(company.facts.prior_year_average_wage) && has(company.facts.local_average_annual_wage) && double(company.facts.prior_year_average_headcount) > 30.0) ? round(max(0.0, double(company.facts.prior_year_average_headcount) * 0.015 - (has(company.facts.prior_year_disabled_employees) ? double(company.facts.prior_year_disabled_employees) : 0.0)) * min(double(company.facts.prior_year_average_wage), 2.0 * double(company.facts.local_average_annual_wage)) * ((has(company.facts.prior_year_disabled_employees) ? double(company.facts.prior_year_disabled_employees) : 0.0) / double(company.facts.prior_year_average_headcount) >= 0.01 ? 0.5 : 0.9), 0.01, \"HALF_UP\") : 0.0",
 			"due": "month_end(period.from)"
 		}
+	},
+	{
+		"id": "14f21d13-3839-5123-8fbd-6455b0a0debf",
+		"settings_id": "0170588b-dc38-4886-b070-731908688e7e",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "DAMAGE_COMPENSATION_DEDUCTION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				}
+			]
+		}
 	}
 ]

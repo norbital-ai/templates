@@ -12,8 +12,7 @@ const c = collection('adhoc_catalog_entry', {
 				'amount',
 				'quantity',
 				'label',
-				'facts',
-				'reference'
+				'facts'
 			],
 			filled: ['company_id']
 		}
@@ -28,7 +27,6 @@ const c = collection('adhoc_catalog_entry', {
 				'quantity',
 				'label',
 				'facts',
-				'reference',
 				'payslip_id'
 			]
 		}

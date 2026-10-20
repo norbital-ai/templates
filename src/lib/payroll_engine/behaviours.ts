@@ -34,11 +34,12 @@ const DELETE_COLLECTIONS = [
 	'loan_catalog_entry',
 	'roster_entry'
 ] as const satisfies readonly WriteCollection[];
-type WriteCollection = (typeof WRITE_COLLECTIONS)[number];
+type WriteCollection = (typeof WRITE_COLLECTIONS)[number] | 'loan_repayment_entry';
 type WriteOperation = (typeof WRITE_OPERATIONS)[number] | 'delete';
 type WriteCallable =
-	| `${WriteCollection}.${(typeof WRITE_OPERATIONS)[number]}`
-	| `${(typeof DELETE_COLLECTIONS)[number]}.delete`;
+	| `${(typeof WRITE_COLLECTIONS)[number]}.${(typeof WRITE_OPERATIONS)[number]}`
+	| `${(typeof DELETE_COLLECTIONS)[number]}.delete`
+	| 'loan_repayment_entry.update';
 /** Authored collections a behaviour may name in a declared read. */
 const READ_COLLECTIONS = [
 	'adhoc_catalog',
@@ -55,6 +56,7 @@ const READ_COLLECTIONS = [
 	'leave_catalog_entry',
 	'loan_catalog',
 	'loan_catalog_entry',
+	'loan_repayment_entry',
 	'obligation',
 	'payslip',
 	'payroll_run',
@@ -175,18 +177,30 @@ const Write = Schema.Union([
 		collection: Schema.Literals(DELETE_COLLECTIONS),
 		operation: Schema.Literal('delete'),
 		data: Schema.Record(Schema.String, Schema.Json)
+	}),
+	Schema.Struct({
+		collection: Schema.Literal('loan_repayment_entry'),
+		operation: Schema.Literal('update'),
+		data: Schema.Record(Schema.String, Schema.Json)
 	})
 ]);
 const writeFrom = (entry: typeof Write.Type): BehaviourWrite => {
 	const callable: WriteCallable =
-		entry.operation === 'delete'
-			? `${entry.collection}.delete`
-			: `${entry.collection}.${entry.operation}`;
+		entry.collection === 'loan_repayment_entry'
+			? 'loan_repayment_entry.update'
+			: entry.operation === 'delete'
+				? `${entry.collection}.delete`
+				: `${entry.collection}.${entry.operation}`;
+	// Sealed older snapshots generated this unused leave column; keep their effects valid after its model removal.
+	const data =
+		entry.collection === 'leave_catalog_entry' && entry.operation === 'create'
+			? Object.fromEntries(Object.entries(entry.data).filter(([key]) => key !== 'incurred_on'))
+			: entry.data;
 	return {
 		callable,
 		collection: entry.collection,
 		operation: entry.operation,
-		data: entry.data
+		data
 	};
 };
 /** One effect value as writes: null/false is a no-op, an object is one write, a list is many, in order. */

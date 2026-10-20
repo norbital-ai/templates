@@ -181,6 +181,7 @@
 					'gross',
 					{ field: 'total_deductions', label: bolt.t('component.deductions') },
 					'net',
+					{ field: 'bank_charges', label: bolt.t('app.payroll.bank_charges') },
 					{ field: 'employer_cost', label: bolt.t('component.employer_cost') }
 				]}
 			/>

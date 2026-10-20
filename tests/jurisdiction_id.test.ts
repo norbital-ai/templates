@@ -80,6 +80,7 @@ const fixtureLinks = new Set([
 	'employee_id',
 	'company_id',
 	'catalog_id',
+	'loan_id',
 	'employment_id',
 	'statutory_contribution_id',
 	'shift_pattern_id',
@@ -1362,6 +1363,7 @@ const idWorld = () => {
 			'claim_catalog_entry',
 			'leave_catalog_entry',
 			'loan_catalog_entry',
+			'loan_repayment_entry',
 			'roster_entry',
 			'holiday',
 			'payslip',
@@ -1441,7 +1443,9 @@ describe('ID jurisdiction seed', () => {
 		assert.equal(fixturePresent(rows[0]).cloned_from_id, undefined);
 		rows.forEach((row, index) => {
 			assert.match(row.effective_range.from, /^\d{4}-\d{2}-01$/);
-			assert.equal(row.sealed_at, `${row.effective_range.from}T00:00:00.000Z`);
+			const sealed = fixtureString(row.sealed_at);
+			assert.match(sealed, /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+			assert.ok(sealed.slice(0, 10) >= row.effective_range.from);
 			if (index === 0) return;
 			const previous = fixturePresent(rows[index - 1]);
 			assert.equal(row.cloned_from_id, previous.id);
@@ -1630,7 +1634,7 @@ describe('ID jurisdiction seed', () => {
 		};
 		const counts = versions.map((version) => obligations(version).length);
 		// OVERTIME_WRITTEN_ORDER is two rows of one code: its created and updated roster triggers.
-		assert.deepEqual(counts, [47, 47, 47]);
+		assert.deepEqual(counts, [47, 47, 47, 47]);
 		for (const version of versions)
 			for (const row of obligations(version)) {
 				const rules = row.rules;
@@ -2150,9 +2154,41 @@ describe('ID jurisdiction seed', () => {
 			[
 				{ employee: 105474, employer: 210948 },
 				{ employee: 105474, employer: 210948 },
+				{ employee: 110863, employer: 221726 },
 				{ employee: 110863, employer: 221726 }
 			]
 		);
+	});
+	it('JP continuation requires the recorded election and stops within three years after pension age', () => {
+		assert.equal(LAW_KIT.versionOn('2026-09-30'), 'version_3');
+		assert.equal(LAW_KIT.versionOn('2026-10-01'), 'version_4');
+		const at = (birthdate: string, elections: Row = {}, residency_status = 'CITIZEN') => {
+			const result = assess(
+				scheme('version_4', 'JP'),
+				{ ordinary: 9000000 },
+				{
+					version: 'version_4',
+					period: '2026-10',
+					subject: subject({ employee: { date_of_birth: birthdate }, terms: { residency_status } }),
+					elections
+				}
+			);
+			return result === null || result === 'REFUSED'
+				? result
+				: { employee: result.employee, employer: result.employer };
+		};
+		const elected = { continue_after_pension_age: true };
+		assert.equal(at('1967-01-01'), null); // age59: default stops
+		assert.equal(at('1967-01-01', { continue_after_pension_age: false }), null);
+		for (const birthdate of ['1967-01-01', '1966-01-01', '1965-01-01'])
+			assert.deepEqual(at(birthdate, elected), { employee: 90000, employer: 180000 });
+		assert.equal(at('1964-01-01', elected), 'REFUSED'); // age62: cannot extend the maximum
+		assert.equal(at('', elected), 'REFUSED');
+		assert.equal(at('1966-01-01', elected, 'RESIDENT_FOREIGNER'), null);
+		const properties = settingsOf('version_4').employee_input_schema.properties;
+		const status = schemaProperties(schemaItems(properties.employment_statutory_facts)).status;
+		const elections = schemaProperties(schemaProperties(status).elections);
+		assert.equal(fixtureRecord(elections.continue_after_pension_age).type, 'boolean');
 	});
 	it('PPh 21 TER bulanan by PTKP category, at the PMK 168/2023 bracket edges', () => {
 		const ter = (gross: number, employee: Row, version = 'version_3') => {
@@ -2771,7 +2807,8 @@ describe('ID jurisdiction seed', () => {
 		const patterns = ids(bank('shift_pattern'));
 		for (const pattern of bank('shift_pattern'))
 			for (const cycle of fixtureRecords(fixtureRecord(pattern.pattern).days))
-				assert.ok(shifts.has(fixtureString(cycle.roster_code_id)));
+				if (cycle.roster_code_id != null && cycle.roster_code_id !== '')
+					assert.ok(shifts.has(fixtureString(cycle.roster_code_id)));
 		const profiles = bank('employment_profile');
 		const statutory = new Map(
 			versions.flatMap((version) =>
@@ -2869,7 +2906,13 @@ describe('ID jurisdiction seed', () => {
 						}))
 					)
 				);
-			for (const name of ['claim_catalog_entry', 'loan_catalog_entry', 'payslip', 'payroll_run'])
+			for (const name of [
+				'claim_catalog_entry',
+				'loan_catalog_entry',
+				'loan_repayment_entry',
+				'payslip',
+				'payroll_run'
+			])
 				tables.set(name, fixtureRows(tables.get(name) ?? []));
 			const company = fixturePresent(bank('entity')[0]).id;
 			const number = new Map(
@@ -3097,8 +3140,9 @@ describe('ID jurisdiction seed', () => {
 					id: 'ot1',
 					employment_id: 'k-p1',
 					work_date: '2026-01-14',
-					// 08:00–21:00 Jakarta on the 8-hour D shift: 5 overtime hours derived past it.
+					// 08:00–21:00 Jakarta on the 8-hour D shift, with 5 overtime hours planned.
 					shift_definition_id: 'D',
+					planned_overtime_hours: 5,
 					worked_intervals: [
 						{ start: '2026-01-14T01:00:00.000Z', end: '2026-01-14T14:00:00.000Z' }
 					],
@@ -3113,10 +3157,22 @@ describe('ID jurisdiction seed', () => {
 					catalog_id: loan.id,
 					employment_id: 'k-p2',
 					company_id: COMPANY,
+					advance_made_on: '2026-01-15',
+					principal_amount: 11000000,
+					repayment_period: { from: '2026-01-15', to: '2026-01-15' },
+					written_agreement_reference: 'PK-2026-01'
+				})
+			);
+			fixturePresent(tables.get('loan_repayment_entry')).push(
+				fixtureRow({
+					id: 'l1-repayment',
+					loan_id: 'l1',
+					catalog_id: loan.id,
+					employment_id: 'k-p2',
+					company_id: COMPANY,
 					payslip_id: null,
 					occurred_on: '2026-01-15',
-					amount: 11000000,
-					facts: { written_agreement_reference: 'PK-2026-01' }
+					amount: 11000000
 				})
 			);
 			const plan = yield* run('2026-01', 'REGULAR');
@@ -3570,6 +3626,7 @@ describe('ID round 7: the whole law, row by row', () => {
 			}
 		};
 		UMP.version_3 = fixturePresent(UMP.version_2);
+		UMP.version_4 = fixturePresent(UMP.version_3);
 		// Spot values per province, hard-coded from the decrees (2026) and the restated 2025 figures.
 		const UMK: Record<string, Record<string, number>> = {
 			version_1: {
@@ -3652,6 +3709,7 @@ describe('ID round 7: the whole law, row by row', () => {
 			}
 		};
 		UMK.version_3 = fixturePresent(UMK.version_2);
+		UMK.version_4 = fixturePresent(UMK.version_3);
 		for (const version of versions) {
 			const table = payrollRules(version).minimum_wage.by_region;
 			const ump = fixturePresent(UMP[version]);

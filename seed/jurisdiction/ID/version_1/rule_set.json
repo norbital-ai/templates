@@ -2447,5 +2447,95 @@
 			"when": "row.kind == \"WORKER_HEALTH_EXAMINATION_COMPLETED\"",
 			"due": "add_months(row.opened_on, 2)"
 		}
+	},
+	{
+		"id": "e6162a03-d554-55a1-96e8-6d776b7805b1",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "BANKRUPTCY_ESTATE",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "COURT_GARNISHMENT",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "DEDUCTION",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "ADHOC",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "LATE_THR_FINE",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PENSION_OFFSET",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PKWT_EARLY_TERMINATION_BY_WORKER",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "STAFF_LOAN",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "EXIT_ENCASHMENT",
+					"group": "Leave pay"
+				}
+			]
+		}
 	}
 ]

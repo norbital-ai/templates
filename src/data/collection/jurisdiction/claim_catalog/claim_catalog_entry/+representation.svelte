@@ -38,7 +38,6 @@
 						'amount',
 						'quantity',
 						'label',
-						'reference',
 						'facts'
 					]}
 				/>

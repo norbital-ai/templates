@@ -104,6 +104,7 @@
 			entries: entries.current ?? [],
 			holidays: holidays.current ?? [],
 			leave: leave.current ?? [],
+			timeZone,
 			shiftOf
 		})
 	);
@@ -137,9 +138,14 @@
 		aria-hidden="true"
 		onwheel={forwardWheel}
 	>
-		<Inline gap="none" shrink={false} class="w-40 border-r bg-card px-3 font-semibold"
-			>{t('roster.person')}</Inline
-		>
+		<Stack gap="none" justify="center" shrink={false} class="w-40 border-r bg-card px-3">
+			<span class="font-semibold">{t('roster.person')}</span>
+			<span class="text-tiny text-muted-foreground">
+				{t('roster.plan_projected')} · {t('roster.plan_recorded')} · {t(
+					'component.work_day_actual'
+				)}
+			</span>
+		</Stack>
 		<Bound size="full" clip grow>
 			<div bind:this={track} class="h-full w-max will-change-transform">
 				<Inline gap="none" align="stretch" fill>
@@ -229,7 +235,7 @@
 											onclick={() =>
 												(editing = { employmentId: person.id, person: person.name, day })}
 										>
-											<DayCell {day} {timeZone} dense />
+											<DayCell {day} dense />
 										</button>
 									{/if}
 								</td>
@@ -242,4 +248,10 @@
 	</Cover>
 {/if}
 
-<DayDialog open={editing} {timeZone} onClose={() => (editing = null)} />
+<DayDialog
+	open={editing}
+	{companyId}
+	definitions={shifts.current ?? []}
+	{timeZone}
+	onClose={() => (editing = null)}
+/>

@@ -14,8 +14,7 @@ const c = collection('claim_catalog_entry', {
 				'incurred_on',
 				'due_on',
 				'label',
-				'facts',
-				'reference'
+				'facts'
 			],
 			filled: ['company_id']
 		}
@@ -32,7 +31,6 @@ const c = collection('claim_catalog_entry', {
 				'due_on',
 				'label',
 				'facts',
-				'reference',
 				'payslip_id'
 			]
 		}

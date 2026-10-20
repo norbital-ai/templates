@@ -169,11 +169,27 @@ const behaviour_taps = automation({
 		{ created: 'adhoc_catalog_entry' },
 		{ updated: 'adhoc_catalog_entry', fields: ['amount', 'facts'] },
 		{ created: 'loan_catalog_entry' },
-		{ updated: 'loan_catalog_entry', fields: ['amount', 'facts'] },
+		{
+			updated: 'loan_catalog_entry',
+			fields: [
+				'principal_amount',
+				'repayment_period',
+				'repayment_frequency',
+				'advance_made_on',
+				'advance_purpose',
+				'written_agreement_reference'
+			]
+		},
 		// Overtime is the recorded time past the planned shift's hours; pins alone move thousands of rows a month.
 		{
 			updated: 'roster_entry',
-			fields: ['worked_intervals', 'shift_definition_id', 'overtime_consented_at']
+			fields: [
+				'worked_intervals',
+				'shift_definition_id',
+				'planned_overtime_hours',
+				'approved_overtime_intervals',
+				'overtime_consented_at'
+			]
 		},
 		{ updated: 'obligation', fields: ['state'] },
 		// A task closed (a late annual contribution's surcharge reads `done_on` against `due_on`).

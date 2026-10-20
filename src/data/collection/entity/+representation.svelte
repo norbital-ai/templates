@@ -190,6 +190,7 @@
 					<Field name="pay_cutoff_day" />
 					<Field name="pay_frequency" />
 					<Field name="time_zone" />
+					<Field name="payment_bank_id" help={t('entity.payment_bank_help')} />
 					<Field name="disbursement_account" />
 				</Grid>
 			</Section>

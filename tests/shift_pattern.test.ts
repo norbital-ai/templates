@@ -1,9 +1,21 @@
 /** A shift pattern's cycle places any calendar date: day 1 is the day its effective range opens. */
 import assert from 'node:assert/strict';
 import { test } from '@effect/vitest';
-import { cycleDayOn, cycleDays } from '../src/lib/payroll_engine/shift_pattern.ts';
+import { cycleDayOn, cycleDays, plannedShiftId } from '../src/lib/payroll_engine/shift_pattern.ts';
 
 const day = (id: string) => ({ roster_code_id: id });
+
+test('a recorded shift overrides the projected code; without a recorded plan the pattern projects it', () => {
+	const input = {
+		date: '2026-03-02',
+		pattern: { pattern: { days: [day('DAY'), day('REST')] }, anchor: '2026-03-02' }
+	};
+	assert.equal(plannedShiftId(input), 'DAY');
+	assert.equal(plannedShiftId({ ...input, rostered: null }), 'DAY');
+	assert.equal(plannedShiftId({ ...input, rostered: 'NIGHT' }), 'NIGHT');
+	assert.equal(plannedShiftId({ ...input, date: '2026-03-03' }), 'REST');
+	assert.equal(plannedShiftId({ date: input.date, pattern: null }), null);
+});
 
 test('a 7-day week repeats from the day its range opens', () => {
 	const days = [day('A'), day('B'), day('C'), day('D'), day('OFF'), day('OFF'), day('REST')];

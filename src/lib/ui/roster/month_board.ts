@@ -1,16 +1,25 @@
 import { bolt } from '$bolt';
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import { PlainDate } from '@norbital-ai/std/date';
+import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { parseDateTime, toZoned } from '@internationalized/date';
+import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import { t, type MessageKey } from '../i18n/t.js';
-import { overtimeHours, type PlannedShift } from '../../payroll_engine/shift_pattern.js';
+import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
+import { creditAttendance } from '../../payroll_engine/payslip/context.js';
 
 /** One worked interval as `roster_entry.worked_intervals` stores it: ISO instants, `end` null while clocked in. */
 export type Interval = { readonly start: string; readonly end: string | null };
-/** An editable interval: two `HH:mm` clocks in the entity's zone (the kit's `TimeRange`). */
+/** Individually edited local calendar datetimes in the entity's zone. */
 export type Clock = { start: string | null; end: string | null };
+/** `roster_entry.approved_overtime_intervals`: an approved window with its documented unpaid break, when recorded. */
+const ApprovedOvertimeInterval = Schema.Struct({
+	start: Schema.String,
+	end: Schema.String,
+	break_minutes: Schema.optionalKey(Schema.NullOr(Schema.Number))
+});
+const ApprovedOvertimeIntervals = Schema.Array(ApprovedOvertimeInterval);
+type ApprovedOvertimeInterval = Schema.Schema.Type<typeof ApprovedOvertimeInterval>;
 
 /** One person-day as the board and the calendar draw it. */
 export type Day = {
@@ -18,12 +27,20 @@ export type Day = {
 	/** Inside the contract's effective range. */
 	readonly employed: boolean;
 	readonly entryId: Id<'roster_entry'> | null;
+	/** Only the shift explicitly stored on the work day, never the pattern fallback. */
 	readonly shift: string | null;
-	/** The planned shift: its ordinary hours are the basis its overtime is counted past. */
+	readonly shiftId: string | null;
+	/** The pattern's expectation is projected only while no explicit shift has been planned. */
+	readonly projectedShift: string | null;
+	readonly pattern: PlannedShift | null;
+	readonly plannedOvertime: number | null;
+	readonly approvedOvertimeIntervals: readonly ApprovedOvertimeInterval[] | null;
+	/** The effective payroll shift, from the explicit plan or pattern fallback. */
 	readonly planned: PlannedShift | null;
 	/** null: no attendance recorded; []: reviewed, nothing worked. */
 	readonly intervals: readonly Interval[] | null;
 	readonly overtime: number | null;
+	readonly completion: ReturnType<typeof creditAttendance> | null;
 	readonly holiday: string | null;
 	readonly leave: { readonly code: string; readonly name: string; readonly half: boolean } | null;
 	/** The roster entry or the leave is still under approval. */
@@ -31,7 +48,6 @@ export type Day = {
 	readonly locked: boolean;
 };
 
-const DAY_MINUTES = 1440;
 // ponytail: a leave without a last day is found by its start; one that started more than this before the window is missed
 const LEAVE_LOOKBACK_DAYS = 180;
 
@@ -77,6 +93,8 @@ export const entryRead = (ids: readonly Id<'employment_contract'>[], from: strin
 			employment_id: true,
 			work_date: true,
 			shift_definition_id: true,
+			planned_overtime_hours: true,
+			approved_overtime_intervals: true,
 			worked_intervals: true,
 			payslip_id: true
 		},
@@ -115,6 +133,8 @@ export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: strin
 			days: true,
 			from: true,
 			to: true,
+			half_day_start: true,
+			half_day_end: true,
 			payslip_id: true,
 			catalog_id: { select: { code: true, name: true } }
 		},
@@ -128,6 +148,8 @@ type EntryRow = {
 	readonly employment_id: string;
 	readonly work_date: string;
 	readonly shift_definition_id?: string | null;
+	readonly planned_overtime_hours?: unknown;
+	readonly approved_overtime_intervals?: unknown;
 	readonly worked_intervals?: unknown;
 	readonly payslip_id?: string | null;
 };
@@ -137,6 +159,8 @@ type LeaveRow = {
 	readonly days?: unknown;
 	readonly from?: string | null;
 	readonly to?: string | null;
+	readonly half_day_start?: boolean | null;
+	readonly half_day_end?: boolean | null;
 	readonly payslip_id?: string | null;
 
 	readonly catalog_id?: { readonly code?: string; readonly name?: string } | null;
@@ -176,23 +200,47 @@ export function buildDays(input: {
 	readonly entries: readonly EntryRow[];
 	readonly holidays: readonly HolidayRow[];
 	readonly leave: readonly LeaveRow[];
+	readonly timeZone: string;
 	/** A day's planned shift: the rostered definition, else the one the person's pattern plans; null when none. */
 	readonly shiftOf?: (
 		employmentId: string,
 		date: string,
 		rostered: string | null
-	) => PlannedShift | null;
+	) => (PlannedShift & { readonly id?: string }) | null;
 }): Map<string, Day> {
 	const entries = new Map(
 		input.entries.map((row) => [dayKey(row.employment_id, String(row.work_date).slice(0, 10)), row])
 	);
 	const holidays = new Map(input.holidays.map((row) => [String(row.date).slice(0, 10), row.name]));
-	const leave = new Map<string, LeaveRow>();
+	const leave = new Map<
+		string,
+		{
+			readonly codes: readonly string[];
+			readonly names: readonly string[];
+			readonly coverage: number;
+			readonly locked: boolean;
+		}
+	>();
 	for (const row of input.leave) {
 		if (row.employment_id == null) continue;
 		const from = String(row.from ?? row.occurred_on).slice(0, 10);
 		const to = String(row.to ?? from).slice(0, 10);
-		for (const date of datesBetween(from, to)) leave.set(dayKey(row.employment_id, date), row);
+		for (const date of input.dates) {
+			if (date < from || date > to) continue;
+			const key = dayKey(row.employment_id, date);
+			const before = leave.get(key);
+			const units = numberOrNull(row.days) ?? 1;
+			const half =
+				(date === from && row.half_day_start === true) ||
+				(date === to && row.half_day_end === true) ||
+				(from === to && units > 0 && units < 1);
+			leave.set(key, {
+				codes: [...new Set([...(before?.codes ?? []), row.catalog_id?.code ?? ''].filter(Boolean))],
+				names: [...new Set([...(before?.names ?? []), row.catalog_id?.name ?? ''].filter(Boolean))],
+				coverage: (before?.coverage ?? 0) + (half ? 0.5 : 1),
+				locked: before?.locked === true || row.payslip_id != null
+			});
+		}
 	}
 	const days = new Map<string, Day>();
 	for (const person of input.people)
@@ -200,41 +248,109 @@ export function buildDays(input: {
 			const key = dayKey(person.id, date);
 			const entry = entries.get(key);
 			const off = leave.get(key);
-			const planned = input.shiftOf?.(person.id, date, entry?.shift_definition_id ?? null) ?? null;
+			const shiftId = entry?.shift_definition_id ?? null;
+			const pattern = input.shiftOf?.(person.id, date, null) ?? null;
+			const planned =
+				shiftId == null ? pattern : (input.shiftOf?.(person.id, date, shiftId) ?? null);
 			const intervals = intervalsOf(entry?.worked_intervals);
+			const plannedOvertime = numberOrNull(entry?.planned_overtime_hours);
+			const approvedIntervals = entry?.approved_overtime_intervals;
+			const approvedOvertimeIntervals = Schema.is(ApprovedOvertimeIntervals)(approvedIntervals)
+				? approvedIntervals
+				: null;
+			const approvedOvertime = shiftId == null ? 0 : plannedOvertime;
+			const completion = completionOf(
+				intervals,
+				planned,
+				date,
+				input.timeZone,
+				approvedOvertime,
+				approvedOvertimeIntervals
+			);
 			days.set(key, {
 				date,
 				employed: person.from <= date && (person.to == null || date <= person.to),
 				entryId: entry?.id ?? null,
-				shift: planned?.code ?? entry?.shift_definition_id ?? null,
+				shift: shiftId == null ? null : (planned?.code ?? shiftId),
+				shiftId,
+				projectedShift: shiftId == null ? (pattern?.code ?? null) : null,
+				pattern,
+				plannedOvertime,
+				approvedOvertimeIntervals,
 				planned,
 				intervals,
-				overtime: overtimeOf(intervals, planned),
+				overtime: completion?.overtime_hours ?? null,
+				completion,
 				holiday: holidays.get(date) ?? null,
 				leave:
 					off == null
 						? null
 						: {
-								code: off.catalog_id?.code ?? '',
-								name: off.catalog_id?.name ?? '',
-								half: (numberOrNull(off.days) ?? 1) < 1
+								code: off.codes.join('/'),
+								name: off.names.join(' / '),
+								half: off.coverage < 1
 							},
-				locked: entry?.payslip_id != null || off?.payslip_id != null
+				locked: entry?.payslip_id != null || off?.locked === true
 			});
 		}
 	return days;
 }
 
+/** An actual-only edit leaves the stored plan alone, including an unplanned pattern-projected day. */
+export function dayEdit(
+	day: Pick<Day, 'shiftId' | 'plannedOvertime'>,
+	shiftId: Id<'shift_definition'> | null,
+	plannedOvertime: number | null,
+	worked: readonly Interval[] | null
+) {
+	const planChanged = shiftId !== day.shiftId || plannedOvertime !== day.plannedOvertime;
+	return {
+		...(planChanged
+			? {
+					shift_definition_id: shiftId,
+					planned_overtime_hours: plannedOvertime == null ? null : Decimal.of(plannedOvertime)
+				}
+			: {}),
+		worked_intervals:
+			worked == null
+				? null
+				: worked.map((interval) => ({
+						start: Instant(interval.start),
+						end: interval.end == null ? null : Instant(interval.end)
+					}))
+	};
+}
+
+/** Reviewed zero attendance is an absence only on an uncovered planned work day. */
+export const isAbsent = (day: Day): boolean =>
+	day.employed &&
+	day.intervals?.length === 0 &&
+	day.planned?.day_type === 'WORK' &&
+	day.holiday == null &&
+	(day.leave == null || day.leave.half);
+
 /* ── clocks ── */
 
-/** `HH:mm` of an instant in the zone. */
-export const clockOf = (instant: string, timeZone: string): string =>
+/** The recorded calendar date and clock, including seconds, in the entity's zone. */
+export const clockStampOf = (instant: string, timeZone: string): string =>
 	new Intl.DateTimeFormat('en-GB', {
+		day: '2-digit',
+		month: 'short',
+		year: 'numeric',
 		hour: '2-digit',
 		minute: '2-digit',
+		second: '2-digit',
 		hourCycle: 'h23',
 		timeZone
 	}).format(new Date(instant));
+
+/** One approved overtime window, read-only, with its unpaid break when one was recorded. */
+export const approvedWindowText = (interval: ApprovedOvertimeInterval, timeZone: string): string =>
+	`${clockStampOf(interval.start, timeZone)}–${clockStampOf(interval.end, timeZone)}${
+		interval.break_minutes != null && interval.break_minutes > 0
+			? ` · ${t('roster.approved_break', { minutes: interval.break_minutes })}`
+			: ''
+	}`;
 
 /**
  * The day's overtime as payroll counts it: the recorded hours net of the shift's break past its ordinary hours, in
@@ -242,13 +358,36 @@ export const clockOf = (instant: string, timeZone: string): string =>
  */
 export function overtimeOf(
 	intervals: readonly Interval[] | null,
-	planned: Pick<PlannedShift, 'scheduled_hours' | 'break'> | null
+	planned: PlannedShift | null,
+	date: string,
+	timeZone: string,
+	plannedOvertime?: number | null,
+	approvedOvertimeIntervals?: readonly ApprovedOvertimeInterval[] | null
 ): number | null {
-	const minutes = intervals == null ? null : workedMinutes(intervals);
-	if (minutes == null) return null;
-	// ponytail: nets the break from a single clock pair whatever its window; payroll nets it only where they meet.
-	const pause = intervals?.length === 1 ? (planned?.break?.minutes ?? 0) : 0;
-	return overtimeHours(Math.max(0, minutes - pause) / 60, planned);
+	return (
+		completionOf(intervals, planned, date, timeZone, plannedOvertime, approvedOvertimeIntervals)
+			?.overtime_hours ?? null
+	);
+}
+
+/** The same clipped, rounded credit as payroll; unknown or open clocks remain unknown. */
+export function completionOf(
+	intervals: readonly Interval[] | null,
+	planned: PlannedShift | null,
+	date: string,
+	timeZone: string,
+	plannedOvertime?: number | null,
+	approvedOvertimeIntervals?: readonly ApprovedOvertimeInterval[] | null
+): ReturnType<typeof creditAttendance> | null {
+	if (intervals == null || intervals.some((interval) => interval.end == null)) return null;
+	return creditAttendance({
+		date,
+		intervals,
+		planned,
+		plannedOvertimeHours: plannedOvertime ?? null,
+		approvedOvertimeIntervals: approvedOvertimeIntervals ?? null,
+		timeZone
+	});
 }
 
 /** Minutes worked, or null while an interval is still open. */
@@ -264,14 +403,6 @@ export function workedMinutes(intervals: readonly Interval[]): number | null {
 /** `8.5h`: hours to two decimals, trimmed. */
 export const hoursLabel = (minutes: number): string => `${Math.round((minutes / 60) * 100) / 100}h`;
 
-/** First clock-in and last clock-out (`…` while open), in the zone. */
-export function clockWindow(intervals: readonly Interval[], timeZone: string): string {
-	const first = intervals[0];
-	const last = intervals.at(-1);
-	if (first == null || last == null) return '';
-	return `${clockOf(first.start, timeZone)}–${last.end == null ? '…' : clockOf(last.end, timeZone)}`;
-}
-
 /** Everything the cell shows, in words: its accessible name and hover text. */
 export function describeDay(day: Day, subject: string, timeZone: string): string {
 	if (!day.employed) return `${subject} · ${t('roster.before_employment')}`;
@@ -281,80 +412,81 @@ export function describeDay(day: Day, subject: string, timeZone: string): string
 		parts.push(
 			`${day.leave.name || t('roster.leave')}${day.leave.half ? ` (${t('roster.half_day')})` : ''}`
 		);
-	parts.push(
-		day.shift == null ? t('roster.unrostered') : t('roster.shift_code', { code: day.shift })
-	);
+	if (day.projectedShift != null)
+		parts.push(`${t('roster.plan_projected')}: ${day.projectedShift}`);
+	parts.push(`${t('roster.plan_recorded')}: ${day.shift ?? '—'}`);
+	if (day.plannedOvertime != null)
+		parts.push(`${t('roster.planned_overtime')}: ${hoursLabel(day.plannedOvertime * 60)}`);
+	if (day.approvedOvertimeIntervals != null && day.approvedOvertimeIntervals.length > 0)
+		parts.push(
+			`${t('roster.approved_overtime_times')}: ${day.approvedOvertimeIntervals.map((interval) => approvedWindowText(interval, timeZone)).join('; ')}`
+		);
 	const minutes = day.intervals == null ? null : workedMinutes(day.intervals);
 	const first = day.intervals?.[0];
-	parts.push(
-		day.intervals == null || first == null
-			? t(day.intervals == null ? 'roster.layer_none' : 'roster.layer_awol')
-			: minutes == null
-				? t('roster.layer_clocked_open', { first: clockOf(first.start, timeZone) })
+	if (day.intervals == null) parts.push(t('roster.layer_none'));
+	else if (first == null) {
+		if (isAbsent(day)) parts.push(t('roster.layer_awol'));
+	} else
+		parts.push(
+			minutes == null
+				? t('roster.layer_clocked_open', { first: clockStampOf(first.start, timeZone) })
 				: t('roster.layer_clocked_window', {
-						first: clockOf(first.start, timeZone),
-						last: clockOf(day.intervals.at(-1)?.end ?? first.start, timeZone),
+						first: clockStampOf(first.start, timeZone),
+						last: clockStampOf(day.intervals.at(-1)?.end ?? first.start, timeZone),
 						hours: Math.round((minutes / 60) * 100) / 100
 					})
-	);
+		);
 	if (day.overtime != null && day.overtime > 0)
 		parts.push(t('roster.planned_overtime_hours', { hours: hoursLabel(day.overtime * 60) }));
+	if (day.completion?.percent != null)
+		parts.push(
+			t('roster.completion_details', {
+				percent: Math.floor(day.completion.percent),
+				credited: hoursLabel(day.completion.credited_hours * 60),
+				target: hoursLabel(day.completion.target_hours * 60)
+			})
+		);
 	if (day.locked) parts.push(t('roster.lock_rung_consumed'));
 	return parts.join(' · ');
 }
 
 export const clocksOf = (intervals: readonly Interval[] | null, timeZone: string): Clock[] =>
 	(intervals ?? []).map((interval) => ({
-		start: clockOf(interval.start, timeZone),
-		end: interval.end == null ? null : clockOf(interval.end, timeZone)
+		start: toCalendarDateTime(fromAbsolute(Date.parse(interval.start), timeZone)).toString(),
+		end:
+			interval.end == null
+				? null
+				: toCalendarDateTime(fromAbsolute(Date.parse(interval.end), timeZone)).toString()
 	}));
 
-const minutesOf = (clock: string): number => {
-	const [hours, minutes] = clock.split(':').map(Number);
-	return (hours ?? 0) * 60 + (minutes ?? 0);
-};
-
-const instantAt = (date: string, minutes: number, timeZone: string): string => {
-	const day = addDays(date, Math.floor(minutes / DAY_MINUTES));
-	const rest = minutes % DAY_MINUTES;
-	const clock = `${String(Math.floor(rest / 60)).padStart(2, '0')}:${String(rest % 60).padStart(2, '0')}`;
-	return toZoned(parseDateTime(`${day}T${clock}`), timeZone)
-		.toDate()
-		.toISOString();
-};
-
-/**
- * The clocks of one work date as stored intervals. Clocks run forward through the night: an end at or before its
- * start, or a start before the previous end, is the next day. Empty editor rows do not record attendance.
- */
+/** Explicit dates preserve overnight and previous-day clocks; no clock infers a different day. */
 export function intervalsFrom(
-	date: string,
 	clocks: readonly Clock[],
 	timeZone: string
 ): { readonly intervals: Interval[] } | { readonly problem: MessageKey } {
 	const intervals: Interval[] = [];
-	let offset = 0;
 	let previousEnd = -1;
 	const recorded = clocks.filter((clock) => clock.start != null || clock.end != null);
+	const instant = (value: string) =>
+		Result.try(() => toZoned(parseDateTime(value), timeZone).toDate().toISOString());
 	for (const [index, clock] of recorded.entries()) {
 		if (clock.start == null) return { problem: 'roster.day_sheet_problem_missing_start' };
 		if (clock.end == null && index < recorded.length - 1)
 			return { problem: 'roster.day_sheet_problem_open_not_last' };
-		let start = minutesOf(clock.start) + offset;
-		if (start < previousEnd) {
-			offset += DAY_MINUTES;
-			start += DAY_MINUTES;
-		}
-		let end: number | null = null;
+		const start = instant(clock.start);
+		if (Result.isFailure(start)) return { problem: 'roster.day_sheet_problem_invalid_clock' };
+		if (Date.parse(start.success) < previousEnd)
+			return { problem: 'roster.day_sheet_problem_clock_overlap' };
+		let end: string | null = null;
 		if (clock.end != null) {
-			end = minutesOf(clock.end) + offset;
-			if (end <= start) end += DAY_MINUTES;
-			previousEnd = end;
+			const parsed = instant(clock.end);
+			if (Result.isFailure(parsed)) return { problem: 'roster.day_sheet_problem_invalid_clock' };
+			if (Date.parse(parsed.success) <= Date.parse(start.success))
+				return { problem: 'roster.day_sheet_problem_clock_order' };
+			end = parsed.success;
+			previousEnd = Date.parse(end);
 		}
-		intervals.push({
-			start: instantAt(date, start, timeZone),
-			end: end == null ? null : instantAt(date, end, timeZone)
-		});
+		intervals.push({ start: start.success, end });
 	}
 	return { intervals };
 }

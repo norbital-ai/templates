@@ -66,6 +66,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 	Effect.gen(function* () {
 		const { contract, employee } = options.subject,
 			{ period, window, salaryRun, money } = options.payroll;
+		const allowanceCodes = new Map(options.jurisdiction.capturedAllowanceCodes);
+		for (const row of options.jurisdiction.allowanceRows) allowanceCodes.set(row.id, row.code);
 		const payroll = yield* Effect.fromResult(
 			fieldValue(options.jurisdiction.version.payroll, 'jurisdiction_settings.payroll')
 		);
@@ -391,7 +393,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					term,
 					day: window.salary_to,
 					headcount: options.payroll.headcount,
-					version: options.jurisdiction.version
+					version: options.jurisdiction.version,
+					allowanceCodes
 				})
 			)),
 			rules: options.jurisdiction.rules,
@@ -430,7 +433,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 							term: yield* termFor(contract, String(day['date'])),
 							day: String(day['date']),
 							headcount: options.payroll.headcount,
-							version: options.jurisdiction.version
+							version: options.jurisdiction.version,
+							allowanceCodes
 						})),
 						day
 					};
@@ -490,6 +494,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		const base: PayslipPlan['base'][number][] = [];
 		const proration: PayslipPlan['proration'][number][] = [];
 		const adjustments: PayslipLine[] = [];
+		const companyPayments: PayslipPlan['company_payments'][number][] = [];
 		const entryWarnings: string[] = [];
 		const pins: PayslipPlan['pins'][number][] = [];
 		let gross = 0;
@@ -552,8 +557,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			return null;
 		/**
 		 * The leave rows reaching into `from`–`to`, projected generically: the class's own flags beside the row's stored
-		 * values, each row's share of the window, the working days no-pay leave covers and the rows the window settles
-		 * (ending in it). Which days become no-pay or cash is the work catalogue's record to decide, never this engine's.
+		 * values, each row's share of the window, the working days no-pay leave covers and the rows the window uses.
+		 * Which days become no-pay or cash is the work catalogue's record to decide, never this engine's.
 		 */
 		function* projectLeave(
 			rows: readonly EntryRow[],
@@ -564,11 +569,11 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		) {
 			const leaveRows: Json[] = [];
 			const unpaidDays = new Set<string>();
-			const settled: string[] = [];
+			const settled: EntryRow['id'][] = [];
 			for (const row of rows) {
 				const day = String(row.from ?? row.occurred_on ?? '');
 				const last = String(row.to ?? day);
-				// A row reaching into this period prices its share of it; it is settled (pinned) by the period holding its end.
+				// Every overlapping period prices its share; the first one using an open row captures it.
 				if (last < from || day > to) continue;
 				const spanned = datesFrom(day, last).filter(employedOn);
 				const workingDates = new Set<string>();
@@ -669,7 +674,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				leaveRows.push({ ...projected, pay_fraction: payFraction });
 				if (held?.is_npl === true || payFraction === 0)
 					for (const date of inside) if (isWorkDay(date)) unpaidDays.add(date);
-				if (last <= to) settled.push(row.id);
+				settled.push(row.id);
 			}
 			return { rows: leaveRows, unpaid: unpaidDays.size, settled };
 		}
@@ -678,8 +683,15 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			// values. Which days become no-pay or cash is the work catalogue's record to decide, never this engine's. An
 			// off-cycle slip reads the same rows (a bonus exempt during childcare leave) and settles none of them.
 			const leaveFamily = options.attendance.entries.find((family) => family.family === 'LEAVE');
+			const openLeave = leaveFamily?.rows ?? [];
+			const openLeaveIds = new Set(openLeave.map((row) => row.id));
 			const projected = yield* projectLeave(
-				leaveFamily?.rows ?? [],
+				[
+					...openLeave,
+					...options.attendance.monthLeave.filter(
+						(row) => row.activity === 'TIME_OFF' && !openLeaveIds.has(row.id)
+					)
+				],
 				window.salary_from,
 				window.salary_to,
 				context,
@@ -687,7 +699,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			);
 			context.leave = { rows: projected.rows };
 			if (salaried)
-				for (const id of projected.settled) pins.push({ collection: 'leave_catalog_entry', id });
+				for (const id of projected.settled)
+					if (openLeaveIds.has(id)) pins.push({ collection: 'leave_catalog_entry', id });
 			const unpaid = salaried ? projected.unpaid : 0;
 			periodExtras.unpaid_working_days = unpaid;
 			periodRoot.unpaid_working_days = unpaid;
@@ -883,9 +896,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 						prorated_amount: settling == null ? signed : toDate
 					});
 			}
-			if (workDays.some((day) => day.approved_overtime_hours > 0) || holidays.length > 0)
-				for (const row of options.attendance.roster)
-					pins.push({ collection: 'roster_entry', id: row.id });
+			for (const row of options.attendance.roster)
+				pins.push({ collection: 'roster_entry', id: row.id });
 			// Contract allowances price through the governing version's allowance class of the same code.
 			const allowanceById = new Map(options.jurisdiction.allowanceRows.map((row) => [row.id, row]));
 			const allowanceByCode = new Map(
@@ -1042,8 +1054,17 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				);
 				if (priced.payable_after_exit !== true)
 					pins.push({ collection: family.collection, id: row.id });
-				// An EMPLOYER or DISPLAY entry is paid by no one on this slip: it only moves its scheme parts.
-				if (priced.destination === 'EMPLOYER' || priced.destination === 'DISPLAY') continue;
+				if (priced.destination === 'DISPLAY') continue;
+				if (priced.destination === 'EMPLOYER') {
+					companyPayments.push({
+						family: family.family,
+						source_id: row.id,
+						component_code: priced.code,
+						amount: posted,
+						label: row.label ?? priced.name ?? priced.code
+					});
+					continue;
+				}
 				adjustments.push({
 					family: family.family,
 					source_id: row.id,
@@ -1059,6 +1080,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		if (
 			gross === 0 &&
 			adjustments.length === 0 &&
+			companyPayments.length === 0 &&
 			!settlesAfterExit &&
 			!(salaryRun && options.jurisdiction.assessesWithoutWage)
 		)
@@ -1071,7 +1093,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				term,
 				day,
 				headcount: options.payroll.headcount,
-				version: options.jurisdiction.version
+				version: options.jurisdiction.version,
+				allowanceCodes
 			});
 		const statutorySubjects = yield* Effect.fromResult(
 			Result.all({
@@ -1091,6 +1114,9 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			statutoryRows: options.jurisdiction.statutoryRows,
 			schemeCodes: options.jurisdiction.schemeCodes,
 			standing: statutoryFactsFromFacts(employeeFacts),
+			salaryRun,
+			statutoryConfigurations: options.history.statutoryConfigurations ?? new Map(),
+			runWindows: options.history.runWindows,
 			period,
 			window: { from: window.salary_from, to: window.salary_to },
 			periodExtras,
@@ -1120,6 +1146,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		if (
 			gross === 0 &&
 			adjustments.length === 0 &&
+			companyPayments.length === 0 &&
 			!settlesAfterExit &&
 			employeeStatutory === 0 &&
 			employerStatutory === 0
@@ -1214,6 +1241,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			currency: options.payroll.currency,
 			base,
 			adjustments,
+			company_payments: companyPayments,
 			statutory,
 			gross,
 			total_deductions,

@@ -38,10 +38,19 @@ export const nextDay = (day: string): string => addDays(day, 1);
 
 export function lineage(code: string) {
 	const root = resolve(SEED, code);
+	const rows = (version: string, table: string) => readSeedRows(resolve(root, version), table);
 	const versions = readdirSync(root)
 		.filter((name) => /^version_\d+$/.test(name))
-		.toSorted((left, right) => Number(left.slice(8)) - Number(right.slice(8)));
-	const rows = (version: string, table: string) => readSeedRows(resolve(root, version), table);
+		.filter((name) => rows(name, 'jurisdiction_settings')[0]?.['voided_at'] == null)
+		.toSorted((left, right) => {
+			const from = (name: string) => {
+				const range = rows(name, 'jurisdiction_settings')[0]?.['effective_range'];
+				return Schema.is(Schema.Record(Schema.String, Schema.Json))(range)
+					? String(range['from'])
+					: '';
+			};
+			return from(left).localeCompare(from(right));
+		});
 	const settingsOf = (version: string): Row => {
 		const [settings] = rows(version, 'jurisdiction_settings');
 		assert.ok(settings, `${code}/${version} has its settings row`);

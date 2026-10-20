@@ -161,6 +161,7 @@ describe('public jurisdiction seed', () => {
 			period: { key: '2026-10', from: '2026-10-01', to: '2026-10-31', days: 31, paid_days: 31 },
 			terms: {
 				base_salary: 5000,
+				allowances: [],
 				// EA First Schedule para 2: manual labour keeps the s.60D(3) premium above RM4,000.
 				monthly_wage: 5000,
 				work_classification: '',

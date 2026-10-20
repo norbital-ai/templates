@@ -13,7 +13,14 @@ export const SHEET_COLUMNS = {
 	banked_overtime_hours: 'Banked overtime hours',
 	leave_code: 'Leave',
 	name: 'Name',
-	holiday: 'Holiday'
+	holiday: 'Holiday',
+	planned_overtime_hours: 'Planned OT hours',
+	approved_ot_1_start: 'Approved OT 1 start',
+	approved_ot_1_end: 'Approved OT 1 end',
+	approved_ot_2_start: 'Approved OT 2 start',
+	approved_ot_2_end: 'Approved OT 2 end',
+	approved_ot_1_break_minutes: 'Approved OT 1 break minutes',
+	approved_ot_2_break_minutes: 'Approved OT 2 break minutes'
 } as const;
 export type SheetField = keyof typeof SHEET_COLUMNS;
 export const isField = (value: string): value is SheetField => Object.hasOwn(SHEET_COLUMNS, value);
@@ -24,11 +31,20 @@ export type SheetRecord = {
 	readonly employee_number: string;
 	readonly work_date: string;
 	readonly shift_code?: string;
+	/** Time-only text, an Excel serial, or a full native local/ISO timestamp. Midnight zero pairs record no work. */
 	readonly clock_in?: string;
 	readonly clock_out?: string;
 	/** The day's overtime consent as written: Y, yes, true, 1, or a date (an ISO day or an Excel serial). */
 	readonly overtime_consent?: string;
 	readonly banked_overtime_hours?: number;
+	readonly planned_overtime_hours?: number;
+	/** Optional historical approval boundaries: full dated ISO timestamps with offsets; CLEAR in the first start removes them. */
+	readonly approved_ot_1_start?: string;
+	readonly approved_ot_1_end?: string;
+	readonly approved_ot_2_start?: string;
+	readonly approved_ot_2_end?: string;
+	readonly approved_ot_1_break_minutes?: number;
+	readonly approved_ot_2_break_minutes?: number;
 	readonly leave_code?: string;
 	readonly name?: string;
 	readonly holiday?: string;
@@ -42,6 +58,9 @@ export type SheetContext = {
 };
 
 export type StoredInterval = NonNullable<Row<'roster_entry'>['worked_intervals']>[number];
+export type ApprovedInterval = NonNullable<
+	Row<'roster_entry'>['approved_overtime_intervals']
+>[number];
 
 /** The sheet's resolved keys and native values shared by the pipeline hooks. */
 export type SheetKnown = {
@@ -70,6 +89,10 @@ export type SheetKnown = {
 	readonly kept: { readonly [key: string]: readonly StoredInterval[] };
 	/** `employment:date` → the stored `overtime_consented_at` (a mark or its own local day restates it). */
 	readonly consented: { readonly [key: string]: Instant };
+	/** An older ten-column upload keeps the planned overtime already recorded on its day. */
+	readonly plannedOvertime?: { readonly [key: string]: number };
+	/** Blank approval cells and older sheets preserve a stored day's approved windows. */
+	readonly approvedOvertime?: { readonly [key: string]: readonly ApprovedInterval[] };
 	/** Actual native pages already read by `known`; `check` consumes the same scope. */
 	readonly checked?: {
 		readonly rows: SheetScopeRead;

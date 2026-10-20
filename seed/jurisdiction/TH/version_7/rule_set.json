@@ -3100,5 +3100,70 @@
 			"when": "row.kind == \"EQUIVALENT_WELFARE_BENEFICIARY_REQUEST\" && row.opened_on >= \"2026-10-01\"",
 			"due": "row.opened_on"
 		}
+	},
+	{
+		"id": "da0b6f99-e903-5f43-83ea-49574625d563",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"scope": "JURISDICTION",
+		"family": "PAYROLL",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "SECURITY_DEPOSIT",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "WELFARE_LOAN",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC_DAILY",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "PIECE_PAID_DAYS",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "PIECE_WORK",
+					"group": "Basic pay"
+				}
+			]
+		}
 	}
 ]

@@ -102,7 +102,7 @@ describe('leave', () => {
 				Effect.gen(function* () {
 					const id = nativeId(
 						'leave_catalog',
-						law.byCode('version_4', 'leave_catalog', 'ANNUAL_LEAVE')['id']
+						law.byCode(law.versionOn('2026-10-20'), 'leave_catalog', 'ANNUAL_LEAVE')['id']
 					);
 					const row = (yield* read('leave_catalog', {
 						where: { id: { eq: id } },
@@ -348,6 +348,12 @@ describe('leave', () => {
 			'Leave already covers this day.'
 		);
 		assert.equal(refuseCoveredWorkDay('2026-03-03', 'e2', [leave]), null);
+		const half = { ...leave, to: '2026-03-02', days: 0.5, half_day_start: true };
+		assert.equal(refuseCoveredWorkDay('2026-03-02', 'e1', [half]), null);
+		assert.equal(
+			refuseCoveredWorkDay('2026-03-02', 'e1', [half, { ...half, id: 'l2' }]),
+			'Leave already covers this day.'
+		);
 	});
 });
 
@@ -590,6 +596,51 @@ describe('chargeable days', () => {
 			employmentStart: '2026-01-02'
 		});
 		assert.equal(joiner!.carried, 0);
+	});
+
+	it('carry uses service at the previous window end even on a service anniversary', () => {
+		const tiered: LeaveClass = {
+			...annual,
+			entitlement: {
+				days: 'service_months >= 24.0 ? 12.0 : 8.0',
+				window: 'CALENDAR_YEAR',
+				carry_forward: '100.0'
+			}
+		};
+		for (const asOf of ['2026-01-01', '2026-01-31']) {
+			const [balance] = leaveBalances({
+				classes: [tiered],
+				movements: [],
+				serviceMonths: 24,
+				employmentStart: '2024-01-01',
+				asOf
+			});
+			assert.ok(balance);
+			assert.deepEqual([balance.entitlement, balance.carried, balance.available], [12, 8, 20]);
+		}
+	});
+
+	it('an unmetered leave class is limited by the annual pool it consumes', () => {
+		const pool: LeaveClass = {
+			...annual,
+			entitlement: { days: '5.0', window: 'CALENDAR_YEAR' }
+		};
+		const joint: LeaveClass = { ...ns, code: 'JOINT_LEAVE', consumes_code: pool.code };
+		const input = {
+			classes: [pool, joint],
+			movements: [taken('al', 2)],
+			serviceMonths: 24,
+			asOf: '2026-03-02'
+		};
+		const balance = leaveBalances(input).find((row) => row.code === joint.code);
+		assert.ok(balance);
+		assert.equal(balance.metered, true);
+		assert.equal(balance.available, 3);
+		assert.equal(refuseLeaveWrite({ ...input, proposed: taken('ns', 3) }), null);
+		assert.equal(
+			refuseLeaveWrite({ ...input, proposed: taken('ns', 4) }),
+			'This selection exceeds the available 3 day(s).'
+		);
 	});
 
 	it('carry_depth: carried days carry again, at most that many windows on', () => {

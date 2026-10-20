@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * One legal entity's captured catalogue entries of one family (claims, ad hoc payments, leave, loans) for one
+	 * One legal entity's captured catalogue entries of one family (claims, ad hoc payments, leave) for one
 	 * pay period: the entries whose own date falls inside the entity's window, and the payslip that captured each.
 	 * An entry already pinned to a payslip is settled; the payroll automation, not this screen, moves it.
 	 */
@@ -19,12 +19,9 @@
 	import { versionMoney } from '../format/version_money.svelte.js';
 	import { moneyNumber } from '../../payroll_engine/foundation.js';
 	import { bolt } from '$bolt';
-	import { liveRows } from '../state/live.svelte.js';
-	import { loanBalances } from './loan_balance.js';
 
-	/** The four captured-entry families, all one shape: reference, occurred_on, amount, catalog_id. */
-	type EntryCollection =
-		'adhoc_catalog_entry' | 'claim_catalog_entry' | 'leave_catalog_entry' | 'loan_catalog_entry';
+	/** The captured payment and leave families share an entry date and catalogue class. */
+	type EntryCollection = 'adhoc_catalog_entry' | 'claim_catalog_entry' | 'leave_catalog_entry';
 
 	let {
 		collection,
@@ -46,32 +43,7 @@
 		const lineage = scope.company?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
-	/** Loans: every instalment of the entity's loans, read once, for each one's outstanding balance. */
-	const instalments = liveRows(() =>
-		collection !== 'loan_catalog_entry' || scope.id == null
-			? null
-			: bolt.read('loan_catalog_entry', {
-					where: { employment_id: { is: { company_id: { eq: scope.id } } } },
-					select: {
-						employment_id: true,
-						catalog_id: true,
-						occurred_on: true,
-						activity: true,
-						amount: true,
-						facts: true
-					},
-					all: true
-				})
-	);
-	const balances = $derived(loanBalances(instalments.current ?? []));
 </script>
-
-{#snippet balanceCell({ row }: { row: { readonly id: string }; value: unknown })}{@const left =
-		balances.get(String(row.id))}{#if left == null}
-		—
-	{:else}
-		{money(left)}
-	{/if}{/snippet}
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
 {#snippet amountCell({ value }: { value: unknown })}{@const amount =
@@ -115,10 +87,7 @@
 					{ field: 'employment_id', label: t('component.person'), cell: personCell },
 					{ field: 'amount', label: t('component.amount'), cell: amountCell },
 					{ field: 'occurred_on', label: dateLabel },
-					{ field: 'reference', label: t('component.reference') },
-					...(collection === 'loan_catalog_entry'
-						? [{ field: 'facts' as const, label: t('component.outstanding'), cell: balanceCell }]
-						: [])
+					{ field: 'label', label: t('component.description') }
 				]}
 			/>
 		{/key}

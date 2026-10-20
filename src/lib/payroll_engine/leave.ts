@@ -74,6 +74,8 @@ export type LeaveMovement = {
 	readonly days?: number | null;
 	readonly from?: string | null;
 	readonly to?: string | null;
+	readonly half_day_start?: boolean | null;
+	readonly half_day_end?: boolean | null;
 	/** The absence event the movement belongs to (`facts.event_id`): one birth, one illness, one bereavement. */
 	readonly event_id?: string | null;
 	/** The movement's open facts, which a class's `window_key` reads. */
@@ -508,7 +510,14 @@ function carriedInto(
 	const previous = {
 		...input,
 		asOf: end,
-		serviceMonths: Math.max(0, input.serviceMonths - completedMonths(end, input.asOf))
+		serviceMonths: Math.max(
+			0,
+			input.employmentStart == null
+				? input.serviceMonths - completedMonths(end, input.asOf)
+				: input.serviceMonths -
+						completedMonths(input.employmentStart, input.asOf) +
+						completedMonths(input.employmentStart, end)
+		)
 	};
 	const used = debitFor(cls.code, input.classes, input.movements, previous);
 	// What the previous window held: its grant, plus what it carried in while days may still carry on.
@@ -602,26 +611,27 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 	const carried = carriedInto(cls, input);
 	const taken = Math.max(0, debitFor(cls.code, input.classes, input.movements, input));
 	const own = entitlement + carried - taken;
-	let available = metered(cls) ? Math.max(0, own) : 0;
-	if (metered(cls) && cls.consumes_code != null) {
+	let limited = metered(cls);
+	let available = limited ? Math.max(0, own) : 0;
+	if (cls.consumes_code != null) {
 		const pool = input.classes.find((row) => row.code === cls.consumes_code);
 		if (pool != null && metered(pool)) {
 			const poolTaken = Math.max(0, debitFor(pool.code, input.classes, input.movements, input));
 			// The pool's days left, in this class's units, beyond its own first free units.
 			const free = Math.max(0, (cls.entitlement?.consumes_after_days ?? 0) - taken);
-			available = Math.min(
-				available,
+			const poolAvailable =
 				free +
-					Math.max(0, classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken) *
-						unitsPerDay(cls, input)
-			);
+				Math.max(0, classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken) *
+					unitsPerDay(cls, input);
+			available = limited ? Math.min(available, poolAvailable) : poolAvailable;
+			limited = true;
 		}
 	}
 	return {
 		catalog_id: cls.id,
 		code: cls.code,
 		name: cls.name,
-		metered: metered(cls),
+		metered: limited,
 		entitlement,
 		carried,
 		taken,
@@ -691,9 +701,16 @@ export function refuseCoveredWorkDay(
 	const day = dayKey(workDate);
 	const employment = isString(employmentId) ? employmentId : null;
 	if (day == null || employment == null) return null;
+	let covered = 0;
 	for (const movement of leaves) {
 		if (movement.employment_id != null && movement.employment_id !== employment) continue;
-		if (coversDay(movement, day)) return 'Leave already covers this day.';
+		if (!coversDay(movement, day)) continue;
+		const range = coverageRange(movement.from, movement.to, daysOf(movement), movement.occurred_on);
+		const half =
+			(day === range?.from && movement.half_day_start === true) ||
+			(day === range?.to && movement.half_day_end === true);
+		covered += half ? 0.5 : 1;
+		if (covered >= 1) return 'Leave already covers this day.';
 	}
 	return null;
 }
@@ -848,6 +865,8 @@ type LeaveMovementInput =
 			readonly days?: unknown;
 			readonly from?: unknown;
 			readonly to?: unknown;
+			readonly half_day_start?: boolean | null;
+			readonly half_day_end?: boolean | null;
 			readonly facts?: unknown;
 	  };
 
@@ -869,6 +888,8 @@ export function movementFromRow(row: LeaveMovementInput): LeaveMovement {
 		days: numberOf(row.days) ?? 0,
 		from: from ?? null,
 		to: to ?? null,
+		half_day_start: row.half_day_start === true,
+		half_day_end: row.half_day_end === true,
 		event_id: eventIdOf(row.facts),
 		...(isJsonObject(row.facts) ? { facts: row.facts } : {})
 	};

@@ -39,9 +39,7 @@
 						'half_day_end',
 						'days',
 						'amount',
-						'incurred_on',
 						'label',
-						'reference',
 						'facts'
 					]}
 				/>

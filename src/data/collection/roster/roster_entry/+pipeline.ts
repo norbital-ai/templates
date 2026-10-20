@@ -44,8 +44,8 @@ export default pipeline('roster_entry', {
 						employee_number: { kind: 'text', label: SHEET_COLUMNS.employee_number },
 						work_date: { kind: 'date', label: SHEET_COLUMNS.work_date },
 						shift_code: { kind: 'text', label: SHEET_COLUMNS.shift_code, optional: true },
-						clock_in: { kind: 'time', label: SHEET_COLUMNS.clock_in, optional: true },
-						clock_out: { kind: 'time', label: SHEET_COLUMNS.clock_out, optional: true },
+						clock_in: { kind: 'text', label: SHEET_COLUMNS.clock_in, optional: true },
+						clock_out: { kind: 'text', label: SHEET_COLUMNS.clock_out, optional: true },
 						overtime_consent: {
 							kind: 'text',
 							label: SHEET_COLUMNS.overtime_consent,
@@ -59,7 +59,45 @@ export default pipeline('roster_entry', {
 						},
 						leave_code: { kind: 'text', label: SHEET_COLUMNS.leave_code, optional: true },
 						name: { kind: 'text', label: SHEET_COLUMNS.name, optional: true },
-						holiday: { kind: 'text', label: SHEET_COLUMNS.holiday, optional: true }
+						holiday: { kind: 'text', label: SHEET_COLUMNS.holiday, optional: true },
+						planned_overtime_hours: {
+							kind: 'number',
+							min: 0,
+							label: SHEET_COLUMNS.planned_overtime_hours,
+							optional: true
+						},
+						approved_ot_1_start: {
+							kind: 'text',
+							label: SHEET_COLUMNS.approved_ot_1_start,
+							optional: true
+						},
+						approved_ot_1_end: {
+							kind: 'text',
+							label: SHEET_COLUMNS.approved_ot_1_end,
+							optional: true
+						},
+						approved_ot_2_start: {
+							kind: 'text',
+							label: SHEET_COLUMNS.approved_ot_2_start,
+							optional: true
+						},
+						approved_ot_2_end: {
+							kind: 'text',
+							label: SHEET_COLUMNS.approved_ot_2_end,
+							optional: true
+						},
+						approved_ot_1_break_minutes: {
+							kind: 'number',
+							min: 0,
+							label: SHEET_COLUMNS.approved_ot_1_break_minutes,
+							optional: true
+						},
+						approved_ot_2_break_minutes: {
+							kind: 'number',
+							min: 0,
+							label: SHEET_COLUMNS.approved_ot_2_break_minutes,
+							optional: true
+						}
 					}
 				}
 			}
@@ -81,6 +119,27 @@ export default pipeline('roster_entry', {
 				...(row.banked_overtime_hours == null
 					? {}
 					: { banked_overtime_hours: row.banked_overtime_hours }),
+				...(row.planned_overtime_hours == null
+					? {}
+					: { planned_overtime_hours: row.planned_overtime_hours }),
+				...(row.approved_ot_1_start == null
+					? {}
+					: { approved_ot_1_start: row.approved_ot_1_start.trim() }),
+				...(row.approved_ot_1_end == null
+					? {}
+					: { approved_ot_1_end: row.approved_ot_1_end.trim() }),
+				...(row.approved_ot_2_start == null
+					? {}
+					: { approved_ot_2_start: row.approved_ot_2_start.trim() }),
+				...(row.approved_ot_2_end == null
+					? {}
+					: { approved_ot_2_end: row.approved_ot_2_end.trim() }),
+				...(row.approved_ot_1_break_minutes == null
+					? {}
+					: { approved_ot_1_break_minutes: row.approved_ot_1_break_minutes }),
+				...(row.approved_ot_2_break_minutes == null
+					? {}
+					: { approved_ot_2_break_minutes: row.approved_ot_2_break_minutes }),
 				...(row.leave_code == null ? {} : { leave_code: row.leave_code.trim() })
 			})),
 		known: function* (ctx, records, { context }) {

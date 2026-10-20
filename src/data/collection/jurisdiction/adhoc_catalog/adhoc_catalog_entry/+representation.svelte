@@ -30,7 +30,7 @@
 				<EntryFields
 					catalog="adhoc_catalog"
 					{form}
-					fields={['occurred_on', 'activity', 'amount', 'quantity', 'label', 'reference', 'facts']}
+					fields={['occurred_on', 'activity', 'amount', 'quantity', 'label', 'facts']}
 				/>
 			{/snippet}
 		</Form>
