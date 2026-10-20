@@ -3,9 +3,9 @@ import { dispatchFacts, searchTextFor } from '../../../lib/dispatch.js';
 import { siteKey } from '../../../lib/site-key.js';
 const columns = [
 	'site_code',
-	'name',
 	'location',
 	'address',
+	'unit_number',
 	'client_name',
 	'house_type',
 	'floor_area_sqm'
@@ -18,7 +18,7 @@ const jobs = {
 	link: {}
 } as const;
 /**
- * A site is identified by its address (`site_key`, from `name` and the geocoded `address`). Adding an address a site
+ * A site is identified by its location label and optional unit (`site_key`). Adding a location a site
  * already carries is refused with that site's name, and a site may not move onto another's address. Jobs filed
  * through `job_assignments` skip that collection's transform, so their dispatch facts are stamped here.
  */
@@ -30,15 +30,26 @@ const sites = collection('sites', {
 });
 export default sites;
 sites.transform(function* (inputs, ctx) {
-	const keys = inputs.map((input, i) => {
+	const places = inputs.map((input, i) => {
 		const stored = ctx.existing[i];
-		return siteKey(
-			String(input.name ?? stored?.name ?? ''),
-			input.address !== undefined ? input.address : stored?.address
-		);
+		const location = input.location !== undefined ? input.location : stored?.location;
+		const moved =
+			input.location !== undefined &&
+			(input.location?.lat !== stored?.location?.lat ||
+				input.location?.lng !== stored?.location?.lng);
+		const address = input.address !== undefined ? input.address : moved ? null : stored?.address;
+		const unit =
+			input.unit_number !== undefined
+				? input.unit_number
+				: (stored?.unit_number ??
+					/#[0-9]+-[0-9A-Z]+/i.exec(`${input.address ?? ''} ${stored?.site_key ?? ''}`)?.[0]);
+		const unit_number = unit?.trim() || null;
+		const name = address?.trim() || (location == null ? '' : `${location.lat}, ${location.lng}`);
+		return { location, address: address?.trim() || null, name, unit_number };
 	});
-	if (keys.some((key) => key === ''))
-		return yield* ctx.refuse('A site needs an address.', { field: 'name' });
+	if (places.some((place) => place.location == null))
+		return yield* ctx.refuse('Choose a location for the site.', { field: 'location' });
+	const keys = places.map((place) => siteKey(place.name, place.unit_number));
 	if (new Set(keys).size < keys.length)
 		return yield* ctx.refuse('Two sites in this batch have one address.');
 	const linked = inputs.flatMap((input) => input.job_assignments?.link ?? []);
@@ -56,18 +67,21 @@ sites.transform(function* (inputs, ctx) {
 				stored === undefined
 					? `A site at this address already exists: ${holder.name}.`
 					: `Another site already has this address: ${holder.name}.`,
-				{ field: 'name' }
+				{ field: 'location' }
 			);
 	}
 	return inputs.map((input, i) => {
 		const stored = ctx.existing[i];
 		const words = {
-			name: String(input.name ?? stored?.name),
+			name: places[i]!.name,
 			site_code: input.site_code !== undefined ? input.site_code : (stored?.site_code ?? null)
 		};
 		const filed = input.job_assignments;
 		return {
 			...input,
+			name: places[i]!.name,
+			address: places[i]!.address,
+			unit_number: places[i]!.unit_number,
 			site_key: keys[i]!,
 			...(filed === undefined
 				? {}

@@ -10,10 +10,15 @@ import {
 export const WORK_ORDER_ROW = {
 	kind: 'object',
 	fields: {
-		/** The site's address, or a site code. An address no site carries files a new site. */
+		/** The location's formatted address, or an existing site code. */
 		site: { kind: 'text' },
 		/** The six-digit postal code, when the sheet keeps it in its own column. */
 		postal_code: { kind: 'text', optional: true },
+		/** Optional unit within the location; an embedded #05-12 is also accepted. */
+		unit_number: { kind: 'text', optional: true },
+		/** Both coordinates are required when the row creates a new site. */
+		latitude: { kind: 'number', optional: true },
+		longitude: { kind: 'number', optional: true },
 		/** `YYYY-MM-DD`, or the day serial an xlsx stores for a typed date. */
 		scheduled_for: { kind: 'date' },
 		title: { kind: 'text' },
@@ -64,7 +69,7 @@ const job_assignments = collection('job_assignments', {
 	actions: {
 		import_work_orders: {
 			description:
-				'Creates job assignments from the rows of a work-order sheet (CSV or xlsx): site address or code, optional postal code, day, title, and optionally nature, description, assignee and dispatch reference. A site is matched by its code or its address key; an address no site carries is filed as a new site. A row already filed (the same dispatch reference, or the same title on the same day at the same site) is skipped, so a sheet imported twice files nothing twice. The whole sheet is checked first and every faulty row is named.',
+				'Creates job assignments from the rows of a work-order sheet (CSV or xlsx): location address or existing site code, optional postal code and unit number, day, title, and optionally nature, description, assignee and dispatch reference. A site is matched by its code or its address and unit key. Every new site requires valid latitude and longitude; its address becomes the location label. Existing sites need no coordinates. A row already filed (the same dispatch reference, or the same title on the same day at the same site) is skipped, so a sheet imported twice files nothing twice. The whole sheet is checked before any writes and every faulty row is named.',
 			input: { rows: { kind: 'list', min: 1, max: 5000, of: WORK_ORDER_ROW } },
 			output: {
 				kind: 'object',

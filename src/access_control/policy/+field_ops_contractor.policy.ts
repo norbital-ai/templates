@@ -21,6 +21,7 @@ export default policy({
 					'name',
 					'location',
 					'address',
+					'unit_number',
 					'client_name',
 					'house_type',
 					'floor_area_sqm'

@@ -23,11 +23,10 @@ describe('the template', () => {
 	it('a Singapore address is its postal code plus its unit, spelled one way', () => {
 		expect(siteKey('58 Kismis Avenue, Singapore 598235')).toBe('598235');
 		expect(siteKey('Blk 460133 #5-12')).toBe('460133#05-12');
+		expect(siteKey('Blk 460133 #5-12', null)).toBe('460133');
 		expect(siteKey('Edelweiss 119 #02-06, Singapore')).toBe('EDELWEISS 119#02-06');
 		expect(siteKey('12  Block  Road Street Drive Avenue')).toBe('12 BLK RD ST DR AVE');
-		expect(siteKey('3 Ridgewood', '3 RIDGEWOOD CLOSE SINGAPORE 276694 #16-03')).toBe(
-			'276694#16-03'
-		);
+		expect(siteKey('3 RIDGEWOOD CLOSE SINGAPORE 276694', '16-03')).toBe('276694#16-03');
 	});
 });
 describe('sites', () => {
@@ -35,9 +34,17 @@ describe('sites', () => {
 		Effect.gen(function* () {
 			const t = yield* workspace();
 			const as = t.as(t.member(CONTROLLER));
-			committed(yield* as.act('sites.create', { name: '58 Kismis Ave, S598235' }));
+			committed(
+				yield* as.act('sites.create', {
+					location: { lat: 1.34, lng: 103.77 },
+					address: '58 Kismis Ave, S598235'
+				})
+			);
 			const again = yield* Effect.flip(
-				as.act('sites.create', { name: '58 Kismis Avenue, Singapore 598235' })
+				as.act('sites.create', {
+					location: { lat: 1.34, lng: 103.77 },
+					address: '58 Kismis Avenue, Singapore 598235'
+				})
 			);
 			expect(again).toMatchObject({
 				_tag: 'ActRefused',
@@ -51,7 +58,8 @@ describe('sites', () => {
 			const as = t.as(t.member(CONTROLLER));
 			committed(
 				yield* as.act('sites.create', {
-					name: '6 Sunset Vale, Singapore 597232',
+					location: { lat: 1.34, lng: 103.77 },
+					address: '6 Sunset Vale, Singapore 597232',
 					job_assignments: {
 						create: [{ title: 'Survey', scheduled_for: '2026-09-25', description: 'Measure' }]
 					}
@@ -63,6 +71,146 @@ describe('sites', () => {
 				search_text: 'Survey, 6 Sunset Vale, Singapore 597232'
 			});
 		})
+	);
+	it.live(
+		'requires a location on writes, derives the title, and distinguishes optional units',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* workspace();
+				const as = t.as(t.member(CONTROLLER));
+				expect(
+					yield* Effect.flip(as.act('sites.create', { address: 'Unresolved address' }))
+				).toMatchObject({
+					_tag: 'ActRefused',
+					message: 'Choose a location for the site.'
+				});
+				const [created] = committed(
+					yield* as.act('sites.create', {
+						location: { lat: 1.34, lng: 103.77 },
+						unit_number: '05-12'
+					})
+				);
+				const site = fixtureId('sites', created);
+				expect(yield* as.get('sites', site)).toMatchObject({
+					name: '1.34, 103.77',
+					unit_number: '05-12'
+				});
+				committed(
+					yield* as.act('sites.create', {
+						location: { lat: 1.34, lng: 103.77 },
+						unit_number: '05-13'
+					})
+				);
+				expect(
+					yield* Effect.flip(as.act('sites.update', { target: site, set: { location: null } }))
+				).toMatchObject({
+					_tag: 'ActRefused',
+					message: 'Choose a location for the site.'
+				});
+				committed(
+					yield* as.act('sites.update', {
+						target: site,
+						set: {
+							location: { lat: 1.35, lng: 103.78 },
+							address: 'Resolved map address, Singapore 598236'
+						}
+					})
+				);
+				expect(yield* as.get('sites', site)).toMatchObject({
+					name: 'Resolved map address, Singapore 598236',
+					unit_number: '05-12'
+				});
+				committed(
+					yield* as.act('sites.update', {
+						target: site,
+						set: { location: { lat: 1.36, lng: 103.79 } }
+					})
+				);
+				expect(yield* as.get('sites', site)).toMatchObject({ name: '1.36, 103.79', address: null });
+				expect(
+					yield* wireAct(t, as.authority, {
+						collection: 'sites',
+						verb: 'create',
+						input: {
+							name: 'Free text title',
+							location: { lat: 1.36, lng: 103.79 }
+						}
+					})
+				).toMatchObject({ kind: 'refused', code: 'invalidInput' });
+			})
+	);
+	it.live('preserves legacy unlocated rows but requires a location before editing them', () =>
+		Effect.gen(function* () {
+			const t = yield* workspace({ seed: 'base' });
+			const as = t.as(t.member(CONTROLLER));
+			const legacy = present((yield* as.read('sites', { limit: 1 })).rows[0]);
+			expect(legacy.location).toBeNull();
+			expect(
+				yield* Effect.flip(
+					as.act('sites.update', { target: legacy.id, set: { client_name: 'Edited client' } })
+				)
+			).toMatchObject({
+				_tag: 'ActRefused',
+				message: 'Choose a location for the site.'
+			});
+			committed(
+				yield* as.act('sites.update', {
+					target: legacy.id,
+					set: { location: { lat: 1.34, lng: 103.77 } }
+				})
+			);
+			expect(yield* as.get('sites', legacy.id)).toMatchObject({ name: '1.34, 103.77' });
+		})
+	);
+	it.live(
+		'keeps an embedded legacy unit when the location label changes, unless explicitly cleared',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* workspace();
+				const as = t.as(t.member(CONTROLLER));
+				const [created] = committed(
+					yield* as.act('sites.create', {
+						location: { lat: 1.34, lng: 103.77 },
+						address: 'Test Block #05-12, Singapore 598235'
+					})
+				);
+				const site = fixtureId('sites', created);
+				yield* rows(t, 'UPDATE sites SET unit_number = NULL WHERE id = $1', [site]);
+				committed(
+					yield* as.act('sites.update', {
+						target: site,
+						set: {
+							location: { lat: 1.35, lng: 103.78 },
+							address: 'Updated Test Block, Singapore 598235'
+						}
+					})
+				);
+				expect(yield* as.get('sites', site)).toMatchObject({
+					name: 'Updated Test Block, Singapore 598235',
+					unit_number: '#05-12',
+					site_key: '598235#05-12'
+				});
+				committed(
+					yield* as.act('sites.update', {
+						target: site,
+						set: {
+							address: 'Updated Test Block #05-12, Singapore 598235'
+						}
+					})
+				);
+				committed(yield* as.act('sites.update', { target: site, set: { unit_number: null } }));
+				expect(yield* as.get('sites', site)).toMatchObject({
+					unit_number: null,
+					site_key: '598235'
+				});
+				committed(
+					yield* as.act('sites.update', { target: site, set: { client_name: 'Edited client' } })
+				);
+				expect(yield* as.get('sites', site)).toMatchObject({
+					unit_number: null,
+					site_key: '598235'
+				});
+			})
 	);
 });
 describe('job assignments', () => {

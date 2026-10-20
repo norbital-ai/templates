@@ -4,9 +4,11 @@ import type { WORK_ORDER_ROW } from '../data/collection/job_assignments/+collect
 import { siteKey } from './site-key.js';
 type Row = InputOf<typeof WORK_ORDER_ROW.fields>;
 type Ctx = Pick<ActionCtx<'job_assignments'>, 'read' | 'act' | 'refuse'>;
+const UNIT = /#[0-9]+-[0-9A-Z]+/i;
+const unitOf = (row: Row) => row.unit_number?.trim() || UNIT.exec(row.site)?.[0] || null;
 /** The address a row names, with a separately supplied postal code folded in. */
 const addressOf = (row: Row) => {
-	const site = row.site.trim();
+	const site = row.site.replace(UNIT, '').replace(/\s+,/g, ',').trim();
 	const postal = row.postal_code?.trim() ?? '';
 	return postal === '' || site.includes(postal) ? site : `${site}, Singapore ${postal}`;
 };
@@ -24,18 +26,15 @@ export const importWorkOrders = Effect.fnUntraced(function* (rows: readonly Row[
 	for (const [index, row] of rows.entries()) {
 		const where = `Row ${index + 1}: ${row.title} at ${row.site} on ${row.scheduled_for}`;
 		if ((row.title?.trim() ?? '') === '') problems.push(`${where}: title is empty.`);
-		if (siteKey(addressOf(row)) === '') problems.push(`${where}: site has no address.`);
+		if (addressOf(row) === '' || siteKey(addressOf(row), unitOf(row)) === '')
+			problems.push(`${where}: site has no address.`);
 		const ref = row.external_ref?.trim() ?? '';
 		if (ref !== '') {
 			if (refs.has(ref)) problems.push(`${where}: external_ref ${ref} is repeated.`);
 			refs.add(ref);
 		}
 	}
-	if (problems.length > 0)
-		yield* ctx.refuse(
-			`The sheet could not be imported:\n${problems.map((p) => `• ${p}`).join('\n')}`
-		);
-	const keys = [...new Set(rows.map((row) => siteKey(addressOf(row))))];
+	const keys = [...new Set(rows.map((row) => siteKey(addressOf(row), unitOf(row))))];
 	const codes = [...new Set(rows.map((row) => row.site?.trim() ?? ''))];
 	const { sites, work, filedRefs } = yield* ctx.read({
 		sites: {
@@ -66,7 +65,7 @@ export const importWorkOrders = Effect.fnUntraced(function* (rows: readonly Row[
 	);
 	const byKey = new Map(sites.rows.map((s) => [s.site_key, s.id] as const));
 	const siteOf = (row: Row) =>
-		byCode.get(row.site?.trim() ?? '') ?? byKey.get(siteKey(addressOf(row)));
+		byCode.get(row.site?.trim() ?? '') ?? byKey.get(siteKey(addressOf(row), unitOf(row)));
 	const filed = new Set([
 		...(filedRefs?.rows ?? []).flatMap((job) =>
 			job.external_ref == null ? [] : [job.external_ref]
@@ -92,14 +91,16 @@ export const importWorkOrders = Effect.fnUntraced(function* (rows: readonly Row[
 	const fresh = new Map<
 		string,
 		{
-			name: string;
+			address: string;
+			unit_number: string | null;
+			location: { lat: number; lng: number };
 			jobs: ReturnType<typeof job>[];
 		}
 	>();
 	let skipped = 0;
-	for (const row of rows) {
+	for (const [index, row] of rows.entries()) {
 		const siteId = siteOf(row);
-		const key = siteKey(addressOf(row));
+		const key = siteKey(addressOf(row), unitOf(row));
 		const identity =
 			(row.external_ref?.trim() ?? '') ||
 			sameWork(siteId ?? `new:${key}`, row.scheduled_for, row.title);
@@ -110,17 +111,44 @@ export const importWorkOrders = Effect.fnUntraced(function* (rows: readonly Row[
 		filed.add(identity);
 		if (siteId !== undefined) onSites.push({ ...job(row), site_id: siteId });
 		else {
-			// one new site per address, spelled as the sheet first did
-			const site = fresh.get(key) ?? { name: addressOf(row), jobs: [] };
+			const { latitude, longitude } = row;
+			if (
+				latitude == null ||
+				longitude == null ||
+				!Number.isFinite(latitude) ||
+				!Number.isFinite(longitude) ||
+				latitude < -90 ||
+				latitude > 90 ||
+				longitude < -180 ||
+				longitude > 180
+			) {
+				problems.push(
+					`Row ${index + 1}: ${row.title} at ${row.site} on ${row.scheduled_for}: a new site needs latitude (-90 to 90) and longitude (-180 to 180).`
+				);
+				continue;
+			}
+			// one new site per location and unit, labelled as the sheet first did
+			const site = fresh.get(key) ?? {
+				address: addressOf(row),
+				unit_number: unitOf(row),
+				location: { lat: latitude, lng: longitude },
+				jobs: []
+			};
 			site.jobs.push(job(row));
 			fresh.set(key, site);
 		}
 	}
+	if (problems.length > 0)
+		yield* ctx.refuse(
+			`The sheet could not be imported:\n${problems.map((p) => `• ${p}`).join('\n')}`
+		);
 	if (fresh.size > 0)
 		yield* ctx.act(
 			'sites.create',
 			[...fresh.values()].map((site) => ({
-				name: site.name,
+				address: site.address,
+				unit_number: site.unit_number,
+				location: site.location,
 				job_assignments: { create: site.jobs }
 			}))
 		);

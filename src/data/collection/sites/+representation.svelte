@@ -1,13 +1,8 @@
 <script lang="ts">
 	/** A site: its details, the jobs still ahead of it (scheduled from today, or overdue and not done), and its history. */
 	import { bolt } from '$bolt';
-	import {
-		type RecordSection,
-		type RecordView,
-		RecordShell,
-		Table,
-		useKinds
-	} from '@norbital-ai/ui';
+	import { type RecordView, Field, Form, RecordShell, Table, useKinds } from '@norbital-ai/ui';
+	import { Grid } from '@norbital-ai/ui/layout';
 	import { dayIn } from '../../../lib/format.js';
 	let {
 		view
@@ -17,23 +12,6 @@
 	const t = bolt.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const today = dayIn(useKinds().zone);
-	// the site and whose it is stay open; the map pin and the geocoder's address fold away
-	const sections: RecordSection[] = [
-		{
-			name: 'site',
-			title: t('models.sites.singular'),
-			fields: ['name', 'site_code', 'client_name', 'house_type', 'floor_area_sqm']
-		},
-		{
-			name: 'map',
-			title: t('component.section_map'),
-			fields: ['location', 'address'],
-			defaultOpen: false,
-			summary: (r) =>
-				String(r.address ?? '') ||
-				(r.location == null ? t('component.summary_not_set') : t('component.summary_pinned'))
-		}
-	];
 </script>
 
 {#snippet upcoming()}
@@ -75,21 +53,37 @@
 {/snippet}
 
 {#if record == null}
-	<RecordShell
-		of="sites"
-		mode="create"
-		values={view.mode === 'create' ? view.values : {}}
-		{sections}
-	/>
+	<RecordShell of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
+		<Form of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
+			<Grid minimum="card">
+				<Field name="location" address="address" />
+				<Field name="unit_number" />
+				<Field name="site_code" />
+				<Field name="client_name" />
+				<Field name="house_type" />
+				<Field name="floor_area_sqm" />
+			</Grid>
+		</Form>
+	</RecordShell>
 {:else}
 	<RecordShell
 		of="sites"
 		id={record.id}
 		subtitle={['client_name', 'house_type']}
-		{sections}
 		tabs={[
 			{ name: 'upcoming', title: t('component.upcoming_jobs'), body: upcoming },
 			{ name: 'activity', title: t('component.activity_history'), body: history }
 		]}
-	/>
+	>
+		<Form of="sites" mode="update" id={record.id} {record}>
+			<Grid minimum="card">
+				<Field name="location" address="address" />
+				<Field name="unit_number" />
+				<Field name="site_code" />
+				<Field name="client_name" />
+				<Field name="house_type" />
+				<Field name="floor_area_sqm" />
+			</Grid>
+		</Form>
+	</RecordShell>
 {/if}

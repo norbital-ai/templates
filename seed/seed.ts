@@ -18,6 +18,8 @@ const User = Schema.Struct({
 	id: Schema.String,
 	name: Schema.String,
 	email: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	phone: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	active: Schema.optionalKey(Schema.Boolean),
 	status: Schema.optionalKey(Schema.String),
 	team_id: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
@@ -160,7 +162,9 @@ const source: SeedSource = {
 				id: r['id'],
 				name: r['name'],
 				email: r['email'] ?? null,
+				phone: r['phone'] ?? null,
 				kind: 'staff',
+				active: r['active'] ?? true,
 				admin: r['status'] === 'admin',
 				team: r['team_id'] ?? null
 			})),
@@ -171,7 +175,10 @@ const source: SeedSource = {
 					...site,
 					location: point(geo),
 					address,
-					site_key: siteKey(String(site['name']), address)
+					site_key: siteKey(
+						address || String(site['name']),
+						/#[0-9]+-[0-9A-Z]+/i.exec(String(site['name']))?.[0]
+					)
 				};
 			}),
 			job_assignments: rows('job_assignments.json').map(({ location, ...job }) => {
