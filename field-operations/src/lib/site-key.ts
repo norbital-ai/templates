@@ -36,13 +36,16 @@ function normalizeAddress(address: string): string {
 	).trim();
 }
 /**
- * The key for a site typed as `address` and, when it was picked on a map, geocoded as `formattedAddress`. The geocoded
- * address is preferred for the postal code and the fallback text; a unit is taken from whichever carries one.
+ * The key for a location label plus an optional unit. Embedded units in legacy addresses still match.
  */
-export function siteKey(address: string, formattedAddress?: string | null): string {
-	const both = normalizeAddress(`${formattedAddress ?? ''} ${address}`);
-	const postal = POSTAL.exec(both)?.[1];
-	if (postal !== undefined) return postal + (UNIT.exec(both)?.[0] ?? '');
-	const formatted = normalizeAddress(formattedAddress ?? '');
-	return formatted === '' ? normalizeAddress(address) : formatted;
+export function siteKey(address: string, unitNumber?: string | null): string {
+	const normalized = normalizeAddress(address);
+	const unit =
+		unitNumber === undefined
+			? (UNIT.exec(normalized)?.[0] ?? '')
+			: unitNumber?.trim()
+				? normalizeAddress(`#${unitNumber.trim().replace(/^#/, '')}`)
+				: '';
+	const location = normalized.replace(UNIT, '').replace(/\s+/g, ' ').trim();
+	return (POSTAL.exec(location)?.[1] ?? location) + unit;
 }

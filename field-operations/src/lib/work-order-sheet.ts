@@ -8,6 +8,9 @@ type Row = InputOf<typeof WORK_ORDER_ROW.fields>;
 const WORK_ORDER_COLUMNS = columns({
 	site: 'text',
 	postal_code: { optional: 'text' },
+	unit_number: { optional: 'text' },
+	latitude: { optional: 'decimal' },
+	longitude: { optional: 'decimal' },
 	scheduled_for: 'date',
 	title: 'text',
 	nature: { optional: 'text' },
@@ -62,6 +65,8 @@ export const decodeWorkOrders = Effect.fnUntraced(function* (
 	).pipe(Effect.mapError((error) => new SheetInvalid({ message: String(error) })));
 	return decoded.rows.map((row, index): Row => ({
 		...row,
+		latitude: row.latitude?.toNumber() ?? null,
+		longitude: row.longitude?.toNumber() ?? null,
 		assignee_user_id: users[index] ?? null
 	}));
 });

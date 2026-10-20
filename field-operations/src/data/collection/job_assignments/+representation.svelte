@@ -145,8 +145,8 @@
 			>
 				{#snippet children()}
 					<Grid minimum="card">
-						<Field name="name" label={t('component.site_address')} />
 						<Field name="location" address="address" />
+						<Field name="unit_number" />
 					</Grid>
 				{/snippet}
 			</Form>

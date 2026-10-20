@@ -29,7 +29,7 @@
 		columns={[
 			'name',
 			{ field: 'client_name', label: t('component.client_tenant') },
-			{ field: 'address', label: t('component.site_address') },
+			'unit_number',
 			{ field: 'house_type', label: t('component.site_type') },
 			{ field: 'floor_area_sqm', label: t('component.floor_area_sqm') }
 		]}

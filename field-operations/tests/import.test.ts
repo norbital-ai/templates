@@ -20,8 +20,11 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
 		);
 		expect(sheet[0]).toEqual({
-			site: 'Blk 412 Tampines Street 41 #07-221',
+			site: 'Blk 412 Tampines Street 41',
 			postal_code: '520412',
+			unit_number: '#07-221',
+			latitude: '1.3572',
+			longitude: '103.9466',
 			scheduled_for: '46307',
 			title: 'Survey — Blk 412 Tampines St 41',
 			nature: 'Survey',
@@ -29,6 +32,7 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			external_ref: 'IMP-1001'
 		});
 		const decoded = yield* decodeWorkOrders(sheet);
+		expect(decoded[0]).toMatchObject({ latitude: 1.3572, longitude: 103.9466 });
 		const t = yield* workspace();
 		const as = t.as(t.member(CONTROLLER));
 		const count = Effect.fnUntraced(function* (c: string) {
@@ -39,6 +43,16 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			output: { created: 5, sites: 4, skipped: 0 }
 		});
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 5]);
+		expect(
+			present(
+				(yield* as.read('sites', { where: { site_key: { eq: '520412#07-221' } }, all: true }))
+					.rows[0]
+			)
+		).toMatchObject({
+			address: 'Blk 412 Tampines Street 41, Singapore 520412',
+			unit_number: '#07-221',
+			location: { lat: 1.3572, lng: 103.9466 }
+		});
 		const [survey, install] = yield* rows(
 			t,
 			`SELECT site_id, scheduled_for::text AS day, status FROM job_assignments WHERE external_ref IN ('IMP-1001', 'IMP-1002') ORDER BY external_ref`
@@ -95,6 +109,48 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		expect(raw.outcome.message).toContain('rows.0.scheduled_for');
 		expect(raw.outcome.message).toContain('rows.1.assignee_user_id');
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 6]);
+	})
+);
+it.live('refuses every unresolved site without valid coordinates before writing any row', () =>
+	Effect.gen(function* () {
+		const t = yield* workspace();
+		const as = t.as(t.member(CONTROLLER));
+		const decoded = yield* decodeWorkOrders(
+			csvRecords(
+				'site,scheduled_for,title,latitude,longitude\n' +
+					'10 First Road,2026-10-01,Valid work,1.3,103.8\n' +
+					'20 Second Road,2026-10-01,Missing location,,\n' +
+					'30 Third Road,2026-10-01,Out of range,91,181\n' +
+					'40 Fourth Road,2026-10-01,Incomplete location,1.3,'
+			)
+		);
+		const refused = yield* Effect.flip(
+			as.act('job_assignments.import_work_orders', { rows: decoded })
+		);
+		expect(refused).toMatchObject({
+			_tag: 'ActRefused',
+			message: expect.stringContaining('Row 2: Missing location at 20 Second Road')
+		});
+		expect(refused).toMatchObject({
+			message: expect.stringContaining('Row 3: Out of range at 30 Third Road')
+		});
+		expect(refused).toMatchObject({
+			message: expect.stringContaining('Row 4: Incomplete location at 40 Fourth Road')
+		});
+		expect(yield* rows(t, 'SELECT count(*)::int AS n FROM sites')).toEqual([{ n: 0 }]);
+		expect(yield* rows(t, 'SELECT count(*)::int AS n FROM job_assignments')).toEqual([{ n: 0 }]);
+		const badCoordinate = yield* Effect.flip(
+			decodeWorkOrders([
+				{
+					site: '10 First Road',
+					scheduled_for: '2026-10-01',
+					title: 'Invalid number',
+					latitude: 'somewhere',
+					longitude: '103.8'
+				}
+			])
+		);
+		expect(badCoordinate.message).toContain('Row 1: latitude:');
 	})
 );
 it.live('keeps the public workbook refusal messages for invalid ZIP and no worksheet', () =>

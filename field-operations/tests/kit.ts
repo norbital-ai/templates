@@ -46,7 +46,10 @@ export const siteWithJob = Effect.fnUntraced(function* (
 ) {
 	const as = t.as(t.member(CONTROLLER));
 	const [createdSite] = committed(
-		yield* as.act('sites.create', { name: `58 Kismis Avenue, Singapore ${++postal}` })
+		yield* as.act('sites.create', {
+			location: { lat: 1.34, lng: 103.77 },
+			address: `58 Kismis Avenue, Singapore ${++postal}`
+		})
 	);
 	const site = fixtureId('sites', createdSite);
 	const [createdJob] = committed(
