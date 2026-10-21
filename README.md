@@ -132,8 +132,8 @@ no template and rebuilds no tenant.
 ```bash
 pnpm templates:lock          # resolve and write each template's lockfile
 pnpm templates:lock:check    # fail on drift
-pnpm templates:lock:verify   # warm one shared store, then install offline with no credentials
-pnpm templates:verify        # install/check/build/lint and inspect each tracked template's emitted artifact
+pnpm check                  # the one gate, local and CI: declarations, format, every lock, then each changed
+                             # template installed offline from its lock, built and tested (NORBITAL_TEMPLATES_SINCE=all: every one)
 ```
 
 No template archive or package tarball is committed here. Template source is distributed through

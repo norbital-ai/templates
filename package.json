@@ -8,13 +8,13 @@
 		"node": ">=26.0.0"
 	},
 	"scripts": {
-		"check": "pnpm templates:check && pnpm format:check && pnpm templates:lock:check && pnpm templates:verify",
+		"check": "pnpm check:static && pnpm templates:verify",
+		"check:static": "pnpm templates:check && pnpm format:check && pnpm templates:lock:check",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"templates:check": "bolt templates check",
 		"templates:lock": "bolt templates lock",
 		"templates:lock:check": "bolt templates lock --check",
-		"templates:lock:verify": "bolt templates lock --check --verify-install",
 		"templates:verify": "bolt templates verify"
 	},
 	"devDependencies": {
