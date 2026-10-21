@@ -1,7 +1,11 @@
 import { collection, type TransformCtx } from '@norbital-ai/bolt';
 import { Instant } from '@norbital-ai/std/date';
 import { Result, Schema } from 'effect';
-import { movementFromRow, refuseCoveredWorkDay } from '../../../../lib/payroll_engine/leave.js';
+import {
+	consumedLeaveCovers,
+	movementFromRow,
+	refuseCoveredWorkDay
+} from '../../../../lib/payroll_engine/leave.js';
 import { rosterPlanRefusal, type RosterTouch } from '../../../../lib/payroll_engine/admit.js';
 import { moneyNumber, runEngine } from '../../../../lib/payroll_engine/foundation.js';
 import {
@@ -194,7 +198,8 @@ c.transform(function* (inputs, ctx: TransformCtx<'roster_entry'>) {
 				from: true,
 				to: true,
 				half_day_start: true,
-				half_day_end: true
+				half_day_end: true,
+				payslip_id: true
 			},
 			all: true
 		},
@@ -240,7 +245,18 @@ c.transform(function* (inputs, ctx: TransformCtx<'roster_entry'>) {
 			refuseSettledWindow(
 				windows.get(String(row.employment_id)),
 				String(row.work_date).slice(0, 10)
-			);
+			) ??
+			([before, row].some(
+				(day) =>
+					day?.employment_id != null &&
+					consumedLeaveCovers(
+						got.leaves.rows,
+						day.employment_id,
+						String(day.work_date).slice(0, 10)
+					)
+			)
+				? 'A day on leave settled on a payslip cannot be changed. Delete that payroll run to change it.'
+				: null);
 		if ('$delete' in input) {
 			const pinned = before === undefined ? null : refusePinnedRoster(before);
 			const refusal = pinned ?? settled;

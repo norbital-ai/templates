@@ -11,7 +11,12 @@ import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@inter
 import type { Id, Insert, Row } from '@norbital-ai/bolt';
 import { addDays, Instant, parseInstant, PlainDate } from '@norbital-ai/std/date';
 import { numberOf, PAYROLL_TIME_ZONE, Refusal, type Read } from './foundation.js';
-import { coverageRange, movementFromRow, refuseCoveredWorkDay } from './leave.js';
+import {
+	consumedLeaveCovers,
+	coverageRange,
+	movementFromRow,
+	refuseCoveredWorkDay
+} from './leave.js';
 import {
 	isField,
 	SHEET_COLUMNS,
@@ -328,7 +333,8 @@ const loadSheetScope = (
 				from: true,
 				to: true,
 				half_day_start: true,
-				half_day_end: true
+				half_day_end: true,
+				payslip_id: true
 			},
 			all: true
 		},
@@ -342,6 +348,22 @@ const loadSheetScope = (
 			collection: 'payslip',
 			where: { employment_id: { in: { member: 'named', field: 'id' } } },
 			select: { employment_id: true, payroll_run_id: true },
+			all: true
+		},
+		ran: {
+			collection: 'payroll_run',
+			where: {
+				company_id: { in: { member: 'entity', field: 'id' } },
+				kind: { eq: 'REGULAR' }
+			},
+			select: {
+				company_id: true,
+				period: true,
+				attendance_from: true,
+				attendance_to: true,
+				salary_from: true,
+				salary_to: true
+			},
 			all: true
 		},
 		runs: {
@@ -699,17 +721,76 @@ const settledWindows = (got: SheetScopeRead) => {
 	return out;
 };
 
-/** Why a stored or new day cannot change, or null. */
+/** The period of the company's regular run whose attendance window holds the day: payroll for it already ran. */
+const ranPeriod = (got: Pick<SheetScopeRead, 'ran'>, company_id: string, day: string) =>
+	got.ran.rows.find((run) => {
+		const from = run.attendance_from ?? run.salary_from;
+		const to = run.attendance_to ?? run.salary_to;
+		return (
+			run.company_id === company_id &&
+			from != null &&
+			to != null &&
+			inRange(day, { from: dayOf(from), to: dayOf(to) })
+		);
+	})?.period ?? null;
+
+/** Why a stored or new day cannot change, or null: the same locks the month board shows. */
 const lockOf = (
 	entry: Pick<Entry, 'payslip_id'> | undefined,
 	windows: readonly Range[] | undefined,
+	got: Pick<SheetScopeRead, 'leave'>,
+	employment_id: string,
 	day: string
 ): string | null =>
 	entry?.payslip_id != null
 		? 'settled on a payslip'
-		: (windows ?? []).some((window) => inRange(day, window))
-			? 'inside a period already captured by payroll'
-			: null;
+		: consumedLeaveCovers(got.leave.rows, employment_id, day)
+			? 'on leave settled on a payslip'
+			: (windows ?? []).some((window) => inRange(day, window))
+				? 'inside a period already captured by payroll'
+				: null;
+
+const ranAfter = (who: string, period: string) =>
+	`${who} changed after payroll for ${period} ran; it is not on a payslip, so the change applies, but review it.`;
+
+/** The sheet columns behind each changed roster field; a clock change names the boundary that moved. */
+const changedColumns = (
+	changes: readonly string[],
+	row: Mapped | null,
+	stored: Entry | undefined
+): string =>
+	changes
+		.flatMap((change): SheetField[] => {
+			switch (change) {
+				case 'shift_definition_id':
+					return ['shift_code'];
+				case 'approved_overtime_intervals':
+					return ['approved_ot_1_start'];
+				case 'overtime_consented_at':
+					return ['overtime_consent'];
+				case 'planned_overtime_hours':
+					return ['planned_overtime_hours'];
+				case 'banked_overtime_hours':
+					return ['banked_overtime_hours'];
+				case 'worked_intervals': {
+					const next = row?.worked_intervals ?? [],
+						last = stored?.worked_intervals ?? [];
+					const moved: SheetField[] = [
+						...(instantOf(next[0]?.start) === instantOf(last[0]?.start)
+							? []
+							: ['clock_in' as const]),
+						...(instantOf(next.at(-1)?.end) === instantOf(last.at(-1)?.end)
+							? []
+							: ['clock_out' as const])
+					];
+					return moved.length === 0 ? ['clock_in', 'clock_out'] : moved;
+				}
+				default:
+					return [];
+			}
+		})
+		.map((field) => SHEET_COLUMNS[field])
+		.join(', ');
 
 const changedFields = (row: Mapped, stored: Entry): readonly (keyof Mapped)[] =>
 	(
@@ -738,7 +819,8 @@ const changedFields = (row: Mapped, stored: Entry): readonly (keyof Mapped)[] =>
 /**
  * The file judged before anything is written, mirroring the pipeline's scope (per employment, its first to its last
  * mapped day): structural problems and changes to settled days refuse it, `roster` validations warn or refuse as each
- * is configured, and a blank row the scope cannot reach warns that its stored day stays.
+ * is configured, a blank row the scope cannot reach warns that its stored day stays, and an unlocked change inside a
+ * regular run that already ran warns that it applies off the payslip.
  */
 export const sheetFindings = (
 	input: {
@@ -934,7 +1016,7 @@ export const sheetFindings = (
 					`${who} already has ${recorded} leave; change it on the leave page.`
 				);
 			const stored = scope.entries.get(key);
-			const lock = lockOf(stored, windows.get(contract.id), day);
+			const lock = lockOf(stored, windows.get(contract.id), scope.got, contract.id, day);
 			const newLeave = record.leave_code != null && recorded == null;
 			if (newLeave && known.classes[`${contract.company_id}:${day}`]?.[record.leave_code!] == null)
 				return finding(
@@ -961,11 +1043,12 @@ export const sheetFindings = (
 					`${who} is on full-day ${leave} leave: it cannot record actual work, banked overtime or overtime consent.`
 				);
 			if (lock != null && changes.length > 0)
-				return finding(
-					record.row,
-					changes[0] === 'worked_intervals' ? 'clock_in' : '',
-					`${who} is ${lock} and cannot change.`
-				);
+				return out.push({
+					row: record.row,
+					column: changedColumns(changes, row, stored),
+					message: `${who} is ${lock} and cannot change.`,
+					severity: 'refuse'
+				});
 			if (row == null && stored != null) {
 				const span = spans.get(contract.id);
 				if (span == null || day < span.from || day > span.to)
@@ -985,8 +1068,11 @@ export const sheetFindings = (
 					stored != null &&
 					spans.has(contract.id) &&
 					inRange(day, spans.get(contract.id)))
-			)
+			) {
 				changedOn(contract.id, day);
+				const period = lock != null ? null : ranPeriod(scope.got, contract.company_id, day);
+				if (period != null) finding(record.row, '', ranAfter(who, period), 'warn');
+			}
 			drafts.push({
 				company_id: contract.company_id,
 				draft: {
@@ -1010,14 +1096,24 @@ export const sheetFindings = (
 			if (span == null || day < span.from || day > span.to || named.has(key) || seen.has(key))
 				continue;
 			changedOn(stored.employment_id, day);
-			const lock = lockOf(stored, windows.get(stored.employment_id), day);
-			const number = known.contracts.find((row) => row.id === stored.employment_id)?.number ?? '';
+			const lock = lockOf(
+				stored,
+				windows.get(stored.employment_id),
+				scope.got,
+				stored.employment_id,
+				day
+			);
+			const contract = known.contracts.find((row) => row.id === stored.employment_id);
+			const number = contract?.number ?? '';
+			const period = contract == null ? null : ranPeriod(scope.got, contract.company_id, day);
 			if (lock != null)
 				finding(
 					null,
 					'work_date',
 					`${number} ${day} is ${lock}; the file leaves it out, which would delete it.`
 				);
+			else if (period != null)
+				finding(null, 'work_date', ranAfter(`${number} ${day}`, period), 'warn');
 		}
 		if (out.some((row) => row.severity === 'refuse')) return out;
 		for (const company_id of new Set(drafts.map((row) => row.company_id))) {
@@ -1181,7 +1277,8 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 					from: true,
 					to: true,
 					half_day_start: true,
-					half_day_end: true
+					half_day_end: true,
+					payslip_id: true
 				},
 				all: true
 			},

@@ -7,6 +7,7 @@ import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@inter
 import { t, type MessageKey } from '../i18n/t.js';
 import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
 import { creditAttendance } from '../../payroll_engine/payslip/context.js';
+import { consumedLeaveCovers } from '../../payroll_engine/leave.js';
 
 /** One worked interval as `roster_entry.worked_intervals` stores it: ISO instants, `end` null while clocked in. */
 export type Interval = { readonly start: string; readonly end: string | null };
@@ -218,7 +219,6 @@ export function buildDays(input: {
 			readonly codes: readonly string[];
 			readonly names: readonly string[];
 			readonly coverage: number;
-			readonly locked: boolean;
 		}
 	>();
 	for (const row of input.leave) {
@@ -237,8 +237,7 @@ export function buildDays(input: {
 			leave.set(key, {
 				codes: [...new Set([...(before?.codes ?? []), row.catalog_id?.code ?? ''].filter(Boolean))],
 				names: [...new Set([...(before?.names ?? []), row.catalog_id?.name ?? ''].filter(Boolean))],
-				coverage: (before?.coverage ?? 0) + (half ? 0.5 : 1),
-				locked: before?.locked === true || row.payslip_id != null
+				coverage: (before?.coverage ?? 0) + (half ? 0.5 : 1)
 			});
 		}
 	}
@@ -290,7 +289,7 @@ export function buildDays(input: {
 								name: off.names.join(' / '),
 								half: off.coverage < 1
 							},
-				locked: entry?.payslip_id != null || off?.locked === true
+				locked: entry?.payslip_id != null || consumedLeaveCovers(input.leave, person.id, date)
 			});
 		}
 	return days;
