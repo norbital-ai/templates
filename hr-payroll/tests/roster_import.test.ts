@@ -9,6 +9,7 @@ import { describe, it } from '@effect/vitest';
 import { PlainDate } from '@norbital-ai/std/date';
 import { assertFailure, world } from './jurisdiction_kit.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';
+import { SEEDED_PAYROLL } from './duties.ts';
 import ExcelJS from 'exceljs';
 import { Effect } from 'effect';
 import { Refusal } from '../src/lib/payroll_engine/foundation.ts';
@@ -79,7 +80,11 @@ const fixture = (
 					effective_range: { from: '2026-01-01', to: null },
 					sealed_at: '2026-01-01T00:00:00.000Z',
 					voided_at: null,
-					payroll: overrides.versionZone === true ? { timezone: ZONE } : {}
+					payroll: {
+						...(overrides.versionZone === true ? { timezone: ZONE } : {}),
+						attendance: SEEDED_PAYROLL.attendance,
+						monthly_wage: SEEDED_PAYROLL.monthly_wage
+					}
 				}
 			]
 		],

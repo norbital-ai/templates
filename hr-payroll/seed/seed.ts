@@ -158,7 +158,7 @@ export default {
 		// Each sample entity observes the holidays its bank rows chose for the years they cover; later years come from
 		// its jurisdiction's gazetted `public_holidays` (national, or regional where the entity's region is named),
 		// published on 1 December of the year before, as the bank's own rows are.
-		const lawHolidays = new Map<string, Map<string, Row>>();
+		const lawHolidays = new Map<string, Row[]>();
 		for (const settings of rows['jurisdiction_settings'] ?? []) {
 			const lineage = settings['jurisdiction_code'];
 			const calendar = (rows['rule_set'] ?? []).find(
@@ -168,11 +168,12 @@ export default {
 					row['code'] === 'public_holidays'
 			)?.['rules'];
 			const listed = isRecord(calendar) ? calendar['holidays'] : undefined;
-			if (!isString(lineage) || !Array.isArray(listed)) continue;
-			const byDate = lawHolidays.get(lineage) ?? new Map<string, Row>();
-			for (const holiday of listed)
-				if (isRecord(holiday) && isString(holiday['date'])) byDate.set(holiday['date'], holiday);
-			lawHolidays.set(lineage, byDate);
+			if (!isString(lineage) || !Array.isArray(listed) || settings['voided_at'] != null) continue;
+			// versions in order: a later version's row for a day wins below
+			lawHolidays.set(lineage, [
+				...(lawHolidays.get(lineage) ?? []),
+				...listed.filter((holiday) => isRecord(holiday) && isString(holiday['date']))
+			]);
 		}
 		for (const entity of rows['entity'] ?? []) {
 			const company = entity['id'];
@@ -182,13 +183,15 @@ export default {
 			const covered = held
 				.flatMap((row) => (isString(row['date']) ? [row['date'].slice(0, 4)] : []))
 				.reduce((last, year) => (year > last ? year : last), '');
-			for (const [date, holiday] of lawHolidays.get(lineage) ?? []) {
+			// the entity's own days first (national, or naming its region), then one row per day
+			const observed = new Map<string, Row>();
+			for (const holiday of lawHolidays.get(lineage) ?? []) {
+				const date = String(holiday['date']);
 				const regions = holiday['regions'];
-				if (
-					date.slice(0, 4) <= covered ||
-					(Array.isArray(regions) && !regions.includes(entity['region'] ?? ''))
-				)
-					continue;
+				if (Array.isArray(regions) && !regions.includes(entity['region'] ?? '')) continue;
+				if (date.slice(0, 4) > covered) observed.set(date, holiday);
+			}
+			for (const [date, holiday] of observed) {
 				const hash = createHash('sha256')
 					.update(`norbital_hr:holiday:${company}:${date}`)
 					.digest('hex');

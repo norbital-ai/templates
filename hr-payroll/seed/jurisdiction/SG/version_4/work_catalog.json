@@ -12,7 +12,8 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"],
-		"prorated": true
+		"prorated": true,
+		"denominator": "double(period.days)"
 	},
 	{
 		"id": "ab1ff048-1331-5b18-a4bf-35e1ed871dcc",

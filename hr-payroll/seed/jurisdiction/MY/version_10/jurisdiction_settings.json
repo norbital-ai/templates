@@ -22,56 +22,40 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://gajiminimum.mohr.gov.my/",
-					"instructions": "Sekretariat Majlis Perundingan Gaji Negara &#8211; Portal Rasmi Sekretariat Majlis Perundingan Gaji Negara. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.jtksabah.gov.my/",
-					"instructions": "Jabatan Tenaga Kerja Sabah – Laman Rasmi. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
 					"url": "https://lom.agc.gov.my/",
-					"instructions": "Malaysia Federal Legislation. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Attorney General's Chambers, Laws of Malaysia (federal legislation and the e-Federal Gazette). Authority for: the Employment Act 1955 (Act 265) and its regulations — wages and deductions ss.18–24, hours, overtime and the overtime limit (s.60A, Limitation of Overtime Work Regulations 1980), rest days s.59–60, public holidays s.60D, annual, sick, hospitalisation, maternity and paternity leave ss.37, 60E–60FA, part-time regulations 2010, notice and termination ss.12–14, final wages, the Employment (Termination and Lay-Off Benefits) Regulations 1980, records s.61, foreign employees Part XIIB and sexual harassment Part XVA; minimum wages (National Wages Consultative Council Act 2011, Act 732, and each Minimum Wages Order, e.g. P.U. (A) 376/2024); the Employees Provident Fund Act 1991 (Act 452) with its Third Schedule contribution rates and the orders amending it (KWSP rate notices have no other accessible host); the HRD levy (Pembangunan Sumber Manusia Berhad Act 2001, Act 612, First Schedule, and each Exemption of Levy Order, e.g. P.U. (A) 13/2026); public holidays (Holidays Act 1951, Act 369: the Schedule, s.3 weekly-holiday substitution, s.8 federal and s.9 state declarations as P.U. (B) notifications); workers' accommodation (Act 446 and P.U. (A) 249/2020 as amended by P.U. (A) 49/2026); minimum retirement age (Act 753); children and young persons (Act 350); industrial relations (Act 177); foreign-worker statutes (Immigration Act 1959/63, Act 155, Employment (Restriction) Act 1968, Fees Act 1951 levy orders); and the Sabah / Sarawak Labour Ordinance amending Acts A1753 / A1754 (scope check only: those worksites are outside this lineage). Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, the act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun. The Prime Minister's Department's yearly holiday tables (Jadual Hari Kelepasan Am Persekutuan dan Negeri, kabinet.gov.my/hari-kelepasan-am, unreachable) are read in the archived official copies on web.archive.org (e.g. https://web.archive.org/web/2026/https://www.kabinet.gov.my/hari-kelepasan-am/ and the HKA PDFs it links). Not this entry: SOCSO, EIS and SKBBK (PERKESO), income tax withholding and employer tax filings (LHDN), personal data protection (JPDP).",
+					"document_origins": ["https://web.archive.org/"]
 				},
 				{
 					"url": "https://www.hasil.gov.my/",
-					"instructions": "Lembaga Hasil Dalam Negeri Malaysia. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.jtkswk.gov.my/",
-					"instructions": "Portal Rasmi Jabatan Tenaga Kerja Sarawak &#8211; Portal rasmi Jabatan Tenaga Kerja Sarawak. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.malaysia.gov.my/",
-					"instructions": "Portal Rasmi Kerajaan Malaysia (MyGov). Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Authority for payroll tax withholding and employer tax filings: Monthly Tax Deduction (PCB/MTD) — the yearly computerised calculation specification (Spesifikasi Kaedah Pengiraan Berkomputer PCB, the rate table, reliefs, rebates, normal and additional remuneration, non-resident rate), the Income Tax (Deduction from Remuneration) Rules 1994 and the PCB schedule; tax-exempt allowances and perquisites (public rulings, e.g. PR 5/2019); employer forms and deadlines — Form E and CP8D, EA forms to employees, CP22 (new employee), CP22A / CP22B (cessation), CP21 (leaving Malaysia), CP38 directions, CP58; and the Income Tax Act 1967 (Act 53) provisions on employment income (s.13, Schedule 6), withholding (s.107) and records (s.82). Where: Employer (Majikan) section for PCB, forms and deadlines; Legislation (Perundangan) for the Act, rules and public rulings; the specification PDF under the PCB pages (wp-content/uploads). Read the Malay original where an English page lags. Not this entry: EPF, SOCSO/EIS and HRD contributions."
 				},
 				{
 					"url": "https://www.perkeso.gov.my/",
-					"instructions": "Request Rejected. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Pertubuhan Keselamatan Sosial (PERKESO). Authority for social security contributions and benefits: SOCSO (Employees' Social Security Act 1969, Act 4 — First and Third Schedules, employment-injury and invalidity categories, foreign workers), the Employment Insurance System (Act 800 — Second Schedule, coverage exclusions), and the 24-hour non-employment injury scheme SKBBK / LINDUNG 24 Jam (Act A1788 Third Schedule Parts I–VI and the P.U. (B) commencement orders); the wage ceiling and contribution tables, employer circulars, employer and employee registration, accident reporting (Borang 34) and cessation notices. Where: Akta (images/akta/ACT 4, ACT 800) for the Acts, amending Acts and gazette notifications; Caruman / Contribution Rate pages and employer FAQs for the tables and ceiling; Pekeliling for circulars. Not this entry: the Employment Act, EPF, HRD levy, income tax."
 				},
 				{
-					"url": "https://jtksm.gov.my/",
-					"instructions": "Jabatan Tenaga Kerja Semenanjung Malaysia (JTKSM). Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.pdp.gov.my/",
-					"instructions": "Jabatan Perlindungan Data Peribadi (PDP). Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.imi.gov.my/",
-					"instructions": "Jabatan Imigresen Malaysia. Use legislation/search, publications/circulars and employer contribution/tax tables. Search the applicable Act, amendment and gazetted order by title/year, then inspect commencement and annexes. Distinguish Peninsular/Labuan, Sabah and Sarawak labour regimes; compare Malaysian/non-Malaysian worker classes, published wage bands, ceilings, contribution rates, tax computation specifications and holiday jurisdiction. Budget proposals are not enacted law. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jtksm.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf",
-					"instructions": "Employment Act 1955 ss.2,60A(4)(a),60I and60D(3)(b): verify ordinary-wage cash components, the rest/public-holiday monthly overtime exclusion and the holiday food/housing exclusion. Calculation correction recorded 20 October 2026; earlier sealed results remain reproducible."
+					"url": "https://www.pdp.gov.my/ppdpv1/",
+					"instructions": "Jabatan Perlindungan Data Peribadi (JPDP). Authority for employee data protection: the Personal Data Protection Act 2010 (Act 709) as amended by Act A1727 (data protection officer s.12A, breach notification s.12B, data portability), its regulations, and the Commissioner's guidelines and circulars (DPO appointment thresholds and timing, data breach notification to the Commissioner within 72 hours and to data subjects, cross-border transfer). Where: Perundangan / Legislation for the Act, regulations and orders; Garis Panduan and Pekeliling for guidelines and circulars. Not this entry: records retention under the Employment Act or Income Tax Act."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Each area has exactly one entry below; apply that entry's own guidance. Record the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table; read amendments and schedules, and verify figures from scanned PDFs visually. Budget speeches, Cabinet announcements and draft orders are not law until gazetted. Never sign in or upload customer records. Deliberately not sources, because they refuse one or both research tools (security-verification challenge, 'Web Page Blocked' or no connection): kwsp.gov.my and hrdcorp.gov.my (challenge), jtksm.mohr.gov.my, jtksm.gov.my, gajiminimum.mohr.gov.my, imi.gov.my, jtksabah.gov.my, jpa.gov.my (blocked), malaysia.gov.my (403), kabinet.gov.my and mohr.gov.my (no connection). Their instruments are read in the Acts, P.U. (A) and P.U. (B) on lom.agc.gov.my; the federal and state public-holiday tables of the Prime Minister's Department through the archived copy named in that entry."
 		},
 		"cloned_from_id": "2a6cd9af-330f-5ba7-b616-21a7dee1c1d5",
 		"change_summary": "Calculation correction published 20 October 2026, effective from the current payroll month on 1 October 2026. Previously captured payroll runs retain their own settings IDs and stored values. EA s.60A(4)(a): rest days and paid public holidays do not consume the 104-hour ordinary-overtime limit. EA ss.2,60I: the ordinary monthly/weekly wage includes fixed contractual cash allowances; s.60D(3)(b) excludes meal allowances from the holiday uplift. PERKESO Third Schedule: SKBBK small-wage brackets are the non-employment-injury contribution itself, without another invalidity deduction. The existing rate phase and HRD education exemption of this effective range remain in force.",
@@ -398,9 +382,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -769,6 +751,23 @@
 										"type": "boolean",
 										"title": "Fifth Schedule prohibited employment",
 										"description": "Whether work involves prostitution, social escorts/hostesses, alcoholic-beverage production or trade, gambling/lotteries, massage/reflexology, pornography, or prohibited drugs/substances (Act 350 Fifth Schedule)."
+									},
+									"spouse_status": {
+										"type": "string",
+										"enum": ["NONE", "WITHOUT_INCOME", "WITH_INCOME"],
+										"description": "The spouse’s income: WITHOUT_INCOME with marital_status MARRIED gives the RM4,000 spouse relief and the RM400 rebate in PCB (category 2) and in the C.P.8D file."
+									},
+									"receiving_pension": {
+										"type": "boolean",
+										"description": "A certified invalid receiving an invalidity pension: SOCSO charges the employment injury scheme only (Act 4 First Schedule para 12)."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A disabled individual registered with JKM: the RM7,000 disabled-individual relief in PCB (Income Tax Act 1967 s.46(1)(e))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -1141,6 +1140,29 @@
 							"description": "LHDN C.P.8D field 7: the employee received tax borne by the employer (a tax allowance) in the remuneration year. The PCB does not gross up for it."
 						}
 					}
+				},
+				"loan_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on loan_catalog_entry.facts; the CEL root `entry.facts` of the loan class's rules.",
+					"properties": {
+						"advance_purpose": {
+							"type": "string",
+							"title": "Permitted advance purpose",
+							"enum": [
+								"HOUSE",
+								"LAND",
+								"VEHICLE",
+								"EMPLOYER_SHARES",
+								"COMPUTER",
+								"MEDICAL_TREATMENT",
+								"SOCSO_DISABLEMENT",
+								"EDUCATION",
+								"DG_APPROVED"
+							],
+							"description": "Employment Act 1955 s.24(4)/(5): for an advance above one month's wages, the permitted purpose."
+						}
+					}
 				}
 			}
 		},
@@ -1230,7 +1252,7 @@
 				"code": "EMPLOYER_SHUTDOWN",
 				"name": "Work stopped by the employer (shutdown, lay-off day, lack of work)",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? terms.base_salary / 26.0 : 0.0",
 				"authority": "EA s.24(1): no deduction from wages other than in accordance with the Act, so the contract wage stands; EA s.60E(1) proviso: not an absence without permission for annual leave. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
 			}

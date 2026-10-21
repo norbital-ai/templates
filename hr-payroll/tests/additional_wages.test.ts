@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { monthOf } from '@norbital-ai/std/date';
@@ -35,6 +36,19 @@ const configuration = required(
 	Schema.decodeUnknownSync(Configuration)(
 		Schema.decodeUnknownSync(configurationCodec)(original.configuration)
 	)
+);
+// The reconciliation policy as the current CPF row declares it.
+const policy = required(
+	Schema.decodeUnknownSync(Configuration)(
+		Schema.decodeUnknownSync(configurationCodec)(
+			required(
+				readSeedRows(
+					resolve(import.meta.dirname, '../seed/jurisdiction/SG/version_6'),
+					'statutory_contribution_catalog'
+				).find((row) => row.code === 'CPF')
+			).configuration
+		)
+	)?.annual_reconciliation
 );
 const cpf: StatutoryRow = {
 	id: nativeId('statutory_contribution_catalog', original.id),
@@ -163,7 +177,9 @@ const fixture = (options: { readonly constantWage?: boolean } = {}): Input => {
 			})
 		),
 		configurations: new Map(history.map((slip) => [runId(slip), [cpf]])),
-		money
+		money,
+		policy,
+		context: { employment: { start_date: '2026-01-01' }, person: {} }
 	};
 };
 const changeLine = (
@@ -211,6 +227,29 @@ const addDecember = (input: Input, employee: number, employer: number): Input =>
 };
 
 describe('captured additional-wage reconciliation safeguards', () => {
+	it('every seed reconciliation declares what a shortfall or an excess does', () => {
+		const root = resolve(import.meta.dirname, '../seed/jurisdiction');
+		const reconciliation = inputSchema(
+			statutoryModel.fields.configuration.shape.fields.annual_reconciliation
+		);
+		let seen = 0;
+		for (const lineage of readdirSync(root))
+			for (const version of readdirSync(resolve(root, lineage)).filter((name) =>
+				name.startsWith('version_')
+			))
+				for (const row of readSeedRows(
+					resolve(root, lineage, version),
+					'statutory_contribution_catalog'
+				)) {
+					const declared = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(
+						row.configuration
+					).annual_reconciliation;
+					if (declared == null) continue;
+					Schema.decodeUnknownSync(reconciliation)(declared);
+					seen++;
+				}
+		assert.ok(seen > 0);
+	});
 	it.effect('catches up earlier AW with no new AW in December', () =>
 		Effect.gen(function* () {
 			const result = yield* reconcileAdditionalWages(fixture());
@@ -392,6 +431,51 @@ describe('captured additional-wage reconciliation safeguards', () => {
 				reconcileAdditionalWages(addDecember(fixture(), 3601, 3060))
 			);
 			assert.match(refusal.message, /this month already contains excess contributions/);
+		})
+	);
+	it.effect('the row decides what a shortfall or an excess does', () =>
+		Effect.gen(function* () {
+			const decide = (changes: Partial<Input['policy']>, input: Input) =>
+				reconcileAdditionalWages({ ...input, policy: { ...policy, ...changes } });
+			const underpaid = yield* Effect.flip(decide({ on_underpaid: 'REFUSE' }, fixture()));
+			assert.match(underpaid.message, /annual_reconciliation\.on_underpaid is REFUSE/);
+			const earlierExcess = changeLine(fixture({ constantWage: true }), 0, {
+				employee_amount: 2801
+			});
+			const overpaid = yield* Effect.flip(decide({ on_overpaid: 'REFUSE' }, earlierExcess));
+			assert.match(overpaid.message, /annual_reconciliation\.on_overpaid is REFUSE/);
+			const settled = yield* decide(
+				{ on_current_excess: 'SETTLE' },
+				addDecember(fixture(), 3601, 3060)
+			);
+			assert.deepEqual(settled.monthCharge, { employee: 3600, employer: 3060 });
+			const error = changeLine(fixture(), 0, { employee_amount: 2799 });
+			const caught = yield* decide({ on_original_error: 'CATCH_UP' }, error);
+			assert.deepEqual(caught.monthCharge, { employee: 3601, employer: 3060 });
+		})
+	);
+	it.effect('replays the current month over the scheme context it was assessed in', () =>
+		Effect.gen(function* () {
+			const pending: StatutoryRow['configuration'] = {
+				...configuration,
+				rules: [
+					{
+						...rule,
+						contribution: `cel.bind(p, person.normal_pending, ${required(rule.contribution)})`
+					}
+				]
+			};
+			const input = fixture();
+			const result = yield* reconcileAdditionalWages({
+				...input,
+				currentRule: required(pending?.rules?.[0]),
+				context: { ...input.context, person: { normal_pending: 4000 } }
+			});
+			assert.deepEqual(result.monthCharge, { employee: 3600, employer: 3060 });
+			const refusal = yield* Effect.flip(
+				reconcileAdditionalWages({ ...input, currentRule: required(pending?.rules?.[0]) })
+			);
+			assert.match(refusal.message, /cannot be replayed/);
 		})
 	);
 	it.effect('warns about earlier excess contributions while keeping current-month CPF', () =>

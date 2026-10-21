@@ -22,7 +22,18 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
@@ -393,9 +404,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -764,6 +773,23 @@
 										"type": "boolean",
 										"title": "Fifth Schedule prohibited employment",
 										"description": "Whether work involves prostitution, social escorts/hostesses, alcoholic-beverage production or trade, gambling/lotteries, massage/reflexology, pornography, or prohibited drugs/substances (Act 350 Fifth Schedule)."
+									},
+									"spouse_status": {
+										"type": "string",
+										"enum": ["NONE", "WITHOUT_INCOME", "WITH_INCOME"],
+										"description": "The spouse’s income: WITHOUT_INCOME with marital_status MARRIED gives the RM4,000 spouse relief and the RM400 rebate in PCB (category 2) and in the C.P.8D file."
+									},
+									"receiving_pension": {
+										"type": "boolean",
+										"description": "A certified invalid receiving an invalidity pension: SOCSO charges the employment injury scheme only (Act 4 First Schedule para 12)."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A disabled individual registered with JKM: the RM7,000 disabled-individual relief in PCB (Income Tax Act 1967 s.46(1)(e))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -1136,6 +1162,29 @@
 							"description": "LHDN C.P.8D field 7: the employee received tax borne by the employer (a tax allowance) in the remuneration year. The PCB does not gross up for it."
 						}
 					}
+				},
+				"loan_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on loan_catalog_entry.facts; the CEL root `entry.facts` of the loan class's rules.",
+					"properties": {
+						"advance_purpose": {
+							"type": "string",
+							"title": "Permitted advance purpose",
+							"enum": [
+								"HOUSE",
+								"LAND",
+								"VEHICLE",
+								"EMPLOYER_SHARES",
+								"COMPUTER",
+								"MEDICAL_TREATMENT",
+								"SOCSO_DISABLEMENT",
+								"EDUCATION",
+								"DG_APPROVED"
+							],
+							"description": "Employment Act 1955 s.24(4)/(5): for an advance above one month's wages, the permitted purpose."
+						}
+					}
 				}
 			}
 		},
@@ -1226,7 +1275,7 @@
 				"code": "EMPLOYER_SHUTDOWN",
 				"name": "Work stopped by the employer (shutdown, lay-off day, lack of work)",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? terms.base_salary / 26.0 : 0.0",
 				"authority": "EA s.24(1): no deduction from wages other than in accordance with the Act, so the contract wage stands; EA s.60E(1) proviso: not an absence without permission for annual leave. Employment Act 1955 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
 			}

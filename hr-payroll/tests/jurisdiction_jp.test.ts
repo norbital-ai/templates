@@ -172,6 +172,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -836,7 +837,7 @@ const ELECTIONS = [
 	'lump_sum_on_exit',
 	'monthly_amount',
 	'not_domiciled_on_january_1',
-	'premium_adjustment_employee_share',
+	'premium_adjustment_from',
 	'prior_employer_income',
 	'prior_employer_social_insurance',
 	'prior_employer_tax',
@@ -1002,7 +1003,8 @@ const periodOf = (key: string, pay_date?: string) => {
 		pay_date: pay_date ?? next,
 		covered_days: days,
 		working_days: 21,
-		salary_paid: false
+		salary_paid: false,
+		salary_run: true
 	};
 };
 const statutoryContext = (key: string, person: Person = {}, month: Month = {}) => {
@@ -1540,14 +1542,22 @@ describe('JP public lineage', () => {
 			['CHILD_SUPPORT_BONUS', 4],
 			['SI_ADJUSTMENT_REFUND', 6]
 		]);
+		const ONCE = 'HARASSMENT_PREVENTION_2026_AMENDMENT';
 		for (const name of ['rule_set', ...CATALOGS]) {
 			const codes = (version: string) =>
 				file(version, name)
 					.map((row) => String(row.code))
-					.filter((code) => !LATER.has(code))
+					.filter((code) => !LATER.has(code) && code !== ONCE)
 					.join(',');
 			for (const version of versions) assert.equal(codes(version), codes('version_1'), name);
 		}
+		// The 2026-10-01 harassment duties are raised once, for the entities already in place, by the version they began in.
+		for (const version of versions)
+			assert.equal(
+				file(version, 'rule_set').some((row) => row.code === ONCE),
+				version === 'version_6',
+				version
+			);
 		for (const version of versions)
 			for (const [code, from] of LATER)
 				assert.equal(
@@ -2252,7 +2262,9 @@ describe('JP public lineage', () => {
 			);
 		for (const version of versions) {
 			const checks = file(version, 'rule_set').filter(
-				(row) => row.family === 'VALIDATIONS' && fixtureValue5(row.rules).site !== 'roster'
+				(row) =>
+					row.family === 'VALIDATIONS' &&
+					!['roster', 'cycle'].includes(String(fixtureValue5(row.rules).site))
 			);
 			assert.deepEqual(checks.map((row) => row.code).toSorted(), [
 				'CHILDCARE_CARE_LIMITS',
@@ -2812,19 +2824,69 @@ describe('JP public lineage', () => {
 			employee: 35952,
 			employer: 35953
 		});
-		// 保険料調整制度 (from October 2026): the employer bears part of a newly covered worker's share, refunded three
-		// months later off the notice.
+		// 保険料調整制度 (from October 2026): the employer bears part of a newly covered worker's share at the statutory
+		// ratio of the grade (126,000 48:52 … 88,000 25:75), half the reduction in year three, none after 36 months,
+		// refunded three months later off the notice.
 		const adjusted = {
 			monthly_wage: 126000,
 			elections: {
-				HEALTH: { premium_adjustment_employee_share: 0.25 },
-				PENSION: { premium_adjustment_employee_share: 0.25 }
+				HEALTH: { premium_adjustment_from: '2026-10' },
+				PENSION: { premium_adjustment_from: '2026-10' }
 			}
 		};
+		// 126,000 × 9.85% = 12,411 × 0.48 = 5,957.28.
 		assert.deepEqual(at('version_6', 'HEALTH', '2026-10', adjusted, { ordinary: 126000 }), {
-			employee: 3103,
-			employer: 9308
+			employee: 5957,
+			employer: 6454
 		});
+		// 88,000 × 9.85% = 8,668 × 0.25.
+		assert.deepEqual(
+			at(
+				'version_6',
+				'HEALTH',
+				'2026-10',
+				{ ...adjusted, monthly_wage: 88000 },
+				{ ordinary: 88000 }
+			),
+			{ employee: 2167, employer: 6501 }
+		);
+		// Above 126,000 the premium is halved as usual.
+		assert.deepEqual(
+			at(
+				'version_6',
+				'HEALTH',
+				'2026-10',
+				{ ...adjusted, monthly_wage: 134000 },
+				{ ordinary: 134000 }
+			),
+			{ employee: 6599, employer: 6600 }
+		);
+		// Year three (from 2028-10): 49:51; after 36 months (2029-10): halved again.
+		assert.deepEqual(at('version_12', 'HEALTH', '2028-10', adjusted, { ordinary: 126000 }), {
+			employee: 6081,
+			employer: 6330
+		});
+		assert.deepEqual(at('version_14', 'HEALTH', '2029-10', adjusted, { ordinary: 126000 }), {
+			employee: 6205,
+			employer: 6206
+		});
+		// The system opened in October 2026: an earlier start month adjusts nothing.
+		assert.deepEqual(
+			at(
+				'version_5',
+				'HEALTH',
+				'2026-09',
+				{
+					...adjusted,
+					elections: {
+						HEALTH: { premium_adjustment_from: '2026-09' },
+						PENSION: { premium_adjustment_from: '2026-09' }
+					}
+				},
+				{ ordinary: 126000 }
+			),
+			{ employee: 6205, employer: 6206 }
+		);
 		const refund = at(
 			'version_8',
 			'SI_ADJUSTMENT_REFUND',
@@ -2837,8 +2899,8 @@ describe('JP public lineage', () => {
 							month: '2026-10',
 							gross: 126000,
 							statutory: {
-								HEALTH: { employee: 3103, employer: 9308, parts: { ordinary: 126000 } },
-								PENSION: { employee: 5765, employer: 17293, parts: { ordinary: 126000 } }
+								HEALTH: { employee: 5957, employer: 6454, parts: { ordinary: 126000 } },
+								PENSION: { employee: 11068, employer: 11990, parts: { ordinary: 126000 } }
 							}
 						}
 					]
@@ -2846,8 +2908,8 @@ describe('JP public lineage', () => {
 			},
 			{ ordinary: 126000 }
 		);
-		// 126,000 × (9.85% + 18.3%) × (0.5 − 0.25) = 8,867.25 → 8,867.
-		assert.deepEqual(refund, { employee: 0, employer: -8867 });
+		// 126,000 × (9.85% + 18.3%) × (0.5 − 0.48) = 709.38 → 709.
+		assert.deepEqual(refund, { employee: 0, employer: -709 });
 		// 47 prefectures × FY2025 and FY2026 協会けんぽ rates on 300,000 (no nursing).
 		for (const [region, [fy2025, fy2026]] of Object.entries(KYOKAI))
 			for (const [version, key, rate] of [
@@ -3229,12 +3291,14 @@ describe('JP public lineage', () => {
 			code: string,
 			facts: Row,
 			quantity = 1,
-			entryAmount = 1000
+			entryAmount = 1000,
+			work_classification = 'ORDINARY'
 		) => {
 			const row = fixturePresent(file(version, 'adhoc_catalog').find((item) => item.code === code));
 			const band = fixturePresent(fixtureValue12(row.bands)[0]);
 			const context = {
 				...payslipContext,
+				terms: { ...payslipContext.terms, work_classification },
 				earned: {
 					...payslipContext.earned,
 					months: ['2026-01', '2026-02', '2026-03'].map((month) => ({ month, gross: 300000 }))
@@ -3276,6 +3340,20 @@ describe('JP public lineage', () => {
 			amount('version_4', 'HOUSING_IN_KIND', { standard_rent: 50000, rent_paid: 20000 }),
 			30000
 		);
+		// An officer has no half-rent exemption (国税庁 No.2600): the shortfall is salary in every version.
+		for (const version of versions)
+			assert.equal(
+				amount(
+					version,
+					'HOUSING_IN_KIND',
+					{ standard_rent: 50000, rent_paid: 25000 },
+					1,
+					1000,
+					'OFFICER'
+				),
+				25000,
+				version
+			);
 		// Disciplinary: at most half a day's average wage per act; late wages of a leaver bear 14.6%.
 		assert.equal(amount('version_4', 'DISCIPLINARY_DEDUCTION', {}, 1, 8000), 5000);
 		assert.equal(
@@ -3319,6 +3397,32 @@ describe('JP public lineage', () => {
 		assert.ok(routes('RETIREMENT_ALLOWANCE').includes('RESIDENT_TAX_RETIREMENT.RETIREMENT'));
 		assert.deepEqual(routes('LONG_SERVICE_AWARD'), []);
 	});
+	it('sources: one official entry per area, each with its own guidance, none behind a block', () => {
+		const Sources = FixtureSchema.Struct({
+			entries: FixtureSchema.Array(
+				FixtureSchema.Struct({ url: FixtureSchema.String, instructions: FixtureSchema.String })
+			)
+		});
+		for (const version of versions) {
+			const { entries } = guardFixture(Sources)(settingsOf(version).sources);
+			assert.deepEqual(
+				entries.map((entry) => entry.url),
+				[
+					'https://www.mhlw.go.jp/',
+					'https://www.nenkin.go.jp/',
+					'https://www.kyoukaikenpo.or.jp/',
+					'https://www.nta.go.jp/',
+					'https://www.soumu.go.jp/',
+					'https://www.ppc.go.jp/',
+					'https://www.cao.go.jp/',
+					'https://www.jeed.go.jp/'
+				],
+				version
+			);
+			// No shared boilerplate: every entry's guidance is its own.
+			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, entries.length);
+		}
+	});
 	it('leave classes, the national holidays row and the hourly leave cap', () => {
 		for (const version of versions) {
 			const holidays = fixturePresent(
@@ -3339,6 +3443,14 @@ describe('JP public lineage', () => {
 				]
 			);
 			assert.equal(new Set(list.map((h) => h.date)).size, list.length);
+			// Every row cites its instrument: the 内閣府 list for 国民の祝日, the 行政機関 law for the year-end days.
+			for (const h of list)
+				assert.match(
+					String(h.source),
+					h.kind === 'SPECIAL_HOLIDAY'
+						? /^行政機関の休日に関する法律/
+						: /^国民の祝日に関する法律 .*www8\.cao\.go\.jp/
+				);
 		}
 		const leave = (code: string) =>
 			fixturePresent(file('version_4', 'leave_catalog').find((row) => row.code === code));
@@ -3738,7 +3850,7 @@ describe('JP public lineage', () => {
 				code: row.code,
 				rules: fixtureValue5({ ...fixtureRecord(row.rules), trigger: triggerOf(row) })
 			}));
-			assert.equal(duties.length, 98);
+			assert.equal(duties.length, version === 'version_6' ? 99 : 98);
 			const plain = { region: 'TOKYO', risk_class: '', facts: {} };
 			const japanese = {
 				nationality: 'JP',
@@ -3755,6 +3867,7 @@ describe('JP public lineage', () => {
 						'EXIT',
 						'entity.created',
 						'entity.updated',
+						'entity.calendar',
 						'calendar.daily',
 						'workplace_case.created',
 						'employment_profile.updated',
@@ -4179,6 +4292,16 @@ describe('JP public lineage', () => {
 					HARASSMENT_PREVENTION_MEASURES: '2026-04-01'
 				}
 			);
+			// 1 October 2026 (令和7年法律第63号): customer and job-seeker harassment measures, raised once for every
+			// entity already in place by the daily calendar tick.
+			const ticked = (day: string) =>
+				raise('entity', 'calendar', { id: 'c1' }, plain, japanese, { day });
+			if (version === 'version_6') {
+				assert.deepEqual(ticked('2026-10-22'), {
+					HARASSMENT_PREVENTION_2026_AMENDMENT: '2026-10-01'
+				});
+				assert.deepEqual(ticked('2026-09-30'), {});
+			} else assert.deepEqual(ticked('2026-10-22'), {});
 			assert.equal(exit({ ...contract, exit_ground: 'DISMISSAL' }).DISMISSAL_NOTICE, '2026-04-20');
 			// Art.21 exclusions: probation within 14 days, a term of two months or less, or a certified exception.
 			const dismissed = (exit_facts: Row, range = contract.effective_range) =>
@@ -5125,7 +5248,13 @@ describe('JP public lineage', () => {
 					),
 					false
 				);
-				assert.equal(kind.counts_as_attended, '');
+				assert.equal(
+					evaluateConfigured(
+						fixtureString(String(kind.counts_as_attended)),
+						fixtureContext({ day: {}, suspension: {} })
+					),
+					false
+				);
 				assert.equal(kind.pay !== '', kind.code === 'EMPLOYER_CAUSED');
 			}
 			const pay = String(fixturePresent(kinds[0]).pay);
@@ -7010,6 +7139,7 @@ describe('JP public lineage', () => {
 	layer(workspace({ seed: 'none' }))('JP payroll histories', (it) => {
 		for (const scenario of [
 			'monthly bonus order',
+			'three orderings settle the same month',
 			'weekly withholding and shutdown',
 			'childcare bonus',
 			'semi-monthly allowances'
@@ -7309,6 +7439,104 @@ describe('JP public lineage', () => {
 								yield* run('2026-04', 'REGULAR');
 								assert.deepEqual(monthTotals(), salaryFirst);
 							}
+							// Statutory is never deferred: a bonus and a taxable allowance paid off-cycle BEFORE the salary run, INSIDE it or
+							// AFTER it settle identical month totals for every scheme, and the slip that pays the money carries its tax.
+							if (scenario === 'three orderings settle the same month') {
+								const ordered = Effect.fnUntraced(function* (
+									month: string,
+									version: string,
+									order: 'before' | 'inside' | 'after'
+								) {
+									resetTables();
+									yield* run(month === '2026-10' ? '2026-09' : '2026-11', 'REGULAR');
+									const adhoc = (code: string) =>
+										fixturePresent(file(version, 'adhoc_catalog').find((row) => row.code === code))
+											.id;
+									// Approved before the run that pays them: the regular run pays every approved entry of its month.
+									const approve = () => {
+										for (const [id, code, amount] of [
+											['ob', 'BONUS', 500000],
+											['os', 'SPECIAL_ALLOWANCE', 100000]
+										] as const)
+											fixturePresent(tables.get('adhoc_catalog_entry')).push(
+												fixtureRow({
+													id,
+													catalog_id: adhoc(code),
+													employment_id: 'k-p1',
+													company_id: COMPANY,
+													payslip_id: null,
+													occurred_on: `${month}-20`,
+													amount,
+													activity: 'AWARD'
+												})
+											);
+									};
+									if (order !== 'after') approve();
+									const offCycle = Effect.fnUntraced(function* () {
+										return fixturePresent(
+											(yield* run(month, 'OFF_CYCLE', ['ob', 'os'])).payslips.find(
+												(slip) => slip.employment_id === fixtureKey('k-p1')
+											)
+										);
+									});
+									const before = order === 'before' ? yield* offCycle() : undefined;
+									yield* run(month, 'REGULAR');
+									if (order === 'after') approve();
+									const after = order === 'after' ? yield* offCycle() : undefined;
+									const totals: Record<string, [number, number]> = {};
+									const statutoryLines = guardFixture(
+										FixtureSchema.Array(
+											FixtureSchema.Struct({
+												scheme_code: FixtureSchema.String,
+												employee_amount: FixtureSchema.Number,
+												employer_amount: FixtureSchema.Number
+											})
+										)
+									);
+									for (const slip of fixturePresent(tables.get('payslip')))
+										if (
+											slip.employment_id === fixtureKey('k-p1') &&
+											fixtureString(slip.salary_from).startsWith(month)
+										)
+											for (const line of statutoryLines(slip.statutory)) {
+												const held = (totals[line.scheme_code] ??= [0, 0]);
+												held[0] = Math.round((held[0] + line.employee_amount) * 100) / 100;
+												held[1] = Math.round((held[1] + line.employer_amount) * 100) / 100;
+											}
+									for (const code of Object.keys(totals))
+										if (totals[code]![0] === 0 && totals[code]![1] === 0) delete totals[code];
+									return { totals, offCycle: before ?? after };
+								});
+								for (const [month, version] of [
+									['2026-10', 'version_6'],
+									['2026-12', 'version_7']
+								] as const) {
+									const before = yield* ordered(month, version, 'before');
+									const inside = yield* ordered(month, version, 'inside');
+									const after = yield* ordered(month, version, 'after');
+									// Every statutory scheme of the version, employee and employer: one month total whatever the order.
+									assert.deepEqual(before.totals, inside.totals, `${month} before`);
+									assert.deepEqual(after.totals, inside.totals, `${month} after`);
+									const paidBefore = lines(fixturePresent(before.offCycle));
+									const paidAfter = lines(fixturePresent(after.offCycle));
+									// Not deferred: the slip paid before the salary carries the bonus's own premiums and the withholding its pay
+									// attracts — the bonus rate table plus the 月額表 tax the allowance adds on top of the month's salary — exactly
+									// what the same payment carries when it follows the salary run.
+									for (const code of ['HEALTH_BONUS', 'PENSION_BONUS', 'EI_BONUS', 'INCOME_TAX'])
+										assert.deepEqual(paidBefore[code], paidAfter[code], `${month} ${code}`);
+									assert.ok(fixturePresent(paidBefore.INCOME_TAX)[0] > 0, month);
+									if (month === '2026-10') {
+										// The salary still to come is 300,000 less its 1,500 EI and September's 45,000 premiums: 253,500 → 4,630 at
+										// 甲欄 1. The allowance adds 100,000 − 500 EI on top: 353,000 → 8,630, so 4,000 is withheld now (it was 0
+										// when the slip saw only the allowance). The bonus: 6.126% of 500,000 − 77,500 premiums = 25,882.
+										assert.deepEqual(paidBefore.INCOME_TAX, [25882 + (8630 - 4630), 0], month);
+									}
+									// 年末調整 is made at the year's last salary payment (所得税法 art.190): the December slip paid before the
+									// salary run withholds as any slip does and leaves the settlement to the salary run.
+									if (month === '2026-12')
+										assert.equal(paidBefore.YEAR_END_ADJUSTMENT, undefined, month);
+								}
+							}
 							// A WEEKLY entity: each week's slip is withheld on the 日額表 — its own pay less its own premiums, over seven days.
 							if (scenario === 'weekly withholding and shutdown') {
 								resetTables();
@@ -7495,7 +7723,8 @@ describe('JP public lineage', () => {
 							}
 						})
 					);
-				})
+				}),
+				60_000
 			);
 		}
 	});

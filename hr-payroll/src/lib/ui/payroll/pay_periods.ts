@@ -10,6 +10,8 @@ import {
 	periodsIn
 } from '../../payroll_engine/foundation.js';
 
+/** The governing version's pay calendar: `payroll.week_start`, `semi_monthly_split`, `ten_day_splits`. */
+export type PayCalendar = Parameters<typeof periodsIn>[2];
 export type PayingEntity = {
 	readonly pay_frequency?: string | null;
 	readonly pay_frequency_changes?: readonly FrequencyChange[] | null;
@@ -30,11 +32,12 @@ const monthBefore = (month: string, back: number): string =>
 /** The periods of the `months` months ending with `today`'s, newest month first, none starting after today. */
 export const periodOptions = (
 	entity: PayingEntity,
+	calendar: PayCalendar,
 	today: string,
 	months = 12
 ): readonly OfferedPeriod[] =>
 	Array.from({ length: months }, (_, back) => monthBefore(today.slice(0, 7), back)).flatMap(
-		(month) => periodsIn(entity, month).filter((period) => period.from <= today)
+		(month) => periodsIn(entity, month, calendar).filter((period) => period.from <= today)
 	);
 
 /**
@@ -44,10 +47,11 @@ export const periodOptions = (
  */
 export const periodIn = (
 	entity: PayingEntity,
+	calendar: PayCalendar,
 	chosen: string,
 	today: string
 ): (OfferedPeriod & { readonly window: { readonly from: string; readonly to: string } }) | null => {
-	const offered = periodsIn(entity, chosen.slice(0, 7));
+	const offered = periodsIn(entity, chosen.slice(0, 7), calendar);
 	const period =
 		offered.find((row) => row.key === chosen) ??
 		offered.find((row) => row.from <= today && today <= row.to) ??
@@ -59,6 +63,7 @@ export const periodIn = (
 			? { from: period.from, to: period.to }
 			: (() => {
 					const moved = payPeriodWindow(period.key, {
+						...calendar,
 						pay_frequency: period.frequency,
 						pay_cutoff_day: cutoff
 					});

@@ -37,6 +37,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -696,6 +697,8 @@ type Subject = {
 	parts?: Row;
 	year?: Row;
 	chargedYear?: Row;
+	/** Charges of earlier slips of the month, by scheme code. */
+	chargedMonth?: Row;
 };
 /** The month's charge the way `assessStatutory` makes it for one slip. */
 const charge = (
@@ -723,16 +726,14 @@ const charge = (
 				charge(version, other, wage, person, { ...subject, elections: {} })
 			])
 		),
+		...(subject.chargedMonth == null ? {} : { month: subject.chargedMonth }),
 		year: subject.chargedYear ?? {}
 	};
 	const employee = {
 		gender: 'FEMALE',
 		nationality: 'VN',
 		date_of_birth: '1990-01-01',
-		receiving_pension: false,
-		disabled: false,
 		age: 36,
-		dependents_count: 0,
 		children: [],
 		facts: {},
 		...subject.employee
@@ -770,7 +771,7 @@ const charge = (
 		rules: payrollRules(version),
 		charged,
 		leave,
-		earned: subject.earned ?? { months: [] },
+		earned: { months: [], month: {}, ...subject.earned },
 		employment: {
 			start_date: '2020-01-01',
 			exit_date: '',
@@ -796,13 +797,11 @@ const charge = (
 	}
 	const total = Object.values(parts).reduce((sum, value) => sum + value, 0);
 	const base = { ...parts, assessed: total, amount: total };
-	const context = {
+	const held = {
 		base,
 		...roots,
 		person: {
 			age: 30,
-			race: null,
-			religion: null,
 			nationality: null,
 			residency_since: null,
 			...person
@@ -820,11 +819,24 @@ const charge = (
 			previous_month_holiday_work_days: 0,
 			covered_working_days: 22,
 			unpaid_working_days: subject.unpaid ?? 0,
+			// a salary-run slip unless the subject says otherwise
+			salary_paid: false,
+			salary_run: true,
 			...subject.period
 		},
 		month,
 		year: subject.year ?? { ordinary: 0 }
 	};
+	// the scheme's person facts, as the engine adds them before the rules
+	const facts: Row = {};
+	for (const [fact, expression] of Object.entries(
+		fixtureRecord(fixtureRecord(configuration).person ?? {})
+	))
+		facts[fact] = evaluateConfigured(
+			fixtureString(expression),
+			fixtureContext({ ...held, person: { ...held.person, ...facts } })
+		);
+	const context = { ...held, person: { ...held.person, ...facts } };
 	for (const guard of configuration.refuse_when ?? [])
 		if (evaluateConfigured(fixtureString(guard.when), fixtureContext(context)) === true)
 			throw new Error(guard.message);
@@ -854,7 +866,7 @@ const charge = (
 };
 /** Every employee and entity fact the VN CEL reads, set. */
 const SUBJECT_ALL = {
-	employee: { gender: 'FEMALE', dependents_count: 2, facts: {} },
+	employee: { gender: 'FEMALE', facts: {} },
 	elections: { union_member: true, dependants: 2 },
 	company: {
 		region: 'II',
@@ -868,8 +880,8 @@ const SUBJECT_ALL = {
 };
 /** The subject roots a leave entitlement reads (services.leaveState builds them). */
 const LEAVE_SUBJECT = {
-	terms: { work_classification: 'ORDINARY' },
-	employee: { disabled: false, age: 30, facts: {} },
+	terms: { work_classification: 'ORDINARY', facts: {} },
+	employee: { age: 30, facts: {} },
 	employment: { start_date: '2020-01-01' },
 	// No attendance days read: the first-year months fall back to completed service months.
 	attendance: { window: { months: [] }, previous: { months: [] } }
@@ -945,10 +957,7 @@ const salaryContext = {
 		nationality: 'VN',
 		date_of_birth: '1990-01-01',
 		age: 36,
-		receiving_pension: false,
-		disabled: false,
 		children: [],
-		dependents_count: 0,
 		facts: {}
 	},
 	company: { region: 'I', facts: {} },
@@ -1030,10 +1039,7 @@ const admitContext = {
 		nationality: 'VN',
 		date_of_birth: '1990-01-01',
 		age: 36,
-		receiving_pension: false,
-		disabled: false,
 		children: [],
-		dependents_count: 0,
 		facts: {}
 	},
 	company: { region: 'I', facts: {} },
@@ -1282,6 +1288,47 @@ describe('VN jurisdiction seed', () => {
 		assert.deepEqual(counts('version_1', 'OVERTIME_TAXABLE_PART'), ['PIT']);
 		assert.deepEqual(counts('version_2', 'OVERTIME'), []);
 		assert.deepEqual(counts('version_4', 'ENCASHMENT'), []);
+		// Decree 145/2020 art.55(1)(a), art.67(3): the premium and cash-out wage is the base salary plus the job-related wage
+		// allowance (FIXED_ALLOWANCE); the meal allowance stays out. 26,000,000 + 2,000,000 over 26 days of 8 hours.
+		const allowed = {
+			...salaryContext,
+			terms: {
+				...salaryContext.terms,
+				allowances: [
+					{ code: 'FIXED_ALLOWANCE', amount: 2000000 },
+					{ code: 'MEAL_ALLOWANCE', amount: 500000 }
+				]
+			}
+		};
+		const rateOf = (version: string, code: string) =>
+			Number(
+				evaluateConfigured(
+					fixtureString(
+						String(
+							fixturePresent(rows(version, 'work_catalog').find((item) => item.code === code)).rate
+						)
+					),
+					fixtureContext(allowed)
+				)
+			);
+		for (const version of VERSIONS) {
+			assert.equal(
+				Math.round(rateOf(version, 'OVERTIME')),
+				Math.round((1.5 * 28000000) / 26 / 8),
+				version
+			);
+			assert.equal(
+				Math.round(rateOf(version, 'HOLIDAY_WORK')),
+				Math.round((3 * 28000000) / 26 / 8),
+				version
+			);
+			assert.equal(
+				Math.round(rateOf(version, 'NIGHT_WORK')),
+				Math.round((0.3 * 28000000) / 26 / 8),
+				version
+			);
+			assert.equal(Math.round(rateOf(version, 'ENCASHMENT')), Math.round(28000000 / 26), version);
+		}
 	});
 	it('overtime ladders, night work and the working-day divisor read the planned days', () => {
 		const day = (date: string, extra: Row) => ({
@@ -1623,6 +1670,22 @@ describe('VN jurisdiction seed', () => {
 			635000
 		);
 		assert.equal(charge('version_4', 'PIT', 4000000, citizen, short).employee, 0);
+		// The threshold is per payment ("từ 05 triệu đồng/lần trở lên", Decree 253/2026 art.50(2)), each slip on its own:
+		// a 4,000,000 bonus after a 6,000,000 payment of the month is under it (the month stays at the 600,000 withheld),
+		// a 6,000,000 one after a 4,000,000 payment is withheld 600,000.
+		const paid = (base: number, withheld: number) => ({
+			...short,
+			earned: {
+				months: [],
+				month: { statutory: { PIT: { employee: withheld, employer: 0, base } } }
+			},
+			chargedMonth: { PIT: { employee: withheld, employer: 0 } }
+		});
+		assert.equal(
+			charge('version_4', 'PIT', 10000000, citizen, paid(6000000, 600000)).employee,
+			600000
+		);
+		assert.equal(charge('version_4', 'PIT', 10000000, citizen, paid(4000000, 0)).employee, 600000);
 		assert.equal(
 			charge('version_4', 'PIT', 30000000, citizen, {
 				...short,
@@ -1754,7 +1817,7 @@ describe('VN jurisdiction seed', () => {
 			entitlementDays(
 				fixtureEntitlement(entitlement),
 				6,
-				fixtureContext(as({}, { disabled: true }))
+				fixtureContext(as({ facts: { disabled: true } }))
 			),
 			7
 		);
@@ -1955,7 +2018,15 @@ describe('VN jurisdiction seed', () => {
 				),
 				0
 			);
-			for (const kind of kinds.values()) assert.equal(kind.scheduled, '', String(kind.code));
+			for (const kind of kinds.values())
+				assert.equal(
+					evaluateConfigured(
+						fixtureString(String(kind.scheduled)),
+						fixtureContext(context(String(kind.code), {}, {}, 1))
+					),
+					true,
+					String(kind.code)
+				);
 			// The slip keeps the base and subtracts what the suspended days do not pay.
 			const line = fixturePresent(
 				rows(version, 'work_catalog').find((row) => row.code === 'SUSPENSION_PAY_ADJUSTMENT')
@@ -2341,6 +2412,60 @@ describe('VN jurisdiction seed', () => {
 		}
 		assert.equal(charge('version_2', 'UNION_FEE', 10000000, citizen, suspended).employer, 200000);
 	});
+	it('statutory is never deferred: an off-cycle slip before the salary run is charged at the margin above the regular pay', () => {
+		const citizen = { residency_status: 'CITIZEN' };
+		// 40,000,000 paid off-cycle before the salary run of a 30,000,000 contract; inside the salary run (70,000,000);
+		// the regular pay alone (30,000,000).
+		const terms = { base_salary: 30000000, monthly_wage: 30000000 };
+		const before = { terms, period: { salary_run: false } };
+		for (const version of VERSIONS)
+			for (const [rule, subject] of [
+				['progressive', {}],
+				['net of tax', { terms: { ...terms, facts: { net_of_tax: true } } }],
+				[
+					'December finalisation',
+					{
+						elections: { finalisation_authorised: true },
+						period: { key: '2026-12', from: '2026-12-01', to: '2026-12-31', month: 12 },
+						year: { ordinary: 330000000 },
+						chargedYear: {
+							SI: { employee: 26400000, employer: 0 },
+							HI: { employee: 4950000, employer: 0 },
+							UI: { employee: 3300000, employer: 0 },
+							PIT: { employee: 7315000, employer: 0 }
+						}
+					}
+				]
+			] as const) {
+				const at = (wage: number, extra: Subject) => {
+					const { employee, employer } = charge(version, 'PIT', wage, citizen, {
+						...subject,
+						...extra,
+						terms: { ...terms, ...('terms' in subject ? subject.terms : {}) },
+						period: { ...('period' in subject ? subject.period : {}), ...extra.period }
+					});
+					return employee + employer;
+				};
+				const offCycle = at(40000000, before);
+				// each month charge is rounded to the dong: at most 1 apart
+				assert.ok(
+					Math.abs(offCycle - (at(70000000, {}) - at(30000000, {}))) <= 1,
+					`${version} ${rule}`
+				);
+				assert.ok(offCycle > 0, `${version} ${rule}`);
+			}
+		// The month's insurance rides on the regular pay: nothing on the off-cycle slip before it, all of it after.
+		for (const version of VERSIONS)
+			for (const code of ['SI', 'HI', 'UI', 'UNION_FEE']) {
+				const { employee, employer } = charge(version, code, 40000000, citizen, before);
+				assert.equal(employee + employer, 0, `${version} ${code}`);
+				const paid = charge(version, code, 40000000, citizen, {
+					terms,
+					period: { salary_run: false, salary_paid: true }
+				});
+				assert.ok(paid.employee + paid.employer > 0, `${version} ${code}`);
+			}
+	});
 	it('maternity leave admits women and paternity leave men', () => {
 		for (const version of VERSIONS) {
 			const eligible = (code: string, gender: string) => {
@@ -2570,6 +2695,8 @@ describe('VN jurisdiction seed', () => {
 		assert.equal(applies('version_4', 'RESTRUCTURING_LABOUR_PLAN', leaving('RESIGNATION')), false);
 		assert.equal(applies('version_4', 'TERMINATION_NOTICE', leaving('DEATH')), false);
 		assert.equal(applies('version_4', 'TERMINATION_NOTICE', leaving('END_OF_CONTRACT')), true);
+		assert.equal(applies('version_4', 'TERMINATION_NOTICE', leaving('IMPRISONMENT')), false);
+		assert.equal(applies('version_4', 'TERMINATION_NOTICE', leaving('EMPLOYER_CLOSURE')), false);
 		assert.equal(applies('version_4', 'OCCUPATIONAL_HEALTH_CHECK', period('2026-06')), false);
 		assert.equal(
 			applies(
@@ -2998,7 +3125,7 @@ describe('VN jurisdiction seed', () => {
 			charge(version, code, wage, citizen, subject);
 		const none = { employee: 0, employer: 0 };
 		for (const version of VERSIONS) {
-			const pensioner = { employee: { receiving_pension: true } };
+			const pensioner = { terms: { facts: { receiving_pension: true } } };
 			for (const code of ['SI', 'HI', 'UI', 'UNION_FEE'])
 				assert.deepEqual(pay(version, code, pensioner), none, `${version} pensioner ${code}`);
 			const domestic = { terms: { employment_type: 'DOMESTIC' } };
@@ -3152,7 +3279,7 @@ describe('VN jurisdiction seed', () => {
 			);
 		}
 		const hire = {
-			employee: { disabled: true },
+			terms: { facts: { disabled: true } },
 			employment: { start_date: '2026-03-01', exit_date: '', service_months: 7 }
 		};
 		assert.deepEqual(
@@ -3168,7 +3295,7 @@ describe('VN jurisdiction seed', () => {
 		assert.equal(
 			pay('version_4', 'UNION_DUES', {
 				elections: { union_member: true },
-				employee: { receiving_pension: true }
+				terms: { facts: { receiving_pension: true } }
 			}).employee,
 			12650
 		);
@@ -3190,6 +3317,23 @@ describe('VN jurisdiction seed', () => {
 		// A month paid 5,000,000 after unpaid days is still assessed on 20,000,000 + the fixed 2,000,000.
 		assert.equal(si(contract), 1760000);
 		assert.equal(si({ ...contract, unpaid: 10 }), 1760000);
+		// Phone, travel and uniform support is a welfare support outside the insurance salary (Circular 10/2020 art.3(5)(c)).
+		const supported = {
+			terms: {
+				...contract.terms,
+				allowances: [
+					...contract.terms.allowances,
+					{ code: 'WORK_EXPENSE_ALLOWANCE', amount: 1000000 }
+				]
+			}
+		};
+		for (const version of VERSIONS)
+			for (const code of ['SI', 'HI', 'UI', 'UNION_FEE'])
+				assert.deepEqual(
+					charge(version, code, 5000000, citizen, supported),
+					charge(version, code, 5000000, citizen, contract),
+					`${version} ${code}`
+				);
 		assert.equal(si({ ...contract, unpaid: 14 }), 0);
 		assert.equal(si({ ...contract, period: { working_days: 22, covered_working_days: 8 } }), 0);
 		assert.equal(
@@ -3511,7 +3655,16 @@ describe('VN jurisdiction seed', () => {
 				})
 			);
 		};
-		for (const ground of ['END_OF_CONTRACT', 'MUTUAL', 'DEATH', 'RESIGNATION', 'UNILATERAL'])
+		// Art.46(1) with art.34(4) (imprisonment, a court ban) and art.34(7) (the employer's closure).
+		for (const ground of [
+			'END_OF_CONTRACT',
+			'MUTUAL',
+			'DEATH',
+			'RESIGNATION',
+			'UNILATERAL',
+			'EMPLOYER_CLOSURE',
+			'IMPRISONMENT'
+		])
 			assert.equal(
 				admits('SEVERANCE_ALLOWANCE', { exit_ground: ground, exit_facts: {} }),
 				true,
@@ -3842,6 +3995,15 @@ describe('VN jurisdiction seed', () => {
 			grant('version_3', 'MATERNITY_LEAVE', { from: '2026-06-01', facts: { second_child: true } }),
 			183
 		);
+		// Second-child twins: seven months plus the multiple-birth month, eight (Labour Code art.139(1) as amended by Population
+		// Law 113/2025 art.29(1); Ministry of Home Affairs answer).
+		assert.equal(
+			grant('version_4', 'MATERNITY_LEAVE', {
+				from: '2026-08-01',
+				facts: { second_child: true, children_born: 2 }
+			}),
+			243
+		);
 		assert.equal(
 			grant('version_4', 'MATERNITY_LEAVE', {
 				from: '2026-09-01',
@@ -4111,7 +4273,9 @@ describe('VN jurisdiction seed', () => {
 				name: 'Giỗ Tổ Hùng Vương (nghỉ bù)',
 				kind: 'SUBSTITUTE',
 				replaces: '2026-04-26',
-				given_to: 'ONLY_IF_OFF_ON_REPLACED_DATE'
+				given_to: 'ONLY_IF_OFF_ON_REPLACED_DATE',
+				source:
+					'Labour Code 2019 art.111(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf'
 			}
 		);
 		assert.equal(v2.length, 10);
@@ -4125,16 +4289,46 @@ describe('VN jurisdiction seed', () => {
 		// Hùng Kings 2027: 10/3 lunar = Friday 16 April 2027, fixed by Labour Code art.112(1)(c) (no substitute day).
 		assert.deepEqual(
 			holidays('version_4').find((h) => h.date === '2027-04-16'),
-			{ date: '2027-04-16', name: 'Giỗ Tổ Hùng Vương', kind: 'PUBLIC_HOLIDAY' }
+			{
+				date: '2027-04-16',
+				name: 'Giỗ Tổ Hùng Vương',
+				kind: 'PUBLIC_HOLIDAY',
+				source:
+					'Labour Code 2019 art.112(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf'
+			}
 		);
 		assert.equal(new Date('2027-04-16T00:00:00Z').getUTCDay(), 5);
+		// Tết and 2 September 2027 per Bộ Nội vụ Thông báo 11483/TB-BNV (9 October 2026): the enterprise option the notice
+		// aligns with the civil service — 4–8 February, Saturday 6 and Sunday 7 given back on 9 and 10 February — and 3 September.
+		const v4rows = holidays('version_4');
+		assert.deepEqual(
+			v4rows.filter((h) => h.name === 'Tết Âm lịch').map((h) => h.date),
+			['2027-02-04', '2027-02-05', '2027-02-06', '2027-02-07', '2027-02-08']
+		);
+		assert.deepEqual(
+			v4rows
+				.filter((h) => h.kind === 'SUBSTITUTE' && String(h.date).startsWith('2027-02'))
+				.map((h) => [h.date, h.replaces, h.given_to]),
+			[
+				['2027-02-09', '2027-02-06', 'ONLY_IF_OFF_ON_REPLACED_DATE'],
+				['2027-02-10', '2027-02-07', 'ONLY_IF_OFF_ON_REPLACED_DATE']
+			]
+		);
+		assert.ok(v4.includes('2027-09-02') && v4.includes('2027-09-03'));
+		assert.ok(
+			v4rows
+				.filter((h) => String(h.date).startsWith('2027-02') || h.date === '2027-09-03')
+				.every((h) => String(h.source).includes('11483/TB-BNV'))
+		);
 		for (const version of VERSIONS) {
 			const range = fixtureValue6(settings(version).effective_range);
-			for (const h of holidays(version))
+			for (const h of holidays(version)) {
 				assert.ok(
 					String(h.date) >= range.from && (range.to == null || String(h.date) <= range.to),
 					`${version} ${String(h.date)}`
 				);
+				assert.match(String(h.source), /https:\/\//, `${version} ${String(h.date)} source`);
+			}
 			assert.ok(
 				fixtureValue12(settings(version).behaviours).rules.some(
 					(rule) => rule.id === 'write-public-holidays'
@@ -4387,6 +4581,45 @@ describe('VN jurisdiction seed', () => {
 			'2026-10-28'
 		);
 		assert.equal(due([{ employment_type: 'CONTRACT' }]), '2026-09-16');
+		// Art.36(2)(c): a long illness (art.36(1)(b)) takes 3 working days whatever the term.
+		assert.equal(
+			evaluateConfigured(
+				fixtureString(String(fixtureValue2(notice.rules).due)),
+				fixtureContext({
+					...termed([{ employment_type: 'PERMANENT' }]),
+					contract: {
+						...CONTRACT,
+						exit_ground: 'UNILATERAL',
+						exit_facts: { long_illness: true },
+						facts: { contract_terms: [{ employment_type: 'PERMANENT' }] }
+					}
+				})
+			),
+			'2026-10-28'
+		);
+		// Decree 145/2020 art.7 special roles: 120 days, or a quarter of a term under 12 months (184 days ÷ 4 = 46).
+		assert.equal(
+			due([{ employment_type: 'PERMANENT', facts: { special_role_notice: true } }]),
+			'2026-07-03'
+		);
+		assert.equal(
+			due([
+				{
+					employment_type: 'CONTRACT',
+					facts: { contract_type: 'FIXED', agreed_term_months: 24, special_role_notice: true }
+				}
+			]),
+			'2026-07-03'
+		);
+		assert.equal(
+			due([
+				{
+					employment_type: 'CONTRACT',
+					facts: { contract_type: 'FIXED', agreed_term_months: 6, special_role_notice: true }
+				}
+			]),
+			'2026-09-15'
+		);
 	});
 	it('PIT: work-expense allowances above the internal limit and overtime pay above the statutory hours are taxable', () => {
 		const citizen = { residency_status: 'CITIZEN' };
@@ -4529,7 +4762,7 @@ describe('VN jurisdiction seed', () => {
 		);
 	});
 	it.effect(
-		'an off-cycle bonus before or after the regular run settles the same month totals',
+		'a bonus off-cycle before, inside or after the regular run settles the same month totals, never deferred',
 		Effect.fnUntraced(function* () {
 			const COMPANY_ID = 'c0000000-0000-4000-8000-0000000000vn';
 			const law = (name: string): Row[] =>
@@ -4563,7 +4796,25 @@ describe('VN jurisdiction seed', () => {
 								name: 'Lan',
 								date_of_birth: '1990-05-01',
 								nationality: 'VN',
-								gender: 'FEMALE'
+								gender: 'FEMALE',
+								// a union member: UNION_DUES is charged too, so every scheme of the version is exercised
+								facts: {
+									employment_statutory_facts: [
+										{
+											id: 's-e1',
+											employment_id: 'k-e1',
+											statutory_contribution_id: fixturePresent(
+												law('statutory_contribution_catalog').find(
+													(row) =>
+														row.code === 'UNION_DUES' &&
+														row.settings_id === fixtureKey(settings('version_4').id)
+												)
+											).id,
+											effective_range: { from: '2024-01-01', to: null },
+											status: { kind: 'ENROLLED', elections: { union_member: true } }
+										}
+									]
+								}
 							},
 							{
 								id: 'e2',
@@ -4637,45 +4888,79 @@ describe('VN jurisdiction seed', () => {
 				);
 			};
 			type Plan = Effect.Success<ReturnType<typeof run>>;
-			const totals = (plans: Plan[]) => {
-				const out: {
-					[key: string]: number;
-				} = {};
-				for (const line of plans
-					.flatMap((plan) => plan.payslips)
-					.flatMap((slip) => slip.statutory)) {
-					out[`${line.scheme_code}.employee`] =
-						(out[`${line.scheme_code}.employee`] ?? 0) + line.employee_amount;
-					out[`${line.scheme_code}.employer`] =
-						(out[`${line.scheme_code}.employer`] ?? 0) + line.employer_amount;
-				}
-				return Object.fromEntries(
-					Object.entries(out).map(([key, value]) => [key, Math.round(value * 100) / 100])
-				);
+			type Charges = { [key: string]: [number, number] };
+			const charges = (plans: Plan[]) => {
+				const out: Charges = {};
+				for (const slip of plans.flatMap((plan) => plan.payslips))
+					for (const line of slip.statutory) {
+						const key = `${String(slip.employment_id)}:${line.scheme_code}`;
+						const held = out[key] ?? [0, 0];
+						out[key] = [
+							Math.round((held[0] + line.employee_amount) * 100) / 100,
+							Math.round((held[1] + line.employer_amount) * 100) / 100
+						];
+					}
+				return out;
 			};
 			reset();
 			bonus();
-			const before = [yield* run('OFF_CYCLE', ['bonus-1']), yield* run('REGULAR')];
+			const offBefore = yield* run('OFF_CYCLE', ['bonus-1']);
+			const before = [offBefore, yield* run('REGULAR')];
+			reset();
+			bonus();
+			const inside = [yield* run('REGULAR')];
 			reset();
 			const regular = yield* run('REGULAR');
 			bonus();
-			const after = [regular, yield* run('OFF_CYCLE', ['bonus-1'])];
-			const first = totals(before);
-			assert.deepEqual(first, totals(after));
-			for (const scheme of ['SI', 'HI', 'UI', 'UNION_FEE', 'PIT'])
-				assert.ok(
-					(first[`${scheme}.employee`] ?? 0) + (first[`${scheme}.employer`] ?? 0) > 0,
-					scheme
-				);
+			const offAfter = yield* run('OFF_CYCLE', ['bonus-1']);
+			const after = [regular, offAfter];
+			// Every scheme of the version, employee and employer, per employee: identical month totals in all three orders.
+			const first = charges(before);
+			assert.deepEqual(first, charges(inside));
+			assert.deepEqual(first, charges(after));
+			const lan = fixtureKey('k-e1');
+			const minh = fixtureKey('k-e2');
+			for (const row of law('statutory_contribution_catalog').filter(
+				(item) => item.settings_id === fixtureKey(settings('version_4').id)
+			)) {
+				const [employee, employer] = first[`${lan}:${String(row.code)}`] ?? [0, 0];
+				assert.ok(employee + employer > 0, String(row.code));
+			}
 			// The 40,000,000 bonus sits outside the insurance salary: SI on 30,000,000 and 50,600,000 only, and PIT
 			// deducts the insurance actually charged — taxable 70,000,000 + 300,000 meal above the cap − 3,150,000 −
-			// 15,500,000 for Lan.
-			assert.equal(first['SI.employee'], 30000000 * 0.08 + 50600000 * 0.08);
-			const lan = 70000000 + 300000 - 3150000 - 15500000;
-			const minh = 70000000 - 50600000 * 0.095 - 700000 - 15500000;
+			// 15,500,000 for Lan; union dues 0.5% of 30,000,000.
+			assert.deepEqual(first[`${lan}:SI`], [30000000 * 0.08, 30000000 * 0.175]);
+			assert.deepEqual(first[`${minh}:SI`], [50600000 * 0.08, 50600000 * 0.175]);
+			assert.deepEqual(first[`${lan}:UNION_DUES`], [150000, 0]);
 			// Both fall in the 20% rung (30,000,000 to 60,000,000).
 			const pit = (taxable: number) => Math.round(500000 + 2000000 + (taxable - 30000000) * 0.2);
-			assert.equal(first['PIT.employee'], pit(lan) + pit(minh));
+			const lanTaxable = 70000000 + 300000 - 3150000 - 15500000;
+			assert.deepEqual(first[`${lan}:PIT`], [pit(lanTaxable), 0]);
+			assert.deepEqual(first[`${minh}:PIT`], [
+				pit(70000000 - 50600000 * 0.095 - 700000 - 15500000),
+				0
+			]);
+			// Never deferred: the slip that pays the bonus carries the tax the bonus attracts, whichever run comes first —
+			// the month's tax less the tax on the regular pay alone (30,000,000 + 300,000 − 3,150,000 − 15,500,000 =
+			// 11,650,000 → 665,000): 6,830,000 − 665,000 = 6,165,000. (Before re-verification 3 the bonus slip paid before
+			// the salary run carried 1,635,000 and the salary run caught up 4,530,000.) The month's insurance is charged with
+			// the regular pay, never on the bonus slip.
+			const bonusSlip = (plan: Plan) =>
+				Object.fromEntries(
+					fixturePresent(plan.payslips.find((slip) => slip.employment_id === lan)).statutory.map(
+						(line) => [line.scheme_code, [line.employee_amount, line.employer_amount]]
+					)
+				);
+			const regularPit = 500000 + (11650000 - 10000000) * 0.1;
+			for (const slip of [bonusSlip(offBefore), bonusSlip(offAfter)])
+				assert.deepEqual(slip, {
+					PIT: [pit(lanTaxable) - regularPit, 0],
+					SI: [0, 0],
+					HI: [0, 0],
+					UI: [0, 0],
+					UNION_FEE: [0, 0],
+					UNION_DUES: [0, 0]
+				});
 		})
 	);
 	it('exported returns: the D02-LT change list (Quyết định 366/QĐ-BHXH) and 05-1/BK-QTT-TNCN (Thông tư 89/2026)', () => {
@@ -4755,10 +5040,14 @@ describe('VN jurisdiction seed', () => {
 			},
 			// A pensioner hired in the month is outside compulsory SI: not listed.
 			{
-				employee: { name: 'Lê Văn Cường', receiving_pension: true },
+				employee: { name: 'Lê Văn Cường' },
 				contract: {
 					effective_range: { from: '2026-07-01', to: null },
-					facts: { contract_terms: [term('2026-07-01', null, 10000000)] }
+					facts: {
+						contract_terms: [
+							term('2026-07-01', null, 10000000, { facts: { receiving_pension: true } })
+						]
+					}
 				},
 				slips: [slip('2026-07', insured(0))]
 			}
@@ -5051,7 +5340,7 @@ describe('VN jurisdiction seed', () => {
 				'status',
 				'statutory_contribution_id'
 			]);
-			for (const column of ['region', 'risk_class', 'gender', 'dependents_count', 'nationality'])
+			for (const column of ['region', 'risk_class', 'gender', 'nationality'])
 				assert.equal(
 					column in entity.properties ||
 						column in fixtureValue8(employee.properties.facts).properties,

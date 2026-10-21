@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
 import { behavioursOf, triggerMatches } from '../lib/payroll_engine/behaviours.js';
-import { isJsonObject } from '../lib/payroll_engine/foundation.js';
+import { isJsonObject, payrollSetting } from '../lib/payroll_engine/foundation.js';
 import { classFromRow, windowEndsOn } from '../lib/payroll_engine/leave.js';
 import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { LEAVE_CLASS } from '../lib/payroll_engine/rows.js';
@@ -136,9 +136,11 @@ calendar_tick.run(function* (_input, ctx) {
 			const company_id = entity.id;
 			const governing = yield* versionFor(company_id, utcToday);
 			if (governing == null) return;
-			// Today is the entity's own local day: its zone, else its version's `payroll.timezone`.
-			const zone = entity.time_zone ?? governing.payroll?.timezone;
-			const today = zone == null ? utcToday : String(ctx.todayIn(zone)).slice(0, 10);
+			// Today is the entity's own local day: its zone, else its version's required `payroll.timezone`.
+			const zone =
+				entity.time_zone ??
+				(yield* Effect.fromResult(payrollSetting(governing.code, governing.payroll, 'timezone')));
+			const today = String(ctx.todayIn(zone)).slice(0, 10);
 			const version = (yield* versionFor(company_id, today)) ?? governing;
 			const subject = { company_id, employment_id: null, employee_id: null };
 			const entityRule = { kind: 'row' as const, collection: 'entity', event: 'calendar' };

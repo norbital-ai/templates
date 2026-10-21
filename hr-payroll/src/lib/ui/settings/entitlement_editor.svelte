@@ -34,6 +34,7 @@
 		window_key: 'entitlement.window_key',
 		carry_forward: 'entitlement.carry_forward',
 		carry_depth: 'entitlement.carry_depth',
+		overdraw: 'entitlement.overdraw',
 		consumes_after_days: 'entitlement.consumes_after_days',
 		hours_per_day: 'entitlement.hours_per_day',
 		bands: 'entitlement.bands',
@@ -75,6 +76,7 @@
 {:else}
 	<Stack gap="md">
 		{@render input('days')}
+		{@render input('overdraw')}
 		<p class="text-meta">{t('entitlement.days_help')}</p>
 		<Grid minimum="compact">
 			{@render input('window')}

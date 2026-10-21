@@ -24,7 +24,9 @@
 		type LoanRepayment,
 		type LoanScheduleInput
 	} from '../../loan_schedule.js';
-	import { liveRows } from '../state/live.svelte.js';
+	import { live, liveRows } from '../state/live.svelte.js';
+	import { governingPayroll } from '../format/version_money.svelte.js';
+	import { loanCalendar } from '../../loan_values.js';
 
 	let { form, record }: { form: FormState; record: Row<'loan_catalog_entry'> | null } = $props();
 	const uid = $props.id();
@@ -65,9 +67,26 @@
 		readonly occurred_on: PlainDate | null;
 		readonly payslip_id: string | null;
 	};
+	// the schedule keeps the money and calendar of the version governing the loan's class, as the server does
+	const catalogId = $derived(form.id<'loan_catalog'>('catalog_id'));
+	const loanClass = live(() =>
+		catalogId == null || catalogId === ''
+			? null
+			: bolt.get('loan_catalog', catalogId, { settings_id: true })
+	);
+	const payroll = governingPayroll(() => {
+		const version = loanClass.current?.settings_id;
+		return version == null ? null : { version };
+	});
+	const calendar = $derived(loanCalendar(payroll()));
 	const principal = $derived.by(() => {
 		const value = form.get('principal_amount');
-		return value instanceof Decimal && value.cmp(0) > 0 && value.eq(value.round(2)) ? value : null;
+		return calendar != null &&
+			value instanceof Decimal &&
+			value.cmp(0) > 0 &&
+			value.eq(value.round(calendar.scale))
+			? value
+			: null;
 	});
 	const period = $derived.by(() => {
 		const value = form.get('repayment_period');
@@ -77,8 +96,9 @@
 		return isPlainDate(from) && isPlainDate(to) && from <= to ? { from, to } : null;
 	});
 	const parameters = $derived.by((): LoanScheduleInput | null => {
-		if (principal == null || period == null) return null;
+		if (principal == null || period == null || calendar == null) return null;
 		return {
+			...calendar,
 			principal_amount: principal,
 			repayment_period: period,
 			repayment_frequency:
@@ -153,7 +173,6 @@
 	const editable = $derived(
 		form.mode !== 'view' && form.spec.readonly !== true && form.canSubmit && !historical
 	);
-	const catalogId = $derived(form.id('catalog_id'));
 	const shown = $derived(!historical && catalogId !== null && catalogId !== '');
 
 	/** The server's `validateLoanRepayments` invariants, per cell, so Save stays off while any is broken. */

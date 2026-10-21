@@ -25,13 +25,14 @@ import {
 	isDynObject,
 	isJsonObject,
 	moneyNumber,
+	payPeriodWindow,
 	Reads,
 	readsFrom,
 	Refusal
 } from '../src/lib/payroll_engine/foundation.js';
 import { staffingLookup, versionLookup } from '../src/lib/payroll_engine/behaviour_runner.js';
 import * as PayrollAdmission from '../src/lib/payroll_engine/admit.js';
-import { raiseDuties, withBalances } from './duties.ts';
+import { raiseDuties, withBalances, SEEDED_PAYROLL } from './duties.ts';
 import { leaveBalances } from '../src/lib/payroll_engine/leave.js';
 import {
 	admitAnonymise,
@@ -302,6 +303,7 @@ const contractOf = (person: (typeof people)[number], extra: Row = {}): Row => ({
 				work_classification: 'EA_COVERED',
 				statutory_work_category: 'NON_MANUAL',
 				employment_type: 'PERMANENT',
+				facts: { race: person.race, religion: person.religion },
 				// a Monday-to-Friday week: s.20A prices a part month and a day by its working days
 				shift_pattern_id: fixtureId('p-week'),
 				allowances: [],
@@ -415,7 +417,7 @@ const reset = () => {
 		],
 		[
 			'employment_profile',
-			people.map(({ salary: _s, residency: _r, since: _x, ...person }) => ({
+			people.map(({ salary: _s, residency: _r, since: _x, race: _c, religion: _g, ...person }) => ({
 				...person,
 				id: fixtureId(person.id),
 				nationality: 'SG',
@@ -555,11 +557,16 @@ const entry = (
 			repayment_period: { from: PlainDate(occurred_on), to: PlainDate(occurred_on) },
 			repayment_frequency: 'MONTHLY',
 			...(isDynObject(fields.facts)
-				? Object.fromEntries(
-						Object.entries(fields.facts).filter(([key]) =>
-							['advance_purpose', 'written_agreement_reference', 'advance_made_on'].includes(key)
-						)
-					)
+				? {
+						facts: Object.fromEntries(
+							Object.entries(fields.facts).filter(([key]) =>
+								['advance_purpose', 'written_agreement_reference'].includes(key)
+							)
+						),
+						...(fields.facts.advance_made_on == null
+							? {}
+							: { advance_made_on: fields.facts.advance_made_on })
+					}
 				: {})
 		});
 	}
@@ -1017,14 +1024,9 @@ it.effect(
 	'MBMF is charged on the ISLAM religion code; SPR year one uses the graduated rates',
 	Effect.fnUntraced(function* () {
 		reset();
-		required(
-			required(tables.get('employment_profile')).find((row) => row.id === fixtureId('e3'))
-		).religion = 'ISLAM';
-		required(tables.get('employment_contract')).splice(
-			0,
-			1,
-			contractOf({ ...required(people[0]), since: '2025-10-15' })
-		);
+		const contracts = required(tables.get('employment_contract'));
+		contracts.splice(2, 1, contractOf({ ...required(people[2]), religion: 'ISLAM' }));
+		contracts.splice(0, 1, contractOf({ ...required(people[0]), since: '2025-10-15' }));
 		const plan = yield* run('2026-03', 'REGULAR');
 		assert.equal(required(line(plan, 'e3', 'MBMF')).employee_amount, 19.5);
 		assert.equal(required(line(plan, 'e1', 'CPF')).employee_amount, 325); // 6,500 × 5%
@@ -1040,6 +1042,27 @@ it.effect(
 		assert.match(yield* refused('2026-03', 'OFF_CYCLE', ['nope']), /not an approved, unpaid/);
 		yield* run('2026-03', 'REGULAR');
 		assert.match(yield* refused('2026-03', 'REGULAR'), /already has a salary run/);
+	})
+);
+
+it.effect(
+	'M22: a run is created only as a declared kind; one that names none takes the model default REGULAR',
+	Effect.fnUntraced(function* () {
+		reset();
+		yield* world(fixtureTables()).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const actor = t.as(t.member(['hr_manager']));
+				const accepted = yield* actor.act('payroll_run.create', {
+					company_id: COMPANY,
+					period: '2026-03'
+				});
+				assert.equal(accepted.kind, 'committed');
+				const [stored] = (yield* actor.read('payroll_run', { select: { kind: true }, all: true }))
+					.rows;
+				assert.equal(stored?.kind, 'REGULAR');
+			})
+		);
 	})
 );
 
@@ -2419,8 +2442,8 @@ it.effect(
 	'a run refuses a version that names no payroll currency',
 	Effect.fnUntraced(function* () {
 		reset();
-		for (const settings of required(tables.get('jurisdiction_settings'))) settings.payroll = {};
-		assert.match(yield* refused('2026-03', 'REGULAR'), /names no payroll currency/);
+		dropPayroll('2026-03', 'currency');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /SG names no payroll currency/);
 	})
 );
 
@@ -2925,7 +2948,13 @@ it('the exit encashment pays the current leave-year balance, carried days includ
 		id: fixtureId('ay'),
 		code: 'ANNUAL_LEAVE',
 		unit: 'DAY',
-		entitlement: { days: '12.0', window: 'CALENDAR_YEAR', carry_forward: '5.0' }
+		entitlement: {
+			overdraw: '0',
+			days: '12.0',
+			window: 'CALENDAR_YEAR',
+			carry_forward: '5.0',
+			carry_depth: 1
+		}
 	};
 	const movement = (reference: string, days: number, from: string) => ({
 		catalog_id: fixtureId('ay'),
@@ -3070,7 +3099,9 @@ it.effect(
 	'a sub-monthly period names its part of the calendar month',
 	Effect.fnUntraced(function* () {
 		const settle = (period: string, frequency: string) =>
-			Effect.result(settlementPeriod(period, frequency));
+			Effect.result(
+				settlementPeriod(period, frequency, { ten_day_splits: SEEDED_PAYROLL.ten_day_splits })
+			);
 		const half = yield* settle('2026-02-2', 'SEMI_MONTHLY');
 		assert.ok(half._tag === 'Success');
 		assert.deepEqual(half.success, {
@@ -3644,7 +3675,7 @@ it.effect(
 				settings_id: version,
 				code,
 				name: code,
-				entitlement: { window: 'CALENDAR_YEAR', days }
+				entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days }
 			});
 		// Each tally as a number the balance shows: 1000 × scheduled + 10 × worked + annual-leave days.
 		leaveClass(
@@ -3934,7 +3965,7 @@ it.effect(
 				settings_id: versionOn(period),
 				code: 'METERED_LEAVE',
 				name: 'Metered leave',
-				entitlement: { window: 'CALENDAR_YEAR', days: '10.0' }
+				entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '10.0' }
 			});
 		// Two days in March, recorded under the earlier version's row.
 		entry(
@@ -3974,6 +4005,65 @@ it.effect(
 	})
 );
 
+/** The carry rule the seed states for every carry_uncovered scheme: advance what net lacks, recover what it leaves. */
+const SEEDED_CARRY = {
+	advance: 'min(carry.short, carry.share)',
+	recover: 'min(carry.owed, carry.left)'
+};
+/** March: e2's 5,000 recovery leaves 500 for 5,500 gross, so CPF's employee share is partly advanced. */
+const carriedMarch = (rule: Row) => {
+	required(tables.get('statutory_contribution_catalog'))
+		.filter((row) => row.code === 'CPF')
+		.forEach((row) => {
+			row.configuration = { ...record(row.configuration), carry_uncovered: rule };
+		});
+	required(tables.get('adhoc_catalog')).push({
+		id: fixtureId('recover'),
+		bands: [],
+		settings_id: versionOn('2026-03'),
+		code: 'ADVANCE_RECOVERY',
+		name: 'Advance recovery',
+		destination: 'NET',
+		direction: 'SUBTRACT',
+		counts_toward: []
+	});
+	entry('adhoc_catalog_entry', 'adv', 'e2', 'recover', '2026-03-05', {
+		amount: Decimal.of('5000')
+	});
+};
+const carried = (plan: Plan, person: string) =>
+	slip(plan, person)
+		.adjustments.filter((line) => line.family === 'STATUTORY_CARRY')
+		.map((line) => [line.component_code, line.amount]);
+
+it.effect(
+	'lines H6: the scheme’s carry_uncovered.recover CEL schedules the recovery; without the rule an advance refuses',
+	Effect.fnUntraced(function* () {
+		reset();
+		carriedMarch({ ...SEEDED_CARRY, recover: 'min(carry.owed, carry.left) / 2.0' });
+		const march = yield* run('2026-03', 'REGULAR');
+		const short = required(required(carried(march, 'e2')[0])[1]);
+		assert.ok(typeof short === 'number' && short > 0);
+		// Half of what is owed each slip, not all of it at once.
+		const half = Math.round((short / 2) * 100) / 100;
+		assert.deepEqual(carried(yield* run('2026-04', 'REGULAR'), 'e2'), [['CPF_CARRIED', -half]]);
+		// An advance outstanding under a scheme whose row states no carry rule is refused, not recovered by default.
+		reset();
+		carriedMarch(SEEDED_CARRY);
+		yield* run('2026-03', 'REGULAR');
+		required(tables.get('statutory_contribution_catalog'))
+			.filter((row) => row.code === 'CPF')
+			.forEach((row) => {
+				const { carry_uncovered: _rule, ...rest } = record(row.configuration);
+				row.configuration = rest;
+			});
+		assert.match(
+			yield* refused('2026-04', 'REGULAR'),
+			/statutory_contribution_catalog CPF: configuration\.carry_uncovered is not stated/
+		);
+	})
+);
+
 it.effect(
 	'a carry_uncovered scheme advances the share net cannot cover and recovers it from the next slip',
 	Effect.fnUntraced(function* () {
@@ -3983,7 +4073,7 @@ it.effect(
 			.forEach((row) => {
 				row.configuration = {
 					...record(row.configuration),
-					carry_uncovered: true,
+					carry_uncovered: SEEDED_CARRY,
 					// `net_available`: what the slip's priced lines and the schemes assessed before it leave.
 					warn_when: [
 						{ when: 'net_available == 500.0 - charged.month.CDAC.employee', message: 'net seen' }
@@ -4109,7 +4199,11 @@ it.effect(
 			settings_id: versionOn('2026-03'),
 			code: 'TIME_OFF_IN_LIEU',
 			name: 'Time off in lieu',
-			entitlement: { window: 'CALENDAR_YEAR', days: 'attendance.window.banked_hours / 7.5' }
+			entitlement: {
+				overdraw: '0',
+				window: 'CALENDAR_YEAR',
+				days: 'attendance.window.banked_hours / 7.5'
+			}
 		});
 		const state = yield* provide(
 			leaveState(nativeId('employment_contract', fixtureId('k-e1')), '2026-03-31')
@@ -4142,6 +4236,7 @@ it.effect(
 				settings_id: versionOn('2026-03'),
 				code: 'EXCLUDED',
 				name: 'Excluded',
+				counts_as_attended: 'false',
 				scheduled: 'false'
 			}
 		]);
@@ -4175,6 +4270,7 @@ it.effect(
 			code: 'SUSPENSION_TALLY',
 			name: 'Suspension tally',
 			entitlement: {
+				overdraw: '0',
 				window: 'CALENDAR_YEAR',
 				days: 'double(attendance.window.suspended.CLOSURE) * 1000.0 + double(attendance.window.scheduled) * 10.0 + double(attendance.window.worked)'
 			}
@@ -4363,7 +4459,14 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		reset();
 		setSuspensionKinds([
-			{ settings_id: versionOn('2026-02'), code: 'CLOSURE', name: 'Closure', authority: 'Act s.1' }
+			{
+				settings_id: versionOn('2026-02'),
+				code: 'CLOSURE',
+				name: 'Closure',
+				authority: 'Act s.1',
+				counts_as_attended: 'false',
+				scheduled: 'true'
+			}
 		]);
 		tables.set('work_suspension', [
 			{
@@ -4456,7 +4559,14 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		reset();
 		setSuspensionKinds([
-			{ settings_id: versionOn('2026-03'), code: 'CLOSURE', name: 'Closure', pay: '1.0' }
+			{
+				settings_id: versionOn('2026-03'),
+				code: 'CLOSURE',
+				name: 'Closure',
+				counts_as_attended: 'false',
+				scheduled: 'true',
+				pay: '1.0'
+			}
 		]);
 		// From Thursday 26 February into March: two February working days, then March.
 		tables.set('work_suspension', [
@@ -4484,6 +4594,7 @@ it.effect(
 			code: 'SUSPENSIONS',
 			name: 'Suspensions',
 			entitlement: {
+				overdraw: '0',
 				window: 'CALENDAR_YEAR',
 				days: 'double(size(attendance.window.suspensions.filter(s, s.kind == "CLOSURE" && s.from == "2026-02-26" && s.to == "2026-03-04")))'
 			}
@@ -4551,7 +4662,15 @@ it.effect(
 	'earned months count leave days by class and suspended days by kind',
 	Effect.fnUntraced(function* () {
 		reset();
-		setSuspensionKinds([{ settings_id: versionOn('2026-02'), code: 'CLOSURE', name: 'Closure' }]);
+		setSuspensionKinds([
+			{
+				settings_id: versionOn('2026-02'),
+				code: 'CLOSURE',
+				name: 'Closure',
+				counts_as_attended: 'false',
+				scheduled: 'true'
+			}
+		]);
 		tables.set('work_suspension', [
 			{
 				id: fixtureId('s1'),
@@ -4897,6 +5016,14 @@ const payrollOf = (period: string, patch: Row) => {
 	);
 	version.payroll = { ...record(version.payroll), ...patch };
 };
+const payrollWithout = (period: string, key: string) => {
+	const version = required(
+		required(tables.get('jurisdiction_settings')).find((row) => row.id === versionOn(period))
+	);
+	version.payroll = Object.fromEntries(
+		Object.entries(record(version.payroll)).filter(([name]) => name !== key)
+	);
+};
 
 it.effect(
 	'audit 13: the run’s pay day is the version’s payroll.pay_date CEL',
@@ -4907,6 +5034,41 @@ it.effect(
 		payrollOf('2026-03', { pay_date: 'add_days(period.to, 7)' });
 		const plan = yield* run('2026-03', 'REGULAR');
 		assert.deepEqual([plan.run.pay_date, plan.run.pay_due_date], ['2026-04-07', '2026-04-07']);
+	})
+);
+
+/** Drop one key from the version governing a month's `payroll` object. */
+const dropPayroll = (period: string, key: string) => {
+	const version = required(
+		required(tables.get('jurisdiction_settings')).find((row) => row.id === versionOn(period))
+	);
+	version.payroll = Object.fromEntries(
+		Object.entries(record(version.payroll)).filter(([held]) => held !== key)
+	);
+};
+
+it.effect(
+	'M13: a run refuses a version that names no payroll.pay_date instead of paying on the period end',
+	Effect.fnUntraced(function* () {
+		reset();
+		dropPayroll('2026-03', 'pay_date');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /SG names no payroll\.pay_date/);
+	})
+);
+
+it.effect(
+	'M3: payroll.ten_day_splits cuts the TEN_DAY parts; without it the period refuses',
+	Effect.fnUntraced(function* () {
+		const window = (period: string, ten_day_splits?: readonly number[]) =>
+			payPeriodWindow(period, {
+				pay_frequency: 'TEN_DAY',
+				...(ten_day_splits === undefined ? {} : { ten_day_splits })
+			});
+		assert.deepEqual(window('2026-03-2', [10, 20]), { start: '2026-03-11', end: '2026-03-20' });
+		assert.deepEqual(window('2026-03-2', [7, 14]), { start: '2026-03-08', end: '2026-03-14' });
+		assert.deepEqual(window('2026-03-3', [7, 14]), { start: '2026-03-15', end: '2026-03-31' });
+		assert.throws(() => window('2026-03-1'), /payroll\.ten_day_splits/);
+		assert.throws(() => window('2026-03-1', [20, 10]), /payroll\.ten_day_splits/);
 	})
 );
 
@@ -5136,6 +5298,26 @@ it.effect(
 );
 
 it.effect(
+	'M7: an off-cycle run refuses a version that names no payroll.off_cycle_families',
+	Effect.fnUntraced(function* () {
+		reset();
+		entry(
+			'adhoc_catalog_entry',
+			'b1',
+			'e1',
+			catalog('adhoc_catalog', 'bonus', '2026-03'),
+			'2026-03-05',
+			{ amount: Decimal.of('1000') }
+		);
+		dropPayroll('2026-03', 'off_cycle_families');
+		assert.match(
+			yield* refused('2026-03', 'OFF_CYCLE', ['b1']),
+			/SG names no payroll\.off_cycle_families/
+		);
+	})
+);
+
+it.effect(
 	'audit 22: a scheme reads its subject on configuration.as_of (period_end), not the period start',
 	Effect.fnUntraced(function* () {
 		reset();
@@ -5315,8 +5497,103 @@ it.effect(
 			amount: Decimal.of('9000')
 		});
 		assert.match(yield* refused('2026-03', 'REGULAR'), /net pay would be negative/);
+		// Unstated, the engine assumes neither.
+		payrollWithout('2026-03', 'negative_net');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /payroll\.negative_net is not stated/);
 		payrollOf('2026-03', { negative_net: 'allow' });
 		assert.ok(slip(yield* run('2026-03', 'REGULAR'), 'e2').net < 0);
+	})
+);
+
+it.effect(
+	'lines M8: a contract with no base salary refuses when payroll.base_salary_required is unstated',
+	Effect.fnUntraced(function* () {
+		reset();
+		const term = required(
+			records(
+				record(
+					required(
+						required(tables.get('employment_contract')).find((row) => row.id === fixtureId('k-e1'))
+					).facts
+				).contract_terms
+			)[0]
+		);
+		term.base_salary = { value: 0, currency: 'SGD' };
+		payrollWithout('2026-03', 'base_salary_required');
+		assert.match(
+			yield* refused('2026-03', 'REGULAR'),
+			/payroll\.base_salary_required is not stated/
+		);
+	})
+);
+
+it.effect(
+	'lines M9: a prorated work line without a denominator refuses instead of dividing by calendar days',
+	Effect.fnUntraced(function* () {
+		reset();
+		const basic = required(
+			required(tables.get('work_catalog')).find(
+				(row) => row.settings_id === versionOn('2026-03') && row.prorated === true
+			)
+		);
+		assert.equal(basic.denominator, 'double(period.days)');
+		delete basic.denominator;
+		assert.match(
+			yield* refused('2026-03', 'REGULAR'),
+			new RegExp(`work_catalog ${String(basic.code)}: denominator is not stated`)
+		);
+	})
+);
+
+it.effect(
+	'lines M4: a leave row projects its class’s can_encash; a class that states none refuses',
+	Effect.fnUntraced(function* () {
+		// A fresh March with one annual-leave day and a line counting the encashable leave rows.
+		const annualLeave = () => {
+			reset();
+			entry(
+				'leave_catalog_entry',
+				'al',
+				'e1',
+				catalog('leave_catalog', 'ANNUAL_LEAVE', '2026-03'),
+				'2026-03-10',
+				{ days: 1, from: PlainDate('2026-03-10'), to: PlainDate('2026-03-10') },
+				'TIME_OFF'
+			);
+			shows('ENCASHABLE', 'double(size(leave.rows.filter(r, r.can_encash)))');
+			return required(
+				required(tables.get('leave_catalog')).find(
+					(row) => row.settings_id === versionOn('2026-03') && row.code === 'ANNUAL_LEAVE'
+				)
+			);
+		};
+		annualLeave().can_encash = true;
+		assert.equal(shown(yield* run('2026-03', 'REGULAR'), 'e1', 'ENCASHABLE'), 1);
+		annualLeave().can_encash = false;
+		assert.equal(shown(yield* run('2026-03', 'REGULAR'), 'e1', 'ENCASHABLE'), undefined);
+		// A row whose class the governing version does not carry: no class states can_encash, so the slip refuses.
+		annualLeave();
+		required(tables.get('leave_catalog')).push({
+			can_encash: true,
+			id: fixtureId('lc-retired'),
+			settings_id: versionOn('2026-07'),
+			code: 'RETIRED_LEAVE',
+			name: 'Retired leave',
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '10.0' }
+		});
+		entry(
+			'leave_catalog_entry',
+			'retired',
+			'e1',
+			'lc-retired',
+			'2026-03-12',
+			{ days: 1, from: PlainDate('2026-03-12'), to: PlainDate('2026-03-12') },
+			'TIME_OFF'
+		);
+		assert.match(
+			yield* refused('2026-03', 'REGULAR'),
+			/leave_catalog RETIRED_LEAVE of SG: can_encash is not stated/
+		);
 	})
 );
 
@@ -5332,7 +5609,7 @@ it.effect(
 			settings_id: versionOn('2026-04'),
 			code: 'YEAR_GROSS',
 			name: 'Year gross',
-			entitlement: { window: 'CALENDAR_YEAR', days: 'earned.year.gross / 100.0' }
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: 'earned.year.gross / 100.0' }
 		});
 		payrollOf('2026-04', { tax_year_start_month: 4 });
 		const state = yield* provide(
@@ -5825,6 +6102,68 @@ it.effect(
 		);
 		paidAll();
 		assert.ok(!(yield* run('2026-05', 'REGULAR')).warnings.some((row) => /overpaid/.test(row)));
+	})
+);
+
+it.effect(
+	'the version’s payroll.exit_overpayment decides a leaver’s overpayment: noted, deducted, or refused unstated',
+	Effect.fnUntraced(function* () {
+		const moved = Effect.fnUntraced(function* (patch: Row) {
+			reset();
+			const k1 = required(
+				required(tables.get('employment_contract')).find((row) => row.id === fixtureId('k-e1'))
+			);
+			Object.assign(k1, {
+				effective_range: { from: PlainDate('2019-01-01'), to: PlainDate('2026-03-31') },
+				exit_ground: 'RESIGNATION',
+				exit_facts: {}
+			});
+			yield* run('2026-03', 'REGULAR');
+			paidAll();
+			k1.effective_range = { from: PlainDate('2019-01-01'), to: PlainDate('2026-03-15') };
+			payrollOf('2026-04', patch);
+		});
+		yield* moved({ exit_overpayment: 'deduct', negative_net: 'allow' });
+		assert.deepEqual(adjusted(yield* run('2026-04', 'REGULAR'), 'e1'), [
+			['CORRECTION', 'BASIC', -3354.84]
+		]);
+		yield* moved({});
+		payrollWithout('2026-04', 'exit_overpayment');
+		assert.match(
+			yield* refused('2026-04', 'REGULAR'),
+			/jurisdiction_settings\.payroll\.exit_overpayment is not stated/
+		);
+	})
+);
+
+it.effect(
+	'the version’s payroll.exit_raise_when decides which slip raises the exit pay of an exit recorded late',
+	Effect.fnUntraced(function* () {
+		reset();
+		exitPay();
+		const k1 = required(
+			required(tables.get('employment_contract')).find((row) => row.id === fixtureId('k-e1'))
+		);
+		Object.assign(k1, {
+			effective_range: { from: PlainDate('2019-01-01'), to: PlainDate('2026-02-15') },
+			exit_ground: 'RETRENCHMENT',
+			exit_facts: {}
+		});
+		// the seeded window: an exit more than a month before the period raises nothing
+		assert.deepEqual(adjusted(yield* run('2026-04', 'REGULAR'), 'e1'), []);
+		required(tables.get('payslip')).length = 0;
+		required(tables.get('payroll_run')).length = 0;
+		payrollOf('2026-04', { exit_raise_when: 'true' });
+		assert.deepEqual(adjusted(yield* run('2026-04', 'REGULAR'), 'e1'), [
+			['EXIT', 'EXIT_PAY', 1000]
+		]);
+		required(tables.get('payslip')).length = 0;
+		required(tables.get('payroll_run')).length = 0;
+		payrollWithout('2026-04', 'exit_raise_when');
+		assert.match(
+			yield* refused('2026-04', 'REGULAR'),
+			/jurisdiction_settings\.payroll\.exit_raise_when is not stated/
+		);
 	})
 );
 
@@ -6439,6 +6778,7 @@ it.effect(
 			name: 'Local leave',
 			unit: 'DAY',
 			entitlement: {
+				overdraw: '0',
 				window: 'CALENDAR_YEAR',
 				days: 'double(rules.regions.by_region[company.region].local_leave_days)'
 			}
@@ -6594,7 +6934,9 @@ it.effect(
 			read('employment_contract', { select: CONTRACT, all: true })
 		);
 		for (const day of ['2027-01-01', '2027-03-15', '2027-12-31']) {
-			const held = yield* Effect.fromResult(staffingFrom(native.rows, day));
+			const held = yield* Effect.fromResult(
+				staffingFrom(native.rows, day, SEEDED_PAYROLL.permanent_when)
+			);
 			assert.equal(held.headcount, 1);
 			assert.deepEqual(
 				held.previous_year_headcount_months,
@@ -6606,10 +6948,69 @@ it.effect(
 			assert.equal(held.headcount_months.length, 12);
 		}
 		assert.deepEqual(
-			(yield* Effect.fromResult(staffingFrom([], '2028-03-01'))).previous_year_headcount_months.map(
-				(m) => m.headcount
-			),
+			(yield* Effect.fromResult(
+				staffingFrom([], '2028-03-01', SEEDED_PAYROLL.permanent_when)
+			)).previous_year_headcount_months.map((m) => m.headcount),
 			Array(12).fill(0)
+		);
+	})
+);
+
+it.effect(
+	'a version without payroll.monthly_wage is refused, never summed by the engine',
+	Effect.fnUntraced(function* () {
+		reset();
+		payrollWithout('2026-03', 'monthly_wage');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /needs payroll\.monthly_wage/);
+	})
+);
+
+it.effect(
+	'earned.average means the version’s payroll.history_months; a version without it or rolling_hours_months is refused',
+	Effect.fnUntraced(function* () {
+		const averaged = Effect.fnUntraced(function* (months: number) {
+			reset();
+			yield* run('2025-12', 'REGULAR');
+			payrollOf('2026-03', { history_months: months });
+			// one more than the months averaged, so none still shows a line
+			shows('AVERAGED_MONTHS', 'double(earned.average.months) + 1.0');
+			return shown(yield* run('2026-03', 'REGULAR'), 'e3', 'AVERAGED_MONTHS');
+		});
+		// December 2025 is inside twelve months of March 2026 and outside two.
+		assert.equal(yield* averaged(12), 2);
+		assert.equal(yield* averaged(2), 1);
+		reset();
+		payrollWithout('2026-03', 'history_months');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /needs payroll\.history_months/);
+		reset();
+		payrollWithout('2026-03', 'rolling_hours_months');
+		assert.match(yield* refused('2026-03', 'REGULAR'), /payroll\.rolling_hours_months/);
+	})
+);
+
+it.effect(
+	'a suspension kind that leaves an attendance flag blank is refused',
+	Effect.fnUntraced(function* () {
+		reset();
+		setSuspensionKinds([
+			{ settings_id: versionOn('2026-03'), code: 'CLOSURE', name: 'Closure', scheduled: 'true' }
+		]);
+		tables.set('work_suspension', [
+			{
+				id: fixtureId('s-blank'),
+				company_id: COMPANY,
+				kind: 'CLOSURE',
+				starts_on: PlainDate('2026-03-04'),
+				ends_on: PlainDate('2026-03-04'),
+				worksite: null,
+				employment_ids: [fixtureId('k-e2')],
+				facts: {}
+			}
+		]);
+		shows('SUSPENDED_DAYS', 'double(size(work.days.filter(d, d.suspended != null)))');
+		assert.match(
+			yield* refused('2026-03', 'REGULAR'),
+			/suspension_kind CLOSURE needs counts_as_attended/
 		);
 	})
 );

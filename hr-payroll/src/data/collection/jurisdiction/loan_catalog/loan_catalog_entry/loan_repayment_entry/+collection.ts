@@ -1,7 +1,7 @@
 import { collection, type TransformCtx } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { validateLoanRepayments } from '../../../../../../lib/loan_schedule.js';
-import { loanAmount, loanRuleFacts } from '../../../../../../lib/loan_values.js';
+import { loanAmount, loanCalendar, loanRuleFacts } from '../../../../../../lib/loan_values.js';
 import { transformEntries } from '../../../../../../lib/payroll_engine/admit.js';
 import { entryRow } from '../../../../../../lib/payroll_engine/payslip/context.js';
 
@@ -33,9 +33,25 @@ c.transform(function* (inputs, ctx: TransformCtx<'loan_repayment_entry'>) {
 	const loanIds = [
 		...new Set(ctx.existing.flatMap((row) => (row === undefined ? [] : [row.loan_id])))
 	];
-	const { loans, siblings } = yield* ctx.db.read({
+	const { loans, siblings, classes, versions } = yield* ctx.db.read({
 		loans: { collection: 'loan_catalog_entry', where: { id: { in: loanIds } }, all: true },
-		siblings: { collection: 'loan_repayment_entry', where: { loan_id: { in: loanIds } }, all: true }
+		siblings: {
+			collection: 'loan_repayment_entry',
+			where: { loan_id: { in: loanIds } },
+			all: true
+		},
+		classes: {
+			collection: 'loan_catalog',
+			where: { id: { in: { member: 'loans', field: 'catalog_id' } } },
+			select: { id: true, settings_id: true },
+			all: true
+		},
+		versions: {
+			collection: 'jurisdiction_settings',
+			where: { id: { in: { member: 'classes', field: 'settings_id' } } },
+			select: { id: true, payroll: true },
+			all: true
+		}
 	});
 	for (const loan of loans.rows) {
 		const edited = inputs.some((input, index) => {
@@ -59,10 +75,21 @@ c.transform(function* (inputs, ctx: TransformCtx<'loan_repayment_entry'>) {
 					{ ...draft, occurred_on: PlainDate(draft.occurred_on), amount: loanAmount(draft.amount) }
 				];
 			});
+		const calendar = loanCalendar(
+			versions.rows.find(
+				(version) =>
+					version.id === classes.rows.find((row) => row.id === loan.catalog_id)?.settings_id
+			)?.payroll
+		);
+		if (calendar === null)
+			return yield* ctx.refuse(
+				'The loan class’s jurisdiction version states no currency or semi-monthly split.'
+			);
 		const checked = validateLoanRepayments({
 			principal_amount: loan.principal_amount,
 			repayment_period: loan.repayment_period,
-			repayments
+			repayments,
+			...calendar
 		});
 		if (!checked.ok) return yield* ctx.refuse(checked.message);
 	}

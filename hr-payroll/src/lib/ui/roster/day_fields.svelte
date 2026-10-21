@@ -21,6 +21,7 @@
 	import { t } from '../i18n/t.js';
 	import { formatDurationHours } from '../format/display_formatters.js';
 	import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
+	import type { AttendancePolicy } from '../../payroll_engine/payslip/context.js';
 	import {
 		approvedWindowText,
 		clocksOf,
@@ -40,6 +41,7 @@
 		day,
 		companyId,
 		timeZone,
+		policy,
 		planOf
 	}: {
 		form: FormState;
@@ -47,6 +49,8 @@
 		day: Day;
 		companyId: Id<'entity'>;
 		timeZone: string;
+		/** The governing version's attendance terms (`payroll.attendance`): the board's credit, as payroll's. */
+		policy: AttendancePolicy | null;
 		/** The day's planned shift for a rostered definition, else the pattern's; null when none. */
 		planOf: (shiftId: string | null) => PlannedShift | null;
 	} = $props();
@@ -98,6 +102,7 @@
 			planOf(shiftId),
 			day.date,
 			timeZone,
+			policy,
 			shiftId == null ? 0 : plannedHours,
 			day.approvedOvertimeIntervals
 		)

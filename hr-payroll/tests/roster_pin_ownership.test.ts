@@ -47,8 +47,6 @@ function tables(): Tables {
 			email: `${number}@example.com`,
 			date_of_birth: '1990-01-01',
 			nationality: 'SG',
-			race: 'CHINESE',
-			religion: 'OTHER',
 			facts: {}
 		}))
 	);
@@ -70,6 +68,7 @@ function tables(): Tables {
 						work_classification: 'EA_COVERED',
 						statutory_work_category: 'NON_MANUAL',
 						employment_type: 'PERMANENT',
+						facts: { race: 'CHINESE', religion: 'OTHER' },
 						shift_pattern_id: PATTERN,
 						allowances: []
 					}

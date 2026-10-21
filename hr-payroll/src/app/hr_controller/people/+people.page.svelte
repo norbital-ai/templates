@@ -146,7 +146,6 @@
 					'phone',
 					'nationality',
 					{ field: 'date_of_birth', label: bolt.t('app.people.date_of_birth') },
-					{ field: 'dependents_count', label: bolt.t('app.people.dependents') },
 					'face_enrollment_status'
 				]}
 			/>

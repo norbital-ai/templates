@@ -22,7 +22,18 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
@@ -353,9 +364,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -656,6 +665,24 @@
 										"minimum": 0,
 										"title": "Agreed contract term (months)",
 										"description": "The term the fixed-term labour contract states, in months (Labour Code art.20(1)(b)): Circular 111/2013 art.25(1)(i) / Decree 253/2026 art.50(2) (10% PIT under three months), Law 41/2024 art.2(1)(a) (SI from one month) and art.2(2) (a foreign employee from twelve months)."
+									},
+									"special_role_notice": {
+										"type": "boolean",
+										"default": false,
+										"title": "Special-role notice period",
+										"description": "Decree 145/2020/NĐ-CP art.7 (Labour Code arts.35(1)(d), 36(2)(d)): an aircrew member, aircraft or aviation equipment maintenance staff, flight dispatcher, enterprise manager (Law on Enterprises; Law on State capital), ship crew working abroad or a seafarer on a Vietnamese ship abroad. Notice is at least 120 days for an indefinite or 12-month-plus contract and a quarter of the term for a shorter one."
+									},
+									"receiving_pension": {
+										"type": "boolean",
+										"description": "A worker already receiving a retirement pension: outside compulsory social, health-by-employer and unemployment insurance (Law 41/2024/QH15 art.2), so the SI-equivalent allowance is paid instead."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A person with a disability: fourteen days of annual leave (Labour Code 2019 art.113(1)) and the disabled new-hire unemployment-insurance relief."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -688,6 +715,12 @@
 							"default": false,
 							"title": "Left unlawfully",
 							"description": "Labour Code art.40: a worker who ended the contract unlawfully gets no severance and owes half a month’s wage and the unserved notice."
+						},
+						"long_illness": {
+							"type": "boolean",
+							"default": false,
+							"title": "Ended for a long illness",
+							"description": "Labour Code 2019 art.36(1)(b): the employer ended the contract because the employee stayed unable to work after the treatment period (12 months indefinite, 6 months fixed term, half the term under 12 months); art.36(2)(c) needs only 3 working days’ notice, whatever the contract term."
 						}
 					},
 					"description": "Stored on employment_contract.exit_facts when the contract closes."
@@ -925,7 +958,7 @@
 				"code": "EMPLOYER_FAULT",
 				"name": "Stoppage by the employer’s fault — full contract wage",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) : 0.0",
 				"authority": "Labour Code art.99(1); counted service, Decree 145/2020 art.65(9) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
@@ -933,7 +966,7 @@
 				"code": "WORKER_FAULT",
 				"name": "Stoppage by the worker’s own fault — unpaid, not counted service",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "Labour Code art.99(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
@@ -941,7 +974,7 @@
 				"code": "COWORKER_FAULT",
 				"name": "Stoppage by another worker’s fault — agreed wage, at least the regional minimum",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
 				"authority": "Labour Code art.99(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
@@ -949,7 +982,7 @@
 				"code": "OBJECTIVE_CAUSE",
 				"name": "Utility failure, natural disaster, fire, epidemic, enemy action, State-ordered relocation or economic reasons — agreed wage, at least the regional minimum for the first 14 working days",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (double(suspension.working_days_elapsed) <= 14.0 ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0) : 0.0",
 				"authority": "Labour Code art.99(3) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
@@ -957,7 +990,7 @@
 				"code": "STRIKE_PARTICIPANT",
 				"name": "On strike — unpaid unless the parties agree otherwise",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : 0.0) / 100.0 : 0.0",
 				"authority": "Labour Code art.207(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			},
@@ -965,7 +998,7 @@
 				"code": "STRIKE_NON_PARTICIPANT",
 				"name": "Stopped by a strike without taking part — paid as art.99(2), at least the regional minimum",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
 				"authority": "Labour Code art.207(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}

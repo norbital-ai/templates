@@ -18,6 +18,7 @@ import {
 } from '../src/lib/payroll_engine/behaviour_runner.ts';
 import {
 	beforeOf,
+	isJsonObject,
 	moneyNumber,
 	type CallerRead,
 	Refusal
@@ -724,7 +725,7 @@ it.effect(
 					settings_id: settings['id'],
 					code: 'ATTENDED_GRANT',
 					name: 'Attended grant',
-					entitlement: { window: 'CALENDAR_YEAR', days }
+					entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days }
 				}
 			]);
 		grant('attendance.window.scheduled > 0 ? 10.0 : 0.0');
@@ -1020,6 +1021,68 @@ it.effect(
 				['WINDOW_COUNT', '2026-01-06']
 			]
 		);
+	})
+);
+
+it.effect(
+	'M17: payroll.permanent_when, not a fact key, decides who counts as permanent',
+	Effect.fnUntraced(function* () {
+		const [k1, k2] = tables.get('employment_contract')!;
+		k1!.facts = {
+			contract_terms: [
+				{ effective_range: { from: '2020-01-01', to: null }, facts: { fixed_term: true } }
+			]
+		};
+		k2!.facts = {};
+		tables.get('rule_set')!.push(
+			task('ALL_PERMANENT', {
+				trigger: { collection: 'work_suspension', event: 'created' },
+				when: 'headcount_permanent == headcount && row.kind == "CLOSURE"',
+				due: 'row.starts_on'
+			})
+		);
+		const suspension = (label: string) => ({
+			id: nativeId('work_suspension', fixtureId(label)),
+			company_id: COMPANY,
+			kind: 'CLOSURE',
+			starts_on: '2026-01-05',
+			ends_on: '2026-01-06'
+		});
+		written.length = 0;
+		yield* fire('work_suspension', 'created', suspension('ws-seeded'), '2026-01-05');
+		// The seeded expression leaves k1's fixed term out of the permanent headcount.
+		assert.deepEqual(raised('ALL_PERMANENT'), []);
+		const version = tables.get('jurisdiction_settings')![0]!;
+		const payroll = version['payroll'];
+		assert.ok(isJsonObject(payroll));
+		version['payroll'] = { ...payroll, permanent_when: 'true' };
+		yield* fire('work_suspension', 'created', suspension('ws-every'), '2026-01-05');
+		version['payroll'] = payroll;
+		assert.equal(raised('ALL_PERMANENT').length, 1);
+	})
+);
+
+it.effect(
+	'L9: run totals sum the slips exactly: three-decimal amounts are not rounded to two',
+	Effect.fnUntraced(function* () {
+		const slip = (gross: string, employer: number) => ({
+			gross: Decimal.of(gross),
+			net: Decimal.of(gross),
+			employer_cost: Decimal.of(gross),
+			statutory: [
+				{
+					scheme_code: 'FUND',
+					base_amount: 0,
+					charged_base: 0,
+					parts: {},
+					employee_amount: 0,
+					employer_amount: employer
+				}
+			]
+		});
+		const run = runTotals([slip('1.234', 0.123), slip('2.345', 0.456)]);
+		assert.equal(run.totals.gross, 3.579);
+		assert.equal(run.statutory['FUND']?.employer, 0.579);
 	})
 );
 

@@ -22,34 +22,45 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://elibrary.judiciary.gov.ph/",
-					"instructions": "The Book Shelf - Supreme Court E-Library. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://lawphil.net/",
+					"instructions": "Statute and presidential-issuance texts (Arellano Law Foundation's law library; the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put research tools behind a security check, so this library is the readable copy). Authority here for: the Labor Code (PD 442, Statutes > Presidential Decrees > 1974) on hours of work, overtime, night-shift differential, weekly rest, holiday pay, service incentive leave, termination, separation pay, final pay and retirement (RA 7641, RA 10757 under Statutes > Republic Acts); the statutory leave laws (RA 11210 maternity, RA 8187 paternity, RA 11861 solo parent, RA 9262 VAWC, RA 9710 special leave for women); RA 10361 Kasambahay terms of employment; payslip and payroll-record duties in the Labor Code and RA 10361; and the national and regional holiday calendar (RA 9492; Executive Issuances > Proclamations, by year: the yearly regular and special days proclamation, the separate Eid'l Fitr and Eid'l Adha proclamations, and special days declared for a whole region). Ignore proclamations limited to one city, municipality or province. Quote the signed text and date of the instrument; contribution rates, tax, minimum wages and data privacy belong to the other entries."
 				},
 				{
 					"url": "https://nwpc.dole.gov.ph/",
-					"instructions": "National Wages and Productivity Commission &#8211; The official website of the NWPC.. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "National Wages and Productivity Commission. Authority here for minimum wages only: every Regional Tripartite Wages and Productivity Board's wage orders for non-agriculture, agriculture, retail/service and small-establishment classes (RTWPBs menu, one page per region such as /ncr/ and /car/, with the order number, tranche dates and rates), the domestic-worker (kasambahay) wage orders on the same regional pages, and the consolidated 'Latest Wage Orders Matrix' PDF under Resources (wp-content/uploads). Record each order's effectivity and tranche dates, the daily rate per class, exemptions and any litigation or suspension note on the regional page."
 				},
 				{
 					"url": "https://www.bir.gov.ph/",
-					"instructions": "www.bir.gov.ph. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument. This public portal needs JavaScript: use TAX INFORMATION & REGULATIONS, Tax Code, Revenue Issuances and the search box. Follow PDFs linked to the Bureau-owned bir-cdn.bir.gov.ph; confirm document type/number and final effective text, not a draft.",
+					"instructions": "Bureau of Internal Revenue. Authority here for payroll income tax: withholding on compensation (NIRC s.24(A) and s.79, the RR 2-98 withholding rules as amended, the RR 11-2018 withholding tables), minimum-wage-earner exemption, de minimis benefit ceilings (RR 29-2025 and later), the 13th-month and other-benefits exemption ceiling, fringe benefit tax, year-end adjustment, tax-record retention (NIRC s.235), and the employer filings and employee certificates (BIR Forms 1601-C, 1604-C, 2316, alphalist). The site needs JavaScript: use Tax Information & Regulations, Tax Code and Revenue Issuances (Revenue Regulations, Revenue Memorandum Circulars) and the search box; the signed PDFs live on bir-cdn.bir.gov.ph. Confirm the issuance number, signing and publication dates and effectivity clause; never seed a draft or proposed regulation.",
 					"document_origins": ["https://bir-cdn.bir.gov.ph/"]
 				},
 				{
-					"url": "https://www.philhealth.gov.ph/",
-					"instructions": "PhilHealth. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
 					"url": "https://www.sss.gov.ph/",
-					"instructions": "Republic of the Philippines Social Security System. Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Social Security System. Authority here for SSS contributions under RA 11199 (contribution rate, monthly salary credit brackets, minimum and maximum MSC, the Mandatory Provident Fund (WISP) split), the Employees' Compensation premium SSS collects for private employers, household-employer coverage, employer remittance and contribution reporting, and the employer-advanced sickness and maternity benefits and the unemployment benefit. Use the Pay Contribution and Employees' Compensation Program pages and the circulars listed on the site (Circular No. and effectivity month)."
 				},
 				{
-					"url": "https://www.pagibigfund.gov.ph/",
-					"instructions": "Home Development Mutual Fund (Pag-IBIG Fund). Use Laws/Jurisprudence, issuances/circulars, employer guides and wage-order sections. Find the signed statute/order/circular and full annexes, verify promulgation and effective dates, exemptions, regional wage class and daily/monthly basis. Separate SSS/PhilHealth/Pag-IBIG contribution schedules and BIR withholding, leave entitlement vs insured cash-benefit qualifications, and regular vs special holidays. Do not substitute news for a final instrument. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "PhilHealth. Authority here for the National Health Insurance premium under RA 11223 (premium rate, income floor and ceiling, employer/employee split, kasambahay and household-employer coverage) and employer registration and remittance (ER2, RF-1). Read Circulars (/circulars/, by year) and Advisories (/advisories/<year>/) and open the signed PDF; record the circular or advisory number, signing date and the contribution month it applies from."
+				},
+				{
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Office of the National Administrative Register (UP Law Center): the official filed copies of agency rules. Authority here for three areas whose own sites put research tools behind a security check: Pag-IBIG Fund (HDMF) membership and contribution circulars (Agencies > home-development-mutual-fund and pag-ibig-fund, e.g. Circular 274 membership, Circular 460 maximum fund salary); National Privacy Commission circulars on employee personal data (registration, data protection officer, breach notification, security, retention: Agencies > national-privacy-commission); and DOLE department orders on employing foreign nationals (alien employment permit, DO 248 s.2025: Agencies > department-of-labor-and-employment). Use the search box with the issuance number; open 'View document' for the certified scan and read it page by page. Record the ONAR registration number and filing date with the issue date."
 				}
 			],
 			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
@@ -363,9 +374,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -649,6 +658,14 @@
 										"type": "boolean",
 										"title": "Employee works at the bar, club or gaming place",
 										"description": "Customer input. Omnibus Rules Book III Rule VIII s.4(d): the exception for persons employed in those places."
+									},
+									"solo_parent": {
+										"type": "boolean",
+										"description": "A solo parent who presented a valid Solo Parent ID card (RA 8972 as amended by RA 11861 ss.8, 15, 20): solo parent leave and the extra 15 days of maternity leave read it. Absent means not a solo parent."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -929,7 +946,7 @@
 			{
 				"code": "BONA_FIDE_SUSPENSION",
 				"name": "Bona fide suspension of operations",
-				"counts_as_attended": "",
+				"counts_as_attended": "false",
 				"scheduled": "false",
 				"pay": "",
 				"authority": "Labor Code art.301; Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20, https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf: the employment relationship is suspended up to six months, extendable by six in a declared national emergency; no wages unless agreement or policy; not attended, not a scheduled day"
@@ -937,7 +954,7 @@
 			{
 				"code": "FORCE_MAJEURE",
 				"name": "Natural disaster, calamity or other force majeure stopping work",
-				"counts_as_attended": "",
+				"counts_as_attended": "false",
 				"scheduled": "false",
 				"pay": "",
 				"authority": "no work, no pay — DOLE Handbook 2024 ch.2 §I, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day"
@@ -945,7 +962,7 @@
 			{
 				"code": "STRIKE",
 				"name": "Strike",
-				"counts_as_attended": "",
+				"counts_as_attended": "false",
 				"scheduled": "false",
 				"pay": "",
 				"authority": "the employees absent from work: no work, no pay; any backwages are adjudicated, not payroll; not attended, not a scheduled day"
@@ -953,7 +970,7 @@
 			{
 				"code": "LOCKOUT",
 				"name": "Lockout by the employer",
-				"counts_as_attended": "",
+				"counts_as_attended": "false",
 				"scheduled": "false",
 				"pay": "",
 				"authority": "a lawful lockout pays no wage — no work, no pay; an unlawful one is adjudicated; not attended, not a scheduled day"

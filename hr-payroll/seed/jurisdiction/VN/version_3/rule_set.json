@@ -381,16 +381,16 @@
 		"code": "TERMINATION_NOTICE",
 		"name": "TERMINATION_NOTICE",
 		"rules": {
-			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness). Engine: the notice by the contract’s term — 45 days for an indefinite (INDEFINITE, or PERMANENT with no contract_type), 30 for an agreed term of 12–36 months, 3 working days (Sunday the weekly rest) for one under 12 months; an unrecorded term gives the longest, 45.",
-			"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness). Engine: the notice by the contract’s term — 45 days for an indefinite (INDEFINITE, or PERMANENT with no contract_type), 30 for an agreed term of 12–36 months, 3 working days (Sunday the weekly rest) for one under 12 months; an unrecorded term gives the longest, 45. A long illness (exit fact long_illness, art.36(1)(b)) takes 3 working days whatever the term (art.36(2)(c)). A special-role contract (contract-term fact special_role_notice: an enterprise manager, aircrew, aircraft maintenance staff, ship crew and the other roles of Decree 145/2020 art.7) takes at least 120 days for an indefinite or 12-month-plus contract and a quarter of the agreed term, rounded up to a whole day, for a shorter one (art.36(2)(d)). No notice duty arises on imprisonment or an employer closure (art.34(4), (7)).",
+			"authority": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.7 (special roles: 120 days / a quarter of the term) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.6",
 			"trigger": {
 				"collection": "employment_contract",
 				"event": "updated",
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "!(contract.exit_ground in [\"DEATH\", \"DISMISSAL\"])",
-			"due": "contract.exit_ground == \"UNILATERAL\" ? ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -45) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_days(exit_on, -30) : add_days(exit_on, -45)))) : add_days(exit_on, 0)"
+			"applies_when": "!(contract.exit_ground in [\"DEATH\", \"DISMISSAL\", \"EMPLOYER_CLOSURE\", \"IMPRISONMENT\"])",
+			"due": "contract.exit_ground == \"UNILATERAL\" ? ((contract.exit_facts != null && has(contract.exit_facts.long_illness) && contract.exit_facts.long_illness == true) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.special_role_notice) && t.facts.special_role_notice == true) ? ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -120) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0)) ? add_days(exit_on, -int(round(double(calendar_distance_days(add_months(exit_on, -int(first((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.facts) && has(t.facts.agreed_term_months)).map(t, double(t.facts.agreed_term_months))))), exit_on)) / 4.0, 1.0, \"UP\"))) : add_days(exit_on, -120)) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -45) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_days(exit_on, -30) : add_days(exit_on, -45)))) : add_days(exit_on, 0)"
 		}
 	},
 	{
@@ -1257,8 +1257,16 @@
 					"name": "Dismissal by the employer"
 				},
 				{
+					"code": "EMPLOYER_CLOSURE",
+					"name": "Employer ceased operation or the individual employer died (art.34(7))"
+				},
+				{
 					"code": "END_OF_CONTRACT",
 					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "IMPRISONMENT",
+					"name": "Employee imprisoned, sentenced or barred from the work by a court (art.34(4))"
 				},
 				{
 					"code": "MUTUAL",
@@ -1324,7 +1332,7 @@
 			"authority": "Quyết định 366/QĐ-BHXH ngày 29/4/2026 (Quy trình thu BHXH, BHYT, BHTN; cấp sổ BHXH, thẻ BHYT; in force 01/5/2026, replacing Quyết định 595/QĐ-BHXH and its amendments, art.2), Phụ lục danh mục biểu mẫu item 6 (D02-LT) with the template “3. Mau D02-LT.xlsx” and its guide “3a. HD Mau D02-LT.docx”, read 2026-10-08 https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx?ItemID=5018 (files https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/BHXHVN_366-QD-BHXH_2942026.pdf and https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/Mau%20bieu.rar); Law 41/2024/QH15 arts.28(1), 33(5), 53(8).",
 			"file": "\"D02-LT-\" + runs[0].period.substring(0, 7) + \".csv\"",
 			"applies_when": "generated_at >= \"2026-05-01\"",
-			"when": "size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && !(has(employee.receiving_pension) && employee.receiving_pension == true) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && int(double(t.facts.agreed_term_months)) < 1))",
+			"when": "size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.receiving_pension) && t.facts.receiving_pension == true)) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && int(double(t.facts.agreed_term_months)) < 1))",
 			"columns": [
 				{
 					"header": "STT",
@@ -1694,6 +1702,21 @@
 					"payment": "INFORMATION"
 				}
 			]
+		}
+	},
+	{
+		"id": "09eb319d-435a-58d5-a5a3-b732225f94c6",
+		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]

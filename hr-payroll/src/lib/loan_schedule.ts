@@ -15,20 +15,26 @@ export type LoanScheduleInput = {
 	readonly repayment_period: DatePeriod;
 	readonly repayment_frequency?: 'MONTHLY' | 'SEMI_MONTHLY';
 	readonly repayments?: readonly LoanRepayment[];
+	/** The governing version's money: `payroll.minor_units`, else its currency's ISO scale. */
+	readonly scale: number;
+	/** The governing version's `payroll.semi_monthly_split`: a semi-monthly loan's first instalment day. */
+	readonly semi_monthly_split: number;
 };
 
 type LoanScheduleResult =
 	| { readonly ok: true; readonly repayments: readonly LoanRepayment[] }
 	| { readonly ok: false; readonly message: string };
 
-const validMoney = (amount: Decimal): boolean => amount.cmp(0) > 0 && amount.eq(amount.round(2));
+const validMoney = (amount: Decimal, scale: number): boolean =>
+	amount.cmp(0) > 0 && amount.eq(amount.round(scale));
 const signedAmount = (row: LoanRepayment): Decimal =>
 	row.activity === 'REVERSAL' ? row.amount.neg() : row.amount;
 const monthEnd = (date: PlainDate): PlainDate =>
 	date.slice(0, 7) === '9999-12' ? PlainDate('9999-12-31') : monthOf(date).to!;
 
 function invalidTerms(input: LoanScheduleInput): string | null {
-	if (!validMoney(input.principal_amount)) return 'Principal must be positive and use whole cents.';
+	if (!validMoney(input.principal_amount, input.scale))
+		return 'Principal must be positive and use whole minor units.';
 	const { from, to } = input.repayment_period;
 	if (!isPlainDate(from) || to == null || !isPlainDate(to) || to < from)
 		return 'Repayment period must have valid start and end dates, with the end on or after the start.';
@@ -41,8 +47,11 @@ export function validateLoanRepayments(input: LoanScheduleInput): LoanScheduleRe
 	if (invalid != null) return { ok: false, message: invalid };
 	const repayments = input.repayments ?? [];
 	const { from, to } = input.repayment_period;
-	if (repayments.some((row) => !validMoney(row.amount)))
-		return { ok: false, message: 'Every repayment amount must be positive and use whole cents.' };
+	if (repayments.some((row) => !validMoney(row.amount, input.scale)))
+		return {
+			ok: false,
+			message: 'Every repayment amount must be positive and use whole minor units.'
+		};
 	if (
 		repayments.some(
 			(row) => !isPlainDate(row.occurred_on) || row.occurred_on < from || row.occurred_on > to!
@@ -54,16 +63,19 @@ export function validateLoanRepayments(input: LoanScheduleInput): LoanScheduleRe
 	return { ok: true, repayments };
 }
 
-/** Keep paid rows intact and share the remaining principal as evenly as cents allow across unpaid dates. */
+/** Keep paid rows intact and share the remaining principal as evenly as minor units allow across unpaid dates. */
 export function buildLoanSchedule(input: LoanScheduleInput): LoanScheduleResult {
 	const invalid = invalidTerms(input);
 	if (invalid != null) return { ok: false, message: invalid };
-	const { principal_amount, repayment_period, repayment_frequency = 'MONTHLY' } = input;
+	const { principal_amount, repayment_period, repayment_frequency = 'MONTHLY', scale } = input;
 	const { from, to } = repayment_period;
 	const existing = input.repayments ?? [];
 	const locked = existing.filter((row) => row.payslip_id != null);
-	if (locked.some((row) => !validMoney(row.amount)))
-		return { ok: false, message: 'Paid repayments must have positive amounts in whole cents.' };
+	if (locked.some((row) => !validMoney(row.amount, input.scale)))
+		return {
+			ok: false,
+			message: 'Paid repayments must have positive amounts in whole minor units.'
+		};
 	if (
 		locked.some(
 			(row) => !isPlainDate(row.occurred_on) || row.occurred_on < from || row.occurred_on > to!
@@ -96,7 +108,12 @@ export function buildLoanSchedule(input: LoanScheduleInput): LoanScheduleResult 
 			const candidates =
 				repayment_frequency === 'MONTHLY'
 					? [anchoredToEnd ? monthEnd(month) : month]
-					: [PlainDate(`${month.slice(0, 7)}-15`), monthEnd(month)];
+					: [
+							PlainDate(
+								`${month.slice(0, 7)}-${String(input.semi_monthly_split).padStart(2, '0')}`
+							),
+							monthEnd(month)
+						];
 			for (const occurred_on of candidates) {
 				if (occurred_on < from || occurred_on > to! || dates.has(occurred_on)) continue;
 				dates.add(occurred_on);
@@ -111,14 +128,15 @@ export function buildLoanSchedule(input: LoanScheduleInput): LoanScheduleResult 
 		return { ok: false, message: 'The repayment period has no unpaid repayment dates.' };
 	if (unpaid.length + locked.length > 600)
 		return { ok: false, message: 'A loan schedule cannot exceed 600 repayments.' };
-	const regular = remaining.div(unpaid.length, 2, 'down');
+	const regular = remaining.div(unpaid.length, scale, 'down');
 	if (regular.isZero())
 		return {
 			ok: false,
-			message: 'Remaining principal must cover at least one cent per unpaid repayment.'
+			message: 'Remaining principal must cover at least one minor unit per unpaid repayment.'
 		};
-	// This count is bounded by the number of unpaid dates; amounts stay exact Decimals.
-	const extraCents = remaining.minus(regular.times(unpaid.length)).times(100).toNumber();
+	// One minor unit; the count is bounded by the number of unpaid dates, and amounts stay exact Decimals.
+	const unit = Decimal.of(1).div(10 ** scale, scale);
+	const extraUnits = remaining.minus(regular.times(unpaid.length)).div(unit, 0).toNumber();
 	unpaid.sort((a, b) => a.occurred_on.localeCompare(b.occurred_on));
 	const repayments = [
 		...locked,
@@ -128,7 +146,7 @@ export function buildLoanSchedule(input: LoanScheduleInput): LoanScheduleResult 
 				...fields,
 				...(id != null && row?.activity !== 'REVERSAL' ? { id } : {}),
 				occurred_on,
-				amount: index >= unpaid.length - extraCents ? regular.plus('0.01') : regular,
+				amount: index >= unpaid.length - extraUnits ? regular.plus(unit) : regular,
 				activity: 'AWARD'
 			};
 		})

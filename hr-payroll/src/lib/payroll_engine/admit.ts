@@ -20,8 +20,13 @@ import {
 	runEngine,
 	stableJson,
 	frequencySpans,
-	periodsIn
+	periodsIn,
+	payrollSetting,
+	PAYROLL_SLOTS,
+	celValues,
+	getErrorMessage
 } from './foundation.js';
+import { evaluateConfigured } from './expressions.js';
 import {
 	classFromRow,
 	dayKey,
@@ -34,14 +39,15 @@ import {
 import {
 	round2,
 	zoneOf,
+	attendancePolicy,
 	num,
-	HISTORY_MONTHS,
 	dayInRange,
 	SALARY_RUNS,
 	isSalaryRun,
 	type PayrollRunRequest,
 	type SettingsRow,
 	type ContractRow,
+	type ContractTerm,
 	type EmployeeRow,
 	type EntryColumns,
 	type LooseEntryRow,
@@ -87,6 +93,8 @@ type DeleteInput = Extract<
 	Parameters<Parameters<typeof adhocEntries.transform>[0]>[0][number],
 	{ readonly $delete: true }
 >;
+/** A year's months: the headcount history duties read is the calendar's, not a payroll window. */
+const MONTHS_OF_YEAR = 12;
 export const reservedPinsFrom = (
 	runs: readonly { readonly id: string; readonly pins: unknown }[],
 	except?: string
@@ -348,9 +356,25 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 		// offer is refused, and a period a switch cuts covers only its own frequency's days.
 		const month = request.period.slice(0, 7);
 		const spans = frequencySpans(entity, month);
+		// The month is cut by the calendar of the version in force on its first day, then governed from the period's own.
+		const opening = yield* Effect.fromResult(
+			versionOn(lineage, entity.settings_code, `${month}-01`)
+		);
+		const openingPayroll = yield* Effect.fromResult(
+			fieldValue(opening.payroll, 'jurisdiction_settings.payroll')
+		);
+		const calendar = {
+			...(openingPayroll?.week_start == null ? {} : { week_start: openingPayroll.week_start }),
+			...(openingPayroll?.semi_monthly_split == null
+				? {}
+				: { semi_monthly_split: openingPayroll.semi_monthly_split }),
+			...(openingPayroll?.ten_day_splits == null
+				? {}
+				: { ten_day_splits: openingPayroll.ten_day_splits })
+		};
 		const offered = [
 			...new Set(
-				periodsIn(entity, month)
+				periodsIn(entity, month, calendar)
 					.filter((held) => held.key === request.period)
 					.map((held) => held.frequency)
 			)
@@ -371,23 +395,7 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 			return yield* Effect.fail(
 				new Refusal({ message: 'The pay period requires its declared frequency.' })
 			);
-		// The period cut by the calendar of the version in force at its default start, then governed from its own.
-		const first = yield* Effect.fromResult(
-			versionOn(
-				lineage,
-				entity.settings_code,
-				(yield* settlementPeriod(request.period, frequency)).from
-			)
-		);
-		const firstPayroll = yield* Effect.fromResult(
-			fieldValue(first.payroll, 'jurisdiction_settings.payroll')
-		);
-		const nominal = yield* settlementPeriod(request.period, frequency, {
-			...(firstPayroll?.week_start == null ? {} : { week_start: firstPayroll.week_start }),
-			...(firstPayroll?.semi_monthly_split == null
-				? {}
-				: { semi_monthly_split: firstPayroll.semi_monthly_split })
-		});
+		const nominal = yield* settlementPeriod(request.period, frequency, calendar);
 		// ponytail: one span of the frequency per month; a switch away and back inside one month is refused above
 		const own = spans.find((span) => span.frequency === frequency)!;
 		const settlement = {
@@ -397,8 +405,8 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 		};
 		// a month paid at more than one frequency settles each line month to date (`buildPayrollRun`)
 		const switched = spans.length > 1;
-		const version = contains(first.effective_range, settlement.from)
-			? first
+		const version = contains(opening.effective_range, settlement.from)
+			? opening
 			: yield* Effect.fromResult(versionOn(lineage, entity.settings_code, settlement.from));
 		// The governing behaviours admit the run: which kinds a jurisdiction pays is a record, not a branch here.
 		const behaviours = behavioursOf(
@@ -472,7 +480,9 @@ export const admitPayrollRun = (request: PayrollRunRequest) =>
 							'An off-cycle or correction run pays only the ad hoc or claim entries it selects; select at least one.'
 					})
 				);
-			const families = payroll?.off_cycle_families ?? ['ADHOC', 'CLAIM'];
+			const families = yield* Effect.fromResult(
+				payrollSetting(version.code, payroll, 'off_cycle_families')
+			);
 			const open = new Set<string>(
 				offCycle
 					.filter((family) => families.includes(family.family))
@@ -553,16 +563,33 @@ const SEPARATION_DAYS = 366;
  * year (`previous_year_headcount_months[]`), and its `separations` — every contract ending
  * within a year either side of the day, each `{ employment_id, exit_date, exit_ground, exit_facts, term_facts,
  * worksite, fixed_term }` (of the terms in force on the exit day). A count by cause, worksite or window is the
- * record's own filter.
+ * record's own filter. Permanent is the version's `payroll.permanent_when` CEL over the terms in force (`terms`);
+ * `fixed_term` is its negation.
  */
 export const staffingFrom = (
 	all: readonly Pick<
 		ContractRow,
 		'id' | 'company_id' | 'effective_range' | 'engagement' | 'exit_ground' | 'exit_facts' | 'facts'
 	>[],
-	day: string
+	day: string,
+	permanentWhen: string
 ) =>
 	Result.gen(function* () {
+		const permanentOn = (term: ContractTerm | undefined) =>
+			Result.try({
+				try: () => evaluateConfigured(permanentWhen, { terms: celValues(term ?? {}) }),
+				catch: (cause) =>
+					new Refusal({
+						message: 'payroll.permanent_when: the stored expression failed.',
+						detail: getErrorMessage(cause)
+					})
+			}).pipe(
+				Result.flatMap((value) =>
+					Schema.is(Schema.Boolean)(value)
+						? Result.succeed(value)
+						: Result.fail(new Refusal({ message: 'payroll.permanent_when must return a boolean.' }))
+				)
+			);
 		const contracts: (typeof all)[number][] = [];
 		for (const contract of all) {
 			const engagement = yield* fieldValue(contract.engagement, 'employment_contract.engagement');
@@ -583,11 +610,12 @@ export const staffingFrom = (
 				'employment_contract.effective_range'
 			);
 			const term = yield* termFor(contract, day);
-			if (term?.facts?.['fixed_term'] !== true) permanent.push(contract);
+			const isPermanent = yield* permanentOn(term);
+			if (isPermanent) permanent.push(contract);
 			if (dayInRange(day, range)) {
 				const site = yield* worksiteOn(undefined, term);
 				headcount_by_worksite[site] = (headcount_by_worksite[site] ?? 0) + 1;
-				if (term?.facts?.['fixed_term'] !== true)
+				if (isPermanent)
 					headcount_permanent_by_worksite[site] = (headcount_permanent_by_worksite[site] ?? 0) + 1;
 			}
 		}
@@ -618,7 +646,7 @@ export const staffingFrom = (
 							exit_facts: isJsonObject(exit_facts) ? exit_facts : {},
 							term_facts: isJsonObject(facts) ? facts : {},
 							worksite: yield* worksiteOn(undefined, term),
-							fixed_term: facts?.['fixed_term'] === true
+							fixed_term: !(yield* permanentOn(term))
 						}
 					];
 				})
@@ -626,15 +654,15 @@ export const staffingFrom = (
 		);
 		return {
 			headcount: yield* inForce(contracts, day),
-			// Contracts in force not on a fixed term (`terms.facts.fixed_term`).
+			// Contracts in force the version's `payroll.permanent_when` holds for.
 			headcount_permanent: yield* inForce(permanent, day),
 			headcount_by_worksite,
 			// The same without fixed-term contracts (a site with none is absent: `has()`).
 			headcount_permanent_by_worksite,
 			previous_year_headcount_months: yield* Result.all(
-				Array.from({ length: HISTORY_MONTHS }, (_, i) =>
+				Array.from({ length: MONTHS_OF_YEAR }, (_, i) =>
 					Result.gen(function* () {
-						const month = monthOf(addMonths(day.slice(0, 4) + '-01-01', i - HISTORY_MONTHS));
+						const month = monthOf(addMonths(day.slice(0, 4) + '-01-01', i - MONTHS_OF_YEAR));
 						return {
 							month: String(month.from).slice(0, 7),
 							headcount: yield* inForce(contracts, String(month.to))
@@ -643,9 +671,9 @@ export const staffingFrom = (
 				)
 			),
 			headcount_months: yield* Result.all(
-				Array.from({ length: HISTORY_MONTHS }, (_, i) =>
+				Array.from({ length: MONTHS_OF_YEAR }, (_, i) =>
 					Result.gen(function* () {
-						const month = monthOf(addMonths(String(monthOf(day).from), i + 1 - HISTORY_MONTHS));
+						const month = monthOf(addMonths(String(monthOf(day).from), i + 1 - MONTHS_OF_YEAR));
 						return {
 							month: String(month.from).slice(0, 7),
 							headcount: yield* inForce(contracts, String(month.to))
@@ -659,6 +687,7 @@ export const staffingFrom = (
 				.toSorted((left, right) => left.exit_date.localeCompare(right.exit_date))
 		};
 	});
+const RECORD_RETENTION: keyof typeof PAYROLL_SLOTS = 'record_retention';
 /** The version's PAYROLL rule-set rows as the CEL root `rules`, keyed by code (`rules.minimum_wage.by_region`). */
 const versionRules = (version: SettingsRow) =>
 	readAll(
@@ -669,11 +698,12 @@ const versionRules = (version: SettingsRow) =>
 	).pipe(Effect.map((rows) => Object.fromEntries(rows.map((row) => [row.code, row.rules ?? {}]))));
 /**
  * A version's `VALIDATIONS` rule-set rows: each `rules` names its `site` (`contract`: a contract's terms as written;
- * `payslip`: each slip of a build), its `kind` (`refuse` the write, `warn` in the run's warnings, `hold` the slip
+ * `payslip`: each slip of a build; `roster`: a roster day; `cycle`: a pattern cycle a roster write changes, `cycle`
+ * { date, from, to, planned, expected }), its `kind` (`refuse` the write, `warn` in the run's warnings, `hold` the slip
  * ON_HOLD), the CEL `when` that trips it and the `message`.
  */
 export const Validation = Schema.Struct({
-	site: Schema.Literals(['contract', 'payslip', 'roster']),
+	site: Schema.Literals(['contract', 'payslip', 'roster', 'cycle']),
 	kind: Schema.Literals(['refuse', 'warn', 'hold']),
 	when: Schema.String,
 	message: Schema.String,
@@ -1134,6 +1164,7 @@ export const rosterFindingsFrom = (
 		);
 		const holidays = new Map<string, HolidayRow>(got.holidays.rows.map((row) => [row.date, row]));
 		const zone = yield* Effect.fromResult(zoneOf(entity, [...checksOf.values()][0]?.version));
+		const policy = yield* Effect.fromResult(attendancePolicy([...checksOf.values()][0]?.version));
 		const out: RosterFinding[] = [];
 		for (const contract of mine) {
 			const own = byEmployment.get(contract.id) ?? [];
@@ -1161,7 +1192,8 @@ export const rosterFindingsFrom = (
 									planned,
 									row,
 									holiday: holidays.get(date),
-									zone
+									zone,
+									policy
 								})
 							: {
 									day_type: planned?.day_type ?? '',
@@ -1298,13 +1330,21 @@ export const rosterFindingsFrom = (
 		}
 		return out;
 	});
+type DayTypeCounts = { readonly WORK: number; readonly REST: number; readonly OFF: number };
+/** One whole pattern cycle around a touched day: the `cycle` root of a `cycle` validation. */
+export type PatternCycle = {
+	readonly date: string;
+	readonly from: string;
+	readonly to: string;
+	readonly planned: DayTypeCounts;
+	readonly expected: DayTypeCounts;
+};
 /**
- * The first cycle a roster breaks: every whole cycle of the pattern the terms in force name (its length from its
- * anchor) around a touched day must plan as many WORK, REST and OFF days as the pattern does. A swap moves a day inside
- * its cycle; it never adds a work day or drops a rest or off day. A cycle the employment, the pattern or one set of
- * terms covers only in part is not judged. The breach as a sentence, else null.
+ * The whole cycles of the pattern the terms in force name (its length from its anchor) around each touched day, each
+ * with the WORK, REST and OFF days the roster plans and the pattern plans: the `cycle` root of the version's `cycle`
+ * validations. A cycle the employment, the pattern or one set of terms covers only in part is not listed.
  */
-export const cycleBreach = (input: {
+export const patternCycles = (input: {
 	readonly contract: Pick<ContractRow, 'facts' | 'effective_range'>;
 	readonly definitions: ReadonlyMap<string, ShiftDefinitionRow>;
 	readonly patterns: ReadonlyMap<string, ShiftPatternRow>;
@@ -1314,6 +1354,7 @@ export const cycleBreach = (input: {
 }) =>
 	Result.gen(function* () {
 		const judged = new Set<string>();
+		const cycles: PatternCycle[] = [];
 		const typeOf = (id: string | null | undefined) => {
 			const definition = id == null || id === '' ? undefined : input.definitions.get(id);
 			return definition == null ? '' : plannedShift(definition).day_type;
@@ -1348,15 +1389,25 @@ export const cycleBreach = (input: {
 				if (want === 'WORK' || want === 'REST' || want === 'OFF') expected[want]++;
 				if (got === 'WORK' || got === 'REST' || got === 'OFF') planned[got]++;
 			}
-			if (
-				whole &&
-				(planned.WORK !== expected.WORK ||
-					planned.REST !== expected.REST ||
-					planned.OFF !== expected.OFF)
-			)
-				return `${date}: the cycle ${from} to ${addDays(from, cycle.length - 1)} plans ${planned.WORK} work, ${planned.REST} rest and ${planned.OFF} off days, but its pattern plans ${expected.WORK} work, ${expected.REST} rest and ${expected.OFF} off days. Swap days inside the cycle instead.`;
+			if (whole)
+				cycles.push({ date, from, to: addDays(from, cycle.length - 1), planned, expected });
 		}
-		return null;
+		return cycles;
+	});
+/** A refusing `cycle` validation's sentence for one cycle (its counts, then the row's message), else null. */
+export const cycleRefusal = (
+	cycle: PatternCycle,
+	checks: readonly Validation[],
+	severity: Severity | undefined
+) =>
+	Effect.gen(function* () {
+		const refused = (yield* tripped(checks, { cycle }, severity)).find(
+			(check) => check.kind === 'refuse'
+		);
+		const { date, from, to, planned, expected } = cycle;
+		return refused == null
+			? null
+			: `${date}: the cycle ${from} to ${to} plans ${planned.WORK} work, ${planned.REST} rest and ${planned.OFF} off days, but its pattern plans ${expected.WORK} work, ${expected.REST} rest and ${expected.OFF} off days. ${refused.message}`;
 	});
 /** One roster day a write changes: its row as it would be stored, null when the write deletes it. */
 export type RosterTouch = {
@@ -1366,8 +1417,8 @@ export type RosterTouch = {
 };
 /**
  * Why a roster write breaks its plan, else null: a refusing `roster` validation of the law in force on a changed day
- * (read with the stored days around it, the write applied), or a changed cycle that no longer plans its pattern's
- * WORK, REST and OFF days (`cycleBreach`). The work-day sheet and the month board write through this one judge.
+ * (read with the stored days around it, the write applied), or a refusing `cycle` validation over a changed
+ * pattern cycle's planned and expected WORK, REST and OFF days (`patternCycles`). The work-day sheet and the month board write through this one judge.
  */
 export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 	Effect.gen(function* () {
@@ -1459,11 +1510,12 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 			const patterns = new Map<string, ShiftPatternRow>(
 				got.patterns.rows.map((row) => [row.id, row])
 			);
+			const entity = got.entity.rows[0];
 			for (const contract of got.contracts.rows) {
 				const own = touchesByEmployment.get(contract.id) ?? [];
 				if (own.length === 0) continue;
-				const breach = yield* Effect.fromResult(
-					cycleBreach({
+				const cycles = yield* Effect.fromResult(
+					patternCycles({
 						contract,
 						definitions,
 						patterns,
@@ -1471,7 +1523,19 @@ export const rosterPlanRefusal = (touched: readonly RosterTouch[]) =>
 						dates: own.map((touch) => touch.work_date)
 					})
 				);
-				if (breach != null) return breach;
+				// Each cycle is judged by the `cycle` validations of the version governing its touched day.
+				for (const cycle of cycles) {
+					const governing = versionOn(got.versions.rows, entity?.settings_code, cycle.date);
+					if (Result.isFailure(governing)) continue;
+					const checks = yield* validationsOf(
+						got.rules.rows.filter(
+							(row) => row.settings_id === governing.success.id && row.family === 'VALIDATIONS'
+						),
+						'cycle'
+					);
+					const breach = yield* cycleRefusal(cycle, checks, entity?.validation_severity);
+					if (breach != null) return breach;
+				}
 			}
 		}
 		return null;
@@ -1533,6 +1597,7 @@ export const rosterOvertime = (ids: readonly Id<'roster_entry'>[]) =>
 			const entity = got.entity.rows[0];
 			if (entity == null) continue;
 			const zone = yield* Effect.fromResult(zoneOf(entity, got.versions.rows[0]));
+			const policy = yield* Effect.fromResult(attendancePolicy(got.versions.rows[0]));
 			const definitions = new Map<string, ShiftDefinitionRow>(
 				got.definitions.rows.map((row) => [row.id, row])
 			);
@@ -1556,7 +1621,8 @@ export const rosterOvertime = (ids: readonly Id<'roster_entry'>[]) =>
 							planned: yield* planOn(row.work_date),
 							row,
 							holiday: undefined,
-							zone
+							zone,
+							policy
 						});
 					})
 				);
@@ -1575,16 +1641,9 @@ export const anonymousProfile = () => ({
 	date_of_birth: null,
 	gender: null,
 	marital_status: null,
-	solo_parent: false,
-	disabled: false,
-	receiving_pension: false,
-	race: null,
-	religion: null,
-	spouse_status: null,
 	children: [],
 	nationality: null,
 	identity_number: null,
-	dependents_count: 0,
 	email: null,
 	phone: null,
 	address: null,
@@ -1631,7 +1690,7 @@ export const admitAnonymise = (employee_id: Id<'employment_profile'>, today: str
 			const exit = String(contract.effective_range!.to);
 			const entity = yield* entityOf(contract.company_id);
 			const version = yield* governingVersion(entity, exit);
-			const rule = (yield* versionRules(version))['record_retention'];
+			const rule = (yield* versionRules(version))[RECORD_RETENTION];
 			if (!isJsonObject(rule) || !Predicate.isString(rule['until']))
 				return yield* Effect.fail(
 					new Refusal({ message: `${version.code} names no record retention for ${exit}.` })
@@ -1652,7 +1711,7 @@ export const admitAnonymise = (employee_id: Id<'employment_profile'>, today: str
 					)),
 					rules: yield* versionRules(version)
 				},
-				`rule_set record_retention of ${version.code}`
+				`rule_set ${RECORD_RETENTION} of ${version.code}`
 			);
 			if (!Predicate.isString(until) || until.length < 10)
 				return yield* Effect.fail(
@@ -1671,7 +1730,7 @@ export const admitAnonymise = (employee_id: Id<'employment_profile'>, today: str
 /** A kind the version governing `day` lists in its PAYROLL `<rule>` row (`rules.kinds[] = { code, name }`). */
 const listedKind = (
 	company_id: Id<'entity'>,
-	rule: string,
+	rule: keyof typeof PAYROLL_SLOTS,
 	noun: string,
 	kind: string,
 	day: string

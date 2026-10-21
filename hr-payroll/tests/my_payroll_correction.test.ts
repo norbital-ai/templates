@@ -30,6 +30,16 @@ it('MY first-phase SKBBK uses the printed low-wage contributions without subtrac
 	const configuration = objectValue(catalogue['configuration']);
 	const rules = Schema.decodeUnknownSync(Schema.Array(ObjectValue))(configuration['rules']);
 	const expression = Schema.decodeUnknownSync(Schema.String)(present(rules.at(-1))['employee']);
+	// The month's regular salary slip, as the engine supplies it: `period.salary_run` and the scheme's own
+	// `person.normal_pending` (nothing pending once the salary run assesses the month).
+	const period = { salary_paid: false, salary_run: true };
+	const facts = objectValue(configuration['person']);
+	const person = {
+		normal_pending: evaluateStrict(
+			Schema.decodeUnknownSync(Schema.String)(facts['normal_pending']),
+			{ period, terms: { monthly_wage: 0 } }
+		)
+	};
 	for (const [wage, amount] of [
 		[30, 0.2],
 		[50, 0.3],
@@ -41,7 +51,9 @@ it('MY first-phase SKBBK uses the printed low-wage contributions without subtrac
 		[6000, 44.65]
 	])
 		assert.equal(
-			Math.round(Number(evaluateStrict(expression, { base: { assessed: wage } })) * 100) / 100,
+			Math.round(
+				Number(evaluateStrict(expression, { base: { assessed: wage }, period, person })) * 100
+			) / 100,
 			amount
 		);
 });
@@ -84,7 +96,6 @@ for (const allowanceInput of ['code', 'prior-snapshot ID'] as const)
 					date_of_birth: '1990-01-01',
 					gender: 'FEMALE',
 					marital_status: 'SINGLE',
-					spouse_status: 'NONE',
 					children: [],
 					facts: {}
 				}
@@ -106,7 +117,7 @@ for (const allowanceInput of ['code', 'prior-snapshot ID'] as const)
 								work_classification: 'EA_COVERED',
 								statutory_work_category: 'NON_MANUAL',
 								employment_type: 'PERMANENT',
-								facts: { normal_hours_per_day: 8, normal_days_per_week: 5 },
+								facts: { normal_hours_per_day: 8, normal_days_per_week: 5, spouse_status: 'NONE' },
 								allowances: [
 									['SUA', 260],
 									['MEAL_ALLOWANCE', 104]
@@ -233,7 +244,6 @@ it.effect(
 				date_of_birth: '1990-01-01',
 				gender: 'FEMALE',
 				marital_status: 'SINGLE',
-				spouse_status: 'NONE',
 				children: [],
 				facts: {}
 			}
@@ -255,7 +265,7 @@ it.effect(
 							work_classification: 'EA_COVERED',
 							statutory_work_category: 'NON_MANUAL',
 							employment_type: 'PERMANENT',
-							facts: { normal_hours_per_day: 8, normal_days_per_week: 5 },
+							facts: { normal_hours_per_day: 8, normal_days_per_week: 5, spouse_status: 'NONE' },
 							allowances: []
 						}
 					]

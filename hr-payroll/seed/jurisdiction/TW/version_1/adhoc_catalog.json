@@ -10,10 +10,11 @@
 			"INCOME_TAX_BONUS",
 			"INCOME_TAX_NON_RESIDENT",
 			"NHI_SUPPLEMENT.ADDITIONAL",
-			"NHI_PART_TIME"
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER"
 		],
 		"name": "獎金 (bonus)",
-		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income.",
+		"authority": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income, so it is withheld (INCOME_TAX_BONUS / INCOME_TAX_NON_RESIDENT) and enters the unit’s §34 salary total (全民健康保險法 §34: 每月支付之薪資所得總額, 所得稅格式代號 50 — bonuses included).",
 		"bands": [
 			{
 				"when": "",

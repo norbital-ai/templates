@@ -209,7 +209,48 @@ export const readAll = <C extends ReadableName, const S extends StoredSelect<C> 
 			page ?? (select === undefined ? WIDE_ROWS[collection] : undefined)
 		);
 	});
-export const PAYROLL_TIME_ZONE = 'UTC';
+/** The `jurisdiction_settings.payroll` keys the engine requires: every seed version states each (tests/payroll-slots). */
+export const REQUIRED_PAYROLL_SETTINGS = [
+	'currency',
+	'timezone',
+	'pay_date',
+	'off_cycle_families',
+	'ten_day_splits',
+	'permanent_when',
+	'exit_raise_when',
+	'exit_overpayment'
+] as const;
+type RequiredPayrollSetting = (typeof REQUIRED_PAYROLL_SETTINGS)[number];
+/** A version's required `payroll.<key>`: absent or blank refuses, naming the version and the key. */
+export const payrollSetting = <
+	P extends { readonly [K in RequiredPayrollSetting]?: unknown },
+	K extends RequiredPayrollSetting
+>(
+	code: string,
+	payroll: P | null | undefined,
+	key: K
+): Result.Result<NonNullable<P[K]>, Refusal> => {
+	const value = payroll?.[key];
+	return value == null || value === ''
+		? Result.fail(
+				new Refusal({
+					message: `jurisdiction_settings ${code} names no payroll.${key}; it is required.`
+				})
+			)
+		: Result.succeed(value);
+};
+/**
+ * The PAYROLL rule_set codes the engine reads by name: `required` ones every seed version declares
+ * (tests/payroll-slots), `optional` ones are read when present.
+ */
+export const PAYROLL_SLOTS = {
+	record_retention: 'required',
+	exit_grounds: 'required',
+	holiday_kinds: 'required',
+	salary_report: 'required',
+	case_kinds: 'optional',
+	overtime_classification: 'optional'
+} as const satisfies Readonly<Record<string, 'required' | 'optional'>>;
 /** An actual `YYYY-MM-DD` calendar date. */
 export const isCalendarDate = isPlainDate;
 /** One refused value: the engine's single error, thrown where no Effect channel exists. */
@@ -245,6 +286,8 @@ export const payPeriodWindow = (
 		readonly week_start?: number;
 		/** The version's `payroll.semi_monthly_split`: the first half's last day (default 15). */
 		readonly semi_monthly_split?: number;
+		/** The version's `payroll.ten_day_splits`: the first and second parts' last days (required for TEN_DAY). */
+		readonly ten_day_splits?: readonly number[];
 	}
 ): {
 	readonly start: string;
@@ -266,10 +309,16 @@ export const payPeriodWindow = (
 			: { start: addDays(`${month}-${split}`, 1), end: monthEnd(month) };
 	}
 	if (frequency === 'TEN_DAY') {
+		const [first = 0, second = 0] = options.ten_day_splits ?? [];
+		if (options.ten_day_splits?.length !== 2 || first < 1 || second <= first || second > 27)
+			return refuseNow(
+				'A TEN_DAY period needs the version’s payroll.ten_day_splits: two rising days of the month, 1–27.'
+			);
+		const day = (n: number) => `${month}-${String(n).padStart(2, '0')}`;
 		const part = Number(period.slice(8, 9) || '1');
-		if (part === 1) return { start: `${month}-01`, end: `${month}-10` };
-		if (part === 2) return { start: `${month}-11`, end: `${month}-20` };
-		return { start: `${month}-21`, end: monthEnd(month) };
+		if (part === 1) return { start: `${month}-01`, end: day(first) };
+		if (part === 2) return { start: day(first + 1), end: day(second) };
+		return { start: day(second + 1), end: monthEnd(month) };
 	}
 	if (frequency === 'WEEKLY') {
 		const start = weeklyInstalments(month, options.week_start)[Number(period.slice(8)) - 1];
@@ -333,6 +382,7 @@ export const periodsIn = (
 	options: {
 		readonly week_start?: number;
 		readonly semi_monthly_split?: number;
+		readonly ten_day_splits?: readonly number[];
 	} = {}
 ): readonly {
 	readonly key: string;

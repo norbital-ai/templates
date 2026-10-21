@@ -59,7 +59,7 @@ const reset = () => {
 			unit: 'DAY',
 			can_encash: true,
 			encash_on_exit: true,
-			entitlement: { days: '14.0' }
+			entitlement: { overdraw: '0', days: '14.0' }
 		}
 	]);
 	tables.set('leave_catalog_entry', []);

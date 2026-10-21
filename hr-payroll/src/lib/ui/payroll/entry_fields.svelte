@@ -10,13 +10,23 @@
 	import { Schema } from 'effect';
 	import { inputSchema } from '@norbital-ai/std/kind';
 	import { isPlainDate, PlainDate } from '@norbital-ai/std/date';
-	import { Button, Field, Icon, Picker, openRecord, type FormState } from '@norbital-ai/ui';
+	import {
+		Button,
+		Field,
+		Icon,
+		JsonSchemaForm,
+		Picker,
+		openRecord,
+		type FormState
+	} from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { pageEntity } from '../scopes/company_scope.svelte.js';
 	import { live, liveRows } from '../state/live.svelte.js';
 	import { todayKey } from '../format/calendar.js';
+	import { schemaAt } from '../person/input_schema.js';
+	import { formSchema } from '../person/form_schema.js';
 
 	let {
 		catalog,
@@ -57,12 +67,16 @@
 			? null
 			: bolt.read('loan_catalog', {
 					where: { id: { eq: id } },
-					select: { eligibility: true },
+					select: { eligibility: true, settings_id: { select: { employee_input_schema: true } } },
 					limit: 1
 				});
 	});
 	/** The loan class's own rule names the agreement facts it reads; only those are asked for. */
 	const loanReads = $derived(loan.current?.[0]?.eligibility ?? '');
+	/** The loan inputs the class's own version declares (`employee_input_schema.properties.loan_facts`): its `facts`. */
+	const loanFacts = $derived(
+		formSchema(schemaAt(loan.current?.[0]?.settings_id?.employee_input_schema, 'loan_facts'))
+	);
 	const day = $derived.by(() => {
 		if (catalog === 'loan_catalog') {
 			const period = form.get('repayment_period');
@@ -168,10 +182,22 @@
 		<Field {name} />
 	{/each}
 	{#if catalog === 'loan_catalog'}
-		{#each ['advance_purpose', 'written_agreement_reference', 'advance_made_on'] as name (name)}
-			{#if loanReads.includes(name)}
-				<Field {name} />
-			{/if}
-		{/each}
+		{#if loanReads.includes('advance_made_on')}
+			<Field name="advance_made_on" />
+		{/if}
+		{#if loanFacts != null}
+			<Field name="facts">
+				{#snippet editor(field)}
+					<JsonSchemaForm
+						schema={loanFacts}
+						value={field.value}
+						onChange={field.onChange}
+						name={field.name}
+						id={field.id}
+						disabled={field.disabled}
+					/>
+				{/snippet}
+			</Field>
+		{/if}
 	{/if}
 </Grid>

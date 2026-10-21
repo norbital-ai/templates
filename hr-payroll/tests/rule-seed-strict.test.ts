@@ -53,16 +53,9 @@ const EmployeeCodec = inputSchema({
 		name: employment_profile.fields.name,
 		date_of_birth: employment_profile.fields.date_of_birth,
 		nationality: employment_profile.fields.nationality,
-		race: employment_profile.fields.race,
-		religion: employment_profile.fields.religion,
 		gender: employment_profile.fields.gender,
 		marital_status: employment_profile.fields.marital_status,
-		spouse_status: employment_profile.fields.spouse_status,
-		solo_parent: employment_profile.fields.solo_parent,
-		disabled: employment_profile.fields.disabled,
-		receiving_pension: employment_profile.fields.receiving_pension,
 		children: employment_profile.fields.children,
-		dependents_count: employment_profile.fields.dependents_count,
 		facts: employment_profile.fields.facts
 	}
 });
@@ -543,89 +536,99 @@ const failures = (
 						};
 						const earnedMonth = { gross: 1000, net: 900, statutory: {} };
 						const context =
-							rules.site === 'contract'
+							rules.site === 'cycle'
 								? {
-										...subject,
-										term: subject.terms,
-										day,
-										employment: { ...(subject.employment as Row), terms: [subject.terms] },
-										person: { ...(subject.person as Row), contracts: [] }
+										cycle: {
+											date: day,
+											from: day,
+											to: day,
+											planned: { WORK: 5, REST: 1, OFF: 1 },
+											expected: { WORK: 5, REST: 1, OFF: 1 }
+										}
 									}
-								: rules.site === 'roster'
+								: rules.site === 'contract'
 									? {
 											...subject,
-											day: { ...workDay, leave_code: null, rest_hours_before: 12 },
-											week: {
-												worked_hours: 40,
-												overtime_hours: 5,
-												worked_days: 5,
-												overtime_hours_by_day_type: { WORK: 5, REST: 0, OFF: 0, HOLIDAY: 0 },
-												overtime_hours_holiday_by_day_type: { WORK: 0, REST: 0, OFF: 0 },
-												holiday_worked_hours: 0
-											}
+											term: subject.terms,
+											day,
+											employment: { ...(subject.employment as Row), terms: [subject.terms] },
+											person: { ...(subject.person as Row), contracts: [] }
 										}
-									: {
-											...subject,
-											period: {
-												...period,
-												days: 30,
-												paid_days: 30,
-												covered_days: 30,
-												working_days: 22,
-												covered_working_days: 22,
-												unpaid_working_days: 0,
-												part: 1,
-												parts: 1,
-												month_key: period.key,
-												month_from: period.from,
-												month_to: period.to,
-												month_days: 30,
-												month_working_days: 22,
-												month_holiday_work_days: 0,
-												previous_month_working_days: 20,
-												previous_month_holiday_work_days: 0,
-												switched: false,
-												pay_date: period.to
-											},
-											work: {
-												overtime_hours: 1,
-												incentive_hours: 0,
-												dates: [day],
-												holidays: [],
-												holiday_dates: [],
-												days: [workDay],
-												week_before: [],
-												month_days: [workDay]
-											},
-											earned: {
-												month: earnedMonth,
-												year: earnedMonth,
-												previous_month: { ...earnedMonth, base_salary: 1000 },
-												average: { gross: 1000, net: 900, months: 3 },
-												months: [],
-												history: []
-											},
-											hours: {
-												month: hours,
-												month_to_date: hours,
-												previous_month: hours,
-												year: hours,
-												rolling: hours,
-												months: []
-											},
-											leave: { rows: [] },
-											payslip: {
-												gross: 1000,
-												net: 900,
-												total_deductions: 100,
-												statutory_employee: 50,
-												statutory_employer: 60,
-												net_additions: 0,
-												net_deductions: 0,
-												lines: {}
-											},
-											statutory: {}
-										};
+									: rules.site === 'roster'
+										? {
+												...subject,
+												day: { ...workDay, leave_code: null, rest_hours_before: 12 },
+												week: {
+													worked_hours: 40,
+													overtime_hours: 5,
+													worked_days: 5,
+													overtime_hours_by_day_type: { WORK: 5, REST: 0, OFF: 0, HOLIDAY: 0 },
+													overtime_hours_holiday_by_day_type: { WORK: 0, REST: 0, OFF: 0 },
+													holiday_worked_hours: 0
+												}
+											}
+										: {
+												...subject,
+												period: {
+													...period,
+													days: 30,
+													paid_days: 30,
+													covered_days: 30,
+													working_days: 22,
+													covered_working_days: 22,
+													unpaid_working_days: 0,
+													part: 1,
+													parts: 1,
+													month_key: period.key,
+													month_from: period.from,
+													month_to: period.to,
+													month_days: 30,
+													month_working_days: 22,
+													month_holiday_work_days: 0,
+													previous_month_working_days: 20,
+													previous_month_holiday_work_days: 0,
+													switched: false,
+													pay_date: period.to
+												},
+												work: {
+													overtime_hours: 1,
+													incentive_hours: 0,
+													dates: [day],
+													holidays: [],
+													holiday_dates: [],
+													days: [workDay],
+													week_before: [],
+													month_days: [workDay]
+												},
+												earned: {
+													month: earnedMonth,
+													year: earnedMonth,
+													previous_month: { ...earnedMonth, base_salary: 1000 },
+													average: { gross: 1000, net: 900, months: 3 },
+													months: [],
+													history: []
+												},
+												hours: {
+													month: hours,
+													month_to_date: hours,
+													previous_month: hours,
+													year: hours,
+													rolling: hours,
+													months: []
+												},
+												leave: { rows: [] },
+												payslip: {
+													gross: 1000,
+													net: 900,
+													total_deductions: 100,
+													statutory_employee: 50,
+													statutory_employer: 60,
+													net_additions: 0,
+													net_deductions: 0,
+													lines: {}
+												},
+												statutory: {}
+											};
 						record(row, 'when', (evaluate) => evaluate(String(rules.when), context));
 					}
 				}

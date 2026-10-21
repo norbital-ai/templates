@@ -5,6 +5,11 @@ import { lateArrivalNotices, shiftVariantFrom } from '../lib/payroll_engine/late
 import { movementFromRow } from '../lib/payroll_engine/leave.js';
 import { fieldValue } from '../lib/payroll_engine/foundation.js';
 import { zoneOn } from '../lib/payroll_engine/payslip/context.js';
+import type { TeamName } from '@norbital-ai/bolt';
+import teams from '../access_control/team/+team.js';
+
+/** A handle the source team declaration names. */
+const isTeam = (handle: string): handle is TeamName => Object.hasOwn(teams, handle);
 const isString = Schema.is(Schema.String);
 /**
  * Every five minutes, one in-app reminder per person-day to the production manager when a rostered WORK
@@ -27,6 +32,7 @@ late_arrival_notice.run(function* (_, ctx) {
 	const { rows: entities } = yield* ctx.read('entity', {
 		select: {
 			late_arrival_grace_minutes: true,
+			late_arrival_team: true,
 			settings_code: true,
 			time_zone: true,
 			shift_definition: { select: { code: true, variant: true }, all: true },
@@ -97,9 +103,22 @@ late_arrival_notice.run(function* (_, ctx) {
 	const entries = entities.flatMap((entity) =>
 		entity.employment_contract.flatMap((contract) => contract.roster_entry)
 	);
+	// an entity names the team its reminders go to; one naming none sends none
+	const notified = entities.flatMap((entity) =>
+		entity.late_arrival_team == null || !isTeam(entity.late_arrival_team)
+			? []
+			: [{ ...entity, team: entity.late_arrival_team }]
+	);
+	const teamOf = new Map(
+		notified.flatMap((entity) =>
+			entity.employment_contract.flatMap((contract) =>
+				contract.roster_entry.map((row) => [row.id, entity.team] as const)
+			)
+		)
+	);
 	const candidates = (yield* Effect.fromResult(
 		Result.all(
-			entities.map((entity) =>
+			notified.map((entity) =>
 				Result.gen(function* () {
 					const byShift = new Map(entity.shift_definition.map((row) => [row.id, row]));
 					const grace = yield* fieldValue(
@@ -144,16 +163,23 @@ late_arrival_notice.run(function* (_, ctx) {
 	});
 	if (notices.length > 0)
 		yield* ctx.notify(
-			notices.map((notice) => ({
-				to: { team: 'bb45fcf0-ee4c-5fc8-830f-73a002eff170' },
-				once: notice.once,
-				link: {
-					collection: 'roster_entry' as const,
-					id: notice.roster_entry_id
-				},
-				title: notice.title,
-				body: notice.body
-			}))
+			notices.flatMap((notice) => {
+				const team = teamOf.get(notice.roster_entry_id);
+				return team === undefined
+					? []
+					: [
+							{
+								to: { team },
+								once: notice.once,
+								link: {
+									collection: 'roster_entry' as const,
+									id: notice.roster_entry_id
+								},
+								title: notice.title,
+								body: notice.body
+							}
+						];
+			})
 		);
 	return { checked: entries.length, reminded: notices.length };
 });

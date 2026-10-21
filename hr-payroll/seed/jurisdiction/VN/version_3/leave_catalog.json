@@ -6,14 +6,16 @@
 		"name": "Annual leave (Nghỉ hằng năm)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
 		"pay_fraction": "",
-		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `employee.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `terms.facts.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person).",
 		"entitlement": {
 			"unit": "DAY",
-			"days": "service_months >= 12.0 ? (terms.work_classification == \"ESPECIALLY_ARDUOUS\" ? 16.0 : (terms.work_classification == \"ARDUOUS\" || employee.disabled || (employee.age != null && employee.age < 18)) ? 14.0 : 12.0) + double(int(service_months / 60.0)) : (terms.work_classification == \"ESPECIALLY_ARDUOUS\" ? 16.0 : (terms.work_classification == \"ARDUOUS\" || employee.disabled || (employee.age != null && employee.age < 18)) ? 14.0 : 12.0) * (size(attendance.window.months) > 0 ? double(size(attendance.window.months.filter(m, double(m.worked) + double(m.holidays) + (has(m.leave.ANNUAL_LEAVE) ? double(m.leave.ANNUAL_LEAVE) : 0.0) + (has(m.leave.MARRIAGE_LEAVE) ? double(m.leave.MARRIAGE_LEAVE) : 0.0) + (has(m.leave.CHILD_MARRIAGE_LEAVE) ? double(m.leave.CHILD_MARRIAGE_LEAVE) : 0.0) + (has(m.leave.BEREAVEMENT_LEAVE) ? double(m.leave.BEREAVEMENT_LEAVE) : 0.0) >= 0.5 * double(m.scheduled)))) : min(service_months, 12.0)) / 12.0",
+			"days": "service_months >= 12.0 ? (terms.work_classification == \"ESPECIALLY_ARDUOUS\" ? 16.0 : (terms.work_classification == \"ARDUOUS\" || (has(terms.facts.disabled) && terms.facts.disabled == true) || (employee.age != null && employee.age < 18)) ? 14.0 : 12.0) + double(int(service_months / 60.0)) : (terms.work_classification == \"ESPECIALLY_ARDUOUS\" ? 16.0 : (terms.work_classification == \"ARDUOUS\" || (has(terms.facts.disabled) && terms.facts.disabled == true) || (employee.age != null && employee.age < 18)) ? 14.0 : 12.0) * (size(attendance.window.months) > 0 ? double(size(attendance.window.months.filter(m, double(m.worked) + double(m.holidays) + (has(m.leave.ANNUAL_LEAVE) ? double(m.leave.ANNUAL_LEAVE) : 0.0) + (has(m.leave.MARRIAGE_LEAVE) ? double(m.leave.MARRIAGE_LEAVE) : 0.0) + (has(m.leave.CHILD_MARRIAGE_LEAVE) ? double(m.leave.CHILD_MARRIAGE_LEAVE) : 0.0) + (has(m.leave.BEREAVEMENT_LEAVE) ? double(m.leave.BEREAVEMENT_LEAVE) : 0.0) >= 0.5 * double(m.scheduled)))) : min(service_months, 12.0)) / 12.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR",
 			"carry_forward": "has(terms.facts) && terms.facts != null && has(terms.facts.annual_leave_combined) && terms.facts.annual_leave_combined == true ? 1000.0 : 0.0",
 			"carry_depth": 2
@@ -26,6 +28,7 @@
 		"name": "Sick leave (Nghỉ ốm đau)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -34,7 +37,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "((has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 15.0 ? 30.0 : (has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 30.0 ? 40.0 : 60.0) + (terms.work_classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] ? 10.0 : 0.0)"
+			"days": "((has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 15.0 ? 30.0 : (has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 30.0 ? 40.0 : 60.0) + (terms.work_classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] ? 10.0 : 0.0)",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -53,7 +57,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "!(has(entry.from) && entry.from != null) ? 31.0 * (6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0) : (has(entry.facts.maternity_case) ? entry.facts.maternity_case : \"\") == \"ADOPTION\" && has(entry.facts.child_birthdate) ? double(calendar_distance_days(entry.from, add_months(entry.facts.child_birthdate, 6))) : double(calendar_distance_days(entry.from, add_months(entry.from, int((6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0)))))"
+			"days": "!(has(entry.from) && entry.from != null) ? 31.0 * (6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0) : (has(entry.facts.maternity_case) ? entry.facts.maternity_case : \"\") == \"ADOPTION\" && has(entry.facts.child_birthdate) ? double(calendar_distance_days(entry.from, add_months(entry.facts.child_birthdate, 6))) : double(calendar_distance_days(entry.from, add_months(entry.from, int((6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0)))))",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -63,6 +68,7 @@
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
 		"eligibility": "employee.gender == \"MALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -72,7 +78,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) >= 2.0 ? ((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true ? 14.0 : 10.0 + 3.0 * (double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 2.0)) : (((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true || (has(entry.facts.premature_under_32_weeks) ? entry.facts.premature_under_32_weeks : false) == true) ? 7.0 : 5.0)"
+			"days": "double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) >= 2.0 ? ((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true ? 14.0 : 10.0 + 3.0 * (double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 2.0)) : (((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true || (has(entry.facts.premature_under_32_weeks) ? entry.facts.premature_under_32_weeks : false) == true) ? 7.0 : 5.0)",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -82,6 +89,7 @@
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -90,7 +98,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "3.0"
+			"days": "3.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -100,6 +109,7 @@
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -108,7 +118,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "1.0"
+			"days": "1.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -118,6 +129,7 @@
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -126,7 +138,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "3.0"
+			"days": "3.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -136,6 +149,7 @@
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -144,7 +158,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "1.0"
+			"days": "1.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -154,6 +169,7 @@
 		"name": "Nghỉ không hưởng lương theo thỏa thuận (unpaid leave by agreement)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -167,6 +183,7 @@
 		"name": "Public holidays (Nghỉ lễ, tết)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -180,6 +197,7 @@
 		"name": "Public holiday in lieu",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -192,6 +210,7 @@
 		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
 		"eligibility": "!(employee.nationality == \"\" || employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -200,7 +219,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -210,6 +230,7 @@
 		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -223,6 +244,7 @@
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -236,6 +258,7 @@
 		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -249,6 +272,7 @@
 		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -262,6 +286,7 @@
 		"name": "Care of a sick child under 7",
 		"eligibility": "has(entry.facts.child_birthdate) && add_years(entry.facts.child_birthdate, 7) > entry.occurred_on",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -271,7 +296,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "(has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\") + \":\" + (has(entry.from) && entry.from != null ? entry.from.substring(0, 4) : \"\")",
-			"days": "(has(entry.facts.child_birthdate) && has(entry.from) && entry.from != null && add_years(entry.facts.child_birthdate, 3) > entry.from) ? 20.0 : 15.0"
+			"days": "(has(entry.facts.child_birthdate) && has(entry.from) && entry.from != null && add_years(entry.facts.child_birthdate, 3) > entry.from) ? 20.0 : 15.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -281,6 +307,7 @@
 		"name": "Prenatal check-ups",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -290,7 +317,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "(has(entry.facts.remote_or_pathological) ? entry.facts.remote_or_pathological : false) == true ? 10.0 : 5.0"
+			"days": "(has(entry.facts.remote_or_pathological) ? entry.facts.remote_or_pathological : false) == true ? 10.0 : 5.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -300,6 +328,7 @@
 		"name": "Miscarriage, abortion or stillbirth",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -309,7 +338,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 22.0 ? 50.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 13.0 ? 40.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 5.0 ? 20.0 : 10.0"
+			"days": "double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 22.0 ? 50.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 13.0 ? 40.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 5.0 ? 20.0 : 10.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -319,6 +349,7 @@
 		"name": "Contraception measures",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -328,7 +359,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "(has(entry.facts.method) ? entry.facts.method : \"\") == \"STERILISATION\" ? 15.0 : 7.0"
+			"days": "(has(entry.facts.method) ? entry.facts.method : \"\") == \"STERILISATION\" ? 15.0 : 7.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -338,6 +370,7 @@
 		"name": "Convalescence after sickness or maternity",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -347,7 +380,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "(has(entry.facts.after) ? entry.facts.after : \"\") in [\"LONG_TERM_ILLNESS\", \"MULTIPLE_BIRTH\"] ? 10.0 : (has(entry.facts.after) ? entry.facts.after : \"\") in [\"SURGERY\", \"CAESAREAN\"] ? 7.0 : 5.0"
+			"days": "(has(entry.facts.after) ? entry.facts.after : \"\") in [\"LONG_TERM_ILLNESS\", \"MULTIPLE_BIRTH\"] ? 10.0 : (has(entry.facts.after) ? entry.facts.after : \"\") in [\"SURGERY\", \"CAESAREAN\"] ? 7.0 : 5.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -357,6 +391,7 @@
 		"name": "Treatment of an occupational accident or disease",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -371,6 +406,7 @@
 		"name": "Suspension pending discipline",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -380,7 +416,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
-			"days": "(has(entry.facts.special_case) ? entry.facts.special_case : false) == true ? 90.0 : 15.0"
+			"days": "(has(entry.facts.special_case) ? entry.facts.special_case : false) == true ? 90.0 : 15.0",
+			"overdraw": "0"
 		}
 	}
 ]

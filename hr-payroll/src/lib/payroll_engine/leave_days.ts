@@ -2,8 +2,8 @@
  * The units a time-off request charges, as the server counts them: over the employment's own plan (the roster day's
  * shift, else the cycle day of the pattern its terms in force name), less the entity's published holidays, in the
  * class's `unit` — `DAY` its planned working days, `CALENDAR_DAY` every day of the range, `HOUR` the scheduled hours
- * of its planned working days. A half day at either end halves that day. An employment with nothing planned in the
- * range is charged its calendar days less published holidays, as a payslip shares such a row. The leave write and its preview both count here.
+ * of its planned working days. A half day at either end halves that day. A DAY range with nothing planned in it is
+ * charged as the class's `unplanned_days` states. The leave write and its preview both count here.
  */
 import { datePeriod, eachDay, PlainDate } from '@norbital-ai/std/date';
 import type { Id } from '@norbital-ai/bolt';
@@ -45,7 +45,7 @@ export function requestDays(
 			classes: {
 				collection: 'leave_catalog',
 				where: { id: { eq: input.catalog_id } },
-				select: { unit: true },
+				select: { code: true, unit: true, unplanned_days: true },
 				limit: 1
 			},
 			roster: {
@@ -122,6 +122,10 @@ export function requestDays(
 		const planned = dates.map((date) => ({ date, shift: plan(date) }));
 		if (planned.every((day) => day.shift == null)) {
 			if (unit === 'HOUR') return 'Hours are charged on planned shifts: this range has none.';
+			if (cls.unplanned_days == null)
+				return `Leave class ${cls.code} (leave_catalog) needs unplanned_days: what a range with no planned shift charges.`;
+			if (cls.unplanned_days === 'REFUSE')
+				return 'Nothing is planned in this range: plan the shifts first.';
 			const off = dates.filter((date) => holiday.has(date));
 			return { days: chargeableDays({ from, to, ...halves, nonWorking: new Set(off) }), unit, off };
 		}

@@ -153,12 +153,12 @@
 		"bands": [
 			{
 				"when": "has(entry.facts.standard_rent)",
-				"amount": "(has(entry.facts.rent_paid) ? double(entry.facts.rent_paid) : 0.0) >= 0.5 * double(entry.facts.standard_rent) ? 0.0 : double(entry.facts.standard_rent) - (has(entry.facts.rent_paid) ? double(entry.facts.rent_paid) : 0.0)"
+				"amount": "terms.work_classification != \"OFFICER\" && (has(entry.facts.rent_paid) ? double(entry.facts.rent_paid) : 0.0) >= 0.5 * double(entry.facts.standard_rent) ? 0.0 : max(0.0, double(entry.facts.standard_rent) - (has(entry.facts.rent_paid) ? double(entry.facts.rent_paid) : 0.0))"
 			}
 		],
 		"code": "HOUSING_IN_KIND",
 		"name": "社宅の貸与 (company housing)",
-		"authority": "所得税基本通達 36-40, 36-41, 36-45: a 使用人 who pays half or more of the 通常の賃貸料の額 has no taxable benefit; otherwise the 通常の賃貸料 less the rent paid is taxable salary (entry.facts.standard_rent, entry.facts.rent_paid). An officer's 通常の賃貸料 follows 36-40 (the employer computes it). Housing in kind is remuneration at the 告示 価額 for social insurance (健康保険法 art.46). The social-insurance value is the 告示 price, entered as HOUSING_IN_KIND_SOCIAL_INSURANCE.",
+		"authority": "所得税基本通達 36-45, 36-47: a 使用人 who pays half or more of the 通常の賃貸料の額 has no taxable benefit; otherwise the 通常の賃貸料 less the rent paid is taxable salary (entry.facts.standard_rent, entry.facts.rent_paid). An officer (terms.work_classification OFFICER) has no half-rent exemption: the 通常の賃貸料 under 36-40 and 36-41 (the employer computes it) less the rent paid is taxable whenever the rent is lower (国税庁 タックスアンサー No.2600). Housing in kind is remuneration at the 告示 価額 for social insurance (健康保険法 art.46). The social-insurance value is the 告示 price, entered as HOUSING_IN_KIND_SOCIAL_INSURANCE.",
 		"counts_toward": ["INCOME_TAX", "YEAR_END_ADJUSTMENT"]
 	},
 	{

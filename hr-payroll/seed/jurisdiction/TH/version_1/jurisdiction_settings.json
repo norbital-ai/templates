@@ -22,37 +22,52 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.filter(a, (has(a.code) && a.code == \"FIXED_ALLOWANCE\") || (has(a.catalogue_id) && a.catalogue_id in [\"fc9a212c-9211-5c59-9aeb-85a201239776\", \"809d9c7c-1bc6-5d54-9156-ef55401b4e79\", \"f650c89d-d8ab-58d1-80f3-6e64da1dda7d\", \"2a210c86-30c6-5cd1-84f6-cadc4d2ecf93\", \"3f512ae5-3e16-5787-90c6-c8ba68404cbd\", \"60b8520e-a707-5cbd-91c5-299840c94ff7\", \"d13ea036-7c8c-546d-b931-37096d29b205\"])).map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
-					"instructions": "DLPW EWF service portal (the broad entry point for this fund). Open the public media file at https://itserver15.labour.go.th/ewfundTemplate/media-file.php?id=18 and the public EWF information links rather than the employer login; follow employer manual, membership FAQ and remittance FAQ from the portal. Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://www.ocs.go.th/searchlaw",
+					"instructions": "Office of the Council of State law database. The authority here for the consolidated statute and ministerial-regulation text of: (1) the Labour Protection Act B.E. 2541 as amended through No. 9 B.E. 2568 and its ministerial regulations - normal hours, overtime and holiday work and their rates, rest breaks, weekly, traditional (s.29, the 13-day rule) and annual holidays, every leave (sick, personal, military, sterilisation, maternity s.41 with para 3 holiday counting, child-care, spouse support, under-18 leave s.52), young and pregnant workers, wage payment, deductions (s.76) and wage records, notice (s.17), severance (s.118), relocation (s.120), temporary shutdown (s.75), final pay (s.70), the employee register, wage documents and Kor Ror 11 report (ss.108-115/1) and their retention; (2) the Personal Data Protection Act B.E. 2562 for employee data; (3) the Royal Ordinance on the Management of Foreign Workers' Employment B.E. 2560 and amendments for foreign-worker duties; (4) the Provident Fund Act B.E. 2530; (5) the Accounting Act B.E. 2543 for document retention. Search by title (ค้นจากชื่อ), open the current consolidated text (กฎหมายฉบับปัจจุบัน) and its subordinate rules (กฎหมายลูกบท); the English translations (คำแปลกฎหมาย) are for orientation only and may predate amendments. Check the consolidation date against the latest amending Act. Minimum wage, social security, the Employee Welfare Fund, income tax, the Skill Development Fund, the disability quota and holiday dates have their own entries."
 				},
 				{
-					"url": "https://www.mol.go.th/",
-					"instructions": "www.mol.go.th. Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.rd.go.th/",
-					"instructions": "Revenue Department (Thai root). Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Ministry of Labour provincial labour office page listing the Wage Committee notifications on minimum wage rates (ประกาศคณะกรรมการค่าจ้าง เรื่อง อัตราค่าจ้างขั้นต่ำ ฉบับที่ 12, 13, 14 ...) with their effective dates and repeal status. The authority here for the statutory minimum daily wage of every province and district (rule minimum_wage.by_region), the 400-baht categories (Bangkok, hotels of categories 2-4, service establishments) and the Wage Committee skill-standard wage notifications (อัตราค่าจ้างตามมาตรฐานฝีมือ) under its download and labour-law menus. Open each notification PDF and read the clause-by-clause province table; check whether a newer ฉบับ is listed and when it takes effect. A Wage Committee resolution or Cabinet acknowledgment is not law until the notification is gazetted. The Ministry's main portal (mol.go.th) is bot-challenged and is not used."
 				},
 				{
 					"url": "https://www.sso.go.th/wpr/",
-					"instructions": "Social Security Office broad main portal. Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Social Security Office. The authority here for social security and work injury: SSF contributions of s.33 insured employees (rate, wage floor and ceiling and their dated steps, insurable age, wage exclusions, wage-paid assessment), the s.39/s.40 distinction, maternity, sickness and unemployment cash benefits that coordinate with leave pay, employer and employee registration and exit notices (สปส.1-01, 1-03, 6-09), the monthly contribution return สปส.1-10 and its file layout, the s.49 late surcharge, and the Workmen's Compensation Fund (rates by business code, experience rating, annual wage statements กท.20ก, instalments, injury notification กท.16). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts, ministerial regulations and notifications, and the download and manual sections for forms and file specifications. A news item announcing a rate change is not the instrument: find the ministerial regulation."
 				},
 				{
-					"url": "https://searchlaw.ocs.go.th/",
-					"instructions": "Office of the Council of State law search. Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
+					"instructions": "Department of Labour Protection and Welfare public portal of the Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง). The authority here only for the Employee Welfare Fund: coverage (employers of ten or more), the contribution rates and their dated steps under the Ministerial Regulation B.E. 2568, the wage base and ceiling, the exemption of members of a registered provident fund (individual eligibility evidence), remittance in the month after the wage-payment month and the late surcharge. Open the manuals and FAQs (ewfund-media.php) and the public media files (e.g. media-file.php?id=18); do not use the ewfund or e-Service logins."
 				},
 				{
-					"url": "https://www.dsd.go.th/",
-					"instructions": "Department of Skill Development (DSD). Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection (รวมกฎหมายภาษี). The authority here for salary withholding: Revenue Code ss.40, 42, 47, 48, 50, 52, 58 and 59, personal allowances and deductions, Royal Decree exemptions, the severance exemption (Ministerial Regulation No. 126 item 2(51)), PND1 and PND1 Kor filing and their e-filing extension, the 50 Tawi certificate, the PND1 attachment file format, and retention of tax documents. Follow the Revenue Code, royal decree, ministerial regulation and departmental instruction lists on this page and the individual income tax pages (the rate scale is at https://www.rd.go.th/59670.html). The English pages are not kept current; read the Thai pages."
 				},
 				{
 					"url": "https://sdfund.dsd.go.th/",
-					"instructions": "Skill Development Fund (SDF). Use กฎหมาย, ประกาศ, employer manuals, FAQs and contribution/tax tables. Read Thai originals and dated Royal Gazette/ministerial instruments; convert Buddhist Era to Gregorian year by subtracting 543. Distinguish s.33/s.39/s.40, wage bases, worker coverage, employer/employee shares and due dates. For EWF use the current DLPW employer manual and membership/remittance FAQs; remittance follows the actual wage-payment month, and provident-fund exceptions require individual eligibility evidence. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Skill Development Fund of the Department of Skill Development. The authority here for the Skill Development Promotion Act levy: which employers are in scope (100 or more employees), the 50% training ratio, the contribution base and rate, the Sor Tor 2 return and payment by March, the late surcharge, and the course certification and application deadlines. Use กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads. www.dsd.go.th is bot-challenged and is not used."
+				},
+				{
+					"url": "https://ejob.dep.go.th/",
+					"instructions": "Department of Empowerment of Persons with Disabilities site on employing persons with disabilities. The authority here for the disability employment quota: one person with disabilities per 100 employees (headcount date), the s.34 fund payment and its 31 March due date, the s.35 alternatives, the 7.5% late interest and the annual report. Use คลังความรู้ and แบบรายงาน for the ministerial regulations, notifications and forms. www.dep.go.th does not respond and is not used."
+				},
+				{
+					"url": "https://www.bot.or.th/th/financial-institutions-holiday.html",
+					"instructions": "Bank of Thailand financial-institution holiday calendar. The authority here for the dated holiday calendar of each year (rule public_holidays): the annual Bank of Thailand notification, gazetted in the Royal Gazette, fixes the traditional holidays with their lunar dates and weekend substitutes (e.g. No. 37/2569 for 2027), and the special closures that follow a Cabinet resolution (e.g. Bangkok, 16 October 2026). Click each year on the page to open its notification PDF and read clause 4. Government-only days (Khao Phansa, the Royal Ploughing Ceremony, Cabinet special government holidays that banks do not observe, provincial special days) are evidenced by the Cabinet resolution as restated in an official notice; report a day you cannot evidence rather than guessing. The 13-day rule itself (LPA s.29) is read from the Council of State entry."
 				}
 			],
 			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
@@ -366,9 +381,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -625,6 +638,19 @@
 										"maximum": 48,
 										"title": "Normal hours a week (weekly basis)",
 										"description": "Labour Protection Act B.E. 2541 ss.23, 69: normal time fixed by the week; overtime is counted over the week with holidays and leave as working days."
+									},
+									"spouse_status": {
+										"type": "string",
+										"enum": ["NONE", "WITHOUT_INCOME", "WITH_INCOME"],
+										"description": "The spouse’s income: WITHOUT_INCOME with marital_status MARRIED gives the 60,000 spouse allowance in PND1 (Revenue Code s.47(1)(b))."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A disabled person: the 190,000 exemption of the aged or disabled in PND1 (Revenue Code s.42(17))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -1046,16 +1072,16 @@
 			{
 				"code": "TEMPORARY_CESSATION",
 				"name": "Temporary cessation of all or part of the business for a cause other than force majeure — at least 75% of the working-day wage for the whole period",
-				"counts_as_attended": "",
-				"scheduled": "",
+				"counts_as_attended": "false",
+				"scheduled": "true",
 				"pay": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? (day.day_type == \"WORK\" ? 0.75 * terms.base_salary : 0.0) : 0.75 * (terms.monthly_wage / 30.0)",
 				"authority": "LPA s.75 — Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
 			},
 			{
 				"code": "FORCE_MAJEURE",
 				"name": "Force majeure — outside s.75: no wage for a working day not worked",
-				"counts_as_attended": "",
-				"scheduled": "",
+				"counts_as_attended": "false",
+				"scheduled": "true",
 				"pay": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? 0.0 : (day.day_type == \"WORK\" ? 0.0 : (terms.monthly_wage / 30.0))",
 				"authority": "LPA s.75 para 1 — Labour Protection Act B.E. 2541, Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
 			}

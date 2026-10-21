@@ -1,6 +1,7 @@
 import { PlainDate } from '@norbital-ai/std/date';
-import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../../payroll_engine/foundation.js';
+import { calendarDateInTimeZone } from '../../payroll_engine/foundation.js';
 
 export function todayKey(now: Date = new Date()): PlainDate {
-	return PlainDate(calendarDateInTimeZone(now, PAYROLL_TIME_ZONE));
+	// the viewer's own day: no entity governs a bare "today"
+	return PlainDate(calendarDateInTimeZone(now, Intl.DateTimeFormat().resolvedOptions().timeZone));
 }

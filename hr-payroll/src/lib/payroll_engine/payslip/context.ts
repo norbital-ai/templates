@@ -27,7 +27,6 @@ import {
 	readAll,
 	type Read,
 	numberOf,
-	PAYROLL_TIME_ZONE,
 	Refusal
 } from '../foundation.js';
 import {
@@ -39,12 +38,7 @@ import {
 	readsAttendance,
 	serviceMonthsAt
 } from '../leave.js';
-import {
-	completedHalfHours,
-	type PlannedShift,
-	plannedShift,
-	plannedShiftId
-} from '../shift_pattern.js';
+import { roundHours, type PlannedShift, plannedShift, plannedShiftId } from '../shift_pattern.js';
 import {
 	SETTINGS,
 	ENTITY,
@@ -87,7 +81,14 @@ export const zoneOf = (
 		const zone = yield* fieldValue(entity.time_zone, 'entity.time_zone');
 		if (zone != null) return zone;
 		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
-		return payroll?.timezone ?? PAYROLL_TIME_ZONE;
+		if (payroll?.timezone == null || payroll.timezone === '')
+			return yield* Result.fail(
+				new Refusal({
+					message:
+						'The entity states no time zone and its jurisdiction version names no payroll.timezone.'
+				})
+			);
+		return payroll.timezone;
 	});
 /** Half-up rounding to `scale` decimals: the money of one payroll currency. */
 export const roundTo =
@@ -97,10 +98,25 @@ export const roundTo =
 		return Math.round(value * unit + Number.EPSILON) / unit;
 	};
 export const num = (value: unknown, fallback = 0): number => numberOf(value) ?? fallback;
-/** Default monthly history; a governing version can extend it with `payroll.history_months`. */
-export const HISTORY_MONTHS = 12;
-/** `earned.history` reaches 24 months back: a benefit averaged over the 12–18 months before a contingency. */
+// ponytail: `earned.history` reads 24 months back (a benefit averaged over the 12–18 months before a contingency);
+// rows pick their months from it. A longer look-back needs a larger read.
 export const LONG_HISTORY_MONTHS = 24;
+/** A version's required month window (`payroll.history_months`, `payroll.rolling_hours_months`); refuses when absent. */
+export const payrollMonths = (
+	version: Pick<SettingsRow, 'code' | 'payroll'> | undefined,
+	key: 'history_months' | 'rolling_hours_months'
+) =>
+	Result.gen(function* () {
+		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
+		const months = payroll?.[key];
+		if (months == null)
+			return yield* Result.fail(
+				new Refusal({
+					message: `jurisdiction_settings ${version?.code ?? ''} needs payroll.${key}: the months it reads.`
+				})
+			);
+		return months;
+	});
 export const dayInRange = (day: string, range: CalendarRange): boolean =>
 	(range.from == null || day >= range.from) && (range.to == null || day <= range.to);
 export type PayrollRunKind = 'REGULAR' | 'OFF_CYCLE';
@@ -304,16 +320,9 @@ export type EmployeeRow = Pick<
 	| 'name'
 	| 'date_of_birth'
 	| 'nationality'
-	| 'race'
-	| 'religion'
 	| 'gender'
 	| 'marital_status'
-	| 'spouse_status'
-	| 'solo_parent'
-	| 'disabled'
-	| 'receiving_pension'
 	| 'children'
-	| 'dependents_count'
 	| 'facts'
 >;
 /** An entry family's own columns; `facts` is the one open bag, merged last into the rule context. */
@@ -519,23 +528,26 @@ export const suspensionKinds = (settings_id: Id<'jurisdiction_settings'>) =>
 		),
 		Effect.map((kinds) => new Map((kinds ?? []).map((kind) => [kind.code, kind])))
 	);
-/** One stored CEL flag of a suspension kind, or its default when the kind leaves it blank. */
+/** One stored CEL flag of a suspension kind; a kind that leaves it blank is refused. */
 const kindFlag = (
-	expression: string | null | undefined,
-	fallback: boolean,
-	context: DynObject,
-	where: string
-) =>
-	expression == null || expression.trim() === ''
-		? Effect.succeed(fallback)
+	kind: SuspensionKind | undefined,
+	flag: 'counts_as_attended' | 'scheduled',
+	context: DynObject
+) => {
+	const expression = kind?.[flag];
+	const where = `suspension_kind ${kind?.code ?? ''}`;
+	return expression == null || expression.trim() === ''
+		? Effect.fail(
+				new Refusal({ message: `${where} needs ${flag}: the CEL deciding a suspended day.` })
+			)
 		: evaluateBoolean(expression, context, where);
-/** A suspended day's attendance effects under its kind: counted as attended (default no), still scheduled (yes). */
+};
+/** A suspended day's attendance effects under its kind: whether it counts as attended and stays scheduled. */
 export const suspendedDay = (kind: SuspensionKind | undefined, context: DynObject) =>
 	Effect.gen(function* () {
-		const where = `suspension_kind ${kind?.code ?? ''}`;
 		return {
-			counts_as_attended: yield* kindFlag(kind?.counts_as_attended, false, context, where),
-			scheduled: yield* kindFlag(kind?.scheduled, true, context, where)
+			counts_as_attended: yield* kindFlag(kind, 'counts_as_attended', context),
+			scheduled: yield* kindFlag(kind, 'scheduled', context)
 		};
 	});
 /** The worksite of a day: the roster's, else the terms in force's `facts.worksite`. */
@@ -1033,30 +1045,11 @@ export const subjectContext = (input: {
 							input.employee.marital_status,
 							'employment_profile.marital_status'
 						),
-						spouse_status: yield* fieldValue(
-							input.employee.spouse_status,
-							'employment_profile.spouse_status'
-						),
-						solo_parent: yield* fieldValue(
-							input.employee.solo_parent,
-							'employment_profile.solo_parent'
-						),
-						disabled: yield* fieldValue(input.employee.disabled, 'employment_profile.disabled'),
-						receiving_pension: yield* fieldValue(
-							input.employee.receiving_pension,
-							'employment_profile.receiving_pension'
-						),
 						nationality: yield* fieldValue(
 							input.employee.nationality,
 							'employment_profile.nationality'
 						),
-						race: yield* fieldValue(input.employee.race, 'employment_profile.race'),
-						religion: yield* fieldValue(input.employee.religion, 'employment_profile.religion'),
 						children: yield* fieldValue(input.employee.children, 'employment_profile.children'),
-						dependents_count: yield* fieldValue(
-							input.employee.dependents_count,
-							'employment_profile.dependents_count'
-						),
 						facts: yield* fieldValue(input.employee.facts, 'employment_profile.facts')
 					};
 		const entity =
@@ -1088,15 +1081,10 @@ export const subjectContext = (input: {
 			employee: {
 				gender: employee?.gender ?? '',
 				marital_status: employee?.marital_status ?? '',
-				spouse_status: employee?.spouse_status ?? '',
-				solo_parent: employee?.solo_parent === true,
-				disabled: employee?.disabled === true,
-				receiving_pension: employee?.receiving_pension === true,
 				nationality: employee?.nationality ?? '',
 				date_of_birth: birth ?? '',
 				age: birth == null || birth === '' ? null : Math.floor(completedMonths(birth, day) / 12),
 				children: Array.isArray(employee?.children) ? employee.children : [],
-				dependents_count: num(employee?.dependents_count),
 				facts: isDynObject(employee?.facts) ? employee.facts : {}
 			},
 			company: {
@@ -1130,23 +1118,21 @@ export const subjectContext = (input: {
 			employment,
 			person: {
 				employment,
-				race: employee?.race ?? null,
-				religion: employee?.religion ?? null,
 				nationality: employee?.nationality ?? null,
 				residency_status: term?.residency_status ?? null,
 				residency_since: term?.residency_since ?? null
 			}
 		};
-		// The monthly wage: the version's `payroll.monthly_wage` CEL on `terms`, else base salary plus every fixed allowance.
+		// The monthly wage: the governing version's required `payroll.monthly_wage` CEL on `terms`; null without a version.
 		const rule = payroll?.monthly_wage;
+		if (input.version !== undefined && (rule == null || rule.trim() === ''))
+			return yield* Result.fail(
+				new Refusal({
+					message: `jurisdiction_settings ${input.version.code} needs payroll.monthly_wage: the CEL on terms defining the monthly wage.`
+				})
+			);
 		const wage =
-			rule == null || rule.trim() === ''
-				? base_salary +
-					(term?.allowances ?? []).reduce(
-						(total, line) => total + moneyValue(line.amount?.value),
-						0
-					)
-				: (numberOf(evaluateConfigured(rule, { terms: subject.terms })) ?? 0);
+			rule == null ? null : (numberOf(evaluateConfigured(rule, { terms: subject.terms })) ?? 0);
 		const out = { ...subject, terms: { ...subject.terms, monthly_wage: wage } };
 		if (!isDynObject(out))
 			return yield* Result.fail(
@@ -1251,7 +1237,8 @@ export const earnedFrom = (input: {
 	readonly worked?: ReadonlyMap<string, MonthTally>;
 	/** The month the year starts in (`payroll.tax_year_start_month`, default January). */
 	readonly yearStartMonth?: number;
-	readonly historyMonths?: number;
+	/** `payroll.history_months`: the months `months` lists and `average` means. */
+	readonly historyMonths: number;
 }) =>
 	Result.gen(function* () {
 		const { history, period } = input;
@@ -1283,17 +1270,17 @@ export const earnedFrom = (input: {
 						slipPeriod(slip) < period
 				)
 			),
-			months: monthsBefore(input.historyMonths ?? HISTORY_MONTHS),
+			months: monthsBefore(input.historyMonths),
 			// The mean of the months above that had a slip: an average monthly wage.
 			average: (() => {
-				const months: readonly DynObject[] = monthsBefore(HISTORY_MONTHS);
+				const months: readonly DynObject[] = monthsBefore(input.historyMonths);
 				const mean = (key: 'gross' | 'net') =>
 					months.length === 0
 						? 0
 						: round2(months.reduce((sum, month) => sum + num(month[key]), 0) / months.length);
 				return { gross: mean('gross'), net: mean('net'), months: months.length };
 			})(),
-			history: monthsBefore(Math.max(LONG_HISTORY_MONTHS, input.historyMonths ?? HISTORY_MONTHS)),
+			history: monthsBefore(Math.max(LONG_HISTORY_MONTHS, input.historyMonths)),
 			previous_month: {
 				...slipSums(previousSlips),
 				base_salary: moneyValue(previousTerm?.base_salary?.value)
@@ -1440,6 +1427,23 @@ const splitSpans = (
 	return [within, rest];
 };
 
+/** How the governing version credits attendance (`payroll.attendance`). */
+export type AttendancePolicy = NonNullable<
+	NonNullable<Exclude<SettingsRow['payroll'], Masked>>['attendance']
+>;
+/** The governing version's attendance terms; refuses a version without them or with a nonpositive step. */
+export const attendancePolicy = (version: Pick<SettingsRow, 'code' | 'payroll'> | undefined) =>
+	Result.gen(function* () {
+		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
+		const policy = payroll?.attendance;
+		if (policy == null || !(policy.step_hours > 0))
+			return yield* Result.fail(
+				new Refusal({
+					message: `jurisdiction_settings ${version?.code ?? ''} needs payroll.attendance: a positive step_hours, rounding, overtime_window and untimed_credit_day_types.`
+				})
+			);
+		return policy;
+	});
 type CreditSpan = { readonly start: number; readonly end: number };
 type CreditSegment = CreditSpan & {
 	readonly kind: 'NORMAL' | 'OT';
@@ -1462,6 +1466,7 @@ export const creditAttendance = (input: {
 		  }[]
 		| null;
 	readonly timeZone: string;
+	readonly policy: AttendancePolicy;
 }) => {
 	const recorded = recordedWork(
 		(input.intervals ?? []).map((interval) => ({
@@ -1605,6 +1610,7 @@ export const creditAttendance = (input: {
 		))
 			windows.push({ kind: 'NORMAL', ...window });
 	}
+	// Without recorded windows, approved overtime runs on from the shift's end only where the version says so.
 	if (approved > 0)
 		for (const window of input.approvedOvertimeIntervals != null
 			? subtract(
@@ -1613,7 +1619,7 @@ export const creditAttendance = (input: {
 					),
 					frame == null ? [] : [frame]
 				)
-			: frame == null
+			: frame == null || input.policy.overtime_window !== 'AFTER_SHIFT'
 				? []
 				: [{ start: frame.end, end: frame.end + approved * 3600000 }])
 			windows.push({ kind: 'OT', ...window });
@@ -1642,11 +1648,11 @@ export const creditAttendance = (input: {
 		complete && anchored
 			? ordinaryActual + 1e-9 >= ordinaryTarget
 				? ordinaryTarget
-				: completedHalfHours(ordinaryActual)
+				: roundHours(ordinaryActual, input.policy)
 			: 0;
 	let overtimeBudget =
 		complete && anchored
-			? completedHalfHours(
+			? roundHours(
 					Math.min(
 						approved,
 						duration(
@@ -1654,7 +1660,8 @@ export const creditAttendance = (input: {
 								.filter((portion) => portion.kind === 'OT')
 								.flatMap((portion) => portion.intersections)
 						)
-					)
+					),
+					input.policy
 				)
 			: 0;
 	const normalHours = normalBudget,
@@ -1717,9 +1724,11 @@ export const workDay = (input: {
 	readonly zone: string;
 	/** The work suspension covering the day for this employment, if any. */
 	readonly suspension?: SuspensionRow | undefined;
+	/** The governing version's `payroll.attendance` (`attendancePolicy`). */
+	readonly policy: AttendancePolicy;
 }) =>
 	Result.gen(function* () {
-		const { row } = input;
+		const { row, policy } = input;
 		const recorded = yield* fieldValue(row?.worked_intervals, 'roster_entry.worked_intervals');
 		const banked = yield* fieldValue(
 			row?.banked_overtime_hours,
@@ -1746,19 +1755,22 @@ export const workDay = (input: {
 			planned: input.planned,
 			plannedOvertimeHours: num(plannedOvertime),
 			approvedOvertimeIntervals: approvedOvertime ?? null,
-			timeZone: input.zone
+			timeZone: input.zone,
+			policy
 		});
 		const recordedHours = credit.recorded_hours;
 		const scheduled = input.planned?.scheduled_hours ?? 0;
 		const overtime = credit.overtime_hours;
-		// Without an explicit window, untimed rest/off retains its statutory base-premium context.
+		// A day with no window to intersect is credited on its recorded hours, as overtime, when the version lists its type.
 		const untimedPremium =
-			!credit.anchored && (input.planned?.day_type === 'REST' || input.planned?.day_type === 'OFF');
+			!credit.anchored &&
+			input.planned != null &&
+			policy.untimed_credit_day_types.includes(input.planned.day_type);
 		const attended =
 			credit.complete &&
 			input.planned != null &&
 			(untimedPremium ? recordedHours : credit.matched_hours) > 0;
-		const premiumHours = completedHalfHours(recordedHours);
+		const premiumHours = roundHours(recordedHours, policy);
 		if (num(banked) > overtime + 1e-9)
 			return yield* Result.fail(
 				new Refusal({
@@ -1789,7 +1801,7 @@ export const workDay = (input: {
 			holiday_name: input.holiday?.name ?? '',
 			scheduled_hours: scheduled,
 			planned_overtime_hours: plannedOvertime == null ? null : num(plannedOvertime),
-			/** Precise attendance, before approval caps and completed-half-hour payroll quantities. */
+			/** Precise attendance, before approval caps and the version's rounding. */
 			recorded_hours: recordedHours,
 			attendance_complete: credit.complete,
 			/** Clock-intersected hourly credit; fixed monthly salary remains the catalogue's own calculation. */
@@ -1832,8 +1844,6 @@ export const workDay = (input: {
 			overtime_intervals: clocks(overtimeSpans)
 		};
 	});
-/** Default rolling hours window; each version can override it with payroll.rolling_hours_months. */
-export const ROLLING_MONTHS = 3;
 type HourSums = {
 	worked_hours: number;
 	overtime_hours: number;
@@ -1846,9 +1856,12 @@ type HourSums = {
  * `overtime_hours`, `incentive_hours`, and the same sums by planned `day_type` and by `holiday_kind` (absent keys absent).
  */
 export const hoursFrom = (input: {
-	/** `payroll.rolling_hours_months`: the months `rolling` sums. */
+	/** `payroll.rolling_hours_months`: the months `rolling` sums; required (`payrollMonths`). */
 	readonly rollingMonths?: number;
-	readonly historyMonths?: number;
+	/** `payroll.history_months`: the months `months` lists. */
+	readonly historyMonths: number;
+	/** The governing version's `payroll.attendance`. */
+	readonly policy: AttendancePolicy;
 	/** The month the year starts in (`payroll.tax_year_start_month`). */
 	readonly yearStartMonth?: number;
 	readonly rows: readonly RosterRow[];
@@ -1864,7 +1877,14 @@ export const hoursFrom = (input: {
 	readonly incentiveByDate?: ReadonlyMap<string, number>;
 }) =>
 	Result.gen(function* () {
-		const { month } = input;
+		const { month, rollingMonths } = input;
+		if (rollingMonths == null)
+			return yield* Result.fail(
+				new Refusal({
+					message:
+						'The hours windows need payroll.rolling_hours_months: the months `hours.rolling` sums.'
+				})
+			);
 		const recorded: {
 			readonly date: string;
 			readonly day_type: string;
@@ -1877,7 +1897,8 @@ export const hoursFrom = (input: {
 				planned: yield* input.planOn(row.work_date),
 				row,
 				holiday: input.holidays.get(row.work_date),
-				zone: input.zone
+				zone: input.zone,
+				policy: input.policy
 			});
 			recorded.push({
 				date: row.work_date,
@@ -1906,10 +1927,7 @@ export const hoursFrom = (input: {
 			month_to_date: [month.from, input.through],
 			previous_month: [String(addMonths(month.from, -1)), addDays(month.from, -1)],
 			year: [`${taxYearStart(month.from.slice(0, 7), input.yearStartMonth)}-01`, month.to],
-			rolling: [
-				String(addMonths(month.from, 1 - (input.rollingMonths ?? ROLLING_MONTHS))),
-				month.to
-			]
+			rolling: [String(addMonths(month.from, 1 - rollingMonths)), month.to]
 		};
 		// One span's sums: in all, by planned day type (a published holiday again under `HOLIDAY`) and by holiday kind.
 		const sumsOver = (days: typeof recorded) => {
@@ -1946,7 +1964,7 @@ export const hoursFrom = (input: {
 		for (const [name, [from, to]] of Object.entries(windows))
 			out[name] = sumsOver(recorded.filter((day) => day.date >= from && day.date <= to));
 		// One entry per configured history month, this month last: a record sums the months it names.
-		const historyMonths = input.historyMonths ?? HISTORY_MONTHS;
+		const { historyMonths } = input;
 		out.months = Array.from({ length: historyMonths }, (_, i) => {
 			const key = String(addMonths(month.from, i + 1 - historyMonths)).slice(0, 7);
 			return { month: key, ...sumsOver(recorded.filter((day) => day.date.startsWith(key))) };
@@ -1968,7 +1986,7 @@ export const attendanceDays = (
 	contract: ContractRow,
 	asOf: string,
 	context: DynObject,
-	zone: string = PAYROLL_TIME_ZONE,
+	zone: string,
 	/** The version governing `asOf` (its suspension kinds), when the caller holds it. */
 	governing?: SettingsRow
 ) =>
@@ -2053,12 +2071,13 @@ export const attendanceDays = (
 		const leave = got.leave.rows;
 		const codes = new Map<string, string>(got.catalogues.rows.map((row) => [row.id, row.code]));
 		const suspensions = got.suspensions.rows;
+		const version =
+			governing ?? (yield* governingVersion(yield* entityOf(contract.company_id), asOf));
+		const policy = yield* Effect.fromResult(attendancePolicy(version));
 		const kinds =
 			suspensions.length === 0
 				? new Map<string, SuspensionKind>()
-				: yield* suspensionKinds(
-						(governing ?? (yield* governingVersion(yield* entityOf(contract.company_id), asOf))).id
-					);
+				: yield* suspensionKinds(version.id);
 		const covered = leave.flatMap((row) => {
 			const range = coverageRange(row.from, row.to, num(row.days, 1), row.occurred_on);
 			return range == null || range.to < from
@@ -2084,7 +2103,8 @@ export const attendanceDays = (
 					planned,
 					row: rosterOn.get(date),
 					holiday: undefined,
-					zone
+					zone,
+					policy
 				})
 			);
 			const row = rosterOn.get(date);
@@ -2193,7 +2213,11 @@ export const leaveSubject = (
 					runKind: new Map(runs.map((run) => [run.id, run.kind ?? ''])),
 					contract,
 					yearStartMonth: payroll?.tax_year_start_month ?? 1,
-					historyMonths: payroll?.history_months ?? HISTORY_MONTHS
+					// No governing version: no payroll history window to read.
+					historyMonths:
+						found === undefined
+							? 0
+							: yield* Effect.fromResult(payrollMonths(found, 'history_months'))
 				})
 			)
 		};
@@ -2202,7 +2226,7 @@ export const leaveSubject = (
 					contract,
 					asOf,
 					context,
-					entity == null ? PAYROLL_TIME_ZONE : yield* Effect.fromResult(zoneOf(entity, found)),
+					yield* Effect.fromResult(zoneOf(entity ?? { time_zone: null }, found)),
 					found
 				)
 			: undefined;

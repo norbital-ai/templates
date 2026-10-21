@@ -78,6 +78,7 @@
 		() => date
 	);
 	const timeZone = $derived(entityTimeZone(entity.current, version.current));
+	const policy = $derived(version.current?.payroll?.attendance ?? null);
 	const holidays = liveRows(() =>
 		companyId == null || date == null ? null : holidayRead(companyId, date, date)
 	);
@@ -118,6 +119,7 @@
 				holidays: holidays.current,
 				leave: leave.current,
 				timeZone,
+				policy,
 				shiftOf
 			}).get(dayKey(employment.id, date)) ?? null
 		);
@@ -160,6 +162,7 @@
 						{day}
 						{companyId}
 						{timeZone}
+						{policy}
 						planOf={(shift) => shiftOf(employmentId, on, shift)}
 					/>
 				{/if}

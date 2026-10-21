@@ -1,4 +1,3 @@
-import { PAYROLL_TIME_ZONE } from '../../payroll_engine/foundation.js';
 import * as Predicate from 'effect/Predicate';
 
 /**
@@ -36,4 +35,8 @@ export const EMPLOYMENT_LABEL_SELECT = {
 export const entityTimeZone = (
 	entity: { readonly time_zone?: string | null } | null | undefined,
 	version: { readonly payroll?: { readonly timezone?: string | null } | null } | null | undefined
-): string => entity?.time_zone ?? version?.payroll?.timezone ?? PAYROLL_TIME_ZONE;
+): string =>
+	entity?.time_zone ??
+	version?.payroll?.timezone ??
+	// before the version answers: the viewer's zone, never a fixed one
+	Intl.DateTimeFormat().resolvedOptions().timeZone;

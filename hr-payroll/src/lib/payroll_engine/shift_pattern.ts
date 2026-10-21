@@ -87,10 +87,24 @@ export const plannedShift = (row: {
 	};
 };
 
-/** Overtime counts in completed half-hours. */
-const OVERTIME_STEP_HOURS = 0.5;
-export const completedHalfHours = (hours: number): number =>
-	Math.floor((Math.max(0, hours) + 1e-9) / OVERTIME_STEP_HOURS) * OVERTIME_STEP_HOURS;
+/** How a version counts credited attendance (`payroll.attendance`): a positive step in hours and a direction. */
+export type HoursRounding = {
+	readonly step_hours: number;
+	readonly rounding: 'DOWN' | 'UP' | 'HALF_UP';
+};
+/** Summed clock spans carry binary noise; a step this close counts as reached. */
+const CLOCK_NOISE_HOURS = 1e-9;
+/** Hours to the version's step: DOWN counts completed steps, UP any started one, HALF_UP the nearest. */
+export const roundHours = (hours: number, { step_hours, rounding }: HoursRounding): number => {
+	const held = Math.max(0, hours);
+	const whole =
+		rounding === 'UP'
+			? Math.ceil((held - CLOCK_NOISE_HOURS) / step_hours)
+			: rounding === 'HALF_UP'
+				? Math.round((held + CLOCK_NOISE_HOURS) / step_hours)
+				: Math.floor((held + CLOCK_NOISE_HOURS) / step_hours);
+	return whole * step_hours;
+};
 /**
  * The shift definition planned for one date: the roster entry's own, else the cycle day of the pattern its terms
  * name, anchored at the pattern's effective start; null when neither names one.

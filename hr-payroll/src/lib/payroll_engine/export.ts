@@ -191,6 +191,24 @@ type ExportRow = {
 	readonly entries?: readonly JsonObject[];
 };
 
+/** The contract term (`contract.facts.contract_terms`) in force on `day`, else `{}`. */
+const termOn = (contract: JsonObject, day: string): JsonObject =>
+	(isJsonObject(contract.facts) && Array.isArray(contract.facts.contract_terms)
+		? contract.facts.contract_terms.filter(isJsonObject)
+		: []
+	)
+		.filter((term) => {
+			const range = isJsonObject(term.effective_range) ? term.effective_range : {};
+			const to = range.to == null || range.to === '' ? null : String(range.to);
+			return String(range.from ?? '') <= day && (to === null || to >= day);
+		})
+		.toSorted((a, b) =>
+			String(isJsonObject(a.effective_range) ? a.effective_range.from : '').localeCompare(
+				String(isJsonObject(b.effective_range) ? b.effective_range.from : '')
+			)
+		)
+		.at(-1) ?? {};
+
 const sum = (values: readonly unknown[]): number =>
 	Math.round(values.reduce<number>((total, value) => total + (numberOf(value) ?? 0), 0) * 100) /
 	100;
@@ -241,6 +259,10 @@ export function recordDocuments(
 	/** The admitted bank file's payment currency, available to configured layout predicates. */
 	currency: string = ''
 ): ExportDocument[] {
+	// Each row reads its contract term in force on the selected runs' last day as `terms`, as a payslip does.
+	const lastDay = runs
+		.map((run) => String(run.salary_to ?? ''))
+		.reduce((last, day) => (day > last ? day : last), '');
 	return templates.flatMap((template) => {
 		if (!Schema.is(ExportRules)(template.rules)) return [];
 		const rules = template.rules;
@@ -276,6 +298,7 @@ export function recordDocuments(
 		const listed = rows
 			.map((row): JsonObject => ({
 				...row,
+				terms: termOn(row.contract, lastDay),
 				entries: row.entries ?? [],
 				runs,
 				company,

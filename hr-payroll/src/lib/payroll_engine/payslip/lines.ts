@@ -16,7 +16,6 @@ import {
 	round2,
 	zoneOf,
 	num,
-	HISTORY_MONTHS,
 	LONG_HISTORY_MONTHS,
 	dayInRange,
 	isSalaryRun,
@@ -43,6 +42,8 @@ import {
 	datesFrom,
 	workDay,
 	hoursFrom,
+	attendancePolicy,
+	payrollMonths,
 	type SlipContext
 } from './context.js';
 import { CYCLES, payrollWindow } from '../frequency.js';
@@ -50,6 +51,9 @@ import { tripped } from '../admit.js';
 import { CARRY_FAMILY, assessStatutory } from './statutory.js';
 import { exitCorrections } from './exit.js';
 import { classifyOvertime } from './overtime.js';
+/** A row field the engine reads with no default: unstated, the slip refuses rather than assume one. */
+const unstated = (row: string, key: string) =>
+	Effect.fail(new Refusal({ message: `${row}: ${key} is not stated.` }));
 const plannedWorkDays = (
 	from: string,
 	to: string,
@@ -127,6 +131,10 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		const zone = yield* Effect.fromResult(
 			zoneOf(options.subject.entity, options.jurisdiction.version)
 		);
+		const policy = yield* Effect.fromResult(attendancePolicy(options.jurisdiction.version));
+		const historyMonths = yield* Effect.fromResult(
+			payrollMonths(options.jurisdiction.version, 'history_months')
+		);
 		const employedOn = (date: string) => dayInRange(date, contract.effective_range ?? {});
 		const workDays = yield* Effect.fromResult(
 			Result.all(
@@ -140,6 +148,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 								row: rosterOn.get(date),
 								holiday: byDate.get(date),
 								zone,
+								policy,
 								suspension: suspensionOn(
 									options.attendance.suspensions,
 									contract.id,
@@ -177,7 +186,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 									planned: yield* planBefore(date),
 									row: recorded.get(date),
 									holiday: options.attendance.hoursHolidays.get(date),
-									zone
+									zone,
+									policy
 								})),
 								in_period: false
 							};
@@ -199,7 +209,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 									planned: yield* planBefore(date),
 									row: recorded.get(date),
 									holiday: options.attendance.hoursHolidays.get(date),
-									zone
+									zone,
+									policy
 								})),
 								in_period: date >= window.attendance_from && date <= window.attendance_to
 							};
@@ -230,14 +241,15 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		});
 		const hoursInput = {
 			yearStartMonth: payroll?.tax_year_start_month ?? 1,
-			historyMonths: payroll?.history_months ?? HISTORY_MONTHS,
-			...(payroll?.rolling_hours_months == null
-				? {}
-				: { rollingMonths: payroll.rolling_hours_months }),
+			historyMonths,
+			rollingMonths: yield* Effect.fromResult(
+				payrollMonths(options.jurisdiction.version, 'rolling_hours_months')
+			),
 			rows: options.attendance.hoursRoster,
 			holidays: options.attendance.hoursHolidays,
 			month: { from: String(calendar.from), to: String(calendar.to) },
 			through: window.salary_to,
+			policy,
 			planOn: dayPlanner({
 				contract,
 				fallback: term,
@@ -321,7 +333,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 						planned: yield* Effect.fromResult(planBefore(row.work_date)),
 						row,
 						holiday: undefined,
-						zone
+						zone,
+						policy
 					})
 				);
 				if (day.worked !== true) continue;
@@ -330,10 +343,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				held.worked_hours = round2(held.worked_hours + num(day.worked_hours));
 			}
 			const since = String(
-				addMonths(
-					String(calendar.from),
-					-Math.max(LONG_HISTORY_MONTHS, payroll?.history_months ?? HISTORY_MONTHS)
-				)
+				addMonths(String(calendar.from), -Math.max(LONG_HISTORY_MONTHS, historyMonths))
 			);
 			for (const suspension of options.attendance.suspensions)
 				for (const date of datesFrom(suspension.starts_on, suspension.ends_on))
@@ -373,7 +383,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				runKind: options.history.runKind,
 				contract,
 				yearStartMonth: payroll?.tax_year_start_month ?? 1,
-				historyMonths: payroll?.history_months ?? HISTORY_MONTHS,
+				historyMonths,
 				...(options.attendance.readsWorked ? { worked } : {})
 			})
 		);
@@ -413,7 +423,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 							planned: yield* planBefore(row.work_date),
 							row,
 							holiday: options.attendance.hoursHolidays.get(row.work_date),
-							zone
+							zone,
+							policy
 						});
 					})
 				)
@@ -522,7 +533,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		/**
 		 * A salary slip's exit corrections, as adjustments; how many it made. A departure (an exit ground with its last
 		 * day) raises each `raise_on_exit` ad hoc class whose eligibility holds, priced by its bands on an empty entry of
-		 * the exit day, once per exit as it stands (`exit:<code>:<day>/<ground>`), on the first salary slip reaching it —
+		 * the exit day, once per exit as it stands (`exit:<code>:<day>/<ground>`), on the first salary slip `payroll.exit_raise_when` admits —
 		 * unless HR entered the class. The exit pay a paid slip carried for an exit since moved or undone is taken back
 		 * at what it paid. A paid period's prorated lines are repriced over the days it now covers (an exit moved or
 		 * undone after the final slip): fully covered again, its contract amount; uncovered, nothing; else its paid
@@ -591,6 +602,12 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				const workingInside = inside.filter(isWorkDay).length;
 				const total = num(row.days);
 				const held = options.jurisdiction.classes.get(String(row.catalog_id));
+				// No class of the governing version (its code retired) states one either: refused, never assumed encashable.
+				if (held?.can_encash == null)
+					return yield* unstated(
+						`leave_catalog ${held?.code ?? options.attendance.leaveCodes.get(String(row.catalog_id)) ?? String(row.catalog_id)} of ${options.jurisdiction.version.code}`,
+						'can_encash'
+					);
 				// The share by working days covered (by calendar days when the row covers none), or by calendar days
 				// when the class's `share_by` says.
 				const byWorking = held?.share_by !== 'CALENDAR_DAYS' && working > 0;
@@ -650,8 +667,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					from: day,
 					to: last,
 					is_npl: held?.is_npl === true,
-					// The model's default, as balances read it: encashable unless the class says not.
-					can_encash: held?.can_encash !== false,
+					can_encash: held.can_encash,
 					event_id: event ?? '',
 					chain_from: chain,
 					taken_before: takenByClass[own] ?? 0,
@@ -754,6 +770,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 									row: recorded.get(date),
 									holiday: options.attendance.hoursHolidays.get(date),
 									zone,
+									policy,
 									suspension: suspensionOn(
 										options.attendance.suspensions,
 										contract.id,
@@ -849,7 +866,12 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			};
 		}
 		if (salaried && term != null) {
-			if (baseSalary <= 0 && payroll?.base_salary_required !== false)
+			if (baseSalary <= 0 && payroll?.base_salary_required == null)
+				return yield* unstated(
+					`jurisdiction_settings ${options.jurisdiction.version.code}`,
+					'payroll.base_salary_required'
+				);
+			if (baseSalary <= 0 && payroll?.base_salary_required === true)
 				return yield* Effect.fail(
 					new Refusal({
 						message: `${who}: the contract in force for ${period} carries no base salary.`
@@ -892,12 +914,10 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 									days: settling.span.days,
 									window_from: String(calendar.from)
 								}),
-						// The divisor the record states (`denominator`), else the period's calendar days.
+						// The divisor the record states (`denominator`): a prorated line must state one.
 						denominator:
 							row.denominator == null || row.denominator.trim() === ''
-								? settling == null
-									? monthDays
-									: days(calendar)
+								? yield* unstated(where, 'denominator')
 								: yield* evaluateNumber(row.denominator, priceOn, `${where} denominator`),
 						contract_amount: money(rate),
 						prorated_amount: settling == null ? signed : toDate
@@ -1160,9 +1180,11 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		)
 			return null;
 		// A `carry_uncovered` scheme's employee share net cannot cover is advanced on this slip (a NET line); an advance
-		// still outstanding from earlier slips is recovered from what this one's net leaves, as far as it goes.
+		// still outstanding from earlier slips is recovered from what this one's net leaves. How much of each is the
+		// scheme's CEL (`advance` over `carry.short` / `carry.share`, `recover` over `carry.owed` / `carry.left`).
 		let advanced = 0;
 		const carry = (code: string, amount: number) => {
+			if (amount === 0) return;
 			adjustments.push({
 				family: CARRY_FAMILY,
 				source_id: code,
@@ -1177,16 +1199,27 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				advanced += amount;
 			} else netSubtract -= amount;
 		};
-		const carries = new Set(
-			options.jurisdiction.statutoryRows
-				.filter((row) => row.configuration?.carry_uncovered === true)
-				.map((row) => row.code)
+		const carries = new Map(
+			options.jurisdiction.statutoryRows.flatMap((row) => {
+				const rule = row.configuration?.carry_uncovered;
+				return rule == null ? [] : [[row.code, rule] as const];
+			})
 		);
 		for (const line of statutory) {
 			const short = money(employeeStatutory + netSubtract - gross - netAdd);
 			if (short <= 0) break;
-			if (carries.has(line.scheme_code) && line.employee_amount > 0)
-				carry(line.scheme_code, money(Math.min(short, line.employee_amount)));
+			const rule = carries.get(line.scheme_code);
+			if (rule != null && line.employee_amount > 0)
+				carry(
+					line.scheme_code,
+					money(
+						yield* evaluateNumber(
+							rule.advance,
+							{ ...context, carry: { code: line.scheme_code, short, share: line.employee_amount } },
+							`statutory_contribution_catalog ${line.scheme_code} carry_uncovered.advance`
+						)
+					)
+				);
 		}
 		const outstanding = new Map<string, number>();
 		for (const held of options.history.payslips)
@@ -1196,13 +1229,35 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 						line.component_code,
 						money((outstanding.get(line.component_code) ?? 0) + moneyValue(line.amount))
 					);
-		for (const [code, owed] of [...outstanding].toSorted()) {
+		for (const [component, owed] of [...outstanding].toSorted()) {
 			const left = money(gross + netAdd - employeeStatutory - netSubtract);
-			if (owed > 0 && left > 0) carry(code.replace(/_CARRIED$/, ''), -money(Math.min(owed, left)));
+			if (owed <= 0 || left <= 0) continue;
+			const code = component.replace(/_CARRIED$/, '');
+			const rule = carries.get(code);
+			if (rule == null)
+				return yield* unstated(
+					`statutory_contribution_catalog ${code}`,
+					'configuration.carry_uncovered'
+				);
+			carry(
+				code,
+				-money(
+					yield* evaluateNumber(
+						rule.recover,
+						{ ...context, carry: { code, owed, left } },
+						`statutory_contribution_catalog ${code} carry_uncovered.recover`
+					)
+				)
+			);
 		}
 		const total_deductions = money(employeeStatutory + netSubtract);
 		const net = money(gross - total_deductions + netAdd);
-		if (net < 0 && payroll?.negative_net !== 'allow')
+		if (net < 0 && payroll?.negative_net == null)
+			return yield* unstated(
+				`jurisdiction_settings ${options.jurisdiction.version.code}`,
+				'payroll.negative_net'
+			);
+		if (net < 0 && payroll?.negative_net === 'refuse')
 			return yield* Effect.fail(
 				new Refusal({ message: `${who}: net pay would be negative (${net}).` })
 			);

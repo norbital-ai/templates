@@ -3,12 +3,20 @@ import { loanRuleFacts } from '../loan_values.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { type SuspensionKind } from './suspension_kinds.js';
 import { addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
-import { fieldValue, isDynObject, Reads, readAll, Refusal, stableJson } from './foundation.js';
+import {
+	fieldValue,
+	isDynObject,
+	payrollSetting,
+	Reads,
+	readAll,
+	Refusal,
+	stableJson
+} from './foundation.js';
 import { eventIdOf, chainStarts } from './leave.js';
 import {
 	currencyScale,
 	roundTo,
-	HISTORY_MONTHS,
+	payrollMonths,
 	LONG_HISTORY_MONTHS,
 	isSalaryRun,
 	type PayrollRunRequest,
@@ -28,7 +36,6 @@ import {
 	evaluate,
 	versionOn,
 	partsOf,
-	ROLLING_MONTHS,
 	hoursStart
 } from './payslip/context.js';
 import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
@@ -55,6 +62,8 @@ export const buildPayrollRun = (
 		const payroll = yield* Effect.fromResult(
 			fieldValue(version.payroll, 'jurisdiction_settings.payroll')
 		);
+		const historyMonths = yield* Effect.fromResult(payrollMonths(version, 'history_months'));
+		const rollingMonths = yield* Effect.fromResult(payrollMonths(version, 'rolling_hours_months'));
 		const window = payrollWindow(
 			settlement,
 			CYCLES.includes(entity.pay_frequency ?? '') ? 1 : (entity.pay_cutoff_day ?? 1)
@@ -90,31 +99,29 @@ export const buildPayrollRun = (
 			ruleRows.filter((row) => row.family === 'VALIDATIONS'),
 			'payslip'
 		);
-		// The pay day: the request's, else the version's `payroll.pay_date` CEL on the period and company.
+		// The pay day: the request's, else the version's required `payroll.pay_date` CEL on the period and company.
 		const payDate =
 			request.pay_due_date ??
-			(payroll?.pay_date == null
-				? window.salary_to
-				: String(
-						yield* evaluate(
-							payroll.pay_date,
-							{
-								period: {
-									key: request.period,
-									from: window.salary_from,
-									to: window.salary_to,
-									part: settlement.part,
-									parts: settlement.parts
-								},
-								company: {
-									region: entity.region ?? '',
-									pay_frequency: entity.pay_frequency ?? '',
-									facts: isDynObject(entity.facts) ? entity.facts : {}
-								}
-							},
-							`${version.code} payroll.pay_date`
-						)
-					).slice(0, 10));
+			String(
+				yield* evaluate(
+					yield* Effect.fromResult(payrollSetting(version.code, payroll, 'pay_date')),
+					{
+						period: {
+							key: request.period,
+							from: window.salary_from,
+							to: window.salary_to,
+							part: settlement.part,
+							parts: settlement.parts
+						},
+						company: {
+							region: entity.region ?? '',
+							pay_frequency: entity.pay_frequency ?? '',
+							facts: isDynObject(entity.facts) ? entity.facts : {}
+						}
+					},
+					`${version.code} payroll.pay_date`
+				)
+			).slice(0, 10);
 		const periodRows = governed?.statutory_contribution_catalog ?? [];
 		// A scheme `governed_by: "pay_date"` is assessed on its row of the version in force on the pay day (a
 		// withholding table that follows the payment, not the work period); no version that day keeps the period's.
@@ -155,21 +162,10 @@ export const buildPayrollRun = (
 					? String(
 							addMonths(
 								String(monthOf(window.salary_from).from),
-								-Math.max(
-									LONG_HISTORY_MONTHS,
-									payroll?.history_months ?? HISTORY_MONTHS,
-									payroll?.rolling_hours_months ?? ROLLING_MONTHS
-								)
+								-Math.max(LONG_HISTORY_MONTHS, historyMonths, rollingMonths)
 							)
 						)
-					: hoursStart(
-							window.salary_from,
-							Math.max(
-								HISTORY_MONTHS,
-								payroll?.history_months ?? HISTORY_MONTHS,
-								payroll?.rolling_hours_months ?? ROLLING_MONTHS
-							)
-						),
+					: hoursStart(window.salary_from, Math.max(historyMonths, rollingMonths)),
 				window.attendance_from
 			].toSorted()[0]!,
 			lte: [monthEnd, window.attendance_to].toSorted()[1]!
@@ -338,15 +334,7 @@ export const buildPayrollRun = (
 				...row,
 				facts: loanRuleFacts({
 					principal_amount: principal,
-					advance_purpose: yield* Effect.fromResult(
-						fieldValue(parent.advance_purpose, 'loan_catalog_entry.advance_purpose')
-					),
-					written_agreement_reference: yield* Effect.fromResult(
-						fieldValue(
-							parent.written_agreement_reference,
-							'loan_catalog_entry.written_agreement_reference'
-						)
-					),
+					facts: yield* Effect.fromResult(fieldValue(parent.facts, 'loan_catalog_entry.facts')),
 					advance_made_on: yield* Effect.fromResult(
 						fieldValue(parent.advance_made_on, 'loan_catalog_entry.advance_made_on')
 					)

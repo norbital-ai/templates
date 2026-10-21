@@ -333,6 +333,18 @@ export const SEEDED_PAYROLL = {
 	rolling_hours_months: 3,
 	base_salary_required: true,
 	off_cycle_families: ['ADHOC', 'CLAIM'],
+	ten_day_splits: [10, 20],
+	permanent_when:
+		'!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)',
 	monthly_wage: 'terms.base_salary + sum(terms.allowances.map(a, a.amount))',
-	negative_net: 'refuse'
+	negative_net: 'refuse',
+	exit_raise_when: 'employment.exit_date >= add_months(period.from, -1)',
+	exit_overpayment: 'note',
+	history_months: 12,
+	attendance: {
+		step_hours: 0.5,
+		rounding: 'DOWN',
+		overtime_window: 'AFTER_SHIFT',
+		untimed_credit_day_types: ['REST', 'OFF']
+	}
 } as const;

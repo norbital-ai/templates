@@ -59,6 +59,12 @@ export default model({
 			kind: 'text',
 			optional: true
 		},
+		late_arrival_team: {
+			kind: 'text',
+			format: 'team',
+			optional: true,
+			help: 'The team handle late-arrival reminders go to (`late_arrival_notice`); an entity naming none sends none.'
+		},
 		facts: {
 			kind: 'json',
 			shape: {

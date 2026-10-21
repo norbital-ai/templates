@@ -176,8 +176,7 @@ const behaviour_taps = automation({
 				'repayment_period',
 				'repayment_frequency',
 				'advance_made_on',
-				'advance_purpose',
-				'written_agreement_reference'
+				'facts'
 			]
 		},
 		// Overtime is the recorded time past the planned shift's hours; pins alone move thousands of rows a month.

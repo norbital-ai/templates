@@ -29,6 +29,7 @@
 		patternRead,
 		shiftRead
 	} from './month_board.js';
+	import type { AttendancePolicy } from '../../payroll_engine/payslip/context.js';
 
 	type Person = {
 		readonly id: Id<'employment_contract'>;
@@ -44,6 +45,7 @@
 		from,
 		to,
 		timeZone,
+		policy,
 		today
 	}: {
 		people: readonly Person[];
@@ -52,6 +54,8 @@
 		from: string;
 		to: string;
 		timeZone: string;
+		/** The governing version's `payroll.attendance`. */
+		policy: AttendancePolicy | null;
 		today: string;
 	} = $props();
 
@@ -95,6 +99,7 @@
 			holidays: holidays.current ?? [],
 			leave: leave.current ?? [],
 			timeZone,
+			policy,
 			shiftOf
 		})
 	);

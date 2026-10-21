@@ -31,6 +31,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -198,6 +199,9 @@ const fixtureValue0 = guardFixture(
 											)
 										])
 									)
+								),
+								person: FixtureSchema.optionalKey(
+									FixtureSchema.Record(FixtureSchema.String, FixtureSchema.String)
 								),
 								rules: FixtureSchema.mutableKey(
 									FixtureSchema.optionalKey(
@@ -558,7 +562,11 @@ const fixtureValue26 = guardFixture(
 								date: FixtureSchema.mutableKey(FixtureSchema.String),
 								name: FixtureSchema.mutableKey(FixtureSchema.String),
 								kind: FixtureSchema.mutableKey(FixtureSchema.String),
-								replaces: FixtureSchema.mutableKey(FixtureSchema.optionalKey(FixtureSchema.String))
+								replaces: FixtureSchema.mutableKey(FixtureSchema.optionalKey(FixtureSchema.String)),
+								regions: FixtureSchema.optionalKey(
+									FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String))
+								),
+								source: FixtureSchema.String
 							}),
 							[
 								FixtureSchema.Record(
@@ -631,6 +639,11 @@ const fixtureValue31 = guardFixture(
 const fixtureValue32 = guardFixture(FixtureSchema.String);
 const fixtureValue33 = guardFixture(
 	FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String))
+);
+const fixtureSources = guardFixture(
+	FixtureSchema.Array(
+		FixtureSchema.Struct({ url: FixtureSchema.String, instructions: FixtureSchema.String })
+	)
 );
 type Row = {
 	[key: string]: unknown;
@@ -708,15 +721,10 @@ const subject = (
 		employee: {
 			gender: 'FEMALE',
 			marital_status: 'SINGLE',
-			spouse_status: 'NONE',
-			solo_parent: false,
-			disabled: false,
-			receiving_pension: false,
 			nationality: 'TH',
 			date_of_birth: '1990-01-01',
 			age: 36,
 			children: [],
-			dependents_count: 0,
 			facts: {},
 			...overrides.employee
 		},
@@ -798,6 +806,8 @@ const slip = (
 				days: 30,
 				month,
 				salary_paid: false,
+				// one salary slip: the month's regular pay is this slip's (`person.normal_pending` is 0)
+				salary_run: true,
 				part: 1,
 				parts: 1
 			},
@@ -816,6 +826,10 @@ const slip = (
 				elections: standing[code]?.elections ?? {}
 			}
 		};
+		const person: Row = { ...base.person };
+		for (const [fact, expression] of Object.entries(configuration.person ?? {}))
+			person[fact] = evaluateConfigured(expression, fixtureContext(context));
+		context = { ...context, person };
 		const part = (name: 'ordinary' | 'severance', paid: number) => {
 			const expression = configuration.assessable?.[name];
 			return Math.max(
@@ -1277,6 +1291,21 @@ describe('TH jurisdiction seed', () => {
 					`${version}/${file}`
 				);
 	});
+	it('research sources: one accessible official entry per area, each with its own instructions', () => {
+		for (const version of VERSIONS) {
+			const entries = fixtureSources(fixtureRecord(settings(version).sources).entries);
+			assert.equal(entries.length, 8, version);
+			assert.equal(new Set(entries.map((entry) => new URL(entry.url).host)).size, 8, version);
+			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, 8, version);
+			// Bot-challenged or unreachable portals are not sources (probed 2026-10-22).
+			for (const entry of entries)
+				assert.doesNotMatch(
+					new URL(entry.url).host,
+					/^(www\.)?(mol|dsd|labour|soc|ratchakitcha\.soc|thaigov|pdpc|doe|dep|sec)\.(go|or)\.th$/,
+					`${version} ${entry.url}`
+				);
+		}
+	});
 	it('ids are unique across every lineage and version, and each row names its own version', () => {
 		const seen = new Map<string, string>();
 		for (const code of readdirSync(root))
@@ -1629,6 +1658,12 @@ describe('TH jurisdiction seed', () => {
 		}
 	});
 	it('PND1: annualised progressive withholding with expense, personal, spouse, child and SSF deductions', () => {
+		// The cited scale is the Thai tax-year-2560 page; the English page still shows the 2013 scale.
+		for (const version of VERSIONS)
+			assert.match(
+				String(find(version, 'statutory_contribution_catalog', 'PND1').authority),
+				/https:\/\/www\.rd\.go\.th\/59670\.html/
+			);
 		assert.equal(charge('version_3', 'PND1', 50000).employee, 1704.17);
 		assert.equal(charge('version_1', 'PND1', 50000).employee, 1716.67);
 		assert.equal(charge('version_3', 'PND1', 25000).employee, 0);
@@ -1637,7 +1672,10 @@ describe('TH jurisdiction seed', () => {
 				'version_3',
 				'PND1',
 				50000,
-				{ employee: { marital_status: 'MARRIED', spouse_status: 'WITHOUT_INCOME' } },
+				{
+					employee: { marital_status: 'MARRIED' },
+					terms: { facts: { spouse_status: 'WITHOUT_INCOME' } }
+				},
 				taxpayer({ child_allowance_count: 2, second_child_from_2018_count: 1 })
 			).employee,
 			539.58
@@ -1792,7 +1830,8 @@ describe('TH jurisdiction seed', () => {
 			'bonus before regular',
 			'bonus after regular',
 			'mixed PVD membership',
-			'semi-monthly unpaid leave'
+			'semi-monthly unpaid leave',
+			'bonus before, inside and after regular: every scheme'
 		]) {
 			it.effect(
 				`an OFF_CYCLE bonus and the REGULAR run settle through the engine: ${scenario}`,
@@ -1935,6 +1974,110 @@ describe('TH jurisdiction seed', () => {
 								assert.deepEqual(together.SSO, [875 * 10, 875 * 10]);
 								assert.deepEqual(together.EWF, [500 + 9 * 62.5, 500 + 9 * 62.5]);
 								assert.ok(fixturePresent(fixtureNumbers(together.PND1)[0]) > 0);
+							}
+							// Owner rule: statutory is never deferred. p1 (200,000, a PVD member) gets a 120,000 bonus; p2 (25,000, above
+							// the SSO ceiling) gets 5,000 suspension back pay (SSO, WCF, PND1 and EWF wage). Off-cycle before, inside or
+							// off-cycle after the salary run, every scheme settles the same October totals, and the off-cycle slip paid
+							// before the salary already carries what its own pay attracts.
+							if (scenario === 'bonus before, inside and after regular: every scheme') {
+								const codes = rows('version_4', 'statutory_contribution_catalog').map((row) =>
+									String(row.code)
+								);
+								const prepare = (withEntries: boolean) => {
+									reset();
+									fixtureRecord(
+										fixturePresent(fixturePresent(tables.get('entity'))[0]).facts
+									).pvd_employer_percent = 5;
+									fixturePresent(
+										fixturePresent(tables.get('employment_profile')).find(
+											(row) => row.id === fixtureKey('p1')
+										)
+									).facts = {
+										employment_statutory_facts: [
+											{
+												statutory_contribution_id: find(
+													'version_4',
+													'statutory_contribution_catalog',
+													'PVD'
+												).id,
+												effective_range: { from: '2024-01-01', to: null },
+												status: { kind: 'MEMBER', elections: { employee_percent: 5 } }
+											}
+										]
+									};
+									if (withEntries) entries();
+								};
+								const entries = () => {
+									bonus();
+									fixturePresent(tables.get('adhoc_catalog_entry')).push(
+										fixtureRow({
+											id: 'backpay-2',
+											employment_id: 'k-p2',
+											company_id: COMPANY,
+											catalog_id: find('version_4', 'adhoc_catalog', 'SUSPENSION_BACK_PAY').id,
+											payslip_id: null,
+											occurred_on: '2026-10-10',
+											amount: 5000
+										})
+									);
+								};
+								const sums = (plans: Plan[]) =>
+									Object.fromEntries(
+										codes.map((code) => {
+											const lines = plans
+												.flatMap((plan) => plan.payslips)
+												.flatMap((slip) => slip.statutory)
+												.filter((line) => line.scheme_code === code);
+											const sum = (field: 'employee_amount' | 'employer_amount') =>
+												Math.round(lines.reduce((total, line) => total + line[field], 0) * 100) /
+												100;
+											return [code, [sum('employee_amount'), sum('employer_amount')]];
+										})
+									);
+								const of = (plan: Plan, person: string, code: string) => {
+									const line = plan.payslips
+										.find((slip) => slip.employment_id === fixtureKey(`k-${person}`))
+										?.statutory.find((item) => item.scheme_code === code);
+									return [line?.employee_amount ?? 0, line?.employer_amount ?? 0];
+								};
+								prepare(true);
+								const inside = yield* run('REGULAR');
+								prepare(true);
+								const early = yield* run('OFF_CYCLE', ['bonus-1', 'backpay-2']);
+								const beforeSalary = yield* run('REGULAR');
+								prepare(false);
+								const salary = yield* run('REGULAR');
+								entries();
+								const late = yield* run('OFF_CYCLE', ['bonus-1', 'backpay-2']);
+								const together = sums([inside]);
+								assert.deepEqual(sums([early, beforeSalary]), together);
+								assert.deepEqual(sums([salary, late]), together);
+								// The early slip carries the bonus's own tax and the back pay's own contributions — what the late slip
+								// charges — not a low-bracket month-to-date figure the salary run catches up.
+								for (const [person, code] of [
+									['p1', 'PND1'],
+									['p2', 'PND1'],
+									['p2', 'SSO'],
+									['p2', 'WCF'],
+									['p2', 'EWF']
+								] as const)
+									assert.deepEqual(
+										of(early, person, code),
+										of(late, person, code),
+										`${person} ${code}`
+									);
+								// October, three months left: 600,000 projected less 100,000 expenses, 60,000 personal, SSO 875 × 3 and
+								// PVD 10,000 × 3 is 407,375; the bonus takes it to 527,375: 92,625 at 10% + 27,375 at 15% = 13,368.75.
+								assert.deepEqual(of(early, 'p1', 'PND1'), [13368.75, 0]);
+								assert.equal(
+									fixturePresent(of(inside, 'p1', 'PND1')[0]),
+									Math.round((fixturePresent(of(salary, 'p1', 'PND1')[0]) + 13368.75) * 100) / 100
+								);
+								// p2's salary already reaches the SSO ceiling: the back pay attracts no SSO.
+								assert.deepEqual(of(early, 'p2', 'SSO'), [0, 0]);
+								// EWF 0.25% and WCF 0.5% of the 5,000 back pay.
+								assert.deepEqual(of(early, 'p2', 'EWF'), [12.5, 12.5]);
+								assert.deepEqual(of(early, 'p2', 'WCF'), [0, 25]);
 							}
 							// A mixed workforce: the PVD member is exempt individually; the other nine employees still pay EWF.
 							if (scenario === 'mixed PVD membership') {
@@ -2225,7 +2368,9 @@ describe('TH jurisdiction seed', () => {
 			assert.deepEqual(
 				rows(version, 'rule_set')
 					.filter(
-						(row) => row.family === 'VALIDATIONS' && fixtureValue2(row.rules).site !== 'roster'
+						(row) =>
+							row.family === 'VALIDATIONS' &&
+							!['roster', 'cycle'].includes(String(fixtureValue2(row.rules).site))
 					)
 					.map((row) => row.code),
 				[
@@ -2569,7 +2714,39 @@ describe('TH jurisdiction seed', () => {
 			['60.0', '60.0']
 		);
 		assert.equal(meter('MATERNITY_LEAVE').window, 'EVENT');
+		// s.41 para 3: the holidays within maternity leave count, so both parts are metered in calendar days.
+		for (const version of VERSIONS)
+			for (const code of ['MATERNITY_LEAVE', 'MATERNITY_LEAVE_SSO'])
+				assert.equal(
+					find(version, 'leave_catalog', code).unit,
+					'CALENDAR_DAY',
+					`${version} ${code}`
+				);
+		// s.52: an employee under 18 has up to 30 days a year of paid leave for approved meetings and training.
+		for (const version of VERSIONS) {
+			const young = find(version, 'leave_catalog', 'YOUNG_WORKER_TRAINING_LEAVE');
+			assert.deepEqual([young.unit, young.is_npl, young.pay_fraction], ['DAY', false, ''], version);
+			const grant = meter('YOUNG_WORKER_TRAINING_LEAVE', version);
+			assert.deepEqual([grant.days, grant.window], ['30.0', 'CALENDAR_YEAR'], version);
+			const eligible = (date_of_birth: string) =>
+				evaluateConfigured(
+					fixtureString(String(young.eligibility)),
+					fixtureContext(admitContext({ employee: { date_of_birth } }))
+				);
+			assert.equal(eligible('2009-01-01'), true, version);
+			assert.equal(eligible('2008-10-31'), false, version);
+			assert.equal(eligible(''), false, version);
+			assert.match(
+				String(fixtureRecord(find(version, 'rule_set', 'YOUNG_WORKER_WORK').rules).description),
+				/child \(s\.51\)/
+			);
+		}
 		assert.equal(find('version_4', 'leave_catalog', 'CHILD_CARE_LEAVE').pay_fraction, '0.5');
+		// s.41 para 3 counts holidays only in the paragraph-one maternity leave: the paragraph-four child-care leave (s.59/1:
+		// half the working-day wage) and the s.41/1 spouse leave are working days.
+		for (const version of VERSIONS.filter((name) => name >= 'version_2'))
+			for (const code of ['CHILD_CARE_LEAVE', 'PATERNITY_LEAVE'])
+				assert.equal(find(version, 'leave_catalog', code).unit, 'DAY', `${version} ${code}`);
 		for (const code of ['ANNUAL_LEAVE', 'SICK_LEAVE', 'PERSONAL_BUSINESS_LEAVE', 'MILITARY_LEAVE'])
 			assert.equal(meter(code).window, 'CALENDAR_YEAR', code);
 	});
@@ -3483,17 +3660,20 @@ describe('TH jurisdiction seed', () => {
 		) => charge('version_3', 'PND1', wage, overrides, options).employee;
 		// The spouse alone: 600,000 - 100,000 - 60,000 - 60,000 - 10,500 = 369,500 → 14,450 a year.
 		assert.equal(
-			pnd1(50000, { employee: { marital_status: 'MARRIED', spouse_status: 'WITHOUT_INCOME' } }),
+			pnd1(50000, {
+				employee: { marital_status: 'MARRIED' },
+				terms: { facts: { spouse_status: 'WITHOUT_INCOME' } }
+			}),
 			1204.17
 		);
 		// Aged 65 in the tax year (or disabled): 190,000 of income exempt → 239,500 taxable → 4,475 a year.
 		assert.equal(pnd1(50000, { employee: { date_of_birth: '1961-06-01' } }), 372.92);
 		assert.equal(pnd1(50000, { employee: { date_of_birth: '1962-01-01' } }), 1704.17);
-		assert.equal(pnd1(50000, { employee: { disabled: true } }), 372.92);
+		assert.equal(pnd1(50000, { terms: { facts: { disabled: true } } }), 372.92);
 		assert.equal(
 			pnd1(
 				50000,
-				{ employee: { disabled: true } },
+				{ terms: { facts: { disabled: true } } },
 				taxpayer({ exempt_190k_used_elsewhere: 190000 })
 			),
 			1704.17
@@ -3693,10 +3873,10 @@ describe('TH jurisdiction seed', () => {
 		assert.deepEqual([kind.destination, kind.counts_toward], ['DISPLAY', ['PND1']]);
 		assert.deepEqual(find('version_4', 'claim_catalog', 'TRAVEL_REIMBURSEMENT').counts_toward, []);
 	});
-	it('the national holiday calendar: December 2025 and the 2026 Cabinet list, with substitutes', () => {
+	it('the holiday calendar: December 2025, the 2026 Cabinet list and the gazetted 2027 list', () => {
 		for (const version of VERSIONS) {
 			const calendar = fixtureValue26(payrollRules(version).public_holidays);
-			assert.equal(calendar.holidays.length, 27, version);
+			assert.equal(calendar.holidays.length, 52, version);
 			const dates = calendar.holidays.map((holiday) => holiday.date);
 			assert.equal(new Set(dates).size, dates.length);
 			assert.deepEqual(
@@ -3704,21 +3884,44 @@ describe('TH jurisdiction seed', () => {
 				['2025-12-05', '2025-12-10', '2025-12-31']
 			);
 			assert.ok(dates.includes('2026-05-01'), 'National Labour Day (s.29)');
+			assert.ok(dates.includes('2027-05-01'), 'National Labour Day (s.29)');
+			// The Royal Ploughing Ceremony day 2026 (Royal Household schedule).
+			assert.ok(dates.includes('2026-05-13'));
+			// BOT Notification No. 37/2569 (Royal Gazette 25 August 2026): the 18 bank days of 2027 plus the five
+			// weekend holidays they substitute.
+			assert.equal(dates.filter((date) => date >= '2027-01-01').length, 23);
 			assert.deepEqual(
 				calendar.holidays
 					.filter((holiday) => holiday.kind === 'SUBSTITUTE')
 					.map((h) => [h.date, h.replaces]),
 				[
 					['2026-06-01', '2026-05-31'],
-					['2026-12-07', '2026-12-05']
+					['2026-12-07', '2026-12-05'],
+					['2027-02-22', '2027-02-21'],
+					['2027-05-03', '2027-05-01'],
+					['2027-07-19', '2027-07-18'],
+					['2027-10-25', '2027-10-23'],
+					['2027-12-06', '2027-12-05']
 				]
 			);
+			// The Cabinet withdrew the proposed 2 June and 31 July 2026 special days on 2 December 2025.
 			assert.deepEqual(
 				calendar.holidays
 					.filter((holiday) => holiday.kind === 'SPECIAL_HOLIDAY')
-					.map((h) => h.date),
-				['2026-01-02', '2026-06-02', '2026-07-31']
+					.map((h) => [h.date, h.regions ?? []]),
+				[
+					['2026-01-02', []],
+					['2026-09-28', ['BANGKOK', 'NONTHABURI', 'PATHUM_THANI', 'SAMUT_PRAKAN']],
+					['2026-09-29', ['BANGKOK', 'NONTHABURI', 'PATHUM_THANI', 'SAMUT_PRAKAN']],
+					['2026-10-16', ['BANGKOK']]
+				]
 			);
+			const regions = Object.keys(fixtureValue12(payrollRules(version).minimum_wage).by_region);
+			for (const holiday of calendar.holidays) {
+				assert.match(holiday.source, /https:\/\//, `${version} ${holiday.date} source`);
+				for (const region of holiday.regions ?? [])
+					assert.ok(regions.includes(region), `${version} ${holiday.date} ${region}`);
+			}
 		}
 	});
 	it('wage tables: the minimum wage and WCF Table 1 rates are the notified ones', () => {
@@ -4192,6 +4395,11 @@ describe('TH jurisdiction seed', () => {
 			assert.equal(amount({ sdf_trained_employees: 25 }), 23354.1, version);
 			assert.equal(amount({ sdf_trained_employees: 58 }), 0);
 			assert.equal(amount({}), (337 * 30 * 58 * 7) / 100);
+			// The base is the lowest minimum wage of the version's own table: a wage notification moves both.
+			const lowest = Math.min(
+				...Object.values(fixtureValue12(payrollRules(version).minimum_wage).by_region)
+			);
+			assert.ok(fixtureString(rules.amount).includes(`round(${lowest}.0 * 30.0 *`), version);
 			// DSD official 2025 manual p.19 example 2: June first reaches 100; later 99-count months
 			// remain in the seven-month window. Sum 783 / 7 × 50%, fraction discarded → 55.
 			const officialExample = [75, 75, 76, 75, 87, 101, 99, 120, 118, 135, 111, 99].map(
@@ -4564,7 +4772,8 @@ describe('TH jurisdiction seed', () => {
 						['ROSTER_WEEKLY_HOLIDAY', 'warn'],
 						['ROSTER_PREGNANT_WORK', 'warn'],
 						['ROSTER_YOUNG_WORKER', 'warn'],
-						['ROSTER_UNDER_15', 'refuse']
+						['ROSTER_UNDER_15', 'refuse'],
+						['ROSTER_PATTERN_CYCLE', 'refuse']
 					],
 					version
 				);

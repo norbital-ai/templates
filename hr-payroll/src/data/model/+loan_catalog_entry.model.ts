@@ -23,31 +23,15 @@ export default model({
 			default: 'MONTHLY',
 			help: 'The cadence used when recalculating the editable repayment schedule.'
 		},
-		advance_purpose: {
-			kind: 'enum',
-			values: [
-				'HOUSE',
-				'LAND',
-				'VEHICLE',
-				'EMPLOYER_SHARES',
-				'COMPUTER',
-				'MEDICAL_TREATMENT',
-				'SOCSO_DISABLEMENT',
-				'EDUCATION',
-				'DG_APPROVED'
-			],
-			optional: true,
-			help: 'For a Malaysian advance above one month’s wages, the permitted purpose.'
-		},
-		written_agreement_reference: {
-			kind: 'text',
-			optional: true,
-			help: 'The written loan agreement required for an Indonesian payroll deduction.'
-		},
 		advance_made_on: {
 			kind: 'date',
 			optional: true,
 			help: 'The actual advance date, where the jurisdiction uses it for repayment timing or an emergency-payment deadline.'
+		},
+		facts: {
+			kind: 'json',
+			optional: true,
+			help: 'Loan inputs the selected loan class reads as entry.facts (for example a permitted advance purpose or a written agreement).'
 		}
 	}
 });

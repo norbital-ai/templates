@@ -4,6 +4,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -15,6 +16,7 @@
 			"unit": "DAY",
 			"window": "SERVICE_YEAR",
 			"carry_forward": "1000.0",
+			"carry_depth": 1,
 			"bands": [
 				{
 					"service_months": 78,
@@ -46,6 +48,7 @@
 				}
 			],
 			"days": "(sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0))) <= 0.0 || min(sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.worked) + (has(m.leave.ANNUAL_LEAVE) ? double(m.leave.ANNUAL_LEAVE) : 0.0) + (has(m.leave.PRENATAL_LEAVE) ? double(m.leave.PRENATAL_LEAVE) : 0.0) + (has(m.leave.POSTNATAL_LEAVE) ? double(m.leave.POSTNATAL_LEAVE) : 0.0) + (has(m.leave.CHILDCARE_LEAVE) ? double(m.leave.CHILDCARE_LEAVE) : 0.0) + (has(m.leave.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave.FAMILY_CARE_LEAVE) ? double(m.leave.FAMILY_CARE_LEAVE) : 0.0) + (has(m.leave.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave.OCCUPATIONAL_INJURY_ABSENCE) : 0.0))), sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0)))) >= 0.8 * sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0)))) ? (has(terms.facts) && has(terms.facts.weekly_scheduled_days) && double(terms.facts.weekly_scheduled_days) <= 4.0 && (!has(terms.facts.weekly_scheduled_hours) || double(terms.facts.weekly_scheduled_hours) < 30.0) ? [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0], [0.0, 3.0, 4.0, 4.0, 5.0, 6.0, 6.0, 7.0], [0.0, 5.0, 6.0, 6.0, 8.0, 9.0, 10.0, 11.0], [0.0, 7.0, 8.0, 9.0, 10.0, 12.0, 13.0, 15.0]][int(max(0.0, double(terms.facts.weekly_scheduled_days)))][size(bands.filter(b, service_months >= b.service_months))] : size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0) : 0.0",
+			"overdraw": "0",
 			"service_year_offset_months": 6
 		}
 	},
@@ -54,6 +57,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -64,7 +68,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "has(entry.facts.multiple_pregnancy) && entry.facts.multiple_pregnancy == true ? 98.0 : 42.0"
+			"days": "has(entry.facts.multiple_pregnancy) && entry.facts.multiple_pregnancy == true ? 98.0 : 42.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -72,6 +77,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -82,7 +88,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "56.0"
+			"days": "56.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -90,6 +97,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -103,6 +111,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -113,7 +122,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "28.0"
+			"days": "28.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -121,6 +131,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -132,7 +143,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.care_recipient_id) ? string(entry.facts.care_recipient_id) : (has(entry.facts.event_id) ? string(entry.facts.event_id) : \"UNSPECIFIED\")",
-			"days": "93.0"
+			"days": "93.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -140,6 +152,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -151,7 +164,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "[(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on)].map(d, d.substring(5, 7) < \"04\" ? string(int(d.substring(0, 4)) - 1) : d.substring(0, 4))[0]",
-			"days": "[size(employee.children.filter(c, has(c.child_birthdate) && c.child_birthdate != \"\" && c.child_birthdate <= as_of && age_on(c.child_birthdate, add_months(month_start(as_of), -((int(as_of.substring(5, 7)) + 8) % 12))) < 9 && (!has(c.child_deathdate) || c.child_deathdate == null || c.child_deathdate == \"\" || c.child_deathdate > as_of)))].map(n, n == 0 ? 0.0 : n == 1 ? 5.0 : 10.0)[0]"
+			"days": "[size(employee.children.filter(c, has(c.child_birthdate) && c.child_birthdate != \"\" && c.child_birthdate <= as_of && age_on(c.child_birthdate, add_months(month_start(as_of), -((int(as_of.substring(5, 7)) + 8) % 12))) < 9 && (!has(c.child_deathdate) || c.child_deathdate == null || c.child_deathdate == \"\" || c.child_deathdate > as_of)))].map(n, n == 0 ? 0.0 : n == 1 ? 5.0 : 10.0)[0]",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -159,6 +173,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -170,7 +185,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "[(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on)].map(d, d.substring(5, 7) < \"04\" ? string(int(d.substring(0, 4)) - 1) : d.substring(0, 4))[0]",
-			"days": "has(employee.facts.family_care_recipients) && double(employee.facts.family_care_recipients) >= 2.0 ? 10.0 : 5.0"
+			"days": "has(employee.facts.family_care_recipients) && double(employee.facts.family_care_recipients) >= 2.0 ? 10.0 : 5.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -178,6 +194,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -191,6 +208,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -204,6 +222,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -217,6 +236,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -230,6 +250,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -255,7 +276,8 @@
 			"unit": "HOUR",
 			"window": "SERVICE_YEAR",
 			"service_year_offset_months": 6,
-			"days": "5.0 * (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0)"
+			"days": "5.0 * (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0)",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -276,6 +298,7 @@
 		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,

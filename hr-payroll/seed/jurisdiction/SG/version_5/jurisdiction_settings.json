@@ -25,44 +25,43 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://www.cpf.gov.sg/",
-					"instructions": "Central Provident Fund Board (CPFB). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower. Authority for the Employment Act 1968 and its regulations as MOM administers them: contract coverage (Part 4 thresholds, workman / non-workman, managers and executives), key employment terms, salary period and payment deadlines, permitted deductions, itemised payslips and employment records, hours of work, overtime rate and caps, rest days and rest-day pay, public-holiday entitlement and pay (and the yearly gazetted calendar under Employment practices > Public holidays), annual, sick and hospitalisation leave, EA maternity and childcare leave for a non-citizen child, notice and salary in lieu, termination, final pay, retrenchment notification, the Employment (Part-Time Employees) Regulations, the Retirement and Re-employment Act ages and the Employment Assistance Payment (Tripartite Guidelines PDF), flexible work arrangement requests and fair employment / Workplace Fairness legislation, young persons, the Progressive Wage Model sector and occupational floors and the Local Qualifying Salary (Employment practices > Progressive Wage Model), work passes, Work Permit / S Pass levy, security bond and medical insurance (Passes and permits), and work injury compensation and workplace incident reporting (Workplace safety and health). Use Employment practices, Passes and permits, Workplace safety and health and Newsroom > Press releases; a press release or factsheet dates a change, the topic page states the operative figure."
+				},
+				{
+					"url": "https://www.cpf.gov.sg/employer",
+					"instructions": "Central Provident Fund Board, employer section. Authority for CPF contributions: rate tables by age band and citizen / SPR year (the yearly contribution-rate PDF under Employer obligations > How much CPF contributions to pay), the Ordinary and Additional Wage ceilings, wage bands and rounding, which payments attract CPF (including NS make-up pay and termination payments), the payment due date and late-payment interest. Also the collecting authority for the Skills Development Levy (rate, minimum and maximum) and for the four self-help-group fund schedules and opt-out rules (CDAC, ECF, MBMF, SINDA) under Employer obligations > Contributions to self-help groups. Check the effective date on each table; senior-worker rate steps are announced in the service FAQ articles before the PDF is published."
 				},
 				{
 					"url": "https://www.iras.gov.sg/",
-					"instructions": "IRAS. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.mom.gov.sg/",
-					"instructions": "Ministry of Manpower. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Inland Revenue Authority of Singapore. Authority for employment income tax as it touches payroll: Auto-Inclusion Scheme and Form IR8A filing deadline, Appendix 8A (benefits in kind) and 8B (share gains), taxable versus exempt allowances and benefits, Form IR21 tax clearance for departing non-citizen employees and the duty to withhold monies, withholding tax on payments to non-resident directors and public entertainers (S45), and tax record retention. Use Taxes > Individual income tax > Employers and Taxes > Withholding tax; resident employees have no monthly withholding."
 				},
 				{
 					"url": "https://www.profamilyleave.msf.gov.sg/",
-					"instructions": "Government-Paid Leave (GPL) Portal | Government-Paid Leave (GPL) Portal. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://sso.agc.gov.sg/",
-					"instructions": "Singapore Statutes Online (SSO). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Government-Paid Leave portal (Ministry of Social and Family Development). Authority for the Child Development Co-Savings Act schemes for a citizen child: Government-Paid Maternity, Paternity, Shared Parental, Adoption and Childcare Leave, Extended Childcare Leave and Unpaid Infant Care Leave — eligibility, weeks or days by the child’s birth date, splitting between parents, the employer’s pay and the government reimbursement caps and claim deadlines. Use Schemes for each scheme page. The Employment Act leave for a non-citizen child is MOM’s."
 				},
 				{
 					"url": "https://www.pdpc.gov.sg/",
-					"instructions": "Personal Data Protection Commission (PDPC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.muis.gov.sg/",
-					"instructions": "Islamic Religious Council of Singapore (MUIS). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.cdac.org.sg/",
-					"instructions": "Chinese Development Assistance Council (CDAC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Personal Data Protection Commission. Authority for the Personal Data Protection Act 2012 as it applies to employee data: purpose notification and the employment exceptions to consent, the data protection officer, access and correction requests and their time limits, retention limitation and disposal, and data breach assessment and notification to PDPC and affected employees. Use Overview of PDPA > The legislation and the advisory guidelines (including the chapter on employment) under Guidelines and consultation."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry’s own extraction guidance; each entry owns only the areas it names. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take the section numbers and operative figures from the administering agency entry above. Open each public portal directly and follow its own document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table for each proposed change; never treat an announcement or proposal as operative law, never sign in, and report unresolved evidence instead of guessing."
 		},
 		"entity_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -302,6 +301,22 @@
 										"type": "integer",
 										"minimum": 1,
 										"description": "The written contractual notice period in days, the same for both parties (EA s.10(2)); when absent, salary in lieu of notice is at least the s.10(3) period. Customer input."
+									},
+									"race": {
+										"type": "string",
+										"description": "The employee’s race as CPF records it (for example CHINESE, MALAY, INDIAN, EURASIAN): the CDAC, ECF and SINDA self-help-group funds read it (CPF Act 1953 s.77(1)(p))."
+									},
+									"religion": {
+										"type": "string",
+										"description": "The employee’s religion (ISLAM for a Muslim employee): the Mosque Building and Mendaki Fund (MBMF) reads it."
+									},
+									"solo_parent": {
+										"type": "boolean",
+										"description": "A sole parent: the shared parental leave pool defaults to the whole pool on an individual arrangement (Child Development Co-Savings Act 2001 ss.12DA–12DD)."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -690,7 +705,7 @@
 							"select": ["catalog_id", "activity", "days", "reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, c.code == \"ANNUAL_LEAVE_ON_EXIT\" ? sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.entitlement + b.carried - b.taken)) + sum(event.leave_balances.filter(b, b.code == \"ANNUAL_LEAVE\").map(b, b.carried)) : sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-obligations",
@@ -885,9 +900,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -971,350 +984,6 @@
 			]
 		},
 		"reference_tables": {
-			"PWM_ROLE": {
-				"ADMIN_ASSISTANT": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2170,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"ADMIN_EXECUTIVE": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2760,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"ADMIN_SUPERVISOR": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3340,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"CLEAN_CONSERVANCY_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2495,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2870,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 3040,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_DISHWASHER": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2495,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2080,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2870,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_TABLE_TOP": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2180,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2080,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_OUTDOOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2495,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2870,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"DRIVER_GROUP_A_LEVEL_1": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2370,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"DRIVER_GROUP_A_LEVEL_2": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2485,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"DRIVER_GROUP_B_LEVEL_1": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2505,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"DRIVER_GROUP_B_LEVEL_2": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2555,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"FOOD_FS_COOK": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2520,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_KITCHEN_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2320,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_WAITER": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2320,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_WAITER_SUPERVISOR": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2875,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_COOK": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2470,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_KITCHEN_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2295,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_STALL_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2220,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2685,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_SUPERVISOR": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 3060,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_TECHNICIAN": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2490,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_WORKER": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2095,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LIFT_ASSISTANT_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 2750,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_PRINCIPAL_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3720,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SENIOR_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3420,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3090,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SUPERVISOR": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3660,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"RETAIL_ASSISTANT": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2435,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"RETAIL_ASSISTANT_SUPERVISOR": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2950,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"RETAIL_SENIOR_ASSISTANT": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2680,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"SECURITY_INHOUSE_OFFICER": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2475,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_INHOUSE_SENIOR_OFFICER": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2675,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_INHOUSE_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2905,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_OFFICER": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3090,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3390,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3990,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3690,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"WASTE_COLLECTION_CREW": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2840,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3240,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3340,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SENIOR_CREW": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3040,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SENIOR_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3540,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SUPERVISOR": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3490,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_TEAM_LEAD": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3240,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_PLANT_SUPERVISOR": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3340,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_SENIOR_SORTER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2940,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_SORTER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2740,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_TEAM_LEAD": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3140,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				}
-			},
 			"RACE": [
 				"ACHEHNESE",
 				"AFGHAN",

@@ -6,6 +6,14 @@ import { buildDays, dayKey, isAbsent, type Interval } from '../../src/lib/ui/ros
 import { plannedShift, type PlannedShift } from '../../src/lib/payroll_engine/shift_pattern.js';
 import { fixtureId, nativeId } from '../fixture_values.js';
 
+/** The seeded attendance terms (every version today): completed half-hours, overtime after the shift. */
+const POLICY = {
+	step_hours: 0.5,
+	rounding: 'DOWN',
+	overtime_window: 'AFTER_SHIFT',
+	untimed_credit_day_types: ['REST', 'OFF']
+} as const;
+
 vi.mock('$bolt', () => ({ bolt: { locale: 'en', t: (key: string) => key } }));
 
 it('renders pattern projection separately from an explicit plan and credited completion', async () => {
@@ -29,6 +37,7 @@ it('renders pattern projection separately from an explicit plan and credited com
 		dates,
 		people: [person],
 		timeZone: 'Asia/Singapore',
+		policy: POLICY,
 		entries: [
 			{
 				id: nativeId('roster_entry', fixtureId('day-layers-explicit-day')),
@@ -89,6 +98,7 @@ it('credits read-only dated pre-shift approval without filling an ordinary leadi
 			dates: [date],
 			people: [person],
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			entries: [
 				{
 					id: nativeId('roster_entry', fixtureId(`pre-shift-${date}`)),
@@ -292,6 +302,7 @@ it('keeps capped progress accessible for missing OT, excess, overnight, open, re
 			dates: [date],
 			people: [person],
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			entries: [
 				{
 					id: nativeId('roster_entry', fixtureId(`progress-day-${scenario.name}`)),

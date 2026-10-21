@@ -1,14 +1,15 @@
 /** L-TPL-hr-payroll-051 interval order and payslip freeze. */
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { Result, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { workDay, type RosterInput } from '../src/lib/payroll_engine/payslip/context.ts';
-import { cycleBreach } from '../src/lib/payroll_engine/admit.ts';
+import { cycleRefusal, patternCycles, type Validation } from '../src/lib/payroll_engine/admit.ts';
 import { plannedShift } from '../src/lib/payroll_engine/shift_pattern.ts';
 import { evaluateStrict } from '../src/lib/payroll_engine/expressions.ts';
 import { lineage } from './jurisdiction_kit.ts';
+import { SEEDED_PAYROLL } from './duties.ts';
 import {
 	refuseApprovedOvertimeIntervals,
 	refusePinnedRoster,
@@ -123,7 +124,8 @@ describe('roster entry', () => {
 					]
 				},
 				holiday: undefined,
-				zone: 'Asia/Manila'
+				zone: 'Asia/Manila',
+				policy: SEEDED_PAYROLL.attendance
 			});
 			if (Result.isFailure(outcome)) throw outcome.failure;
 			const day = outcome.success;
@@ -165,7 +167,8 @@ describe('roster entry', () => {
 					]
 				},
 				holiday: undefined,
-				zone: 'Asia/Singapore'
+				zone: 'Asia/Singapore',
+				policy: SEEDED_PAYROLL.attendance
 			});
 			if (Result.isFailure(result)) throw result.failure;
 			return result.success;
@@ -201,7 +204,8 @@ describe('roster entry', () => {
 				planned,
 				row: { planned_overtime_hours: 6, banked_overtime_hours: banked, worked_intervals },
 				holiday: undefined,
-				zone: 'Asia/Singapore'
+				zone: 'Asia/Singapore',
+				policy: SEEDED_PAYROLL.attendance
 			});
 		const of = (outcome: ReturnType<typeof day>) => {
 			if (Result.isFailure(outcome)) throw outcome.failure;
@@ -278,8 +282,25 @@ describe('roster entry', () => {
 				}
 			]
 		]);
-		const breach = (rostered: Record<string, string>, from = '2026-03-02') => {
-			const outcome = cycleBreach({
+		// The seeded `cycle` validation: a cycle refuses when its WORK, REST or OFF count moves.
+		const seeded = lineage('SG')
+			.rows('version_6', 'rule_set')
+			.find((row) => row['code'] === 'ROSTER_PATTERN_CYCLE');
+		const rules = Schema.decodeUnknownSync(
+			Schema.Struct({
+				site: Schema.Literal('cycle'),
+				kind: Schema.Literals(['refuse', 'warn', 'hold']),
+				when: Schema.String,
+				message: Schema.String
+			})
+		)(seeded?.['rules']);
+		const check: Validation = { ...rules, code: 'ROSTER_PATTERN_CYCLE' };
+		const breach = (
+			rostered: Record<string, string>,
+			from = '2026-03-02',
+			checks: readonly Validation[] = [check]
+		) => {
+			const outcome = patternCycles({
 				contract: {
 					effective_range: { from: PlainDate(from), to: null },
 					facts: {
@@ -294,7 +315,11 @@ describe('roster entry', () => {
 				dates: Object.keys(rostered)
 			});
 			if (Result.isFailure(outcome)) throw outcome.failure;
-			return outcome.success;
+			for (const cycle of outcome.success) {
+				const refused = Effect.runSync(cycleRefusal(cycle, checks, undefined));
+				if (refused != null) return refused;
+			}
+			return null;
 		};
 		// Wednesday off, Saturday worked: a swap inside the cycle
 		assert.equal(breach({ '2026-03-04': 'o', '2026-03-07': 'w' }), null);
@@ -304,5 +329,25 @@ describe('roster entry', () => {
 		assert.match(String(breach({ '2026-03-14': 'w' })), /2026-03-09 to 2026-03-15/);
 		// a cycle the employment joins part-way is not judged
 		assert.equal(breach({ '2026-03-07': 'w' }, '2026-03-04'), null);
+		// H8: the row decides: a warn-kind cycle row, or none, lets the extra work day through
+		assert.equal(breach({ '2026-03-07': 'w' }, '2026-03-02', [{ ...check, kind: 'warn' }]), null);
+		assert.equal(breach({ '2026-03-07': 'w' }, '2026-03-02', []), null);
+		// and an entity severity override softens it the same way
+		assert.equal(
+			Effect.runSync(
+				cycleRefusal(
+					{
+						date: '2026-03-07',
+						from: '2026-03-02',
+						to: '2026-03-08',
+						planned: { WORK: 6, REST: 1, OFF: 0 },
+						expected: { WORK: 5, REST: 1, OFF: 1 }
+					},
+					[check],
+					{ default: 'record', rules: { ROSTER_PATTERN_CYCLE: 'warn' } }
+				)
+			),
+			null
+		);
 	});
 });

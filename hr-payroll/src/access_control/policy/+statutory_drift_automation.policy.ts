@@ -8,7 +8,8 @@ export default policy({
 		...JURISDICTION_READ,
 		jurisdiction_settings: { read: true, create: DRAFT_VERSION }
 	},
-	automations: ['statutory_lineage'],
-	capabilities: { tools: ['browser_navigate', 'browser_snapshot', 'browser_act'] },
+	capabilities: {
+		tools: ['web_search', 'web_read', 'browser_navigate', 'browser_snapshot', 'browser_act']
+	},
 	limits: AUTOMATION_LIMITS
 });

@@ -13,6 +13,8 @@ import {
 const terms = (overrides: Partial<LoanScheduleInput> = {}): LoanScheduleInput => ({
 	principal_amount: Decimal.of('100.00'),
 	repayment_period: { from: PlainDate('2026-01-31'), to: PlainDate('2026-04-30') },
+	scale: 2,
+	semi_monthly_split: 15,
 	...overrides
 });
 const repayment = (
@@ -227,20 +229,65 @@ test('invalid periods, fractional cents, impossible positive repayments and exce
 	);
 });
 
-test('loan rules receive canonical typed business inputs without stored duplicate facts', () => {
+test('loan rules receive the principal, the advance date and the loan’s own facts', () => {
 	assert.deepEqual(
-		loanRuleFacts({ principal_amount: Decimal.of('1000'), advance_purpose: 'MEDICAL_TREATMENT' }),
+		loanRuleFacts({
+			principal_amount: Decimal.of('1000'),
+			facts: { advance_purpose: 'MEDICAL_TREATMENT' }
+		}),
 		{
 			principal: 1000,
 			advance_purpose: 'MEDICAL_TREATMENT'
 		}
 	);
 	assert.deepEqual(
-		loanRuleFacts({ written_agreement_reference: 'AGREEMENT-1', advance_made_on: '2026-01-01' }),
+		loanRuleFacts({
+			facts: { written_agreement_reference: 'AGREEMENT-1' },
+			advance_made_on: '2026-01-01'
+		}),
 		{
 			written_agreement_reference: 'AGREEMENT-1',
 			advance_made_on: '2026-01-01'
 		}
 	);
 	assert.deepEqual(loanRuleFacts({}), {});
+});
+
+test('M19: the version’s money scale and semi-monthly split decide the schedule', () => {
+	// A zero-decimal currency spreads whole units; the split day moves the first instalment.
+	const result = buildLoanSchedule(
+		terms({
+			principal_amount: Decimal.of('100'),
+			repayment_frequency: 'SEMI_MONTHLY',
+			repayment_period: { from: PlainDate('2026-01-01'), to: PlainDate('2026-02-28') },
+			scale: 0,
+			semi_monthly_split: 10
+		})
+	);
+	assert.ok(result.ok);
+	assert.deepEqual(
+		result.repayments.map(({ occurred_on, amount }) => [occurred_on, amount.toString()]),
+		[
+			['2026-01-10', '25'],
+			['2026-01-31', '25'],
+			['2026-02-10', '25'],
+			['2026-02-28', '25']
+		]
+	);
+	const uneven = buildLoanSchedule(
+		terms({
+			principal_amount: Decimal.of('100'),
+			repayment_period: { from: PlainDate('2026-01-31'), to: PlainDate('2026-03-31') },
+			scale: 0
+		})
+	);
+	assert.ok(uneven.ok);
+	assert.deepEqual(
+		uneven.repayments.map(({ amount }) => amount.toString()),
+		['33', '33', '34']
+	);
+	assert.equal(
+		buildLoanSchedule(terms({ principal_amount: Decimal.of('100.5'), scale: 0 })).ok,
+		false
+	);
 });

@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
-import { addDays, addMonths, datePeriod, days, intersect } from '@norbital-ai/std/date';
-import { type DynObject } from '../foundation.js';
+import { addDays, datePeriod, days, intersect } from '@norbital-ai/std/date';
+import { type DynObject, fieldValue, Refusal } from '../foundation.js';
 import {
 	num,
 	type PayslipLine,
@@ -25,19 +25,35 @@ export const exitCorrections = Effect.fnUntraced(function* (
 	const { contract, employee } = options.subject,
 		{ window, money } = options.payroll;
 	const who = employee?.name ?? contract.id;
+	const payroll = yield* Effect.fromResult(
+		fieldValue(options.jurisdiction.version.payroll, 'jurisdiction_settings.payroll')
+	);
+	/** A payroll key the exit needs, or the refusal naming the version and the key. */
+	const stated = <A>(key: string, value: A | null | undefined) =>
+		value == null || value === ''
+			? Effect.fail(
+					new Refusal({
+						message: `${options.jurisdiction.version.code}: jurisdiction_settings.payroll.${key} is not stated.`
+					})
+				)
+			: Effect.succeed(value);
 	let made = 0;
 	const flip = (row: CatalogRow, amount: number): CatalogRow =>
 		amount >= 0 ? row : { ...row, direction: row.direction === 'SUBTRACT' ? 'ADD' : 'SUBTRACT' };
-	const add = (
+	const add = Effect.fnUntraced(function* (
 		row: CatalogRow,
 		amount: number,
 		line: Pick<PayslipLine, 'family' | 'source_id' | 'component_code' | 'label'>,
 		/** The paid period ends the day before this window: the first run that can see the change. */
 		fresh: boolean
-	) => {
-		// a leaver's slip pays nothing to recover from: the overpayment is flagged on the first run after it, not
-		// charged as negative pay
-		if (amount < 0 && !salaried) {
+	) {
+		// a leaver's slip pays nothing to recover from: the version's `exit_overpayment` deducts the overpayment there
+		// anyway, or flags it on the first run after it
+		if (
+			amount < 0 &&
+			!salaried &&
+			(yield* stated('exit_overpayment', payroll?.exit_overpayment)) === 'note'
+		) {
 			if (fresh)
 				options.payroll.notes.push(
 					`${who}: ${line.label ?? line.component_code} overpaid ${money(-amount)} after the exit moved; recover it outside payroll.`
@@ -52,7 +68,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			destination: row.destination === 'PAY' ? 'PAY' : 'NET',
 			amount: posted
 		});
-	};
+	});
 	const lines = options.history.payslips.flatMap((slip) =>
 		(slip.adjustments ?? []).map((line) => ({ slip, line }))
 	);
@@ -75,7 +91,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			counts_toward: []
 		};
 		const paidIn = options.history.runWindows.get(String(slip.payroll_run_id ?? ''));
-		add(
+		yield* add(
 			row,
 			-moneyValue(line.amount),
 			{
@@ -87,11 +103,17 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			paidIn != null && addDays(paidIn.to, 1) === window.salary_from
 		);
 	}
-	// the exit pay of the exit as it stands, once
+	// the exit pay of the exit as it stands, once, on a slip reaching the exit that the version's `exit_raise_when`
+	// admits
 	if (
 		departed &&
 		exitDay <= window.salary_to &&
-		exitDay >= String(addMonths(window.salary_from, -1))
+		options.jurisdiction.exitClasses.length > 0 &&
+		(yield* evaluateBoolean(
+			yield* stated('exit_raise_when', payroll?.exit_raise_when),
+			context,
+			'jurisdiction_settings.payroll.exit_raise_when'
+		))
 	) {
 		const entered = new Set(
 			options.attendance.entries.flatMap((family) => family.siblings.map((row) => row.code))
@@ -115,7 +137,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			}
 			amount = money(amount);
 			if (amount === 0) continue;
-			add(
+			yield* add(
 				row,
 				amount,
 				{
@@ -175,7 +197,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			const row = options.jurisdiction.workRows.find(
 				(candidate) => (candidate.component_code ?? candidate.code) === code
 			) ?? { id: code, code, destination: 'PAY', counts_toward: [] };
-			add(
+			yield* add(
 				row,
 				owed,
 				{

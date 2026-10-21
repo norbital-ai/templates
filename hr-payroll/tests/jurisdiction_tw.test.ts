@@ -183,6 +183,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -643,15 +644,10 @@ const subject = (
 	const employee = {
 		gender: 'FEMALE',
 		marital_status: '',
-		spouse_status: '',
-		solo_parent: false,
-		disabled: false,
-		receiving_pension: false,
 		nationality: 'TW',
 		date_of_birth: '1990-02-01',
 		age: 36,
 		children: [],
-		dependents_count: 0,
 		facts: {},
 		...over.employee
 	};
@@ -674,8 +670,6 @@ const subject = (
 		employment,
 		person: {
 			employment,
-			race: null,
-			religion: null,
 			nationality: employee.nationality,
 			residency_status: terms.residency_status === '' ? null : terms.residency_status,
 			residency_since: terms.residency_since === '' ? null : terms.residency_since
@@ -720,6 +714,8 @@ const statutoryContext = (ordinary: number, over: Over = {}): Row => {
 			days,
 			month: Number(period.slice(5)),
 			salary_paid: false,
+			// The slip belongs to the month's salary run: nothing of the regular pay is still to come.
+			salary_run: true,
 			covered_days: over.covered ?? days,
 			month_key: period,
 			month_from: `${period}-01`,
@@ -787,6 +783,21 @@ const annualDays = (rows: readonly Row[]) =>
 	fixtureValue1(fixturePresent(rows.find((row) => row.code === 'ANNUAL_LEAVE')).entitlement).days;
 const at = (version: string, code: string, wage: number, over: Over = {}) =>
 	charge(scheme(version, code), statutoryContext(wage, over));
+/** LI on a 45,800 grade by version: 11.5% with EI / 12.5% without to 2026, 12% / 13% from 2027 (勞保條例 §13(2)). */
+const liShares = (version: string) =>
+	version === 'version_5'
+		? {
+				ei: { employee: 1099, employer: 3847 },
+				foreign: { employee: 1191, employer: 4168 },
+				half: { employee: 550, employer: 1924 },
+				parental: { employee: 733, employer: 2565 }
+			}
+		: {
+				ei: { employee: 1053, employer: 3687 },
+				foreign: { employee: 1145, employer: 4008 },
+				half: { employee: 527, employer: 1843 },
+				parental: { employee: 702, employer: 2458 }
+			};
 const payslipContext = {
 	...subject(),
 	rules: {},
@@ -1024,7 +1035,7 @@ const tw = () => {
 };
 describe('TW public lineage', () => {
 	it('every version holds settings, rule_set and every catalogue, each row on its own version', () => {
-		assert.deepEqual(versions, ['version_1', 'version_2', 'version_3', 'version_4']);
+		assert.deepEqual(versions, ['version_1', 'version_2', 'version_3', 'version_4', 'version_5']);
 		for (const version of versions) {
 			for (const name of FILES)
 				assert.equal(existsSync(resolve(TW, version, `${name}.json`)), true, `${version}/${name}`);
@@ -1086,6 +1097,25 @@ describe('TW public lineage', () => {
 			from: '2025-12-01',
 			to: '2025-12-31'
 		});
+	});
+	it('the in-force sources: one entry per area, each with its own instructions, none behind a challenge', () => {
+		const entries = fixtureValue6(fixtureRecord(settingsOf('version_4').sources).entries);
+		assert.deepEqual(
+			entries.map((entry) => entry.url),
+			[
+				'https://law.moj.gov.tw/',
+				'https://www.mol.gov.tw/',
+				'https://www.bli.gov.tw/',
+				'https://gazette.nat.gov.tw/',
+				'https://www.dot.gov.tw/',
+				'https://www.dgpa.gov.tw/',
+				'https://www.wda.gov.tw/'
+			]
+		);
+		const leads = entries.map((entry) => String(entry.instructions).split('. Authority for:')[0]);
+		assert.equal(new Set(leads).size, entries.length);
+		for (const entry of entries)
+			assert.match(String(entry.instructions), /Authority for: /, String(entry.url));
 	});
 	it('every row carries only its model’s fields', () => {
 		for (const version of versions)
@@ -1360,8 +1390,59 @@ describe('TW public lineage', () => {
 		assert.deepEqual(at('version_2', 'LABOR_PENSION', 200000), { employee: 0, employer: 9000 });
 		assert.equal(at('version_2', 'LABOR_PENSION', 45800, foreigner), null);
 		const fund = fixtureValue11(at('version_2', 'WAGE_ARREARS_FUND', 45800));
-		// 0.025% of 45,800 = 11.45, billed per insured person to the dollar (BLI 分擔金額表).
+		// 0.025% of 45,800 = 11.45: the slip's own estimate, to the dollar (the bill is the unit's, below).
 		assert.equal(fund.employer, 11);
+	});
+	it('the wage arrears levy: each slip estimates, the remittance rounds once on the unit total (BLI 0110180)', () => {
+		for (const version of versions) {
+			const configuration = fixtureValue1(scheme(version, 'WAGE_ARREARS_FUND').configuration);
+			const insured = (wage: number, over: Over = {}) =>
+				Number(
+					evaluateConfigured(
+						fixtureString(String(configuration.assessment)),
+						fixtureContext(statutoryContext(wage, over))
+					)
+				);
+			// BLI's worked example: 40,100 + 13,500 + 13,500 + 45,800 + 40,100 × 21 ÷ 30 = 140,970 of 墊償提繳薪資.
+			const unit: [number, Over][] = [
+				[40100, {}],
+				[13500, {}],
+				[13500, {}],
+				[45800, {}],
+				[40100, { covered: 21 }]
+			];
+			assert.deepEqual(
+				unit.map(([wage, over]) => insured(wage, over)),
+				[40100, 13500, 13500, 45800, 28070]
+			);
+			const shares = unit.map(
+				([wage, over]) => fixtureValue11(at(version, 'WAGE_ARREARS_FUND', wage, over)).employer
+			);
+			assert.deepEqual(shares, [10, 3, 3, 11, 7]);
+			const duty = fixturePresent(
+				file(version, 'rule_set').find((row) => row.code === 'INSURANCE_PREMIUM_REMITTANCE')
+			);
+			const remit = (total: number, employer: number, charged_base: number) =>
+				evaluateConfigured(
+					fixtureString(String(fixtureValue1(duty.rules).amount)),
+					fixtureContext({
+						total,
+						run: {
+							totals: { schemes: {} },
+							statutory: {
+								WAGE_ARREARS_FUND: { base: 0, employee: 0, employer, charged_base, parts: {} }
+							}
+						},
+						period: {},
+						company: {}
+					})
+				);
+			// 140,970 × 0.025% = 35.24 → 35 (角以下四捨五入), not the slips' 34; the other premiums pass through.
+			assert.equal(remit(34, 34, 140970), 35);
+			assert.equal(remit(5034, 34, 140970), 5035);
+			// 100 workers on 29,500: 100 × 7 = 700 on the slips, 737.5 → 738 billed.
+			assert.equal(remit(700, 700, 2950000), 738);
+		}
 	});
 	it('the person and entity facts: dependants, NHI elsewhere, pension elections, foreign spouses and professionals', () => {
 		const facts = (employee: Row, over: Over = {}) => ({
@@ -1689,18 +1770,89 @@ describe('TW public lineage', () => {
 			'REFUSED'
 		);
 	});
-	it('LI is 12.5% outside employment insurance and 11.5% with it (就業保險法 §41(2))', () => {
+	it('LI is 12.5% outside employment insurance and 11.5% with it (就業保險法 §41(2)); 13% and 12% from 2027', () => {
 		const foreigner = { terms: { residency_status: 'FOREIGNER' } };
 		for (const version of versions) {
 			const period = version === 'version_1' ? '2025-12' : '2026-03';
+			const li = liShares(version);
 			// BLI 分擔金額表 (115): 45,800 for 30 days — worker 1,145, employer 4,008, LI and EI together.
-			assert.deepEqual(at(version, 'LI', 45800, { ...foreigner, period }), {
-				employee: 1145,
-				employer: 4008
-			});
-			assert.deepEqual(at(version, 'LI', 45800, { period }), { employee: 1053, employer: 3687 });
+			// 勞保條例 §13(2) from 2027-01-01: 13% — 45,800 × 13% × 20% = 1,190.8 → 1,191; × 70% = 4,167.8 → 4,168.
+			assert.deepEqual(at(version, 'LI', 45800, { ...foreigner, period }), li.foreign);
+			// With employment insurance 12% (13% − 1%): 1,099.2 → 1,099 and 3,847.2 → 3,847.
+			assert.deepEqual(at(version, 'LI', 45800, { period }), li.ei);
 			assert.deepEqual(at(version, 'EI', 45800, { period }), { employee: 92, employer: 321 });
 		}
+	});
+	it('version_5 (2027): open-ended, the 13% LI ceiling, the 116年 holidays, the 2026 wage and tables kept', () => {
+		const v4 = fixtureValue7(settingsOf('version_4').effective_range);
+		const v5 = settingsOf('version_5');
+		assert.equal(v4.to, '2026-12-31');
+		assert.deepEqual(v5.effective_range, { from: '2027-01-01', to: null });
+		assert.equal(v5.cloned_from_id, settingsOf('version_4').id);
+		assert.equal(LAW_KIT.versionOn('2027-01-01'), 'version_5');
+		assert.equal(LAW_KIT.versionOn('2031-06-30'), 'version_5');
+		// Every row of version_4 is cloned under a new id, same codes.
+		for (const name of ['rule_set', ...CATALOGS]) {
+			const codes = (version: string) => file(version, name).map((row) => String(row.code));
+			assert.deepEqual(codes('version_5'), codes('version_4'), name);
+			const old = new Set(file('version_4', name).map((row) => String(row.id)));
+			assert.equal(
+				file('version_5', name).some((row) => old.has(String(row.id))),
+				false,
+				name
+			);
+		}
+		// 紀念日及節日實施條例 dates of 116年 (院授人培字第1153026132號函): the statutory days, not the substitutes.
+		const holidays = fixtureValue6(
+			fixtureRecord(
+				fixturePresent(file('version_5', 'rule_set').find((row) => row.code === 'public_holidays'))
+					.rules
+			).holidays
+		);
+		assert.deepEqual(
+			holidays.map((day) => String(day.date)),
+			[
+				'2027-01-01',
+				'2027-02-04',
+				'2027-02-05',
+				'2027-02-06',
+				'2027-02-07',
+				'2027-02-08',
+				'2027-02-28',
+				'2027-04-04',
+				'2027-04-05',
+				'2027-05-01',
+				'2027-06-09',
+				'2027-09-15',
+				'2027-09-28',
+				'2027-10-10',
+				'2027-10-25',
+				'2027-12-25'
+			]
+		);
+		// The minimum wage stays 29,500 until 行政院 approves 2027's; EI 1%, NHI and the 115 withholding table unchanged.
+		const rules = LAW_KIT.payrollRules('version_5');
+		assert.deepEqual(rules.minimum_wage, LAW_KIT.payrollRules('version_4').minimum_wage);
+		for (const code of [
+			'EI',
+			'NHI',
+			'INCOME_TAX',
+			'INCOME_TAX_BONUS',
+			'LABOR_PENSION',
+			'OCC_INJURY'
+		])
+			assert.deepEqual(
+				scheme('version_5', code).configuration,
+				scheme('version_4', code).configuration,
+				code
+			);
+		const period = '2027-01';
+		assert.deepEqual(at('version_5', 'EI', 45800, { period }), { employee: 92, employer: 321 });
+		assert.deepEqual(at('version_5', 'LI', 45800, { period }), liShares('version_5').ei);
+		assert.deepEqual(
+			at('version_5', 'LI', 45800, { period, terms: { residency_status: 'FOREIGNER' } }),
+			liShares('version_5').foreign
+		);
 	});
 	it('the 扣繳稅額表 by declared exemptions, cell for cell, and the formula above 500,000', () => {
 		const table = (version: string, wage: number, exemptions: number) =>
@@ -1840,8 +1992,8 @@ describe('TW public lineage', () => {
 					facts: { event_id: 'w1' }
 				}
 			];
-			// 勞工請假規則 §2 (2026-09-30): 8 days to 30 September, 14 from 1 October — 8 / 8 / 8 / 14 by version.
-			const days = version === 'version_4' ? 14 : 8;
+			// 勞工請假規則 §2 (2026-09-30): 8 days to 30 September, 14 from 1 October — 8 / 8 / 8 / 14 / 14 by version.
+			const days = version === 'version_4' || version === 'version_5' ? 14 : 8;
 			assert.equal(available('MARRIAGE_LEAVE', married, '2026-06-30', 'w1'), days - 5);
 			assert.equal(available('MARRIAGE_LEAVE', married, '2026-06-30', 'w2'), days);
 			// Per-event grants read on the balance listing, one view per event keyed by its first entry's facts.
@@ -2032,6 +2184,24 @@ describe('TW public lineage', () => {
 			assert.equal(trips('MINIMUM_WAGE_FLOOR', caregiver(20000)), false);
 			assert.equal(trips('OVERTIME_DAILY_CAP', slip([['WORK', 12, 4]])), false);
 			assert.equal(trips('OVERTIME_DAILY_CAP', slip([['WORK', 12.5, 4.5]])), true);
+			// §32(4): hours extended for a disaster, incident or emergency are outside the §32(2) day and month limits.
+			const surge = slip([...month(2), ['WORK', 13, 5]]);
+			const flagged = (days: typeof surge.work.days) =>
+				days.map((d, i) =>
+					i === days.length - 1 ? { ...d, facts: { emergency_extension: true } } : d
+				);
+			const extended = {
+				...surge,
+				work: {
+					...surge.work,
+					days: flagged(surge.work.days),
+					month_days: flagged(surge.work.month_days)
+				}
+			};
+			assert.equal(trips('OVERTIME_DAILY_CAP', surge), true);
+			assert.equal(trips('OVERTIME_DAILY_CAP', extended), false);
+			assert.equal(trips('OVERTIME_MONTHLY_CAP', surge), true);
+			assert.equal(trips('OVERTIME_MONTHLY_CAP', extended), false);
 			assert.equal(
 				trips('EMERGENCY_REST_DAY_REPORT', slip([], {}, 10, { STATUTORY_REST_WORK: 1500 })),
 				true
@@ -2058,13 +2228,11 @@ describe('TW public lineage', () => {
 			const period = version === 'version_1' ? '2025-12' : '2026-03';
 			const at2 = (code: string, wage: number, over: Over = {}) =>
 				at(version, code, wage, { period, ...over });
+			const li = liShares(version);
 			// 勞保條例 §14: the reported grade, not the month's reduced pay — 30,000 paid on a 45,800 monthly wage.
-			assert.deepEqual(at2('LI', 30000, { terms: { monthly_wage: 45800 } }), {
-				employee: 1053,
-				employer: 3687
-			});
+			assert.deepEqual(at2('LI', 30000, { terms: { monthly_wage: 45800 } }), li.ei);
 			// 施行細則 §27 / 勞退條例 §16: a 15-day month is 15/30 of the premium.
-			assert.deepEqual(at2('LI', 45800, { covered: 15 }), { employee: 527, employer: 1843 });
+			assert.deepEqual(at2('LI', 45800, { covered: 15 }), li.half);
 			assert.deepEqual(at2('EI', 45800, { covered: 15 }), { employee: 46, employer: 160 });
 			assert.deepEqual(at2('LABOR_PENSION', 45800, { covered: 15 }), {
 				employee: 0,
@@ -2073,7 +2241,7 @@ describe('TW public lineage', () => {
 			assert.deepEqual(at2('OCC_INJURY', 45800, { covered: 15 }), { employee: 0, employer: 27 });
 			// 性別平等工作法 §16(2): ten days of 育嬰留職停薪 leave 20/30 of the month charged; on leave at month end, no NHI.
 			const parental = { leave: [leaveRow(10, '2026-04-30', `${period}-22`)] };
-			assert.deepEqual(at2('LI', 45800, parental), { employee: 702, employer: 2458 });
+			assert.deepEqual(at2('LI', 45800, parental), li.parental);
 			assert.deepEqual(at2('LABOR_PENSION', 45800, parental), { employee: 0, employer: 1832 });
 			assert.deepEqual(at2('NHI', 45800, parental), { employee: 0, employer: 0 });
 			// 健保法 §30: a leaver before the month's last day owes nothing; a joiner owes the whole month.
@@ -2099,14 +2267,14 @@ describe('TW public lineage', () => {
 				fixtureValue12(
 					at2('LI', 45800, { ...sixtyFive, elections: { LI: { continued_after_65: true } } })
 				).employee,
-				1145
+				li.foreign.employee
 			);
-			assert.deepEqual(at2('LI', 45800, sixtyFour), { employee: 1053, employer: 3687 });
+			assert.deepEqual(at2('LI', 45800, sixtyFour), li.ei);
 			assert.deepEqual(at2('EI', 45800, sixtyFour), { employee: 92, employer: 321 });
 			// 身心障礙者權益保障法 §73: a 50% subsidy halves the worker's own share.
 			assert.deepEqual(at2('LI', 45800, { elections: { LI: { disability_subsidy: 50 } } }), {
-				employee: 527,
-				employer: 3687
+				employee: li.half.employee,
+				employer: li.ei.employer
 			});
 			assert.deepEqual(
 				at2('NHI', 45800, {
@@ -2172,10 +2340,50 @@ describe('TW public lineage', () => {
 				}),
 				{ employee: 0, employer: 0 }
 			);
+			// The 兼職所得 worker's bonus is withheld by INCOME_TAX_BONUS on the slip that pays it — never left for a salary
+			// slip that may come later or not at all; INCOME_TAX withholds only the salary's 薪資所得 lines.
 			assert.deepEqual(
 				at2('INCOME_TAX_BONUS', 100000, {
 					...partTime,
 					lines: [{ code: 'bonus', amount: 100000 }]
+				}),
+				{ employee: 5000, employer: 0 }
+			);
+			assert.deepEqual(
+				at2('INCOME_TAX', 95000, {
+					...partTime,
+					lines: [
+						{ code: 'BASIC', amount: 95000 },
+						{ code: 'bonus', amount: 100000 }
+					]
+				}),
+				{ employee: 4750, employer: 0 }
+			);
+			// 查核準則 §88 and 所得稅法 §14: the exempt NT$3,000 of a meal allowance and overtime within the §32 limits are
+			// not 薪資所得 — 88,000 + 3,000 meal + 5,000 overtime is no payment at the 起扣標準; the 2,000 taxable excess is.
+			const salary = (meal: number) => ({
+				...partTime,
+				lines: [
+					{ code: 'BASIC', amount: 88000 },
+					{ code: 'MEAL_ALLOWANCE', amount: 3000 + meal },
+					{ code: 'MEAL_TAXABLE_EXCESS', amount: meal },
+					{ code: 'OVERTIME', amount: 5000 }
+				]
+			});
+			assert.deepEqual(at2('INCOME_TAX', 96000, salary(0)), { employee: 0, employer: 0 });
+			assert.deepEqual(at2('INCOME_TAX', 96000, salary(threshold - 88000)), {
+				employee: Math.floor(threshold * 0.05),
+				employer: 0
+			});
+			const elsewhere = { elections: { NHI: { insured_elsewhere: true } } };
+			assert.deepEqual(
+				at2('NHI_PART_TIME', 33000, {
+					...elsewhere,
+					lines: [
+						{ code: 'BASIC', amount: 28000 },
+						{ code: 'MEAL_ALLOWANCE', amount: 3000 },
+						{ code: 'OVERTIME', amount: 2000 }
+					]
 				}),
 				{ employee: 0, employer: 0 }
 			);
@@ -2261,6 +2469,28 @@ describe('TW public lineage', () => {
 			'2026-12-25'
 		]);
 		for (const version of versions) {
+			// Each row cites its proclamation: the 條例 article and the year's DGPA 辦公日曆表 (or the CEC 投票日).
+			const rows = fixtureValue6(
+				fixtureRecord(
+					fixturePresent(file(version, 'rule_set').find((row) => row.code === 'public_holidays'))
+						.rules
+				).holidays
+			);
+			for (const holiday of rows)
+				assert.match(
+					String(holiday.source),
+					holiday.kind === 'SPECIAL_HOLIDAY'
+						? /中央選舉委員會/
+						: /紀念日及節日實施條例 §[46].*辦公日曆表/,
+					`${version} ${String(holiday.date)}`
+				);
+			// 紀念日及節日實施條例 §5(1)(1)(三): the day is 清明節.
+			assert.equal(
+				rows.some((holiday) => holiday.name === '民族掃墓節'),
+				false
+			);
+		}
+		for (const version of versions) {
 			const row = fixturePresent(
 				file(version, 'work_catalog').find((item) => item.code === 'HOLIDAY_OVERTIME')
 			);
@@ -2308,6 +2538,13 @@ describe('TW public lineage', () => {
 	it('overtime pay and taxable excess price the derived overtime less its banked hours', () => {
 		for (const version of versions) {
 			const rows = file(version, 'work_catalog');
+			// 勞基法 §24(2) has two tiers; the authority quotes it as it reads, with no 第九小時 clause.
+			assert.equal(
+				String(
+					fixturePresent(rows.find((item) => item.code === 'REST_DAY_WORK')).authority
+				).includes('第九小時至第十二小時'),
+				false
+			);
 			const priced = (code: string, context: Row) => {
 				const row = fixturePresent(rows.find((item) => item.code === code));
 				if (
@@ -2438,6 +2675,15 @@ describe('TW public lineage', () => {
 			assert.equal(
 				eligible('CHILDCARE_REDUCED_HOURS', { company: { headcount: 29 }, employee: toddler }),
 				false
+			);
+			// §19(2): under thirty, by agreement with the employer recorded on the terms.
+			assert.equal(
+				eligible('CHILDCARE_REDUCED_HOURS', {
+					company: { headcount: 29 },
+					employee: toddler,
+					terms: { facts: { childcare_reduction_agreed: true } }
+				}),
+				true
 			);
 			assert.equal(
 				eligible('CHILDCARE_REDUCED_HOURS', {
@@ -3877,64 +4123,135 @@ describe('TW public lineage', () => {
 						([, [employee, employer]]) => employee !== 0 || employer !== 0
 					)
 				),
-				{ NHI_SUPPLEMENT: [354, 0], INCOME_TAX_BONUS: [10000, 0] }
+				{
+					NHI_SUPPLEMENT: [354, 0],
+					INCOME_TAX_BONUS: [10000, 0],
+					NHI_SUPPLEMENT_EMPLOYER: [0, 4220]
+				}
 			);
 		})
 	);
 	it.effect(
-		'an OFF_CYCLE bonus before or after the REGULAR run settles the same month totals',
+		'an OFF_CYCLE bonus before, inside or after the REGULAR run settles the same month totals, never deferred',
 		Effect.fnUntraced(function* () {
-			const bonusRow = (COMPANY: string) => ({
-				id: 'b1',
-				catalog_id: fixturePresent(
-					file('version_2', 'adhoc_catalog').find((row) => row.code === 'bonus')
-				).id,
-				employment_id: 'k-p1',
-				company_id: COMPANY,
-				payslip_id: null,
-				occurred_on: '2026-03-20',
-				amount: 200000,
-				activity: 'AWARD'
-			});
-			const totals = (tables: Map<string, Row[]>) => {
+			type Fixture = ReturnType<typeof tw>;
+			const key = (id: string) => fixtureKey(id);
+			// Mei (citizen, 45,800) gets 200,000; Arjun (non-resident, here on 40,000 — the 6% band) gets 10,000.
+			const prepare = (): Fixture => {
+				const fixture = tw();
+				const arjun = fixturePresent(
+					fixturePresent(fixture.tables.get('employment_contract')).find(
+						(row) => row.id === key('k-p2')
+					)
+				);
+				fixturePresent(fixtureValue6(fixtureRecord(arjun.facts).contract_terms)[0]).base_salary = {
+					value: 40000,
+					currency: 'TWD'
+				};
+				return fixture;
+			};
+			const award = (fixture: Fixture, month: string) => {
+				const version = LAW_KIT.versionOn(`${month}-01`);
+				const bonus = fixturePresent(
+					file(version, 'adhoc_catalog').find((row) => row.code === 'bonus')
+				);
+				for (const [id, employment, amount] of [
+					['b1', 'k-p1', 200000],
+					['b2', 'k-p2', 10000]
+				] as const)
+					fixturePresent(fixture.tables.get('adhoc_catalog_entry')).push(
+						fixtureRow({
+							id,
+							catalog_id: bonus.id,
+							employment_id: employment,
+							company_id: fixture.COMPANY,
+							payslip_id: null,
+							occurred_on: `${month}-20`,
+							amount,
+							activity: 'AWARD'
+						})
+					);
+			};
+			const totals = (fixture: Fixture) => {
 				const out: Record<string, [number, number]> = {};
-				for (const slip of fixtureValue24(fixturePresent(tables.get('payslip'))))
+				for (const slip of fixtureValue24(fixturePresent(fixture.tables.get('payslip'))))
 					for (const line of slip.statutory) {
-						const key = `${slip.employment_id}:${line.scheme_code}`;
-						const held = out[key] ?? [0, 0];
-						out[key] = [
+						const slot = `${slip.employment_id}:${line.scheme_code}`;
+						const held = out[slot] ?? [0, 0];
+						out[slot] = [
 							Math.round((held[0] + line.employee_amount) * 100) / 100,
 							Math.round((held[1] + line.employer_amount) * 100) / 100
 						];
 					}
 				return Object.fromEntries(
-					Object.entries(out).filter(([, [employee, employer]]) => employee !== 0 || employer !== 0)
+					Object.entries(out)
+						.filter(([, [employee, employer]]) => employee !== 0 || employer !== 0)
+						.toSorted(([left], [right]) => left.localeCompare(right))
 				);
 			};
-			const after = tw();
-			yield* after.run('2026-03', 'REGULAR');
-			fixturePresent(after.tables.get('adhoc_catalog_entry')).push(
-				fixtureRow(bonusRow(after.COMPANY))
-			);
-			yield* after.run('2026-03', 'OFF_CYCLE', ['b1']);
-			const before = tw();
-			fixturePresent(before.tables.get('adhoc_catalog_entry')).push(
-				fixtureRow(bonusRow(before.COMPANY))
-			);
-			yield* before.run('2026-03', 'OFF_CYCLE', ['b1']);
-			// The off-cycle slip consumed the entry: the regular run must not pay it again.
-			const settlement = fixturePresent(
-				fixturePresent(before.tables.get('payslip')).find(
-					(row) => row.employment_id === fixtureKey('k-p1')
-				)
-			);
-			fixturePresent(fixturePresent(before.tables.get('adhoc_catalog_entry'))[0]).payslip_id =
-				nativeId('payslip', settlement.id);
-			yield* before.run('2026-03', 'REGULAR');
-			assert.deepEqual(totals(before.tables), totals(after.tables));
-			assert.deepEqual(totals(after.tables)[`${fixtureKey('k-p1')}:NHI_SUPPLEMENT`], [354, 0]);
-			assert.deepEqual(totals(after.tables)[`${fixtureKey('k-p1')}:INCOME_TAX_BONUS`], [10000, 0]);
-			assert.deepEqual(totals(after.tables)[`${fixtureKey('k-p1')}:LI`], [1053, 3687]);
+			for (const month of ['2026-11', '2027-01']) {
+				const before = prepare();
+				award(before, month);
+				const offCycle = yield* before.run(month, 'OFF_CYCLE', ['b1', 'b2']);
+				// The off-cycle slips consumed the entries: the regular run must not pay them again.
+				for (const entry of fixturePresent(before.tables.get('adhoc_catalog_entry'))) {
+					const slip = fixturePresent(
+						fixturePresent(before.tables.get('payslip')).find(
+							(row) => row.employment_id === entry.employment_id
+						)
+					);
+					entry.payslip_id = nativeId('payslip', slip.id);
+				}
+				const slipOf = (employment: string) =>
+					before.lines(
+						fixturePresent(offCycle.payslips.find((slip) => slip.employment_id === key(employment)))
+					);
+				// Paid before the salary, each bonus already bears what it attracts: Mei's 5% (薪資所得扣繳辦法 §7), her
+				// supplementary premium above 4 × 45,800 (健保法 §31) and the unit's §34 share of it (200,000 above the
+				// month's 45,800 salary on a 45,800 insured amount); Arjun's at the 18% his month's 50,000 attracts —
+				// 9,000 − the 2,400 his 40,000 salary bears alone — and §34 on 50,000 − 40,100.
+				assert.deepEqual(slipOf('k-p1'), {
+					INCOME_TAX_BONUS: [10000, 0],
+					NHI_SUPPLEMENT: [354, 0],
+					NHI_SUPPLEMENT_EMPLOYER: [0, 4220]
+				});
+				assert.deepEqual(slipOf('k-p2'), {
+					INCOME_TAX_NON_RESIDENT: [6600, 0],
+					NHI_SUPPLEMENT_EMPLOYER: [0, 209]
+				});
+				yield* before.run(month, 'REGULAR');
+				const inside = prepare();
+				award(inside, month);
+				yield* inside.run(month, 'REGULAR');
+				const after = prepare();
+				yield* after.run(month, 'REGULAR');
+				award(after, month);
+				yield* after.run(month, 'OFF_CYCLE', ['b1', 'b2']);
+				const expected = totals(inside);
+				assert.deepEqual(totals(before), expected, `${month}: bonus before the salary run`);
+				assert.deepEqual(totals(after), expected, `${month}: bonus after the salary run`);
+				// Every scheme the version charges these two workers is in the comparison.
+				const li = month === '2027-01' ? [1099, 3847] : [1053, 3687];
+				assert.deepEqual(expected, {
+					[`${key('k-p1')}:EI`]: [92, 321],
+					[`${key('k-p1')}:INCOME_TAX`]: [2290, 0],
+					[`${key('k-p1')}:INCOME_TAX_BONUS`]: [10000, 0],
+					[`${key('k-p1')}:LABOR_PENSION`]: [0, 2748],
+					[`${key('k-p1')}:LI`]: li,
+					[`${key('k-p1')}:NHI`]: [710, 2216],
+					[`${key('k-p1')}:NHI_SUPPLEMENT`]: [354, 0],
+					[`${key('k-p1')}:NHI_SUPPLEMENT_EMPLOYER`]: [0, 4220],
+					[`${key('k-p1')}:OCC_INJURY`]: [0, 55],
+					[`${key('k-p1')}:WAGE_ARREARS_FUND`]: [0, 11],
+					[`${key('k-p2')}:INCOME_TAX_NON_RESIDENT`]: [9000, 0],
+					[`${key('k-p2')}:LABOR_PENSION_RESERVE`]: [0, 800],
+					[`${key('k-p2')}:LI`]: month === '2027-01' ? [1043, 3649] : [1003, 3509],
+					[`${key('k-p2')}:NHI`]: [622, 1940],
+					[`${key('k-p2')}:NHI_SUPPLEMENT_EMPLOYER`]: [0, 209],
+					[`${key('k-p2')}:OCC_INJURY`]: [0, 48],
+					[`${key('k-p2')}:WAGE_ARREARS_FUND`]: [0, 10]
+				});
+			}
 		})
 	);
 	it.effect(
@@ -5077,12 +5394,25 @@ describe('TW public lineage', () => {
 				assert.equal(priced('HOLIDAY_WORK', slip(other)), 0);
 				assert.equal(priced('OVERTIME', slip(other)), 2.68 * 187.5);
 			}
+			// 勞基法 §24(1)(3): hours extended under §32(4) (disaster, incident, emergency) are paid double, not 1.34/1.67.
+			const ordinary = slip({ nationality: 'IN', date_of_birth: '1990-02-01' });
+			const emergency = {
+				...ordinary,
+				work: {
+					...ordinary.work,
+					days: [{ ...day, holiday_kind: '', facts: { emergency_extension: true } }],
+					holidays: []
+				}
+			};
+			assert.equal(priced('OVERTIME', emergency), 2 * 2.0 * 187.5);
 			const holidays = fixtureValue26(
 				fixturePresent(file(version, 'rule_set').find((row) => row.code === 'public_holidays'))
 					.rules
 			).holidays;
 			assert.deepEqual(
-				holidays.filter((h) => h.kind === 'SPECIAL_HOLIDAY'),
+				holidays
+					.filter((h) => h.kind === 'SPECIAL_HOLIDAY')
+					.map(({ date, name, kind }) => ({ date, name, kind })),
 				version === 'version_3' || version === 'version_4'
 					? [{ date: '2026-11-28', name: '地方公職人員選舉投票日', kind: 'SPECIAL_HOLIDAY' }]
 					: []
@@ -5092,6 +5422,8 @@ describe('TW public lineage', () => {
 				file(version, 'leave_catalog').find((row) => row.code === 'INDIGENOUS_RITUAL_HOLIDAY')
 			);
 			assert.equal(leave.pay_fraction, '');
+			// 紀念日及節日實施條例 §6(1)(3) (from 2025-05-28): 擇定三日放假, up from the old 辦法's one day.
+			assert.equal(fixtureRecord(leave.entitlement).days, '3.0');
 			assert.equal(
 				evaluateConfigured(
 					fixtureString(String(leave.eligibility)),
@@ -5231,9 +5563,20 @@ describe('TW public lineage', () => {
 				file(version, 'rule_set').find((row) => row.code === 'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM')
 			);
 			// run.statutory carries each slip's salary (base) and insured amount (charged_base, the scheme's assessment).
-			const assessment = String(
-				fixtureValue1(scheme(version, 'NHI_SUPPLEMENT_EMPLOYER').configuration).assessment
-			);
+			const configuration = fixtureValue0(scheme(version, 'NHI_SUPPLEMENT_EMPLOYER').configuration);
+			const assessment = String(fixturePresent(configuration.person).insured);
+			// The insured amount is netted once a month: on the salary run's slip, nil on an off-cycle slip.
+			const charged = (salary_run: boolean) =>
+				evaluateConfigured(
+					fixtureString(String(configuration.assessment)),
+					fixtureContext({
+						...statutoryContext(45000),
+						period: { salary_run },
+						person: { insured: 45800 }
+					})
+				);
+			assert.equal(charged(true), 45800);
+			assert.equal(charged(false), 0);
 			const insuredOn = (wage: number, over: Over = {}) =>
 				Number(
 					evaluateConfigured(

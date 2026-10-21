@@ -12,6 +12,7 @@
 		"direction": "ADD",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": true,
+		"denominator": "double(period.days)",
 		"authority": "Labour Protection Act B.E. 2541 (1998) s.5 (\"wage\": money paid for work in normal working time) and s.70 (paid at least once a month). A monthly-paid employee: the contract amount scaled to the days employed in the month. A semi-monthly or ten-day period pays the monthly salary divided by the parts of the month (LPA s.70 allows payment more often than monthly)."
 	},
 	{

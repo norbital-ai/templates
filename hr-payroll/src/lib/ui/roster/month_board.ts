@@ -6,7 +6,7 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import { t, type MessageKey } from '../i18n/t.js';
 import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
-import { creditAttendance } from '../../payroll_engine/payslip/context.js';
+import { creditAttendance, type AttendancePolicy } from '../../payroll_engine/payslip/context.js';
 import { consumedLeaveCovers } from '../../payroll_engine/leave.js';
 
 /** One worked interval as `roster_entry.worked_intervals` stores it: ISO instants, `end` null while clocked in. */
@@ -216,6 +216,8 @@ export function buildDays(input: {
 	readonly holidays: readonly HolidayRow[];
 	readonly leave: readonly LeaveRow[];
 	readonly timeZone: string;
+	/** The governing version's `payroll.attendance`; null leaves every day's credit unknown. */
+	readonly policy: AttendancePolicy | null;
 	/** A day's planned shift: the rostered definition, else the one the person's pattern plans; null when none. */
 	readonly shiftOf?: (
 		employmentId: string,
@@ -277,6 +279,7 @@ export function buildDays(input: {
 				planned,
 				date,
 				input.timeZone,
+				input.policy,
 				approvedOvertime,
 				approvedOvertimeIntervals
 			);
@@ -349,12 +352,20 @@ export function overtimeOf(
 	planned: PlannedShift | null,
 	date: string,
 	timeZone: string,
+	policy: AttendancePolicy | null,
 	plannedOvertime?: number | null,
 	approvedOvertimeIntervals?: readonly ApprovedOvertimeInterval[] | null
 ): number | null {
 	return (
-		completionOf(intervals, planned, date, timeZone, plannedOvertime, approvedOvertimeIntervals)
-			?.overtime_hours ?? null
+		completionOf(
+			intervals,
+			planned,
+			date,
+			timeZone,
+			policy,
+			plannedOvertime,
+			approvedOvertimeIntervals
+		)?.overtime_hours ?? null
 	);
 }
 
@@ -364,17 +375,20 @@ export function completionOf(
 	planned: PlannedShift | null,
 	date: string,
 	timeZone: string,
+	policy: AttendancePolicy | null,
 	plannedOvertime?: number | null,
 	approvedOvertimeIntervals?: readonly ApprovedOvertimeInterval[] | null
 ): ReturnType<typeof creditAttendance> | null {
-	if (intervals == null || intervals.some((interval) => interval.end == null)) return null;
+	if (policy == null || intervals == null || intervals.some((interval) => interval.end == null))
+		return null;
 	return creditAttendance({
 		date,
 		intervals,
 		planned,
 		plannedOvertimeHours: plannedOvertime ?? null,
 		approvedOvertimeIntervals: approvedOvertimeIntervals ?? null,
-		timeZone
+		timeZone,
+		policy
 	});
 }
 

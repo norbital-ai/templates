@@ -7,10 +7,11 @@
 		"code": "INSURANCE_PREMIUM_REMITTANCE",
 		"name": "Labour, employment and occupational accident insurance premiums and the wage arrears levy",
 		"rules": {
-			"description": "Pay the month’s labour, employment and occupational accident insurance premiums (the worker shares deducted plus the employer shares) and the wage arrears fund levy on the BLI bill. Fifteen-day grace, then a late fee.",
+			"description": "Pay the month’s labour, employment and occupational accident insurance premiums (the worker shares deducted plus the employer shares) and the wage arrears fund levy on the BLI bill — the levy as BLI computes it: 0.025% of the unit’s total 墊償提繳薪資 (run.statutory WAGE_ARREARS_FUND charged_base, each slip’s prorated LI grade), rounded once, in place of the slips’ per-person estimates. Fifteen-day grace, then a late fee.",
 			"authority": "勞工保險條例 §16(1)(1): 由投保單位負責扣、收繳，並須於次月底前，連同投保單位負擔部分，一併向保險人繳納 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=16); 就業保險法 §40 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=40); 勞工職業災害保險及保護法 §19–21 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=20); 勞動基準法 §28(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28) A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4), https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=A0030055&flno=48; 民法 §122).",
 			"schemes": ["LI", "WAGE_ARREARS_FUND", "EI", "OCC_INJURY"],
-			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+			"due": "next_working_day(month_end(add_months(period.from, 1)), holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"amount": "round(total - (\"WAGE_ARREARS_FUND\" in run.statutory ? run.statutory.WAGE_ARREARS_FUND.employer - round(run.statutory.WAGE_ARREARS_FUND.charged_base * 0.00025, 1.0, \"HALF_UP\") : 0.0), 0.01)"
 		}
 	},
 	{
@@ -605,9 +606,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (work.days.exists(d, d.worked_hours > 12.0))",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (work.days.exists(d, d.worked_hours > 12.0 && !(has(d.facts) && has(d.facts.emergency_extension) && d.facts.emergency_extension == true)))",
 			"message": "A day exceeds twelve hours of work including overtime (勞動基準法 §32(2)).",
-			"description": "勞動基準法 §32(2): 延長勞工之工作時間連同正常工作時間，一日不得超過十二小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+			"description": "勞動基準法 §32(2): 延長勞工之工作時間連同正常工作時間，一日不得超過十二小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). A day the roster marks facts.emergency_extension (§32(4): natural disaster, incident or emergency) is outside the limit. The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
 		}
 	},
 	{
@@ -620,9 +621,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) ? 54.0 : 46.0))",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).filter(d, !(has(d.facts) && has(d.facts.emergency_extension) && d.facts.emergency_extension == true)).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) ? 54.0 : 46.0))",
 			"message": "The month’s overtime exceeds 46 hours (54 with the union’s or labour-management conference’s consent) (勞動基準法 §32(2)).",
-			"description": "勞動基準法 §32(2): 延長之工作時間，一個月不得超過四十六小時；經工會同意…後…一個月不得超過五十四小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); §36(3): 休息日之工作時間…計入延長工作時間總數. Counts each working day’s approved overtime and every hour worked on a 休息日 (OFF); holiday hours beyond eight are counted (87年 函). The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
+			"description": "勞動基準法 §32(2): 延長之工作時間，一個月不得超過四十六小時；經工會同意…後…一個月不得超過五十四小時 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32); §36(3): 休息日之工作時間…計入延長工作時間總數. Counts each working day’s approved overtime (not a day the roster marks facts.emergency_extension: §32(4) hours are outside the §32(2) limits) and every hour worked on a 休息日 (OFF); holiday hours beyond eight are counted (87年 函). The wages are still owed; the run warns. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
 		}
 	},
 	{
@@ -635,9 +636,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) && company.headcount >= 30.0 && (sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > 46.0)",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && ((has(company.facts.overtime_extension_approval_on) && company.facts.overtime_extension_approval_on != \"\" && company.facts.overtime_extension_approval_on <= period.to && has(company.facts.overtime_extension_approved_by) && company.facts.overtime_extension_approved_by in [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"]) && company.headcount >= 30.0 && (sum(work.month_days.filter(d, !(d.day_type in [\"REST\", \"OFF\"]) && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).filter(d, !(has(d.facts) && has(d.facts.emergency_extension) && d.facts.emergency_extension == true)).map(d, d.overtime_hours)) + sum(work.month_days.filter(d, d.day_type == \"OFF\" && !((d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))))).map(d, d.worked_hours)) + sum(work.month_days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"] || (d.holiday_kind == \"SPECIAL_HOLIDAY\" && (has(employee.facts.voting_right) ? employee.facts.voting_right == true : (employee.nationality == \"TW\" && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, d.date) >= 20)))) && d.worked).map(d, max(0.0, d.worked_hours - 8.0)))) > 46.0)",
 			"message": "Overtime above 46 hours in a month under consent: an employer of thirty or more workers must file the arrangement with the local authority (勞動基準法 §32(3)).",
-			"description": "勞動基準法 §32(3): 雇主僱用勞工人數在三十人以上，依前項但書規定延長勞工工作時間者，應報當地主管機關備查 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
+			"description": "勞動基準法 §32(3): 雇主僱用勞工人數在三十人以上，依前項但書規定延長勞工工作時間者，應報當地主管機關備查 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32). Working-day overtime on a day the roster marks facts.emergency_extension (§32(4)) is left out. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement). Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month."
 		}
 	},
 	{
@@ -788,90 +789,107 @@
 				{
 					"date": "2026-01-01",
 					"name": "中華民國開國紀念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-15",
 					"name": "農曆除夕前一日（小年夜）",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-16",
 					"name": "農曆除夕",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-17",
 					"name": "春節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-18",
 					"name": "春節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-19",
 					"name": "春節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(1); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-02-28",
 					"name": "和平紀念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-04-04",
 					"name": "兒童節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-04-05",
-					"name": "民族掃墓節",
-					"kind": "PUBLIC_HOLIDAY"
+					"name": "清明節",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-05-01",
 					"name": "勞動節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-06-19",
 					"name": "端午節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-09-25",
 					"name": "中秋節",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §6(1)(2); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-09-28",
 					"name": "孔子誕辰紀念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(3); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-10-10",
 					"name": "國慶日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(4); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-10-25",
 					"name": "臺灣光復暨金門古寧頭大捷紀念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(5); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				},
 				{
 					"date": "2026-11-28",
 					"name": "地方公職人員選舉投票日",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "中央選舉委員會 115年地方公職人員選舉公告: 投票日 2026-11-28 (CNA 2026-08-20, https://cna.com.tw/news/aipl/202608200078.aspx); 勞動基準法 §37 and MOL: workers with the vote (https://www.mol.gov.tw/1607/1632/1640/11674/post)"
 				},
 				{
 					"date": "2026-12-25",
 					"name": "行憲紀念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "勞動基準法 §37(1); 紀念日及節日實施條例 §4(1)(6); 115年政府行政機關辦公日曆表, 行政院 114-06-13 院授人培字第11430248312號函 (https://www.dgpa.gov.tw/information?uid=30&pid=12573)"
 				}
 			],
-			"authority": "勞動基準法 §37(1): 內政部所定應放假之紀念日、節日、勞動節…均應休假; 紀念日及節日實施條例 (公布施行 2025-05-28: 16 days, 小年夜, 勞動節, 9/28, 10/25 and 12/25 added) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020033); dates per the 115年紀念日及節日假期處理一覽表 (行政院人事行政總處 115年辦公日曆表; 高雄市政府勞工局 115年休假日一覽表). A holiday on a 例假 or 休息日 is given in lieu on an agreed day (施行細則 §23-1: PUBLIC_HOLIDAY_IN_LIEU), not on the civil-service substitute date. 原住民族歲時祭儀 are each tribe’s own and not listed: the INDIGENOUS_RITUAL_HOLIDAY leave class. An election or referendum 投票日 is a SPECIAL_HOLIDAY for workers with the vote only (MOL), with no day in lieu when it falls on a rest day. 投票日 2026-11-28: 中央選舉委員會 115年地方公職人員選舉公告 (CNA 2026-08-20, https://cna.com.tw/news/aipl/202608200078.aspx); 公職人員選舉罷免法 §3 / 勞動基準法 §37: workers with the vote are given the day off with pay, work is paid double (MOL, https://www.mol.gov.tw/1607/1632/1640/11674/post)."
+			"authority": "勞動基準法 §37(1): 內政部所定應放假之紀念日、節日、勞動節…均應休假; 紀念日及節日實施條例 (公布施行 2025-05-28: 16 days, 小年夜, 勞動節, 9/28, 10/25 and 12/25 added) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020095); dates per the 115年紀念日及節日假期處理一覽表 (行政院人事行政總處 115年辦公日曆表; 高雄市政府勞工局 115年休假日一覽表). A holiday on a 例假 or 休息日 is given in lieu on an agreed day (施行細則 §23-1: PUBLIC_HOLIDAY_IN_LIEU), not on the civil-service substitute date. 原住民族歲時祭儀 are each tribe’s own and not listed: the INDIGENOUS_RITUAL_HOLIDAY leave class. An election or referendum 投票日 is a SPECIAL_HOLIDAY for workers with the vote only (MOL), with no day in lieu when it falls on a rest day. 投票日 2026-11-28: 中央選舉委員會 115年地方公職人員選舉公告 (CNA 2026-08-20, https://cna.com.tw/news/aipl/202608200078.aspx); 公職人員選舉罷免法 §3 / 勞動基準法 §37: workers with the vote are given the day off with pay, work is paid double (MOL, https://www.mol.gov.tw/1607/1632/1640/11674/post)."
 		}
 	},
 	{
@@ -1589,9 +1607,9 @@
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
-			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (day.worked_hours > 12.0)",
+			"when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system == true && has(terms.facts) && has(terms.facts.responsibility_system_agreement) && terms.facts.responsibility_system_agreement != \"\") && (day.worked_hours > 12.0 && !(has(day.facts) && has(day.facts.emergency_extension) && day.facts.emergency_extension == true))",
 			"message": "More than twelve hours worked in a day, overtime included (勞動基準法 §32(2)).",
-			"description": "勞動基準法 §32(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32): 延長之工作時間連同正常工作時間，一日不得超過十二小時. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
+			"description": "勞動基準法 §32(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32): 延長之工作時間連同正常工作時間，一日不得超過十二小時; a day marked facts.emergency_extension (§32(4)) is outside it. Not for a §84-1 responsibility-system worker (勞動基準法 §84-1: company facts responsibility_system and the worker’s terms facts responsibility_system_agreement)."
 		}
 	},
 	{
@@ -2026,6 +2044,21 @@
 					"payment": "INFORMATION"
 				}
 			]
+		}
+	},
+	{
+		"id": "0010a873-82f1-5274-9543-ac34906953b5",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]
