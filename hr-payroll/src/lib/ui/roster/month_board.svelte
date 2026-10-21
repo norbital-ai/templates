@@ -141,9 +141,7 @@
 		<Stack gap="none" justify="center" shrink={false} class="w-40 border-r bg-card px-3">
 			<span class="font-semibold">{t('roster.person')}</span>
 			<span class="text-tiny text-muted-foreground">
-				{t('roster.plan_projected')} · {t('roster.plan_recorded')} · {t(
-					'component.work_day_actual'
-				)}
+				{t('roster.plan_recorded')} · {t('component.work_day_actual')}
 			</span>
 		</Stack>
 		<Bound size="full" clip grow>
@@ -235,7 +233,7 @@
 											onclick={() =>
 												(editing = { employmentId: person.id, person: person.name, day })}
 										>
-											<DayCell {day} dense />
+											<DayCell {day} />
 										</button>
 									{/if}
 								</td>

@@ -53,14 +53,15 @@ it('renders pattern projection separately from an explicit plan and credited com
 		const day = days.get(dayKey(person.id, date));
 		if (day == null) throw new Error('Missing person-day fixture.');
 		const target = document.body.appendChild(document.createElement('div'));
-		const app = mount(DayCell, { target, props: { day, dense: true } });
+		const app = mount(DayCell, { target, props: { day } });
 		try {
 			flushSync();
 			const text = (layer: string) =>
 				target.querySelector(`[data-work-layer="${layer}"]`)?.textContent?.replace(/\s+/g, '');
-			expect(text('projected')).toBe(index === 0 ? '01' : '—');
-			expect(text('planned')).toBe(index === 0 ? '—' : '02+3h');
-			expect(text('actual')).toBe(index === 0 ? '—' : '95%');
+			// the pattern's shift until one is planned; then only the planned one
+			expect(text('projected')).toBe(index === 0 ? '01' : undefined);
+			expect(text('planned')).toBe(index === 0 ? undefined : '02+3h');
+			expect(text('actual')).toBe(index === 0 ? undefined : '95%');
 			const progress = target.querySelector('[role="progressbar"]');
 			expect(progress?.getAttribute('aria-valuenow') ?? null).toBe(index === 0 ? null : '95');
 			if (index === 1) {
@@ -120,7 +121,7 @@ it('credits read-only dated pre-shift approval without filling an ordinary leadi
 		const changedPlan = dayEdit(day, shiftId, 2, intervals);
 		expect('approved_overtime_intervals' in changedPlan).toBe(false);
 		const target = document.body.appendChild(document.createElement('div'));
-		const app = mount(DayCell, { target, props: { day, dense: true } });
+		const app = mount(DayCell, { target, props: { day } });
 		try {
 			flushSync();
 			const progress = target.querySelector('[role="progressbar"]');
@@ -329,7 +330,7 @@ it('keeps capped progress accessible for missing OT, excess, overnight, open, re
 		expect(day.overtime, scenario.name).toBe(scenario.overtime);
 		if (scenario.leave || scenario.shift?.day_type === 'REST') expect(isAbsent(day)).toBe(false);
 		const target = document.body.appendChild(document.createElement('div'));
-		const app = mount(DayCell, { target, props: { day, dense: true } });
+		const app = mount(DayCell, { target, props: { day } });
 		try {
 			flushSync();
 			const actual = target.querySelector('[data-work-layer="actual"]');
@@ -338,7 +339,7 @@ it('keeps capped progress accessible for missing OT, excess, overnight, open, re
 				scenario.percent == null
 					? scenario.open
 						? 'roster.progress_open'
-						: '—'
+						: undefined
 					: `${scenario.percent}%`
 			);
 			expect(progress?.getAttribute('aria-valuenow') ?? null, scenario.name).toBe(
