@@ -98,6 +98,21 @@ const bankCharge = (value: unknown): number | null =>
 const total = (values: readonly number[]): number =>
 	values.reduce((sum, value) => sum.plus(Decimal.of(String(value))), Decimal.of(0)).toNumber();
 const key = (family: string, code: string) => `${family}:${code}`;
+/** A missing label reads as its code in sentence case (`UNPAID_DAYS` → `Unpaid days`); a bare acronym stays. */
+const humanised = (code: string): string =>
+	code.includes('_') ? code.charAt(0) + code.slice(1).toLowerCase().replaceAll('_', ' ') : code;
+/** A statutory catalogue row's presentation: its short label and display order. */
+export type SalaryScheme = {
+	readonly code: string;
+	readonly label?: string | null | undefined;
+	readonly display_order?: number | null | undefined;
+};
+/** The catalogue's label; an unlabelled scheme reads as its code (scheme codes are acronyms). */
+export const schemeLabel = (schemes: readonly SalaryScheme[], code: string): string =>
+	schemes.find((scheme) => scheme.code === code)?.label ?? code;
+/** The catalogue's display order; an unordered scheme follows every ordered one. */
+export const schemeRank = (schemes: readonly SalaryScheme[], code: string): number =>
+	schemes.find((scheme) => scheme.code === code)?.display_order ?? Number.MAX_SAFE_INTEGER;
 
 const GROUPS = [
 	'Basic pay',
@@ -130,6 +145,7 @@ export function salaryReport(input: {
 	readonly minor_units: number;
 	readonly configuration?: unknown;
 	readonly catalogs: readonly SalaryCatalog[];
+	readonly schemes?: readonly SalaryScheme[];
 	readonly employees: readonly SalaryEmployee[];
 }): SalaryReport {
 	const profilePresent = input.configuration != null;
@@ -245,7 +261,7 @@ export function salaryReport(input: {
 					group: classification?.group ?? group,
 					family,
 					code: row.component_code,
-					label: row.label ?? row.component_code,
+					label: row.label ?? humanised(row.component_code),
 					external: companyPaid || (!employer && classification?.payment === 'EXTERNAL')
 				},
 				deduction ? -row.amount : row.amount
@@ -264,7 +280,13 @@ export function salaryReport(input: {
 				if (amount === 0) continue;
 				government = total([government, amount]);
 				add(
-					{ group, family, code: row.scheme_code, label: row.scheme_code, external: true },
+					{
+						group,
+						family,
+						code: row.scheme_code,
+						label: schemeLabel(input.schemes ?? [], row.scheme_code),
+						external: true
+					},
 					amount
 				);
 			}
@@ -311,6 +333,9 @@ export function salaryReport(input: {
 				Number(b.family === 'TOTAL' && b.code === 'COMPANY_PAYMENT') ||
 			rank(a.group) - rank(b.group) ||
 			a.group.localeCompare(b.group) ||
+			(a.family.endsWith('_STATUTORY')
+				? schemeRank(input.schemes ?? [], a.code) - schemeRank(input.schemes ?? [], b.code)
+				: 0) ||
 			a.code.localeCompare(b.code) ||
 			a.family.localeCompare(b.family)
 	);

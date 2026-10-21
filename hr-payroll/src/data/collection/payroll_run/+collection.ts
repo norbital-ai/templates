@@ -486,6 +486,12 @@ c.query('export_payroll', function* ({ ids, kind }, ctx) {
 			select: { settings_id: true, code: true, destination: true, name: true },
 			all: true
 		},
+		scheme_meta: {
+			collection: 'statutory_contribution_catalog',
+			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
+			select: { settings_id: true, code: true, label: true, display_order: true },
+			all: true
+		},
 		rules: {
 			collection: 'rule_set',
 			where: {
@@ -665,6 +671,7 @@ c.query('export_payroll', function* ({ ids, kind }, ctx) {
 									name: row.name
 								}))
 						],
+						schemes: got.scheme_meta.rows.filter((row) => row.settings_id === run.settings_id),
 						employees: selected.map((slip) => {
 							const contract = byContract.get(slip.employment_id);
 							const person = contract == null ? undefined : byPerson.get(contract.employee_id);

@@ -897,6 +897,13 @@ type Subject = {
 			employer: number;
 		};
 	};
+	/** This month's charges of the schemes assessed before this one (`charged.month`). */
+	charged_month?: {
+		[code: string]: {
+			employee: number;
+			employer: number;
+		};
+	};
 	/** Other schemes' standing elections (`elections.<CODE>`). */
 	all_elections?: Row;
 	/** What the employment earned before this slip (`earned`) and this slip's lines (`lines[]`). */
@@ -995,7 +1002,7 @@ const statutory = (
 		rules: {},
 		earned: { month: {}, year: {}, previous_month: {}, months: [], ...input.earned },
 		lines: input.lines ?? [],
-		charged: { year: input.charged ?? {}, month: {} },
+		charged: { year: input.charged ?? {}, month: input.charged_month ?? {} },
 		elections: { [code]: input.elections ?? {}, ...input.all_elections },
 		scheme: { code, standing: input.standing ?? '', elections: input.elections ?? {} },
 		period: {
@@ -2556,6 +2563,7 @@ describe('MY jurisdiction seed', () => {
 						entitlement: annual.entitlement
 					}
 				],
+				grounds: [byCode(version, 'rule_set', 'exit_grounds')],
 				movements: [
 					{
 						catalog_id: annual.id,
@@ -2634,6 +2642,21 @@ describe('MY jurisdiction seed', () => {
 			assert.equal(seventh('2026-12-01').days, 28);
 			// s.60E(1) rounding: a half day or more is a day — 16 × 2 / 12 = 2.67 → 3 after two completed months.
 			assert.equal(seventh('2026-02-05').days, 16 + 3 - 4);
+			// The exit ground's default decides (Infotech list): misconduct forfeits, resignation encashes; the per-employee
+			// override wins either way.
+			const leaving = (exit_ground: string, exit_facts: Row = {}) =>
+				effectWrites(
+					encash,
+					withBalances({
+						...context,
+						event: { ...context.event, row: { ...context.event.row, exit_ground, exit_facts } }
+					})
+				).length;
+			assert.equal(leaving('RESIGNATION'), 1);
+			assert.equal(leaving('OTHERS'), 1);
+			assert.equal(leaving('DISMISSAL_MISCONDUCT'), 0);
+			assert.equal(leaving('DISMISSAL_MISCONDUCT', { annual_leave_on_exit: 'ENCASH' }), 1);
+			assert.equal(leaving('RESIGNATION', { annual_leave_on_exit: 'DO_NOT_ENCASH' }), 0);
 			// EA s.60E(3A) proviso: no payment for untaken leave on a s.14(1)(a) misconduct dismissal.
 			const dismissed = {
 				event: {
@@ -3030,6 +3053,27 @@ describe('MY jurisdiction seed', () => {
 			// TP1 deductions declared for the month (LP1 RM500, January): P = 71,000 − 500 = 70,500 →
 			// 3,700 + 500 × 19% = 3,795 ÷ 12 = 316.25.
 			assert.equal(mtd({ ordinary: 7000 }, { elections: { tp1_monthly_deductions: 500 } }), 316.25);
+			// TP1 C14 SOCSO/EIS relief only when claimed: the month's RM29.75 SOCSO + RM11.90 EIS (RM6,000 ceiling)
+			// give P = 71,000 − 41.65 = 70,958.35 → 3,700 + 958.35 × 19% = 3,882.09 ÷ 12 = 323.507 → 323.50 (the Nihon
+			// listing's figure); unclaimed, the same charges leave 324.20. The year's relief is capped at RM350:
+			// P = 70,650 → 3,823.50 ÷ 12 = 318.625 → 318.62 → 318.65.
+			const contributions = {
+				SOCSO: { employee: 29.75, employer: 104.15 },
+				EIS: { employee: 11.9, employer: 11.9 }
+			};
+			const claimed = { socso_eis_relief: true };
+			assert.equal(mtd({ ordinary: 7000 }, { charged_month: contributions }), 324.2);
+			assert.equal(
+				mtd({ ordinary: 7000 }, { charged_month: contributions, elections: claimed }),
+				323.5
+			);
+			assert.equal(
+				mtd(
+					{ ordinary: 7000 },
+					{ charged_month: { SOCSO: { employee: 400, employer: 0 } }, elections: claimed }
+				),
+				318.65
+			);
 			// TP3 for a February joiner: RM7,000 earlier remuneration, RM770 EPF and RM324.20 MTD at the previous employer.
 			assert.equal(
 				mtd(
@@ -3771,6 +3815,9 @@ describe('MY jurisdiction seed', () => {
 			assert.equal(priced('TERMINATION_BENEFIT', { ...leaver, service_months: 11 }), null);
 			assert.equal(priced('TERMINATION_BENEFIT', { ...leaver, exit_ground: 'RETIREMENT' }), null);
 			assert.equal(priced('TERMINATION_BENEFIT', { ...leaver, exit_ground: 'RESIGNATION' }), null);
+			// reg.8: a transfer whose service the new employer continues pays none, even past twelve months.
+			for (const exit_ground of ['TRANSFER', 'TRANSFER_TO_SUBSIDIARY'])
+				assert.equal(priced('TERMINATION_BENEFIT', { ...leaver, exit_ground }, { months }), null);
 			assert.notEqual(
 				priced('TERMINATION_BENEFIT', {
 					...leaver,

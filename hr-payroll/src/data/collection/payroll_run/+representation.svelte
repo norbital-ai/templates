@@ -151,6 +151,7 @@
 				toolbar={{
 					title: bolt.t('component.payslips'),
 					new: false,
+					export: false,
 					select: true,
 					actions: [
 						{

@@ -6,7 +6,8 @@
 	 */
 	import { t } from '../i18n/t.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { EmptyState, Table } from '@norbital-ai/ui';
+	import { EmptyState, Input, Table } from '@norbital-ai/ui';
+	import { Debounced } from 'runed';
 	import Skeleton from '../components/skeleton.svelte';
 	import CompanyScope from '../scopes/company_picker.svelte';
 	import {
@@ -43,7 +44,22 @@
 		const lineage = scope.company?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
+	// The entries carry no searchable text of their own: the box searches the person, by employee number or name.
+	let typed = $state('');
+	const query = new Debounced(() => typed.trim(), 250);
 </script>
+
+{#snippet personSearch()}
+	<Input
+		type="search"
+		class="w-48"
+		placeholder={t('component.search_person')}
+		aria-label={t('component.search_person')}
+		value={typed}
+		oninput={(event: Event & { currentTarget: HTMLInputElement }) =>
+			(typed = event.currentTarget.value)}
+	/>
+{/snippet}
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
 {#snippet amountCell({ value }: { value: unknown })}{@const amount =
@@ -72,14 +88,22 @@
 		{#key `${scope.id}:${pay.period}`}
 			{@const where = {
 				employment_id: { is: { company_id: { eq: scope.id } } },
-				occurred_on: { gte: pay.window.start, lte: pay.window.end }
+				occurred_on: { gte: pay.window.start, lte: pay.window.end },
+				...(query.current === ''
+					? {}
+					: {
+							or: [
+								{ employment_id: { is: { $search: query.current } } },
+								{ employment_id: { is: { employee_id: { is: { $search: query.current } } } } }
+							]
+						})
 			} as const}
 			<!-- repository-health:allow UI17 -- the tables' `key`, never shown -->
 			{@const key = `${collection}-${scope.id}-${pay.period}`}
 			<Table
 				of={collection}
 				{key}
-				toolbar={{ title }}
+				toolbar={{ title, search: false, controls: personSearch }}
 				{where}
 				orderBy={{ occurred_on: 'desc' }}
 				columns={[

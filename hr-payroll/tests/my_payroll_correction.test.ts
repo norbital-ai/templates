@@ -201,3 +201,121 @@ for (const allowanceInput of ['code', 'prior-snapshot ID'] as const)
 		}),
 		15_000
 	);
+
+it.effect(
+	'MY leave under a 21st cutoff charges the attendance window, not the salary month',
+	Effect.fnUntraced(function* () {
+		const tables: Tables = law.law();
+		const company = fixtureId('my-cutoff-company');
+		const employee = fixtureId('my-cutoff-employee');
+		const contract = fixtureId('my-cutoff-contract');
+		const unpaid = law.byCode('version_2', 'leave_catalog', 'UNPAID_LEAVE')['id'];
+		tables.set('entity', [
+			{
+				id: company,
+				name: 'Example Malaysia',
+				settings_code: 'MY',
+				pay_frequency: 'MONTHLY',
+				pay_cutoff_day: 21,
+				effective_range: { from: '2025-01-01', to: null },
+				facts: {
+					normal_daily_hours: 8,
+					normal_days_per_week: 5,
+					hrd_registration_class: 'NOT_REGISTERED'
+				}
+			}
+		]);
+		tables.set('employment_profile', [
+			{
+				id: employee,
+				name: 'Example Employee',
+				nationality: 'MY',
+				date_of_birth: '1990-01-01',
+				gender: 'FEMALE',
+				marital_status: 'SINGLE',
+				spouse_status: 'NONE',
+				children: [],
+				facts: {}
+			}
+		]);
+		tables.set('employment_contract', [
+			{
+				id: contract,
+				employee_id: employee,
+				company_id: company,
+				employee_number: 'EXAMPLE',
+				contract_number: 1,
+				effective_range: { from: '2025-01-01', to: null },
+				facts: {
+					contract_terms: [
+						{
+							effective_range: { from: '2025-01-01', to: null },
+							base_salary: { value: 3100, currency: 'MYR' },
+							residency_status: 'CITIZEN',
+							work_classification: 'EA_COVERED',
+							statutory_work_category: 'NON_MANUAL',
+							employment_type: 'PERMANENT',
+							facts: { normal_hours_per_day: 8, normal_days_per_week: 5 },
+							allowances: []
+						}
+					]
+				}
+			}
+		]);
+		// January attends 21 Dec – 20 Jan: the December days are this run's, 26 January is February's, and a row
+		// across the cutoff charges only its days up to 20 January (2 of 4).
+		const leave = [
+			['dec', '2025-12-22', '2025-12-23', 2],
+			['late', '2026-01-26', '2026-01-26', 1],
+			['across', '2026-01-19', '2026-01-22', 4]
+		] as const;
+		tables.set(
+			'leave_catalog_entry',
+			leave.map(([key, from, to, days]) => ({
+				id: fixtureId(`my-cutoff-${key}`),
+				catalog_id: unpaid,
+				employment_id: contract,
+				company_id: company,
+				payslip_id: null,
+				activity: 'TIME_OFF',
+				occurred_on: from,
+				from,
+				to,
+				days,
+				facts: {}
+			}))
+		);
+		for (const table of [
+			'shift_definition',
+			'holiday',
+			'roster_entry',
+			'shift_pattern',
+			'adhoc_catalog_entry',
+			'claim_catalog_entry',
+			'loan_catalog_entry',
+			'loan_repayment_entry',
+			'payslip',
+			'payroll_run'
+		])
+			tables.set(table, []);
+		const plan = yield* world(tables).run(company, '2026-01', 'REGULAR');
+		const slip = present(plan.payslips.find((row) => row.employment_id === contract));
+		const amount = (code: string) =>
+			Math.round(
+				slip.base
+					.filter((line) => line.component_code === code)
+					.reduce((sum, line) => sum + Number(line.amount), 0) * 100
+			) / 100;
+		assert.equal(amount('BASIC'), 3100);
+		// 2 + 2 days × 3,100 ÷ 31
+		assert.equal(amount('NO_PAY_LEAVE'), -400);
+		assert.deepEqual(
+			slip.pins
+				.filter((pin) => pin.collection === 'leave_catalog_entry')
+				.map((pin) => pin.id)
+				.toSorted(),
+			[fixtureId('my-cutoff-dec'), fixtureId('my-cutoff-across')].toSorted()
+		);
+	}),
+	15_000
+);

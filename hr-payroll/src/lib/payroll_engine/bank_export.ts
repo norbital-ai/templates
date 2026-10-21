@@ -104,7 +104,7 @@ export function bankExportDocuments(input: BankExportInput): {
 		if (layouts.length === 0)
 			throw new Refusal({
 				message:
-					'No bank-file layout matches the paying account. Provide the paying bank and its approved upload format before exporting.'
+					'No bank-file layout matches the paying account. Select the entity’s payment bank and format in Entities before exporting.'
 			});
 		if (layouts.length !== 1)
 			throw new Refusal({

@@ -15,7 +15,7 @@
 		"bankTree": "norbital_hr",
 		"layout": "hr-records",
 		"stages": [
-			["jurisdiction_settings"],
+			["jurisdiction_settings", "bank"],
 			[
 				"sys_user",
 				"entity",

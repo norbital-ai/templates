@@ -159,8 +159,8 @@
 					"id": "encash-leave-on-exit",
 					"target_collection": "employment_contract",
 					"events": ["updated"],
-					"when": "event.row.exit_facts != null && event.row.effective_range.to != null && !(has(event.row.exit_facts.misconduct_dismissal) && event.row.exit_facts.misconduct_dismissal == true)",
-					"fields": ["exit_facts", "effective_range"],
+					"when": "event.row.exit_facts != null && event.row.effective_range.to != null && (has(event.row.exit_facts.annual_leave_on_exit) || !(has(event.row.exit_facts.misconduct_dismissal) && event.row.exit_facts.misconduct_dismissal == true))",
+					"fields": ["exit_facts", "effective_range", "exit_ground"],
 					"reads": {
 						"catalogues": {
 							"collection": "leave_catalog",
@@ -182,9 +182,24 @@
 								}
 							},
 							"select": ["catalog_id", "activity", "days", "reference"]
+						},
+						"grounds": {
+							"collection": "rule_set",
+							"where": {
+								"settings_id": {
+									"eq": "event.settings_id"
+								},
+								"family": {
+									"eq": "\"PAYROLL\""
+								},
+								"code": {
+									"eq": "\"exit_grounds\""
+								}
+							},
+							"select": ["rules"]
 						}
 					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, (has(event.row.exit_facts.annual_leave_on_exit) ? event.row.exit_facts.annual_leave_on_exit == \"ENCASH\" : !grounds.exists(g, has(g.rules.kinds) && g.rules.kinds.exists(k, k.code == (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") && has(k.encash_annual_leave) && k.encash_annual_leave == false))) && has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-obligations",
@@ -856,6 +871,12 @@
 							"type": "string",
 							"format": "date",
 							"title": "Employer informed of the death on (ITA s.83(3))"
+						},
+						"annual_leave_on_exit": {
+							"type": "string",
+							"enum": ["ENCASH", "DO_NOT_ENCASH"],
+							"title": "Untaken annual leave at exit",
+							"description": "Overrides the exit ground's default (exit_grounds encash_annual_leave): ENCASH pays the untaken annual leave in the final pay, DO_NOT_ENCASH does not. Leave it empty to follow the ground. Employment Act 1955 s.60E(3A) entitles a covered employee to it on every termination except dismissal for misconduct under s.14(1)(a)."
 						}
 					}
 				},
@@ -1012,7 +1033,13 @@
 												"minimum": 0,
 												"default": 0,
 												"title": "PCB: TP1 deductions for the month (LP1)",
-												"description": "Form TP1 2026 deductions the employee declared for the month (MTD Specification 2026 D, LP1)."
+												"description": "Form TP1 2026 deductions the employee declared for the month (MTD Specification 2026 D, LP1), other than the SOCSO/EIS contributions claimed through socso_eis_relief."
+											},
+											"socso_eis_relief": {
+												"type": "boolean",
+												"default": false,
+												"title": "PCB: claim SOCSO and EIS contributions as TP1 relief",
+												"description": "Form TP1 2026 item C14 (Income Tax Act 1967 s.46(1)(n); MTD Specification 2026 D.2(ii) item k): the employee claims the SOCSO, EIS and LINDUNG 24 Jam (SKBBK) employee contributions deducted this year as LP1, up to RM350 a year; the relief follows the contributions this payroll actually charged. Payroll never relieves them unclaimed, so the default is false; do not also include them in tp1_monthly_deductions."
 											},
 											"tp3_prior_remuneration": {
 												"type": "number",

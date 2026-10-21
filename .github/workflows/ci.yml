@@ -63,7 +63,10 @@ jobs:
       # from the committed lockfile and run a tenant's lifecycle against it. A projection that
       # depends on an untracked file, or on something this repository provides at its root, fails
       # here rather than inside a tenant sandbox.
+      # Repository variable SKIP_CI_TESTS=true (owner, 2026-10-21: the suites ran locally) skips the projection lifecycle
+      # suites; declarations, formatting, lockfiles and offline installability still gate.
       - name: Verify standalone projections
+        if: vars.SKIP_CI_TESTS != 'true'
         run: pnpm templates:verify
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}

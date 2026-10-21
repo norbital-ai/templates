@@ -206,7 +206,9 @@ it.live(
 				expect(locked?.hasAttribute('data-locked')).toBe(true);
 				expect(locked?.querySelector('[data-repayment-remove]')).toBeNull();
 				expect(locked?.querySelector('[data-repayment-payslip]')).not.toBeNull();
-				expect(amountInput(LOCKED.id)?.disabled).toBe(true);
+				// a repayment on a payslip shows its values: no amount box, no calendar to pick a date from
+				expect(amountInput(LOCKED.id)).toBeNull();
+				expect(locked?.querySelector('input, [data-date-input]')).toBeNull();
 				expect(totalIssue()).toBeNull();
 
 				type(amountInput(SECOND.id), '250');
@@ -242,6 +244,30 @@ it.live(
 					expect(sum([Decimal.of('100'), ...unpaid]).eq(Decimal.of('1000'))).toBe(true);
 				});
 				expect(totalIssue()).toBeNull();
+
+				// Cancel discards the draft: editing again starts from the stored schedule
+				type(amountInput(SECOND.id), '250');
+				Array.from(
+					document.querySelectorAll<HTMLButtonElement>(
+						'[role="group"][aria-label="Editing"] button'
+					)
+				)
+					.at(0)
+					?.click();
+				// the shell asks in-app (never window.confirm) before discarding a dirty draft
+				yield* settle(() => expect(document.querySelector('[data-confirm-accept]')).not.toBeNull());
+				document.querySelector<HTMLButtonElement>('[data-confirm-accept]')?.click();
+				yield* settle(() => expect(amountInput(SECOND.id)).toBeNull());
+				Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+					.find((button) => button.textContent?.trim() === 'Edit')
+					?.click();
+				yield* settle(() =>
+					expect(
+						[SECOND, THIRD].every((row) =>
+							Decimal.of((amountInput(row.id)?.value ?? '').replace(/,/g, '')).eq(Decimal.of('300'))
+						)
+					).toBe(true)
+				);
 			}).pipe(Effect.scoped)
 		),
 	{ timeout: 120_000 }

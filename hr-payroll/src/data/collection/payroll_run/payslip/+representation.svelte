@@ -7,12 +7,13 @@
 	import { bolt } from '$bolt';
 	import { Field, Form, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import { live } from '../../../../lib/ui/state/live.svelte.js';
+	import { live, liveRows } from '../../../../lib/ui/state/live.svelte.js';
 	import {
 		formatCalendarDate,
 		formatNumeric
 	} from '../../../../lib/ui/format/display_formatters.js';
 	import { moneyNumber } from '../../../../lib/payroll_engine/foundation.js';
+	import { schemeLabel, schemeRank } from '../../../../lib/payroll_engine/salary_report.js';
 	import { versionMoney } from '../../../../lib/ui/format/version_money.svelte.js';
 	import { Schema } from 'effect';
 
@@ -25,7 +26,17 @@
 			: bolt.get('payroll_run', record.payroll_run_id, {
 					period: true,
 					kind: true,
+					settings_id: true,
 					company_id: { select: { name: true } }
+				})
+	);
+	const schemes = liveRows(() =>
+		run.current == null
+			? null
+			: bolt.read('statutory_contribution_catalog', {
+					where: { settings_id: { eq: run.current.settings_id } },
+					select: { code: true, label: true, display_order: true },
+					all: true
 				})
 	);
 	const employment = live(() =>
@@ -93,7 +104,10 @@
 		if (record == null) return [];
 		const base = baseLines(record.base);
 		const adjustments = adjustmentLines(record.adjustments);
-		const statutory = statutoryLines(record.statutory);
+		const catalogue = schemes.current ?? [];
+		const statutory = statutoryLines(record.statutory).toSorted(
+			(a, b) => schemeRank(catalogue, a.scheme_code) - schemeRank(catalogue, b.scheme_code)
+		);
 		const pay = adjustments.filter((line) => line.destination !== 'NET');
 		const net = adjustments.filter((line) => line.destination === 'NET');
 		const on = (amount: number) => `${bolt.t('component.payslip_on')} ${money(amount)}`;
@@ -119,7 +133,7 @@
 				.filter((line) => line.employee_amount !== 0)
 				.map((line) => ({
 					key: `ee-${line.scheme_code}`,
-					label: line.scheme_code,
+					label: schemeLabel(catalogue, line.scheme_code),
 					detail: on(line.charged_base ?? line.base_amount),
 					amount: -line.employee_amount
 				})),
@@ -144,7 +158,7 @@
 			.filter((line) => line.employer_amount !== 0)
 			.map((line) => ({
 				key: `er-${line.scheme_code}`,
-				label: line.scheme_code,
+				label: schemeLabel(catalogue, line.scheme_code),
 				detail: on(line.charged_base ?? line.base_amount),
 				amount: line.employer_amount
 			}));

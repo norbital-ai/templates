@@ -65,22 +65,22 @@
 		readonly occurred_on: PlainDate | null;
 		readonly payslip_id: string | null;
 	};
+	const principal = $derived.by(() => {
+		const value = form.get('principal_amount');
+		return value instanceof Decimal && value.cmp(0) > 0 && value.eq(value.round(2)) ? value : null;
+	});
+	const period = $derived.by(() => {
+		const value = form.get('repayment_period');
+		if (!Predicate.isObject(value)) return null;
+		const from = Reflect.get(value, 'from'),
+			to = Reflect.get(value, 'to');
+		return isPlainDate(from) && isPlainDate(to) && from <= to ? { from, to } : null;
+	});
 	const parameters = $derived.by((): LoanScheduleInput | null => {
-		const principal = form.get('principal_amount');
-		const period = form.get('repayment_period');
-		if (
-			!(principal instanceof Decimal) ||
-			principal.cmp(0) <= 0 ||
-			!principal.eq(principal.round(2)) ||
-			!Predicate.isObject(period)
-		)
-			return null;
-		const from = Reflect.get(period, 'from'),
-			to = Reflect.get(period, 'to');
-		if (!isPlainDate(from) || !isPlainDate(to) || to < from) return null;
+		if (principal == null || period == null) return null;
 		return {
 			principal_amount: principal,
-			repayment_period: { from, to },
+			repayment_period: period,
 			repayment_frequency:
 				form.get('repayment_frequency') === 'SEMI_MONTHLY' ? 'SEMI_MONTHLY' : 'MONTHLY'
 		};
@@ -160,7 +160,11 @@
 	const issues = $derived.by((): readonly SemanticIssue[] => {
 		if (!shown || !ready) return [];
 		const found: SemanticIssue[] = [];
-		const period = parameters?.repayment_period;
+		// the server refuses a loan without both terms: Save stays off until they are entered
+		if (editable && principal == null)
+			found.push({ field: 'principal_amount', message: bolt.t('loan.principal_required') });
+		if (editable && period == null)
+			found.push({ field: 'repayment_period', message: bolt.t('loan.period_required') });
 		rows.forEach((row, index) => {
 			if (row.amount == null)
 				found.push({
@@ -174,7 +178,7 @@
 				});
 			if (row.occurred_on == null)
 				found.push({ field: `repayments.${index}.date`, message: bolt.t('loan.date_required') });
-			else if (period?.to != null && (row.occurred_on < period.from || row.occurred_on > period.to))
+			else if (period != null && (row.occurred_on < period.from || row.occurred_on > period.to))
 				found.push({
 					field: `repayments.${index}.date`,
 					message: bolt.t('loan.date_outside_period', { from: period.from, to: period.to })
@@ -191,6 +195,9 @@
 		return found;
 	});
 	onMount(() => form.addValidation(() => issues));
+	// Cancel restores the stored schedule: the cells remount, so no editor keeps a value the draft no longer holds.
+	let generation = $state(0);
+	onMount(() => form.onReset(() => generation++));
 
 	function complete(draft: readonly Draft[]): readonly LoanRepayment[] | null {
 		const result: LoanRepayment[] = [];
@@ -351,8 +358,8 @@
 			scale={2}
 			value={row.amount}
 			invalid={issue != null}
-			readonly={!editable}
-			disabled={row.payslip_id != null || form.pending}
+			readonly={!editable || row.payslip_id != null}
+			disabled={form.pending}
 			onChange={(amount) => edit(row.id, { amount: amount instanceof Decimal ? amount : null })}
 		/>
 		{#if issue != null}{@render problem(issue)}{/if}
@@ -361,7 +368,6 @@
 
 {#snippet dateCell({ row }: { row: Line })}
 	{@const issue = form.semanticError(`repayments.${row.index}.date`)}
-	{@const period = parameters?.repayment_period}
 	<Inline gap="xs" data-repayment-date={row.id} data-locked={row.payslip_id != null || undefined}>
 		<label for={`${uid}-date-${row.id}`} class="sr-only">{bolt.t('loan.repayment_date')}</label>
 		<TimeInput
@@ -369,11 +375,9 @@
 			of="date"
 			value={row.occurred_on}
 			invalid={issue != null}
-			{...period == null
-				? {}
-				: { min: period.from, ...(period.to == null ? {} : { max: period.to }) }}
-			readonly={!editable}
-			disabled={row.payslip_id != null || form.pending}
+			{...period == null ? {} : { min: period.from, max: period.to }}
+			readonly={!editable || row.payslip_id != null}
+			disabled={form.pending}
 			onChange={(date: string | null) =>
 				edit(row.id, { occurred_on: isPlainDate(date) ? date : null })}
 		/>
@@ -412,27 +416,29 @@
 {:else if shown}
 	{@const mismatch = form.semanticError('repayments')}
 	<Stack gap="sm" data-loan-repayments>
-		<Table
-			of={lines}
-			key="loan_repayments"
-			layout="grid"
-			columns={[
-				{ field: 'amount', label: bolt.t('loan.repayment_amount'), width: 200, cell: amountCell },
-				{ field: 'occurred_on', label: bolt.t('loan.column_date'), width: 240, cell: dateCell }
-			]}
-			toolbar={{
-				title: bolt.t('loan.repayments'),
-				description: bolt.t('loan.schedule_instructions'),
-				new: false,
-				actions: false,
-				search: false,
-				filter: false,
-				export: false,
-				delete: false,
-				select: false,
-				trailing: recalculateControl
-			}}
-		/>
+		{#key generation}
+			<Table
+				of={lines}
+				key="loan_repayments"
+				layout="grid"
+				columns={[
+					{ field: 'amount', label: bolt.t('loan.repayment_amount'), width: 200, cell: amountCell },
+					{ field: 'occurred_on', label: bolt.t('loan.column_date'), width: 240, cell: dateCell }
+				]}
+				toolbar={{
+					title: bolt.t('loan.repayments'),
+					description: bolt.t('loan.schedule_instructions'),
+					new: false,
+					actions: false,
+					search: false,
+					filter: false,
+					export: false,
+					delete: false,
+					select: false,
+					trailing: recalculateControl
+				}}
+			/>
+		{/key}
 		<Inline gap="sm" justify="between">
 			{#if editable}
 				<Button

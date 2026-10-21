@@ -229,7 +229,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"DEATH\"] || (contract.exit_facts != null && has(contract.exit_facts.leaving_malaysia) && contract.exit_facts.leaving_malaysia == true)",
+			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"EMPLOYEE_RETIREMENT\", \"DEATH\"] || (contract.exit_facts != null && has(contract.exit_facts.leaving_malaysia) && contract.exit_facts.leaving_malaysia == true)",
 			"due": "contract.exit_ground == \"DEATH\" ? add_days(contract.exit_facts != null && has(contract.exit_facts.death_informed_on) ? contract.exit_facts.death_informed_on : exit_on, 30) : add_days(exit_on, -30)"
 		}
 	},
@@ -288,7 +288,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] || (contract.exit_ground == \"DISMISSAL\" && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground == \"RESIGNATION\" && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
+			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\", \"UNILATERAL\", \"BREACH_BY_EMPLOYER\"] || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground in [\"RESIGNATION\", \"BREACH_BY_EMPLOYEE\"] && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
 			"due": "add_days(exit_on, 7)"
 		}
 	},
@@ -320,7 +320,7 @@
 		"code": "RETRENCHMENT_NOTIFICATION",
 		"name": "RETRENCHMENT_NOTIFICATION",
 		"rules": {
-			"description": "Lodge Borang PK with Lampiran 1 at the nearest Labour Department office at least thirty days before a retrenchment (or voluntary separation scheme, temporary lay-off or pay cut) takes effect. Raised on a RETRENCHMENT or REDUNDANCY exit.",
+			"description": "Lodge Borang PK with Lampiran 1 at the nearest Labour Department office at least thirty days before a retrenchment (or voluntary separation scheme, temporary lay-off or pay cut) takes effect. Raised on a RETRENCHMENT or RETRENCHMENT_TERM_CONTRACT exit.",
 			"authority": "Pemberitahuan Pemberhentian Pekerja 2004 (Borang PK) [P.U.(B) 430/2004] under Employment Act 1955 s.63; JTKSM, Employees’ Retrenchment FAQ (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment)",
 			"trigger": {
 				"collection": "employment_contract",
@@ -328,7 +328,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"]",
+			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"]",
 			"due": "add_days(exit_on, -30)"
 		}
 	},
@@ -939,7 +939,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !(contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
+			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !((contract.exit_ground == \"DISMISSAL_MISCONDUCT\" || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true))) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
 			"due": "add_days(exit_on, 0)"
 		}
 	},
@@ -959,7 +959,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground == \"RETIREMENT\" && employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, exit_on) < 60",
+			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"EMPLOYEE_RETIREMENT\"] && employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, exit_on) < 60",
 			"due": "add_days(exit_on, 0)"
 		}
 	},
@@ -979,7 +979,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"] && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
 			"due": "add_days(exit_on, -30)"
 		}
 	},
@@ -1152,43 +1152,92 @@
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
-			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract, the employer's payroll (Infotech) list as printed. Every ground a record of this version compares is listed. `encash_annual_leave` is the default for paying untaken annual leave at exit (behaviour encash-leave-on-exit); exit_facts.annual_leave_on_exit overrides it per employee. Employment Act 1955 s.60E(3A) pays untaken annual leave on every termination except a dismissal for misconduct under s.14(1)(a), so only DISMISSAL_MISCONDUCT defaults to no encashment. Legal classes the records compare: RESIGNATION and BREACH_BY_EMPLOYEE end by the employee; BREACH_BY_EMPLOYER is the employee ending for the employer's breach (s.13(2)), as UNILATERAL is a termination by the employer; DISMISSAL and UNSATISFACTORY_PROBATION are dismissals (misconduct still by exit_facts.misconduct_dismissal), DISMISSAL_MISCONDUCT always misconduct; RETIREMENT and EMPLOYEE_RETIREMENT retire; RETRENCHMENT and RETRENCHMENT_TERM_CONTRACT retrench (replacing REDUNDANCY). Grounds list edited in place 2026-10-21 (owner: Infotech list): configuration, not law.",
 			"kinds": [
 				{
+					"code": "BREACH_BY_EMPLOYEE",
+					"name": "Breach of contract by employee",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "BREACH_BY_EMPLOYER",
+					"name": "Breach of contract by employer",
+					"encash_annual_leave": true
+				},
+				{
 					"code": "DEATH",
-					"name": "Death of the employee"
+					"name": "Death of either party",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "DISMISSAL",
-					"name": "Dismissal by the employer"
+					"name": "Dismissals (Due to Poor Performance)",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "DISMISSAL_MISCONDUCT",
+					"name": "Employee dismissal on grounds of misconduct",
+					"encash_annual_leave": false
+				},
+				{
+					"code": "EMPLOYEE_RETIREMENT",
+					"name": "Employee retirement",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "TRANSFER",
+					"name": "Employee transfer",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "END_OF_PROBATION",
+					"name": "End of probationary period",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "END_OF_CONTRACT",
-					"name": "End of a fixed-term contract"
-				},
-				{
-					"code": "MUTUAL",
-					"name": "Mutual agreement"
-				},
-				{
-					"code": "REDUNDANCY",
-					"name": "Redundancy"
+					"name": "Expiry of term contracts",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "RESIGNATION",
-					"name": "Resignation by the employee"
+					"name": "Resignation",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "RETIREMENT",
-					"name": "Retirement"
+					"name": "Retirement",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "RETRENCHMENT",
-					"name": "Retrenchment"
+					"name": "Retrenchment of permanent employees",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "RETRENCHMENT_TERM_CONTRACT",
+					"name": "Retrenchment of term contract employees",
+					"encash_annual_leave": true
 				},
 				{
 					"code": "UNILATERAL",
-					"name": "Unilateral termination by the employer"
+					"name": "Termination",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "TRANSFER_TO_SUBSIDIARY",
+					"name": "Transfer to Subsidiaries / associate establishment",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "UNSATISFACTORY_PROBATION",
+					"name": "Unsatisfactory Probation",
+					"encash_annual_leave": true
+				},
+				{
+					"code": "OTHERS",
+					"name": "Others",
+					"encash_annual_leave": true
 				}
 			]
 		}

@@ -555,15 +555,19 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			)
 		)
 			return null;
+		/** Time off is attendance, read over the attendance window; any other movement (an exit encashment) pays
+		 * in the salary window, so an encashment on the last day of employment reaches its final payslip. */
+		const leaveWindow =
+			(attendance: readonly [string, string], salary: readonly [string, string]) =>
+			(row: EntryRow) => ((row.activity ?? 'TIME_OFF') === 'TIME_OFF' ? attendance : salary);
 		/**
-		 * The leave rows reaching into `from`–`to`, projected generically: the class's own flags beside the row's stored
-		 * values, each row's share of the window, the working days no-pay leave covers and the rows the window uses.
+		 * The leave rows reaching into their window (`windowOf`), projected generically: the class's own flags beside
+		 * the row's stored values, each row's share of the window, the working days no-pay leave covers and the rows the window uses.
 		 * Which days become no-pay or cash is the work catalogue's record to decide, never this engine's.
 		 */
 		function* projectLeave(
 			rows: readonly EntryRow[],
-			from: string,
-			to: string,
+			windowOf: (row: EntryRow) => readonly [string, string],
 			on: DynObject,
 			planned: ReturnType<typeof dayPlanner>
 		) {
@@ -571,6 +575,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			const unpaidDays = new Set<string>();
 			const settled: EntryRow['id'][] = [];
 			for (const row of rows) {
+				const [from, to] = windowOf(row);
 				const day = String(row.from ?? row.occurred_on ?? '');
 				const last = String(row.to ?? day);
 				// Every overlapping period prices its share; the first one using an open row captures it.
@@ -681,7 +686,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		if (salaried || !salaryRun) {
 			// The window's leave rows are projected once, generically: the class's own flags beside the row's stored
 			// values. Which days become no-pay or cash is the work catalogue's record to decide, never this engine's. An
-			// off-cycle slip reads the same rows (a bonus exempt during childcare leave) and settles none of them.
+			// off-cycle slip reads the same rows (a bonus exempt during childcare leave) and settles none of them. Time off is
+			// attendance: it is read over the attendance window (a cutoff of 21 attends 21st–20th), as the roster is.
 			const leaveFamily = options.attendance.entries.find((family) => family.family === 'LEAVE');
 			const openLeave = leaveFamily?.rows ?? [];
 			const openLeaveIds = new Set(openLeave.map((row) => row.id));
@@ -692,8 +698,10 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 						(row) => row.activity === 'TIME_OFF' && !openLeaveIds.has(row.id)
 					)
 				],
-				window.salary_from,
-				window.salary_to,
+				leaveWindow(
+					[window.attendance_from, window.attendance_to],
+					[window.salary_from, window.salary_to]
+				),
 				context,
 				planOn
 			);
@@ -813,8 +821,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			yield* suspend(list, settling, planBefore);
 			const leave = yield* projectLeave(
 				options.attendance.monthLeave,
-				from,
-				to,
+				leaveWindow([attendFrom, attendTo], [from, to]),
 				settling,
 				planBefore
 			);

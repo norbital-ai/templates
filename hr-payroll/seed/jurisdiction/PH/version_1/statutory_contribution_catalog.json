@@ -4,6 +4,8 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "SSS",
 		"name": "Social Security System",
+		"label": "SSS",
+		"display_order": 1,
 		"configuration": {
 			"person": {
 				"age": "employee.date_of_birth == \"\" ? null : age_on(employee.date_of_birth, add_days(period.from, -1))",
@@ -60,6 +62,8 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "SSS_MPF",
 		"name": "SSS Mandatory Provident Fund (WISP)",
+		"label": "SSS MPF",
+		"display_order": 2,
 		"configuration": {
 			"rules": [
 				{
@@ -101,6 +105,8 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "SSS_EC",
 		"name": "Employees Compensation Programme premium",
+		"label": "SSS EC",
+		"display_order": 3,
 		"configuration": {
 			"rules": [
 				{
@@ -137,6 +143,8 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "PHIC",
 		"name": "PhilHealth",
+		"label": "PHIL",
+		"display_order": 4,
 		"configuration": {
 			"assessable": {
 				"ordinary": "month.ordinary > 0.0 ? min(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary * (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 12.0 : terms.base_salary), 100000.0) : 0.0"
@@ -171,6 +179,8 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
+		"label": "PAG-IBIG",
+		"display_order": 5,
 		"configuration": {
 			"assessable": {
 				"ordinary": "min(month.ordinary, 10000.0)"

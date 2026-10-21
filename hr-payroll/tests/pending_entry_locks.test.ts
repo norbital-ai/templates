@@ -26,6 +26,24 @@ const BONUS = {
 	occurred_on: PlainDate('2026-01-20'),
 	amount: Decimal.of('100')
 };
+const CLAIM = {
+	catalog_id: nativeId(
+		'claim_catalog',
+		LAW.byCode(VERSION, 'claim_catalog', 'MEDICAL_TREATMENT_REIMBURSEMENT').id
+	),
+	employment_id: EMPLOYMENT,
+	occurred_on: PlainDate('2026-01-21'),
+	amount: Decimal.of('50'),
+	// The class's qualifies_when reads these receipt facts; an entry without them cannot be priced.
+	facts: {
+		amount_incurred: 50,
+		patient: 'EMPLOYEE',
+		practitioner_qualified: true,
+		treatment: 'MEDICAL',
+		treatment_necessary: true,
+		solely_aesthetic: false
+	}
+};
 const JANUARY = { company_id: COMPANY, period: '2026-01', kind: 'REGULAR' as const };
 const LOCKED = /settled|captured|payroll|payslip/i;
 const Pins = Schema.Array(
@@ -129,6 +147,9 @@ it.effect(
 					'committed'
 				);
 				assert.equal((yield* actor.act('adhoc_catalog_entry.create', BONUS)).kind, 'committed');
+				assert.equal((yield* actor.act('claim_catalog_entry.create', CLAIM)).kind, 'committed');
+				const [claim] = (yield* actor.read('claim_catalog_entry', { all: true })).rows;
+				assert.ok(claim);
 				const [loan] = (yield* actor.read('loan_catalog_entry', { all: true })).rows;
 				const [bonus] = (yield* actor.read('adhoc_catalog_entry', { all: true })).rows;
 				assert.ok(loan && bonus);
@@ -209,6 +230,14 @@ it.effect(
 				);
 				assert.match(
 					(yield* Effect.flip(actor.act('adhoc_catalog_entry.delete', { target: [bonus.id] })))
+						.message,
+					LOCKED
+				);
+				assert.ok(
+					ledger.some((pin) => pin.collection === 'claim_catalog_entry' && pin.id === claim.id)
+				);
+				assert.match(
+					(yield* Effect.flip(actor.act('claim_catalog_entry.delete', { target: [claim.id] })))
 						.message,
 					LOCKED
 				);
