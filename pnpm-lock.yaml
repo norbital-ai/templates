@@ -608,6 +608,31 @@ packages:
     resolution: {integrity: sha512-/SaLcvlqGWdm0HSCWMgHu7cjJiQXfP8/mOY+6dUyV9flQz7sPBBZ+ed2zYtoukojPmxOaL7bm+d/G4GeWWoN7g==}
     engines: {node: '>= 10'}
 
+  '@norbital-ai/bolt-server@0.0.1':
+    resolution: {integrity: sha512-LYYgJjZMss8vMsDb0kEdX9Ja0UsZUueJ9YPRT8hHOrrVuOnv9KflA7W9BGtpeNVYVZIKGYlptuvco2TPQYOlKg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.1/0a539b8aba7e9e9188fa774d1989ada12869a024}
+
+  '@norbital-ai/bolt@0.0.1':
+    resolution: {integrity: sha512-QJMbVsepaMQ0hJmV7XaGwIVC4vClEO8KzvN1wQl9PmXMc/I45BJ4fCMVNIlq/21olDwhoOjXj59YMuEtNYObwA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/bb6a14aeb90e875ead33e748da3c2bfb2db34c77}
+    hasBin: true
+    peerDependencies:
+      svelte: ^5.0.0
+
+  '@norbital-ai/doctor@0.0.1':
+    resolution: {integrity: sha512-r43BQrWGfpe808ul+eWa80CAddFxj17zywTpOsJFhowHUgiZi2hYC8YcSUfdQBUpgvQPksQUKs9qpV92YsuTNQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.1/5d5b2ca64bb2dd70536fce12318eddc1f0c19231}
+
+  '@norbital-ai/providers@0.0.1':
+    resolution: {integrity: sha512-PHt0hWv5c2T+V7vozsA5AaDdsSDUAjodRV9EIIzr2s8kMfMhjz28s6YfomWXuzxj2zUGMMt3P/KGT4wx4KHv4A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/providers/0.0.1/2ce7b7aef84e418ec67fb4e25150a76c0c99d51c}
+
+  '@norbital-ai/std@0.0.1':
+    resolution: {integrity: sha512-fmWYRJ6PZoHzklTDALF3nk3jpip05XWY4gNd+Xfgbr6wDoCOvedL97aNAKFWpAq5mjVZfkV4o3pM8L81GG5sTA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/f5b861d7012b4b1749df66439e4d5165b67e792d}
+    peerDependencies:
+      effect: 4.0.0-rc.112
+
+  '@norbital-ai/ui@0.0.1':
+    resolution: {integrity: sha512-6T6YzaLsKgTXjdCCV21iWqnBe8NMOZyaS+1j430D8wRaL0DFZDUn/VtQ79n3hBeNgCTcO7Uu5Hn2CwJuPBc9qA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/da9d00d621c6b210f5858be6161299a21704b4c6}
+    peerDependencies:
+      svelte: ^5.56.10
+
   '@oxc-project/types@0.148.0':
     resolution: {integrity: sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A==}
 
@@ -3328,6 +3353,174 @@ snapshots:
       '@napi-rs/canvas-win32-arm64-msvc': 1.0.8
       '@napi-rs/canvas-win32-x64-msvc': 1.0.8
     optional: true
+
+  '@norbital-ai/bolt-server@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)':
+    dependencies:
+      '@effect/platform-node': 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.3.0)
+      '@norbital-ai/bolt': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/providers': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      effect: 4.0.0-rc.112
+      exceljs: 4.4.0
+      mammoth: 1.12.2
+      mssql: 11.0.1
+      pdfjs-dist: 6.3.289
+      pg: 8.23.0
+      web-push: 3.6.7
+    transitivePeerDependencies:
+      - '@sveltejs/kit'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - audio-decode
+      - bufferutil
+      - esbuild
+      - jimp
+      - jiti
+      - less
+      - link-preview-js
+      - pg-native
+      - redis
+      - sass
+      - sass-embedded
+      - sharp
+      - stylus
+      - sugarss
+      - supports-color
+      - svelte
+      - tsx
+      - utf-8-validate
+      - vitest
+      - yaml
+      - zod
+
+  '@norbital-ai/bolt@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)':
+    dependencies:
+      '@cfworker/json-schema': 4.1.1
+      '@effect/platform-node': 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.3.0)
+      '@effect/vitest': 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))
+      '@electric-sql/pglite': 0.5.8
+      '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.8)
+      '@iconify-json/lucide': 1.2.142
+      '@iconify/svelte': 5.2.2(svelte@5.57.1)
+      '@jridgewell/trace-mapping': 0.3.31
+      '@modelcontextprotocol/client': 2.0.0
+      '@norbital-ai/doctor': 0.0.1
+      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      '@norbital-ai/ui': 0.0.1(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
+      '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
+      '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
+      effect: 4.0.0-rc.112
+      exifr: 7.1.3
+      fast-png: 8.0.0
+      isolated-vm: 7.0.1(patch_hash=b1e019643d694a5e527a3041db64bf787b3f7c73f5a7b4f459da04822d65dc83)
+      jpeg-js: 0.4.4
+      libheif-js: 1.23.2
+      pdq-wasm: 0.3.9
+      runed: 0.37.1(svelte@5.57.1)(zod@4.5.4)
+      svelte: 5.57.1
+      svelte2tsx: 0.7.61(svelte@5.57.1)(typescript@6.0.3)
+      tailwindcss: 4.3.3
+      terser: 5.51.2
+      typescript: 6.0.3
+      vite: 8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)
+    transitivePeerDependencies:
+      - '@sveltejs/kit'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - bufferutil
+      - esbuild
+      - jiti
+      - less
+      - redis
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - tsx
+      - utf-8-validate
+      - vitest
+      - yaml
+      - zod
+
+  '@norbital-ai/doctor@0.0.1':
+    dependencies:
+      effect: 4.0.0-rc.112
+      typescript: 6.0.3
+      yaml: 2.9.0
+
+  '@norbital-ai/providers@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)':
+    dependencies:
+      '@norbital-ai/bolt': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      effect: 4.0.0-rc.112
+      imapflow: 2.1.2
+      nodemailer: 10.0.12
+      postal-mime: 4.0.0
+    optionalDependencies:
+      '@whiskeysockets/baileys': 7.0.0-rc14(sharp@0.35.4(@types/node@26.6.2))
+    transitivePeerDependencies:
+      - '@sveltejs/kit'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - audio-decode
+      - bufferutil
+      - esbuild
+      - jimp
+      - jiti
+      - less
+      - link-preview-js
+      - redis
+      - sass
+      - sass-embedded
+      - sharp
+      - stylus
+      - sugarss
+      - supports-color
+      - svelte
+      - tsx
+      - utf-8-validate
+      - vitest
+      - yaml
+      - zod
+
+  '@norbital-ai/std@0.0.1(effect@4.0.0-rc.112)':
+    dependencies:
+      '@marcbachmann/cel-js': 8.0.0
+      effect: 4.0.0-rc.112
+
+  '@norbital-ai/ui@0.0.1(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)':
+    dependencies:
+      '@codemirror/lang-javascript': 6.2.5
+      '@codemirror/lang-json': 6.0.2
+      '@codemirror/language': 6.12.4
+      '@codemirror/state': 6.7.3
+      '@codemirror/view': 6.43.11
+      '@fontsource-variable/geist': 5.3.0
+      '@fontsource-variable/geist-mono': 5.3.0
+      '@iconify/svelte': 5.2.2(svelte@5.57.1)
+      '@internationalized/date': 3.12.4
+      '@lezer/highlight': 1.2.3
+      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
+      bits-ui: 2.19.0(@internationalized/date@3.12.4)(svelte@5.57.1)
+      clsx: 2.1.1
+      codemirror: 6.0.2
+      d3-shape: 3.2.0
+      effect: 4.0.0-rc.112
+      fflate: 0.8.3
+      layerchart: 2.3.0(svelte@5.57.1)(zod@4.5.4)
+      leaflet: 1.9.4
+      marked: 18.0.10
+      qrcode: 1.5.4
+      runed: 0.37.1(svelte@5.57.1)(zod@4.5.4)
+      svelte: 5.57.1
+      tailwind-merge: 3.6.0
+      tailwind-variants: 3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3)
+      tw-animate-css: 1.4.0
+    transitivePeerDependencies:
+      - '@sveltejs/kit'
+      - tailwindcss
+      - zod
 
   '@oxc-project/types@0.148.0': {}
 
