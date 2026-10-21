@@ -531,15 +531,10 @@ export default messages({
 	'roster.day_sheet_problem_clock_overlap': 'Recorded work intervals cannot overlap.',
 	'roster.progress_unknown':
 		'No completion percentage until attendance and a work plan are available.',
-	'roster.planned_overtime_invalid':
-		'Choose a shift and enter non-negative planned overtime hours.',
 	'roster.day_sheet_intervals': 'Worked intervals',
 	'roster.day_sheet_mark_absent': 'Mark absent',
-	'roster.day_sheet_pending_approval': 'Pending approval',
 	'roster.day_sheet_problem_missing_start': 'Every worked interval needs a clock-in time.',
 	'roster.day_sheet_problem_open_not_last': 'Only the final worked interval may still be open.',
-	'roster.day_sheet_recorded': 'Recorded',
-	'roster.day_sheet_save_failed': 'The person-day could not be saved.',
 	'roster.day_sheet_unrecorded_attendance': 'Nobody has recorded attendance for this day.',
 	'roster.half_day': 'half day',
 	'roster.layer_awol': 'AWOL: reviewed, nothing worked on a work day',
@@ -555,7 +550,6 @@ export default messages({
 	'roster.public_holiday': 'Public holiday',
 	'roster.public_holiday_mark': 'PH',
 	'roster.rest_day': 'Rest day',
-	'roster.save_attendance': 'Save attendance',
 	'roster.shift_code': 'Shift {code}',
 	'roster.unrostered': 'No shift assigned',
 	'component.is_npl': 'Unpaid (NPL)',
