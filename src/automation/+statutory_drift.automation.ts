@@ -55,8 +55,8 @@ statutory_drift.run(function* (input, ctx) {
 		select: { id: true, code: true },
 		all: true
 	});
-	// one research per lineage (its first in-force version), all at once: each is a long multi-step inference
-	const research = (code: string) =>
+	// One lineage's snapshot (its first in-force version), or null when there is nothing to research.
+	const prepare = (code: string) =>
 		Effect.gen(function* () {
 			const read = {
 				where: { settings_id: { in: { member: 'versions', field: 'id' } } },
@@ -151,11 +151,10 @@ statutory_drift.run(function* (input, ctx) {
 					}
 				});
 			const version = versions.rows[0];
-			if (version == null) return { code, drafted: false };
-			if (held.rows.some((draft) => draft.cloned_from_id === version.id))
-				return { code, drafted: false };
+			if (version == null) return null;
+			if (held.rows.some((draft) => draft.cloned_from_id === version.id)) return null;
 			const sources = sourcesFrom(version.sources);
-			if (sources.urls.length === 0) return { code, drafted: false };
+			if (sources.urls.length === 0) return null;
 			const snapshot = {
 				settings: snapshotFields(version, SNAPSHOT_MODELS.settings.fields),
 				adhoc_catalog: adhoc.rows
@@ -184,6 +183,12 @@ statutory_drift.run(function* (input, ctx) {
 					.filter((row) => row.settings_id === version.id)
 					.map((row) => snapshotFields(row, SNAPSHOT_MODELS.rule_set.fields))
 			} as StatutorySnapshot;
+			return { code, version, sources, snapshot };
+		});
+	type Prepared = Exclude<Effect.Success<ReturnType<typeof prepare>>, null>;
+	// One lineage's long multi-step inference; a verified change becomes an unsealed draft.
+	const research = ({ code, version, sources, snapshot }: Prepared) =>
+		Effect.gen(function* () {
 			const result = yield* ctx.ai.sys_2.infer({
 				model: 'strong',
 				tools: ['web_search', 'web_read', 'browser_navigate', 'browser_snapshot', 'browser_act'],
@@ -236,24 +241,30 @@ statutory_drift.run(function* (input, ctx) {
 			return { code, drafted: true };
 		});
 	const lineages = lineageCodes(inForce);
-	// a lineage whose research fails is reported; the others still finish
+	type Outcome = { readonly code: string; readonly drafted: boolean; readonly failed?: string };
+	const failure = (code: string) => (error: { readonly message: string }) =>
+		Effect.succeed({ code, drafted: false, failed: `${code}: ${error.message}` });
+	// Snapshots are read one lineage at a time: concurrent reads share one host crossing and its size limit. The
+	// inferences then run at once; a lineage that fails is reported and the others still finish.
+	const prepared = yield* Effect.forEach(lineages, (code) =>
+		prepare(code).pipe(
+			Effect.map((ready) => ({ code, ready })),
+			Effect.catch(failure(code))
+		)
+	);
 	const results = yield* Effect.forEach(
-		lineages,
-		(code) =>
-			research(code).pipe(
-				Effect.catch((error) =>
-					Effect.succeed({
-						code,
-						drafted: false,
-						failed: `${code}: ${error.message}`
-					})
-				)
-			),
+		prepared,
+		(item): Effect.Effect<Outcome> =>
+			!('ready' in item)
+				? Effect.succeed(item)
+				: item.ready === null
+					? Effect.succeed({ code: item.code, drafted: false })
+					: research(item.ready).pipe(Effect.catch(failure(item.code))),
 		{ concurrency: 'unbounded' }
 	);
 	return {
 		lineages,
 		drafted: results.filter((result) => result.drafted).map((result) => result.code),
-		failed: results.flatMap((result) => ('failed' in result ? [result.failed] : []))
+		failed: results.flatMap((result) => (result.failed === undefined ? [] : [result.failed]))
 	};
 });
