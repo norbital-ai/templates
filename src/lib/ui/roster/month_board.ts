@@ -1,7 +1,7 @@
 import { bolt } from '$bolt';
 import { Result, Schema } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
+import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import { t, type MessageKey } from '../i18n/t.js';
@@ -142,6 +142,20 @@ export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: strin
 		all: true
 	});
 
+export const shiftRead = (companyId: Id<'entity'>) =>
+	bolt.read('shift_definition', {
+		where: { company_id: { eq: companyId } },
+		select: { code: true, variant: true },
+		all: true
+	});
+
+export const patternRead = (companyId: Id<'entity'>) =>
+	bolt.read('shift_pattern', {
+		where: { company_id: { eq: companyId } },
+		select: { pattern: true, effective_range: true },
+		all: true
+	});
+
 /* ── cells ── */
 
 type EntryRow = {
@@ -170,7 +184,7 @@ type HolidayRow = { readonly date: string; readonly name: string };
 type Person = { readonly id: string; readonly from: string; readonly to: string | null };
 
 /** A stored decimal as a number: it reaches the client as a `Decimal`, a decimal string or a plain number. */
-const numberOrNull = (value: unknown): number | null => {
+export const numberOrNull = (value: unknown): number | null => {
 	if (value == null || value === '') return null;
 	const parsed =
 		value instanceof Decimal
@@ -182,7 +196,7 @@ const numberOrNull = (value: unknown): number | null => {
 };
 
 /** The stored intervals, or null when none were recorded (or the value is not a list of intervals). */
-function intervalsOf(value: unknown): Interval[] | null {
+export function intervalsOf(value: unknown): Interval[] | null {
 	if (!Array.isArray(value)) return null;
 	const intervals: Interval[] = [];
 	for (const item of value) {
@@ -293,31 +307,6 @@ export function buildDays(input: {
 			});
 		}
 	return days;
-}
-
-/** An actual-only edit leaves the stored plan alone, including an unplanned pattern-projected day. */
-export function dayEdit(
-	day: Pick<Day, 'shiftId' | 'plannedOvertime'>,
-	shiftId: Id<'shift_definition'> | null,
-	plannedOvertime: number | null,
-	worked: readonly Interval[] | null
-) {
-	const planChanged = shiftId !== day.shiftId || plannedOvertime !== day.plannedOvertime;
-	return {
-		...(planChanged
-			? {
-					shift_definition_id: shiftId,
-					planned_overtime_hours: plannedOvertime == null ? null : Decimal.of(plannedOvertime)
-				}
-			: {}),
-		worked_intervals:
-			worked == null
-				? null
-				: worked.map((interval) => ({
-						start: Instant(interval.start),
-						end: interval.end == null ? null : Instant(interval.end)
-					}))
-	};
 }
 
 /** Reviewed zero attendance is an absence only on an uncovered planned work day. */

@@ -4,7 +4,6 @@ import {
 	buildDays,
 	clockStampOf,
 	clocksOf,
-	dayEdit,
 	dayKey,
 	intervalsFrom,
 	isAbsent,
@@ -252,7 +251,7 @@ describe('work board calendar layers', () => {
 		);
 	});
 
-	it('does not materialize a projected plan during actual-only edits and preserves precise attendance states', () => {
+	it('projects a pattern without materializing a plan and stamps clocks to the second', () => {
 		const day = buildDays({
 			dates: ['2026-01-10'],
 			timeZone: 'Asia/Singapore',
@@ -266,20 +265,9 @@ describe('work board calendar layers', () => {
 		assert.equal(day.projectedShift, 'DAY');
 		assert.equal(day.shiftId, null);
 		const intervals = [{ start: '2026-01-10T00:00:07.000Z', end: '2026-01-10T11:59:59.000Z' }];
-		assert.deepEqual(dayEdit(day, null, null, intervals), { worked_intervals: intervals });
 		const [clocked] = intervals;
 		assert.ok(clocked);
 		assert.ok(clockStampOf(clocked.start, 'Asia/Singapore').includes('08:00:07'));
 		assert.ok(clockStampOf(clocked.end, 'Asia/Singapore').includes('19:59:59'));
-		assert.deepEqual(dayEdit(day, null, null, []), { worked_intervals: [] });
-		assert.deepEqual(dayEdit(day, null, null, null), { worked_intervals: null });
-		const shiftId = nativeId('shift_definition', fixtureId('board-explicit-shift'));
-		const changed = dayEdit(day, shiftId, 3, intervals);
-		assert.equal(changed.shift_definition_id, shiftId);
-		assert.equal(changed.planned_overtime_hours?.toString(), '3');
-		assert.deepEqual(changed.worked_intervals, intervals);
-		assert.deepEqual(dayEdit({ shiftId, plannedOvertime: 3 }, shiftId, 3, intervals), {
-			worked_intervals: intervals
-		});
 	});
 });

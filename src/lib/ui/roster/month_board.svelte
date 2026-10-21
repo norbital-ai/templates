@@ -1,6 +1,6 @@
 <!--
 	The period at a glance: one row per person, one narrow column per day, plan and clock in the same
-	cell (`day_cell.svelte`). A cell opens the day's clock (`day_dialog.svelte`).
+	cell (`day_cell.svelte`). A cell opens the day's `roster_entry` record, or a new one for a day only projected.
 
 	The rows are the one scroll owner, on both axes; the person column is sticky on x and the day
 	header is chrome outside the scrollport whose track follows the body's `scrollLeft`.
@@ -8,12 +8,13 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { cn } from '@norbital-ai/ui';
+	import { cn, openRecord } from '@norbital-ai/ui';
+	import { PlainDate } from '@norbital-ai/std/date';
 	import { t } from '../i18n/t.js';
 	import { liveRows } from '../state/live.svelte.js';
 	import Skeleton from '../components/skeleton.svelte';
 	import DayCell from './day_cell.svelte';
-	import DayDialog from './day_dialog.svelte';
+	import { openCreate } from '../scopes/create_values.js';
 	import { plannedShiftOf } from './shift_code.js';
 	import { bolt } from '$bolt';
 	import {
@@ -25,7 +26,8 @@
 		holidayRead,
 		isWeekend,
 		leaveRead,
-		type Day
+		patternRead,
+		shiftRead
 	} from './month_board.js';
 
 	type Person = {
@@ -55,7 +57,7 @@
 
 	const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 	const PERSON_REM = 10;
-	const DAY_REM = 3.75;
+	const DAY_REM = 4.5;
 
 	const dates = $derived(datesBetween(from, to));
 	const ids = $derived(people.map((person) => person.id));
@@ -72,20 +74,8 @@
 					all: true
 				})
 	);
-	const shifts = liveRows(() =>
-		bolt.read('shift_definition', {
-			where: { company_id: { eq: companyId } },
-			select: { code: true, variant: true },
-			all: true
-		})
-	);
-	const patterns = liveRows(() =>
-		bolt.read('shift_pattern', {
-			where: { company_id: { eq: companyId } },
-			select: { pattern: true, effective_range: true },
-			all: true
-		})
-	);
+	const shifts = liveRows(() => shiftRead(companyId));
+	const patterns = liveRows(() => patternRead(companyId));
 	const shiftOf = $derived(
 		plannedShiftOf({
 			contracts: plans.current ?? [],
@@ -112,11 +102,6 @@
 
 	let body: HTMLElement | null = $state(null);
 	let track: HTMLElement | null = $state(null);
-	let editing = $state<{
-		employmentId: Id<'employment_contract'>;
-		person: string;
-		day: Day;
-	} | null>(null);
 	const syncHeader = () => {
 		if (body != null && track != null) track.style.transform = `translateX(${-body.scrollLeft}px)`;
 	};
@@ -156,7 +141,7 @@
 							shrink={false}
 							title={holiday}
 							class={cn(
-								'h-10 w-15 min-w-15 max-w-15 bg-card text-center font-medium',
+								'h-10 w-18 min-w-18 max-w-18 bg-card text-center font-medium',
 								isWeekend(date) && 'bg-muted',
 								holiday != null && 'bg-warning/10',
 								date === today && 'font-semibold ring-2 ring-inset ring-brand',
@@ -212,15 +197,15 @@
 							</th>
 							{#each dates as date (date)}
 								{@const day = days.get(dayKey(person.id, date))}
-								<td class="w-15 min-w-15 max-w-15 border-b p-0.5">
+								<td class="w-18 min-w-18 max-w-18 border-b p-0.5">
 									{#if loading || day == null}
-										<Skeleton class="h-12 w-full rounded-sm" />
+										<Skeleton class="h-14 w-full rounded-sm" />
 									{:else}
 										{@const label = describeDay(day, `${person.name} · ${date}`, timeZone)}
 										<button
 											type="button"
 											class={cn(
-												'block h-12 w-full rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+												'block h-14 w-full rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 												day.employed
 													? 'cursor-pointer hover:ring-1 hover:ring-ring'
 													: 'cursor-default',
@@ -231,7 +216,12 @@
 											aria-haspopup={day.employed ? 'dialog' : undefined}
 											disabled={!day.employed}
 											onclick={() =>
-												(editing = { employmentId: person.id, person: person.name, day })}
+												day.entryId == null
+													? openCreate('roster_entry', {
+															employment_id: person.id,
+															work_date: PlainDate(date)
+														})
+													: openRecord('roster_entry', day.entryId)}
 										>
 											<DayCell {day} />
 										</button>
@@ -245,11 +235,3 @@
 		</Scroll>
 	</Cover>
 {/if}
-
-<DayDialog
-	open={editing}
-	{companyId}
-	definitions={shifts.current ?? []}
-	{timeZone}
-	onClose={() => (editing = null)}
-/>

@@ -2,13 +2,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { expect, it, vi } from 'vitest';
 import DayCell from '../../src/lib/ui/roster/day_cell.svelte';
-import {
-	buildDays,
-	dayEdit,
-	dayKey,
-	isAbsent,
-	type Interval
-} from '../../src/lib/ui/roster/month_board.js';
+import { buildDays, dayKey, isAbsent, type Interval } from '../../src/lib/ui/roster/month_board.js';
 import { plannedShift, type PlannedShift } from '../../src/lib/payroll_engine/shift_pattern.js';
 import { fixtureId, nativeId } from '../fixture_values.js';
 
@@ -115,11 +109,6 @@ it('credits read-only dated pre-shift approval without filling an ordinary leadi
 		expect(day.overtime).toBe(3);
 		expect(day.completion?.normal_hours).toBe(index === 0 ? 8 : 7);
 		expect(day.completion?.segments[0]?.kind).toBe('OT');
-		const unchanged = dayEdit(day, shiftId, 3, intervals);
-		expect('approved_overtime_intervals' in unchanged).toBe(false);
-		expect('shift_definition_id' in unchanged).toBe(false);
-		const changedPlan = dayEdit(day, shiftId, 2, intervals);
-		expect('approved_overtime_intervals' in changedPlan).toBe(false);
 		const target = document.body.appendChild(document.createElement('div'));
 		const app = mount(DayCell, { target, props: { day } });
 		try {
