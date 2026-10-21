@@ -1,7 +1,6 @@
 import { expect, it } from '@effect/vitest';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
-import { ActReply } from '@norbital-ai/bolt/protocol';
 import type { ActInput } from '@norbital-ai/bolt';
 import { Authorities, Approvals } from '@norbital-ai/bolt/engine';
 import { workspace } from '../kit.ts';
@@ -28,13 +27,6 @@ const draft = {
 	effective_range: { from: '2026-01-01', to: null },
 	suspension_kinds: kinds
 } satisfies ActInput<'jurisdiction_settings.create'>;
-
-class SourceTeamResponseFailed extends Schema.TaggedError<SourceTeamResponseFailed>()(
-	'SourceTeamResponseFailed',
-	{
-		cause: Schema.Defect()
-	}
-) {}
 
 it.live(
 	'stores validated suspension kinds on their version, clones them and refuses sealed changes',
@@ -108,7 +100,7 @@ it.live(
 );
 
 it.live(
-	'resolves source team grants and approval eligibility while keeping the catalogue read-only',
+	'resolves source team grants and approval eligibility; teams have no runtime catalogue',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -124,38 +116,9 @@ it.live(
 				text: 'UPDATE sys_user SET team = CASE WHEN id = $1 THEN $4 WHEN id = $2 THEN $5 ELSE $6 END, revision = revision + 1 WHERE id IN ($1, $2, $3)',
 				params: [reviewer.id, controller.id, employee.id, HR_MANAGER, HR_CONTROLLER, EMPLOYEE]
 			});
+			// teams are source-only: no `sys_team` collection exists to edit or read
+			expect(t.manifest.collections['sys_team']).toBeUndefined();
 			const admin = t.as(t.admin);
-			const actor = admin.authority.actor;
-			if (actor.kind !== 'member') throw new Error('The source-team administrator is not a member');
-			const cookie = yield* t.session(actor.id);
-			const response = yield* t.handle(
-				new Request('http://localhost/__bolt/act', {
-					method: 'POST',
-					headers: {
-						'content-type': 'application/json',
-						cookie,
-						'Idempotency-Key': crypto.randomUUID()
-					},
-					body: JSON.stringify({
-						callable: 'sys_team.update',
-						input: { target: HR_MANAGER, set: { name: 'Runtime override' } },
-						issuedAt: t.clock.now()
-					})
-				})
-			);
-			const body = yield* Effect.tryPromise({
-				try: () => response.json(),
-				catch: (cause) => new SourceTeamResponseFailed({ cause })
-			});
-			const refusal = yield* Schema.decodeUnknownEffect(ActReply)(body);
-			expect(refusal.outcome).toMatchObject({
-				kind: 'refused',
-				code: 'forbidden',
-				message: 'sys_team does not accept update.'
-			});
-			expect(
-				(yield* admin.read('sys_team', { all: true })).rows.find((row) => row.id === HR_MANAGER)
-			).toMatchObject({ name: 'HR Manager', parent: null });
 			const authorities = new Authorities(t.manifest, 'payroll-source-teams');
 			const authority = yield* authorities.member(t.db, reviewer.id);
 			const controllerAuthority = yield* authorities.member(t.db, controller.id);

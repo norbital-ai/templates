@@ -609,7 +609,7 @@ packages:
     resolution: {integrity: sha512-LYYgJjZMss8vMsDb0kEdX9Ja0UsZUueJ9YPRT8hHOrrVuOnv9KflA7W9BGtpeNVYVZIKGYlptuvco2TPQYOlKg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.1/0a539b8aba7e9e9188fa774d1989ada12869a024}
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-2HBDlEN14ZAZM4ax9B7o5Mch9an02sCQfyP8spw7xootlVVJYTBFZFs2GhsJjAY8Iof22D/Aa9QK45Oy26KYaQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/bc5f9832c3c1a35a1f08615e999e11d7469e4cfd}
+    resolution: {integrity: sha512-EISOqV9mgZtBkYSESslRSYLgKqzvWZptTDuGQH3iBZ3BRft4roYalw2+g+qpyUeIoJ6AtTSb4ln8e8CgIJnn/w==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/0f98e9560ba1e91e3f7b19d6668f6e57d1dc072f}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
@@ -621,12 +621,12 @@ packages:
     resolution: {integrity: sha512-PHt0hWv5c2T+V7vozsA5AaDdsSDUAjodRV9EIIzr2s8kMfMhjz28s6YfomWXuzxj2zUGMMt3P/KGT4wx4KHv4A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/providers/0.0.1/2ce7b7aef84e418ec67fb4e25150a76c0c99d51c}
 
   '@norbital-ai/std@0.0.1':
-    resolution: {integrity: sha512-BD3C2AmuXkTsCr5Ft4hjtv0Q+e/wGpFwoeIVaITxT3ofAg+Q49Ya01kTb3JNWNVUemsERz8V8zwLTYAxH2KznA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/f5c1d8577bbf53f51c3e4e664b862640dfceda91}
+    resolution: {integrity: sha512-fmWYRJ6PZoHzklTDALF3nk3jpip05XWY4gNd+Xfgbr6wDoCOvedL97aNAKFWpAq5mjVZfkV4o3pM8L81GG5sTA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/f5b861d7012b4b1749df66439e4d5165b67e792d}
     peerDependencies:
       effect: 4.0.0-rc.112
 
   '@norbital-ai/ui@0.0.1':
-    resolution: {integrity: sha512-38Vk0IEcwbDHhII0nutI/CDYoXgt4quGLJQ4+Oyb0vIzbnEv5HPdWp0rHD/jlvJ1CXAWMM2E3kWACJttYs+vDQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/703e635f82f9a4a85983702be5054cf12c84c4a7}
+    resolution: {integrity: sha512-6T6YzaLsKgTXjdCCV21iWqnBe8NMOZyaS+1j430D8wRaL0DFZDUn/VtQ79n3hBeNgCTcO7Uu5Hn2CwJuPBc9qA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/da9d00d621c6b210f5858be6161299a21704b4c6}
     peerDependencies:
       svelte: ^5.56.10
 

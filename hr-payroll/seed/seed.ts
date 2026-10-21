@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { Schema } from 'effect';
 import { fileURLToPath } from 'node:url';
@@ -138,10 +139,11 @@ export default {
 			if (policy !== null) (rows['rule_set'] ??= []).push(policy);
 		}
 		// The private sample: `records/<entity>/<collection>.json`, rows already in the current collection shape. For now
-		// every validation of a sample entity only warns, as a new entity's does.
+		// every validation of a sample entity only warns, as a new entity's does. Of the system files only members load:
+		// teams and their grants are source declarations.
 		for (const file of bank.files('records')) {
 			const collection = /^records\/[a-z0-9_]+\/([a-z_]+)\.json$/.exec(file)?.[1];
-			if (collection === undefined || collection === 'sys_team' || collection === 'sys_assignment')
+			if (collection === undefined || (collection.startsWith('sys_') && collection !== 'sys_user'))
 				continue;
 			(rows[collection] ??= []).push(
 				...bank
@@ -152,6 +154,55 @@ export default {
 							: bankRow(collection, row)
 					)
 			);
+		}
+		// Each sample entity observes the holidays its bank rows chose for the years they cover; later years come from
+		// its jurisdiction's gazetted `public_holidays` (national, or regional where the entity's region is named),
+		// published on 1 December of the year before, as the bank's own rows are.
+		const lawHolidays = new Map<string, Map<string, Row>>();
+		for (const settings of rows['jurisdiction_settings'] ?? []) {
+			const lineage = settings['jurisdiction_code'];
+			const calendar = (rows['rule_set'] ?? []).find(
+				(row) =>
+					row['settings_id'] === settings['id'] &&
+					row['family'] === 'PAYROLL' &&
+					row['code'] === 'public_holidays'
+			)?.['rules'];
+			const listed = isRecord(calendar) ? calendar['holidays'] : undefined;
+			if (!isString(lineage) || !Array.isArray(listed)) continue;
+			const byDate = lawHolidays.get(lineage) ?? new Map<string, Row>();
+			for (const holiday of listed)
+				if (isRecord(holiday) && isString(holiday['date'])) byDate.set(holiday['date'], holiday);
+			lawHolidays.set(lineage, byDate);
+		}
+		for (const entity of rows['entity'] ?? []) {
+			const company = entity['id'];
+			const lineage = entity['settings_code'];
+			if (!isString(company) || !isString(lineage)) continue;
+			const held = (rows['holiday'] ?? []).filter((row) => row['company_id'] === company);
+			const covered = held
+				.flatMap((row) => (isString(row['date']) ? [row['date'].slice(0, 4)] : []))
+				.reduce((last, year) => (year > last ? year : last), '');
+			for (const [date, holiday] of lawHolidays.get(lineage) ?? []) {
+				const regions = holiday['regions'];
+				if (
+					date.slice(0, 4) <= covered ||
+					(Array.isArray(regions) && !regions.includes(entity['region'] ?? ''))
+				)
+					continue;
+				const hash = createHash('sha256')
+					.update(`norbital_hr:holiday:${company}:${date}`)
+					.digest('hex');
+				(rows['holiday'] ??= []).push({
+					id: `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`,
+					company_id: company,
+					date,
+					name: holiday['name'] ?? '',
+					kind: holiday['kind'] ?? 'PUBLIC_HOLIDAY',
+					given_to: holiday['given_to'] ?? 'EVERYONE',
+					...(isString(holiday['replaces']) ? { replaces: holiday['replaces'] } : {}),
+					published_at: `${Number.parseInt(date.slice(0, 4), 10) - 1}-12-01T00:00:00.000Z`
+				});
+			}
 		}
 		const settings = rows['jurisdiction_settings'] ?? [];
 		const settingsIds = new Set(

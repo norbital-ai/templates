@@ -20,6 +20,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, layer } from '@effect/vitest';
 import { workspace } from './kit.js';
+import sourceTeams from '../src/access_control/team/+team.ts';
 import { effectWrites, planBehaviours, Behaviours } from '../src/lib/payroll_engine/behaviours.ts';
 import { electionKeysOf } from '../src/lib/payroll_engine/employment_facts.ts';
 import { dutiesOf, DUTY_KEYS, raiseDuties, triggerOf, SEEDED_PAYROLL } from './duties.ts';
@@ -1791,6 +1792,11 @@ describe('SG public seed', () => {
 				),
 				false
 			);
+			// MSF: Shared Parental Leave covers children born on or after 1 April 2025.
+			assert.equal(
+				eligible('SHARED_PARENTAL_LEAVE', { employee: male }, citizenBirth, '2025-03-31'),
+				false
+			);
 			// CDCA s.12B / EA s.87A: a child under 7 (any, EA-covered) or a citizen child under 13.
 			const under7 = { child_birthdate: '2022-05-01', relationship: 'CHILD' };
 			const citizen10 = {
@@ -2952,7 +2958,7 @@ describe('SG public seed', () => {
 		const ids = (collection: string) => new Set(all(collection).map((item) => String(item.id)));
 		const lawIds = (table: string) =>
 			new Set(versions.flatMap((version) => load(version, table).map((item) => String(item.id))));
-		const teams = ids('sys_team');
+		const teams = new Set(Object.keys(sourceTeams));
 		const users = ids('sys_user');
 		const companies = ids('entity');
 		const profiles = ids('employment_profile');
@@ -3882,9 +3888,50 @@ describe('SG public seed', () => {
 			assert.equal(calendar.holidays.length, expected[version], version);
 			assert.ok(
 				calendar.holidays.every(
-					(h) => /^\d{4}-\d{2}-\d{2}$/.test(String(h.date)) && String(h.name).length > 0
+					(h) =>
+						/^\d{4}-\d{2}-\d{2}$/.test(String(h.date)) &&
+						String(h.name).length > 0 &&
+						h.source === 'https://www.mom.gov.sg/employment-practices/public-holidays'
 				)
 			);
+			// Every gazetted day inside the version's range is listed (MOM, 2026 and 2027 calendars).
+			const range = fixtureValue2(settingsOf(version).effective_range);
+			const gazetted = [
+				'2025-12-25',
+				'2026-01-01',
+				'2026-02-17',
+				'2026-02-18',
+				'2026-03-21',
+				'2026-04-03',
+				'2026-05-01',
+				'2026-05-27',
+				'2026-05-31',
+				'2026-06-01',
+				'2026-08-09',
+				'2026-08-10',
+				'2026-11-08',
+				'2026-11-09',
+				'2026-12-25',
+				'2027-01-01',
+				'2027-02-06',
+				'2027-02-07',
+				'2027-02-08',
+				'2027-03-10',
+				'2027-03-26',
+				'2027-05-01',
+				'2027-05-17',
+				'2027-05-20',
+				'2027-08-09',
+				'2027-10-28',
+				'2027-12-25'
+			];
+			for (const date of gazetted.filter(
+				(day) => day >= range.from && (range.to == null || day <= range.to)
+			))
+				assert.ok(
+					calendar.holidays.some((h) => h.date === date),
+					`${version} ${date}`
+				);
 			const settings = settingsOf(version);
 			const rule = fixturePresent(
 				fixtureValue5(settings.behaviours).rules.find((item) => item.id === 'write-public-holidays')
@@ -4883,7 +4930,41 @@ describe('SG public seed', () => {
 			assert.equal(days('2019-01-01', '2026-08-31', 91), 9); // 14 × 8/12 = 9.33 → 9
 			assert.equal(days('2025-09-01', '2026-02-28', 5), 4); // first year: 7 × 6/12 = 3.5 → 4
 			assert.equal(days('2019-01-01', '2026-03-31', 86, 0, '2026-03-15'), 0); // still employed on the day read
-			assert.equal(days('2019-01-01', '2026-03-31', 86, 9), 0);
+			// Unclamped: days taken beyond the year's share come out of the carried days the exit encashment adds.
+			assert.equal(days('2019-01-01', '2026-03-31', 86, 9), -5);
+		}
+	});
+	it('the exit encashment pays the annual leave carried into the leaving year (EA s.88A(6), (8))', () => {
+		for (const version of versions) {
+			const rule = fixturePresent(
+				fixtureValue5(settingsOf(version).behaviours).rules.find(
+					(item) => item.id === 'encash-leave-on-exit'
+				)
+			);
+			const paid = (exit: Row, carried: number) =>
+				effectWrites(rule, {
+					event: {
+						row: {
+							id: 'k1',
+							exit_ground: 'DISMISSAL',
+							exit_facts: {},
+							effective_range: { from: '2019-01-01', to: '2026-03-31' }
+						},
+						leave_balances: [
+							{ code: 'ANNUAL_LEAVE', entitlement: 14, carried, taken: 0, available: 14 + carried },
+							{ code: 'ANNUAL_LEAVE_ON_EXIT', carried: 0, ...exit }
+						]
+					},
+					catalogues: [
+						{ id: 'exit', code: 'ANNUAL_LEAVE_ON_EXIT', unit: 'DAY', entitlement: { days: '0' } }
+					],
+					movements: []
+				}).map((write) => fixtureValue11(write.data).days);
+			assert.deepEqual(paid({ entitlement: 3, taken: 0, available: 3 }, 6), [9], version);
+			// 9 days taken this year: 4 of the year's share and 5 of the 6 carried.
+			assert.deepEqual(paid({ entitlement: -5, taken: 0, available: 0 }, 6), [1], version);
+			assert.deepEqual(paid({ entitlement: -5, taken: 0, available: 0 }, 0), [], version);
+			assert.deepEqual(paid({ entitlement: 3, taken: 0, available: 3 }, 0), [3], version);
 		}
 	});
 	it('the SDL remittance is the run’s levies rounded down to the dollar', () => {
@@ -6080,6 +6161,26 @@ describe('SG public seed', () => {
 					);
 				assert.equal(warns([]), true);
 				assert.equal(warns([{ code: 'FIXED_MONTHLY', amount: 300 }]), false);
+				// MOM LQS: a work-pass employer pays its full-time locals outside the PWM at least the LQS.
+				const lqs = String(fixtureValue11(row(version, 'rule_set', 'LQS_WAGE_FLOOR').rules).when);
+				const floor =
+					fixtureValue2(settingsOf(version).effective_range).from >= '2026-07-01' ? 1800 : 1600;
+				const belowLqs = (monthly_wage: number, terms: Row = {}, levy_payer = true) =>
+					evaluateConfigured(
+						fixtureString(lqs),
+						fixtureContext({
+							...subject({
+								terms: { monthly_wage, facts: {}, ...terms },
+								company: { facts: { foreign_worker_levy_payer: levy_payer } }
+							})
+						})
+					);
+				assert.equal(belowLqs(floor - 1), true, version);
+				assert.equal(belowLqs(floor), false, version);
+				assert.equal(belowLqs(floor - 1, {}, false), false);
+				assert.equal(belowLqs(floor - 1, { residency_status: 'FOREIGNER' }), false);
+				assert.equal(belowLqs(floor - 1, { facts: { pwm_role: 'CLEANER_GENERAL' } }), false);
+				assert.equal(belowLqs(floor - 1, { employment_type: 'PART_TIME' }), false);
 				// EA s.76 maternity: half pay on less than 1 week's notice (the CDCA's 28 days is for a citizen child).
 				const fraction = String(row(version, 'leave_catalog', 'MATERNITY_LEAVE').pay_fraction);
 				const ea = {
