@@ -14,6 +14,7 @@ import { Effect } from 'effect';
 import { Refusal } from '../src/lib/payroll_engine/foundation.ts';
 import { planRosterImport, rosterSheet } from '../src/lib/payroll_engine/roster_import.ts';
 import { SHEET_COLUMNS, isField } from '../src/lib/payroll_engine/roster_sheet.ts';
+import { consumedLeaveCovers } from '../src/lib/payroll_engine/leave.ts';
 
 type Row = Record<string, unknown>;
 const ZONE = 'Asia/Singapore';
@@ -734,6 +735,123 @@ describe('work-day sheet import', () => {
 				refused.errors.map((finding) => finding.row),
 				[3]
 			);
+		})
+	);
+
+	it.effect(
+		'an unlocked change inside a run that already ran applies with a warning; a restatement stays silent',
+		Effect.fnUntraced(function* () {
+			// E2 has no payslip on the March run (a leaver), so 03-05 is not locked, but March payroll ran over it
+			const ran = fixture({
+				runs: [
+					{
+						id: nativeId('payroll_run', fixtureId('ran-run')),
+						company_id: COMPANY,
+						settings_id: VERSION,
+						period: '2026-03',
+						kind: 'REGULAR',
+						attendance_from: '2026-03-01',
+						attendance_to: '2026-03-31'
+					}
+				]
+			});
+			const changed = yield* plan(yield* xlsx([['E2', '2026-03-05', 'D', '09:00', '18:00']]), ran);
+			assert.deepEqual(changed.errors, []);
+			assert.deepEqual(
+				changed.warnings.filter((finding) => /after payroll/.test(finding.message)),
+				[
+					{
+						row: 2,
+						column: '',
+						message:
+							'E2 2026-03-05 changed after payroll for 2026-03 ran; it is not on a payslip, so the change applies, but review it.'
+					}
+				]
+			);
+			const restated = yield* plan(yield* xlsx([['E2', '2026-03-05', 'D']]), ran);
+			assert.deepEqual(restated.errors, []);
+			assert.deepEqual(
+				restated.warnings.filter((finding) => /after payroll/.test(finding.message)),
+				[]
+			);
+			// no run over the day: no warning
+			const quiet = yield* plan(yield* xlsx([['E2', '2026-03-05', 'D', '09:00', '18:00']]));
+			assert.deepEqual(
+				quiet.warnings.filter((finding) => /after payroll/.test(finding.message)),
+				[]
+			);
+		})
+	);
+
+	it.effect(
+		'a day under leave a payslip consumed is locked like the board shows it',
+		Effect.fnUntraced(function* () {
+			const k1 = nativeId('employment_contract', fixtureId('k1'));
+			const consumed = {
+				id: fixtureId('consumed-leave'),
+				company_id: COMPANY,
+				employment_id: k1,
+				catalog_id: nativeId('leave_catalog', fixtureId('AL1')),
+				activity: 'TIME_OFF',
+				occurred_on: '2026-03-03',
+				days: 1,
+				from: '2026-03-03',
+				to: '2026-03-03',
+				payslip_id: nativeId('payslip', fixtureId('p1'))
+			};
+			assert.equal(consumedLeaveCovers([consumed], k1, '2026-03-03'), true);
+			assert.equal(consumedLeaveCovers([consumed], k1, '2026-03-04'), false);
+			assert.equal(
+				consumedLeaveCovers([{ ...consumed, payslip_id: null }], k1, '2026-03-03'),
+				false
+			);
+			const source = fixture({ leave: [consumed] });
+			// restating the planned shift passes; changing it would change the paid leave hours
+			assert.deepEqual((yield* plan(yield* xlsx([['E1', '2026-03-03', 'D']]), source)).errors, []);
+			assert.deepEqual(
+				(yield* plan(yield* xlsx([['E1', '2026-03-03', 'R']]), source)).errors.map((finding) => [
+					finding.row,
+					finding.column,
+					finding.message
+				]),
+				[
+					[
+						2,
+						SHEET_COLUMNS.shift_code,
+						'E1 2026-03-03 is on leave settled on a payslip and cannot change.'
+					]
+				]
+			);
+		})
+	);
+
+	it.effect(
+		'a refused clock change names the boundary that moved',
+		Effect.fnUntraced(function* () {
+			// 03-02 is stored 09:00–18:00 local; pin it to a payslip
+			const pinned = fixture({
+				entries: [
+					entry('e1', nativeId('employment_contract', fixtureId('k1')), '2026-03-02', {
+						worked_intervals: [
+							{ start: '2026-03-02T01:00:00.000Z', end: '2026-03-02T10:00:00.000Z' }
+						],
+						payslip_id: nativeId('payslip', fixtureId('p1'))
+					})
+				]
+			});
+			const column = Effect.fnUntraced(function* (clockIn: string, clockOut: string) {
+				const result = yield* plan(
+					yield* xlsx([['E1', '2026-03-02', 'D', clockIn, clockOut]]),
+					pinned
+				);
+				return result.errors.map((finding) => finding.column);
+			});
+			assert.deepEqual(yield* column('09:00', '18:00'), []);
+			assert.deepEqual(yield* column('09:00', '17:00'), [SHEET_COLUMNS.clock_out]);
+			assert.deepEqual(yield* column('08:00', '18:00'), [SHEET_COLUMNS.clock_in]);
+			assert.deepEqual(yield* column('08:00', '17:00'), [
+				`${SHEET_COLUMNS.clock_in}, ${SHEET_COLUMNS.clock_out}`
+			]);
 		})
 	);
 });

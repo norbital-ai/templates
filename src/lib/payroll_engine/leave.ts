@@ -693,6 +693,27 @@ export function coversDay(movement: LeaveMovement, day: string): boolean {
 	return range != null && range.from <= day && day <= range.to;
 }
 
+/** Whether time off a payslip consumed covers the employment's day. Its planned shift sets the paid leave hours, so the
+ * roster day is locked as the payslip is: the month board's lock and the roster guards both read this. */
+export function consumedLeaveCovers(
+	rows: readonly {
+		readonly employment_id?: string | null;
+		readonly payslip_id?: string | null;
+		readonly occurred_on?: unknown;
+		readonly days?: unknown;
+		readonly from?: unknown;
+		readonly to?: unknown;
+	}[],
+	employmentId: string,
+	day: string
+): boolean {
+	return rows.some((row) => {
+		if (row.payslip_id == null || row.employment_id !== employmentId) return false;
+		const range = coverageRange(row.from, row.to, numberOf(row.days) ?? 1, row.occurred_on);
+		return range != null && range.from <= day && day <= range.to;
+	});
+}
+
 export function refuseCoveredWorkDay(
 	workDate: unknown,
 	employmentId: unknown,
