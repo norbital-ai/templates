@@ -147,6 +147,10 @@
 						"elder_care": {
 							"days": 5,
 							"only_child_days": 7
+						},
+						"menstrual": {
+							"days": 1,
+							"requires": "PROTECTED_WORK"
 						}
 					}
 				},
@@ -275,6 +279,10 @@
 						"elder_care": {
 							"days": 10,
 							"only_child_days": 20
+						},
+						"menstrual": {
+							"days": 2,
+							"requires": "DIAGNOSIS"
 						}
 					}
 				}
@@ -739,9 +747,9 @@
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
-			"when": "(company.region in rules.regions.by_region) && (period.to == period.month_to && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) && employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to) && ((rules.regions.by_region[company.region].minimum_wage.excludes_employee_contributions ? terms.monthly_wage - ((has(statutory.PENSION) ? statutory.PENSION.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.PENSION) ? earned.month.statutory.PENSION.employee : 0.0) + (has(statutory.MEDICAL) ? statutory.MEDICAL.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.MEDICAL) ? earned.month.statutory.MEDICAL.employee : 0.0) + (has(statutory.UNEMPLOYMENT) ? statutory.UNEMPLOYMENT.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.UNEMPLOYMENT) ? earned.month.statutory.UNEMPLOYMENT.employee : 0.0) + (has(statutory.HPF) ? statutory.HPF.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.HPF) ? earned.month.statutory.HPF.employee : 0.0) + (has(statutory.HPF_SUPPLEMENTARY) ? statutory.HPF_SUPPLEMENTARY.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.HPF_SUPPLEMENTARY) ? earned.month.statutory.HPF_SUPPLEMENTARY.employee : 0.0)) : terms.monthly_wage)) < double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount))",
+			"when": "(company.region in rules.regions.by_region) && (period.to == period.month_to && !(terms.employment_type in [\"PART_TIME\", \"INTERN\", \"RETIREE_REHIRE\"]) && employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to) && ((rules.regions.by_region[company.region].minimum_wage.excludes_employee_contributions ? (terms.monthly_wage - sum(terms.allowances.filter(a, a.code in [\"FOREIGN_HOUSING_ALLOWANCE\", \"FOREIGN_LANGUAGE_ALLOWANCE\", \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"]).map(a, a.amount))) - ((has(statutory.PENSION) ? statutory.PENSION.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.PENSION) ? earned.month.statutory.PENSION.employee : 0.0) + (has(statutory.MEDICAL) ? statutory.MEDICAL.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.MEDICAL) ? earned.month.statutory.MEDICAL.employee : 0.0) + (has(statutory.UNEMPLOYMENT) ? statutory.UNEMPLOYMENT.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.UNEMPLOYMENT) ? earned.month.statutory.UNEMPLOYMENT.employee : 0.0) + (has(statutory.HPF) ? statutory.HPF.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.HPF) ? earned.month.statutory.HPF.employee : 0.0) + (has(statutory.HPF_SUPPLEMENTARY) ? statutory.HPF_SUPPLEMENTARY.employee : 0.0) + (has(earned.month) && has(earned.month.statutory.HPF_SUPPLEMENTARY) ? earned.month.statutory.HPF_SUPPLEMENTARY.employee : 0.0)) : (terms.monthly_wage - sum(terms.allowances.filter(a, a.code in [\"FOREIGN_HOUSING_ALLOWANCE\", \"FOREIGN_LANGUAGE_ALLOWANCE\", \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"]).map(a, a.amount))))) < double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount))",
 			"message": "the contract wage is below the local monthly minimum wage (Shanghai: after the employee's social insurance and housing fund; Kunming: including them).",
-			"description": "最低工资规定 (劳动和社会保障部令第21号) 第十二条: 用人单位支付给劳动者的工资在剔除延长工作时间工资、特殊津贴、法定福利后不得低于当地最低工资标准. SH: 沪人社规〔2025〕10号 — the 2,740 excludes the employee's own social insurance and housing fund contributions, overtime pay and the listed allowances https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html. KM: 云人社发〔2025〕19号 三、计算口径 — the minimum wage includes the employee's own social insurance and housing fund https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf. Checked on a full employed month of a full-time term against the contract monthly wage (base salary and fixed allowances, `terms.monthly_wage`; the high-temperature allowance and overtime are separate lines and never count) and `rules.regions` minimum_wage on the period end; the hourly minimum for part-time work is not checked. The check runs once a month, on the salary run that ends on the month's last day (the last part of a semi-monthly or ten-day month, or the monthly run after a mid-month switch), for an employment covering the whole month, against the month's employee contributions to date (this slip's plus the month's earlier slips', `earned.month`)."
+			"description": "最低工资规定 (劳动和社会保障部令第21号) 第十二条: 用人单位支付给劳动者的工资在剔除延长工作时间工资、特殊津贴、法定福利后不得低于当地最低工资标准. SH: 沪人社规〔2025〕10号 — the 2,740 excludes the employee's own social insurance and housing fund contributions, overtime pay and the listed allowances https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html. KM: 云人社发〔2025〕19号 三、计算口径 — the minimum wage includes the employee's own social insurance and housing fund https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf. Checked on a full employed month of a full-time term against the contract monthly wage (`terms.monthly_wage`: base salary and fixed allowances, without the welfare and reimbursement allowances ONLY_CHILD_ALLOWANCE, CHILDCARE_SUBSIDY, TRAVEL_ALLOWANCE and MEAL_SUBSIDY_OUT; the check also leaves out the expatriate housing, language and children-education allowances, as 住房补贴 and reimbursed benefits are not part of the minimum wage — 最低工资规定 第十二条, 沪人社规〔2025〕10号 第三项 伙食补贴、上下班交通费补贴、住房补贴; the high-temperature allowance and overtime are separate lines and never count) and `rules.regions` minimum_wage on the period end; the hourly minimum for part-time work is not checked. The check runs once a month, on the salary run that ends on the month's last day (the last part of a semi-monthly or ten-day month, or the monthly run after a mid-month switch), for an employment covering the whole month, against the month's employee contributions to date (this slip's plus the month's earlier slips', `earned.month`)."
 		}
 	},
 	{
@@ -1325,207 +1333,248 @@
 				{
 					"date": "2026-01-01",
 					"name": "元旦",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-01-02",
 					"name": "元旦 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-01-03",
 					"name": "元旦 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-01-04",
 					"name": "元旦调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-14",
 					"name": "春节调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-15",
 					"name": "春节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-16",
 					"name": "除夕",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-17",
 					"name": "春节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-18",
 					"name": "春节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-19",
 					"name": "春节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-20",
 					"name": "春节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-21",
 					"name": "春节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-22",
 					"name": "春节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-23",
 					"name": "春节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-02-28",
 					"name": "春节调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-03-08",
 					"name": "妇女节 (妇女放假半天)",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-04-04",
 					"name": "清明节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-04-05",
 					"name": "清明节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-04-06",
 					"name": "清明节 (补假)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-01",
 					"name": "劳动节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-02",
 					"name": "劳动节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-03",
 					"name": "劳动节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-04",
 					"name": "劳动节 (调休); 青年节",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-05",
 					"name": "劳动节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-05-09",
 					"name": "劳动节调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-06-19",
 					"name": "端午节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-06-20",
 					"name": "端午节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-06-21",
 					"name": "端午节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-08-01",
 					"name": "建军节 (现役军人放假半天)",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-09-20",
 					"name": "国庆节调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-09-25",
 					"name": "中秋节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-09-26",
 					"name": "中秋节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-09-27",
 					"name": "中秋节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-01",
 					"name": "国庆节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-02",
 					"name": "国庆节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-03",
 					"name": "国庆节",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "全国年节及纪念日放假办法 (国务院令第795号, 自2025年1月1日) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-04",
 					"name": "国庆节 (休息日)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-05",
 					"name": "国庆节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-06",
 					"name": "国庆节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-07",
 					"name": "国庆节 (调休)",
-					"kind": "SUBSTITUTE"
+					"kind": "SUBSTITUTE",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				},
 				{
 					"date": "2026-10-10",
 					"name": "国庆节调休上班",
-					"kind": "MAKEUP_WORKDAY"
+					"kind": "MAKEUP_WORKDAY",
+					"source": "国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号) https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"
 				}
 			],
 			"authority": "全国年节及纪念日放假办法 (国务院令第795号修订, 自2025年1月1日) 第二条: 元旦1天, 春节4天 (农历除夕、正月初一至初三), 清明节1天, 劳动节2天 (5月1日、2日), 端午节1天, 中秋节1天, 国庆节3天 (10月1日至3日) — PUBLIC_HOLIDAY; 第三条: 妇女节妇女放假半天, 青年节14周岁以上的青年放假半天, 建军节现役军人放假半天 (适逢周六、周日不补假) — SPECIAL_HOLIDAY (ordinary time if worked) https://www.gov.cn/zhengce/content/202411/content_6986380.htm; 国务院办公厅关于2026年部分节假日安排的通知 (国办发明电〔2025〕7号, 2025年11月4日): 元旦1月1日至3日放假, 1月4日上班; 春节2月15日至23日放假, 2月14日、2月28日上班; 清明4月4日至6日; 劳动节5月1日至5日, 5月9日上班; 端午6月19日至21日; 中秋9月25日至27日; 国庆10月1日至7日, 9月20日、10月10日上班 https://www.news.cn/politics/20251104/88bcffd88ae249e58c699b8772548e3d/c.html. Bridging days off are SUBSTITUTE (rest days, 200% if worked); 调休上班 days are MAKEUP_WORKDAY (working days). The rows arrive unpublished; HR publishes them."
@@ -1766,7 +1815,7 @@
 				},
 				{
 					"code": "INCAPACITY",
-					"name": "Incapacity (illness, injury or incompetence)"
+					"name": "Incapacity or changed circumstances (劳动合同法 第四十条: illness, incompetence or a major change in objective circumstances)"
 				},
 				{
 					"code": "ECONOMIC_LAYOFF",
@@ -2087,6 +2136,21 @@
 					"group": "Leave pay"
 				}
 			]
+		}
+	},
+	{
+		"id": "ce3dad3b-3413-584c-95f4-338dcc7eb994",
+		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]

@@ -12,7 +12,8 @@ import {
 	type HostRow,
 	isDynObject,
 	isJsonObject,
-	numberOf
+	numberOf,
+	Refusal
 } from './foundation.js';
 
 const isString = Schema.is(Schema.String);
@@ -30,9 +31,12 @@ const Entitlement = Schema.Struct({
 	/** CEL over `service_months`, `bands`, the subject roots and `taken`: the days the class grants; absent, the
 	 * class is not metered. */
 	days: Schema.optional(Schema.String),
+	/** CEL on the subject (required with `days`): the most days the balance may run below zero — advance leave. */
+	overdraw: Schema.optional(Schema.String),
 	bands: Schema.optional(Schema.Array(Band)),
 	window: Schema.optional(Schema.Literals(WINDOWS)),
-	/** `ROLLING`: the months the window reaches back from the day read (that day included). */
+	/** `ROLLING` (required): the months the window reaches back from the day read (that day included). On any class,
+	 * the span of its `taken.rolling` root, which only a class stating it has. */
 	window_months: Schema.optional(Schema.Number),
 	/** `SERVICE_YEAR`: months after the employment start the first service year begins (a first grant at 6 months). */
 	service_year_offset_months: Schema.optional(Schema.Number),
@@ -40,7 +44,7 @@ const Entitlement = Schema.Struct({
 	window_key: Schema.optional(Schema.String),
 	/** CEL on the previous window's context: the most unused days of that window carried into this one. */
 	carry_forward: Schema.optional(Schema.String),
-	/** How many windows on a day may still be carried (default 1: carried days carry once). */
+	/** With `carry_forward` (required): how many windows carried days may still be carried (1: they carry once). */
 	carry_depth: Schema.optional(Schema.Number),
 	/** With `consumes_code`: the first N units of the class (in the pool's window) are its own; only those past N draw
 	 * on the pool. */
@@ -124,6 +128,7 @@ type LeaveBalance = {
 	/** Unused days of the previous window carried in, capped by the class's `carry_forward`. */
 	readonly carried: number;
 	readonly taken: number;
+	/** The days still requestable: what is left plus the class's `overdraw`, never below zero. */
 	readonly available: number;
 	/** A `window_key` class's key this view meters; blank for the class's own (next-event) view. */
 	readonly window_key: string;
@@ -214,6 +219,13 @@ const EMPTY_ENTRY: DynObject = {
 	quantity: 1
 };
 
+/** A leave class row missing a field the engine needs: refused, never defaulted. */
+const missing = (code: string | undefined, key: string, what: string): never => {
+	throw new Refusal({
+		message: `Leave class ${code ?? ''} (leave_catalog) needs ${key}: ${what}.`
+	});
+};
+
 const keyRule = (cls: LeaveClass | undefined): string | null => {
 	const rule = cls?.entitlement?.window_key;
 	return rule == null || rule.trim() === '' ? null : rule;
@@ -241,11 +253,12 @@ function windowRange(
 ): { from: string; to: string } | null {
 	const asOf = where.asOf ?? null;
 	if (asOf == null) return null;
-	if (window === 'ROLLING')
-		return {
-			from: addDays(addMonths(asOf, -(cls?.entitlement?.window_months ?? 12)), 1),
-			to: asOf
-		};
+	if (window === 'ROLLING') {
+		const months =
+			cls?.entitlement?.window_months ??
+			missing(cls?.code, 'entitlement.window_months', 'the months a ROLLING window reaches back');
+		return { from: addDays(addMonths(asOf, -months), 1), to: asOf };
+	}
 	if (window === 'CALENDAR_YEAR')
 		return { from: `${asOf.slice(0, 4)}-01-01`, to: `${asOf.slice(0, 4)}-12-31` };
 	if (window === 'SERVICE_YEAR') {
@@ -380,7 +393,7 @@ function takenOf(
 		service_year: sum('SERVICE_YEAR'),
 		lifetime: sum('LIFETIME'),
 		event: sum('EVENT'),
-		rolling: sum('ROLLING')
+		...(keyed?.entitlement?.window_months == null ? {} : { rolling: sum('ROLLING') })
 	};
 }
 
@@ -490,7 +503,7 @@ function previousWindowEnd(
 
 /**
  * The days a class carries into the window holding `asOf`: the previous window's entitlement less what it took, capped
- * by the class's own `carry_forward` CEL read on that window. Carried days carry again for `carry_depth` windows (1).
+ * by the class's own `carry_forward` CEL read on that window. Carried days carry again for `carry_depth` windows.
  */
 function carriedInto(
 	cls: LeaveClass,
@@ -499,13 +512,17 @@ function carriedInto(
 		readonly movements: readonly LeaveMovement[];
 		readonly serviceMonths: number;
 	} & LeaveWindowInput,
-	depth = cls.entitlement?.carry_depth ?? 1
+	depth?: number
 ): number {
 	const rule = cls.entitlement?.carry_forward;
+	if (rule == null || rule.trim() === '') return 0;
+	const left =
+		depth ??
+		cls.entitlement?.carry_depth ??
+		missing(cls.code, 'entitlement.carry_depth', 'how many windows carried days may still carry');
 	const window = cls.entitlement?.window ?? 'LIFETIME';
 	const end = previousWindowEnd(window, input, cls);
-	if (depth <= 0 || rule == null || rule.trim() === '' || end == null || input.asOf == null)
-		return 0;
+	if (left <= 0 || end == null || input.asOf == null) return 0;
 	if (input.employmentStart != null && end < input.employmentStart) return 0;
 	const previous = {
 		...input,
@@ -521,7 +538,7 @@ function carriedInto(
 	};
 	const used = debitFor(cls.code, input.classes, input.movements, previous);
 	// What the previous window held: its grant, plus what it carried in while days may still carry on.
-	const unused = classEntitlement(cls, previous) + carriedInto(cls, previous, depth - 1) - used;
+	const unused = classEntitlement(cls, previous) + carriedInto(cls, previous, left - 1) - used;
 	const cap =
 		numberOf(
 			evaluateConfigured(rule, {
@@ -606,13 +623,27 @@ function offered(cls: LeaveClass, context: DynObject | undefined): boolean {
 	);
 }
 
+/** A metered class's `overdraw` CEL on its subject: the most days its balance may run below zero. */
+function overdrawOf(cls: LeaveClass, input: BalanceInput): number {
+	const what = 'a CEL number, the most days the balance may run below zero';
+	const rule = cls.entitlement?.overdraw ?? missing(cls.code, 'entitlement.overdraw', what);
+	const value = numberOf(
+		evaluateConfigured(rule, {
+			...input.context,
+			as_of: input.asOf ?? null,
+			service_months: input.serviceMonths
+		})
+	);
+	return value ?? missing(cls.code, 'entitlement.overdraw', what);
+}
+
 function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): LeaveBalance {
 	const entitlement = classEntitlement(cls, input);
 	const carried = carriedInto(cls, input);
 	const taken = Math.max(0, debitFor(cls.code, input.classes, input.movements, input));
 	const own = entitlement + carried - taken;
 	let limited = metered(cls);
-	let available = limited ? Math.max(0, own) : 0;
+	let available = limited ? Math.max(0, own + overdrawOf(cls, input)) : 0;
 	if (cls.consumes_code != null) {
 		const pool = input.classes.find((row) => row.code === cls.consumes_code);
 		if (pool != null && metered(pool)) {
@@ -621,7 +652,13 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 			const free = Math.max(0, (cls.entitlement?.consumes_after_days ?? 0) - taken);
 			const poolAvailable =
 				free +
-				Math.max(0, classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken) *
+				Math.max(
+					0,
+					classEntitlement(pool, input) +
+						carriedInto(pool, input) -
+						poolTaken +
+						overdrawOf(pool, input)
+				) *
 					unitsPerDay(cls, input);
 			available = limited ? Math.min(available, poolAvailable) : poolAvailable;
 			limited = true;
@@ -709,7 +746,7 @@ export function consumedLeaveCovers(
 ): boolean {
 	return rows.some((row) => {
 		if (row.payslip_id == null || row.employment_id !== employmentId) return false;
-		const range = coverageRange(row.from, row.to, numberOf(row.days) ?? 1, row.occurred_on);
+		const range = coverageRange(row.from, row.to, numberOf(row.days) ?? 0, row.occurred_on);
 		return range != null && range.from <= day && day <= range.to;
 	});
 }
@@ -815,7 +852,7 @@ export function classFromRow(
 		id: row.id,
 		code,
 		name: isString(row.name) ? row.name : code,
-		can_encash: row.can_encash !== false,
+		can_encash: row.can_encash,
 		is_npl: row.is_npl === true,
 		consumes_code: isString(row.consumes_code) ? row.consumes_code : null,
 		entitlement: Option.isNone(parsed) ? null : parsed.value,

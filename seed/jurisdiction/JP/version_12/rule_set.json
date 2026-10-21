@@ -523,244 +523,292 @@
 				{
 					"date": "2025-12-29",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2025-12-30",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2025-12-31",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2026-01-01",
 					"name": "元日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-01-02",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2026-01-03",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2026-01-12",
 					"name": "成人の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-02-11",
 					"name": "建国記念の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-02-23",
 					"name": "天皇誕生日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-03-20",
 					"name": "春分の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
 				},
 				{
 					"date": "2026-04-29",
 					"name": "昭和の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-05-03",
 					"name": "憲法記念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-05-04",
 					"name": "みどりの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-05-05",
 					"name": "こどもの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-05-06",
 					"name": "休日（振替休日）",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-05-03"
+					"replaces": "2026-05-03",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-07-20",
 					"name": "海の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-08-11",
 					"name": "山の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-09-21",
 					"name": "敬老の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-09-22",
 					"name": "休日（国民の休日）",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-09-23",
 					"name": "秋分の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
 				},
 				{
 					"date": "2026-10-12",
 					"name": "スポーツの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-11-03",
 					"name": "文化の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-11-23",
 					"name": "勤労感謝の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2026-12-29",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2026-12-30",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2026-12-31",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2027-01-01",
 					"name": "元日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-01-02",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2027-01-03",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2027-01-11",
 					"name": "成人の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-02-11",
 					"name": "建国記念の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-02-23",
 					"name": "天皇誕生日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-03-21",
 					"name": "春分の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
 				},
 				{
 					"date": "2027-03-22",
 					"name": "休日（振替休日）",
 					"kind": "SUBSTITUTE",
-					"replaces": "2027-03-21"
+					"replaces": "2027-03-21",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-04-29",
 					"name": "昭和の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-05-03",
 					"name": "憲法記念日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-05-04",
 					"name": "みどりの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-05-05",
 					"name": "こどもの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-07-19",
 					"name": "海の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-08-11",
 					"name": "山の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-09-20",
 					"name": "敬老の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-09-23",
 					"name": "秋分の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
 				},
 				{
 					"date": "2027-10-11",
 					"name": "スポーツの日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-11-03",
 					"name": "文化の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-11-23",
 					"name": "勤労感謝の日",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
 				},
 				{
 					"date": "2027-12-29",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2027-12-30",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				},
 				{
 					"date": "2027-12-31",
 					"name": "年末年始の休日（行政機関）",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
 				}
 			],
 			"authority": "国民の祝日に関する法律 arts.2–3 (祝日, 振替休日, 国民の休日) as the 内閣府 calendar lists them (https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv, including the 2027 equinox days by the February 2026 官報), and the 行政機関の休日 of 29 December to 3 January (行政機関の休日に関する法律 art.1(1)(iii)) on which a government filing is not due. Written unpublished: a Japanese holiday carries no statutory premium; publishing it moves the due days of filings."
@@ -2144,8 +2192,8 @@
 		"code": "HARASSMENT_PREVENTION_MEASURES",
 		"name": "ハラスメント防止措置 (harassment prevention measures)",
 		"rules": {
-			"description": "Put in place the required measures against power, sexual and maternity/childcare harassment — a stated policy, a consultation system, prompt response and protection of those who consult — and the customer-harassment measures of the 2025 amendment once in force.",
-			"authority": "労働施策の総合的な推進並びに労働者の雇用の安定及び職業生活の充実等に関する法律 art.30の2 (every employer from April 2022), 男女雇用機会均等法 arts.11, 11の3 and 育児・介護休業法 art.25, with the ministry's 指針.",
+			"description": "Put in place the required measures against power, sexual and maternity/childcare harassment, customer harassment (カスタマーハラスメント: conduct of customers, clients or others connected with the business that exceeds what is socially acceptable and harms the working environment) and sexual harassment of job seekers and interns (求職者等に対するセクシュアルハラスメント) — a stated policy, a consultation system, prompt and appropriate response, protection of those who consult and of their privacy, and no disadvantageous treatment for consulting.",
+			"authority": "労働施策の総合的な推進並びに労働者の雇用の安定及び職業生活の充実等に関する法律 art.30の2 (power harassment, every employer from April 2022) and its customer-harassment measures, and 男女雇用機会均等法 arts.11, 11の3 with its job-seeker sexual-harassment measures, both as amended by 令和7年法律第63号 (promulgated 11 June 2025, in force 1 October 2026 for every employer whatever its size); 育児・介護休業法 art.25; the ministry's 指針, including 令和8年厚生労働省告示第51号 (customer harassment) and 第52号 (job seekers) — https://jsite.mhlw.go.jp/aichi-roudoukyoku/ikujikaigo001_00001.html.",
 			"trigger": {
 				"collection": "entity",
 				"event": "created"
@@ -4744,6 +4792,22 @@
 					"group": "Basic pay"
 				}
 			]
+		}
+	},
+	{
+		"id": "1d399b55-13c4-52c6-bda2-a74f62151bb3",
+		"settings_id": "b1ad6cae-7a90-51d8-a838-f90516a1b6d7",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity.",
+			"authority": "労働基準法 art.89(i): the work rules state the start and end of work, breaks, rest days and, for shift work, the rotation; art.35: at least one rest day each week or 4 in 4 weeks. A roster swap moves days inside the rotation; adding a work day or dropping a rest or off day departs from the work rules."
 		}
 	}
 ]

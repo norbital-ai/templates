@@ -11,7 +11,7 @@ const entity = {
 };
 
 test('a month that switches offers each frequency its own periods over its own days', () => {
-	const offered = periodOptions(entity, '2026-04-10', 3);
+	const offered = periodOptions(entity, {}, '2026-04-10', 3);
 	assert.deepEqual(
 		offered.map((row) => [row.key, row.from, row.to]),
 		[
@@ -23,17 +23,17 @@ test('a month that switches offers each frequency its own periods over its own d
 		]
 	);
 	// nothing that starts after today
-	assert.ok(!periodOptions(entity, '2026-03-10', 1).some((row) => row.key === '2026-03'));
+	assert.ok(!periodOptions(entity, {}, '2026-03-10', 1).some((row) => row.key === '2026-03'));
 });
 
 test('an event page steps by the period the schedule then pays', () => {
-	assert.equal(periodIn(entity, '2026-03-1', '2026-04-10')?.key, '2026-03-1');
-	assert.equal(periodIn(entity, '2026-03', '2026-03-20')?.key, '2026-03');
+	assert.equal(periodIn(entity, {}, '2026-03-1', '2026-04-10')?.key, '2026-03-1');
+	assert.equal(periodIn(entity, {}, '2026-03', '2026-03-20')?.key, '2026-03');
 	// a key the month does not offer is restated as the period holding today
-	assert.equal(periodIn(entity, '2026-03-2', '2026-03-20')?.key, '2026-03');
-	assert.deepEqual(periodIn(entity, '2026-03', '2026-03-20')?.window, {
+	assert.equal(periodIn(entity, {}, '2026-03-2', '2026-03-20')?.key, '2026-03');
+	assert.deepEqual(periodIn(entity, {}, '2026-03', '2026-03-20')?.window, {
 		from: '2026-03-16',
 		to: '2026-03-31'
 	});
-	assert.equal(periodIn(entity, '2026-02', '2026-02-20')?.key, '2026-02-2');
+	assert.equal(periodIn(entity, {}, '2026-02', '2026-02-20')?.key, '2026-02-2');
 });

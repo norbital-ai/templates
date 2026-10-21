@@ -6,11 +6,12 @@
 		"name": "Joint leave (cuti bersama)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
-		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement. a cuti bersama day taken is set against the annual leave (SKB 3 Menteri; `consumes_code`).",
+		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. SKB 3 Menteri No. 1205 Tahun 2026, No. 3 Tahun 2026 and No. 2 Tahun 2026 (Lampiran B) — 8 cuti bersama days for 2027 (5 February; 9, 12, 15 and 25 March; 18 and 19 May; 24 December). For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement. a cuti bersama day taken is set against the annual leave (SKB 3 Menteri; `consumes_code`).",
 		"consumes_code": "ANNUAL_LEAVE"
 	},
 	{
@@ -20,6 +21,7 @@
 		"name": "Work from home (attendance marker)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -32,6 +34,7 @@
 		"name": "Annual leave",
 		"eligibility": "employment.service_months >= 12",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -46,8 +49,10 @@
 				}
 			],
 			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
+			"overdraw": "0",
 			"window": "SERVICE_YEAR",
-			"carry_forward": "5.0"
+			"carry_forward": "5.0",
+			"carry_depth": 1
 		}
 	},
 	{
@@ -57,6 +62,7 @@
 		"name": "Unpaid leave",
 		"eligibility": "!(has(entry.facts.event_kind) && entry.facts.event_kind in [\"STATE_DUTY\", \"UNION_DUTY\", \"COMPANY_TRAINING\", \"EMPLOYER_IDLE\", \"SUSPENSION\", \"BREASTFEEDING\", \"SICK\", \"MENSTRUATION\", \"RELIGIOUS_DUTY\"])",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -70,6 +76,7 @@
 		"name": "Medical leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -83,6 +90,7 @@
 		"name": "Maternity leave",
 		"eligibility": "employee.gender == \"FEMALE\" && has(entry.facts.event_kind) && entry.facts.event_kind in [\"BIRTH\", \"BIRTH_COMPLICATION\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -96,6 +104,7 @@
 		"name": "Paternity leave",
 		"eligibility": "employee.gender == \"MALE\" && has(entry.facts.event_kind) && entry.facts.event_kind in [\"BIRTH\", \"BIRTH_COMPLICATION\", \"MISCARRIAGE\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -105,7 +114,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -115,6 +125,7 @@
 		"name": "Marriage leave",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"MARRIAGE\"] && has(entry.facts.relationship) && entry.facts.relationship in [\"SELF\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -124,7 +135,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "3.0"
+			"days": "3.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -134,6 +146,7 @@
 		"name": "Child's marriage leave",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"MARRIAGE\"] && has(entry.facts.relationship) && entry.facts.relationship in [\"CHILD\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -143,7 +156,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -153,6 +167,7 @@
 		"name": "Child's circumcision leave",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"CIRCUMCISION\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -162,7 +177,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -172,6 +188,7 @@
 		"name": "Child's baptism leave",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"BAPTISM\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -181,7 +198,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -191,6 +209,7 @@
 		"name": "Bereavement leave (immediate family)",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"DEATH\"] && has(entry.facts.relationship) && entry.facts.relationship in [\"SPOUSE\", \"CHILD\", \"PARENT\", \"PARENT_IN_LAW\", \"CHILD_IN_LAW\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -200,7 +219,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -210,6 +230,7 @@
 		"name": "Bereavement leave (household member)",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"DEATH\"] && has(entry.facts.relationship) && entry.facts.relationship in [\"HOUSEHOLD\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -219,7 +240,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "1.0"
+			"days": "1.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -229,6 +251,7 @@
 		"name": "Menstrual leave",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -238,7 +261,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -248,6 +272,7 @@
 		"name": "Miscarriage leave",
 		"eligibility": "employee.gender == \"FEMALE\" && has(entry.facts.event_kind) && entry.facts.event_kind in [\"MISCARRIAGE\"] && (!has(entry.from) || !has(entry.to) || entry.to <= add_days(add_months(entry.from, 1), 14))",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -261,6 +286,7 @@
 		"name": "Public holiday in lieu",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -273,6 +299,7 @@
 		"name": "Cuti ibadah (religious duty leave)",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind in [\"RELIGIOUS_DUTY\"] && !earlier.rows.exists(r, r.activity != \"REVERSAL\" && (!has(r.facts.event_id) || !has(entry.facts.event_id) || r.facts.event_id != entry.facts.event_id))",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -288,6 +315,7 @@
 		"authority": "UU 13/2003 art.86; PP 44/2015 art.25 and Lampiran III as amended by PP 82/2019: while a worker is temporarily unable to work after a work accident or occupational disease the employer pays the wage (STMB) — 100% for the first 12 months, then 50% until recovery (secondary for the 50% tail; the official Lampiran could not be read) — and claims it back from BPJS Ketenagakerjaan.",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -300,6 +328,7 @@
 		"name": "State duty",
 		"eligibility": "has(entry.facts.event_kind) && entry.facts.event_kind == \"STATE_DUTY\" && (!has(entry.facts.duty_months) || double(entry.facts.duty_months) <= 12.0)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -313,6 +342,7 @@
 		"name": "Union duty",
 		"eligibility": "has(entry.facts.employer_consent) && entry.facts.employer_consent == true",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -326,6 +356,7 @@
 		"name": "Company education or training",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -339,6 +370,7 @@
 		"name": "Ready to work, no work provided",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -352,6 +384,7 @@
 		"name": "Suspension during dismissal (skorsing)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -365,6 +398,7 @@
 		"name": "Paternity leave extension",
 		"eligibility": "employee.gender == \"MALE\" && has(entry.facts.event_kind) && entry.facts.event_kind in [\"BIRTH\", \"BIRTH_COMPLICATION\"] && has(entry.facts.employer_agreed) && entry.facts.employer_agreed == true",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -374,7 +408,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"bands": [],
-			"days": "3.0"
+			"days": "3.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -384,6 +419,7 @@
 		"name": "Long leave (istirahat panjang)",
 		"eligibility": "has(company.facts.long_leave_granted) && company.facts.long_leave_granted == true",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,

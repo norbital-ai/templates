@@ -35,6 +35,7 @@ const term = (salary: number) => ({
 	work_classification: 'EA_COVERED',
 	statutory_work_category: 'NON_MANUAL',
 	employment_type: 'PERMANENT',
+	facts: { race: 'CHINESE', religion: 'OTHER' },
 	shift_pattern_id: fixtureId('severity-week'),
 	allowances: []
 });
@@ -91,8 +92,6 @@ const tablesWith = (severity: unknown, rules: readonly Row[]): Tables => {
 					id: PERSON,
 					name: 'Dernese',
 					date_of_birth: PlainDate('1997-06-30'),
-					race: 'CHINESE',
-					religion: 'OTHER',
 					nationality: 'SG',
 					facts: {}
 				}

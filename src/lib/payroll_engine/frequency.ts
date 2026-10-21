@@ -46,8 +46,12 @@ export type SettlementPeriod = {
 export const settlementPeriod = (
 	period: string,
 	frequency: string,
-	/** The governing version's calendar: `payroll.week_start`, `payroll.semi_monthly_split`. */
-	calendar: { readonly week_start?: number; readonly semi_monthly_split?: number } = {}
+	/** The governing version's calendar: `payroll.week_start`, `semi_monthly_split`, `ten_day_splits`. */
+	calendar: {
+		readonly week_start?: number;
+		readonly semi_monthly_split?: number;
+		readonly ten_day_splits?: readonly number[];
+	} = {}
 ): Effect.Effect<SettlementPeriod, Refusal> => {
 	const month = /^\d{4}-(0[1-9]|1[0-2])/.test(period) ? period.slice(0, 7) : null;
 	const parts = month == null ? undefined : partsIn(frequency, month, calendar.week_start);
@@ -81,7 +85,8 @@ export const settlementPeriod = (
 				...(calendar.week_start == null ? {} : { week_start: calendar.week_start }),
 				...(calendar.semi_monthly_split == null
 					? {}
-					: { semi_monthly_split: calendar.semi_monthly_split })
+					: { semi_monthly_split: calendar.semi_monthly_split }),
+				...(calendar.ten_day_splits == null ? {} : { ten_day_splits: calendar.ten_day_splits })
 			});
 			return { from: start, to: end, part: parts === 1 ? 1 : Number(period.slice(8)), parts };
 		},

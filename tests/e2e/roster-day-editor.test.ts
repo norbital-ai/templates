@@ -12,6 +12,14 @@ import {
 import { fixtureId, nativeId } from '../fixture_values.js';
 import { plannedShift } from '../../src/lib/payroll_engine/shift_pattern.js';
 
+/** The seeded attendance terms (every version today): completed half-hours, overtime after the shift. */
+const POLICY = {
+	step_hours: 0.5,
+	rounding: 'DOWN',
+	overtime_window: 'AFTER_SHIFT',
+	untimed_credit_day_types: ['REST', 'OFF']
+} as const;
+
 describe('work-day interval editor', () => {
 	it('leaves blank editor rows unrecorded and keeps a final open clock-in', () => {
 		assert.deepEqual(intervalsFrom([{ start: null, end: null }], 'Asia/Singapore'), {
@@ -69,6 +77,7 @@ describe('work board calendar layers', () => {
 		const days = buildDays({
 			dates,
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			people: [person],
 			entries: [],
 			holidays: [{ date: '2026-01-02', name: 'Public holiday' }],
@@ -108,6 +117,7 @@ describe('work board calendar layers', () => {
 		const days = buildDays({
 			dates,
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			people: [person],
 			entries: dates.slice(0, 7).map((date) => ({
 				id: nativeId('roster_entry', fixtureId(`board-${date}`)),
@@ -151,6 +161,7 @@ describe('work board calendar layers', () => {
 		const days = buildDays({
 			dates: [date],
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			people: [person],
 			entries: [
 				{
@@ -201,6 +212,7 @@ describe('work board calendar layers', () => {
 		const days = buildDays({
 			dates: [date],
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			people: [person],
 			entries: [
 				{
@@ -231,6 +243,7 @@ describe('work board calendar layers', () => {
 				planned,
 				date,
 				'Asia/Singapore',
+				POLICY,
 				3
 			),
 			2.5
@@ -241,12 +254,19 @@ describe('work board calendar layers', () => {
 				planned,
 				date,
 				'Asia/Singapore',
+				POLICY,
 				3
 			),
 			3
 		);
 		assert.equal(
-			overtimeOf([{ start: `${date}T08:00:00+08:00`, end: null }], planned, date, 'Asia/Singapore'),
+			overtimeOf(
+				[{ start: `${date}T08:00:00+08:00`, end: null }],
+				planned,
+				date,
+				'Asia/Singapore',
+				POLICY
+			),
 			null
 		);
 	});
@@ -255,6 +275,7 @@ describe('work board calendar layers', () => {
 		const day = buildDays({
 			dates: ['2026-01-10'],
 			timeZone: 'Asia/Singapore',
+			policy: POLICY,
 			people: [person],
 			entries: [],
 			holidays: [],

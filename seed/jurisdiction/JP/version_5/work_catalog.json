@@ -24,7 +24,8 @@
 			"YEAR_END_ADJUSTMENT",
 			"RESIDENT_TAX"
 		],
-		"prorated": true
+		"prorated": true,
+		"denominator": "double(period.days)"
 	},
 	{
 		"id": "2ea287ba-6288-5857-ad73-8a3a2971453d",

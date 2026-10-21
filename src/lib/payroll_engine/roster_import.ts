@@ -10,7 +10,7 @@ import { Effect, Result, Schema } from 'effect';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import type { Id, Insert, Row } from '@norbital-ai/bolt';
 import { addDays, Instant, parseInstant, PlainDate } from '@norbital-ai/std/date';
-import { numberOf, PAYROLL_TIME_ZONE, Refusal, type Read } from './foundation.js';
+import { numberOf, Refusal, type Read } from './foundation.js';
 import {
 	consumedLeaveCovers,
 	coverageRange,
@@ -551,14 +551,22 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 				context.company_id != null && scope.entities.length === 0 && records.length > 0
 					? 'Choose an approved legal entity.'
 					: null,
-			contracts: scope.contracts.map((contract) => ({
-				id: contract.id,
-				number: contract.employee_number,
-				company_id: contract.company_id,
-				from: contract.effective_range?.from ?? null,
-				to: contract.effective_range?.to ?? null,
-				zone: scope.zones.get(contract.company_id) ?? PAYROLL_TIME_ZONE
-			})),
+			// every named contract's entity has its zone (the scope read refuses a version without one)
+			contracts: scope.contracts.flatMap((contract) => {
+				const zone = scope.zones.get(contract.company_id);
+				return zone === undefined
+					? []
+					: [
+							{
+								id: contract.id,
+								number: contract.employee_number,
+								company_id: contract.company_id,
+								from: contract.effective_range?.from ?? null,
+								to: contract.effective_range?.to ?? null,
+								zone
+							}
+						];
+			}),
 			shifts: shifts.map((row) => ({
 				id: row.id,
 				company_id: row.company_id,

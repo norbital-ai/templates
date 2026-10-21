@@ -7,10 +7,10 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, Checkbox, Combobox, Field, Form, Sheet } from '@norbital-ai/ui';
-	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { live, liveRows } from '../state/live.svelte.js';
 	import { todayKey } from '../format/calendar.js';
-	import { versionMoney } from '../format/version_money.svelte.js';
+	import { versionCalendar, versionMoney } from '../format/version_money.svelte.js';
 	import { moneyNumber } from '../../payroll_engine/foundation.js';
 	import { periodOptions } from './pay_periods.js';
 	import * as Predicate from 'effect/Predicate';
@@ -29,10 +29,14 @@
 		const lineage = entity.current?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
+	const calendar = versionCalendar(() => {
+		const lineage = entity.current?.settings_code;
+		return lineage == null || lineage === '' ? null : { lineage };
+	});
 	/** The periods the entity's schedule offers, twelve months back from now (a daily entity: its days), each paid at
 	 * the frequency in force on its days (`periodsIn`): a month that switches offers both frequencies' own. */
 	const periods = $derived.by(() =>
-		periodOptions(entity.current ?? {}, todayKey()).map((period) => {
+		periodOptions(entity.current ?? {}, calendar() ?? {}, todayKey()).map((period) => {
 			const label = new Date(`${period.from}T00:00:00Z`).toLocaleDateString(undefined, {
 				month: 'long',
 				year: 'numeric',
@@ -106,8 +110,6 @@
 				(onlyItems.length === 0 || onlyItems.includes(entry.item))
 		)
 	);
-	const toggle = (list: string[], value: string, on: boolean) =>
-		on ? [...list, value] : list.filter((v) => v !== value);
 </script>
 
 <Sheet bind:open title={bolt.t('app.payroll.create_run')}>
@@ -148,33 +150,25 @@
 								<Stack gap="sm">
 									<Stack gap="xs">
 										<span class="text-meta">{bolt.t('app.payroll.adhoc_people')}</span>
-										<Cluster gap="sm">
-											{#each people as person (person)}
-												<Inline as="label" gap="xs" align="center">
-													<Checkbox
-														checked={onlyPeople.includes(person)}
-														onCheckedChange={(on) =>
-															(onlyPeople = toggle(onlyPeople, person, on === true))}
-													/>
-													<span>{person}</span>
-												</Inline>
-											{/each}
-										</Cluster>
+										<Combobox
+											multiple
+											class="w-full"
+											options={people.map((person) => ({ value: person, label: person }))}
+											value={onlyPeople}
+											placeholder={bolt.t('app.payroll.adhoc_everyone')}
+											onChange={(next) => (onlyPeople = [...next])}
+										/>
 									</Stack>
 									<Stack gap="xs">
 										<span class="text-meta">{bolt.t('component.component')}</span>
-										<Cluster gap="sm">
-											{#each items as item (item)}
-												<Inline as="label" gap="xs" align="center">
-													<Checkbox
-														checked={onlyItems.includes(item)}
-														onCheckedChange={(on) =>
-															(onlyItems = toggle(onlyItems, item, on === true))}
-													/>
-													<span>{item}</span>
-												</Inline>
-											{/each}
-										</Cluster>
+										<Combobox
+											multiple
+											class="w-full"
+											options={items.map((item) => ({ value: item, label: item }))}
+											value={onlyItems}
+											placeholder={bolt.t('app.payroll.adhoc_every_component')}
+											onChange={(next) => (onlyItems = [...next])}
+										/>
 									</Stack>
 									<Button
 										variant="outline"

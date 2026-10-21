@@ -23,7 +23,18 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
@@ -234,6 +245,10 @@
 									"responsibility_system_agreement": {
 										"type": "string",
 										"description": "勞動基準法 §84-1(2): the reference of the written agreement filed with the local authority for a worker in an approved responsibility-system category; with company facts responsibility_system it lifts the §30, §32, §36, §37 and §49 checks."
+									},
+									"childcare_reduction_agreed": {
+										"type": "boolean",
+										"description": "性別平等工作法 §19(2): an employer of fewer than thirty agreed with the worker, after consultation, to the one-hour reduction or adjusted hours for a child under three (CHILDCARE_REDUCED_HOURS)."
 									}
 								},
 								"additionalProperties": false
@@ -423,7 +438,7 @@
 						},
 						"indigenous": {
 							"type": "boolean",
-							"description": "原住民身分法: an indigenous worker, given the INDIGENOUS_RITUAL_HOLIDAY (紀念日及節日實施條例 §4(1)(6))."
+							"description": "原住民身分法: an indigenous worker, given the INDIGENOUS_RITUAL_HOLIDAY: three days a year (紀念日及節日實施條例 §6(1)(3))."
 						},
 						"tribe": {
 							"type": "string",
@@ -862,9 +877,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},

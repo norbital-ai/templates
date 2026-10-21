@@ -10,12 +10,20 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { frequencyOn } from '../../payroll_engine/foundation.js';
 import { todayKey } from '../format/calendar.js';
 import { periodIn, type PayingEntity } from '../payroll/pay_periods.js';
+import { versionCalendar } from '../format/version_money.svelte.js';
 
-export function createPayPeriodScope(company: () => PayingEntity | null | undefined) {
+export function createPayPeriodScope(
+	company: () => (PayingEntity & { readonly settings_code?: string | null }) | null | undefined
+) {
 	let chosen = $state<string>(todayKey().slice(0, 7));
+	// the periods are cut by the calendar of the version governing the entity's lineage today
+	const calendar = versionCalendar(() => {
+		const lineage = company()?.settings_code;
+		return lineage == null || lineage === '' ? null : { lineage };
+	});
 	const found = $derived.by(() => {
 		const row = company();
-		return row == null ? null : periodIn(row, chosen, todayKey());
+		return row == null ? null : periodIn(row, calendar() ?? {}, chosen, todayKey());
 	});
 	/** The frequency the chosen period is paid at: the one in force on its first day. */
 	const frequency = $derived.by(() => {

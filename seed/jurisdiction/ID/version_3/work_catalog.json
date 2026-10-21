@@ -11,7 +11,8 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"],
-		"prorated": true
+		"prorated": true,
+		"denominator": "double(period.days)"
 	},
 	{
 		"id": "4b59742a-9e81-5bd8-9ebe-42c715ea7ede",

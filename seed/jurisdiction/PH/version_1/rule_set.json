@@ -266,7 +266,7 @@
 		"name": "Alien Employment Permit before a foreign national starts work",
 		"rules": {
 			"description": "Secure the DOLE Alien Employment Permit for a foreign national before the employment starts.",
-			"authority": "Labor Code art.40; DOLE Department Order 221-21: a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Recorded default: a profile `nationality` other than Philippine (PH, PHL, FILIPINO) is a foreign national; an unrecorded nationality raises nothing.",
+			"authority": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111, https://naro.law.upd.edu.ph/issuances/7205; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Recorded default: a profile `nationality` other than Philippine (PH, PHL, FILIPINO) is a foreign national; an unrecorded nationality raises nothing.",
 			"trigger": {
 				"collection": "employment_contract",
 				"event": "created"
@@ -1555,7 +1555,7 @@
 					"source": "Proclamation No. 1006 s.2025 §1(A)"
 				}
 			],
-			"authority": "RA 9492 and the yearly proclamations (Official Gazette; text read from the lawphil.net mirror of Proclamations No. 727 s.2024, 1006 s.2025, 1189 s.2026, 1264 s.2026 and 1427 s.2026, checked 7 October 2026): the national regular holidays (PUBLIC_HOLIDAY) and special (non-working) days (SPECIAL_HOLIDAY). Special (working) days — EDSA Anniversary, and in 2027 Chinese New Year, Black Saturday, All Souls’ Day and Christmas Eve — are ordinary paid days and are not listed. Local special days (city/provincial charter days) are added by HR per entity. Written unpublished; HR publishes."
+			"authority": "RA 9492 and the yearly proclamations (Official Gazette; text read from the lawphil.net copies of Proclamations No. 727 s.2024, 1006 s.2025, 1189 s.2026, 1264 s.2026 and 1427 s.2026, and the regional Proclamations No. 1334, 1389, 1395 and 1447 s.2026, checked 22 October 2026): the national regular holidays (PUBLIC_HOLIDAY) and special (non-working) days (SPECIAL_HOLIDAY), including each year's additional special (non-working) days (Chinese New Year, Black Saturday, All Souls’ Day and Christmas Eve in 2026 and 2027). The special (working) day — EDSA People Power Anniversary — is an ordinary paid day and is not listed. Special (non-working) days the President declares for a whole region carry `regions`, the wage-area keys of that region (CAR; NCR and NCR-AGRI-SMALL; the four BARMM keys), so only entities in that region observe them. Eid'l Fitr and Eid'l Adha 2027 are proclaimed separately once the National Commission on Muslim Filipinos fixes their dates (Proclamation No. 1427 s.2026 §2) and are added then. Local special days (city, municipal and provincial charter or fiesta days) are added by HR per entity. Written unpublished; HR publishes."
 		}
 	},
 	{
@@ -2793,6 +2793,21 @@
 					"group": "Leave pay"
 				}
 			]
+		}
+	},
+	{
+		"id": "016d1da5-5d25-5c77-87cf-1edb5738e06e",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]

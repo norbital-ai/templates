@@ -345,7 +345,9 @@ export const assessStatutory = (input: {
 					runKind: input.runKind,
 					runWindows: input.runWindows ?? new Map(),
 					configurations: input.statutoryConfigurations ?? new Map(),
-					money
+					money,
+					policy: reconciliation,
+					context
 				});
 				charge = reconciled.monthCharge;
 				monthAssessed[reconciliation.part] = reconciled.assessedPart;

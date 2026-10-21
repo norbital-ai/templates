@@ -176,6 +176,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -886,6 +887,8 @@ type Subject = {
 	day?: string;
 	/** This scheme's declared standing (`scheme.standing` / `scheme.elections`). */
 	standing?: string;
+	/** The slip belongs to the month's salary run (default); false for an off-cycle slip before it. */
+	salary_run?: boolean;
 	elections?: Row;
 	/** Earlier months of the year: the scheme's wage parts (`year`) and every scheme's charges (`charged.year`). */
 	year?: {
@@ -935,16 +938,11 @@ const subject = (input: Subject = {}) => {
 		employee: {
 			gender: '',
 			marital_status: 'SINGLE',
-			spouse_status: 'NONE',
-			solo_parent: false,
-			disabled: false,
-			receiving_pension: false,
 			nationality: '',
 			// Born on the day before the month starts, so `age_on(dob, period.from - 1)` is exactly `age`.
 			date_of_birth: age == null ? '' : `${Number(before.slice(0, 4)) - age}${before.slice(4)}`,
 			age,
 			children: [],
-			dependents_count: 0,
 			...input.employee,
 			facts: { ...input.facts }
 		},
@@ -964,8 +962,6 @@ const subject = (input: Subject = {}) => {
 		employment,
 		person: {
 			employment,
-			race: null,
-			religion: null,
 			nationality: null,
 			residency_status,
 			residency_since: null
@@ -1011,7 +1007,8 @@ const statutory = (
 			to,
 			days: Number(to.slice(8)),
 			month: Number(key.slice(5)),
-			salary_paid: false
+			salary_paid: false,
+			salary_run: input.salary_run ?? true
 		}
 	};
 	const person: Row = { ...held.person };
@@ -1441,7 +1438,9 @@ describe('MY jurisdiction seed', () => {
 						'ROSTER_NORMAL_HOURS_WEEK',
 						'ROSTER_DAILY_TOTAL',
 						'ROSTER_WEEKLY_REST'
-					].map((code) => [code, 'roster', 'warn']),
+					]
+						.map((code) => [code, 'roster', 'warn'])
+						.concat([['ROSTER_PATTERN_CYCLE', 'cycle', 'refuse']]),
 					version
 				);
 				const rule = (code: string) => (context: Row) =>
@@ -1666,25 +1665,18 @@ describe('MY jurisdiction seed', () => {
 			}
 			const props = (schema: unknown) =>
 				new Set(Object.keys(fixtureValue5(fixtureRecord(schema ?? {}).properties ?? {})));
-			// The one layout the engine reads: contract terms, exit facts, statutory standings and person facts.
+			// The one layout the engine reads: contract terms, exit facts, statutory standings, person facts and loan facts.
 			assert.deepEqual(Object.keys(employee.properties).toSorted(), [
 				'contract_terms',
 				'employment_statutory_facts',
 				'exit_facts',
-				'facts'
+				'facts',
+				'loan_facts'
 			]);
 			const standing = fixtureValue13(
 				fixtureRecord(employee.properties.employment_statutory_facts).items
 			);
-			for (const column of [
-				'gender',
-				'marital_status',
-				'spouse_status',
-				'children',
-				'nationality',
-				'date_of_birth',
-				'dependents_count'
-			])
+			for (const column of ['gender', 'marital_status', 'children', 'nationality', 'date_of_birth'])
 				assert.equal(
 					props(employee.properties.facts).has(column),
 					false,
@@ -1701,6 +1693,9 @@ describe('MY jurisdiction seed', () => {
 				'PERMANENT_RESIDENT',
 				'FOREIGNER'
 			]);
+			// The inputs only Malaysia reads are dated contract-term facts (`terms.facts.*`), not profile columns.
+			for (const fact of ['spouse_status', 'receiving_pension', 'disabled'])
+				assert.ok(props(terms.properties.facts).has(fact), `${version} terms.facts.${fact}`);
 			const declared = {
 				employee: props(employee.properties.facts),
 				company: props(entity),
@@ -2849,7 +2844,7 @@ describe('MY jurisdiction seed', () => {
 				employer: 51.65
 			});
 			assert.deepEqual(
-				statutory(version, 'SOCSO', 3000, { employee: { receiving_pension: true } }),
+				statutory(version, 'SOCSO', 3000, { terms: { facts: { receiving_pension: true } } }),
 				{ employee: 0, employer: 36.9 }
 			);
 			// Act A1788 Part IV / A4T: the 1.25% column rounds half to even — RM200.01–300 → 3.10, RM300.01–400 → 4.40.
@@ -2989,6 +2984,14 @@ describe('MY jurisdiction seed', () => {
 			assert.equal(mtd({ ordinary: 8000 }, { day: '2026-02-15', ...january }), 514.2);
 			// RM5,000: P = 47,000; 600 + 12,000 × 6% = 1,320 ÷ 12 = 110.00.
 			assert.equal(mtd({ ordinary: 5000 }), 110);
+			// A RM3,000 bonus paid off-cycle before the RM7,000 salary is taxed when it is paid: Y1 is the month's normal
+			// remuneration still to come (the contract wage), so the slip carries the additional-remuneration PCB alone
+			// and the salary slip later carries the normal 324.20, the month the same as one slip paying both.
+			const both = mtd({ ordinary: 7000, additional: 3000 }) ?? 0;
+			const bonusFirst =
+				mtd({ additional: 3000 }, { salary_run: false, terms: { monthly_wage: 7000 } }) ?? 0;
+			assert.ok(bonusFirst > 0, version);
+			assert.equal(Math.round((bonusFirst + 324.2) * 100) / 100, both, version);
 			// RM3,900: P = 33,800; 150 + 13,800 × 3% = 564 − RM400 rebate = 164 ÷ 12 = 13.66 → 13.70.
 			assert.equal(mtd({ ordinary: 3900 }), 13.7);
 			// Listing NHPMY0053 (RM3,760.78 incl. RM365.44 overtime): 513.88 − 400 → 9.49 a month, under RM10.
@@ -2997,24 +3000,25 @@ describe('MY jurisdiction seed', () => {
 			// P = 60,000 − 3,960 − 9,000 = 47,040; 600 + 12,040 × 6% = 1,322.40 ÷ 12 = 110.20.
 			assert.equal(mtd({ ordinary: 3000, non_epf: 2000 }), 110.2);
 			// Married, spouse without income, two children under 18: D 9,000 + S 4,000 + 2 × 2,000.
-			const spouse = { marital_status: 'MARRIED', spouse_status: 'WITHOUT_INCOME' };
+			const spouse = {
+				employee: { marital_status: 'MARRIED' },
+				terms: { facts: { spouse_status: 'WITHOUT_INCOME' } }
+			};
 			// P = 60,000 − 4,000 − 17,000 = 39,000; 600 + 4,000 × 6% = 840 ÷ 12 = 70.00 (no rebate above 35,000).
 			assert.equal(
-				mtd(
-					{ ordinary: 5000 },
-					{ employee: spouse, elections: { children_under_18_or_studying: 2 } }
-				),
+				mtd({ ordinary: 5000 }, { ...spouse, elections: { children_under_18_or_studying: 2 } }),
 				70
 			);
 			// RM3,900 with the spouse: P = 29,800 → 444 − (400 + 400 spouse rebate) < 0 → nothing.
-			assert.equal(mtd({ ordinary: 3900 }, { employee: spouse }), 0);
+			assert.equal(mtd({ ordinary: 3900 }, spouse), 0);
 			// Disabled employee (RM7,000), disabled spouse (further RM6,000), half-share tertiary child (RM4,000):
 			// P = 84,000 − 4,000 − (9,000 + 7,000 + 4,000 + 6,000 + 4,000) = 50,000 → 1,500 ÷ 12 = 125.00.
 			assert.equal(
 				mtd(
 					{ ordinary: 7000 },
 					{
-						employee: { ...spouse, disabled: true },
+						employee: spouse.employee,
+						terms: { facts: { ...spouse.terms.facts, disabled: true } },
 						elections: { spouse_disabled: true, children_tertiary_or_disabled_half: 1 }
 					}
 				),
@@ -4361,7 +4365,7 @@ describe('MY jurisdiction seed', () => {
 			);
 		}
 	});
-	it('round 7: each version carries the gazetted federal holidays of its range, unpublished, with state limits', () => {
+	it('round 7: each version carries the gazetted federal and state holidays of its range, unpublished, by region', () => {
 		const states = [
 			'KUALA_LUMPUR',
 			'LABUAN',
@@ -4384,30 +4388,46 @@ describe('MY jurisdiction seed', () => {
 		for (const version of versions) {
 			const row = rows(version, 'rule_set').find((item) => item.code === 'public_holidays');
 			assert.ok(row && row.family === 'PAYROLL', version);
-			// Corrections retain the published calendar intact, including past and already announced future dates.
 			for (const holiday of fixtureValue22(row.rules).holidays) {
 				const date = String(holiday.date);
 				assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
 				assert.ok(date >= '2025-12-01' && date <= '2027-12-31', `${version} ${date}`);
-				assert.equal(holiday.kind, 'PUBLIC_HOLIDAY');
+				assert.ok(
+					['PUBLIC_HOLIDAY', 'SUBSTITUTE', 'DOUBLE_HOLIDAY'].includes(String(holiday.kind)),
+					`${version} ${date}`
+				);
 				for (const region of fixtureValue16(holiday.regions ?? []))
 					assert.ok(states.includes(region), region);
+				// Every row cites its official table or declaration; a substitute names the day it replaces.
+				assert.ok(String(holiday.source ?? '').length > 0, `${version} ${date} source`);
+				if (holiday.kind === 'SUBSTITUTE') {
+					assert.ok(String(holiday.replaces) < date, `${version} ${date} replaces`);
+					assert.ok(
+						['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE'].includes(String(holiday.given_to)),
+						`${version} ${date} given_to`
+					);
+				}
 				all.push(date);
 			}
 		}
-		for (const [correction, original] of [
-			['version_9', 'version_5'],
-			['version_10', 'version_6'],
-			['version_11', 'version_7'],
-			['version_12', 'version_8']
-		] as const)
-			assert.deepEqual(
-				byCode(correction, 'rule_set', 'public_holidays').rules,
-				byCode(original, 'rule_set', 'public_holidays').rules,
-				`${correction} preserves the original published calendar`
+		assert.deepEqual(
+			byCode('version_9', 'rule_set', 'public_holidays').rules,
+			byCode('version_5', 'rule_set', 'public_holidays').rules,
+			'version_9 preserves the published calendar of version_5'
+		);
+		// HKA 2025–2027 federal and state tables, the 2026 declarations and their substitutes; none gazetted beyond 2027.
+		assert.equal(new Set(all).size, 116);
+		const calendar = (day: string) =>
+			fixtureValue22(
+				fixturePresent(rows(at(day), 'rule_set').find((item) => item.code === 'public_holidays'))
+					.rules
+			).holidays;
+		const on = (day: string, name: string) =>
+			fixturePresent(
+				calendar(day).find((holiday) => holiday.date === day && holiday.name === name)
 			);
-		// HKA 2025–2027: Christmas 2025, sixteen 2026 dates, fifteen 2027 dates; no calendar gazetted beyond.
-		assert.equal(new Set(all).size, 31);
+		const regionsOn = (day: string, name: string) =>
+			fixtureValue16(on(day, name).regions ?? states);
 		for (const date of [
 			'2025-12-25',
 			'2026-02-17',
@@ -4418,15 +4438,72 @@ describe('MY jurisdiction seed', () => {
 			'2027-12-25'
 		])
 			assert.ok(all.includes(date), date);
-		const deepavali = fixturePresent(
-			rows(at('2026-11-08'), 'rule_set').find((item) => item.code === 'public_holidays')
+		const deepavali = regionsOn('2026-11-08', 'Hari Deepavali');
+		assert.ok(!deepavali.includes('SARAWAK') && deepavali.includes('SABAH'));
+		// HKA 2026/2027: the second day of Chinese New Year is federal outside Kelantan and Terengganu and a state
+		// holiday there, so every state keeps it; the second day of Hari Raya Qurban is Kedah, Kelantan, Perlis, Terengganu.
+		assert.deepEqual(regionsOn('2026-02-18', 'Tahun Baharu Cina (Hari Kedua)'), states);
+		assert.deepEqual(regionsOn('2027-02-07', 'Tahun Baharu Cina (Hari Kedua)'), states);
+		assert.deepEqual(regionsOn('2026-05-28', 'Hari Raya Qurban (Hari Kedua)'), [
+			'KEDAH',
+			'KELANTAN',
+			'PERLIS',
+			'TERENGGANU'
+		]);
+		// State holidays are limited to their state: the Ruler's birthday, Federal Territory Day (EA s.60D(1)(a)(iii)).
+		assert.deepEqual(regionsOn('2026-12-11', 'Hari Keputeraan Sultan Selangor'), ['SELANGOR']);
+		assert.deepEqual(regionsOn('2027-02-01', 'Hari Wilayah Persekutuan'), [
+			'KUALA_LUMPUR',
+			'LABUAN',
+			'PUTRAJAYA'
+		]);
+		// Holidays Act 1951 s.8: the additional Hari Raya Aidilfitri holiday of 20 March 2026 (no Sarawak declaration).
+		assert.ok(
+			!regionsOn('2026-03-20', 'Hari Kelepasan Am Tambahan Hari Raya Aidilfitri').includes(
+				'SARAWAK'
+			)
 		);
-		const regions = fixtureValue16(
-			fixturePresent(
-				fixtureValue22(deepavali.rules).holidays.find((holiday) => holiday.date === '2026-11-08')
-			).regions
+		// EA s.60D(1) proviso: Deepavali on Sunday 8 November 2026 moves to Monday for those off that Sunday; in the
+		// Friday-weekend states Sunday is a working day, so no substitute.
+		const substitute = on('2026-11-09', 'Cuti Ganti Hari Deepavali');
+		assert.equal(substitute.kind, 'SUBSTITUTE');
+		assert.equal(substitute.replaces, '2026-11-08');
+		assert.equal(substitute.given_to, 'ONLY_IF_OFF_ON_REPLACED_DATE');
+		assert.ok(!fixtureValue16(substitute.regions).includes('KEDAH'));
+		// Two holidays on one day (Thaipusam and Federal Territory Day, Sunday 1 February 2026): one DOUBLE_HOLIDAY row
+		// and two substitutes, Monday for the rest day and Tuesday for the overlap (JTKSM, February 2026).
+		assert.equal(
+			on('2026-02-01', 'Hari Thaipusam dan Hari Wilayah Persekutuan').kind,
+			'DOUBLE_HOLIDAY'
 		);
-		assert.ok(!regions.includes('SARAWAK') && regions.includes('SABAH'));
+		assert.equal(on('2026-02-03', 'Cuti Ganti Hari Wilayah Persekutuan').given_to, 'EVERYONE');
+		// The write-public-holidays behaviour gives an entity its own region's rows, once per date.
+		const write = fixturePresent(
+			fixturePresent(behavioursOf(settingsOf(at('2026-10-22')).behaviours)).rules.find(
+				(rule) => rule.id === 'write-public-holidays'
+			)
+		);
+		const written = (region: string) =>
+			effectWrites(write, {
+				event: { company_id: 'co1', settings_id: 's1', row: { region } },
+				calendar: [
+					{ rules: fixtureContext(byCode(at('2026-10-22'), 'rule_set', 'public_holidays').rules) }
+				],
+				held: []
+			}).map((entry) => fixtureRecord(entry.data));
+		const selangor = written('SELANGOR');
+		const dates = selangor.map((row) => String(row.date));
+		assert.equal(new Set(dates).size, dates.length);
+		assert.ok(dates.includes('2026-10-25') && dates.includes('2026-12-11'));
+		assert.equal(
+			fixturePresent(selangor.find((row) => row.date === '2026-10-26')).replaces,
+			'2026-10-25'
+		);
+		assert.ok(
+			!dates.includes('2026-11-06'),
+			'the Sultan of Perak’s birthday is not a Selangor holiday'
+		);
+		assert.ok(written('PERAK').some((row) => row.date === '2026-11-06'));
 	});
 	it('fix 2: PDPA ss.7/12A/12B, EA ss.57A–57B and 81B–81C, CP58 on exit, FOMEMA, compulsory holidays, EPF relief, Sabah and Sarawak', () => {
 		for (const version of versions) {
@@ -4887,7 +4964,6 @@ describe('MY jurisdiction seed', () => {
 					identity_number: '730510-12-5580',
 					date_of_birth: '1967-12-15',
 					marital_status: 'MARRIED',
-					spouse_status: 'WITH_INCOME',
 					children: [],
 					facts: {
 						income_tax_number: 'IG 03770324020',
@@ -4913,7 +4989,11 @@ describe('MY jurisdiction seed', () => {
 					effective_range: { from: '2015-01-01', to: '9999-12-31' },
 					facts: {
 						contract_terms: [
-							{ effective_range: { from: '2015-01-01' }, employment_type: 'PERMANENT' }
+							{
+								effective_range: { from: '2015-01-01' },
+								employment_type: 'PERMANENT',
+								facts: { spouse_status: 'WITH_INCOME' }
+							}
 						]
 					}
 				},
@@ -4976,8 +5056,8 @@ describe('MY jurisdiction seed', () => {
 				]
 			};
 			const runs = [
-				{ period: '2025-11', pay_date: '2025-11-28' },
-				{ period: '2025-12', pay_date: '2025-12-29' }
+				{ period: '2025-11', salary_to: '2025-11-30', pay_date: '2025-11-28' },
+				{ period: '2025-12', salary_to: '2025-12-31', pay_date: '2025-12-29' }
 			];
 			const company = { facts: { lhdn_employer_number: 'E 2900030000' } };
 			const [file, ...rest] = recordDocuments(
@@ -5023,11 +5103,22 @@ describe('MY jurisdiction seed', () => {
 							...ali,
 							employee: {
 								...ali.employee,
-								spouse_status: 'WITHOUT_INCOME',
 								facts: {
 									...ali.employee.facts,
 									organisation_management: true,
 									tax_borne_by_employer: true
+								}
+							},
+							contract: {
+								...ali.contract,
+								facts: {
+									contract_terms: [
+										{
+											effective_range: { from: '2015-01-01' },
+											employment_type: 'PERMANENT',
+											facts: { spouse_status: 'WITHOUT_INCOME' }
+										}
+									]
 								}
 							}
 						}
@@ -5113,7 +5204,6 @@ describe('MY engine runs', () => {
 				people.map(({ salary: _s, residency: _r, ...person }) => ({
 					...person,
 					marital_status: 'SINGLE',
-					spouse_status: 'NONE',
 					children: [],
 					facts: {}
 				}))
@@ -5165,18 +5255,6 @@ describe('MY engine runs', () => {
 		return yield* world(tables).run(fixtureKey(COMPANY), period, kind, sources?.map(fixtureId));
 	});
 	type Plan = Effect.Success<ReturnType<typeof run>>;
-	const bonus = () =>
-		fixturePresent(tables.get('adhoc_catalog_entry')).push(
-			fixtureRow({
-				id: 'bonus-1',
-				employment_id: 'k-p1',
-				company_id: COMPANY,
-				catalog_id: byCode(at('2026-02-15'), 'adhoc_catalog', 'BONUS').id,
-				payslip_id: null,
-				occurred_on: '2026-02-05',
-				amount: 7000
-			})
-		);
 	const totals = (plans: Plan[]) => {
 		const out: {
 			[key: string]: number;
@@ -5243,7 +5321,6 @@ describe('MY engine runs', () => {
 					date_of_birth: '1980-01-01',
 					gender: 'MALE',
 					marital_status: 'SINGLE',
-					spouse_status: 'NONE',
 					children: [],
 					facts: {}
 				})
@@ -5518,37 +5595,136 @@ describe('MY engine runs', () => {
 			assert.equal(amount('k-p1', 'PIECE_PAY'), 160);
 		})
 	);
-	it.effect(
-		'an OFF_CYCLE bonus run before or after the REGULAR run yields the same month totals',
-		Effect.fnUntraced(function* () {
-			reset();
-			bonus();
-			const before = [
-				yield* run('2026-02', 'OFF_CYCLE', ['bonus-1']),
-				yield* run('2026-02', 'REGULAR')
-			];
-			assert.equal(fixturePresent(fixturePresent(before[0]).payslips[0]).base.length, 0);
-			reset();
-			const salary = yield* run('2026-02', 'REGULAR');
-			bonus();
-			const after = [salary, yield* run('2026-02', 'OFF_CYCLE', ['bonus-1'])];
-			reset();
-			bonus();
-			const together = [yield* run('2026-02', 'REGULAR')];
-			const expected = totals(together);
-			for (const scheme of ['EPF', 'SOCSO', 'EIS', 'PCB', 'HRDF', 'EPF_NON_CITIZEN'])
-				for (const side of ['employee', 'employer'])
-					assert.ok(
-						`${scheme}.${side}` in expected || scheme === 'EPF_NON_CITIZEN',
-						`${scheme}.${side}`
+	for (const period of ['2026-02', '2026-10', '2026-12', '2028-06', '2031-06'])
+		it.effect(
+			`an OFF_CYCLE bonus before, inside or after the REGULAR run yields the same month totals and charges the slip that pays it: ${period}`,
+			Effect.fnUntraced(function* () {
+				const day = `${period}-05`;
+				const version = at(day);
+				// A permanent resident aged 62 on Part C (EPF_PR) beside the citizen (EPF, HRD levy) and the foreign worker
+				// (EPF_NON_CITIZEN, SKBBK mandatory): together every scheme of the version is charged.
+				const pr = () => {
+					fixturePresent(tables.get('employment_profile')).push(
+						fixtureRow({
+							id: 'p3',
+							name: 'Mei',
+							date_of_birth: `${Number(period.slice(0, 4)) - 62}-01-01`,
+							gender: 'FEMALE',
+							marital_status: 'SINGLE',
+							children: [],
+							facts: {}
+						})
 					);
-			assert.deepEqual(totals(before), expected);
-			assert.deepEqual(totals(after), expected);
-			// The bonus is EPF additional wages: 11% / 12% of RM14,000 in the month, and MTD on additional remuneration.
-			assert.equal(expected['EPF.employee'], 1540);
-			assert.ok(fixturePresent(expected['PCB.employee']) > 1000);
-		})
-	);
+					fixturePresent(tables.get('employment_contract')).push(
+						fixtureRow({
+							id: 'k-p3',
+							employee_id: 'p3',
+							company_id: COMPANY,
+							effective_range: { from: '2020-01-01', to: null },
+							facts: {
+								contract_terms: [
+									{
+										base_salary: { value: 4800, currency: 'MYR' },
+										effective_range: { from: '2020-01-01', to: null },
+										residency_status: 'PERMANENT_RESIDENT',
+										work_classification: 'EA_COVERED',
+										statutory_work_category: 'NON_MANUAL',
+										employment_type: 'PERMANENT',
+										allowances: []
+									}
+								]
+							},
+							employee_number: 'p3',
+							contract_number: 1
+						})
+					);
+				};
+				// RM bonus 7,000 to the citizen on RM7,000, and a RM1,500 excellence award (SOCSO/EIS/SKBBK wages) to each:
+				// the award lifts the citizen past the RM6,000 SOCSO ceiling, the PR past the RM5,000 EPF rate row.
+				const entries: [string, string, string, number][] = [
+					['bonus-1', 'k-p1', 'BONUS', 7000],
+					['award-1', 'k-p1', 'EXCELLENCE_AWARD', 1500],
+					['award-2', 'k-p2', 'EXCELLENCE_AWARD', 1500],
+					['award-3', 'k-p3', 'EXCELLENCE_AWARD', 1500]
+				];
+				const pay = () =>
+					fixturePresent(tables.get('adhoc_catalog_entry')).push(
+						...entries.map(([id, employment_id, code, amount]) =>
+							fixtureRow({
+								id,
+								employment_id,
+								company_id: COMPANY,
+								catalog_id: byCode(version, 'adhoc_catalog', code).id,
+								payslip_id: null,
+								occurred_on: day,
+								amount
+							})
+						)
+					);
+				const ids = entries.map(([id]) => id);
+				reset();
+				pr();
+				pay();
+				const offBefore = yield* run(period, 'OFF_CYCLE', ids);
+				const before = [offBefore, yield* run(period, 'REGULAR')];
+				reset();
+				pr();
+				const salary = yield* run(period, 'REGULAR');
+				pay();
+				const offAfter = yield* run(period, 'OFF_CYCLE', ids);
+				const after = [salary, offAfter];
+				reset();
+				pr();
+				pay();
+				const together = [yield* run(period, 'REGULAR')];
+				const expected = totals(together);
+				const schemes = rows(version, 'statutory_contribution_catalog').map((row) =>
+					String(row.code)
+				);
+				for (const scheme of schemes)
+					for (const side of ['employee', 'employer'])
+						assert.ok(`${scheme}.${side}` in expected, `${version} ${scheme}.${side}`);
+				assert.deepEqual(totals(before), expected, version);
+				assert.deepEqual(totals(after), expected, version);
+				// Never deferred: the off-cycle slip paid before the salary carries what the same pay attracts after it.
+				const charges = (plan: Plan) =>
+					Object.fromEntries(
+						plan.payslips.flatMap((slip) =>
+							slip.statutory
+								.filter((line) => line.employee_amount !== 0 || line.employer_amount !== 0)
+								.map((line) => [
+									`${String(slip.employment_id)} ${line.scheme_code}`,
+									[line.employee_amount, line.employer_amount]
+								])
+						)
+					);
+				assert.deepEqual(charges(offBefore), charges(offAfter), version);
+				const citizen = (plan: Plan, code: string) =>
+					fixturePresent(
+						plan.payslips.find((slip) => slip.employment_id === fixtureKey('k-p1'))
+					).statutory.find((line) => line.scheme_code === code);
+				// RM8,500 additional wages on RM7,000: 11% of 15,500 less 11% of 7,000 = 935; employer 12% = 1,020.
+				assert.deepEqual(
+					[citizen(offBefore, 'EPF')?.employee_amount, citizen(offBefore, 'EPF')?.employer_amount],
+					[935, 1020],
+					version
+				);
+				// The salary already reaches the RM6,000 SOCSO ceiling: the award adds no SOCSO.
+				assert.equal(citizen(offBefore, 'SOCSO')?.employee_amount ?? 0, 0, version);
+				// MTD on the RM7,000 bonus (the award is within the RM2,000 exemption) with no earlier month of the year:
+				// February P1 71,000 → 3,890 − 11 × 276.40 = 849.60; June P1 43,000 → 1,080 − 7 × 94.30 = 419.90; October
+				// and December stay under the RM400 rebate. The off-cycle slip carries it, as the slip after the salary would.
+				const mtd: { [month: string]: number } = {
+					'2026-02': 849.6,
+					'2026-10': 0,
+					'2026-12': 0,
+					'2028-06': 419.9,
+					'2031-06': 419.9
+				};
+				assert.equal(citizen(offBefore, 'PCB')?.employee_amount ?? 0, mtd[period], version);
+			}),
+			60_000
+		);
 });
 describe('MY sample records (Nihon bank)', () => {
 	const bank = resolve(process.cwd(), '../../seed_bank/norbital_hr/records/nihon');

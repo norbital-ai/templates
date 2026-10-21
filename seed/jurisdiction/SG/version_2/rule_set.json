@@ -475,65 +475,79 @@
 			"holidays": [
 				{
 					"date": "2026-01-01",
-					"name": "New Year's Day"
+					"name": "New Year's Day",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-02-17",
-					"name": "Chinese New Year"
+					"name": "Chinese New Year",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-02-18",
-					"name": "Chinese New Year (Day 2)"
+					"name": "Chinese New Year (Day 2)",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-03-21",
-					"name": "Hari Raya Puasa"
+					"name": "Hari Raya Puasa",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-04-03",
-					"name": "Good Friday"
+					"name": "Good Friday",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-05-01",
-					"name": "Labour Day"
+					"name": "Labour Day",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-05-27",
-					"name": "Hari Raya Haji"
+					"name": "Hari Raya Haji",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-05-31",
-					"name": "Vesak Day"
+					"name": "Vesak Day",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-06-01",
 					"name": "Vesak Day (observed)",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-05-31"
+					"replaces": "2026-05-31",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-08-09",
-					"name": "National Day"
+					"name": "National Day",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-08-10",
 					"name": "National Day (observed)",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-08-09"
+					"replaces": "2026-08-09",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-11-08",
-					"name": "Deepavali"
+					"name": "Deepavali",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-11-09",
 					"name": "Deepavali (observed)",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-11-08"
+					"replaces": "2026-11-08",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				},
 				{
 					"date": "2026-12-25",
-					"name": "Christmas Day"
+					"name": "Christmas Day",
+					"source": "https://www.mom.gov.sg/employment-practices/public-holidays"
 				}
 			]
 		}
@@ -1042,6 +1056,21 @@
 			"when": "has(terms.facts.pwm_role) && terms.facts.pwm_role in rules.pwm_wages.roles && (rules.pwm_wages.roles[terms.facts.pwm_role].base == \"BASIC\" ? terms.base_salary : terms.monthly_wage) < (\"steps\" in rules.pwm_wages.roles[terms.facts.pwm_role] && size(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)) > 0 ? double(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)[size(rules.pwm_wages.roles[terms.facts.pwm_role].steps.filter(s, s.from <= period.from)) - 1].monthly_floor) : double(rules.pwm_wages.roles[terms.facts.pwm_role].monthly_floor))",
 			"message": "Monthly wage is below the Progressive Wage Model floor for the employee’s PWM role.",
 			"description": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental Public Health Act (cleaning), Private Security Industry Act (security); MOM PWM pages. Reads PAYROLL pwm_wages. Customer input: contract_terms.facts.pwm_role. A role’s optional steps ([{ from, monthly_floor }], ascending) replace its floor from each step’s day within the version (the July cleaning and landscape steps, the January security step)."
+		}
+	},
+	{
+		"id": "4438efd5-a9cd-5191-bb25-4dfb91fe6395",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "LQS_WAGE_FLOOR",
+		"name": "Local Qualifying Salary floor",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(company.facts.foreign_worker_levy_payer) && company.facts.foreign_worker_levy_payer == true && terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"] && terms.employment_type != \"PART_TIME\" && !(has(terms.facts.pwm_role) && terms.facts.pwm_role != \"\") && terms.monthly_wage < 1600.0",
+			"message": "A full-time local employee outside the Progressive Wage Model is paid a fixed monthly wage below the Local Qualifying Salary ($1,600); a firm holding work passes must pay locals at least the LQS to apply for or renew passes.",
+			"description": "Employment of Foreign Manpower Act 1990 work-pass conditions; MOM, Local Qualifying Salary (https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary): a firm hiring foreign workers must “pay at least the LQS to all local employees not covered under the PWMs”, else it cannot apply for or renew work passes. Full-time LQS $1,600 a month gross to 30 June 2026 (MOM lower-wage factsheet of 3 March 2026 para 10). Applies when the entity holds S Pass / Work Permit holders (company.facts.foreign_worker_levy_payer), to Singapore citizens and permanent residents with no PWM role. The part-time $10.50 hourly LQS needs hours worked and is not checked here."
 		}
 	},
 	{
@@ -2847,6 +2876,21 @@
 					"group": "Leave pay"
 				}
 			]
+		}
+	},
+	{
+		"id": "948aeb1b-9d74-58c2-8805-1358eef0c77a",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]

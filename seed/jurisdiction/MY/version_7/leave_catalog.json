@@ -6,6 +6,7 @@
 		"name": "Public holiday in lieu",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -18,6 +19,7 @@
 		"name": "Compassionate leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -38,6 +40,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "98.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -56,6 +59,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "98.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -66,6 +70,7 @@
 		"name": "Hospitalisation leave",
 		"eligibility": "terms.employment_type != \"DOMESTIC\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -74,6 +79,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "60.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -84,6 +90,7 @@
 		"name": "Medical leave",
 		"eligibility": "terms.employment_type != \"DOMESTIC\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -92,6 +99,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 15.0 : service_months >= 24 ? 13.0 : 10.0) : (service_months >= 60 ? 22.0 : service_months >= 24 ? 18.0 : 14.0)",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -102,6 +110,7 @@
 		"name": "Unpaid absence",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -114,6 +123,7 @@
 		"name": "Annual leave",
 		"eligibility": "terms.employment_type != \"DOMESTIC\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -136,8 +146,10 @@
 				}
 			],
 			"days": "cel.bind(full, cel.bind(absent, has(taken_by_class.ABSENCE) ? taken_by_class.ABSENCE.service_year : 0.0, absent > 0.1 * 52.0 * (has(terms.facts) && has(terms.facts.days_per_week) ? double(terms.facts.days_per_week) : 6.0)) ? 0.0 : (terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 11.0 : service_months >= 24 ? 8.0 : service_months >= 12 ? 6.0 : round(6.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")) : (size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : round(8.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\"))), (service_months >= 12.0 && has(employment.exit_date) && employment.exit_date != \"\" && employment.exit_date < \"9999\" && employment.start_date != \"\" && as_of != null && as_of <= employment.exit_date && int(calendar_completed_months(employment.start_date, as_of)) / 12 == int(calendar_completed_months(employment.start_date, add_days(employment.exit_date, 1))) / 12) ? round(full * double(int(calendar_completed_months(employment.start_date, add_days(employment.exit_date, 1))) % 12) / 12.0, 1.0, \"HALF_UP\") : full)",
+			"overdraw": "0",
 			"window": "SERVICE_YEAR",
-			"carry_forward": "terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 11.0 : service_months >= 24 ? 8.0 : service_months >= 12 ? 6.0 : round(6.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")) : (size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : round(8.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\"))"
+			"carry_forward": "terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 11.0 : service_months >= 24 ? 8.0 : service_months >= 12 ? 6.0 : round(6.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")) : (size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : round(8.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\"))",
+			"carry_depth": 1
 		}
 	},
 	{
@@ -147,6 +159,7 @@
 		"name": "Emergency leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -167,6 +180,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "min(7.0, max(0.0, 35.0 - (taken.lifetime - taken.event)))",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -177,6 +191,7 @@
 		"name": "Unpaid leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -189,6 +204,7 @@
 		"name": "National service leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -202,6 +218,7 @@
 		"name": "Court or custody absence",
 		"eligibility": "!(has(entry.facts.absence_ground) && entry.facts.absence_ground == \"EMPLOYER_WITNESS\")",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,

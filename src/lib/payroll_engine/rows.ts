@@ -42,16 +42,9 @@ export const PROFILE = {
 	name: true,
 	date_of_birth: true,
 	nationality: true,
-	race: true,
-	religion: true,
 	gender: true,
 	marital_status: true,
-	spouse_status: true,
-	solo_parent: true,
-	disabled: true,
-	receiving_pension: true,
 	children: true,
-	dependents_count: true,
 	facts: true
 } as const satisfies StoredSelect<'employment_profile'>;
 /** Each family's own columns beside the common ones: a read naming a column its model lacks is refused. */
@@ -125,8 +118,7 @@ export const LOAN = {
 	employment_id: true,
 	company_id: true,
 	principal_amount: true,
-	advance_purpose: true,
-	written_agreement_reference: true,
+	facts: true,
 	advance_made_on: true
 } as const satisfies StoredSelect<'loan_catalog_entry'>;
 
@@ -364,16 +356,9 @@ export const TRIGGER = {
 		date_of_birth: true,
 		gender: true,
 		marital_status: true,
-		solo_parent: true,
-		disabled: true,
-		receiving_pension: true,
-		race: true,
-		religion: true,
-		spouse_status: true,
 		children: true,
 		nationality: true,
 		identity_number: true,
-		dependents_count: true,
 		email: true,
 		phone: true,
 		address: true,
@@ -478,8 +463,7 @@ export const TRIGGER = {
 		principal_amount: true,
 		repayment_period: true,
 		repayment_frequency: true,
-		advance_purpose: true,
-		written_agreement_reference: true,
+		facts: true,
 		advance_made_on: true,
 		catalog_id: true,
 		company_id: true,

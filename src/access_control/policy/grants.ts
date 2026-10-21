@@ -105,8 +105,7 @@ const LOAN_ENTRY_FIELDS = [
 	'principal_amount',
 	'repayment_period',
 	'repayment_frequency',
-	'advance_purpose',
-	'written_agreement_reference',
+	'facts',
 	'advance_made_on',
 	'repayments'
 ] as const;

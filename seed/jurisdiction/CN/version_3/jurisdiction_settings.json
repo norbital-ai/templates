@@ -21,49 +21,60 @@
 			"rolling_hours_months": 3,
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
-			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.filter(a, !(a.code in [\"ONLY_CHILD_ALLOWANCE\", \"CHILDCARE_SUBSIDY\", \"TRAVEL_ALLOWANCE\", \"MEAL_SUBSIDY_OUT\"])).map(a, a.amount))",
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://rsj.sh.gov.cn/",
-					"instructions": "rsj.sh.gov.cn. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://shanghai.chinatax.gov.cn/",
-					"instructions": "shanghai.chinatax.gov.cn. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Authority for the national statutes and NPC Standing Committee decisions: 劳动法 (hours, overtime caps and premiums, rest), 劳动合同法 (contracts, probation, termination grounds, notice, economic compensation N/2N, final settlement), 社会保险法 (the five insurances, contribution duties, withholding), 个人所得税法, 工会法 (2% union fund), 个人信息保护法 (statute text), 就业促进法, and the 2024 decision on the gradual raising of the statutory retirement age. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
 				},
 				{
 					"url": "https://www.gov.cn/",
-					"instructions": "中国政府网_中央人民政府门户网站. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.kunming.cn/",
-					"instructions": "昆明信息港-昆明门户网|昆明新闻|昆明旅游|昆明资讯|昆明头条|昆明热点-昆明城市门户网站. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument. This is an official government information/news portal: accept only clearly attributed regulator releases; a summary that omits the annex or commencement clause cannot close that detail."
-				},
-				{
-					"url": "https://www.shanghai.gov.cn/",
-					"instructions": "上海市人民政府. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://ybj.sh.gov.cn/",
-					"instructions": "上海市医疗保障局. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.mohrss.gov.cn/",
-					"instructions": "Ministry of Human Resources and Social Security (MOHRSS). Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "中国政府网 (State Council). Authority for: the annual 国务院办公厅关于部分节假日安排的通知 (调休, makeup workdays; usually published in November for the next year) and 全国年节及纪念日放假办法; State Council administrative regulations and ministry rules in 国务院政策文件库 (zhengceku): 职工带薪年休假条例 and 企业职工带薪年休假实施办法, 劳动合同法实施条例, 女职工劳动保护特别规定 (maternity leave), 工伤保险条例, 失业保险条例, 最低工资规定, 工资支付暂行规定, 保障农民工工资支付条例, 住房公积金管理条例, the 21.75-day monthly pay-day notice, national MOHRSS/MOF notices on the phased unemployment-insurance rate, and the foreign-worker rules (外国人在中国就业管理规定, 在中国境内就业的外国人参加社会保险暂行办法, 外国人入境出境管理条例). Search 政策 > 国务院政策文件库 by title or 文号."
 				},
 				{
 					"url": "https://www.cac.gov.cn/",
-					"instructions": "Cyberspace Administration of China (CAC). Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "国家互联网信息办公室. Authority for the implementing rules of employee personal-data protection: personal information protection compliance audits, sensitive personal information handling, the cross-border transfer rules (标准合同办法, 促进和规范数据跨境流动规定 and its HR-management exemption) and security assessments. Use 政务 > 政策法规 and 通知公告; the PIPL statute text itself is under npc.gov.cn."
 				},
 				{
-					"url": "https://fgk.chinatax.gov.cn/",
-					"instructions": "State Taxation Administration tax regulations database. Search 政策法规, 政府信息公开 and recent 通知公告. Read the national law first, then the applicable provincial/city instrument. Identify contribution-year vs calendar-year bases, commencement and expiration clauses, employee/employer shares and local medical/housing-fund scope. A basic-medical base notice does not by itself establish the major-medical commencement date; do not extend a time-limited unemployment rate without authority. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Authority for Shanghai: the monthly and hourly minimum wage and its exclusions, the social-insurance contribution base floor and ceiling (contribution year from 1 July), pension, unemployment and work-injury rates and industry classes, 上海市企业工资支付办法 (overtime base, final pay, stoppage pay, deductions), sick-pay scale and medical period, the high-temperature allowance and the one-off work-injury subsidies. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"url": "https://ybj.sh.gov.cn/",
+					"instructions": "上海市医疗保障局. Authority for Shanghai employee basic medical insurance (including maternity) rates and base, maternity benefits and long-term-care insurance. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期 (the medical rate notice is time-limited)."
+				},
+				{
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局. Authority for all tax and tax-collected levies (the national 国家税务总局 portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge): in 政策文件 > 政策法规库 (个人所得税 and 社会保险费 categories) the national IIT instruments it republishes — the cumulative withholding method (公告2018年第61号) and rate table, the 5,000 basic deduction and special additional deductions (国发〔2023〕13号 and later amounts), preferential treatments (annual bonus, separation pay, equity incentives, expatriate allowances and their expiry dates) and the monthly declaration calendar; and Shanghai collection — social-insurance and union-fund payment and declaration due days, the annual contribution-base declaration window, the disabled-employment security fund rate and calculation, and local IIT withholding guidance (纳税服务 > 办税指南, 通知公告)."
+				},
+				{
+					"url": "https://www.shanghai.gov.cn/",
+					"instructions": "上海市人民政府. Authority for Shanghai local regulations and government rules not issued by the bureaus above: 上海市人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 上海市女职工劳动保护办法 (prenatal and nursing leave), 上海市老年人权益保障条例 (elder-care leave), 上海市工会条例, and the 上海市住房公积金管理委员会 notices on housing-fund rates and base limits (the fund centre's own site is unreachable). Use 政策发布 / 信息公开 > 规章 and the site search."
+				},
+				{
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网 (Yunnan Provincial People's Congress). Authority for Yunnan and Kunming local regulations: 云南省人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 云南省老年人权益保障条例 (elder-care leave), 云南省失业保险条例, and Kunming regulations it approves such as 昆明市工资支付条例 (final pay within 5 working days, sick and stoppage pay). Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"url": "https://longling.gov.cn/",
+					"instructions": "龙陵县人民政府 (a Yunnan county portal that republishes province-wide notices; the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use it only for Yunnan province-wide instruments: the minimum-wage classes (云人社发 最低工资标准) and the Kunming county classification, the pension, unemployment and work-injury contribution bases and rates (including the phased unemployment rate), Yunnan work-injury local measures and the Yunnan high-temperature allowance. Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance; an area belongs to the one entry that names it. Open each portal directly and use its navigation or site search. Record the exact document URL, issuer, instrument number, publication and effective dates, the quoted clause or table and its scope for each proposed change. Read annexes and amendments; inspect scanned PDFs visually. A draft, 征求意见稿, budget speech or press summary is not operative law. Never sign in or upload customer records. Kunming municipal medical security (昆明市医疗保障局) and the Kunming housing provident fund centre have no portal the research tools can reach (km.gov.cn hosts return empty replies or time out): report those values as unverified rather than guessing."
 		},
 		"cloned_from_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
 		"change_summary": "1 July 2026: Shanghai 2026 contribution year — social insurance base 7546–37731 (2025 average wage 12577, published 18 August 2026) and housing provident fund upper base 37731 (沪公积金管委会〔2026〕3号).",
@@ -375,9 +386,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -652,6 +661,10 @@
 										"default": false,
 										"title": "Employee asked for a fixed term (劳动者提出订立固定期限劳动合同)",
 										"description": "劳动合同法 第十四条第二款: after 10 years or two consecutive fixed terms, a fixed-term renewal stands only at the employee's request."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -1054,7 +1067,7 @@
 				"code": "STOPPAGE_EMPLOYER",
 				"name": "停工停产 (stoppage for the employer's operational reasons)",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
 				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either."
 			},
@@ -1062,7 +1075,7 @@
 				"code": "FORCE_MAJEURE",
 				"name": "不可抗力停工 (natural disaster or accident)",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
 				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A disaster is a cause not the employee's: 第十二条 applies."
 			},
@@ -1070,7 +1083,7 @@
 				"code": "GOVERNMENT_ORDER",
 				"name": "政府措施停工 (shutdown ordered by a government measure)",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "(company.region in rules.regions.by_region) ? ((day.date < add_months(suspension.from, 1)) ? (terms.base_salary / 21.75) : (day.worked ? max((has(suspension.facts.agreed_daily_pay) ? double(suspension.facts.agreed_daily_pay) : (terms.base_salary / 21.75)), (double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / 21.75)) : (has(suspension.facts.living_allowance_daily) ? double(suspension.facts.living_allowance_daily) : 0.0))) : 0.0",
 				"authority": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准; 若没有提供正常劳动, 应按国家有关规定办理. 人社厅明电〔2020〕5号 二 https://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472508.htm: 职工没有提供正常劳动的, 企业应当发放生活费, 生活费标准按各省、自治区、直辖市规定的办法执行. SH: 沪人社规〔2026〕10号 十二 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf. The first cycle runs a month from the suspension's first day (`suspension.from`, across pay periods); after it the suspension fact `agreed_daily_pay` is the new agreement. A later day not worked pays the living allowance (生活费), the suspension fact `living_allowance_daily`, else nothing: neither city sets a statutory amount. KM: 云南省人力资源和社会保障厅《关于新型冠状病毒感染的肺炎疫情防控期间劳动关系的政策解答》 四 (on 云人社通〔2020〕12号, 2020-01-31): 超过一个工资支付周期的, 若职工提供了正常劳动, 企业支付给职工的工资按照双方新约定的标准支付, 但不得低于当地最低工资标准. 职工没有提供正常劳动的, 企业按照企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费 (read 2026-10-08 as official reproductions on WeChat: 云南人才市场 2020-02-07 “来源于云南人力资源和社会保障网”, with the notice scan; 云视新闻七彩云 2020-02-05; 918云南交通台 2020-02-05 from 云南发布; all verbatim). The notice itself (三) stops at the minimum wage for days worked; 昆明市工资支付条例 第二十八条 sets no amount. SH: 沪人社规〔2026〕10号 十二 sets none either. A government measure (e.g. the epidemic controls of 人社厅明电〔2020〕5号) is a cause not the employee's: 第十二条 applies."
 			},
@@ -1078,7 +1091,7 @@
 				"code": "EMPLOYEE_CAUSED",
 				"name": "劳动者原因停工 (stoppage caused by the employees)",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "劳动法 第五十条 and 工资支付暂行规定 第十二条 a contrario: wages are paid for labour provided; a stoppage the employees cause is outside 第十二条, unpaid and not attended. PRC law has no statutory strike pay. https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 			}

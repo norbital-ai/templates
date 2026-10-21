@@ -387,6 +387,9 @@ const probe = (n: number) =>
  * each path's round trips and statements are at most `CEILING`, the same at 1 and 100 employments.
  */
 const CEILING = 5;
+/** Paths whose writes start a second behaviour_taps invocation inside the same `runDue`: an exit writes the encashment
+ * and the exit tasks, and those new rows run the behaviour rules again. Each invocation keeps its own `CEILING`. */
+const INVOCATIONS: Readonly<Record<string, number>> = { 'behaviour_taps after the bulk exits': 2 };
 const PATHS = [
 	'payroll_run.create REGULAR',
 	'behaviour_taps after run.create',
@@ -454,8 +457,10 @@ it.live.skipIf(!sample)(
 				expect(
 					at100.trips - pages100,
 					`${path} trips ${JSON.stringify(at100.detail)}`
-				).toBeLessThanOrEqual(CEILING);
-				expect(at100.statements - pages100, `${path} statements`).toBeLessThanOrEqual(CEILING);
+				).toBeLessThanOrEqual(CEILING * (INVOCATIONS[path] ?? 1));
+				expect(at100.statements - pages100, `${path} statements`).toBeLessThanOrEqual(
+					CEILING * (INVOCATIONS[path] ?? 1)
+				);
 				expect(at100.trips - pages100, path).toBe(at1.trips - pages1);
 				expect(at100.statements - pages100, path).toBe(at1.statements - pages1);
 			}

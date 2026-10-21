@@ -22,7 +22,18 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
@@ -398,9 +409,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -709,6 +718,15 @@
 										"type": "boolean",
 										"title": "Previous examination meets statutory requirements",
 										"description": "A physician satisfying art.1(d) performed the recorded examination and there is no doubt about its suitability (art.2(7)). A date alone does not qualify."
+									},
+									"dependents_count": {
+										"type": "integer",
+										"minimum": 0,
+										"description": "PTKP dependants (tanggungan, at most three count): PPh 21 TER and PTKP, the Coretax status (K/n, TK/n) and the detention family aid read it (UU PPh art.7(1))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -996,6 +1014,18 @@
 							"description": "The DJP tax object code of a non-employee’s fees on the Coretax BP21 (BP21 converter REF sheet, deemed 50%); blank = 21-100-20, services in any field."
 						}
 					}
+				},
+				"loan_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on loan_catalog_entry.facts; the CEL root `entry.facts` of the loan class's rules.",
+					"properties": {
+						"written_agreement_reference": {
+							"type": "string",
+							"title": "Written loan agreement",
+							"description": "PP 36/2021 art. 65: the written agreement a payroll loan deduction requires."
+						}
+					}
 				}
 			}
 		},
@@ -1165,7 +1195,7 @@
 				"code": "EMPLOYER_CAUSED",
 				"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
 				"authority": "PP 36/2021 art.40(2)(d) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1173,7 +1203,7 @@
 				"code": "FORCE_MAJEURE",
 				"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "UU 13/2003 art.93(1); PP 36/2021 art.40(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1181,7 +1211,7 @@
 				"code": "STRIKE_NORMATIVE",
 				"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
 				"authority": "UU 13/2003 art.145 — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1189,7 +1219,7 @@
 				"code": "STRIKE_OTHER",
 				"name": "Any other strike — no work, no wage",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "UU 13/2003 art.93(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			}

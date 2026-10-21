@@ -6,6 +6,7 @@
 		"name": "Public holiday in lieu",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -18,6 +19,7 @@
 		"name": "Leave for victims of violence against women and their children",
 		"eligibility": "employee.gender == \"FEMALE\" && (!has(entry.days) || entry.days <= 10.0)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -26,7 +28,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "10.0"
+			"days": "10.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -36,6 +39,7 @@
 		"name": "Medical leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -48,6 +52,7 @@
 		"name": "Paternity leave",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && has(entry.event_kind) && entry.event_kind in [\"BIRTH\", \"MISCARRIAGE\"] && (!has(entry.days) || entry.days <= 7.0 + (has(entry.facts.maternity_days_allocated) ? min(double(entry.facts.maternity_days_allocated), 7.0) : 0.0)) && size(earlier.rows.filter(r, (has(r.facts.event_id) ? r.facts.event_id : r.id) != (has(entry.facts) && has(entry.facts.event_id) ? entry.facts.event_id : \"\") && !earlier.rows.exists(s, (has(s.facts.event_id) ? s.facts.event_id : s.id) == (has(r.facts.event_id) ? r.facts.event_id : r.id) && (s.occurred_on < r.occurred_on || (s.occurred_on == r.occurred_on && s.id < r.id))))) < 4",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -57,6 +62,7 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"days": "7.0 + (has(entry.facts.maternity_days_allocated) ? min(double(entry.facts.maternity_days_allocated), 7.0) : 0.0)",
+			"overdraw": "0",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
 		}
 	},
@@ -67,6 +73,7 @@
 		"name": "Special leave for women (gynaecological surgery)",
 		"eligibility": "employee.gender == \"FEMALE\" && has(entry.event_kind) && entry.event_kind == \"SURGERY\" && employment.service_months >= 6.0 && (!has(entry.days) || entry.days <= 60.0)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -75,7 +82,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "60.0"
+			"days": "60.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -85,6 +93,7 @@
 		"name": "Emergency leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -97,6 +106,7 @@
 		"name": "Annual leave",
 		"eligibility": "terms.employment_type != \"DOMESTIC\" && employment.classification != \"MANAGERIAL\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\"]) && !(has(company.facts.small_establishment) && company.facts.small_establishment)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -111,6 +121,7 @@
 				}
 			],
 			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
+			"overdraw": "0",
 			"window": "SERVICE_YEAR"
 		},
 		"encash_at_window_end": true
@@ -122,6 +133,7 @@
 		"name": "Compassionate leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -132,17 +144,18 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"eligibility": "employee.gender == \"FEMALE\" && has(entry.event_kind) && (entry.event_kind == \"BIRTH\" ? (!has(entry.days) || entry.days <= ((has(entry.facts) && has(entry.facts.solo_parent_claimed) ? entry.facts.solo_parent_claimed : employee.solo_parent) ? 120.0 : 105.0)) : entry.event_kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"] && (!has(entry.days) || entry.days <= 60.0))",
+		"eligibility": "employee.gender == \"FEMALE\" && has(entry.event_kind) && (entry.event_kind == \"BIRTH\" ? (!has(entry.days) || entry.days <= ((has(entry.facts) && has(entry.facts.solo_parent_claimed) ? entry.facts.solo_parent_claimed : (has(terms.facts.solo_parent) && terms.facts.solo_parent == true)) ? 120.0 : 105.0)) : entry.event_kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"] && (!has(entry.days) || entry.days <= 60.0))",
 		"unit": "CALENDAR_DAY",
 		"can_encash": false,
 		"encash_on_exit": false,
-		"is_npl": false,
+		"is_npl": true,
 		"pay_fraction": "",
-		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender is not presumed, and the fifteen solo-parent days need the birth's benefit case to prove the claim with an event-valid LGU document (payroll.benefit_cases:MATERNITY_LEAVE, qualification solo_parent_documented), not the employee's current flag. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth. The entry states the event in its facts (`event_kind`: BIRTH, MISCARRIAGE or EMERGENCY_TERMINATION); an entry over 105 days (120 for a solo parent) or 60 days is refused. Metered per event (`entry.facts.event_id`): 105 days, 120 for a solo parent; the 60-day limit for a miscarriage or emergency termination is the eligibility’s per-entry cap. Each pregnancy (`window_key`: `facts.event_id`) is its own balance: 60 days when its first entry is a miscarriage or emergency termination, else 105 (120 solo parent). RA 11210 s.6: up to seven of the days may be allocated to the child’s father or an alternate caregiver (entry fact `days_allocated_to_father`, customer input) and are deducted here; the solo-parent 15 days follow the event’s own `solo_parent_claimed` (RA 11861), else the current flag.",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender is not presumed, and the fifteen solo-parent days need the birth's benefit case to prove the claim with an event-valid LGU document (payroll.benefit_cases:MATERNITY_LEAVE, qualification solo_parent_documented), not the employee's current flag. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth. The entry states the event in its facts (`event_kind`: BIRTH, MISCARRIAGE or EMERGENCY_TERMINATION); an entry over 105 days (120 for a solo parent) or 60 days is refused. Metered per event (`entry.facts.event_id`): 105 days, 120 for a solo parent; the 60-day limit for a miscarriage or emergency termination is the eligibility’s per-entry cap. Each pregnancy (`window_key`: `facts.event_id`) is its own balance: 60 days when its first entry is a miscarriage or emergency termination, else 105 (120 solo parent). RA 11210 s.6: up to seven of the days may be allocated to the child’s father or an alternate caregiver (entry fact `days_allocated_to_father`, customer input) and are deducted here; the solo-parent 15 days follow the event’s own `solo_parent_claimed` (RA 11861), else the current flag. Paid as RA 11210 s.5 pays it, not as salary: the employer advances the SSS daily maternity benefit in full (s.5(a)(2); adhoc SSS_MATERNITY_BENEFIT) and pays the difference to the full salary (s.5(c); adhoc MATERNITY_SALARY_DIFFERENTIAL, which is that difference), so the leave days are not paid again by the salary (`is_npl`, priced by NO_PAY_LEAVE and never more than the month’s basic).",
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "(has(entry.facts.event_kind) && entry.facts.event_kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"] ? 60.0 : ((has(entry.facts.solo_parent_claimed) ? entry.facts.solo_parent_claimed : employee.solo_parent) ? 120.0 : 105.0)) - (has(entry.facts.days_allocated_to_father) ? min(double(entry.facts.days_allocated_to_father), 7.0) : 0.0)",
+			"days": "(has(entry.facts.event_kind) && entry.facts.event_kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"] ? 60.0 : ((has(entry.facts.solo_parent_claimed) ? entry.facts.solo_parent_claimed : (has(terms.facts.solo_parent) && terms.facts.solo_parent == true)) ? 120.0 : 105.0)) - (has(entry.facts.days_allocated_to_father) ? min(double(entry.facts.days_allocated_to_father), 7.0) : 0.0)",
+			"overdraw": "0",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
 		}
 	},
@@ -153,6 +166,7 @@
 		"name": "Hospitalisation leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -165,6 +179,7 @@
 		"name": "Unpaid absence",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -175,17 +190,19 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
-		"eligibility": "employee.solo_parent && employment.service_months >= 6.0 && (!has(entry.days) || entry.days <= 7.0)",
+		"eligibility": "(has(terms.facts.solo_parent) && terms.facts.solo_parent == true) && employment.service_months >= 6.0 && (!has(entry.days) || entry.days <= 7.0)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
-		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `employee.solo_parent` is false until the employer records a presented card, the statute's own default. RA 11861 s.8: after six months of service; an entry over seven days is refused (the yearly grant is not metered: the leave entitlement has no calendar-year reset). Metered per calendar year (`window: CALENDAR_YEAR`), forfeitable and noncumulative (RA 11861 s.6, https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/95472).",
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act) RA 8972 as amended by RA 11861 s.8: seven days a year, non-cumulative and non-convertible (an UPFRONT grant with no carry), on a valid Solo Parent ID card (`evidence: REQUIRED`). solo-parent standing is what the Solo Parent Identification Card establishes (RA 11861 ss.15, 20: the benefit is availed on presenting the SPIC the local social welfare office issues); `terms.facts.solo_parent` is false until the employer records a presented card, the statute's own default. RA 11861 s.8: after six months of service; an entry over seven days is refused (the yearly grant is not metered: the leave entitlement has no calendar-year reset). Metered per calendar year (`window: CALENDAR_YEAR`), forfeitable and noncumulative (RA 11861 s.6, https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/95472).",
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "service_months >= 6.0 ? 7.0 : 0.0"
+			"days": "service_months >= 6.0 ? 7.0 : 0.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -195,6 +212,7 @@
 		"name": "Unpaid leave",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -207,6 +225,7 @@
 		"name": "Service incentive leave (kasambahay)",
 		"eligibility": "terms.employment_type == \"DOMESTIC\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -221,7 +240,8 @@
 					"days": 5
 				}
 			],
-			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0"
+			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -238,6 +258,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "30.0",
+			"overdraw": "0",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
 		},
@@ -249,6 +270,7 @@
 		"code": "MATERNITY_ALLOCATION_LEAVE",
 		"name": "Allocated maternity leave (unmarried father or alternate caregiver)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -258,6 +280,7 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"days": "(has(entry.facts.maternity_days_allocated) ? min(double(entry.facts.maternity_days_allocated), 7.0) : 0.0)",
+			"overdraw": "0",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
 		},
 		"authority": "RA 11210 s.6 (https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html, read 2026-10-07): the mother may \"allocate up to seven (7) days of said benefits to the child’s father, whether or not the same is married to the female worker: Provided, That in the death, absence, or incapacity of the former, the benefit may be allocated to an alternate caregiver who may be a relative within the fourth degree of consanguinity or the current partner of the female worker sharing the same household\", on written notice to both employers, \"over and above\" RA 8187. This class takes the allocated days for a recipient other than a married father (who takes them on PATERNITY_LEAVE with his RA 8187 seven): entry facts `allocation_recipient` (FATHER or ALTERNATE_CAREGIVER) and `maternity_days_allocated` (customer input, from the mother’s written notice), at most seven a birth, miscarriage or emergency termination; with pay, like the paternity days."

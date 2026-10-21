@@ -10,6 +10,7 @@
 		"quantity": "(period.covered_days >= period.days ? 1.0 : (period.parts == 1.0 && double(period.covered_working_days) > 0.0 ? min(1.0, double(period.covered_working_days) / 21.75) : double(period.covered_days) / double(period.days)))",
 		"rate": "terms.base_salary / double(period.parts)",
 		"prorated": true,
+		"denominator": "double(period.days)",
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [

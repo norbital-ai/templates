@@ -99,18 +99,11 @@
 			<Section name="personal" title={t('section.personal')}>
 				<Grid minimum="card">
 					<Field name="marital_status" />
-					<Field name="spouse_status" />
-					<Field name="solo_parent" />
-					<Field name="disabled" />
-					<Field name="receiving_pension" />
-					<Field name="race" />
-					<Field name="religion" />
 				</Grid>
 			</Section>
 			<Section name="family" title={t('section.family')}>
 				<Grid minimum="card">
 					<Field name="children" />
-					<Field name="dependents_count" />
 				</Grid>
 			</Section>
 			<Section name="contact" title={t('section.contact')}>

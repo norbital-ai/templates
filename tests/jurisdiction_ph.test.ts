@@ -206,6 +206,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -496,15 +497,10 @@ const cents = (value: unknown): number => Math.round(Number(value) * 100) / 100;
 const employee = {
 	gender: 'FEMALE',
 	marital_status: 'MARRIED',
-	spouse_status: 'NONE',
-	solo_parent: false,
-	disabled: false,
-	receiving_pension: false,
 	nationality: 'PH',
 	date_of_birth: '1990-01-01',
 	age: 36,
 	children: [],
-	dependents_count: 0,
 	facts: {}
 };
 const company = {
@@ -539,8 +535,6 @@ const SUBJECT = {
 	employment,
 	person: {
 		employment,
-		race: null,
-		religion: null,
 		nationality: 'PH',
 		residency_status: 'CITIZEN',
 		residency_since: null
@@ -558,6 +552,14 @@ const entry = {
 	facts: { event_kind: 'BIRTH' }
 };
 const ADMISSION = { ...SUBJECT, entry, earlier: { rows: [], calendar_year: 0, lifetime: 0 } };
+/** A person override as the engine reads it: solo-parent standing is a contract-term fact (`terms.facts.solo_parent`). */
+const asPerson = ({ solo_parent, ...person }: Row) => ({
+	employee: { ...employee, ...person },
+	terms: {
+		...terms,
+		facts: { ...terms.facts, ...(solo_parent === undefined ? {} : { solo_parent }) }
+	}
+});
 const RUN = {
 	...SUBJECT,
 	period: {
@@ -571,7 +573,9 @@ const RUN = {
 		month_key: '2026-03',
 		month_from: '2026-03-01',
 		month_to: '2026-03-31',
-		month_days: 31
+		month_days: 31,
+		salary_paid: false,
+		salary_run: true
 	},
 	work: {
 		overtime_hours: 2,
@@ -583,7 +587,16 @@ const RUN = {
 		]
 	},
 	leave: {
-		rows: [{ code: 'UNPAID_LEAVE', activity: 'TIME_OFF', days: 1, is_npl: true, can_encash: false }]
+		rows: [
+			{
+				code: 'UNPAID_LEAVE',
+				activity: 'TIME_OFF',
+				days: 1,
+				period_working_days: 1,
+				is_npl: true,
+				can_encash: false
+			}
+		]
 	},
 	earned: {
 		month: {},
@@ -713,6 +726,8 @@ const assess = (
 			days: 31,
 			month: 3,
 			salary_paid: false,
+			// a slip of the month's salary run: no regular pay still to come
+			salary_run: true,
 			part: 1,
 			parts: 1,
 			month_key: '2026-03',
@@ -775,7 +790,10 @@ const assess = (
 };
 /** The month's charge on an assessed base alone (the shared seed test's shape). */
 const charge = (row: Row, assessed: number) => {
-	const context = { base: { ordinary: assessed, assessed, amount: assessed }, person: { age: 30 } };
+	const context = {
+		base: { ordinary: assessed, assessed, amount: assessed },
+		person: { age: 30, normal_pending: 0 }
+	};
 	for (const rule of fixtureConfiguration(row.configuration).rules) {
 		if (evaluateConfigured(fixtureString(rule.when), fixtureContext(context)) !== true) continue;
 		return {
@@ -2061,12 +2079,12 @@ describe('PH jurisdiction seed', () => {
 	it('statutory leave classes gate on the person, the event and the statutory length', () => {
 		const leave = (code: string) =>
 			fixturePresent(load(latest, 'leave_catalog').find((row) => row.code === code));
-		const admit = (code: string, person: object, facts: object, extra: object = {}) =>
+		const admit = (code: string, person: Row, facts: object, extra: object = {}) =>
 			evaluateConfigured(
 				fixtureString(leave(code).eligibility),
 				fixtureContext({
 					...ADMISSION,
-					employee: { ...employee, ...person },
+					...asPerson(person),
 					entry: { ...entry, event_kind: null, ...facts, facts },
 					...extra
 				})
@@ -2160,7 +2178,7 @@ describe('PH jurisdiction seed', () => {
 				months,
 				fixtureContext({
 					...SUBJECT,
-					employee: { ...employee, ...person },
+					...asPerson(person),
 					entry: { facts },
 					taken: { calendar_year: 0, service_year: 0, lifetime: 0, event: 0 }
 				})
@@ -2281,7 +2299,7 @@ describe('PH jurisdiction seed', () => {
 			for (const row of load(version, 'rule_set').filter((item) => item.family === 'VALIDATIONS')) {
 				const rules = fixtureRecord(row.rules);
 				assert.ok(
-					['contract', 'payslip', 'roster'].includes(fixtureString(rules.site)),
+					['contract', 'payslip', 'roster', 'cycle'].includes(fixtureString(rules.site)),
 					fixtureString(row.code)
 				);
 				assert.ok(
@@ -2851,62 +2869,108 @@ describe('PH jurisdiction seed', () => {
 				assert.deepEqual(sums(reverse, person), sums([monthly], person), `reverse ${person}`);
 		})
 	);
-	it.effect(
-		'an OFF_CYCLE bonus before or after the REGULAR run settles the same month totals',
-		Effect.fnUntraced(function* () {
-			const scenario = Effect.fnUntraced(function* (bonusFirst: boolean) {
-				const engine = harness();
-				const bonus = fixturePresent(
-					fixturePresent(engine.tables.get('adhoc_catalog')).find(
-						(row) => row.code === 'bonus' && row.settings_id === settingsOf(latest).id
-					)
-				);
-				const pay = () =>
-					fixturePresent(engine.tables.get('adhoc_catalog_entry')).push(
-						fixtureRow({
-							id: 'b',
-							catalog_id: bonus.id,
-							employment_id: 'k-p1',
-							company_id: engine.COMPANY,
-							payslip_id: null,
-							occurred_on: '2026-03-20',
-							amount: 120000,
-							activity: 'AWARD'
-						})
+	for (const month of ['2026-03', '2026-12'])
+		it.effect(
+			`a bonus off-cycle before, inside or after the REGULAR run settles the same month totals, never deferred: ${month}`,
+			Effect.fnUntraced(function* () {
+				type Lines = Record<string, readonly [number, number]>;
+				const scenario = Effect.fnUntraced(function* (order: 'before' | 'inside' | 'after') {
+					const engine = harness();
+					const bonus = fixturePresent(
+						fixturePresent(engine.tables.get('adhoc_catalog')).find(
+							(row) => row.code === 'bonus' && row.settings_id === settingsOf(latest).id
+						)
 					);
-				const plans = [];
-				if (bonusFirst) {
-					pay();
-					plans.push(
-						yield* engine.run('2026-03', 'OFF_CYCLE', ['b']),
-						yield* engine.run('2026-03', 'REGULAR')
-					);
-				} else {
-					plans.push(yield* engine.run('2026-03', 'REGULAR'));
-					pay();
-					plans.push(yield* engine.run('2026-03', 'OFF_CYCLE', ['b']));
-				}
-				const totals: Record<string, readonly [number, number]> = {};
-				for (const plan of plans)
-					for (const line of fixturePresent(
-						plan.payslips.find((row) => row.employment_id === fixtureKey('k-p1'))
-					).statutory) {
-						const held = fixturePair(totals[line.scheme_code] ?? [0, 0]);
-						totals[line.scheme_code] = [
-							cents(held[0] + line.employee_amount),
-							cents(held[1] + line.employer_amount)
-						];
+					const pay = () =>
+						fixturePresent(engine.tables.get('adhoc_catalog_entry')).push(
+							fixtureRow({
+								id: 'b',
+								catalog_id: bonus.id,
+								employment_id: 'k-p1',
+								company_id: engine.COMPANY,
+								payslip_id: null,
+								occurred_on: `${month}-10`,
+								amount: 120000,
+								activity: 'AWARD'
+							})
+						);
+					const plans = [];
+					if (order === 'before') {
+						pay();
+						plans.push(
+							yield* engine.run(month, 'OFF_CYCLE', ['b']),
+							yield* engine.run(month, 'REGULAR')
+						);
+					} else if (order === 'inside') {
+						pay();
+						plans.push(yield* engine.run(month, 'REGULAR'));
+					} else {
+						plans.push(yield* engine.run(month, 'REGULAR'));
+						pay();
+						plans.push(yield* engine.run(month, 'OFF_CYCLE', ['b']));
 					}
-				return totals;
-			});
-			const after = yield* scenario(false);
-			assert.deepEqual(yield* scenario(true), after);
-			// 150,000 paid in March: SSS on MSC 35,000; WTAX on 30,000 + 120,000 − 90,000 − 2,700 shares = 57,300.
-			assert.deepEqual(after.SSS, [1000, 2000]);
-			assert.deepEqual(after.SSS_MPF, [750, 1500]);
-			assert.deepEqual(after.WTAX, [6668.4, 0]);
-		})
-	);
+					const slips: Lines[] = plans.map((plan) =>
+						Object.fromEntries(
+							Object.entries(engine.lines(plan, 'p1')).map(
+								([code, [employee = 0, employer = 0]]) => [code, [employee, employer] as const]
+							)
+						)
+					);
+					const totals: Record<string, readonly [number, number]> = {};
+					for (const slip of slips)
+						for (const [code, [employee, employer]] of Object.entries(slip)) {
+							const held = fixturePair(totals[code] ?? [0, 0]);
+							totals[code] = [cents(held[0] + employee), cents(held[1] + employer)];
+						}
+					return { totals, slips };
+				});
+				const after = yield* scenario('after');
+				const before = yield* scenario('before');
+				const inside = yield* scenario('inside');
+				// Every scheme, employee and employer: the same month whichever slip pays the bonus.
+				assert.deepEqual(before.totals, after.totals);
+				assert.deepEqual(inside.totals, after.totals);
+				assert.deepEqual(Object.keys(after.totals).toSorted(), [
+					'HDMF',
+					'MWE_STATUS',
+					'PHIC',
+					'SSS',
+					'SSS_EC',
+					'SSS_MPF',
+					'WTAX'
+				]);
+				// 150,000 paid: SSS on MSC 35,000 (regular SS capped at 20,000, MPF 15,000); Pag-IBIG on its 10,000 ceiling.
+				assert.deepEqual(after.totals.SSS, [1000, 2000]);
+				assert.deepEqual(after.totals.SSS_MPF, [750, 1500]);
+				assert.deepEqual(after.totals.SSS_EC, [0, 30]);
+				assert.deepEqual(after.totals.HDMF, [200, 200]);
+				// The off-cycle slip paid before the salary carries what the bonus adds to the month: MSC 30,000 → 35,000 adds
+				// only MPF (250 / 500); no SS, EC or Pag-IBIG (already at their ceilings on the 30,000 salary to come).
+				const first = fixturePresent(before.slips[0]);
+				assert.deepEqual(first.SSS, [0, 0]);
+				assert.deepEqual(first.SSS_MPF, [250, 500]);
+				assert.deepEqual(first.SSS_EC, [0, 0]);
+				assert.deepEqual(first.HDMF, [0, 0]);
+				assert.equal(first.PHIC, undefined);
+				// WTAX on the monthly table: the salary to come is 30,000 − 2,450 estimated shares = 27,550 (1,007.55); the
+				// bonus adds 120,000 − 90,000 pool − 250 MPF = 29,750 → 57,300 (6,668.40): 5,660.85 withheld on the bonus.
+				assert.deepEqual(first.WTAX, [5660.85, 0]);
+				if (month === '2026-03') {
+					// The same as the slip that pays the bonus after the salary.
+					// (PhilHealth keeps a nil line there: the bonus is not in its base, the month's salary already is.)
+					assert.deepEqual(
+						first,
+						Object.fromEntries(
+							Object.entries(fixturePresent(after.slips[1])).filter(([code]) => code !== 'PHIC')
+						)
+					);
+					assert.deepEqual(after.totals.WTAX, [6668.4, 0]);
+				} else
+					// December's salary run annualises (RR 2-98 s.2.79(B)(5)(b)): 30,000 − 2,700 + 30,000 = 57,300 for the
+					// year is under 250,000, so the month's total is nil and the salary slip refunds the bonus slip's 5,660.85.
+					assert.deepEqual(after.totals.WTAX, [0, 0]);
+			})
+		);
 });
 describe('PH: the whole tracker, row by row', () => {
 	const row = (table: string, code: string, version = latest) =>
@@ -3577,7 +3641,7 @@ describe('PH: the whole tracker, row by row', () => {
 				24,
 				fixtureContext({
 					...SUBJECT,
-					employee: { ...employee, ...person },
+					...asPerson(person),
 					entry: { facts },
 					taken: { calendar_year: 0, service_year: 0, lifetime: 0, event: 0 }
 				})
@@ -3769,8 +3833,25 @@ describe('PH: the whole tracker, row by row', () => {
 			]
 		);
 		const v2 = calendar(latest);
-		assert.equal(v2.filter((h) => fixtureString(h.date).startsWith('2026')).length, 20);
-		assert.equal(v2.filter((h) => fixtureString(h.date).startsWith('2027')).length, 14);
+		const national = v2.filter((h) => !('regions' in h));
+		assert.equal(national.filter((h) => fixtureString(h.date).startsWith('2026')).length, 20);
+		assert.equal(national.filter((h) => fixtureString(h.date).startsWith('2027')).length, 18);
+		// Special (non-working) days proclaimed for a whole region carry that region's wage-area keys (Proclamations 1334, 1389, 1395, 1447 s.2026).
+		assert.deepEqual(
+			v2.filter((h) => 'regions' in h).map((h) => [h.date, h.kind, h.regions]),
+			[
+				['2026-07-15', 'SPECIAL_HOLIDAY', ['CAR']],
+				['2026-09-11', 'SPECIAL_HOLIDAY', ['CAR']],
+				[
+					'2026-09-14',
+					'SPECIAL_HOLIDAY',
+					['BARMM-CITY-AGRI-RETAIL', 'BARMM-CITY-NONAGRI', 'BARMM-PROV-AGRI', 'BARMM-PROV-NONAGRI']
+				],
+				['2026-11-16', 'SPECIAL_HOLIDAY', ['NCR', 'NCR-AGRI-SMALL']],
+				['2026-11-17', 'SPECIAL_HOLIDAY', ['NCR', 'NCR-AGRI-SMALL']],
+				['2026-11-18', 'SPECIAL_HOLIDAY', ['NCR', 'NCR-AGRI-SMALL']]
+			]
+		);
 		assert.deepEqual(
 			v2.filter((h) => fixtureString(h.name).startsWith('Eid')).map((h) => [h.date, h.kind]),
 			[
@@ -3778,9 +3859,15 @@ describe('PH: the whole tracker, row by row', () => {
 				['2026-05-27', 'PUBLIC_HOLIDAY']
 			]
 		);
-		// 2027's Chinese New Year, Black Saturday, All Souls' and Christmas Eve are special working days (Proclamation 1427).
+		// 2027's Chinese New Year, Black Saturday, All Souls' and Christmas Eve are additional special (non-working) days
+		// (Proclamation 1427 s.2026 §1(D)); EDSA Anniversary is the only special working day and is not listed.
+		const additional = ['2027-02-06', '2027-03-27', '2027-11-02', '2027-12-24'];
+		assert.deepEqual(
+			v2.filter((h) => additional.includes(fixtureString(h.date))).map((h) => h.kind),
+			['SPECIAL_HOLIDAY', 'SPECIAL_HOLIDAY', 'SPECIAL_HOLIDAY', 'SPECIAL_HOLIDAY']
+		);
 		assert.equal(
-			v2.some((h) => h.date === '2027-02-06'),
+			v2.some((h) => h.date === '2027-02-25'),
 			false
 		);
 		const rule = fixturePresent(
@@ -3797,8 +3884,45 @@ describe('PH: the whole tracker, row by row', () => {
 			calendar: [{ rules: payrollRules(latest).public_holidays }],
 			held: [{ date: '2026-01-01' }]
 		});
-		assert.equal(writes.length, v2.length - 1);
+		// An NCR entity takes the national days and NCR's own, never CAR's or BARMM's.
+		assert.equal(writes.length, national.length - 1 + 3);
 		assert.ok(writes.every((write) => !('published_at' in write.data)));
+		const car = effectWrites(rule, {
+			event: {
+				settings_id: settingsOf(latest).id,
+				company_id: 'c',
+				row: { id: 'c', region: 'CAR' }
+			},
+			calendar: [{ rules: payrollRules(latest).public_holidays }],
+			held: []
+		}).map((write) => write.data.date);
+		assert.ok(car.includes('2026-07-15') && car.includes('2026-09-11'));
+		assert.ok(!car.includes('2026-11-16') && !car.includes('2026-09-14'));
+	});
+	it('PH-SETTINGS: research sources are readable portals, each with its own areas; the AEP rule cites DO 248 s.2025', () => {
+		for (const version of versions) {
+			const entries = fixtureValue4(fixtureRecord(settingsOf(version).sources).entries);
+			// E-Library (browser block) and pagibigfund.gov.ph (browser challenge) are replaced by lawphil.net and ONAR.
+			assert.deepEqual(
+				entries.map((e) => e.url),
+				[
+					'https://lawphil.net/',
+					'https://nwpc.dole.gov.ph/',
+					'https://www.bir.gov.ph/',
+					'https://www.sss.gov.ph/',
+					'https://www.philhealth.gov.ph/',
+					'https://naro.law.upd.edu.ph/'
+				],
+				version
+			);
+			const instructions = entries.map((e) => fixtureString(e.instructions));
+			assert.equal(new Set(instructions).size, instructions.length, `${version} no shared text`);
+			assert.ok(instructions.every((text) => !text.includes('Separate SSS/PhilHealth/Pag-IBIG')));
+			const aep = fixturePresent(
+				load(version, 'rule_set').find((row) => row.code === 'ALIEN_EMPLOYMENT_PERMIT')
+			);
+			assert.ok(fixtureString(fixtureRecord(aep.rules).authority).includes('248 s.2025'), version);
+		}
 	});
 	it('PH-SETTINGS: every wage key covers the window newest-first; BARMM’s provincial second tranche; the change summary and stale texts', () => {
 		for (const version of versions) {
@@ -4088,6 +4212,7 @@ describe('PH: the whole tracker, row by row', () => {
 							days: 7,
 							month: 3,
 							salary_paid: true,
+							salary_run: true,
 							part,
 							parts,
 							month_key: '2026-03',
@@ -4112,7 +4237,7 @@ describe('PH: the whole tracker, row by row', () => {
 			// A monthly entity is unchanged: the monthly column on 30,000 less contributions.
 			assert.equal(tax('MONTHLY', 30000, 1, 1), tax('', 30000, 1, 1));
 			// December's last week (27 Dec – 2 Jan) ends in January but still annualises.
-			const december = (part: number) =>
+			const december = (part: number, salaryRun = true) =>
 				evaluateConfigured(
 					fixtureString(fixturePresent(wtax(version).configuration.rules[1]).when),
 					fixtureContext({
@@ -4124,12 +4249,16 @@ describe('PH: the whole tracker, row by row', () => {
 							parts: 4,
 							to: '2027-01-02',
 							month_to: '2026-12-31',
-							from: '2026-12-27'
+							from: '2026-12-27',
+							salary_paid: false,
+							salary_run: salaryRun
 						}
 					})
 				);
 			assert.equal(december(4), true);
 			assert.equal(december(3), false);
+			// An off-cycle slip before December's salary run is not the year's last payment: it withholds on the column.
+			assert.equal(december(4, false), false);
 		}
 	});
 	it('PH-ADHOC: the SSS maternity benefit — six highest credits of the twelve months before the semester ÷ 180 × 105, 120 or 60 days', () => {
@@ -5028,7 +5157,7 @@ describe('PH: the whole tracker, row by row', () => {
 					fixtureString(leave(code).eligibility),
 					fixtureContext({
 						...ADMISSION,
-						employee: { ...employee, ...person },
+						...asPerson(person),
 						entry: {
 							...entry,
 							event_kind: 'BIRTH',
@@ -5389,6 +5518,74 @@ describe('PH: the whole tracker, row by row', () => {
 			700
 		);
 	});
+	it.effect(
+		'PH-LEAVE: maternity leave is paid as the SSS benefit and the salary differential, not the salary again',
+		Effect.fnUntraced(function* () {
+			const engine = harness();
+			const id = (table: string, code: string) =>
+				fixturePresent(
+					fixturePresent(engine.tables.get(table)).find(
+						(item) => item.code === code && item.settings_id === settingsOf(latest).id
+					)
+				).id;
+			fixturePresent(fixturePresent(engine.tables.get('employment_profile'))[0]).gender = 'FEMALE';
+			fixturePresent(engine.tables.get('leave_catalog_entry')).push(
+				fixtureRow({
+					id: 'mat',
+					catalog_id: id('leave_catalog', 'MATERNITY_LEAVE'),
+					employment_id: 'k-p1',
+					company_id: engine.COMPANY,
+					payslip_id: null,
+					activity: 'TIME_OFF',
+					occurred_on: '2026-03-16',
+					from: '2026-03-16',
+					to: '2026-06-28',
+					days: 105,
+					facts: { event_kind: 'BIRTH', event_id: 'e1' }
+				})
+			);
+			for (const [entryId, code, amount] of [
+				['ben', 'SSS_MATERNITY_BENEFIT', 70000],
+				['dif', 'MATERNITY_SALARY_DIFFERENTIAL', 35000]
+			] as const)
+				fixturePresent(engine.tables.get('adhoc_catalog_entry')).push(
+					fixtureRow({
+						id: entryId,
+						catalog_id: id('adhoc_catalog', code),
+						employment_id: 'k-p1',
+						company_id: engine.COMPANY,
+						payslip_id: null,
+						occurred_on: '2026-04-06',
+						amount,
+						activity: 'AWARD',
+						facts: { event_kind: 'BIRTH' }
+					})
+				);
+			yield* engine.run('2026-03', 'REGULAR');
+			const april = yield* engine.run('2026-04', 'REGULAR');
+			const slip = fixturePresent(
+				april.payslips.find((item) => item.employment_id === fixtureKey('k-p1'))
+			);
+			// RA 11210 s.5(a)(2), (c): full pay is the SSS benefit the employer advances plus the differential; a whole month
+			// of leave pays no salary (the no-pay days never deduct more than the month's basic).
+			assert.deepEqual(
+				Object.fromEntries(slip.base.map((line) => [line.component_code, line.amount])),
+				{ BASIC: 30000, NO_PAY_LEAVE: -30000 }
+			);
+			assert.deepEqual(
+				slip.adjustments.map((line) => [line.component_code, line.amount]).toSorted(),
+				[
+					['MATERNITY_SALARY_DIFFERENTIAL', 35000],
+					['SSS_MATERNITY_BENEFIT', 70000]
+				]
+			);
+			// Both are outside every base (SSS benefits are exempt, RR 2-98 s.2.78.1(B)(1)(e)); PhilHealth stays on the
+			// contract's basic.
+			const lines = engine.lines(april, 'p1');
+			assert.deepEqual(lines.PHIC, [750, 750]);
+			assert.equal(lines.WTAX, undefined);
+		})
+	);
 	it.effect(
 		'PH-WORK: no-pay leave and encashment priced on the engine; PhilHealth stays on the whole basic',
 		Effect.fnUntraced(function* () {

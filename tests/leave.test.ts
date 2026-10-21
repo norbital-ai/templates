@@ -19,6 +19,12 @@ import {
 	type LeaveClass,
 	type LeaveMovement
 } from '../src/lib/payroll_engine/leave.ts';
+import { Refusal } from '../src/lib/payroll_engine/foundation.ts';
+import { STATUTORY_FIELDS } from '../src/lib/payroll_engine/statutory_fields.ts';
+
+/** A refusal whose message names the row's missing or deciding key. */
+const refused = (pattern: RegExp) => (error: unknown) =>
+	error instanceof Refusal && pattern.test(error.message);
 
 const catalog = (id: string) => nativeId('leave_catalog', fixtureId(id));
 /** The seeded entitlement shape: the highest band reached, else the record's own first-year proration. */
@@ -32,6 +38,7 @@ const annual: LeaveClass = {
 	is_npl: false,
 	consumes_code: null,
 	entitlement: {
+		overdraw: '0',
 		days: banded('round(7.0 * min(service_months, 12.0) / 12.0, 1.0, "HALF_UP")'),
 		bands: [
 			{ service_months: 84, days: 13 },
@@ -46,7 +53,7 @@ const sick: LeaveClass = {
 	can_encash: false,
 	is_npl: false,
 	consumes_code: 'HOSPITALIZATION_LEAVE',
-	entitlement: { days: banded(), bands: [{ service_months: 6, days: 14 }] }
+	entitlement: { overdraw: '0', days: banded(), bands: [{ service_months: 6, days: 14 }] }
 };
 const hospital: LeaveClass = {
 	id: catalog('hl'),
@@ -55,7 +62,7 @@ const hospital: LeaveClass = {
 	can_encash: false,
 	is_npl: false,
 	consumes_code: null,
-	entitlement: { days: banded(), bands: [{ service_months: 6, days: 60 }] }
+	entitlement: { overdraw: '0', days: banded(), bands: [{ service_months: 6, days: 60 }] }
 };
 const unpaid: LeaveClass = {
 	id: catalog('ul'),
@@ -307,6 +314,25 @@ describe('leave', () => {
 		assert.equal(afterCarry[0]?.available, 11);
 	});
 
+	it('can_encash is the row’s own: the column is required, and the class reads it as stated', () => {
+		const row = {
+			id: catalog('al'),
+			code: 'ANNUAL_LEAVE',
+			name: 'Annual leave',
+			is_npl: false,
+			consumes_code: null,
+			entitlement: null,
+			eligibility: ''
+		};
+		assert.equal(classFromRow({ ...row, can_encash: false }).can_encash, false);
+		assert.equal(classFromRow({ ...row, can_encash: true }).can_encash, true);
+		// No default and not optional: a row that states none is refused at its write.
+		assert.deepEqual(Object.keys(STATUTORY_FIELDS.leave_catalog.can_encash).toSorted(), [
+			'help',
+			'kind'
+		]);
+	});
+
 	it('L-TPL-hr-payroll-075 outpatient sick leave draws from the hospitalization pool', () => {
 		const classes = [sick, hospital];
 		const rows = leaveBalances({
@@ -428,7 +454,7 @@ describe('chargeable days', () => {
 			code: 'SICK_YEAR',
 			name: 'Sick leave',
 			is_npl: false,
-			entitlement: { days: '14.0', window: 'CALENDAR_YEAR' }
+			entitlement: { overdraw: '0', days: '14.0', window: 'CALENDAR_YEAR' }
 		};
 		const lastYear = taken('sy', 14, { id: 'y1', occurred_on: '2025-06-02', from: '2025-06-02' });
 		const refuse = (from: string, days: number, cls = sickYear) =>
@@ -440,7 +466,7 @@ describe('chargeable days', () => {
 			});
 		assert.equal(refuse('2026-03-02', 14), null);
 		assert.match(String(refuse('2025-12-01', 1)), /available 0 day/);
-		const lifetime = { ...sickYear, entitlement: { days: '14.0' } };
+		const lifetime = { ...sickYear, entitlement: { overdraw: '0', days: '14.0' } };
 		assert.match(String(refuse('2026-03-02', 1, lifetime)), /available 0 day/);
 		const [balance] = leaveBalances({
 			classes: [sickYear],
@@ -460,6 +486,7 @@ describe('chargeable days', () => {
 			is_npl: false,
 			// RA 8187: seven days a delivery, for the first four deliveries only.
 			entitlement: {
+				overdraw: '0',
 				days: 'employee.gender != "MALE" ? 0.0 : (taken.lifetime >= 28.0 ? 0.0 : 7.0)',
 				window: 'EVENT'
 			}
@@ -504,6 +531,7 @@ describe('chargeable days', () => {
 			is_npl: false,
 			// ten days a child over every birth event, fourteen from July 2026
 			entitlement: {
+				overdraw: '0',
 				days: 'as_of >= "2026-07-01" ? 14.0 : 10.0',
 				window: 'EVENT',
 				window_key: 'entry.facts.child_id'
@@ -532,6 +560,7 @@ describe('chargeable days', () => {
 			is_npl: false,
 			// a per-birth grant: twins add thirty days to that pregnancy only
 			entitlement: {
+				overdraw: '0',
 				days: 'has(entry.facts.twins) && entry.facts.twins == true ? 120.0 : 90.0',
 				window: 'EVENT',
 				window_key: 'entry.facts.pregnancy_id'
@@ -565,7 +594,13 @@ describe('chargeable days', () => {
 		const annualYear: LeaveClass = {
 			...annual,
 			id: catalog('ay'),
-			entitlement: { days: '12.0', window: 'CALENDAR_YEAR', carry_forward: '5.0' }
+			entitlement: {
+				overdraw: '0',
+				days: '12.0',
+				window: 'CALENDAR_YEAR',
+				carry_forward: '5.0',
+				carry_depth: 1
+			}
 		};
 		const day = (id: string, days: number, from: string) =>
 			taken('ay', days, { id, occurred_on: from, from });
@@ -602,9 +637,11 @@ describe('chargeable days', () => {
 		const tiered: LeaveClass = {
 			...annual,
 			entitlement: {
+				overdraw: '0',
 				days: 'service_months >= 24.0 ? 12.0 : 8.0',
 				window: 'CALENDAR_YEAR',
-				carry_forward: '100.0'
+				carry_forward: '100.0',
+				carry_depth: 1
 			}
 		};
 		for (const asOf of ['2026-01-01', '2026-01-31']) {
@@ -623,7 +660,7 @@ describe('chargeable days', () => {
 	it('an unmetered leave class is limited by the annual pool it consumes', () => {
 		const pool: LeaveClass = {
 			...annual,
-			entitlement: { days: '5.0', window: 'CALENDAR_YEAR' }
+			entitlement: { overdraw: '0', days: '5.0', window: 'CALENDAR_YEAR' }
 		};
 		const joint: LeaveClass = { ...ns, code: 'JOINT_LEAVE', consumes_code: pool.code };
 		const input = {
@@ -652,6 +689,7 @@ describe('chargeable days', () => {
 						...annual,
 						id: catalog('ay'),
 						entitlement: {
+							overdraw: '0',
 							days: '12.0',
 							window: 'CALENDAR_YEAR',
 							carry_forward: '100.0',
@@ -664,7 +702,9 @@ describe('chargeable days', () => {
 				asOf: '2026-02-02',
 				employmentStart: '2023-01-01'
 			})[0]!.carried;
-		assert.equal(carried(), 12);
+		// The row states the depth: none is assumed.
+		assert.throws(() => carried(), refused(/ANNUAL_LEAVE .*needs entitlement\.carry_depth/));
+		assert.equal(carried(1), 12);
 		assert.equal(carried(2), 24);
 		assert.equal(carried(3), 36);
 		assert.equal(carried(9), 36);
@@ -675,6 +715,7 @@ describe('chargeable days', () => {
 			...sick,
 			consumes_code: null,
 			entitlement: {
+				overdraw: '0',
 				// A grant forfeited by unpaid absence of the same rolling window.
 				days: 'taken_by_class.UNPAID_LEAVE.rolling > 2.0 ? 0.0 : 10.0',
 				window: 'ROLLING',
@@ -683,7 +724,8 @@ describe('chargeable days', () => {
 		};
 		const balance = (unpaidDays: number) =>
 			leaveBalances({
-				classes: [rolling, unpaid],
+				// unpaid leave states the months of its rolling root
+				classes: [rolling, { ...unpaid, entitlement: { window_months: 12 } }],
 				movements: [
 					taken('sl', 3, { id: 'old', from: '2024-03-01' }),
 					taken('sl', 4, { id: 'in', from: '2024-06-01' }),
@@ -696,10 +738,81 @@ describe('chargeable days', () => {
 		assert.equal(balance(3).available, 0);
 	});
 
+	it('a class’s window_months spans its ROLLING window and its taken.rolling root; none is assumed', () => {
+		const rolling = (window_months?: number): LeaveClass => ({
+			...sick,
+			consumes_code: null,
+			entitlement: {
+				overdraw: '0',
+				days: '10.0',
+				window: 'ROLLING',
+				...(window_months == null ? {} : { window_months })
+			}
+		});
+		const read = (cls: LeaveClass, others: LeaveClass[] = []) =>
+			leaveBalances({
+				classes: [cls, ...others],
+				movements: [
+					taken('sl', 4, { id: 'old', from: '2025-06-01' }),
+					taken('ul', 3, { from: '2025-06-01' })
+				],
+				serviceMonths: 60,
+				asOf: '2026-03-02'
+			}).find((row) => row.code === cls.code)!;
+		assert.equal(read(rolling(12)).taken, 4);
+		assert.equal(read(rolling(6)).taken, 0);
+		assert.throws(() => read(rolling()), refused(/SICK_LEAVE .*needs entitlement\.window_months/));
+		// Another class's rolling root spans that class's own months, and exists only where it states them.
+		const forfeit: LeaveClass = {
+			...annual,
+			entitlement: {
+				overdraw: '0',
+				days: 'has(taken_by_class.UNPAID_LEAVE.rolling) && taken_by_class.UNPAID_LEAVE.rolling > 2.0 ? 0.0 : 10.0'
+			}
+		};
+		const unpaidOver = (window_months: number) => ({
+			...unpaid,
+			entitlement: { window_months }
+		});
+		assert.equal(read(forfeit, [unpaidOver(12)]).entitlement, 0);
+		assert.equal(read(forfeit, [unpaidOver(6)]).entitlement, 10);
+		assert.equal(read(forfeit, [unpaid]).entitlement, 10);
+	});
+
+	it('a class’s overdraw CEL decides how far below zero its balance may run', () => {
+		const advance = (overdraw: string): LeaveClass => ({
+			...annual,
+			entitlement: { ...annual.entitlement, overdraw }
+		});
+		const refuse = (cls: LeaveClass, days: number) =>
+			refuseLeaveWrite({
+				proposed: taken('al', days, { id: 'new-al' }),
+				classes: [cls],
+				movements: [taken('al', 4)],
+				serviceMonths: 86
+			});
+		assert.equal(refuse(advance('0'), 10), 'This selection exceeds the available 9 day(s).');
+		assert.equal(refuse(advance('3.0'), 12), null);
+		assert.equal(refuse(advance('3.0'), 13), 'This selection exceeds the available 12 day(s).');
+		assert.equal(
+			refuse(advance('service_months >= 120.0 ? 3.0 : 0.0'), 10),
+			'This selection exceeds the available 9 day(s).'
+		);
+		assert.throws(
+			() => refuse({ ...annual, entitlement: { days: '13.0' } }, 1),
+			refused(/ANNUAL_LEAVE .*needs entitlement\.overdraw/)
+		);
+	});
+
 	it('a service year offset starts the first service year months after the employment start', () => {
 		const offset: LeaveClass = {
 			...annual,
-			entitlement: { days: '10.0', window: 'SERVICE_YEAR', service_year_offset_months: 6 }
+			entitlement: {
+				overdraw: '0',
+				days: '10.0',
+				window: 'SERVICE_YEAR',
+				service_year_offset_months: 6
+			}
 		};
 		const read = (asOf: string) =>
 			leaveBalances({
@@ -740,7 +853,12 @@ describe('chargeable days', () => {
 				classes: [
 					{
 						...annual,
-						entitlement: { window: 'SERVICE_YEAR', service_year_offset_months: 6, days: rule }
+						entitlement: {
+							overdraw: '0',
+							window: 'SERVICE_YEAR',
+							service_year_offset_months: 6,
+							days: rule
+						}
 					}
 				],
 				movements: [],
@@ -778,14 +896,14 @@ describe('chargeable days', () => {
 			...hospital,
 			id: catalog('pool'),
 			code: 'SICK_POOL',
-			entitlement: { window: 'CALENDAR_YEAR', days: '30.0' }
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '30.0' }
 		};
 		const own: LeaveClass = {
 			...sick,
 			id: catalog('own'),
 			code: 'OWN_LEAVE',
 			consumes_code: 'SICK_POOL',
-			entitlement: { window: 'CALENDAR_YEAR', days: '12.0', consumes_after_days: 3 }
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '12.0', consumes_after_days: 3 }
 		};
 		const read = (days: number) =>
 			leaveBalances({
@@ -807,7 +925,7 @@ describe('chargeable days', () => {
 			...hospital,
 			id: catalog('pool'),
 			code: 'PERSONAL_POOL',
-			entitlement: { window: 'CALENDAR_YEAR', days: '14.0' }
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '14.0' }
 		};
 		const hourly: LeaveClass = {
 			...sick,
@@ -815,6 +933,7 @@ describe('chargeable days', () => {
 			code: 'FAMILY_CARE_HOURS',
 			consumes_code: 'PERSONAL_POOL',
 			entitlement: {
+				overdraw: '0',
 				unit: 'HOUR',
 				window: 'CALENDAR_YEAR',
 				days: '56.0',
@@ -871,7 +990,9 @@ describe('chargeable days', () => {
 		];
 		const credit = (rule: string) =>
 			leaveBalances({
-				classes: [{ ...annual, entitlement: { window: 'CALENDAR_YEAR', days: rule } }],
+				classes: [
+					{ ...annual, entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: rule } }
+				],
 				movements: [],
 				serviceMonths: 24,
 				asOf: '2026-03-31',
@@ -914,7 +1035,9 @@ describe('banked overtime', () => {
 		];
 		const credit = (rule: string) =>
 			leaveBalances({
-				classes: [{ ...annual, entitlement: { window: 'CALENDAR_YEAR', days: rule } }],
+				classes: [
+					{ ...annual, entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: rule } }
+				],
 				movements: [],
 				serviceMonths: 24,
 				asOf: '2026-03-31',
@@ -938,7 +1061,7 @@ describe('window-end encashment', () => {
 	it('a balance names its window’s last day, and windowEndsOn finds the day a window closes', () => {
 		const yearly: LeaveClass = {
 			...annual,
-			entitlement: { window: 'CALENDAR_YEAR', days: '5.0' }
+			entitlement: { overdraw: '0', window: 'CALENDAR_YEAR', days: '5.0' }
 		};
 		const [row] = leaveBalances({
 			classes: [yearly],
@@ -952,7 +1075,7 @@ describe('window-end encashment', () => {
 		assert.equal(windowEndsOn(yearly, '2026-12-30', '2024-03-15'), false);
 		const service: LeaveClass = {
 			...annual,
-			entitlement: { window: 'SERVICE_YEAR', days: '5.0' }
+			entitlement: { overdraw: '0', window: 'SERVICE_YEAR', days: '5.0' }
 		};
 		assert.equal(windowEndsOn(service, '2027-03-14', '2024-03-15'), true);
 		assert.equal(windowEndsOn(service, '2026-12-31', '2024-03-15'), false);
@@ -966,6 +1089,7 @@ describe('balance listing context', () => {
 			id: catalog('pn'),
 			code: 'PRENATAL',
 			entitlement: {
+				overdraw: '0',
 				window: 'EVENT',
 				days: 'has(entry.facts.multiple_birth) && entry.facts.multiple_birth ? 98.0 : 42.0'
 			}

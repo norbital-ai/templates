@@ -2037,7 +2037,7 @@
 			"kind": "warn",
 			"when": "(employee.date_of_birth != \"\" && age_on(employee.date_of_birth, period.to) < 18) && (sum(work.days.map(d, d.overtime_hours)) > 0.0 || work.holidays.exists(h, h.worked) || work.days.exists(d, hours_between(d.intervals, \"22:00\", \"06:00\") > 0.0))",
 			"message": "An employee under 18 worked overtime, on a holiday or between 22:00 and 06:00 (LPA ss.47-48).",
-			"description": "Labour Protection Act B.E. 2541 s.47: no work 22:00-06:00 for a child under 18 without the Director-General's permission; s.48: no overtime or holiday work. Wages are paid to the child (s.52). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+			"description": "Labour Protection Act B.E. 2541 s.47: no work 22:00-06:00 for a child under 18 without the Director-General's permission; s.48: no overtime or holiday work. Wages are paid to the child (s.51); the paid training leave of s.52 is the YOUNG_WORKER_TRAINING_LEAVE class. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
 		}
 	},
 	{
@@ -2082,142 +2082,327 @@
 				{
 					"date": "2025-12-05",
 					"name": "วันคล้ายวันพระบรมราชสมภพ ร.9 วันชาติ และวันพ่อแห่งชาติ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Office of the Prime Minister notification on annual government holidays (24 May 2019), fixed date; Bank of Thailand financial-institution holidays 2568 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2025-12-10",
 					"name": "วันรัฐธรรมนูญ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Office of the Prime Minister notification on annual government holidays (24 May 2019), fixed date; Bank of Thailand financial-institution holidays 2568 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2025-12-31",
 					"name": "วันสิ้นปี",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Office of the Prime Minister notification on annual government holidays (24 May 2019), fixed date; Bank of Thailand financial-institution holidays 2568 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-01-01",
 					"name": "วันขึ้นปีใหม่",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-01-02",
 					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "Cabinet resolution of 12 November 2024 (special government holiday), restated in the Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf)"
 				},
 				{
 					"date": "2026-03-03",
 					"name": "วันมาฆบูชา",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-04-06",
 					"name": "วันจักรี",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-04-13",
 					"name": "วันสงกรานต์",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-04-14",
 					"name": "วันสงกรานต์",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-04-15",
 					"name": "วันสงกรานต์",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-05-01",
 					"name": "วันแรงงานแห่งชาติ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Labour Protection Act s.29 (National Labour Day is always a traditional holiday); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-05-04",
 					"name": "วันฉัตรมงคล",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
+				},
+				{
+					"date": "2026-05-13",
+					"name": "วันพืชมงคลจรดพระนังคัลแรกนาขวัญ",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Royal Household Bureau schedule of the Royal Ploughing Ceremony B.E. 2569 (ceremony 13 May 2026, a government holiday), published in the Royal Gazette (reported https://www.thairath.co.th/agriculture/agricultural-policy/2931492)"
 				},
 				{
 					"date": "2026-05-31",
 					"name": "วันวิสาขบูชา",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-06-01",
 					"name": "วันหยุดชดเชยวันวิสาขบูชา",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-05-31"
-				},
-				{
-					"date": "2026-06-02",
-					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
-					"kind": "SPECIAL_HOLIDAY"
+					"replaces": "2026-05-31",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-06-03",
 					"name": "วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-07-28",
 					"name": "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-07-29",
 					"name": "วันอาสาฬหบูชา",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-07-30",
 					"name": "วันเข้าพรรษา",
-					"kind": "PUBLIC_HOLIDAY"
-				},
-				{
-					"date": "2026-07-31",
-					"name": "วันหยุดราชการเพิ่มเป็นกรณีพิเศษ",
-					"kind": "SPECIAL_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf) (government holiday; not a bank holiday)"
 				},
 				{
 					"date": "2026-08-12",
 					"name": "วันแม่แห่งชาติ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
+				},
+				{
+					"date": "2026-09-28",
+					"name": "วันหยุดราชการเป็นกรณีพิเศษ (กรุงเทพมหานคร นนทบุรี ปทุมธานี สมุทรปราการ)",
+					"kind": "SPECIAL_HOLIDAY",
+					"regions": ["BANGKOK", "NONTHABURI", "PATHUM_THANI", "SAMUT_PRAKAN"],
+					"source": "Cabinet special meeting of 27 September 2026: special government holiday in Bangkok, Nonthaburi, Pathum Thani and Samut Prakan for heavy rain and flooding (Government Public Relations Department, https://region3.prd.go.th/th/content/category/detail/id/2438/iid/545505)"
+				},
+				{
+					"date": "2026-09-29",
+					"name": "วันหยุดราชการเป็นกรณีพิเศษ (กรุงเทพมหานคร นนทบุรี ปทุมธานี สมุทรปราการ)",
+					"kind": "SPECIAL_HOLIDAY",
+					"regions": ["BANGKOK", "NONTHABURI", "PATHUM_THANI", "SAMUT_PRAKAN"],
+					"source": "Cabinet special meeting of 27 September 2026: special government holiday in Bangkok, Nonthaburi, Pathum Thani and Samut Prakan for heavy rain and flooding (Government Public Relations Department, https://region3.prd.go.th/th/content/category/detail/id/2438/iid/545505)"
 				},
 				{
 					"date": "2026-10-13",
 					"name": "วันนวมินทรมหาราช",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
+				},
+				{
+					"date": "2026-10-16",
+					"name": "วันหยุดราชการเป็นกรณีพิเศษ (กรุงเทพมหานคร)",
+					"kind": "SPECIAL_HOLIDAY",
+					"regions": ["BANGKOK"],
+					"source": "Cabinet resolution of 19 May 2026: special government holiday in Bangkok for the IMF-World Bank Annual Meetings, also a Bangkok bank holiday under BOT Notification No. 26/2569 (BOT circular ธปท.ว. 4192/2569 of 13 July 2026, https://www.bot.or.th/content/dam/bot/fipcs/documents/DDD/2569/ThaiPDF/25690140.pdf)"
 				},
 				{
 					"date": "2026-10-23",
 					"name": "วันปิยมหาราช",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-12-05",
 					"name": "วันคล้ายวันพระบรมราชสมภพ ร.9 วันชาติ และวันพ่อแห่งชาติ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-12-07",
 					"name": "วันหยุดชดเชยวันพ่อแห่งชาติ",
 					"kind": "SUBSTITUTE",
-					"replaces": "2026-12-05"
+					"replaces": "2026-12-05",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-12-10",
 					"name": "วันรัฐธรรมนูญ",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
 				},
 				{
 					"date": "2026-12-31",
 					"name": "วันสิ้นปี",
-					"kind": "PUBLIC_HOLIDAY"
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf); Bank of Thailand financial-institution holidays 2569 (https://www.bot.or.th/th/financial-institutions-holiday.html)"
+				},
+				{
+					"date": "2027-01-01",
+					"name": "วันขึ้นปีใหม่",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-02-21",
+					"name": "วันมาฆบูชา",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf): the holiday itself, named with its weekend date in the substitute item"
+				},
+				{
+					"date": "2027-02-22",
+					"name": "วันหยุดชดเชยวันมาฆบูชา",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-02-21",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-04-06",
+					"name": "วันจักรี",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-04-13",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-04-14",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-04-15",
+					"name": "วันสงกรานต์",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-05-01",
+					"name": "วันแรงงานแห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf): the holiday itself, named with its weekend date in the substitute item"
+				},
+				{
+					"date": "2027-05-03",
+					"name": "วันหยุดชดเชยวันแรงงานแห่งชาติ",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-05-01",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-05-04",
+					"name": "วันฉัตรมงคล",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-05-20",
+					"name": "วันวิสาขบูชา",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-06-03",
+					"name": "วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-07-18",
+					"name": "วันอาสาฬหบูชา",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf): the holiday itself, named with its weekend date in the substitute item"
+				},
+				{
+					"date": "2027-07-19",
+					"name": "วันหยุดชดเชยวันอาสาฬหบูชา",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-07-18",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-07-28",
+					"name": "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-08-12",
+					"name": "วันแม่แห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-10-13",
+					"name": "วันนวมินทรมหาราช",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-10-23",
+					"name": "วันปิยมหาราช",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf): the holiday itself, named with its weekend date in the substitute item"
+				},
+				{
+					"date": "2027-10-25",
+					"name": "วันหยุดชดเชยวันปิยมหาราช",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-10-23",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-12-05",
+					"name": "วันคล้ายวันพระบรมราชสมภพ ร.9 วันชาติ และวันพ่อแห่งชาติ",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf): the holiday itself, named with its weekend date in the substitute item"
+				},
+				{
+					"date": "2027-12-06",
+					"name": "วันหยุดชดเชยวันพ่อแห่งชาติ",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-12-05",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-12-10",
+					"name": "วันรัฐธรรมนูญ",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
+				},
+				{
+					"date": "2027-12-31",
+					"name": "วันสิ้นปี",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf)"
 				}
 			],
-			"authority": "Office of the Prime Minister notification on annual government holidays (24 May 2019) with the Cabinet resolution of 2 December 2025 on the 2026 government holidays (Secretariat of the Cabinet summary, item 9) https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf: the 2026 list of 22 days (the Royal Ploughing Ceremony day is announced yearly by the Bureau of the Royal Household and is not listed). Created unpublished for each entity: under LPA s.29 the employer announces at least 13 traditional holidays a year including National Labour Day (1 May) from these, and a holiday falling on the weekly holiday moves to the next working day. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+			"authority": "The national government-holiday calendar from which, under LPA s.29, the employer announces at least 13 traditional holidays a year including National Labour Day (1 May); a traditional holiday falling on the weekly holiday moves to the next working day (Office of the Council of State English translation, https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Written unpublished for each entity (regional special days only to an entity whose entity.region is listed). Each row cites its instrument: 2025 fixed dates from the Office of the Prime Minister notification on annual government holidays (24 May 2019); 2026 from the Cabinet overview of the 2026 government holidays, resolution of 2 December 2025 item 9 (Secretariat of the Cabinet summary, https://thaipublica.org/wp-content/uploads/2025/12/%E0%B8%AA%E0%B8%A3%E0%B8%B8%E0%B8%9B%E0%B8%A1%E0%B8%95%E0%B8%B4%E0%B8%84%E0%B8%93%E0%B8%B0%E0%B8%A3%E0%B8%B1%E0%B8%90%E0%B8%A1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B5-2-%E0%B8%98%E0%B8%B1%E0%B8%99%E0%B8%A7%E0%B8%B2%E0%B8%84%E0%B8%A1-2568.pdf), less the two special days of 2 June and 31 July 2026 that the Cabinet withdrew at that meeting (PM spokesperson, 14 May 2026: no such holidays exist, https://www.thairath.co.th/news/politic/2932716), plus the Royal Ploughing Ceremony day and the Cabinet special days of 28-29 September (four provinces) and 16 October 2026 (Bangkok); 2027 from Bank of Thailand Notification No. 37/2569 on the traditional holidays of financial institutions for 2027, Royal Gazette vol.143 special part 202 Ngor, 25 August 2026, clause 4 (https://www.bot.or.th/content/dam/bot/fipcs/documents/FPG/2569/ThaiPDF/25690175.pdf). Not yet published (left out): the Cabinet overview of 2027 government holidays with its government-only days (Khao Phansa 19 July 2027, which coincides with the bank substitute for Asalha Bucha), the 2027 Royal Ploughing Ceremony day and any special days, including any for the royal cremation of December 2026."
 		}
 	},
 	{
@@ -3164,6 +3349,21 @@
 					"group": "Basic pay"
 				}
 			]
+		}
+	},
+	{
+		"id": "a11b98ac-7284-57b5-8d1e-1369db678639",
+		"settings_id": "fc4a2bdc-a8bf-56c4-ada0-2eaad013b28c",
+		"family": "VALIDATIONS",
+		"scope": "JURISDICTION",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
 		}
 	}
 ]

@@ -21,7 +21,9 @@ const SHIFTS = {
 const CLASSES = {
 	day: 'd0000000-0000-4000-8000-000000000008',
 	calendar: 'd0000000-0000-4000-8000-000000000009',
-	hour: 'd0000000-0000-4000-8000-00000000000a'
+	hour: 'd0000000-0000-4000-8000-00000000000a',
+	refuse: 'd0000000-0000-4000-8000-00000000000d',
+	unstated: 'd0000000-0000-4000-8000-00000000000e'
 } as const;
 const LAW = lineage('SG');
 const annual = LAW.byCode('version_2', 'leave_catalog', 'ANNUAL_LEAVE');
@@ -71,7 +73,9 @@ const fixture = Effect.fnUntraced(function* <A, E>(
 			...annual,
 			id,
 			code,
-			unit: code === 'day' ? 'DAY' : code === 'calendar' ? 'CALENDAR_DAY' : 'HOUR'
+			unit: code === 'calendar' ? 'CALENDAR_DAY' : code === 'hour' ? 'HOUR' : 'DAY',
+			unplanned_days:
+				code === 'refuse' ? 'REFUSE' : code === 'unstated' ? null : annual['unplanned_days']
 		})),
 		roster_entry: [
 			{
@@ -232,6 +236,26 @@ describe('leave days', () => {
 			});
 			assert.equal(typeof (yield* count('hour', unplanned, null)), 'string');
 			assert.equal(typeof (yield* count('day', { to: '2026-03-01' })), 'string');
+		})
+	);
+
+	it.effect(
+		'a range with nothing planned charges as the class’s unplanned_days states; a class stating none is refused',
+		Effect.fnUntraced(function* () {
+			const unplanned = { to: '2026-03-06' };
+			assert.equal(annual['unplanned_days'], 'EVERY_DAY_BUT_HOLIDAYS');
+			assert.equal(
+				yield* count('refuse', unplanned, null),
+				'Nothing is planned in this range: plan the shifts first.'
+			);
+			assert.match(
+				String(yield* count('unstated', unplanned, null)),
+				/Leave class unstated \(leave_catalog\) needs unplanned_days/
+			);
+			// A planned range never reads it.
+			const planned = yield* count('refuse');
+			assert.ok(planned && typeof planned !== 'string');
+			assert.equal(planned.days, 5);
 		})
 	);
 });

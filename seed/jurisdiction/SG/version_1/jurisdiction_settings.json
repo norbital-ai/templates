@@ -25,7 +25,18 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
@@ -300,6 +311,22 @@
 										"type": "integer",
 										"minimum": 1,
 										"description": "The written contractual notice period in days, the same for both parties (EA s.10(2)); when absent, salary in lieu of notice is at least the s.10(3) period. Customer input."
+									},
+									"race": {
+										"type": "string",
+										"description": "The employee’s race as CPF records it (for example CHINESE, MALAY, INDIAN, EURASIAN): the CDAC, ECF and SINDA self-help-group funds read it (CPF Act 1953 s.77(1)(p))."
+									},
+									"religion": {
+										"type": "string",
+										"description": "The employee’s religion (ISLAM for a Muslim employee): the Mosque Building and Mendaki Fund (MBMF) reads it."
+									},
+									"solo_parent": {
+										"type": "boolean",
+										"description": "A sole parent: the shared parental leave pool defaults to the whole pool on an individual arrangement (Child Development Co-Savings Act 2001 ss.12DA–12DD)."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -688,7 +715,7 @@
 							"select": ["catalog_id", "activity", "days", "reference"]
 						}
 					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
+					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, c.code == \"ANNUAL_LEAVE_ON_EXIT\" ? sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.entitlement + b.carried - b.taken)) + sum(event.leave_balances.filter(b, b.code == \"ANNUAL_LEAVE\").map(b, b.carried)) : sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
 				},
 				{
 					"id": "raise-obligations",
@@ -883,9 +910,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -969,338 +994,6 @@
 			]
 		},
 		"reference_tables": {
-			"PWM_ROLE": {
-				"ADMIN_ASSISTANT": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 1980,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"ADMIN_EXECUTIVE": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2580,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"ADMIN_SUPERVISOR": {
-					"sector": "ADMINISTRATOR_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3160,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"CLEAN_CONSERVANCY_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2325,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2530,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2830,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_DISHWASHER": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2325,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 1910,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2530,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_FNB_TABLE_TOP": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2010,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_GENERAL": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 1910,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_MULTI_SKILLED": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2530,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_OUTDOOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2325,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"CLEAN_OFFICE_SUPERVISOR": {
-					"sector": "CLEANING",
-					"base": "BASIC",
-					"monthly_floor": 2700,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
-				},
-				"DRIVER_GENERAL": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2190,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"DRIVER_SPECIALISED": {
-					"sector": "DRIVER_OPW",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2320,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
-				},
-				"FOOD_FS_COOK": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2380,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_KITCHEN_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2180,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_WAITER": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2180,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_FS_WAITER_SUPERVISOR": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2730,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_COOK": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2330,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_KITCHEN_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2155,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"FOOD_QS_STALL_ASSISTANT": {
-					"sector": "FOOD_SERVICES",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2080,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
-				},
-				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2545,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_SUPERVISOR": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2900,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_TECHNICIAN": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 2330,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LANDSCAPE_WORKER": {
-					"sector": "LANDSCAPE",
-					"base": "BASIC",
-					"monthly_floor": 1950,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
-				},
-				"LIFT_ASSISTANT_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 2525,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_PRINCIPAL_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3590,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SENIOR_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3215,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SPECIALIST": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 2880,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"LIFT_SUPERVISOR": {
-					"sector": "LIFT_ESCALATOR",
-					"base": "BASIC",
-					"monthly_floor": 3445,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
-				},
-				"RETAIL_ASSISTANT": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2305,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"RETAIL_ASSISTANT_SUPERVISOR": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2790,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"RETAIL_SENIOR_ASSISTANT": {
-					"sector": "RETAIL",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2535,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
-				},
-				"SECURITY_INHOUSE_OFFICER": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2315,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_INHOUSE_SENIOR_OFFICER": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2515,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_INHOUSE_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2745,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_OFFICER": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 2870,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3170,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3770,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"SECURITY_OUTSOURCED_SUPERVISOR": {
-					"sector": "SECURITY",
-					"base": "BASIC",
-					"monthly_floor": 3470,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
-				},
-				"WASTE_COLLECTION_CREW": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2630,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3030,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3130,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SENIOR_CREW": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2830,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SENIOR_DRIVER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3330,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_SUPERVISOR": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3280,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_COLLECTION_TEAM_LEAD": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3030,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_PLANT_SUPERVISOR": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 3130,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_SENIOR_SORTER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2730,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_SORTER": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2530,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				},
-				"WASTE_MRF_TEAM_LEAD": {
-					"sector": "WASTE_MANAGEMENT",
-					"base": "GROSS_EX_OT",
-					"monthly_floor": 2930,
-					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
-				}
-			},
 			"RACE": [
 				"ACHEHNESE",
 				"AFGHAN",

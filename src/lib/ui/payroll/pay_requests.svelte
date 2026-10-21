@@ -62,6 +62,10 @@
 {/snippet}
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
+{#snippet activityCell({ row, value }: { row: object; value: unknown })}{String(
+		value ?? ''
+	)}{#if 'days' in row && row.days != null}
+		· {String(row.days)}{/if}{/snippet}
 {#snippet amountCell({ value }: { value: unknown })}{@const amount =
 		moneyNumber(value)}{#if amount == null}
 		—
@@ -109,6 +113,8 @@
 				columns={[
 					{ field: 'catalog_id', label: t('component.component') },
 					{ field: 'employment_id', label: t('component.person'), cell: personCell },
+					// a movement names what it is (award, reversal, time off, encashment…) and a leave one the days it moves
+					{ field: 'activity', label: t('component.activity'), cell: activityCell },
 					{ field: 'amount', label: t('component.amount'), cell: amountCell },
 					{ field: 'occurred_on', label: dateLabel },
 					{ field: 'label', label: t('component.description') }

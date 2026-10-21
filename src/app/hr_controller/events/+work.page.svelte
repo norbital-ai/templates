@@ -26,6 +26,7 @@
 		() => String(pay.window?.start ?? today)
 	);
 	const timeZone = $derived(entityTimeZone(scope.company, version.current));
+	const policy = $derived(version.current?.payroll?.attendance ?? null);
 
 	const contracts = liveRows(() =>
 		scope.id == null
@@ -111,6 +112,7 @@
 						from={window.start}
 						to={window.end}
 						{timeZone}
+						{policy}
 						{today}
 					/>
 				{/snippet}

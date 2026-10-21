@@ -24,31 +24,6 @@ export default model({
 			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED'],
 			optional: true
 		},
-		solo_parent: {
-			kind: 'bool',
-			default: false
-		},
-		disabled: {
-			kind: 'bool',
-			default: false
-		},
-		receiving_pension: {
-			kind: 'bool',
-			default: false
-		},
-		race: {
-			kind: 'text',
-			optional: true
-		},
-		religion: {
-			kind: 'text',
-			optional: true
-		},
-		spouse_status: {
-			kind: 'enum',
-			values: ['NONE', 'WITHOUT_INCOME', 'WITH_INCOME'],
-			optional: true
-		},
 		children: {
 			kind: 'json',
 			shape: {
@@ -122,11 +97,6 @@ export default model({
 		identity_number: {
 			kind: 'text',
 			optional: true
-		},
-		dependents_count: {
-			kind: 'int',
-			min: 0,
-			default: 0
 		},
 		email: {
 			kind: 'text',

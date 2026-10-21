@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { buildLoanSchedule, validateLoanRepayments } from '../../../../../lib/loan_schedule.js';
-import { loanAmount, loanRuleFacts } from '../../../../../lib/loan_values.js';
+import { loanAmount, loanCalendar, loanRuleFacts } from '../../../../../lib/loan_values.js';
 import {
 	admitEntry,
 	entrySettlementLocks,
@@ -17,9 +17,8 @@ const columns = [
 	'principal_amount',
 	'repayment_period',
 	'repayment_frequency',
-	'advance_purpose',
-	'written_agreement_reference',
-	'advance_made_on'
+	'advance_made_on',
+	'facts'
 ] as const;
 const c = collection('loan_catalog_entry', {
 	read: { fields: 'all', relations: 'all' },
@@ -58,10 +57,42 @@ export default c;
 
 c.transform(function* (inputs, ctx: TransformCtx<'loan_catalog_entry'>) {
 	const ids = ctx.existing.flatMap((row) => (row === undefined ? [] : [row.id]));
-	const children = (yield* ctx.db.read('loan_repayment_entry', {
-		where: { loan_id: { in: ids } },
-		all: true
-	})).rows;
+	const catalogIds = [
+		...new Set(
+			inputs.flatMap((input, i) => {
+				const id =
+					('catalog_id' in input ? input.catalog_id : undefined) ?? ctx.existing[i]?.catalog_id;
+				return id == null ? [] : [id];
+			})
+		)
+	];
+	// the schedule's money and calendar come from the version governing each loan class
+	const {
+		children: stored,
+		classes,
+		versions
+	} = yield* ctx.db.read({
+		children: { collection: 'loan_repayment_entry', where: { loan_id: { in: ids } }, all: true },
+		classes: {
+			collection: 'loan_catalog',
+			where: { id: { in: catalogIds } },
+			select: { id: true, settings_id: true },
+			all: true
+		},
+		versions: {
+			collection: 'jurisdiction_settings',
+			where: { id: { in: { member: 'classes', field: 'settings_id' } } },
+			select: { id: true, payroll: true },
+			all: true
+		}
+	});
+	const children = stored.rows;
+	const calendarOf = (catalogId: string) =>
+		loanCalendar(
+			versions.rows.find(
+				(version) => version.id === classes.rows.find((row) => row.id === catalogId)?.settings_id
+			)?.payroll
+		);
 	const plans = [];
 	for (const [i, input] of inputs.entries()) {
 		const before = ctx.existing[i];
@@ -79,12 +110,16 @@ c.transform(function* (inputs, ctx: TransformCtx<'loan_catalog_entry'>) {
 			input.principal_amount !== undefined ||
 			input.repayment_period !== undefined ||
 			input.repayment_frequency !== undefined ||
-			input.advance_purpose !== undefined ||
-			input.written_agreement_reference !== undefined ||
 			input.advance_made_on !== undefined ||
+			input.facts !== undefined ||
 			input.repayments !== undefined;
 		if (!changed) continue;
 		if (row.catalog_id == null) return yield* ctx.refuse('Choose the loan type.');
+		const calendar = calendarOf(row.catalog_id);
+		if (calendar === null)
+			return yield* ctx.refuse(
+				'The loan class’s jurisdiction version states no currency or semi-monthly split.'
+			);
 		if (row.employment_id == null) return yield* ctx.refuse('Choose the employee’s employment.');
 		if (row.principal_amount == null)
 			return yield* ctx.refuse('Enter the principal actually lent.');
@@ -143,7 +178,8 @@ c.transform(function* (inputs, ctx: TransformCtx<'loan_catalog_entry'>) {
 			const schedule = buildLoanSchedule({
 				principal_amount,
 				repayment_period,
-				repayment_frequency: row.repayment_frequency ?? 'MONTHLY'
+				repayment_frequency: row.repayment_frequency ?? 'MONTHLY',
+				...calendar
 			});
 			if (!schedule.ok) return yield* ctx.refuse(schedule.message);
 			generated = schedule.repayments.map((child) => ({
@@ -155,7 +191,8 @@ c.transform(function* (inputs, ctx: TransformCtx<'loan_catalog_entry'>) {
 		const checked = validateLoanRepayments({
 			principal_amount,
 			repayment_period,
-			repayments: [...drafts, ...generated]
+			repayments: [...drafts, ...generated],
+			...calendar
 		});
 		if (!checked.ok) return yield* ctx.refuse(checked.message);
 		plans.push({

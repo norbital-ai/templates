@@ -159,6 +159,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -824,7 +825,9 @@ const subject = (
 		exit_facts: {},
 		...over.employment
 	};
-	const terms = {
+	// PTKP dependants are a dated contract-term fact (`terms.facts.dependents_count`), not a profile column.
+	const { dependents_count = 1, ...person }: Row = over.employee ?? {};
+	const held = {
 		work_classification: 'ORDINARY',
 		statutory_work_category: 'NON_MANUAL',
 		employment_type: 'PERMANENT',
@@ -838,21 +841,20 @@ const subject = (
 		allowances: [],
 		...over.terms
 	};
+	const dependants = FixtureSchema.is(FixtureSchema.Number)(dependents_count)
+		? dependents_count
+		: 1;
+	const terms = { ...held, facts: { dependents_count: dependants, ...held.facts } };
 	return {
 		employee: {
 			gender: 'MALE',
 			marital_status: 'MARRIED',
-			spouse_status: '',
-			solo_parent: false,
-			disabled: false,
-			receiving_pension: false,
 			nationality: 'ID',
 			date_of_birth: '1990-05-01',
 			age: 35,
 			children: [],
-			dependents_count: 1,
 			facts: {},
-			...over.employee
+			...person
 		},
 		company: {
 			region: 'Provinsi DKI Jakarta',
@@ -865,8 +867,6 @@ const subject = (
 		employment,
 		person: {
 			employment,
-			race: null,
-			religion: null,
 			nationality: 'ID',
 			residency_status: terms.residency_status,
 			residency_since: null
@@ -956,7 +956,9 @@ const assess = (
 			to,
 			days: Number(to.slice(8)),
 			month: Number(key.slice(5)),
-			salary_paid: false
+			salary_paid: false,
+			// A standalone assessment is the month's salary slip: no regular pay is still pending.
+			salary_run: true
 		}
 	};
 	const person: Row = {};
@@ -1252,7 +1254,13 @@ const idWorld = () => {
 	const COMPANY = 'c0000000-0000-4000-8000-0000000000id';
 	const law = (name: string): Row[] =>
 		versions.flatMap((version) => read(version, name)).map((row) => ({ ...row }));
-	const contract = (id: string, salary: number, residency: string, to: string | null = null) => ({
+	const contract = (
+		id: string,
+		salary: number,
+		residency: string,
+		dependents_count: number,
+		to: string | null = null
+	) => ({
 		id: `k-${id}`,
 		employee_id: id,
 		company_id: COMPANY,
@@ -1266,7 +1274,8 @@ const idWorld = () => {
 					work_classification: 'ORDINARY',
 					statutory_work_category: 'NON_MANUAL',
 					employment_type: 'PERMANENT',
-					allowances: []
+					allowances: [],
+					facts: { dependents_count }
 				}
 			]
 		},
@@ -1301,7 +1310,6 @@ const idWorld = () => {
 					name: 'Budi',
 					gender: 'MALE',
 					marital_status: 'MARRIED',
-					dependents_count: 1,
 					date_of_birth: '1990-02-01',
 					nationality: 'ID',
 					facts: {}
@@ -1311,7 +1319,6 @@ const idWorld = () => {
 					name: 'Sari',
 					gender: 'FEMALE',
 					marital_status: 'MARRIED',
-					dependents_count: 2,
 					date_of_birth: '1992-07-12',
 					nationality: 'ID',
 					facts: {}
@@ -1321,7 +1328,6 @@ const idWorld = () => {
 					name: 'Ken',
 					gender: 'MALE',
 					marital_status: 'SINGLE',
-					dependents_count: 0,
 					date_of_birth: '1985-07-12',
 					nationality: 'JP',
 					facts: {}
@@ -1331,7 +1337,6 @@ const idWorld = () => {
 					name: 'Dewi',
 					gender: 'FEMALE',
 					marital_status: 'SINGLE',
-					dependents_count: 0,
 					date_of_birth: '1995-07-12',
 					nationality: 'ID',
 					facts: {}
@@ -1341,10 +1346,10 @@ const idWorld = () => {
 		[
 			'employment_contract',
 			[
-				contract('p1', 10000000, 'CITIZEN'),
-				contract('p2', 20000000, 'CITIZEN'),
-				contract('p3', 30000000, 'NON_RESIDENT'),
-				contract('p4', 10000000, 'CITIZEN', '2026-06-30')
+				contract('p1', 10000000, 'CITIZEN', 1),
+				contract('p2', 20000000, 'CITIZEN', 2),
+				contract('p3', 30000000, 'NON_RESIDENT', 0),
+				contract('p4', 10000000, 'CITIZEN', 0, '2026-06-30')
 			]
 		],
 		[
@@ -1490,13 +1495,15 @@ describe('ID jurisdiction seed', () => {
 				'DAILY'
 			]);
 			assert.equal(fixtureRecord(schemaProperties(term.base_salary).currency).const, 'IDR');
-			// One layout: profile and entity columns (gender, marital_status, dependents_count, region, risk_class) are
-			// model fields, not schema keys.
+			// One layout: profile and entity columns (gender, marital_status, region, risk_class) are model fields, not
+			// schema keys; PTKP dependants are a contract-term fact.
+			assert.equal(fixtureRecord(schemaProperties(term.facts).dependents_count).type, 'integer');
 			assert.deepEqual(Object.keys(employee.properties), [
 				'contract_terms',
 				'exit_facts',
 				'employment_statutory_facts',
-				'facts'
+				'facts',
+				'loan_facts'
 			]);
 			for (const column of ['region', 'risk_class'])
 				assert.equal(column in entity.properties, false);
@@ -2675,6 +2682,76 @@ describe('ID jurisdiction seed', () => {
 						);
 						const offCycle = yield* run('2026-03', 'OFF_CYCLE', ['t1']);
 						assert.deepEqual(lines(offCycle, 'p1'), { PPH21: [1481460, 0] });
+						const snapshotRows = Schema.decodeUnknownSync(
+							Schema.fromJsonString(
+								Schema.Array(
+									Schema.Tuple([
+										Schema.String,
+										Schema.Array(Schema.Record(Schema.String, Schema.Json))
+									])
+								)
+							)
+						);
+						// Statutory is never deferred: Budi's 10,000,000 bonus (THR_HOLIDAY) is paid off-cycle before the month's
+						// regular run, inside it, or off-cycle after it. Every scheme settles the same month totals, employee and
+						// employer, and the off-cycle slip paid first already withholds what the bonus adds to the month.
+						const orderings = Effect.fnUntraced(function* (month: string, day: string) {
+							const snapshot = JSON.stringify([...tables]);
+							const restore = () => {
+								const rows = snapshotRows(snapshot);
+								tables.clear();
+								for (const [name, held] of rows) tables.set(name, fixtureRows(held));
+							};
+							const settle = Effect.fnUntraced(function* (
+								order: 'bonus-first' | 'together' | 'bonus-after'
+							) {
+								restore();
+								const award = () =>
+									fixturePresent(tables.get('adhoc_catalog_entry')).push(
+										fixtureRow({
+											id: `b${month}`,
+											catalog_id: catalog('version_4', 'adhoc_catalog', 'THR_HOLIDAY').id,
+											employment_id: 'k-p1',
+											company_id: COMPANY,
+											payslip_id: null,
+											occurred_on: day,
+											amount: 1,
+											activity: 'AWARD'
+										})
+									);
+								const plans = [];
+								if (order === 'bonus-after') plans.push(yield* run(month, 'REGULAR'));
+								award();
+								if (order === 'together') plans.push(yield* run(month, 'REGULAR'));
+								else plans.push(yield* run(month, 'OFF_CYCLE', [`b${month}`]));
+								if (order === 'bonus-first') plans.push(yield* run(month, 'REGULAR'));
+								const slips = plans.flatMap((plan) =>
+									plan.payslips.filter((slip) => slip.employment_id === fixtureKey('k-p1'))
+								);
+								const totals: Record<string, [number, number]> = {};
+								for (const line of slips.flatMap((slip) => slip.statutory)) {
+									const held = (totals[line.scheme_code] ??= [0, 0]);
+									held[0] = Math.round((held[0] + line.employee_amount) * 100) / 100;
+									held[1] = Math.round((held[1] + line.employer_amount) * 100) / 100;
+								}
+								return {
+									totals,
+									gross: slips.reduce((sum, slip) => sum + slip.gross, 0),
+									first: lines(fixturePresent(plans[0]), 'p1')
+								};
+							});
+							const together = yield* settle('together');
+							const first = yield* settle('bonus-first');
+							const after = yield* settle('bonus-after');
+							restore();
+							assert.deepEqual(first.totals, together.totals, `${month}: bonus first`);
+							assert.deepEqual(after.totals, together.totals, `${month}: bonus after`);
+							assert.equal(first.gross, together.gross);
+							assert.equal(after.gross, together.gross);
+							for (const code of ['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN', 'PPH21'])
+								assert.ok(code in together.totals, `${month}: ${code}`);
+							return { together, first };
+						});
 						let june;
 						for (const month of [
 							'2026-04',
@@ -2682,9 +2759,7 @@ describe('ID jurisdiction seed', () => {
 							'2026-06',
 							'2026-07',
 							'2026-08',
-							'2026-09',
-							'2026-10',
-							'2026-11'
+							'2026-09'
 						]) {
 							const plan = yield* run(month, 'REGULAR');
 							if (month === '2026-06') june = plan;
@@ -2697,6 +2772,23 @@ describe('ID jurisdiction seed', () => {
 							fixturePresent(lines(fixturePresent(june), 'p4').PPH21)[0],
 							205200 - 5 * 262100
 						);
+						// October (version 4), TER B: the month is 20,484,000 at 8% = 1,638,720 in every order. Paid first, the
+						// bonus slip withholds TER B on 10,000,000 salary + 10,000,000 bonus less TER B on the salary still to
+						// come: 1,600,000 − 150,000 = 1,450,000 (before the pending-salary rule: 1.5% of the bonus alone, 150,000).
+						const october = yield* orderings('2026-10', '2026-10-09');
+						assert.deepEqual(october.together.totals.PPH21, [1638720, 0]);
+						assert.deepEqual(october.first.first, { PPH21: [1450000, 0] });
+						yield* run('2026-10', 'REGULAR');
+						yield* run('2026-11', 'REGULAR');
+						// December, the art.17 reckoning (PMK 168/2023 art.15). Together: the year's gross 12 × 10,484,000 + two THRs
+						// 20,000,000 = 145,808,000, less biaya jabatan 6,000,000, JHT/JP 3,600,000 and PTKP K/1 63,000,000 = PKP
+						// 73,208,000 → 4,981,200, less 3,211,320 withheld January to November = 1,769,880 in every order. Paid first,
+						// the bonus slip withholds the reckoning on salary + bonus less the reckoning on the salary still to come —
+						// the bonus at the 15% marginal rate, 1,500,000 — where it used to reckon the year without December's salary
+						// and refund 560,120.
+						const decemberOrders = yield* orderings('2026-12', '2026-12-04');
+						assert.deepEqual(decemberOrders.together.totals.PPH21, [1769880, 0]);
+						assert.deepEqual(decemberOrders.first.first, { PPH21: [1500000, 0] });
 						const december = yield* run('2026-12', 'REGULAR');
 						// Budi's year: gross 12 × 10,484,000 + THR 10,000,000 = 135,808,000; biaya jabatan capped at 6,000,000; JHT/JP
 						// 3,600,000; PTKP K/1 63,000,000; PKP 63,208,000 → 3,000,000 + 15% × 3,208,000 = 3,481,200; withheld January
@@ -2707,74 +2799,17 @@ describe('ID jurisdiction seed', () => {
 								Object.fromEntries(december.payslips.map((slip) => [slip.employment_id, 1])),
 							false
 						);
-						// An off-cycle THR settles the same January totals whether it is paid before or after the regular run.
-						const snapshot = JSON.stringify([...tables]);
-						const snapshotRows = Schema.decodeUnknownSync(
-							Schema.fromJsonString(
-								Schema.Array(
-									Schema.Tuple([
-										Schema.String,
-										Schema.Array(Schema.Record(Schema.String, Schema.Json))
-									])
-								)
-							)
-						);
-						const restore = () => {
-							const rows = snapshotRows(snapshot);
-							tables.clear();
-							for (const [name, held] of rows) tables.set(name, fixtureRows(held));
-						};
-						const january2027 = Effect.fnUntraced(function* (
-							order: 'bonus-first' | 'together' | 'bonus-after'
-						) {
-							restore();
-							const before = order === 'bonus-after' ? [yield* run('2027-01', 'REGULAR')] : [];
-							fixturePresent(tables.get('adhoc_catalog_entry')).push(
-								fixtureRow({
-									id: 't27',
-									catalog_id: thr.id,
-									employment_id: 'k-p1',
-									company_id: COMPANY,
-									payslip_id: null,
-									occurred_on: '2027-01-08',
-									amount: 1,
-									activity: 'AWARD'
-								})
-							);
-							const plans =
-								order === 'bonus-after'
-									? [...before, yield* run('2027-01', 'OFF_CYCLE', ['t27'])]
-									: order === 'bonus-first'
-										? [
-												yield* run('2027-01', 'OFF_CYCLE', ['t27']),
-												yield* run('2027-01', 'REGULAR')
-											]
-										: [yield* run('2027-01', 'REGULAR')];
-							const total = (scheme: string) =>
-								plans
-									.flatMap((plan) => plan.payslips)
-									.filter((slip) => slip.employment_id === fixtureKey('k-p1'))
-									.flatMap((slip) => slip.statutory)
-									.filter((line) => line.scheme_code === scheme)
-									.reduce(
-										(sum, line) => [
-											fixturePresent(sum[0]) + line.employee_amount,
-											fixturePresent(sum[1]) + line.employer_amount
-										],
-										[0, 0]
-									);
-							return ['PPH21', 'JHT', 'JP', 'KESEHATAN'].map(total);
-						});
-						const bonusFirst = yield* january2027('bonus-first');
+						// January 2027: the new year's first TER month settles the same in every order.
+						const january2027 = yield* orderings('2027-01', '2027-01-08');
 						assert.ok(
-							fixturePresent(fixturePresent(bonusFirst[0])[0]) > 157260,
+							fixturePresent(fixturePresent(january2027.first.first.PPH21)[0]) > 157260,
 							'the THR is taxed in January'
 						);
-						assert.deepEqual(yield* january2027('together'), bonusFirst);
-						assert.deepEqual(yield* january2027('bonus-after'), bonusFirst);
 					})
 				);
-			})
+			}),
+			// a whole year plus three bonus orderings in three months: about 20 engine runs
+			60_000
 		);
 	});
 	const BANK = resolve(process.cwd(), '../../seed_bank/norbital_hr/records/kdit');
@@ -2961,7 +2996,9 @@ describe('ID jurisdiction seed', () => {
 			const checks = Object.fromEntries(
 				read(version, 'rule_set')
 					.filter(
-						(row) => row.family === 'VALIDATIONS' && fixtureValue0(row.rules).site !== 'roster'
+						(row) =>
+							row.family === 'VALIDATIONS' &&
+							!['roster', 'cycle'].includes(String(fixtureValue0(row.rules).site))
 					)
 					.map((row): [string, ReturnType<typeof fixtureContext>] => [
 						fixtureString(row.code),
@@ -3160,7 +3197,7 @@ describe('ID jurisdiction seed', () => {
 					advance_made_on: '2026-01-15',
 					principal_amount: 11000000,
 					repayment_period: { from: '2026-01-15', to: '2026-01-15' },
-					written_agreement_reference: 'PK-2026-01'
+					facts: { written_agreement_reference: 'PK-2026-01' }
 				})
 			);
 			fixturePresent(tables.get('loan_repayment_entry')).push(
@@ -3438,6 +3475,13 @@ describe('ID jurisdiction seed', () => {
 				);
 		})
 	);
+	it('wave 2: a cash compensation is employment income for PPh 21/26 and outside the BPJS wage (UU PPh art.4(1)(a))', () => {
+		for (const version of versions)
+			assert.deepEqual(catalog(version, 'adhoc_catalog', 'COMPENSATION').counts_toward, [
+				'PPH21.ADDITIONAL',
+				'PPH26'
+			]);
+	});
 });
 describe('ID round 7: the whole law, row by row', () => {
 	const checksOf = (version: string) =>
@@ -4629,7 +4673,6 @@ describe('ID round 7: the whole law, row by row', () => {
 				nationality: 'ID',
 				gender: 'MALE',
 				marital_status: 'MARRIED',
-				dependents_count: 1,
 				facts: {}
 			},
 			contract: {
@@ -4637,7 +4680,14 @@ describe('ID round 7: the whole law, row by row', () => {
 				effective_range: { from: '2020-01-01', to: null },
 				exit_ground: null,
 				facts: {
-					contract_terms: [{ employment_type: 'PERMANENT', job_title: 'Staf R&D', facts: {} }]
+					contract_terms: [
+						{
+							effective_range: { from: '2020-01-01', to: null },
+							employment_type: 'PERMANENT',
+							job_title: 'Staf R&D',
+							facts: { dependents_count: 1 }
+						}
+					]
 				}
 			},
 			slips: months.map((m) =>
@@ -4655,8 +4705,20 @@ describe('ID round 7: the whole law, row by row', () => {
 				...budi.employee,
 				name: 'Sari',
 				gender: 'FEMALE',
-				dependents_count: 2,
 				identity_number: '3172024806201234'
+			},
+			contract: {
+				...budi.contract,
+				facts: {
+					contract_terms: [
+						{
+							effective_range: { from: '2020-01-01', to: null },
+							employment_type: 'PERMANENT',
+							job_title: 'Staf R&D',
+							facts: { dependents_count: 2 }
+						}
+					]
+				}
 			},
 			slips: [
 				slip(
@@ -4673,7 +4735,6 @@ describe('ID round 7: the whole law, row by row', () => {
 				identity_number: '3273062212790005',
 				nationality: 'ID',
 				marital_status: 'SINGLE',
-				dependents_count: 0,
 				facts: {}
 			},
 			contract: {
@@ -4681,7 +4742,15 @@ describe('ID round 7: the whole law, row by row', () => {
 				engagement: 'PAYEE',
 				effective_range: { from: '2026-01-01', to: null },
 				exit_ground: null,
-				facts: { contract_terms: [{ employment_type: 'PERMANENT', facts: {} }] }
+				facts: {
+					contract_terms: [
+						{
+							effective_range: { from: '2026-01-01', to: null },
+							employment_type: 'PERMANENT',
+							facts: {}
+						}
+					]
+				}
 			},
 			slips: [
 				slip(
@@ -4710,7 +4779,15 @@ describe('ID round 7: the whole law, row by row', () => {
 				employee_number: 'X-1',
 				effective_range: { from: '2026-01-01', to: null },
 				exit_ground: null,
-				facts: { contract_terms: [{ employment_type: 'PERMANENT', facts: {} }] }
+				facts: {
+					contract_terms: [
+						{
+							effective_range: { from: '2026-01-01', to: null },
+							employment_type: 'PERMANENT',
+							facts: {}
+						}
+					]
+				}
 			},
 			slips: [
 				slip(
@@ -4730,7 +4807,7 @@ describe('ID round 7: the whole law, row by row', () => {
 			]);
 			const docs = recordDocuments(
 				fixtureExports(templates.map((row) => ({ code: String(row.code), rules: row.rules }))),
-				fixtureContexts([{ period: '2026-01' }]),
+				fixtureContexts([{ period: '2026-01', salary_to: '2026-01-31' }]),
 				fixtureReturnRows([budi, sari, payee, expat]),
 				fixtureContext({ facts: { npwp: '0029482015507000' } })
 			);
@@ -5210,7 +5287,8 @@ describe('ID round 7: the whole law, row by row', () => {
 				facts?: Row;
 				terms?: Row;
 			} = {},
-			pph21 = 120000
+			pph21 = 120000,
+			paidBack = 0
 		) => {
 			const base = subject({
 				company: { facts: { klu: over.klu ?? '13111' } },
@@ -5227,7 +5305,12 @@ describe('ID round 7: the whole law, row by row', () => {
 			const result = assess(
 				scheme(version, 'PPH21_DTP'),
 				{},
-				{ subject: base, period, version, charged: { month: { PPH21: { employee: pph21 } } } }
+				{
+					subject: base,
+					period,
+					version,
+					charged: { month: { PPH21: { employee: pph21 }, PPH21_DTP: { employee: paidBack } } }
+				}
 			);
 			return result === null || result === 'REFUSED' ? result : result.employee;
 		};
@@ -5236,6 +5319,19 @@ describe('ID round 7: the whole law, row by row', () => {
 		assert.equal(dtp('version_3', '2026-12', {}, 540000), -540000);
 		// Example 3: a December over-withholding (−287,500) is not refunded — the DTP reverses it.
 		assert.equal(dtp('version_3', '2026-12', {}, -287500), 287500);
+		// Art.5(1): paid back with the payment it is withheld from, never deferred — an off-cycle slip after the salary
+		// slip pays back only its own PPh 21 (the month's 150,000 less the 120,000 already paid back), in every version.
+		for (const version of versions)
+			assert.equal(
+				dtp(
+					version,
+					version === 'version_1' ? '2025-12' : '2026-03',
+					{ klu: '31001' },
+					150000,
+					-120000
+				),
+				-30000
+			);
 		// Example 4: a non-permanent worker at 500,000 a day qualifies; 500,001 does not.
 		assert.equal(
 			dtp(
@@ -6157,6 +6253,27 @@ describe('ID round 7: the whole law, row by row', () => {
 			['2026-08-25', 'Maulid Nabi Muhammad S.A.W.'],
 			['2026-12-25', 'Kelahiran Yesus Kristus']
 		];
+		// SKB 1205/3/2 Tahun 2026 (15 September 2026), Lampiran A: 18 days, Isra Mikraj twice (1448 H and 1449 H).
+		const HOLIDAYS_2027 = [
+			['2027-01-01', 'Tahun Baru 2027 Masehi'],
+			['2027-01-05', 'Isra Mikraj Nabi Muhammad S.A.W. 1448 Hijriah'],
+			['2027-02-06', 'Tahun Baru Imlek 2578 Kongzili'],
+			['2027-03-08', 'Hari Suci Nyepi (Tahun Baru Saka 1949)'],
+			['2027-03-10', 'Idul Fitri 1448 Hijriah'],
+			['2027-03-11', 'Idul Fitri 1448 Hijriah'],
+			['2027-03-26', 'Wafat Yesus Kristus'],
+			['2027-03-28', 'Kebangkitan Yesus Kristus (Paskah)'],
+			['2027-05-01', 'Hari Buruh Internasional'],
+			['2027-05-06', 'Kenaikan Yesus Kristus'],
+			['2027-05-17', 'Idul Adha 1448 Hijriah'],
+			['2027-05-20', 'Hari Raya Waisak 2571 BE'],
+			['2027-06-01', 'Hari Lahir Pancasila'],
+			['2027-06-06', '1 Muharam Tahun Baru Islam 1449 Hijriah'],
+			['2027-08-15', 'Maulid Nabi Muhammad S.A.W.'],
+			['2027-08-17', 'Proklamasi Kemerdekaan'],
+			['2027-12-25', 'Kelahiran Yesus Kristus'],
+			['2027-12-26', 'Isra Mikraj Nabi Muhammad S.A.W. 1449 Hijriah']
+		];
 		const CUTI_BERSAMA = [
 			'2026-02-16',
 			'2026-03-18',
@@ -6165,19 +6282,38 @@ describe('ID round 7: the whole law, row by row', () => {
 			'2026-03-24',
 			'2026-05-15',
 			'2026-05-28',
-			'2026-12-24'
+			'2026-12-24',
+			'2027-02-05',
+			'2027-03-09',
+			'2027-03-12',
+			'2027-03-15',
+			'2027-03-25',
+			'2027-05-18',
+			'2027-05-19',
+			'2027-12-24'
 		];
 		for (const version of versions) {
 			const holidays = payrollRules(version).public_holidays.holidays;
 			const expected = [
 				...(version === 'version_1' ? [['2025-12-25', 'Kelahiran Yesus Kristus']] : []),
-				...HOLIDAYS_2026
+				...HOLIDAYS_2026,
+				// The open-ended version carries the 2027 SKB, signed before it was sealed.
+				...(version === 'version_4' ? HOLIDAYS_2027 : [])
 			];
 			assert.deepEqual(
 				holidays.map((h) => [h.date, h.name]),
 				expected
 			);
 			assert.ok(holidays.every((h) => h.kind === 'PUBLIC_HOLIDAY'));
+			// Each row cites the signed SKB of its own year on kemenkopmk.go.id; no row is regional.
+			for (const h of holidays) {
+				assert.match(
+					String(h.source),
+					new RegExp(`kemenkopmk\\.go\\.id/.*Tahun%20${h.date.slice(0, 4)}\\.pdf\\)$`),
+					h.date
+				);
+				assert.equal('regions' in h, false, h.date);
+			}
 			assert.equal(
 				holidays.some((h) => CUTI_BERSAMA.includes(h.date)),
 				false
@@ -6224,7 +6360,49 @@ describe('ID round 7: the whole law, row by row', () => {
 			assert.equal(thr('2026-03', skb), '2026-03-12'); // Nyepi 19 March − 7
 			assert.equal(thr('2026-02', skb), '2026-02-10'); // Imlek 17 February − 7
 			assert.equal(thr('2026-05', skb), '2026-05-24'); // Waisak 31 May − 7
+			if (version === 'version_4') {
+				assert.equal(thr('2027-01', skb), '2027-01-30'); // Imlek 6 February 2027 − 7
+				assert.equal(thr('2027-03', skb), '2027-03-01'); // Nyepi 8 March 2027 − 7, before Idul Fitri’s 3 March
+				assert.equal(thr('2027-12', skb), '2027-12-18'); // Kelahiran Yesus Kristus
+			}
 		}
+	});
+	it('ID-SETTINGS-17: the in-force sources — one readable official entry per area, each with its own instructions', () => {
+		const sources = fixtureRecord(settingsOf('version_4').sources);
+		const entries = fixtureValue3(sources.entries);
+		const urls = entries.map((entry) => String(entry.url));
+		// jdih.kemnaker.go.id and www.bpjs-kesehatan.go.id (WAF block pages; JKN's Perpres are read on JDIH Setneg) and oss.go.id (licensing, not HR law) are not sources;
+		// regency portals overlapped their governor's decrees.
+		assert.deepEqual(urls.slice(0, 5), [
+			'https://jdih.setneg.go.id/',
+			'https://kemnaker.go.id/',
+			'https://www.kemenkopmk.go.id/pengumuman',
+			'https://www.bpjsketenagakerjaan.go.id/',
+			'https://www.pajak.go.id/'
+		]);
+		for (const blocked of [
+			'jdih.kemnaker.go.id',
+			'oss.go.id',
+			'gunungkidulkab',
+			'lamongankab',
+			'pontianak'
+		])
+			assert.ok(!urls.some((url) => url.includes(blocked)), blocked);
+		assert.equal(new Set(urls).size, urls.length);
+		const instructions = entries.map((entry) => String(entry.instructions));
+		assert.equal(new Set(instructions).size, entries.length);
+		// One minimum-wage entry per province with a readable official portal; Kepulauan Riau, Kalimantan Barat,
+		// Kalimantan Selatan (Cloudflare challenge), Sulawesi Tenggara and Papua Pegunungan (unreachable) have none.
+		const provinces = instructions
+			.filter((text) => text.startsWith('Provinsi '))
+			.map((text) => text.slice(0, text.indexOf(':')));
+		assert.equal(provinces.length, 33);
+		assert.equal(new Set(provinces).size, 33);
+		const regions = new Set(
+			Object.keys(payrollRules('version_4').minimum_wage.by_region).map((key) => key.split('/')[0])
+		);
+		for (const province of provinces) assert.ok(regions.has(province), province);
+		assert.ok(String(sources.instructions).length > 100);
 	});
 	it('ID-CONTRIBUTION-4, ID-OBLIGATION-20/28: construction-services JKK, BPJS wage and headcount changes, 10-year tax records', () => {
 		for (const version of versions) {
@@ -6353,7 +6531,6 @@ describe('ID round 7: the whole law, row by row', () => {
 						name: 'Ahli',
 						nationality: 'ID',
 						marital_status: 'SINGLE',
-						dependents_count: 0,
 						facts
 					})
 				);
@@ -6366,7 +6543,11 @@ describe('ID round 7: the whole law, row by row', () => {
 						effective_range: { from: '2026-01-01', to: null },
 						facts: {
 							contract_terms: [
-								{ effective_range: { from: '2026-01-01', to: null }, residency_status: 'CITIZEN' }
+								{
+									effective_range: { from: '2026-01-01', to: null },
+									residency_status: 'CITIZEN',
+									facts: { dependents_count: 0 }
+								}
 							]
 						},
 						employee_number: String('x1'),
@@ -6801,7 +6982,8 @@ describe('ID round 7: the whole law, row by row', () => {
 						['ROSTER_NIGHT_PREGNANCY', 'warn'],
 						['ROSTER_CHILD_LIGHT_WORK', 'warn'],
 						['ROSTER_UNDER_13', 'refuse'],
-						['ROSTER_REST_BREAK', 'warn']
+						['ROSTER_REST_BREAK', 'warn'],
+						['ROSTER_PATTERN_CYCLE', 'refuse']
 					]
 				);
 			}
@@ -6855,7 +7037,6 @@ describe('ID round 7: the whole law, row by row', () => {
 				employee_id: 'p1',
 				nationality: 'ID',
 				marital_status,
-				dependents_count: children,
 				children: Array.from({ length: children }, () => ({ child_birthdate: '2026-02-20' })),
 				facts: {},
 				before
@@ -6869,7 +7050,7 @@ describe('ID round 7: the whole law, row by row', () => {
 			assert.equal(first?.due_on, '2026-03-16');
 			assert.equal(
 				first?.occurrence_key,
-				'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE:c1:p1:MARRIED:1:1'
+				'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE:c1:p1:MARRIED:1'
 			);
 			assert.deepEqual(
 				updated(profile('MARRIED', 1), [{ occurrence_key: fixturePresent(first).occurrence_key }]),
@@ -6879,7 +7060,7 @@ describe('ID round 7: the whole law, row by row', () => {
 				updated(profile('MARRIED', 2), [
 					{ occurrence_key: fixturePresent(first).occurrence_key }
 				])[0]?.occurrence_key,
-				'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE:c1:p1:MARRIED:2:2'
+				'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE:c1:p1:MARRIED:2'
 			);
 			// PP 44/2015 art.9(3): the employer's own name, registration number or province changed.
 			const entity = (before: Row, name = 'PT Baru') =>
@@ -7085,6 +7266,22 @@ describe('ID round 7: the whole law, row by row', () => {
 				)
 			);
 			assert.equal(levy.employer, 1650000);
+			// Once a month: a later slip in the month (an off-cycle run) charges nothing more.
+			const again = fixtureValue0(
+				assess(
+					scheme(version, 'DKPTKA'),
+					{},
+					{
+						subject: subject({
+							employee: { nationality: 'JP' },
+							company: { facts: { dkptka_usd_idr_rate: 16500 } }
+						}),
+						version,
+						charged: { month: { DKPTKA: { employer: 1650000 } } }
+					}
+				)
+			);
+			assert.equal(again.employer, 0);
 			assert.equal(assess(scheme(version, 'DKPTKA'), {}, { version }), null);
 		}
 	});

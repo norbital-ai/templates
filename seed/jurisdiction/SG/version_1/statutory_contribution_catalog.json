@@ -129,7 +129,7 @@
 		"configuration": {
 			"rules": [
 				{
-					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.race in [\"CHINESE\", \"SINO INDIAN\", \"SINO JAPANESE\", \"SINO KADAZAN\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && (has(terms.facts.race) && terms.facts.race in [\"CHINESE\", \"SINO INDIAN\", \"SINO JAPANESE\", \"SINO KADAZAN\"]) && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
 					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":2000,\"amount\":0.5},{\"up_to\":3500,\"amount\":1},{\"up_to\":5000,\"amount\":1.5},{\"up_to\":7500,\"amount\":2},{\"up_to\":null,\"amount\":3}]))",
 					"employer": "0.0"
 				}
@@ -146,7 +146,7 @@
 		"configuration": {
 			"rules": [
 				{
-					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && person.race in [\"EURASIAN\", \"OTHER EURASIAN\", \"ANGLO BURMESE\", \"ANGLO CHINESE\", \"ANGLO FILIPINO\", \"ANGLO INDIAN\", \"ANGLO THAI\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\") && (has(terms.facts.race) && terms.facts.race in [\"EURASIAN\", \"OTHER EURASIAN\", \"ANGLO BURMESE\", \"ANGLO CHINESE\", \"ANGLO FILIPINO\", \"ANGLO INDIAN\", \"ANGLO THAI\"]) && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
 					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":2},{\"up_to\":1500,\"amount\":4},{\"up_to\":2500,\"amount\":6},{\"up_to\":4000,\"amount\":9},{\"up_to\":7000,\"amount\":12},{\"up_to\":10000,\"amount\":16},{\"up_to\":null,\"amount\":20}]))",
 					"employer": "0.0"
 				}
@@ -163,7 +163,7 @@
 		"configuration": {
 			"rules": [
 				{
-					"when": "base.assessed > 0.0 && person.religion == \"ISLAM\" && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"when": "base.assessed > 0.0 && (has(terms.facts.religion) && terms.facts.religion == \"ISLAM\") && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
 					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":3},{\"up_to\":2000,\"amount\":4.5},{\"up_to\":3000,\"amount\":6.5},{\"up_to\":4000,\"amount\":15},{\"up_to\":6000,\"amount\":19.5},{\"up_to\":8000,\"amount\":22},{\"up_to\":10000,\"amount\":24},{\"up_to\":null,\"amount\":26}]))",
 					"employer": "0.0"
 				}
@@ -180,7 +180,7 @@
 		"configuration": {
 			"rules": [
 				{
-					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\" || (has(employee.facts.immigration_status) && employee.facts.immigration_status == \"EMPLOYMENT_PASS\")) && person.race in [\"SRI LANKAN\", \"SINDHI\", \"BANGLADESHI\", \"PAKISTANI\", \"INDIAN\", \"BENGALI\", \"GUJARATI\", \"MALAYALEE\", \"PUNJABI\", \"SIKH\", \"TAMIL\", \"TELUGU\", \"SINHALESE\", \"PARSEE\", \"PATHAN\", \"KANNADA\", \"KASHMIRI\", \"GOAN\", \"CEYLONESE\", \"CEYLON MOOR\", \"MALABARI\", \"OTHER INDIAN\", \"ASSAMI\", \"BRAHMIN\", \"HINDUSTANI\", \"KHASI\", \"MAHRATTA\", \"MANIPURI\", \"MARATHI\", \"RAJPUT\"] && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
+					"when": "base.assessed > 0.0 && (person.residency_status == \"CITIZEN\" || person.residency_status == \"PERMANENT_RESIDENT\" || (has(employee.facts.immigration_status) && employee.facts.immigration_status == \"EMPLOYMENT_PASS\")) && (has(terms.facts.race) && terms.facts.race in [\"SRI LANKAN\", \"SINDHI\", \"BANGLADESHI\", \"PAKISTANI\", \"INDIAN\", \"BENGALI\", \"GUJARATI\", \"MALAYALEE\", \"PUNJABI\", \"SIKH\", \"TAMIL\", \"TELUGU\", \"SINHALESE\", \"PARSEE\", \"PATHAN\", \"KANNADA\", \"KASHMIRI\", \"GOAN\", \"CEYLONESE\", \"CEYLON MOOR\", \"MALABARI\", \"OTHER INDIAN\", \"ASSAMI\", \"BRAHMIN\", \"HINDUSTANI\", \"KHASI\", \"MAHRATTA\", \"MANIPURI\", \"MARATHI\", \"RAJPUT\"]) && !(has(scheme.elections.shg_opted_out) && scheme.elections.shg_opted_out == true)",
 					"employee": "has(scheme.elections.shg_monthly_amount) ? double(scheme.elections.shg_monthly_amount) : (bracket(base.assessed, [{\"up_to\":1000,\"amount\":1},{\"up_to\":1500,\"amount\":3},{\"up_to\":2500,\"amount\":5},{\"up_to\":4500,\"amount\":7},{\"up_to\":7500,\"amount\":9},{\"up_to\":10000,\"amount\":12},{\"up_to\":15000,\"amount\":18},{\"up_to\":null,\"amount\":30}]))",
 					"employer": "0.0"
 				}

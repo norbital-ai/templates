@@ -6,6 +6,7 @@
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -15,8 +16,10 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "service_months >= 12.0 ? (has(employment.exit_date) && employment.exit_date != \"\" && as_of != null && as_of >= employment.exit_date ? ((has(employment.exit_ground) && employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETIREMENT\", \"END_OF_CONTRACT\"] && !(has(employment.exit_facts) && employment.exit_facts != null && has(employment.exit_facts.section_119_ground) && employment.exit_facts.section_119_ground)) ? round(6.0 * (calendar_distance_days(employment.exit_date.substring(0, 4) + \"-01-01\", employment.exit_date) + 1.0) / calendar_distance_days(employment.exit_date.substring(0, 4) + \"-01-01\", add_years(employment.exit_date.substring(0, 4) + \"-01-01\", 1)), 0.01, \"HALF_UP\") : 0.0) : 6.0) : 0.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR",
-			"carry_forward": "(has(terms.facts) && terms.facts != null && has(terms.facts.annual_leave_carry_forward_days) ? double(terms.facts.annual_leave_carry_forward_days) : 0.0)"
+			"carry_forward": "(has(terms.facts) && terms.facts != null && has(terms.facts.annual_leave_carry_forward_days) ? double(terms.facts.annual_leave_carry_forward_days) : 0.0)",
+			"carry_depth": 1
 		}
 	},
 	{
@@ -26,6 +29,7 @@
 		"name": "Sick leave (ลาป่วย)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -35,6 +39,7 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "30.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -45,6 +50,7 @@
 		"name": "Sick leave beyond 30 paid days",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -58,6 +64,7 @@
 		"name": "Personal business leave (ลากิจ)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -67,6 +74,7 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "3.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -77,6 +85,7 @@
 		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -90,6 +99,7 @@
 		"name": "Military service leave (ลารับราชการทหาร)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -99,6 +109,7 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "60.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -109,6 +120,7 @@
 		"name": "Training leave (ลาฝึกอบรม)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -116,21 +128,43 @@
 		"authority": "Labour Protection Act B.E. 2541 (1998) s.36: leave for training or development under the rules the Ministerial Regulation prescribes; the Act owes no wages for it."
 	},
 	{
+		"id": "54f8b8e6-df1e-43c0-915c-40fe9e6675f3",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Training or meeting leave for an employee under 18 (ลาของลูกจ้างซึ่งเป็นเด็ก)",
+		"eligibility": "has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, entry.occurred_on) < 18",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"authority": "Labour Protection Act B.E. 2541 (1998) s.52: an employee under 18 may take leave to attend a meeting, seminar, training, practice or other course run by an educational institution or a state or private agency approved by the Director-General, notifying the employer in advance with evidence; the employer pays the working-day wage for the leave, up to 30 days a year. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [],
+			"days": "30.0",
+			"overdraw": "0",
+			"window": "CALENDAR_YEAR"
+		}
+	},
+	{
 		"id": "bda3b6d4-cf41-5c29-ad8d-f7f540ad1647",
 		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave, employer-paid days (ลาคลอด)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"unit": "DAY",
+		"unit": "CALENDAR_DAY",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
-		"authority": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette 7 November 2025, in force 7 December 2025) s.41 para 1: up to 120 days for each pregnancy, including prenatal examination and holidays; s.59: wages for up to 60 days. Metered per pregnancy (entry.facts.event_id): the employer-paid days here, the rest as MATERNITY_LEAVE_SSO.",
+		"authority": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette 7 November 2025, in force 7 December 2025) s.41 para 1: up to 120 days for each pregnancy, including prenatal examination and holidays; s.59: wages for up to 60 days. Metered per pregnancy (entry.facts.event_id): the employer-paid days here, the rest as MATERNITY_LEAVE_SSO. s.41 para 3 (unamended by No. 9): the leave counts the holidays within it, so the days are calendar days.",
 		"entitlement": {
 			"unit": "DAY",
 			"bands": [],
 			"days": "60.0",
+			"overdraw": "0",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.pregnancy_id) ? string(entry.facts.pregnancy_id) : \"\""
 		}
@@ -141,16 +175,17 @@
 		"code": "MATERNITY_LEAVE_SSO",
 		"name": "Maternity leave, days without employer pay",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"unit": "DAY",
+		"unit": "CALENDAR_DAY",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
-		"authority": "The days of s.41 maternity leave beyond the employer's s.59 wages; 120 less 60 days. Social Security Act B.E. 2533 (1990) s.67: the insured mother receives the maternity cash benefit from the Social Security Fund (50% of wages for 90 days).",
+		"authority": "The days of s.41 maternity leave beyond the employer's s.59 wages; 120 less 60 days. Social Security Act B.E. 2533 (1990) s.67: the insured mother receives the maternity cash benefit from the Social Security Fund (50% of wages for 90 days). s.41 para 3 (unamended by No. 9): the leave counts the holidays within it, so the days are calendar days.",
 		"entitlement": {
 			"unit": "DAY",
 			"bands": [],
 			"days": "60.0",
+			"overdraw": "0",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.pregnancy_id) ? string(entry.facts.pregnancy_id) : \"\""
 		}
@@ -162,6 +197,7 @@
 		"name": "Traditional holidays (วันหยุดตามประเพณี)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -175,6 +211,7 @@
 		"name": "Unpaid leave by agreement",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -187,16 +224,18 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"unit": "CALENDAR_DAY",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "0.5",
-		"authority": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette vol.142 part 74 Kor, 7 November 2025, in force 7 December 2025) https://ratchakitcha.soc.go.th/documents/89818.pdf s.41 para 4: up to 15 further consecutive days after maternity leave where the child is ill, at risk of complications, abnormal or disabled, on a medical certificate; s.59/1: wages at 50% (pay fraction 0.5; the unpaid half is deducted by NO_PAY_LEAVE).",
+		"authority": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette vol.142 part 74 Kor, 7 November 2025, in force 7 December 2025) https://ratchakitcha.soc.go.th/documents/89818.pdf s.41 para 4: up to 15 further consecutive days after maternity leave where the child is ill, at risk of complications, abnormal or disabled, on a medical certificate; s.59/1: wages at 50% (pay fraction 0.5; the unpaid half is deducted by NO_PAY_LEAVE). Working days: s.41 para 3 (\"วันลาตามวรรคหนึ่ง ให้นับรวมวันหยุดที่มีในระหว่างวันลาด้วย\") counts holidays only in the paragraph-one maternity leave, not in the paragraph-four child-care leave, and s.59/1 pays half the working-day wage, so a weekly or traditional holiday inside the leave is neither metered nor docked.",
 		"entitlement": {
 			"unit": "DAY",
 			"bands": [],
 			"days": "15.0",
+			"overdraw": "0",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\""
 		}
@@ -208,6 +247,7 @@
 		"name": "Leave to support a spouse at childbirth (ลาไปช่วยเหลือคู่สมรส)",
 		"eligibility": "has(entry.facts.birth_date) && entry.occurred_on <= add_days(entry.facts.birth_date, 90)",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -217,6 +257,7 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "15.0",
+			"overdraw": "0",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\""
 		}
@@ -225,6 +266,7 @@
 		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -238,6 +280,7 @@
 		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -251,6 +294,7 @@
 		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -262,6 +306,7 @@
 			"unit": "DAY",
 			"bands": [],
 			"days": "7.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		},
 		"authority": "Labour Protection Act B.E. 2541 s.116: suspension during an investigation only if the work rules or agreement allow, by written order, at most 7 days, paid at not less than 50% of the working-day wage; s.117: if the employee is cleared, the full wage for the period with 15% a year interest (adhoc SUSPENSION_BACK_PAY, LATE_PAYMENT_INTEREST). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."

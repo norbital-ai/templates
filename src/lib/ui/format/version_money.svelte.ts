@@ -13,7 +13,8 @@ type Governing =
  * Amounts formatted at the payroll currency's minor units of the governing version (`payroll.minor_units`, else the
  * currency's own: IDR none, SGD two), live. Before the version answers, two places. Call during component init.
  */
-export function versionMoney(governing: () => Governing | null) {
+/** The governing version's `payroll`, live; undefined before it answers. Call during component init. */
+export function governingPayroll(governing: () => Governing | null) {
 	const rows = liveRows(() => {
 		const g = governing();
 		if (g == null) return null;
@@ -30,6 +31,29 @@ export function versionMoney(governing: () => Governing | null) {
 						};
 		return bolt.read('jurisdiction_settings', { where, select: { payroll: true }, limit: 1 });
 	});
-	const payroll = $derived(rows.current?.[0]?.payroll);
-	return (value: unknown): string => formatNumeric(value, payroll?.currency, payroll?.minor_units);
+	return () => rows.current?.[0]?.payroll;
+}
+
+export function versionMoney(governing: () => Governing | null) {
+	const payroll = governingPayroll(governing);
+	return (value: unknown): string =>
+		formatNumeric(value, payroll()?.currency, payroll()?.minor_units);
+}
+
+/** The governing version's pay calendar (`week_start`, `semi_monthly_split`, `ten_day_splits`), live; null before the
+ * version answers. Call during component init. */
+export function versionCalendar(governing: () => Governing | null) {
+	const payroll = governingPayroll(governing);
+	return () => {
+		const held = payroll();
+		return held == null
+			? null
+			: {
+					...(held.week_start == null ? {} : { week_start: held.week_start }),
+					...(held.semi_monthly_split == null
+						? {}
+						: { semi_monthly_split: held.semi_monthly_split }),
+					...(held.ten_day_splits == null ? {} : { ten_day_splits: held.ten_day_splits })
+				};
+	};
 }

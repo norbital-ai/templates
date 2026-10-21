@@ -48,7 +48,6 @@ function tables(): Tables {
 			nationality: 'MY',
 			gender: 'FEMALE',
 			marital_status: 'SINGLE',
-			spouse_status: 'NONE',
 			children: [],
 			facts: {}
 		}
@@ -70,7 +69,7 @@ function tables(): Tables {
 						work_classification: 'EA_COVERED',
 						statutory_work_category: 'NON_MANUAL',
 						employment_type: 'PERMANENT',
-						facts: { normal_hours_per_day: 8, normal_days_per_week: 5 },
+						facts: { normal_hours_per_day: 8, normal_days_per_week: 5, spouse_status: 'NONE' },
 						allowances: []
 					}
 				]

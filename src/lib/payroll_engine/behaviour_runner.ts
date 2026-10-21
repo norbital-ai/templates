@@ -2,6 +2,7 @@ import { Predicate } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
 import type { Act, DeclaredQuery, Id, MemberWhere, Page, Row as BoltRow } from '@norbital-ai/bolt';
 import { monthOf, PlainDate } from '@norbital-ai/std/date';
+import { Decimal } from '@norbital-ai/std/decimal';
 import { Cache, Duration, Effect, Exit, Request, RequestResolver, Result, Schema } from 'effect';
 import {
 	actBehaviourWrites,
@@ -22,6 +23,7 @@ import {
 	isJsonObject,
 	type Json,
 	moneyNumber,
+	payrollSetting,
 	Reads,
 	readsFrom,
 	Refusal,
@@ -607,9 +609,22 @@ type Staffing = {
 export const staffingLookup = Effect.fnUntraced(function* (from: VersionFor) {
 	const cache = yield* Cache.make({
 		lookup: ({ company_id, day }: { readonly company_id: Id<'entity'>; readonly day: string }) =>
-			from
-				.entities(company_id)
-				.pipe(Effect.flatMap(({ contracts }) => Effect.fromResult(staffingFrom(contracts, day)))),
+			from.entities(company_id).pipe(
+				Effect.flatMap(({ settings_code, versions, contracts }) =>
+					Effect.fromResult(
+						Result.gen(function* () {
+							// Permanent headcount is the governing version's `payroll.permanent_when`.
+							const version = yield* versionOn(versions, settings_code, day);
+							const payroll = yield* fieldValue(version.payroll, 'jurisdiction_settings.payroll');
+							return yield* staffingFrom(
+								contracts,
+								day,
+								yield* payrollSetting(version.code, payroll, 'permanent_when')
+							);
+						})
+					)
+				)
+			),
 		capacity: Number.MAX_SAFE_INTEGER,
 		timeToLive: Duration.infinity
 	});
@@ -621,49 +636,51 @@ export const staffingLookup = Effect.fnUntraced(function* (from: VersionFor) {
  * summed) and `parts.<part>`, so a unit-level premium is priced on the run's insured total, not on the slips' shares.
  */
 export const runTotals = (slips: readonly Row[]) => {
-	const cents = (value: unknown) => Math.round((moneyNumber(value) ?? 0) * 100);
-	const statutoryCents = (value: unknown) =>
-		Math.round((Schema.is(Schema.Finite)(value) ? value : 0) * 100);
+	// Exact decimal sums of the slips' own amounts: no minor-unit scale is assumed. A stored statutory amount is
+	// already rounded, so its shortest decimal text is exact.
+	const money = (value: unknown) => (value instanceof Decimal ? value : Decimal.of(0));
+	const statutoryMoney = (value: unknown) =>
+		Decimal.of(String(Schema.is(Schema.Finite)(value) ? value : 0));
 	type Sum = {
-		employee: number;
-		employer: number;
-		base: number;
-		charged_base: number;
-		parts: Record<string, number>;
+		employee: Decimal;
+		employer: Decimal;
+		base: Decimal;
+		charged_base: Decimal;
+		parts: Record<string, Decimal>;
 	};
 	const schemes: Record<string, Sum> = {};
-	let gross = 0;
-	let net = 0;
-	let employer_cost = 0;
+	let gross = Decimal.of(0);
+	let net = Decimal.of(0);
+	let employer_cost = Decimal.of(0);
 	for (const slip of slips) {
-		gross += cents(slip['gross']);
-		net += cents(slip['net']);
-		employer_cost += cents(slip['employer_cost']);
+		gross = gross.plus(money(slip['gross']));
+		net = net.plus(money(slip['net']));
+		employer_cost = employer_cost.plus(money(slip['employer_cost']));
 		const lines = slip['statutory'];
 		for (const line of Array.isArray(lines) ? lines : []) {
 			const held = rowOf(line);
 			const code = text(held?.['scheme_code']);
 			if (held == null || code == null) continue;
 			const sum = schemes[code] ?? {
-				employee: 0,
-				employer: 0,
-				base: 0,
-				charged_base: 0,
+				employee: Decimal.of(0),
+				employer: Decimal.of(0),
+				base: Decimal.of(0),
+				charged_base: Decimal.of(0),
 				parts: {}
 			};
 			const parts = { ...sum.parts };
 			for (const [part, value] of Object.entries(rowOf(held['parts']) ?? {}))
-				parts[part] = (parts[part] ?? 0) + statutoryCents(value);
+				parts[part] = (parts[part] ?? Decimal.of(0)).plus(statutoryMoney(value));
 			schemes[code] = {
-				employee: sum.employee + statutoryCents(held['employee_amount']),
-				employer: sum.employer + statutoryCents(held['employer_amount']),
-				base: sum.base + statutoryCents(held['base_amount']),
-				charged_base: sum.charged_base + statutoryCents(held['charged_base']),
+				employee: sum.employee.plus(statutoryMoney(held['employee_amount'])),
+				employer: sum.employer.plus(statutoryMoney(held['employer_amount'])),
+				base: sum.base.plus(statutoryMoney(held['base_amount'])),
+				charged_base: sum.charged_base.plus(statutoryMoney(held['charged_base'])),
 				parts
 			};
 		}
 	}
-	const units = (value: number) => value / 100;
+	const units = (value: Decimal) => value.toNumber();
 	return {
 		totals: {
 			gross: units(gross),
@@ -1002,13 +1019,13 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 	const resolved = yield* Effect.forEach(
 		pairs,
 		({ g, group, event, subject }) =>
-			Effect.all(
-				{
-					version: input.versionFor(subject.company_id, event.day),
-					staffed: staffing(subject.company_id, event.day)
-				},
-				{ concurrency: 'unbounded' }
-			).pipe(
+			// staffing is read only where a version governs the day: a day no version governs runs no rule
+			Effect.gen(function* () {
+				const version = yield* input.versionFor(subject.company_id, event.day);
+				const staffed =
+					version == null ? undefined : yield* staffing(subject.company_id, event.day);
+				return { version, staffed };
+			}).pipe(
 				Effect.flatMap(({ version, staffed }) =>
 					Effect.fromResult(
 						fieldValue(version?.behaviours, 'jurisdiction_settings.behaviours')

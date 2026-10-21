@@ -85,11 +85,25 @@ export const STATUTORY_FIELDS = {
 					pay_date: { kind: 'text', format: 'cel', optional: true },
 					week_start: { kind: 'int', min: 0, max: 6, optional: true },
 					semi_monthly_split: { kind: 'int', min: 1, max: 27, optional: true },
+					ten_day_splits: { kind: 'list', of: { kind: 'int', min: 1, max: 27 }, optional: true },
+					permanent_when: { kind: 'text', format: 'cel', optional: true },
 					roster_week: { kind: 'enum', values: ['ROLLING', 'CALENDAR'], optional: true },
 					base_salary_required: { kind: 'bool', optional: true },
 					off_cycle_families: { kind: 'list', of: { kind: 'text' }, optional: true },
 					monthly_wage: { kind: 'text', format: 'cel', optional: true },
-					negative_net: { kind: 'enum', values: ['refuse', 'allow'], optional: true }
+					negative_net: { kind: 'enum', values: ['refuse', 'allow'], optional: true },
+					exit_raise_when: { kind: 'text', format: 'cel', optional: true },
+					exit_overpayment: { kind: 'enum', values: ['note', 'deduct'], optional: true },
+					attendance: {
+						kind: 'object',
+						fields: {
+							step_hours: { kind: 'number' },
+							rounding: { kind: 'enum', values: ['DOWN', 'UP', 'HALF_UP'] },
+							overtime_window: { kind: 'enum', values: ['AFTER_SHIFT', 'EXPLICIT'] },
+							untimed_credit_day_types: { kind: 'list', of: { kind: 'text' } }
+						},
+						optional: true
+					}
 				}
 			}
 		},
@@ -371,6 +385,12 @@ export const STATUTORY_FIELDS = {
 			default: 'DAY',
 			help: 'What a request charges: DAY the planned working days of its range (rest and off days and published holidays charge nothing), CALENDAR_DAY every day of it, HOUR the scheduled hours of its planned working days.'
 		},
+		unplanned_days: {
+			kind: 'enum',
+			values: ['EVERY_DAY_BUT_HOLIDAYS', 'REFUSE'],
+			optional: true,
+			help: 'What a DAY request charges over a range with no planned shift at all: EVERY_DAY_BUT_HOLIDAYS every day of it less published holidays, REFUSE asks for the shifts to be planned first. Required on a DAY class.'
+		},
 		can_encash: {
 			kind: 'bool',
 			help: 'Whether untaken days of the class may be paid out. Stated on every class: no default decides it.'
@@ -396,6 +416,12 @@ export const STATUTORY_FIELDS = {
 						optional: true,
 						help: 'CEL entitlement in days over `service_months`, `bands`, `as_of`, the subject roots and `taken`; absent means the class is not metered.'
 					},
+					overdraw: {
+						kind: 'text',
+						format: 'cel',
+						optional: true,
+						help: 'CEL over `service_months`, `as_of` and the subject roots: the most days the balance may run below zero (advance leave). Required with days.'
+					},
 					window: {
 						kind: 'enum',
 						values: ['CALENDAR_YEAR', 'SERVICE_YEAR', 'LIFETIME', 'EVENT', 'ROLLING'],
@@ -405,7 +431,7 @@ export const STATUTORY_FIELDS = {
 					window_months: {
 						kind: 'int',
 						optional: true,
-						help: 'ROLLING: the months the window reaches back from the day read (that day included).'
+						help: 'ROLLING (required): the months the window reaches back from the day read (that day included). On any class, the span of its taken.rolling root, which only a class stating it has.'
 					},
 					service_year_offset_months: {
 						kind: 'int',
@@ -427,7 +453,7 @@ export const STATUTORY_FIELDS = {
 					carry_depth: {
 						kind: 'int',
 						optional: true,
-						help: 'How many windows carried days may still be carried (absent: once).'
+						help: 'Required with carry_forward: how many windows carried days may still be carried (1: once).'
 					},
 					consumes_after_days: {
 						kind: 'int',
@@ -563,7 +589,7 @@ export const STATUTORY_FIELDS = {
 			kind: 'text',
 			format: 'cel',
 			optional: true,
-			help: 'CEL: the divisor a prorated line states on the payslip (blank: the period’s calendar days).'
+			help: 'CEL: the divisor a prorated line states on the payslip. Required when `prorated`.'
 		},
 		destination: { kind: 'enum', values: ['PAY', 'NET', 'EMPLOYER'] },
 		direction: { kind: 'enum', values: ['ADD', 'SUBTRACT'] },
@@ -596,7 +622,15 @@ export const STATUTORY_FIELDS = {
 				kind: 'object',
 				fields: {
 					assess_without_wage: { kind: 'bool', optional: true },
-					carry_uncovered: { kind: 'bool', optional: true },
+					carry_uncovered: {
+						kind: 'object',
+						optional: true,
+						help: 'The employee share net cannot cover is advanced and recovered later: `advance` is CEL over `carry.short` (what net lacks) and `carry.share` (the scheme’s employee share), `recover` CEL over `carry.owed` (outstanding) and `carry.left` (what this slip’s net leaves).',
+						fields: {
+							advance: { kind: 'text', format: 'cel' },
+							recover: { kind: 'text', format: 'cel' }
+						}
+					},
 					governed_by: { kind: 'text', optional: true },
 					order: { kind: 'number', optional: true },
 					as_of: { kind: 'text', optional: true },
@@ -607,7 +641,27 @@ export const STATUTORY_FIELDS = {
 							when: { kind: 'text', format: 'cel' },
 							part: { kind: 'text' },
 							ceiling: { kind: 'text', format: 'cel' },
-							through: { kind: 'text', format: 'cel' }
+							through: { kind: 'text', format: 'cel' },
+							on_underpaid: {
+								kind: 'enum',
+								values: ['CATCH_UP', 'REFUSE'],
+								help: 'Earlier months paid less than the recalculated liability: CATCH_UP adds the shortfall to this month, REFUSE stops for review.'
+							},
+							on_overpaid: {
+								kind: 'enum',
+								values: ['WARN', 'REFUSE'],
+								help: 'Earlier months paid more than the recalculated liability: WARN keeps this month and warns (refund outside payroll), REFUSE stops for review.'
+							},
+							on_current_excess: {
+								kind: 'enum',
+								values: ['REFUSE', 'SETTLE'],
+								help: "This month's earlier slips already exceed the reconciled month charge: REFUSE stops for review, SETTLE credits the excess on this slip."
+							},
+							on_original_error: {
+								kind: 'enum',
+								values: ['REFUSE', 'CATCH_UP'],
+								help: 'An earlier month paid less than its own original assessment: REFUSE stops for review, CATCH_UP lets on_underpaid settle it.'
+							}
 						}
 					},
 					warn_when: {

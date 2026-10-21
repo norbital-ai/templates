@@ -141,7 +141,8 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"eligibility": "",
-		"counts_toward": [],
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
+		"authority": "UU 7/1983 as amended by UU 36/2008 art.4(1)(a): a payment or reward in connection with employment, in any form, is income; PMK 168/2023 art.5(1)(a) and (3): a pegawai’s regular or irregular income in any form is the PPh 21 object (PPh 26 for a non-resident). No art.4(3) exemption covers a cash compensation, so it is taxed as irregular income; it is not upah pokok or a tunjangan tetap, so outside the BPJS wage (PP 44/2015 art.19(2)). A termination payment belongs on the severance rows (PP 68/2009).",
 		"name": "Compensation",
 		"bands": [
 			{
@@ -328,14 +329,14 @@
 		"code": "DETENTION_FAMILY_AID",
 		"destination": "PAY",
 		"direction": "ADD",
-		"eligibility": "employee.dependents_count >= 1.0",
+		"eligibility": "(has(terms.facts.dependents_count) ? double(terms.facts.dependents_count) : 0.0) >= 1.0",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26"],
 		"name": "Aid to a detained worker’s family",
-		"authority": "PP 35/2021 art.53(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (`employee.dependents_count`) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
+		"authority": "PP 35/2021 art.53(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (`terms.facts.dependents_count`) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
 		"bands": [
 			{
 				"when": "",
-				"amount": "round(terms.monthly_wage * [0.25, 0.35, 0.45, 0.5][int(min(employee.dependents_count, 4.0)) - 1], 1.0, \"HALF_UP\")"
+				"amount": "round(terms.monthly_wage * [0.25, 0.35, 0.45, 0.5][int(min((has(terms.facts.dependents_count) ? double(terms.facts.dependents_count) : 0.0), 4.0)) - 1], 1.0, \"HALF_UP\")"
 			}
 		],
 		"qualifies_when": "size(earlier.rows.filter(r, r.activity != \"REVERSAL\")) < 6"

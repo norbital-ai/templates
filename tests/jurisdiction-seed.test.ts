@@ -12,6 +12,7 @@ type Scheme = Row & {
 	code: string;
 	configuration?: {
 		rules?: readonly { when?: string; employee?: string; employer?: string }[];
+		person?: Readonly<Record<string, string>>;
 		limitation?: string;
 	};
 };
@@ -52,18 +53,26 @@ const charge = (
 	assessed: number,
 	person: { age?: number | null; residency_status: string }
 ): { employee: number; employer: number } => {
-	const context = {
+	// The month's regular salary slip, as the engine supplies it: `period.salary_run`, and the scheme's own
+	// `person.normal_pending` (nothing pending once the salary run assesses the month).
+	const held = {
 		base: { assessed, ordinary: assessed, additional: 0 },
 		person,
-		employee: { facts: {}, dependents_count: 0 },
+		employee: { facts: {} },
 		employment: { start_date: '', exit_date: '', engagement: 'EMPLOYEE' },
+		terms: { monthly_wage: assessed, facts: { dependents_count: 0 } },
 		company: { region: '', risk_class: '', facts: {} },
 		scheme: { code: row.code, standing: '', elections: {} },
 		elections: {},
 		charged: { month: {}, year: {} },
 		rules: {},
-		period: { unpaid_working_days: 0 }
+		period: { unpaid_working_days: 0, salary_paid: false, salary_run: true }
 	};
+	const pending = row.configuration?.person?.normal_pending;
+	const context =
+		pending == null
+			? held
+			: { ...held, person: { ...person, normal_pending: evaluateConfigured(pending, held) } };
 	for (const rule of row.configuration?.rules ?? []) {
 		if (rule.when != null && evaluateConfigured(rule.when, context) !== true) continue;
 		return {
@@ -288,7 +297,6 @@ describe('public jurisdiction seed', () => {
 				nationality: 'VN',
 				gender: 'FEMALE',
 				date_of_birth: '1990-01-01',
-				receiving_pension: false,
 				facts: {}
 			},
 			terms: {
@@ -296,14 +304,21 @@ describe('public jurisdiction seed', () => {
 				monthly_wage: 10_000_000,
 				employment_type: 'PERMANENT',
 				allowances: [],
-				facts: {}
+				facts: { receiving_pension: false }
 			},
 			employment: { start_date: '2020-01-01', exit_date: '' },
 			company: { region: 'I', risk_class: '', facts: {} },
 			scheme: { code: 'SI', standing: '', elections: {} },
 			elections: {},
 			leave: { rows: [] },
-			period: { from: '2026-10-01', to: '2026-10-31', working_days: 22, covered_working_days: 22 }
+			period: {
+				from: '2026-10-01',
+				to: '2026-10-31',
+				working_days: 22,
+				covered_working_days: 22,
+				salary_paid: false,
+				salary_run: true
+			}
 		};
 		const rule = (vn.configuration?.rules ?? []).find(
 			(item) => item.when == null || evaluateConfigured(item.when, context) === true
@@ -328,12 +343,13 @@ describe('public jurisdiction seed', () => {
 		const annual = rows('TW', 'leave_catalog').find((row) => row.code === 'ANNUAL_LEAVE');
 		assert.equal(annual?.encash_on_exit, true);
 		assert.equal(codes('TW', 'adhoc_catalog').has('SEVERANCE_PAY'), true);
-		// TW grades on the contract's monthly wage over the covered days, so its case supplies those roots.
+		// TW grades on the contract's monthly wage over the covered days, so its case supplies those roots. The latest
+		// version (from 2027-01-01) charges the ordinary-accident rate of 12% (勞工保險條例 §13(2)).
 		const row = scheme('TW', 'LI');
 		const context = {
 			base: { assessed: 45800, ordinary: 45800, additional: 0 },
 			person: { age: 30, residency_status: 'CITIZEN' },
-			employee: { facts: {}, dependents_count: 0 },
+			employee: { facts: {} },
 			company: { region: '', risk_class: '', facts: {} },
 			terms: { monthly_wage: 45800 },
 			period: { days: 31, covered_days: 31 },
@@ -346,8 +362,8 @@ describe('public jurisdiction seed', () => {
 		const rule = (row.configuration?.rules ?? []).find(
 			(candidate) => candidate.when == null || evaluateConfigured(candidate.when, context) === true
 		)!;
-		assert.equal(cents(evaluateConfigured(rule.employee!, context)), 1053);
-		assert.equal(cents(evaluateConfigured(rule.employer!, context)), 3687);
+		assert.equal(cents(evaluateConfigured(rule.employee!, context)), 1099);
+		assert.equal(cents(evaluateConfigured(rule.employer!, context)), 3847);
 	});
 
 	it('every cloned_from_id names another seeded settings row or is omitted', () => {

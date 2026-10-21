@@ -6,6 +6,7 @@
 		"name": "Annual leave (特別休假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -100,6 +101,7 @@
 				}
 			],
 			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
+			"overdraw": "0",
 			"window": "SERVICE_YEAR"
 		}
 	},
@@ -110,6 +112,7 @@
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -118,7 +121,9 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "30.0 - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.calendar_year) : 0.0)"
+			"window_months": 12,
+			"days": "30.0 - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.calendar_year) : 0.0)",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -128,6 +133,7 @@
 		"name": "Personal leave (事假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -136,6 +142,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "14.0",
+			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
 		}
 	},
@@ -146,6 +153,7 @@
 		"name": "Marriage leave (婚假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -154,6 +162,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "(has(entry.facts) && has(entry.facts.marriage_date) && entry.facts.marriage_date != \"\" ? (as_of >= add_days(entry.facts.marriage_date, -10) && as_of <= (has(entry.facts.taken_within_a_year_by_agreement) && entry.facts.taken_within_a_year_by_agreement == true ? add_years(entry.facts.marriage_date, 1) : add_months(entry.facts.marriage_date, 3))) : true) ? 8.0 : 0.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -164,6 +173,7 @@
 		"name": "Bereavement leave (喪假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -173,7 +183,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : \"\"",
-			"days": "has(entry.facts.relationship) ? (entry.facts.relationship in [\"PARENT\", \"ADOPTIVE_PARENT\", \"STEP_PARENT\", \"SPOUSE\"] ? 8.0 : (entry.facts.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\", \"STEP_PARENT_IN_LAW\"] ? 6.0 : (entry.facts.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"] ? 3.0 : 0.0))) : 0.0"
+			"days": "has(entry.facts.relationship) ? (entry.facts.relationship in [\"PARENT\", \"ADOPTIVE_PARENT\", \"STEP_PARENT\", \"SPOUSE\"] ? 8.0 : (entry.facts.relationship in [\"GRANDPARENT\", \"CHILD\", \"PARENT_IN_LAW\", \"ADOPTIVE_PARENT_IN_LAW\", \"STEP_PARENT_IN_LAW\"] ? 6.0 : (entry.facts.relationship in [\"GREAT_GRANDPARENT\", \"SIBLING\", \"GRANDPARENT_IN_LAW\"] ? 3.0 : 0.0))) : 0.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -183,6 +194,7 @@
 		"name": "Occupational injury leave (公傷病假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -196,6 +208,7 @@
 		"name": "Maternity leave (產假)",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -205,7 +218,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : \"\"",
-			"days": "has(entry.facts.event_kind) ? {\"BIRTH\": 56.0, \"MISCARRIAGE_3M\": 28.0, \"MISCARRIAGE_2M\": 7.0, \"MISCARRIAGE_UNDER_2M\": 5.0}[entry.facts.event_kind] : 0.0"
+			"days": "has(entry.facts.event_kind) ? {\"BIRTH\": 56.0, \"MISCARRIAGE_3M\": 28.0, \"MISCARRIAGE_2M\": 7.0, \"MISCARRIAGE_UNDER_2M\": 5.0}[entry.facts.event_kind] : 0.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -215,6 +229,7 @@
 		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -223,6 +238,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "7.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -233,6 +249,7 @@
 		"name": "Prenatal check-up leave (產檢假)",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -241,6 +258,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "7.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -251,6 +269,7 @@
 		"name": "Menstrual leave (生理假)",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -261,6 +280,7 @@
 			"window": "EVENT",
 			"window_key": "(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on).substring(0, 7)",
 			"days": "double(taken.calendar_year) >= 3.0 && (30.0 - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.calendar_year) : 0.0) - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.calendar_year) : 0.0) - max(0.0, double(taken.calendar_year) - 3.0)) <= 0.0 ? 0.0 : 1.0",
+			"overdraw": "0",
 			"consumes_after_days": 3
 		},
 		"consumes_code": "SICK_LEAVE"
@@ -272,6 +292,7 @@
 		"name": "Menstrual leave beyond the sick pool, unpaid (生理假)",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -281,7 +302,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on).substring(0, 7)",
-			"days": "(has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) >= 3.0 && (30.0 - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.calendar_year) : 0.0) - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.calendar_year) : 0.0) - max(0.0, (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) - 3.0)) <= 0.0 ? max(0.0, 1.0 - (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.event) : 0.0) - double(taken.event)) : 0.0"
+			"days": "(has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) >= 3.0 && (30.0 - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.calendar_year) : 0.0) - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.calendar_year) : 0.0) - max(0.0, (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) - 3.0)) <= 0.0 ? max(0.0, 1.0 - (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.event) : 0.0) - double(taken.event)) : 0.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -291,6 +313,7 @@
 		"name": "Family care leave (家庭照顧假)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -301,6 +324,7 @@
 			"unit": "HOUR",
 			"window": "CALENDAR_YEAR",
 			"days": "7.0 * (has(terms.facts) && has(terms.facts.daily_hours) ? double(terms.facts.daily_hours) : 8.0)",
+			"overdraw": "0",
 			"hours_per_day": "has(terms.facts) && has(terms.facts.daily_hours) ? double(terms.facts.daily_hours) : 8.0"
 		}
 	},
@@ -311,6 +335,7 @@
 		"name": "Parental leave without pay (育嬰留職停薪)",
 		"eligibility": "employment.service_months >= 6",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -319,6 +344,7 @@
 		"entitlement": {
 			"unit": "DAY",
 			"days": "730.0",
+			"overdraw": "0",
 			"window": "EVENT"
 		}
 	},
@@ -329,6 +355,7 @@
 		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -342,6 +369,7 @@
 		"name": "Public holiday in lieu",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -355,6 +383,7 @@
 		"name": "住院傷病假 (hospitalised sickness leave)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -363,7 +392,9 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "max(0.0, 30.0 - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.calendar_year) : 0.0) - max(0.0, (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) - 3.0))"
+			"window_months": 12,
+			"days": "max(0.0, 30.0 - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.calendar_year) : 0.0) - max(0.0, (has(taken_by_class.MENSTRUAL_LEAVE) ? double(taken_by_class.MENSTRUAL_LEAVE.calendar_year) : 0.0) - 3.0))",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -373,6 +404,7 @@
 		"name": "公假 (official leave)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -386,6 +418,7 @@
 		"name": "謀職假 (job-search leave)",
 		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && (has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -395,7 +428,8 @@
 			"unit": "DAY",
 			"window": "EVENT",
 			"window_key": "add_days(\"2024-01-01\", 7 * int(round(double(calendar_distance_days(\"2024-01-01\", (has(entry.from) && entry.from != null ? entry.from : entry.occurred_on))) / 7.0, 1.0, \"DOWN\")))",
-			"days": "2.0"
+			"days": "2.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -405,6 +439,7 @@
 		"name": "例假補假 (statutory rest day in lieu)",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": true,
 		"encash_on_exit": true,
 		"is_npl": false,
@@ -426,7 +461,8 @@
 		"entitlement": {
 			"unit": "HOUR",
 			"window": "SERVICE_YEAR",
-			"days": "attendance.window.banked_hours"
+			"days": "attendance.window.banked_hours",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -443,7 +479,8 @@
 		"entitlement": {
 			"unit": "HOUR",
 			"window": "SERVICE_YEAR",
-			"days": "round(sum(attendance.window.banked.map(b, min(b.hours, max(0.0, sum(attendance.window.banked.filter(c, c.date <= b.date).map(c, c.hours)) - (has(taken_by_class.COMPENSATORY_TIME_OFF) ? double(taken_by_class.COMPENSATORY_TIME_OFF.service_year) : 0.0))) * (has(b.band) && b.band != null && b.band != \"\" ? double(b.band) : 1.34))), 0.01, \"HALF_UP\")"
+			"days": "round(sum(attendance.window.banked.map(b, min(b.hours, max(0.0, sum(attendance.window.banked.filter(c, c.date <= b.date).map(c, c.hours)) - (has(taken_by_class.COMPENSATORY_TIME_OFF) ? double(taken_by_class.COMPENSATORY_TIME_OFF.service_year) : 0.0))) * (has(b.band) && b.band != null && b.band != \"\" ? double(b.band) : 1.34))), 0.01, \"HALF_UP\")",
+			"overdraw": "0"
 		},
 		"authority": "勞動基準法 §32-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2): 補休 hours untaken when the agreed period ends or the contract terminates are paid at the wage of the day they were worked. Not a leave anyone takes (a dated time-off entry is refused: !has(entry.from)): its balance is the untaken banked hours of the leave year — the oldest taken first — each at its band (roster_entry.banked_overtime_band, the §24 multiplier: 1.34, 1.67 or 2.67; blank priced 1.34), in straight-time hours. The exit encashment pays it (COMP_TIME_PAYOUT at the hourly wage); at the year’s end HR encashes the balance shown (COMP_TIME_YEAR_END_PAYMENT)."
 	},
@@ -454,6 +491,7 @@
 		"name": "普通傷病假（無薪）",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -463,7 +501,8 @@
 			"unit": "DAY",
 			"window": "ROLLING",
 			"window_months": 24,
-			"days": "max(0.0, 365.0 - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.rolling) : 0.0) - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.rolling) : 0.0))"
+			"days": "max(0.0, 365.0 - (has(taken_by_class.SICK_LEAVE) ? double(taken_by_class.SICK_LEAVE.rolling) : 0.0) - (has(taken_by_class.HOSPITALISED_SICK_LEAVE) ? double(taken_by_class.HOSPITALISED_SICK_LEAVE.rolling) : 0.0))",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -473,6 +512,7 @@
 		"name": "傷病留職停薪",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -481,7 +521,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "365.0"
+			"days": "365.0",
+			"overdraw": "0"
 		}
 	},
 	{
@@ -491,6 +532,7 @@
 		"name": "育嬰留職停薪（以日申請）",
 		"eligibility": "employment.service_months >= 6",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -499,7 +541,8 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
-			"days": "30.0"
+			"days": "30.0",
+			"overdraw": "0"
 		},
 		"consumes_code": "PARENTAL_LEAVE"
 	},
@@ -508,13 +551,13 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "CHILDCARE_REDUCED_HOURS",
 		"name": "育兒減少工時",
-		"eligibility": "company.headcount >= 30.0 && employee.children.exists(c, has(c.child_birthdate) && c.child_birthdate != \"\" && age_on(c.child_birthdate, entry.occurred_on) < 3)",
+		"eligibility": "(company.headcount >= 30.0 || (has(terms.facts) && has(terms.facts.childcare_reduction_agreed) && terms.facts.childcare_reduction_agreed == true)) && employee.children.exists(c, has(c.child_birthdate) && c.child_birthdate != \"\" && age_on(c.child_birthdate, entry.occurred_on) < 3)",
 		"unit": "HOUR",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
-		"authority": "性別平等工作法 §19: a worker of an employer of thirty or more with a child under three may reduce working time by one hour a day; 減少之工作時間，不得請求報酬 — recorded as an eighth of a day, deducted by NO_PAY_LEAVE."
+		"authority": "性別平等工作法 §19: a worker of an employer of thirty or more with a child under three may reduce working time by one hour a day; §19(2): 受僱於僱用未滿三十人雇主之受僱者，經與雇主協商，雙方合意後，得依前項規定辦理 — at a smaller employer when the contract terms record the agreement (terms.facts.childcare_reduction_agreed); 減少之工作時間，不得請求報酬 — recorded as an eighth of a day, deducted by NO_PAY_LEAVE."
 	},
 	{
 		"id": "c485a582-4bc3-5a9d-a6a9-cd491a3ba67b",
@@ -523,6 +566,7 @@
 		"name": "天然災害停止上班",
 		"eligibility": "",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
@@ -536,6 +580,7 @@
 		"name": "原住民族歲時祭儀 (indigenous ritual holiday)",
 		"eligibility": "has(employee.facts.indigenous) && employee.facts.indigenous == true",
 		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
@@ -543,8 +588,9 @@
 		"entitlement": {
 			"unit": "DAY",
 			"window": "CALENDAR_YEAR",
-			"days": "1.0"
+			"days": "3.0",
+			"overdraw": "0"
 		},
-		"authority": "紀念日及節日實施條例 §4(1)(6) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020033): 原住民族歲時祭儀 放假一日，各該原住民族放假日期由原住民族委員會參酌各該原住民族習俗公告; 勞動基準法 §37(1): an indigenous worker’s 放假日, with pay. One paid day a calendar year for a worker recorded as indigenous (employee facts indigenous, tribe), on the date the council announces for the tribe. Worked instead, it pays one further day (INDIGENOUS_RITUAL_DAY_WORK, §39)."
+		"authority": "紀念日及節日實施條例 §5(1)(9), §6(1)(3) (公布施行 2025-05-28, https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020095): 原住民族歲時祭儀：由原住民依其族別歲時祭儀擇定三日放假 — the dates per tribe announced by the 原住民族委員會 in the gazette; 勞動基準法 §37(1): an indigenous worker’s 放假日, with pay (MOL 2025-07-15: 擇定3日(原為1日)…得於其本人、其父母或配偶所屬民族歲時祭儀放假日期中擇3日, https://www.mol.gov.tw/1607/1632/1640/81365/post). Three paid days a calendar year for a worker recorded as indigenous (employee facts indigenous, tribe), chosen from the announced dates of the worker’s, a parent’s or the spouse’s tribe. Worked instead, it pays one further day (INDIGENOUS_RITUAL_DAY_WORK, §39)."
 	}
 ]

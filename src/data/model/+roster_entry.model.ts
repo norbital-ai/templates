@@ -2,7 +2,7 @@ import { model } from '@norbital-ai/bolt';
 
 export default model({
 	description:
-		'One person-day: the planned shift and actual attendance side by side. Either may be absent. Hourly credit uses actual attendance inside the configured shift and its approved overtime windows; extra time cannot replace late arrival. Breaks follow the configured or documented duration and recorded interior gaps. Credited shortfalls and overtime round down to completed half-hours. The governing catalogue determines fixed salary and premium pay from plan, attendance, calendar and the statutory rules in force.',
+		'One person-day: the planned shift and actual attendance side by side. Either may be absent. Hourly credit uses actual attendance inside the configured shift and its approved overtime windows; extra time cannot replace late arrival. Breaks follow the configured or documented duration and recorded interior gaps. Credited shortfalls and overtime round to the governing version’s attendance step (`payroll.attendance`). The governing catalogue determines fixed salary and premium pay from plan, attendance, calendar and the statutory rules in force.',
 	icon: 'lucide:calendar-clock',
 	label: 'work_date',
 	fields: {
@@ -14,7 +14,7 @@ export default model({
 			scale: 2,
 			min: 0,
 			optional: true,
-			help: 'The overtime duration approved alongside the shift code. Only this duration can be paid as overtime, limited by actual attendance and rounded down to completed half-hours. Blank means no approved overtime.'
+			help: 'The overtime duration approved alongside the shift code. Only this duration can be paid as overtime, limited by actual attendance and rounded to the governing version’s attendance step. Blank means no approved overtime.'
 		},
 		approved_overtime_intervals: {
 			kind: 'list',
@@ -27,7 +27,7 @@ export default model({
 				}
 			},
 			optional: true,
-			help: 'The exact approved overtime windows and their documented unpaid break duration, when separately recorded. Attendance must fall inside these windows, net of their breaks, and remains limited by the approved overtime duration. Blank uses the extension after the configured shift.'
+			help: 'The exact approved overtime windows and their documented unpaid break duration, when separately recorded. Attendance must fall inside these windows, net of their breaks, and remains limited by the approved overtime duration. Blank runs on after the configured shift where the version’s `payroll.attendance.overtime_window` is AFTER_SHIFT, and credits no overtime otherwise.'
 		},
 		worked_intervals: {
 			kind: 'list',

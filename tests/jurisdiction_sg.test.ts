@@ -20,6 +20,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, layer } from '@effect/vitest';
 import { workspace } from './kit.js';
+import sourceTeams from '../src/access_control/team/+team.ts';
 import { effectWrites, planBehaviours, Behaviours } from '../src/lib/payroll_engine/behaviours.ts';
 import { electionKeysOf } from '../src/lib/payroll_engine/employment_facts.ts';
 import { dutiesOf, DUTY_KEYS, raiseDuties, triggerOf, SEEDED_PAYROLL } from './duties.ts';
@@ -39,7 +40,6 @@ import {
 	evaluateStrict as evaluateConfigured
 } from '../src/lib/payroll_engine/expressions.ts';
 import { exportEntries, exportSlip, recordDocuments } from '../src/lib/payroll_engine/export.ts';
-import sourceTeams from '../src/access_control/team/+team.ts';
 const fixturePresent = <A>(value: A): NonNullable<A> => {
 	assert.ok(value != null, 'The fixture contains the required authored value.');
 	return value;
@@ -183,6 +183,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -677,10 +678,21 @@ const charge = (
 	| null => {
 	const config = configuration(version, code);
 	const base = { ordinary: assessed, additional: 0, assessed, amount: assessed };
+	// race and religion are dated contract-term facts (`terms.facts`), absent when unknown
+	const { race, religion, ...rest } = person;
 	const context = fixtureContext({
 		base,
 		// The engine always supplies these person keys, null when unknown.
-		person: { race: null, religion: null, nationality: null, residency_since: null, ...person },
+		person: {
+			nationality: null,
+			residency_since: null,
+			// No regular pay still to come: the month's whole wage is `assessed`.
+			normal_pending: 0,
+			...rest
+		},
+		terms: {
+			facts: { ...(race == null ? {} : { race }), ...(religion == null ? {} : { religion }) }
+		},
 		period: { key: from.slice(0, 7), from, days: 31 },
 		// The employee's declared standing for this scheme (employment_profile.facts.employment_statutory_facts).
 		scheme: { code, standing: '', elections },
@@ -787,15 +799,10 @@ const subject = (
 	const employee = {
 		gender: '',
 		marital_status: '',
-		spouse_status: '',
-		solo_parent: false,
-		disabled: false,
-		receiving_pension: false,
 		nationality: '',
 		date_of_birth: '1990-01-01',
 		age: 36,
 		children: [],
-		dependents_count: 0,
 		facts: {},
 		...over.employee
 	};
@@ -807,6 +814,7 @@ const subject = (
 		residency_since: '',
 		base_salary: 5000,
 		monthly_wage: 5000,
+		facts: {},
 		...over.terms
 	};
 	return {
@@ -816,8 +824,6 @@ const subject = (
 		employment,
 		person: {
 			employment,
-			race: null,
-			religion: null,
 			nationality: null,
 			residency_status: terms.residency_status,
 			residency_since: terms.residency_since
@@ -916,11 +922,21 @@ const engine = () => {
 	tables.set(
 		'employment_profile',
 		fixtureRows(
-			people.map(({ salary: _s, residency: _r, since: _x, category: _c, ...person }) => ({
-				...person,
-				name: person.id,
-				facts: {}
-			}))
+			people.map(
+				({
+					salary: _s,
+					residency: _r,
+					since: _x,
+					category: _c,
+					race: _a,
+					religion: _b,
+					...person
+				}) => ({
+					...person,
+					name: person.id,
+					facts: {}
+				})
+			)
 		)
 	);
 	tables.set(
@@ -941,7 +957,8 @@ const engine = () => {
 							work_classification: 'EA_COVERED',
 							statutory_work_category: person.category ?? 'NON_MANUAL',
 							employment_type: 'PERMANENT',
-							allowances: []
+							allowances: [],
+							facts: { race: person.race, religion: person.religion }
 						}
 					]
 				},
@@ -1792,6 +1809,11 @@ describe('SG public seed', () => {
 				),
 				false
 			);
+			// MSF: Shared Parental Leave covers children born on or after 1 April 2025.
+			assert.equal(
+				eligible('SHARED_PARENTAL_LEAVE', { employee: male }, citizenBirth, '2025-03-31'),
+				false
+			);
 			// CDCA s.12B / EA s.87A: a child under 7 (any, EA-covered) or a citizen child under 13.
 			const under7 = { child_birthdate: '2022-05-01', relationship: 'CHILD' };
 			const citizen10 = {
@@ -2555,7 +2577,7 @@ describe('SG public seed', () => {
 			const spl = (entry: Row, over: Parameters<typeof subject>[0] = {}) =>
 				days(
 					'SHARED_PARENTAL_LEAVE',
-					{ employee: { facts: { working_days_per_week: 5 }, ...over.employee } },
+					{ ...over, employee: { facts: { working_days_per_week: 5 }, ...over.employee } },
 					entry
 				);
 			assert.equal(spl({ occurred_on: '2026-05-01', facts: {} }), 25);
@@ -2563,7 +2585,7 @@ describe('SG public seed', () => {
 			assert.equal(spl({ occurred_on: '2026-05-01', facts: { spl_weeks_allocated: 7 } }), 35);
 			assert.equal(spl({ occurred_on: '2026-05-01', facts: { spl_weeks_allocated: 12 } }), 50);
 			assert.equal(
-				spl({ occurred_on: '2026-05-01', facts: {} }, { employee: { solo_parent: true } }),
+				spl({ occurred_on: '2026-05-01', facts: {} }, { terms: { facts: { solo_parent: true } } }),
 				50
 			);
 		}
@@ -2847,6 +2869,138 @@ describe('SG public seed', () => {
 			period === '2025-12' ? 15_000 : undefined
 		);
 	}
+	for (const period of ['2026-10', '2027-02'])
+		it.effect(
+			`a bonus before, inside or after the regular run settles identical month totals for every scheme, and the slip that pays it carries its charge: ${period}`,
+			() =>
+				Effect.gen(function* () {
+					const version = versionOn(`${period}-01`);
+					const schemes = load(version, 'statutory_contribution_catalog').map((entry) =>
+						fixtureString(entry.code)
+					);
+					// One bonus per community, so CPF, CDAC, MBMF, SINDA, ECF and SDL each see one.
+					const bonuses: Readonly<Record<string, number>> = {
+						p1: 2000,
+						p2: 9000,
+						p3: 3000,
+						p4: 3000
+					};
+					const company = fixtureKey('c-sg');
+					const month = (
+						order: 'before' | 'inside' | 'after' | 'salary',
+						paid: Readonly<Record<string, number>> = bonuses,
+						salaries: Readonly<Record<string, number>> = {}
+					) => {
+						const sources = Object.keys(paid).map((person) => fixtureId(`bonus-${person}`));
+						const fixture = engine();
+						// Hired on the 1st: the CPF annual reconciliation needs no salary history before this month.
+						for (const contract of fixturePresent(fixture.tables.get('employment_contract'))) {
+							const facts = fixtureRecord(contract.facts);
+							contract.effective_range = { from: `${period}-01`, to: null };
+							contract.facts = {
+								...facts,
+								contract_terms: fixtureRecords(facts.contract_terms).map((terms) => {
+									const salary = Object.entries(salaries).find(
+										([person]) => contract.id === fixtureKey(`k-${person}`)
+									)?.[1];
+									return {
+										...terms,
+										...(salary == null ? {} : { base_salary: { value: salary, currency: 'SGD' } }),
+										effective_range: { from: `${period}-01`, to: null }
+									};
+								})
+							};
+						}
+						const pay = () => {
+							for (const [person, amount] of Object.entries(paid))
+								fixturePresent(fixture.tables.get('adhoc_catalog_entry')).push(
+									fixtureRow({
+										id: `bonus-${person}`,
+										employment_id: `k-${person}`,
+										company_id: 'c-sg',
+										catalog_id: fixtureString(row(version, 'adhoc_catalog', 'bonus').id),
+										payslip_id: null,
+										occurred_on: `${period}-05`,
+										amount
+									})
+								);
+						};
+						return world(fixture.tables).useRun((history) =>
+							Effect.gen(function* () {
+								if (order === 'salary') return [yield* history(company, period, 'REGULAR')];
+								if (order === 'after') {
+									const regular = yield* history(company, period, 'REGULAR');
+									pay();
+									return [regular, yield* history(company, period, 'OFF_CYCLE', sources)];
+								}
+								pay();
+								if (order === 'inside') return [yield* history(company, period, 'REGULAR')];
+								return [
+									yield* history(company, period, 'OFF_CYCLE', sources),
+									yield* history(company, period, 'REGULAR')
+								];
+							})
+						);
+					};
+					const before = yield* month('before');
+					const inside = yield* month('inside');
+					const after = yield* month('after');
+					const salary = yield* month('salary');
+					const cents = (
+						plans: readonly PayrollPlan[],
+						scheme: string,
+						side: 'employee_amount' | 'employer_amount',
+						person?: string
+					) =>
+						Math.round(
+							plans
+								.flatMap((plan) => plan.payslips)
+								.filter(
+									(slip) => person == null || slip.employment_id === fixtureKey(`k-${person}`)
+								)
+								.flatMap((slip) => slip.statutory)
+								.filter((line) => line.scheme_code === scheme)
+								.reduce((sum, line) => sum + line[side], 0) * 100
+						);
+					for (const scheme of schemes)
+						for (const side of ['employee_amount', 'employer_amount'] as const) {
+							assert.equal(
+								cents(before, scheme, side),
+								cents(inside, scheme, side),
+								`${scheme} ${side}`
+							);
+							assert.equal(
+								cents(after, scheme, side),
+								cents(inside, scheme, side),
+								`${scheme} ${side}`
+							);
+							// Never deferred: the off-cycle slip paid first carries what the bonus adds to the salary month.
+							for (const person of Object.keys(bonuses))
+								assert.equal(
+									cents([fixturePresent(before[0])], scheme, side, person),
+									cents(inside, scheme, side, person) - cents(salary, scheme, side, person),
+									`${person} ${scheme} ${side}`
+								);
+						}
+					const offCycle = [fixturePresent(before[0])];
+					// Banded funds and the capped levy on the off-cycle slip: the increment over the salary month, not the
+					// bonus charged alone (CDAC 0.50, MBMF 24, SINDA 7, ECF 9, SDL 5 + 11.25 + 7.50 + 7.50 before).
+					assert.equal(cents(offCycle, 'CDAC', 'employee_amount', 'p1'), 100);
+					assert.equal(cents(offCycle, 'MBMF', 'employee_amount', 'p2'), 200);
+					assert.equal(cents(offCycle, 'SINDA', 'employee_amount', 'p3'), 300);
+					assert.equal(cents(offCycle, 'ECF', 'employee_amount', 'p4'), 300);
+					assert.equal(cents(offCycle, 'SDL', 'employer_amount'), 375);
+					assert.ok(cents(offCycle, 'CPF', 'employee_amount') > 0);
+					// CPF never defers either: 500 alone is below its employee threshold, but on top of the 5,000 salary still
+					// to come it adds 20% and 17% (person.normal_pending), charged on the slip that pays it.
+					const small = yield* month('before', { p3: 500 }, { p3: 5000 });
+					assert.equal(cents([fixturePresent(small[0])], 'CPF', 'employee_amount', 'p3'), 10000);
+					assert.equal(cents([fixturePresent(small[0])], 'CPF', 'employer_amount', 'p3'), 8500);
+					assert.equal(cents(small, 'CPF', 'employee_amount', 'p3'), 110000);
+					assert.equal(cents(small, 'CPF', 'employer_amount', 'p3'), 93500);
+				}).pipe(Effect.provide(workspace({ seed: 'none' }))),
+			120_000
+		);
 	for (const scenario of [
 		{
 			name: 'year-end across the age55 boundary',
@@ -3883,9 +4037,50 @@ describe('SG public seed', () => {
 			assert.equal(calendar.holidays.length, expected[version], version);
 			assert.ok(
 				calendar.holidays.every(
-					(h) => /^\d{4}-\d{2}-\d{2}$/.test(String(h.date)) && String(h.name).length > 0
+					(h) =>
+						/^\d{4}-\d{2}-\d{2}$/.test(String(h.date)) &&
+						String(h.name).length > 0 &&
+						h.source === 'https://www.mom.gov.sg/employment-practices/public-holidays'
 				)
 			);
+			// Every gazetted day inside the version's range is listed (MOM, 2026 and 2027 calendars).
+			const range = fixtureValue2(settingsOf(version).effective_range);
+			const gazetted = [
+				'2025-12-25',
+				'2026-01-01',
+				'2026-02-17',
+				'2026-02-18',
+				'2026-03-21',
+				'2026-04-03',
+				'2026-05-01',
+				'2026-05-27',
+				'2026-05-31',
+				'2026-06-01',
+				'2026-08-09',
+				'2026-08-10',
+				'2026-11-08',
+				'2026-11-09',
+				'2026-12-25',
+				'2027-01-01',
+				'2027-02-06',
+				'2027-02-07',
+				'2027-02-08',
+				'2027-03-10',
+				'2027-03-26',
+				'2027-05-01',
+				'2027-05-17',
+				'2027-05-20',
+				'2027-08-09',
+				'2027-10-28',
+				'2027-12-25'
+			];
+			for (const date of gazetted.filter(
+				(day) => day >= range.from && (range.to == null || day <= range.to)
+			))
+				assert.ok(
+					calendar.holidays.some((h) => h.date === date),
+					`${version} ${date}`
+				);
 			const settings = settingsOf(version);
 			const rule = fixturePresent(
 				fixtureValue5(settings.behaviours).rules.find((item) => item.id === 'write-public-holidays')
@@ -4884,7 +5079,41 @@ describe('SG public seed', () => {
 			assert.equal(days('2019-01-01', '2026-08-31', 91), 9); // 14 × 8/12 = 9.33 → 9
 			assert.equal(days('2025-09-01', '2026-02-28', 5), 4); // first year: 7 × 6/12 = 3.5 → 4
 			assert.equal(days('2019-01-01', '2026-03-31', 86, 0, '2026-03-15'), 0); // still employed on the day read
-			assert.equal(days('2019-01-01', '2026-03-31', 86, 9), 0);
+			// Unclamped: days taken beyond the year's share come out of the carried days the exit encashment adds.
+			assert.equal(days('2019-01-01', '2026-03-31', 86, 9), -5);
+		}
+	});
+	it('the exit encashment pays the annual leave carried into the leaving year (EA s.88A(6), (8))', () => {
+		for (const version of versions) {
+			const rule = fixturePresent(
+				fixtureValue5(settingsOf(version).behaviours).rules.find(
+					(item) => item.id === 'encash-leave-on-exit'
+				)
+			);
+			const paid = (exit: Row, carried: number) =>
+				effectWrites(rule, {
+					event: {
+						row: {
+							id: 'k1',
+							exit_ground: 'DISMISSAL',
+							exit_facts: {},
+							effective_range: { from: '2019-01-01', to: '2026-03-31' }
+						},
+						leave_balances: [
+							{ code: 'ANNUAL_LEAVE', entitlement: 14, carried, taken: 0, available: 14 + carried },
+							{ code: 'ANNUAL_LEAVE_ON_EXIT', carried: 0, ...exit }
+						]
+					},
+					catalogues: [
+						{ id: 'exit', code: 'ANNUAL_LEAVE_ON_EXIT', unit: 'DAY', entitlement: { days: '0' } }
+					],
+					movements: []
+				}).map((write) => fixtureValue11(write.data).days);
+			assert.deepEqual(paid({ entitlement: 3, taken: 0, available: 3 }, 6), [9], version);
+			// 9 days taken this year: 4 of the year's share and 5 of the 6 carried.
+			assert.deepEqual(paid({ entitlement: -5, taken: 0, available: 0 }, 6), [1], version);
+			assert.deepEqual(paid({ entitlement: -5, taken: 0, available: 0 }, 0), [], version);
+			assert.deepEqual(paid({ entitlement: 3, taken: 0, available: 3 }, 0), [3], version);
 		}
 	});
 	it('the SDL remittance is the run’s levies rounded down to the dollar', () => {
@@ -5385,8 +5614,6 @@ describe('SG public seed', () => {
 						id: 'p5',
 						name: 'p5',
 						date_of_birth: '1990-02-01',
-						race: 'OTHER',
-						religion: 'OTHER',
 						facts: { tax_resident }
 					})
 				);
@@ -5405,7 +5632,8 @@ describe('SG public seed', () => {
 									work_classification: 'EA_COVERED',
 									statutory_work_category: 'NON_MANUAL',
 									employment_type: 'PERMANENT',
-									allowances: []
+									allowances: [],
+									facts: { race: 'OTHER', religion: 'OTHER' }
 								}
 							]
 						},
@@ -5461,8 +5689,6 @@ describe('SG public seed', () => {
 							id,
 							name: id,
 							date_of_birth,
-							race: 'CHINESE',
-							religion: 'OTHER',
 							facts: {}
 						})
 					);
@@ -5481,7 +5707,8 @@ describe('SG public seed', () => {
 										work_classification: 'EA_COVERED',
 										statutory_work_category: 'MANUAL_LABOUR',
 										employment_type: 'PART_TIME',
-										allowances: []
+										allowances: [],
+										facts: { race: 'CHINESE', religion: 'OTHER' }
 									}
 								]
 							},
@@ -6081,6 +6308,26 @@ describe('SG public seed', () => {
 					);
 				assert.equal(warns([]), true);
 				assert.equal(warns([{ code: 'FIXED_MONTHLY', amount: 300 }]), false);
+				// MOM LQS: a work-pass employer pays its full-time locals outside the PWM at least the LQS.
+				const lqs = String(fixtureValue11(row(version, 'rule_set', 'LQS_WAGE_FLOOR').rules).when);
+				const floor =
+					fixtureValue2(settingsOf(version).effective_range).from >= '2026-07-01' ? 1800 : 1600;
+				const belowLqs = (monthly_wage: number, terms: Row = {}, levy_payer = true) =>
+					evaluateConfigured(
+						fixtureString(lqs),
+						fixtureContext({
+							...subject({
+								terms: { monthly_wage, facts: {}, ...terms },
+								company: { facts: { foreign_worker_levy_payer: levy_payer } }
+							})
+						})
+					);
+				assert.equal(belowLqs(floor - 1), true, version);
+				assert.equal(belowLqs(floor), false, version);
+				assert.equal(belowLqs(floor - 1, {}, false), false);
+				assert.equal(belowLqs(floor - 1, { residency_status: 'FOREIGNER' }), false);
+				assert.equal(belowLqs(floor - 1, { facts: { pwm_role: 'CLEANER_GENERAL' } }), false);
+				assert.equal(belowLqs(floor - 1, { employment_type: 'PART_TIME' }), false);
 				// EA s.76 maternity: half pay on less than 1 week's notice (the CDCA's 28 days is for a citizen child).
 				const fraction = String(row(version, 'leave_catalog', 'MATERNITY_LEAVE').pay_fraction);
 				const ea = {

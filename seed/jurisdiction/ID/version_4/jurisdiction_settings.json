@@ -22,69 +22,172 @@
 			"base_salary_required": true,
 			"off_cycle_families": ["ADHOC", "CLAIM"],
 			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse"
+			"negative_net": "refuse",
+			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
+			"exit_overpayment": "note",
+			"history_months": 12,
+			"attendance": {
+				"step_hours": 0.5,
+				"rounding": "DOWN",
+				"overtime_window": "AFTER_SHIFT",
+				"untimed_credit_day_types": ["REST", "OFF"]
+			},
+			"ten_day_splits": [10, 20],
+			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
 		},
 		"sources": {
 			"entries": [
 				{
-					"url": "https://bantenprov.go.id/",
-					"instructions": "Beranda  - Website Resmi Pemerintah Provinsi Banten. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://jdih.setneg.go.id/",
+					"instructions": "JDIH Kementerian Sekretariat Negara: the promulgated texts of statutes (UU), government regulations (PP) and presidential regulations (Perpres), and the Constitutional Court rulings on them. Authority for: the labour code — UU 13/2003 as amended by UU 6/2023 (Cipta Kerja) on working time, rest periods, overtime, annual and special leave, maternity and paternity (with UU 4/2024 on mother-and-child welfare), PKWT fixed-term contracts, termination, notice, severance (pesangon, UPMK, UPH) and final pay; PP 35/2021 (PKWT, working time, overtime, termination and its compensation); PP 36/2021 on wages as amended by PP 51/2023 and PP 49/2025 (the minimum-wage formula and the governor’s duty to set UMP/UMK/UMSP/UMSK, wage protection, payslips, deductions and their ceilings, late-wage fines); UU 27/2022 on personal data protection for employee records; and the Constitutional Court decisions that alter any of these (e.g. MK 168/PUU-XXI/2023). Use Produk Hukum > Peraturan (/produk-hukum/instrumen/peraturan), filtered by Kategori Dokumen (UU, PERPU, PP, PERPRES) and Tahun; each record’s Detail shows its status (Belum Dicabut/Diubah, Telah Diubah & Dicabut Sebagian) and the amending instrument, and Putusan Pengadilan > MK (/putusan-pengadilan/MK); open the signed PDF and its elucidation (Penjelasan). The new UU Pelindungan Ketenagakerjaan (passed by the DPR on 6 October 2026) is research only until it appears here with a number and a date in force. Social-security rates, health insurance, tax, holidays, THR and foreign-worker rules belong to the other entries. Also the authority for national health insurance (JKN, BPJS Kesehatan), whose own site refuses automated readers: national health insurance (JKN) contributions for wage earners: Perpres 82/2018 as amended by Perpres 64/2020 and 59/2024 — 5% of the wage (4% employer, 1% employee), the Rp12,000,000 ceiling and the UMK/UMP floor, the extra 1% per additional family member, registration of the worker and family, the 10th-of-the-month payment due date and suspension of cover on arrears. Quote the Perpres article."
 				},
 				{
-					"url": "https://gunungkidulkab.go.id/",
-					"instructions": "Pemerintah Kabupaten Gunungkidul. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://kemnaker.go.id/",
+					"instructions": "Kementerian Ketenagakerjaan (Ministry of Manpower) main portal. Authority for the Minister’s own instruments: the religious-holiday allowance (THR, Permenaker 6/2016 and the yearly Menaker THR circular, its deadline and fine), the yearly circular telling governors the date by which UMP/UMK must be decreed (the formula is PP text, jdih.setneg.go.id; the amounts belong to each province’s entry), compulsory manpower reporting (WLKP, UU 7/1981), and foreign workers (PP 34/2021, RPTKA approval and the DKPTKA levy of USD 100 per position per month, Permenaker 8/2021 as amended). Use Berita (/news/all), the Pengumuman dan Info tag (/news/search?tags=pengumuman-dan-info) and the unit pages (/unit/binapenta-pkk for foreign workers, /unit/sekretariat-jendral for legal notices); follow the linked signed circular or regulation. jdih.kemnaker.go.id blocks the research browser, so cite the instrument number and date announced here and its text from another registered entry where it is a PP or UU."
 				},
 				{
-					"url": "https://jdih.jakarta.go.id/",
-					"instructions": "Beranda - JDIH Provinsi DKI Jakarta. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jdih.jambiprov.go.id/",
-					"instructions": "JDIH Pemerintah Provinsi Jambi. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jdih.jatengprov.go.id/",
-					"instructions": "JDIH PROVINSI JAWA TENGAH. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jdih.kemnaker.go.id/",
-					"instructions": "jdih.kemnaker.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jdih.lampungprov.go.id/",
-					"instructions": "Home - Jaringan Dokumentasi dan Informasi Hukum | Kantor Biro Hukum Provinsi Lampung. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://jdih.pontianak.go.id/",
-					"instructions": "JDIH Kota Pontianak. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://lamongankab.go.id/",
-					"instructions": "RUMAH LAYANAN Pemerintah Kabupaten Lamongan. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://nakertrans.jogjaprov.go.id/",
-					"instructions": "nakertrans.jogjaprov.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://www.kemenkopmk.go.id/pengumuman",
+					"instructions": "Kemenko PMK announcements. Authority for the national public holidays and cuti bersama only: the yearly joint decree (SKB) of the Ministers of Religious Affairs, Manpower and Administrative Reform, Lampiran A (hari libur nasional — each date is a public holiday under UU 13/2003 art.85) and Lampiran B (cuti bersama — for a private employer annual leave taken together, not a holiday), and any amending SKB. The signed PDF is listed on this page and served from /sites/default/files/pengumuman/<year-month>/; it is a scan, so read the Lampiran page images. Seed only a signed SKB, never a draft or a meeting announcement; a later amendment replaces the affected dates."
 				},
 				{
 					"url": "https://www.bpjsketenagakerjaan.go.id/",
-					"instructions": "www.bpjsketenagakerjaan.go.id. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "BPJS Ketenagakerjaan. Authority for the employment social-security programmes: JHT old-age savings (PP 46/2015 as amended), JKK work-accident (PP 44/2015 as amended by PP 82/2019, the five risk classes and the accident-report stages), JKM death benefit, JP pension (PP 45/2015: rates, the yearly wage ceiling circular each March, the pension age and the continuation election) and JKP job-loss insurance (PP 37/2021 as amended by PP 6/2025), with registration, the 15th-of-the-month payment due date and late fines. Use Peraturan (/peraturan.html: PDFs under /assets/uploads/peraturan/) and Berita for the yearly JP ceiling announcement; quote the circular number and its effective month."
 				},
 				{
 					"url": "https://www.pajak.go.id/",
-					"instructions": "Direktorat Jenderal Pajak. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Direktorat Jenderal Pajak. Authority for payroll income tax: PPh 21 withholding on employees (UU PPh as amended by UU 7/2021, PP 58/2023 TER tables A/B/C and the daily rate in its Lampiran, PMK 168/2023 on computation, biaya jabatan, PTKP and the year-end/exit art.17 reconciliation), PPh 21 on non-employees, PPh 26 on non-residents, benefits in kind (PMK 66/2023), final PPh 21 on severance and pension lump sums (PP 68/2009), the PPh 21 borne by the government (PMK 10/2025, PMK 105/2025 and their successors), Coretax filing and payment deadlines (PMK 81/2024), the bukti potong and tax-record retention (UU KUP). Use Peraturan (/id/peraturan) searched by number and year, and Siaran Pers for new incentives; attachments (Lampiran) are PDFs under /sites/default/files/."
 				},
 				{
-					"url": "https://jdih.setneg.go.id/",
-					"instructions": "JDIH Kementerian Sekretariat Negara. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://jdih.acehprov.go.id/",
+					"instructions": "Provinsi Aceh: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Aceh” and “Provinsi Aceh/…”). Look in the Biro Hukum JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum” and the year; each record links the certified copy. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sumutprov.go.id/",
+					"instructions": "Provinsi Sumatera Utara: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sumatera Utara” and “Provinsi Sumatera Utara/…”). Look in the JDIH: Produk Hukum, jenis Keputusan Gubernur (Kep. 188.44/…/KPTS), searched “upah minimum”; the UMSK decree has separate annexes per locality. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://sumbarprov.go.id/",
+					"instructions": "Provinsi Sumatera Barat: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sumatera Barat” and “Provinsi Sumatera Barat/…”). Look in the provincial portal: Berita and the PPID/Informasi menus, where the governor’s UMP/UMK decision is announced with its number; follow the linked decree. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://riau.go.id/",
+					"instructions": "Provinsi Riau: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Riau” and “Provinsi Riau/…”). Look in the provincial portal (SELASAR): Media Center news and Informasi Publik, where the governor’s UMP/UMS decision (Kpts.) is announced; follow the linked decree. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.jambiprov.go.id/",
+					"instructions": "Provinsi Jambi: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Jambi” and “Provinsi Jambi/…”). Look in the JDIH: Produk Hukum, jenis Keputusan Gubernur (KEP.GUB/DISNAKERTRANS), searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sumselprov.go.id/",
+					"instructions": "Provinsi Sumatera Selatan: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sumatera Selatan” and “Provinsi Sumatera Selatan/…”). Look in the JDIH: produk hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.babelprov.go.id/",
+					"instructions": "Provinsi Kepulauan Bangka Belitung: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Kepulauan Bangka Belitung” and “Provinsi Kepulauan Bangka Belitung/…”). Look in the JDIH: dokumen hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.bengkuluprov.go.id/",
+					"instructions": "Provinsi Bengkulu: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Bengkulu” and “Provinsi Bengkulu/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.lampungprov.go.id/",
+					"instructions": "Provinsi Lampung: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Lampung” and “Provinsi Lampung/…”). Look in the JDIH: produk hukum, jenis Keputusan Gubernur, searched “upah minimum” (the UMP regencies and the UMK localities are separate decrees). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.jakarta.go.id/",
+					"instructions": "Provinsi DKI Jakarta: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi DKI Jakarta” and “Provinsi DKI Jakarta/…”). Look in the JDIH: Pilih Jenis Peraturan > Keputusan Gubernur, searched “upah minimum” (the UMP and the sector UMSP with its KBLI table are separate decrees). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jabarprov.go.id/",
+					"instructions": "Provinsi Jawa Barat: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Jawa Barat” and “Provinsi Jawa Barat/…”). Look in the provincial portal: Berita Jawa Barat and PPID, where each Kep. 561.7/Kep.…-Kesra decree (UMP, UMK, UMSK) is announced with its number and amounts; jdih.jabarprov.go.id blocks the research tools, so follow links to the signed copy and record any court ruling on the decree (PTUN Bandung) and its finality. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.bantenprov.go.id/",
+					"instructions": "Provinsi Banten: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Banten” and “Provinsi Banten/…”). Look in the Biro Hukum JDIH: produk hukum, jenis Keputusan Gubernur, searched “upah minimum” (UMP, UMK and the UMSK Lampiran per locality). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.jatengprov.go.id/",
+					"instructions": "Provinsi Jawa Tengah: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Jawa Tengah” and “Provinsi Jawa Tengah/…”). Look in the JDIH: produk hukum, jenis Keputusan Gubernur (Kep. 100.3.3.1/…), searched “upah minimum” (UMP, UMK, UMSP and UMSK are separate decrees). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://nakertrans.jogjaprov.go.id/",
+					"instructions": "Provinsi DI Yogyakarta: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi DI Yogyakarta” and “Provinsi DI Yogyakarta/…”). Look in the Disnakertrans DIY site: Informasi menu and news, where the governor’s UMP and UMK decrees for the five localities are published. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
 				},
 				{
 					"url": "https://disnakertrans.jatimprov.go.id/",
-					"instructions": "Dinas Tenaga Kerja dan Transmigrasi Provinsi Jawa Timur. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Provinsi Jawa Timur: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Jawa Timur” and “Provinsi Jawa Timur/…”). Look in the Disnakertrans Jatim site: news and download menus, where the governor’s UMP, UMK and UMSK decrees (Kep. 100.3.3.1/…/013) are published; the signed PDFs may be served from files.jdih.jatimprov.go.id. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
 				},
 				{
-					"url": "https://oss.go.id/",
-					"instructions": "Online Single Submission (OSS) Indonesia. Use Dokumen Hukum/Peraturan or the official search to find the law, PP, Permen/PMK, Kepgub or circular by number, year and subject. Open its text, annexes and amendment/status history. For UMP/UMK/UMSP/UMSK retain exact district, sector and KBLI coverage; labels alone do not establish a KBLI mapping. For BPJS separate scheme rates, annual ceiling circulars and worker classes. Calendar announcements need the final SKB, not a proposal. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"url": "https://jdih.baliprov.go.id/",
+					"instructions": "Provinsi Bali: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Bali” and “Provinsi Bali/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum” (UMP, UMK and the Badung sector wage). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.ntbprov.go.id/",
+					"instructions": "Provinsi Nusa Tenggara Barat: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Nusa Tenggara Barat” and “Provinsi Nusa Tenggara Barat/…”). Look in the JDIH: Produk Hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.nttprov.go.id/",
+					"instructions": "Provinsi Nusa Tenggara Timur: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Nusa Tenggara Timur” and “Provinsi Nusa Tenggara Timur/…”). Look in the JDIH: Jenis Dokumen > Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.kalteng.go.id/",
+					"instructions": "Provinsi Kalimantan Tengah: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Kalimantan Tengah” and “Provinsi Kalimantan Tengah/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur (Kep. 188.44/…), searched “upah minimum” (UMP/UMSP and the UMK/UMSK Lampiran). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.kaltimprov.go.id/",
+					"instructions": "Provinsi Kalimantan Timur: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Kalimantan Timur” and “Provinsi Kalimantan Timur/…”). Look in the Biro Hukum JDIH: Dokumen Hukum, jenis Keputusan Gubernur and Pengumuman, searched “upah minimum” (UMP, UMK and the UMSK localities). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.kaltaraprov.go.id/",
+					"instructions": "Provinsi Kalimantan Utara: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Kalimantan Utara” and “Provinsi Kalimantan Utara/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum” (UMP, UMK and UMSK). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sulutprov.go.id/",
+					"instructions": "Provinsi Sulawesi Utara: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sulawesi Utara” and “Provinsi Sulawesi Utara/…”). Look in the JDIH: Produk Hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.gorontaloprov.go.id/",
+					"instructions": "Provinsi Gorontalo: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Gorontalo” and “Provinsi Gorontalo/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sultengprov.go.id/",
+					"instructions": "Provinsi Sulawesi Tengah: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sulawesi Tengah” and “Provinsi Sulawesi Tengah/…”). Look in the JDIH: Produk Hukum, jenis Keputusan Gubernur (Kep. 500.15.14.1/…), each detailperaturan record linking the signed copy (UMP, UMSP and the Morowali, Morowali Utara, Poso and Palu UMK/UMSK). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sulbarprov.go.id/",
+					"instructions": "Provinsi Sulawesi Barat: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sulawesi Barat” and “Provinsi Sulawesi Barat/…”). Look in the JDIH: produk hukum, jenis Keputusan Gubernur, searched “upah minimum” (UMP and the palm UMSP). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.sulselprov.go.id/",
+					"instructions": "Provinsi Sulawesi Selatan: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Sulawesi Selatan” and “Provinsi Sulawesi Selatan/…”). Look in the JDIH: Dokumen Hukum, jenis Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://malukuprov.go.id/",
+					"instructions": "Provinsi Maluku: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Maluku” and “Provinsi Maluku/…”). Look in the provincial portal: Publikasi and Informasi menus, where the governor’s UMP decision is announced; follow the linked decree. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.malutprov.go.id/",
+					"instructions": "Provinsi Maluku Utara: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Maluku Utara” and “Provinsi Maluku Utara/…”). Look in the JDIH: Jenis Dokumen > Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.papua.go.id/",
+					"instructions": "Provinsi Papua: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Papua” and “Provinsi Papua/…”). Look in the JDIH: Jenis Dokumen > Keputusan Gubernur, searched “upah minimum”. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.papuabaratprov.go.id/",
+					"instructions": "Provinsi Papua Barat: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Papua Barat” and “Provinsi Papua Barat/…”). Look in the JDIH: Jenis Dokumen > Keputusan Gubernur, searched “upah minimum” (UMP and the sector UMSP). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.papuabaratdayaprov.go.id/",
+					"instructions": "Provinsi Papua Barat Daya: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Papua Barat Daya” and “Provinsi Papua Barat Daya/…”). Look in the JDIH: Jenis Dokumen > Keputusan Gubernur, searched “upah minimum” (UMP and the sector UMSP). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://jdih.papuatengahprov.go.id/",
+					"instructions": "Provinsi Papua Tengah: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Papua Tengah” and “Provinsi Papua Tengah/…”). Look in the JDIH: dokumen, jenis Keputusan Gubernur (Kep. 100.3.3.1/…), searched “upah minimum” (UMP and the Mimika UMK/UMSK). Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
+				},
+				{
+					"url": "https://papuaselatan.go.id/",
+					"instructions": "Provinsi Papua Selatan: authority for the minimum wages of this province only — the governor’s decrees setting the UMP, the sector UMSP, and the UMK and sector UMSK of its kabupaten and kota (PP 36/2021 arts.25–29 as amended by PP 49/2025; seeded under the region keys “Provinsi Papua Selatan” and “Provinsi Papua Selatan/…”). Look in the provincial portal: Informasi, Dokumen Publikasi and Berita, where the governor’s UMP and UMSP decision is announced; follow the linked decree. Record the decree number, signing and effective dates, every locality’s amount to the sen, and each sector row’s KBLI code and enterprise-size or service-length scope as printed; a sector named without a KBLI is reported, not mapped. The national formula belongs to jdih.setneg.go.id, the yearly decree deadline to kemnaker.go.id, another province’s decree to its own entry."
 				}
 			],
 			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
@@ -399,9 +502,7 @@
 								"gender",
 								"date_of_birth",
 								"marital_status",
-								"solo_parent",
 								"children",
-								"dependents_count",
 								"facts"
 							]
 						},
@@ -710,6 +811,15 @@
 										"type": "boolean",
 										"title": "Previous examination meets statutory requirements",
 										"description": "A physician satisfying art.1(d) performed the recorded examination and there is no doubt about its suitability (art.2(7)). A date alone does not qualify."
+									},
+									"dependents_count": {
+										"type": "integer",
+										"minimum": 0,
+										"description": "PTKP dependants (tanggungan, at most three count): PPh 21 TER and PTKP, the Coretax status (K/n, TK/n) and the detention family aid read it (UU PPh art.7(1))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
 									}
 								}
 							}
@@ -1003,6 +1113,18 @@
 							"description": "The DJP tax object code of a non-employee’s fees on the Coretax BP21 (BP21 converter REF sheet, deemed 50%); blank = 21-100-20, services in any field."
 						}
 					}
+				},
+				"loan_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on loan_catalog_entry.facts; the CEL root `entry.facts` of the loan class's rules.",
+					"properties": {
+						"written_agreement_reference": {
+							"type": "string",
+							"title": "Written loan agreement",
+							"description": "PP 36/2021 art. 65: the written agreement a payroll loan deduction requires."
+						}
+					}
 				}
 			}
 		},
@@ -1178,7 +1300,7 @@
 				"code": "EMPLOYER_CAUSED",
 				"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
 				"counts_as_attended": "true",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
 				"authority": "PP 36/2021 art.40(2)(d) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1186,7 +1308,7 @@
 				"code": "FORCE_MAJEURE",
 				"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "UU 13/2003 art.93(1); PP 36/2021 art.40(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1194,7 +1316,7 @@
 				"code": "STRIKE_NORMATIVE",
 				"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
 				"authority": "UU 13/2003 art.145 — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			},
@@ -1202,7 +1324,7 @@
 				"code": "STRIKE_OTHER",
 				"name": "Any other strike — no work, no wage",
 				"counts_as_attended": "false",
-				"scheduled": "",
+				"scheduled": "true",
 				"pay": "0.0",
 				"authority": "UU 13/2003 art.93(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
 			}

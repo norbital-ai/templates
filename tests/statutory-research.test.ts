@@ -82,7 +82,7 @@ const toolInput = (schema: Schema.Top) => {
 	return Schema.decodeUnknownSync(Schema.Json)({ ...document.schema, $defs: document.definitions });
 };
 
-describe('statutory lineage transport (mock inference, not live research)', () => {
+describe('statutory drift research transport (mock inference, not live research)', () => {
 	for (const code of fs.readdirSync(root))
 		it.effect(`${code}: one inference saves the complete corrected draft`, () =>
 			Effect.gen(function* () {
@@ -164,6 +164,14 @@ describe('statutory lineage transport (mock inference, not live research)', () =
 					return Schema.decodeUnknownSync(Schema.Json)(page);
 				};
 				const browserTools: readonly HostTool[] = [
+					{
+						name: 'web_search',
+						description: 'Search the web; this fixture expects no searches.',
+						input: { type: 'object' },
+						async call() {
+							assert.fail('The fixture research reads the cited instrument without searching.');
+						}
+					},
 					{
 						name: 'browser_navigate',
 						description: 'Open the official instrument fixture and answer its page text.',
@@ -263,7 +271,7 @@ describe('statutory lineage transport (mock inference, not live research)', () =
 						for (const member of batch) {
 							if (member.kind !== 'read') continue;
 							const selected = member.select.fields ?? [];
-							if (member.collection === 'jurisdiction_settings' && selected.includes('code'))
+							if (member.collection === 'jurisdiction_settings' && selected.includes('payroll'))
 								assert.ok(selected.includes('suspension_kinds'));
 							const spec = Object.entries(SNAPSHOT_MODELS).find(
 								([name]) => name === member.collection
@@ -276,12 +284,12 @@ describe('statutory lineage transport (mock inference, not live research)', () =
 					return run(batch, reader, bindings);
 				});
 				const runId = yield* Effect.gen(function* () {
-					const started = yield* t.as(t.admin).start('statutory_lineage', { code });
+					const started = yield* t.as(t.admin).start('statutory_drift', { code });
 					assert.equal(started.kind, 'committed');
 					if (started.kind !== 'committed')
-						assert.fail('The administrator starts the lineage run.');
+						assert.fail('The administrator starts the research run.');
 					const output = Schema.decodeUnknownSync(
-						Schema.Struct({ id: Schema.String, automation: Schema.Literal('statutory_lineage') })
+						Schema.Struct({ id: Schema.String, automation: Schema.Literal('statutory_drift') })
 					)(started.output);
 					yield* t.runDue();
 					return output.id;
@@ -299,7 +307,7 @@ describe('statutory lineage transport (mock inference, not live research)', () =
 				);
 				assert.ok(completed);
 				assert.equal(completed.state, 'succeeded', JSON.stringify(completed.error));
-				assert.deepEqual(completed.output, { code, drafted: true, skipped: false });
+				assert.deepEqual(completed.output, { lineages: [code], drafted: [code], failed: [] });
 				const ai = t.fakes.ai;
 				assert.ok(ai);
 				assert.equal(ai.requests.length, 1);

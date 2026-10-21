@@ -39,6 +39,7 @@ const EntitlementFixture = FixtureSchema.NullOr(
 		FixtureSchema.Struct({
 			unit: FixtureSchema.optional(FixtureSchema.String),
 			days: FixtureSchema.optional(FixtureSchema.String),
+			overdraw: FixtureSchema.optional(FixtureSchema.String),
 			bands: FixtureSchema.optional(
 				FixtureSchema.Array(
 					FixtureSchema.Struct({ service_months: FixtureSchema.Number, days: FixtureSchema.Number })
@@ -952,15 +953,10 @@ const subject = (region = 'SH', facts: Row = {}, employee: Row = {}) => ({
 	employee: {
 		gender: 'FEMALE',
 		marital_status: 'MARRIED',
-		spouse_status: '',
-		solo_parent: false,
-		disabled: false,
-		receiving_pension: false,
 		nationality: 'CN',
 		date_of_birth: '1990-01-01',
 		age: 36,
 		children: [],
-		dependents_count: 0,
 		facts: employee
 	},
 	company: {
@@ -983,11 +979,11 @@ const subject = (region = 'SH', facts: Row = {}, employee: Row = {}) => ({
 	employment,
 	person: {
 		employment,
-		race: null,
-		religion: null,
 		nationality: 'CN',
 		residency_status: 'RESIDENT',
-		residency_since: null
+		residency_since: null,
+		// IIT `person.normal_pending` inside the salary run: no regular pay still to come.
+		normal_pending: 0
 	}
 });
 const entry = (facts: Row, amount = 30000) => ({
@@ -1167,6 +1163,7 @@ const statutoryContext = (region: string, facts: Row = {}, employee: Row = {}) =
 		days: 31,
 		month: 3,
 		salary_paid: false,
+		salary_run: true,
 		covered_days: 31,
 		working_days: 22,
 		covered_working_days: 22,
@@ -1226,7 +1223,10 @@ describe('CN public lineage', () => {
 				currency: 'CNY',
 				timezone: 'Asia/Shanghai',
 				tax_year_start_month: 1,
-				...SEEDED_PAYROLL
+				...SEEDED_PAYROLL,
+				// 工资总额组成的规定 第十一条: welfare and reimbursement allowances are not wages.
+				monthly_wage:
+					'terms.base_salary + sum(terms.allowances.filter(a, !(a.code in ["ONLY_CHILD_ALLOWANCE", "CHILDCARE_SUBSIDY", "TRAVEL_ALLOWANCE", "MEAL_SUBSIDY_OUT"])).map(a, a.amount))'
 			});
 			if (previous === undefined) {
 				assert.equal(range.from, '2025-12-01');
@@ -1245,6 +1245,28 @@ describe('CN public lineage', () => {
 			previous = row;
 		}
 		assert.equal(fixtureValue7(previous?.effective_range).to, null);
+	});
+	it('research sources: one reachable official portal per area, each with its own instructions', () => {
+		for (const version of VERSIONS) {
+			const sources = fixtureValue4(settingsOf(version).sources);
+			const entries = fixtureValue0(sources.entries);
+			const urls = entries.map((entry) => String(entry.url));
+			assert.deepEqual(urls, [
+				'http://www.npc.gov.cn/',
+				'https://www.gov.cn/',
+				'https://www.cac.gov.cn/',
+				'https://rsj.sh.gov.cn/',
+				'https://ybj.sh.gov.cn/',
+				'https://shanghai.chinatax.gov.cn/',
+				'https://www.shanghai.gov.cn/',
+				'https://www.ynrd.gov.cn/',
+				'https://longling.gov.cn/'
+			]);
+			// mohrss.gov.cn and fgk.chinatax.gov.cn serve script challenges and kunming.cn is a news portal: none is a source.
+			const instructions = entries.map((entry) => String(entry.instructions));
+			assert.equal(new Set(instructions).size, entries.length, version);
+			assert.ok(String(sources.instructions).length > 100, version);
+		}
 	});
 	it.effect(
 		'every row key exists on its model and codes are stable across versions',
@@ -1407,9 +1429,10 @@ describe('CN public lineage', () => {
 					);
 			for (const row of file(version, 'statutory_contribution_catalog')) {
 				const configuration = fixtureValue10(row.configuration);
-				assert.equal(configuration.person, undefined);
 				for (const region of ['SH', 'KM']) {
 					const context: Row = statutoryContext(region);
+					for (const expression of Object.values(configuration.person ?? {}))
+						number(expression, context, `${version} ${String(row.code)} person`);
 					for (const expression of Object.values(configuration.assessable ?? {}))
 						number(expression, context, `${version} ${String(row.code)} assessable`);
 					const ruled = {
@@ -1518,7 +1541,9 @@ describe('CN public lineage', () => {
 	it('payslip validations: minimum wage (monthly and hourly, both cities and classes), overtime limits, part-time limits, weekly rest', () => {
 		for (const version of VERSIONS) {
 			const checks = file(version, 'rule_set').filter(
-				(row) => row.family === 'VALIDATIONS' && fixtureValue4(row.rules).site !== 'roster'
+				(row) =>
+					row.family === 'VALIDATIONS' &&
+					!['roster', 'cycle'].includes(String(fixtureValue4(row.rules).site))
 			);
 			assert.deepEqual(checks.map((row) => row.code).toSorted(), [
 				'DISABILITY_ALLOWANCE_SI_BASE',
@@ -1582,6 +1607,33 @@ describe('CN public lineage', () => {
 		assert.equal(trips('MINIMUM_WAGE', halves(2, 0)), false); // one half's 255 alone would pass
 		// A fixed allowance counts toward the monthly wage: 2,800 + 500 passes.
 		assert.equal(trips('MINIMUM_WAGE', wage(2800, { monthly_wage: 3300 })), false);
+		// 最低工资规定 第十二条, 沪人社规〔2025〕10号: meal, commuting and housing subsidies are not minimum wage.
+		// The monthly wage leaves out the welfare allowances; the check also leaves out the expatriate housing allowance.
+		for (const version of VERSIONS)
+			assert.equal(
+				evaluateConfigured(
+					fixtureString(String(fixtureValue4(settingsOf(version).payroll).monthly_wage)),
+					fixtureContext({
+						terms: {
+							base_salary: 2600,
+							allowances: [
+								{ code: 'MEAL_SUBSIDY_OUT', amount: 300 },
+								{ code: 'FIXED_ALLOWANCE', amount: 200 }
+							]
+						}
+					})
+				),
+				2800
+			);
+		const housing = [{ code: 'FOREIGN_HOUSING_ALLOWANCE', amount: 1000 }];
+		assert.equal(
+			trips('MINIMUM_WAGE', wage(3000, { monthly_wage: 4000, allowances: housing })),
+			true
+		); // 4,000 − 1,000 housing − 510 = 2,490 < 2,740
+		assert.equal(
+			trips('MINIMUM_WAGE', wage(3300, { monthly_wage: 4300, allowances: housing })),
+			false
+		);
 		// Kunming: class 1 2,270 from September 2026; classes 2 and 3 2,120 / 1,970; class 2 in March 2026 2,020.
 		const km = (base: number, zone = '1', over: Row = {}) => ({
 			...wage(base),
@@ -1996,6 +2048,26 @@ describe('CN public lineage', () => {
 			}).tax,
 			790 + 1740
 		);
+		// An off-cycle slip paid before the month's salary run: 10,000 of ordinary pay is taxed at the margin above the
+		// 30,000 wage still to come (person.normal_pending), 35,000 → 6,090 less 25,000 → 3,590 = 2,500, not 10,000 − 5,000
+		// on its own (290). The salary run then charges the month's 6,090 less the 2,500 already withheld.
+		const pending = (normal_pending: number, ordinary: number) =>
+			assess({
+				person: { ...nonResident().person, normal_pending },
+				month: { ordinary, bonus: 0, deductions: 0, ...PARTS }
+			}).tax;
+		assert.equal(pending(30000, 10000), 2500);
+		assert.equal(pending(0, 40000), 6090);
+		// A resident likewise, on the cumulative table: the month deducts 12,000 (5,000, social insurance and HPF 3,500,
+		// special deductions 3,500). An off-cycle 40,000 above the pending 20,000 wage: 48,000 → 2,280 less 8,000 → 240 =
+		// 2,040; on its own 40,000 − 12,000 = 28,000 → 840.
+		const residentPending = (normal_pending: number, ordinary: number) =>
+			assess({
+				person: { ...fixtureValue4(statutoryContext('SH').person), normal_pending },
+				month: { ordinary, bonus: 0, deductions: 0, ...PARTS }
+			}).tax;
+		assert.equal(residentPending(20000, 40000), 2040);
+		assert.equal(residentPending(0, 40000), 840);
 		// A second bonus in the year merges into the month for a non-resident too.
 		assert.deepEqual(
 			assess({
@@ -2124,6 +2196,8 @@ describe('CN public lineage', () => {
 			assert.equal(at(240), 15);
 			assert.equal(fixtureValue4(annual.entitlement).window, 'CALENDAR_YEAR');
 			assert.equal(annual.encash_on_exit, true);
+			// 实施办法 第十条: untaken days are paid in the year (300%), so the year end encashes the balance.
+			assert.equal(annual.encash_at_window_end, true);
 			// 实施办法 第十二条: a leaver gets the exit year's days worked ÷ 365, rounded down.
 			const leaver = { exit_ground: 'RESIGNATION', exit_date: '2026-06-30' };
 			assert.equal(at(130, leaver), 4); // 181 / 365 × 10 = 4.96 → 4
@@ -2833,7 +2907,12 @@ describe('CN public lineage', () => {
 				const calendar = fixtureValue22(
 					code(version, 'rule_set', 'public_holidays').rules
 				).holidays;
-				const of = (kind: string) => calendar.filter((h) => h.kind === kind).map((h) => h.date);
+				// Every day cites its instrument (年节办法, the State Council arrangement notice).
+				for (const holiday of calendar) assert.match(String(holiday.source), /gov\.cn/);
+				const of = (kind: string) =>
+					calendar
+						.filter((h) => h.kind === kind && String(h.date).startsWith('2026'))
+						.map((h) => h.date);
 				assert.deepEqual(of('PUBLIC_HOLIDAY'), [
 					'2026-01-01',
 					'2026-02-16',
@@ -2860,6 +2939,40 @@ describe('CN public lineage', () => {
 				assert.deepEqual(of('SPECIAL_HOLIDAY'), ['2026-03-08', '2026-08-01']);
 				assert.equal(of('SUBSTITUTE').length, 20); // 33 days off − 13 statutory
 			}
+			// The open-ended version carries the 2027 days fixed by 年节办法 第二条、第三条 (lunar dates: 除夕 5 February,
+			// 端午 9 June, 中秋 15 September). The 2027 arrangement notice (调休, 补假 under 第六条) is not yet published.
+			const next = fixtureValue22(
+				code('version_4', 'rule_set', 'public_holidays').rules
+			).holidays.filter((h) => String(h.date).startsWith('2027'));
+			assert.deepEqual(
+				next.filter((h) => h.kind === 'PUBLIC_HOLIDAY').map((h) => h.date),
+				[
+					'2027-01-01',
+					'2027-02-05',
+					'2027-02-06',
+					'2027-02-07',
+					'2027-02-08',
+					'2027-04-05',
+					'2027-05-01',
+					'2027-05-02',
+					'2027-06-09',
+					'2027-09-15',
+					'2027-10-01',
+					'2027-10-02',
+					'2027-10-03'
+				]
+			);
+			assert.deepEqual(
+				next.filter((h) => h.kind !== 'PUBLIC_HOLIDAY').map((h) => h.date),
+				['2027-03-08', '2027-08-01']
+			);
+			for (const version of ['version_1', 'version_2', 'version_3'])
+				assert.equal(
+					fixtureValue22(code(version, 'rule_set', 'public_holidays').rules).holidays.some((h) =>
+						String(h.date).startsWith('2027')
+					),
+					false
+				);
 			// The canonical rule writes each holiday the entity lacks, unpublished.
 			const behaviours = fixtureValue21(settingsOf(V3).behaviours);
 			const rule = fixturePresent(
@@ -3130,6 +3243,14 @@ describe('CN public lineage', () => {
 			// Kunming grants no antenatal or nursing leave: the class gives 0 days there.
 			assert.equal(days('PRENATAL_LEAVE', {}, {}, 'KM'), 0);
 			assert.equal(days('NURSING_LEAVE', {}, {}, 'KM'), 0);
+			// Menstrual-period leave (every version): Shanghai 1 day of 公假 in the listed work (办法 第八条); Kunming 1–2 days
+			// for diagnosed severe dysmenorrhoea (云南省人民政府令第232号 第九条). Neither condition → none.
+			for (const version of VERSIONS)
+				assert.equal(code(version, 'leave_catalog', 'MENSTRUAL_LEAVE').is_npl, false);
+			assert.equal(days('MENSTRUAL_LEAVE', { protected_work: true }), 1);
+			assert.equal(days('MENSTRUAL_LEAVE'), 0);
+			assert.equal(days('MENSTRUAL_LEAVE', { severe_dysmenorrhea_diagnosed: true }, {}, 'KM'), 2);
+			assert.equal(days('MENSTRUAL_LEAVE', { protected_work: true }, {}, 'KM'), 0);
 			assert.equal(days('FAMILY_PLANNING_LEAVE', { surgery_type: 'TUBAL_LIGATION' }), 30);
 			assert.equal(days('FAMILY_PLANNING_LEAVE', { surgery_type: 'VASECTOMY' }), 7);
 			assert.equal(days('FAMILY_PLANNING_LEAVE', { surgery_type: 'IUD_INSERTION' }), 2);
@@ -3678,6 +3799,11 @@ describe('CN public lineage', () => {
 			assert.equal(
 				grounds.kinds.some((kind) => kind.code === 'MUTUAL'),
 				false
+			);
+			// 劳动合同法 第四十条(三): a major change in objective circumstances is named on the INCAPACITY ground.
+			assert.match(
+				String(grounds.kinds.find((kind) => kind.code === 'INCAPACITY')?.name),
+				/major change in objective circumstances/
 			);
 		});
 	});
@@ -5455,9 +5581,10 @@ describe('CN public lineage', () => {
 		);
 		layer(workspace({ seed: 'none' }))('dependent CN payroll history', (it) => {
 			it.effect(
-				'an off-cycle bonus before or after the regular run settles the same month totals',
+				'a bonus off-cycle before, inside or after the regular run settles the same month totals, never deferred',
 				Effect.fnUntraced(function* () {
-					const monthTotals = Effect.fnUntraced(function* (bonusFirst: boolean) {
+					type Order = 'before' | 'inside' | 'after';
+					const month = Effect.fnUntraced(function* (order: Order) {
 						const tables = setup();
 						return yield* world(tables).useRun((history) =>
 							Effect.gen(function* () {
@@ -5490,58 +5617,77 @@ describe('CN public lineage', () => {
 											})
 										);
 								};
-								const slips: Parameters<typeof lines>[0][] = [];
-								const order = bonusFirst
-									? [
-											['BONUSES'],
-											['OFF_CYCLE', COMPANY.SH, ['b1']],
-											['OFF_CYCLE', COMPANY.KM, ['b2']],
-											['REGULAR', COMPANY.SH, undefined],
-											['REGULAR', COMPANY.KM, undefined]
-										]
-									: [
-											['REGULAR', COMPANY.SH, undefined],
-											['REGULAR', COMPANY.KM, undefined],
-											['BONUSES'],
-											['OFF_CYCLE', COMPANY.SH, ['b1']],
-											['OFF_CYCLE', COMPANY.KM, ['b2']]
-										];
-								for (const [kind, company, sources] of order) {
+								const offCycle = [
+									['OFF_CYCLE', COMPANY.SH, ['b1']],
+									['OFF_CYCLE', COMPANY.KM, ['b2']]
+								] as const;
+								const regular = [
+									['REGULAR', COMPANY.SH, undefined],
+									['REGULAR', COMPANY.KM, undefined]
+								] as const;
+								const steps = {
+									before: [['BONUSES'], ...offCycle, ...regular],
+									inside: [['BONUSES'], ...regular],
+									after: [...regular, ['BONUSES'], ...offCycle]
+								}[order];
+								const totals: Record<string, [number, number]> = {};
+								const bonusSlips: Record<string, Record<string, [number, number]>> = {};
+								for (const [kind, company, sources] of steps) {
 									if (kind === 'BONUSES') {
 										addBonuses();
 										continue;
 									}
-									slips.push(
-										...(yield* run(
-											fixtureValue37(company),
-											'2026-03',
-											fixtureValue38(kind),
-											fixtureValue39(sources)
-										)).payslips.filter((slip) => slip.employment_id !== fixtureKey('k-p3'))
-									);
-								}
-								const totals: Record<string, [number, number]> = {};
-								for (const slip of slips)
-									for (const [scheme, [employee, employer]] of Object.entries(lines(slip))) {
-										const held = totals[`${fixtureValue40(slip).employment_id}:${scheme}`] ?? [
-											0, 0
-										];
-										totals[`${fixtureValue40(slip).employment_id}:${scheme}`] = [
-											Math.round((held[0] + employee) * 100) / 100,
-											Math.round((held[1] + employer) * 100) / 100
-										];
+									const slips = (yield* run(
+										fixtureValue37(company),
+										'2026-03',
+										fixtureValue38(kind),
+										fixtureValue39(sources ? [...sources] : undefined)
+									)).payslips.filter((slip) => slip.employment_id !== fixtureKey('k-p3'));
+									for (const slip of slips) {
+										const who = fixtureString(fixtureValue40(slip).employment_id);
+										if (kind === 'OFF_CYCLE') bonusSlips[who] = lines(slip);
+										for (const [scheme, [employee, employer]] of Object.entries(lines(slip))) {
+											const held = totals[`${who}:${scheme}`] ?? [0, 0];
+											totals[`${who}:${scheme}`] = [
+												Math.round((held[0] + employee) * 100) / 100,
+												Math.round((held[1] + employer) * 100) / 100
+											];
+										}
 									}
-								return totals;
+								}
+								return { totals, bonusSlips };
 							})
 						);
 					});
-					const after = yield* monthTotals(false);
-					const before = yield* monthTotals(true);
-					assert.deepEqual(before, after);
+					const before = yield* month('before');
+					const inside = yield* month('inside');
+					const after = yield* month('after');
+					// Every scheme of the version: identical month totals, employee and employer, in all three orders.
+					assert.deepEqual(before.totals, after.totals);
+					assert.deepEqual(inside.totals, after.totals);
+					const charged = new Set(Object.keys(after.totals).map((key) => key.split(':')[1]));
+					// Every scheme of the version is charged here except the Shanghai supplementary fund, which no fixture elects.
+					assert.deepEqual(
+						[...charged].toSorted(),
+						LAW_KIT.rows('version_2', 'statutory_contribution_catalog')
+							.map((row) => fixtureString(row.code))
+							.filter((scheme) => scheme !== 'HPF_SUPPLEMENTARY')
+							.toSorted()
+					);
+					const p1 = fixtureKey('k-p1');
+					const p2 = fixtureKey('k-p2');
 					// The separately taxed annual bonus and the merged bonus both land in the month's IIT.
-					assert.deepEqual(after[`${fixtureKey('k-p1')}:IIT`], [1380 + 5790, 0]);
-					assert.ok(fixturePresent(after[`${fixtureKey('k-p2')}:IIT`])[0] > 0);
-					assert.deepEqual(after[`${fixtureKey('k-p1')}:PENSION`], [2400, 4800]);
+					assert.deepEqual(after.totals[`${p1}:IIT`], [1380 + 5790, 0]);
+					assert.deepEqual(after.totals[`${p1}:PENSION`], [2400, 4800]);
+					// Not deferred: the slip that pays the bonus carries the tax it attracts whichever run comes first. The annual
+					// bonus is taxed on its own table (60,000 ÷ 12 → 10% − 210); the merged 20,000 is taxed at the margin above the
+					// month's salary still to be paid, as it is on the slip after the regular run.
+					assert.deepEqual(before.bonusSlips[p1]?.IIT, [5790, 0]);
+					// 20,000 × 3% = 600 (before this rule the month's 5,812.59 deductions were spent on the bonus: 425.62, and the
+					// salary run caught up 240.00 instead of 65.62).
+					assert.deepEqual(before.bonusSlips[p2]?.IIT, [600, 0]);
+					assert.deepEqual(after.bonusSlips[p2]?.IIT, [600, 0]);
+					assert.deepEqual(after.totals[`${p2}:IIT`], [665.62, 0]);
 				})
 			);
 		});

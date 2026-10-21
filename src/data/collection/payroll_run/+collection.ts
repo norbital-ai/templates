@@ -3,7 +3,12 @@ import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Result, Schema } from 'effect';
-import { Reads, readsFrom, runEngine } from '../../../lib/payroll_engine/foundation.js';
+import {
+	PAYROLL_SLOTS,
+	Reads,
+	readsFrom,
+	runEngine
+} from '../../../lib/payroll_engine/foundation.js';
 import { admitPayrollRun } from '../../../lib/payroll_engine/admit.js';
 import { buildPayrollRun } from '../../../lib/payroll_engine/run.js';
 import {
@@ -25,6 +30,7 @@ import {
 } from '../../../lib/payroll_engine/export.js';
 import { salaryReport, type SalaryReport } from '../../../lib/payroll_engine/salary_report.js';
 import { bankExportDocuments } from '../../../lib/payroll_engine/bank_export.js';
+const SALARY_REPORT: keyof typeof PAYROLL_SLOTS = 'salary_report';
 /** The payslip columns the run's own build fills; the run relation supplies `payroll_run_id`. */
 const payslip_columns = [
 	'employment_id',
@@ -257,7 +263,13 @@ c.transform(function* (inputs, ctx: TransformCtx<'payroll_run'>) {
 			continue;
 		}
 		// one run per request: admission reads its entity, version and open entries
-		const kind: PayrollRunKind = input.kind === 'OFF_CYCLE' ? 'OFF_CYCLE' : 'REGULAR';
+		// A declared kind, else the model's default; anything else refuses rather than running salary.
+		const decodedKind = Schema.decodeUnknownResult(Schema.Literals(['REGULAR', 'OFF_CYCLE']))(
+			input.kind ?? 'REGULAR'
+		);
+		if (Result.isFailure(decodedKind))
+			return yield* ctx.refuse('A payroll run is REGULAR or OFF_CYCLE.', { field: 'kind' });
+		const kind: PayrollRunKind = decodedKind.success;
 		if (input.company_id == null)
 			return yield* ctx.refuse('This needs an actual approved legal entity.');
 		if (input.period == null)
@@ -506,7 +518,7 @@ c.query('export_payroll', function* ({ ids, kind }, ctx) {
 			where: {
 				settings_id: { in: { member: 'versions', field: 'id' } },
 				family: { eq: 'PAYROLL' },
-				code: { eq: 'salary_report' }
+				code: { eq: SALARY_REPORT }
 			},
 			select: { rules: true, settings_id: true },
 			all: true

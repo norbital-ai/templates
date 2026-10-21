@@ -147,7 +147,7 @@ it.effect(
 					})
 				);
 				assert.match(oldAdvance.message, /not available/);
-				for (const removed of ['occurred_on', 'reference', 'label', 'facts'])
+				for (const removed of ['occurred_on', 'reference', 'label'])
 					assert.equal(Object.hasOwn(loan, removed), false);
 				const repayments = (yield* t.storedRead('loan_repayment_entry', {
 					where: { loan_id: { eq: loan.id } },
@@ -235,7 +235,9 @@ it.effect(
 				const schedule = buildLoanSchedule({
 					principal_amount: Decimal.of('1100'),
 					repayment_period: PERIOD,
-					repayments: before
+					repayments: before,
+					scale: 2,
+					semi_monthly_split: 15
 				});
 				assert.ok(schedule.ok);
 				const update = schedule.repayments.flatMap((row) => {

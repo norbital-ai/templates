@@ -15,8 +15,7 @@
 			"OCC_INJURY",
 			"WAGE_ARREARS_FUND",
 			"WELFARE_FUND",
-			"LABOR_PENSION_RESERVE",
-			"NHI_PART_TIME"
+			"LABOR_PENSION_RESERVE"
 		],
 		"name": "伙食津貼 (meal allowance)",
 		"authority": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and NHI_SUPPLEMENT_EMPLOYER (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000.",
