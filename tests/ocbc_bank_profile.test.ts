@@ -1,47 +1,23 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, it } from '@effect/vitest';
 import { Schema } from 'effect';
+import { readRows } from '../seed/seed.ts';
+import { bankConfigurationRefusal } from '../src/lib/bank_template.ts';
 import { bankExportDocuments } from '../src/lib/payroll_engine/bank_export.ts';
-import { recordDocuments } from '../src/lib/payroll_engine/export.ts';
 
-const Field = Schema.Struct({
-	header: Schema.String,
-	value: Schema.String,
-	width: Schema.Number,
-	align: Schema.optional(Schema.Literals(['left', 'right'])),
-	pad: Schema.optional(Schema.String)
-});
-const Validation = Schema.Struct({ test: Schema.String, message: Schema.String });
-const Candidate = Schema.Struct({
+const SeededBank = Schema.Struct({
 	code: Schema.String,
 	name: Schema.String,
-	rules: Schema.Struct({
-		description: Schema.String,
-		bank_file_verified: Schema.Boolean,
-		bank_file_currencies: Schema.Array(Schema.String),
-		bank_file_validation: Schema.Struct({
-			file: Schema.Array(Validation),
-			row: Schema.Array(Validation)
-		}),
-		applies_when: Schema.String,
-		file: Schema.String,
-		format: Schema.Literal('FIXED'),
-		when: Schema.String,
-		header: Schema.Array(Field),
-		columns: Schema.Array(Field)
-	})
+	bank_codes: Schema.Array(Schema.String),
+	currencies: Schema.Array(Schema.String),
+	enabled: Schema.Boolean,
+	template: Schema.Record(Schema.String, Schema.Json)
 });
-const candidate = Schema.decodeUnknownSync(Candidate)(
-	JSON.parse(
-		readFileSync(new URL('./fixtures/ocbc_girofastwithinv_candidate.json', import.meta.url), 'utf8')
-	)
+const [seeded] = readRows(fileURLToPath(new URL('../seed/bank.json', import.meta.url))).filter(
+	(row) => row['code'] === 'OCBC_SG_FAST'
 );
-// Only synthetic tests override this flag; the candidate fixture remains disabled.
-const verifiedSynthetic = {
-	...candidate,
-	rules: { ...candidate.rules, bank_file_verified: true }
-};
+const bank = Schema.decodeUnknownSync(SeededBank)(seeded);
 type BankInput = Parameters<typeof bankExportDocuments>[0];
 const row = {
 	employee: { name: 'Example Person' },
@@ -64,7 +40,8 @@ const row = {
 	]
 };
 const input: BankInput = {
-	templates: [verifiedSynthetic],
+	bank,
+	templates: [],
 	runs: [{ period: '2026-03', pay_date: '2026-03-31' }],
 	rows: [row],
 	company: {
@@ -77,9 +54,9 @@ const input: BankInput = {
 	currency: 'SGD',
 	generated_at: '2026-03-30T12:00:00.000Z'
 };
-const withBank = (bank: typeof row.contract.bank): BankInput => ({
+const withBank = (account: typeof row.contract.bank): BankInput => ({
 	...input,
-	rows: [{ ...row, contract: { ...row.contract, bank } }]
+	rows: [{ ...row, contract: { ...row.contract, bank: account } }]
 });
 const withNet = (net: number): BankInput => ({
 	...input,
@@ -92,58 +69,62 @@ const rendered = (held: BankInput): readonly string[] => {
 	return result.documents[0]!.content.split('\n');
 };
 
-describe('disabled OCBC Singapore GIROFASTWITHINV FAST payroll candidate', () => {
-	it('stays disabled until separately verified by the bank', () => {
-		assert.equal(candidate.rules.bank_file_verified, false);
-		const result = bankExportDocuments({ ...input, templates: [candidate] });
-		assert.match(result.issue ?? '', /not been verified/);
-		assert.deepEqual(result.documents, []);
+const spaces = (count: number) => ' '.repeat(count);
+
+describe('OCBC Singapore FAST payroll bank format (public catalogue default)', () => {
+	it('is a complete, enabled SGD format for the OCBC paying account', () => {
+		assert.equal(bank.enabled, true);
+		assert.deepEqual(bank.bank_codes, ['OCBCSGSGXXX']);
+		assert.deepEqual(bank.currencies, ['SGD']);
+		assert.equal(bankConfigurationRefusal(bank), undefined);
 	});
 
-	it('defines the complete 1,000-character header and detail without a trailer', () => {
-		assert.equal(
-			candidate.rules.header.reduce((total, field) => total + field.width, 0),
-			1000
-		);
-		assert.equal(
-			candidate.rules.columns.reduce((total, field) => total + field.width, 0),
-			1000
-		);
-		assert.equal('trailer' in candidate.rules, false);
-		const direct = recordDocuments(
-			[candidate],
-			input.runs,
-			input.rows,
-			input.company,
-			input.generated_at,
-			true,
-			input.currency
-		);
-		assert.equal(direct.length, 1);
-		assert.equal(direct[0]!.name, 'OCBC-FAST-payroll-2026-03.txt');
-		const lines = direct[0]!.content.split('\n');
-		assert.equal(lines.length, 2);
-		for (const line of lines) assert.equal(Buffer.byteLength(line, 'ascii'), 1000);
-		const header = lines[0]!;
-		assert.equal(header.slice(0, 2), '30');
-		assert.equal(header.slice(2, 5), '   ');
-		assert.equal(header.slice(5, 13), '20260330');
-		assert.equal(header.slice(13, 24), 'OCBCSGSGXXX');
-		assert.equal(header.slice(24, 58), '000999999999'.padEnd(34));
-		assert.equal(header.slice(58, 205), ' '.repeat(147));
-		assert.equal(header.slice(205, 209), 'FAST');
-		assert.equal(header.slice(209, 225), ' '.repeat(16));
-		assert.equal(header.slice(225, 233), '31032026');
-		assert.equal(header.slice(233), ' '.repeat(767));
-		const detail = lines[1]!;
-		assert.equal(detail.slice(0, 11), 'TESTSGSGXXX');
-		assert.equal(detail.slice(11, 45), '000123456789'.padEnd(34));
-		assert.equal(detail.slice(45, 80), 'EXAMPLE ACCOUNT HOLDER'.padEnd(35));
-		assert.equal(detail.slice(80, 188), ' '.repeat(108));
-		assert.equal(detail.slice(188, 205), '00000000000123456');
-		assert.equal(detail.slice(205, 240), ' '.repeat(35));
-		assert.equal(detail.slice(240, 244), 'SALA');
-		assert.equal(detail.slice(244), ' '.repeat(756));
+	it('renders the owner sample layout byte for byte: 1,000-character header and details, LF, no trailer', () => {
+		const second = {
+			...row,
+			employee: { name: 'Second Example' },
+			contract: {
+				employee_number: 'EXAMPLE-02',
+				bank: {
+					bank_code: 'EXMPSGSGXXX',
+					bank_account_number: '1234567890',
+					bank_account_name: 'SECOND EXAMPLE'
+				}
+			},
+			slips: [{ ...row.slips[0], net: 98765.4 }]
+		};
+		const result = bankExportDocuments({ ...input, rows: [row, second] });
+		assert.equal(result.issue, null);
+		assert.equal(result.documents.length, 1);
+		const header =
+			'30' + // transaction type
+			spaces(3) + // batch number
+			'20260330' + // submission date YYYYMMDD
+			'OCBCSGSGXXX' + // originating BIC
+			'000999999999' +
+			spaces(22) + // company account (34)
+			spaces(147) +
+			'FAST' + // clearing
+			spaces(16) + // company reference
+			'31032026' + // value date DDMMYYYY
+			spaces(767);
+		const detail = (bic: string, account: string, holder: string, cents: string) =>
+			bic +
+			account.padEnd(34) +
+			holder.padEnd(35) +
+			spaces(108) +
+			cents + // amount in cents, 17 zero-filled
+			spaces(35) +
+			'SALA' + // purpose code
+			spaces(756);
+		const expected = [
+			header,
+			detail('TESTSGSGXXX', '000123456789', 'EXAMPLE ACCOUNT HOLDER', '00000000000123456'),
+			detail('EXMPSGSGXXX', '1234567890', 'SECOND EXAMPLE', '00000000009876540')
+		].join('\n');
+		assert.equal(result.documents[0]!.name, 'OCBC-FAST-payroll-2026-03.txt');
+		assert.equal(result.documents[0]!.content, expected);
+		for (const line of expected.split('\n')) assert.equal(line.length, 1000);
 	});
 
 	it('emits one detail per payable employee and preserves account zeroes and single cents', () => {

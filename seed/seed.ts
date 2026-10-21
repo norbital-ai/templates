@@ -98,13 +98,13 @@ export default {
 	rows(bank) {
 		const rows: { [collection: string]: Row[] } = {};
 		// The bank build projects this reader into `.norbital/cache/`; beside the source it reads its own tree.
-		const law = [
-			new URL('./jurisdiction/', import.meta.url),
-			new URL('../../seed/jurisdiction/', import.meta.url)
-		]
+		const seed = [new URL('./', import.meta.url), new URL('../../seed/', import.meta.url)]
 			.map((url) => fileURLToPath(url))
-			.find((candidate) => existsSync(candidate));
-		if (law === undefined) throw new Error('Jurisdiction seed data is absent.');
+			.find((candidate) => existsSync(`${candidate}jurisdiction/`));
+		if (seed === undefined) throw new Error('Jurisdiction seed data is absent.');
+		const law = `${seed}jurisdiction/`;
+		// The public bank-format catalogue: verified upload layouts an entity selects for its paying account.
+		rows['bank'] = readRows(`${seed}bank.json`);
 		for (const lineage of readdirSync(law, { withFileTypes: true })
 			.filter((entry) => entry.isDirectory())
 			.map((entry) => entry.name)

@@ -20,6 +20,7 @@
 			{...record ? { id: record.id } : {}}
 			{record}
 			{values}
+			readonly={record?.payslip_id != null}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
 				const created = outcome.records.find((row) => row.collection === 'leave_catalog_entry');

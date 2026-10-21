@@ -3,6 +3,19 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Result } from 'effect';
 import type { SalaryReport } from '../../payroll_engine/salary_report.js';
 
+/** Light, print-safe group fills with dark text; neighbouring groups never share one. */
+const GROUP_FILLS = [
+	'FFD6E4F0',
+	'FFDCEFD8',
+	'FFFBE3C8',
+	'FFE8DDF1',
+	'FFFFF0B8',
+	'FFD3EEEC',
+	'FFF5D9D9',
+	'FFE4E4E4'
+];
+const EDGE = { style: 'medium', color: { argb: 'FF18344F' } } as const;
+
 /** The salary listing follows the raw reports: grouped columns, one employee per row and company payment last. */
 export function salaryWorkbook(reports: readonly SalaryReport[]) {
 	const workbook = new ExcelJSBrowser.Workbook();
@@ -46,6 +59,19 @@ export function salaryWorkbook(reports: readonly SalaryReport[]) {
 			sheet.mergeCells(6, index + 1, 7, index + 1);
 			sheet.getCell(6, index + 1).value = text;
 		}
+		for (const rowNumber of [6, 7]) {
+			sheet.getRow(rowNumber).height = rowNumber === 6 ? 32 : 60;
+			for (let column = 1; column <= last; column++) {
+				const cell = sheet.getCell(rowNumber, column);
+				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18344F' } };
+				cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+				cell.alignment = { wrapText: true, horizontal: 'center', vertical: 'middle' };
+			}
+		}
+		for (const [index, column] of report.columns.entries())
+			sheet.getCell(7, index + 4).value = column.label;
+		// Each group: one merged, distinctly filled cell over its columns, a matching header tint and edge borders.
+		const groups: { first: number; last: number }[] = [];
 		for (let index = 0; index < report.columns.length;) {
 			const first = index;
 			const group = report.columns[index]?.group;
@@ -53,19 +79,15 @@ export function salaryWorkbook(reports: readonly SalaryReport[]) {
 				index++;
 			if (index > first) sheet.mergeCells(6, first + 4, 6, index + 4);
 			sheet.getCell(6, first + 4).value = group ?? '';
+			const fill = GROUP_FILLS[groups.length % GROUP_FILLS.length] ?? 'FFE4E4E4';
+			for (const rowNumber of [6, 7])
+				for (let column = first; column <= index; column++) {
+					const cell = sheet.getCell(rowNumber, column + 4);
+					cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+					cell.font = { bold: true, color: { argb: 'FF18344F' }, size: 10 };
+				}
+			groups.push({ first: first + 4, last: index + 4 });
 			index++;
-		}
-		for (const [index, column] of report.columns.entries())
-			sheet.getCell(7, index + 4).value =
-				column.family === 'TOTAL' ? column.label : `${column.label}\n${column.code}`;
-		for (const rowNumber of [6, 7]) {
-			sheet.getRow(rowNumber).height = rowNumber === 6 ? 32 : 90;
-			for (let column = 1; column <= last; column++) {
-				const cell = sheet.getCell(rowNumber, column);
-				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18344F' } };
-				cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-				cell.alignment = { wrapText: true, horizontal: 'center', vertical: 'middle' };
-			}
 		}
 		const decimals = report.minor_units === 0 ? '' : `.${'0'.repeat(report.minor_units)}`;
 		const format = `#,##0${decimals};[Red](#,##0${decimals});"–"`;
@@ -130,6 +152,13 @@ export function salaryWorkbook(reports: readonly SalaryReport[]) {
 			cell.alignment = { wrapText: true };
 		}
 		sheet.getRow(totalRow).height = 30;
+		for (const group of groups)
+			for (let rowNumber = 6; rowNumber <= totalRow; rowNumber++) {
+				const start = sheet.getCell(rowNumber, group.first);
+				start.border = { ...start.border, left: EDGE };
+				const end = sheet.getCell(rowNumber, group.last);
+				end.border = { ...end.border, right: EDGE };
+			}
 		sheet.autoFilter = { from: { row: 7, column: 1 }, to: { row: totalRow - 1, column: last } };
 	}
 	return workbook;

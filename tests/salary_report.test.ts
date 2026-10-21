@@ -22,6 +22,22 @@ const profile = (jurisdiction: string) => {
 	return Schema.decodeUnknownSync(SalaryReportConfiguration)(row['rules']);
 };
 
+/** The latest version's statutory catalogue: the labels and display order the listing reads. */
+const schemes = (jurisdiction: string) => {
+	const law = lineage(jurisdiction);
+	const version = law.versions.at(-1);
+	assert.ok(version);
+	return Schema.decodeUnknownSync(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.String,
+				label: Schema.optional(Schema.String),
+				display_order: Schema.optional(Schema.Number)
+			})
+		)
+	)(law.rows(version, 'statutory_contribution_catalog'));
+};
+
 const employee: SalaryEmployee = {
 	employee_number: '0007',
 	name: 'Test employee',
@@ -101,6 +117,7 @@ const report = (
 			{ family: 'ADHOC', code: 'BONUS', direction: 'ADD' },
 			...catalogs
 		],
+		schemes: schemes(jurisdiction),
 		employees
 	});
 const amount = (value: ReturnType<typeof report>, family: string, code: string, row = 0) =>
@@ -205,6 +222,44 @@ it.effect(
 		assert.equal(sheet.views[0]?.state, 'frozen');
 	})
 );
+
+it('salary listing headers show one name in owner order and distinct group fills', () => {
+	const listing = report([
+		{
+			...employee,
+			base: [
+				{ component_code: 'BASIC', label: 'Basic salary', amount: 1000 },
+				{ component_code: 'NO_PAY_LEAVE', amount: 0 }
+			],
+			statutory: ['HDMF', 'PHIC', 'SSS'].map((scheme_code) => ({
+				scheme_code,
+				employee_amount: 10,
+				employer_amount: 20
+			}))
+		}
+	]);
+	for (const family of ['EMPLOYEE_STATUTORY', 'EMPLOYER_STATUTORY'])
+		assert.deepEqual(
+			listing.columns.filter((column) => column.family === family).map((column) => column.label),
+			['SSS', 'PHIL', 'PAG-IBIG']
+		);
+	assert.equal(
+		listing.columns.find((column) => column.code === 'NO_PAY_LEAVE')?.label,
+		'No pay leave'
+	);
+	const sheet = salaryWorkbook([listing]).worksheets[0];
+	assert.ok(sheet);
+	const fills = listing.columns.map((column, index) => {
+		assert.equal(sheet.getCell(7, index + 4).value, column.label);
+		const fill = sheet.getCell(6, index + 4).fill;
+		return fill?.type === 'pattern' ? fill.fgColor?.argb : undefined;
+	});
+	for (const [index, column] of listing.columns.entries())
+		if (index > 0 && listing.columns[index - 1]?.group !== column.group) {
+			assert.notEqual(fills[index], fills[index - 1]);
+			assert.equal(sheet.getCell(8, index + 4).border?.left?.style, 'medium');
+		}
+});
 
 it('salary listing keeps statutory carry recoveries internal, under deductions', () => {
 	const listing = report([

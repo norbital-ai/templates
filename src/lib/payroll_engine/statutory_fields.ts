@@ -576,6 +576,16 @@ export const STATUTORY_FIELDS = {
 		name: {
 			kind: 'text'
 		},
+		/** The scheme's short name on payslips and the salary listing; a missing label reads as its humanised code. */
+		label: {
+			kind: 'text',
+			optional: true
+		},
+		/** Presentation order of the scheme's lines and columns; unordered schemes follow, by code. */
+		display_order: {
+			kind: 'int',
+			optional: true
+		},
 		authority: {
 			kind: 'text',
 			optional: true

@@ -186,6 +186,7 @@ export default messages({
 	'component.payslips': 'Payslips',
 	'component.period_line': 'Period {period} · {count} payslips',
 	'component.person': 'Person',
+	'component.search_person': 'Search employee number or name',
 	'section.identity': 'Identity',
 	'section.personal': 'Personal',
 	'section.family': 'Family',
@@ -836,6 +837,9 @@ export default messages({
 	'loan.amount_required': 'Enter the repayment amount.',
 	'loan.amount_invalid': 'Repayment amounts must be positive and use whole cents.',
 	'loan.date_required': 'Choose the repayment date.',
+	'loan.principal_required': 'Enter the principal actually lent.',
+	'loan.period_required': 'Enter the repayment period, with its last repayment date.',
+	'entry.included_in_payroll': 'Included in payroll',
 	'loan.date_outside_period':
 		'The repayment date must fall within the repayment period ({from} to {to}).',
 	'loan.total_mismatch':

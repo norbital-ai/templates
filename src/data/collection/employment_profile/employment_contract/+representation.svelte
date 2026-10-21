@@ -73,7 +73,8 @@
 					<Field name="bank" />
 					<Field name="facts" />
 					<Field name="comments" />
-					<Field name="exit_ground" />
+					<!-- the ground is chosen from the version's exit_grounds list in End employment, never typed -->
+					<Field name="exit_ground" readonly />
 					<Field name="exit_facts" />
 				</Grid>
 			</Section>

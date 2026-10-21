@@ -95,6 +95,61 @@ What a turn may read and do:
   day's overtime and incentive derive from its clock past the planned shift, so the bank's typed hours
   are dropped on the way in.
 
+## UI walkthrough
+
+These screenshots were taken on staging on 2026-10-21, with the private sample pack loaded. Names, employee numbers,
+entity names and account details are masked; amounts are real.
+
+### Work import
+
+Events → Work → ⚡ → **Import…** reads a work-day workbook and previews it before writing anything. Rule warnings
+must be accepted before the import runs. The result reports what was created, updated and deleted. In this example a
+full-month file gave 356 warnings, then 654 created, 72 updated and 14 deleted. A day that a payroll run has consumed
+shows a padlock on the board.
+
+![Roster before import](docs/screenshots/01-roster-feb-before-import.png)
+![Preview warnings](docs/screenshots/03-work-import-preview-warnings.png)
+![Import result](docs/screenshots/04-work-import-result.png)
+![Roster after import](docs/screenshots/05-roster-feb-after-import.png)
+
+### Loan repayments
+
+A loan's repayments are a two-column Amount | Date table. A repayment on a payslip is locked: its amount is
+disabled and its remove control becomes a padlock ("Included in payroll"). The server refuses direct writes too:
+`loan_repayment_entry.update` → "A repayment on a payslip cannot be changed.", and `delete` is not accepted.
+
+![Locked repayment](docs/screenshots/10-loan-view-locked-repayment.png)
+![Locked repayment in edit](docs/screenshots/11-loan-edit-locked-row.png)
+![Server refusal replay](docs/screenshots/14-loan-server-refusal-replay.png)
+
+A loan with no principal or repayment period (legacy data) cannot save schedule edits.
+
+![Legacy loan edit refused](docs/screenshots/13-legacy-loan-edit-refused-period.png)
+
+### Consumed entries
+
+The run links each work day, leave, claim, ad hoc and loan entry it settles. Consumed work days are read-only on the
+board. Consumed claim, leave and ad hoc records still open an edit form; Save is refused with "This entry is captured
+by payroll. Delete that unpaid payroll run to change it."
+
+![Consumed days](docs/screenshots/20-roster-jan-padlocks.png)
+![Linked claims](docs/screenshots/21-claims-jan-linked.png)
+![Consumed claim save refused](docs/screenshots/24-claim-consumed-save-refused.png)
+![Consumed leave](docs/screenshots/25-leave-consumed-jan21-feb20.png)
+![Consumed ad hoc](docs/screenshots/26-adhoc-consumed-record.png)
+
+### Payroll run and exports
+
+The run shows its attendance window, pay due date, gross, net and employer cost. Select runs → ⚡ gives two exports:
+
+- **Export salary listing** downloads one XLSX sheet per run and currency, with columns grouped by family and a final
+  Total company payment column. That column reads "Needs confirmation" until bank charges are known.
+- **Export bank file** refuses until the paying account has a matching bank layout.
+
+![Run summary](docs/screenshots/30-run-jan-summary.png)
+![Export menu](docs/screenshots/32-run-export-menu.png)
+![Bank file refused](docs/screenshots/33-bank-file-refused.png)
+
 ## Checks
 
 ```bash

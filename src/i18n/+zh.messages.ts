@@ -176,6 +176,7 @@ export default messages({
 	'component.payslips': '工资单',
 	'component.period_line': '周期 {period} · {count} 张工资单',
 	'component.person': '人员',
+	'component.search_person': '搜索员工编号或姓名',
 	'section.identity': '身份',
 	'section.personal': '个人',
 	'section.family': '家庭',
@@ -792,6 +793,9 @@ export default messages({
 	'loan.amount_required': '请输入还款金额。',
 	'loan.amount_invalid': '还款金额必须为正数，且最多保留两位小数。',
 	'loan.date_required': '请选择还款日期。',
+	'loan.principal_required': '请输入实际借出的本金。',
+	'loan.period_required': '请输入还款期间，包括最后还款日期。',
+	'entry.included_in_payroll': '已计入薪资',
 	'loan.date_outside_period': '还款日期必须在还款期间内（{from} 至 {to}）。',
 	'loan.total_mismatch': '还款合计为 {total}，贷款本金为 {principal}。还款合计必须等于本金。',
 	'loan.schedule_instructions':

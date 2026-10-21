@@ -3,13 +3,14 @@
 	 * A captured entry's fields (inside its `Form`): the person from the opening page's entity only, and the class from
 	 * the catalogue of the employment's lineage version governing the entry day, not every lineage's identical "Bonus".
 	 * Opened from no scoped page (self-service), the person is not narrowed; the class still follows the employment. A
-	 * leave class is narrowed further to those the employee is eligible for (the balances the server lists).
+	 * leave class is narrowed further to those the employee is eligible for (the balances the server lists). An entry a
+	 * payslip consumed shows its lock and opens that payslip; its `Form` is readonly.
 	 */
 	import * as Predicate from 'effect/Predicate';
 	import { Schema } from 'effect';
 	import { inputSchema } from '@norbital-ai/std/kind';
 	import { isPlainDate, PlainDate } from '@norbital-ai/std/date';
-	import { Field, Picker, type FormState } from '@norbital-ai/ui';
+	import { Button, Field, Icon, Picker, openRecord, type FormState } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
@@ -28,6 +29,7 @@
 	} = $props();
 
 	const page = pageEntity();
+	const payslip = $derived(form.row['payslip_id']);
 	const loanCatalogId = inputSchema({ kind: 'id', of: 'loan_catalog' });
 	const isLoanCatalogId = (value: unknown): value is Id<'loan_catalog'> =>
 		Schema.is(loanCatalogId)(value);
@@ -96,6 +98,18 @@
 	} as const);
 </script>
 
+{#if Predicate.isString(payslip)}
+	<Button
+		type="button"
+		variant="ghost"
+		size="sm"
+		class="w-fit"
+		data-entry-payslip
+		onclick={() => openRecord('payslip', payslip)}
+	>
+		<Icon name="lucide:lock-keyhole" class="size-3.5" />{bolt.t('entry.included_in_payroll')}
+	</Button>
+{/if}
 <Grid minimum="card">
 	<Field name="employment_id">
 		{#snippet editor(field)}
