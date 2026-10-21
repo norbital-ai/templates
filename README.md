@@ -294,7 +294,7 @@ An administrator opens **More → System → Integrations**
 `field_ops_whatsapp` source role. This template already declares its named WhatsApp connection;
 use that instance rather than creating another channel for the same Envoy.
 
-![A connected WhatsApp agent channel with Manage, Disconnect and its import start](docs/screenshots/14-envoy-integrations.jpg)
+![A connected WhatsApp agent channel with Manage, Disconnect and its import start (account number redacted)](docs/screenshots/14-envoy-integrations.jpg)
 
 1. For an unpaired WhatsApp channel, choose **Connect**. For an already connected channel,
    choose **Manage**. **Manage** opens that connection's **Connection**,
@@ -325,9 +325,11 @@ use that instance rather than creating another channel for the same Envoy.
 
 ![Available connection providers](docs/screenshots/15-envoy-provider-choice.jpg)
 
+![Connection tab of the paired instance: provider, account (redacted) and import start](docs/screenshots/35-envoy-connection.jpg)
+
 ![Envoy deployment and active state](docs/screenshots/16-envoy-configuration.jpg)
 
-![Integration message history](docs/screenshots/17-envoy-messages.jpg)
+![Integration message history with delivered Envoy replies (numbers and names redacted)](docs/screenshots/17-envoy-messages.jpg)
 
 ![WhatsApp provider setup](docs/screenshots/18-envoy-whatsapp-setup.jpg)
 
@@ -359,6 +361,27 @@ local state without a new QR code. Automated Envoy tests
 use a fake WhatsApp link and scripted model; they validate admission, authority, message/photo
 filing and receive limits. Those tests do not establish real-provider delivery of every report
 or attachment scenario.
+
+### Envoy probe results (local, 21 October 2026)
+
+Manual probe of the persistent local workspace (`pnpm run env -- serve --template=field-operations
+--port=4183`, origin `http://field-operations.localhost:4183`), signed in as the founder
+administrator. Phone numbers and names are covered with solid boxes.
+
+| Probe                                           | Steps                                                                                                                                | Result                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Envoy configuration                          | **System → Integrations** → **Norbital · Private** → **Manage**: Connection, Configuration, Messages.                                | **PASS.** WhatsApp shows **Connected** with **Manage**/**Disconnect**; **Configuration** has **Envoy: Norbital**, **Active** on. The server was restarted (normal `serve`, auto-resumed saved state) after pairing and came back Connected with no new QR code.                                                                                                                                                   |
+| 2. Envoy conversation                           | A linked member DMs the paired number “What assignments do i have?”; open **Norbius → conversation list → Norbital (DM)**.           | **PASS (existing turn).** The transcript shows two `Read job assignments` steps and a reply that no assignment names the sender as its contractor, which matches the data. The turn was sent before this probe; no new message could be sent during it.                                                                                                                                                           |
+| 3. Envoy actions (status update / photo report) | DM a report naming an assigned job (“…is complete; photo attached”), then reopen the job's record, **Conversation** tab and history. | **NOT RUN.** No WhatsApp client for the linked member's number was available to the probe.                                                                                                                                                                                                                                                                                                                        |
+| 4. Policy boundary                              | DM a request outside the Envoy policy and verify refusal.                                                                            | **NOT RUN** (same reason). For a DM, the linked member's own authority is added to the Envoy policy (`dm: 'union'`), so a test of the policy alone needs a contractor-only member or a group turn. The policy itself grants read and status/summary updates on **any** assignment, so asking about another person's assignment is allowed, not refused. A boundary test asks to create, delete or reassign a job. |
+
+![The Envoy's DM transcript: the member's query, the scoped assignment reads and the reply](docs/screenshots/36-envoy-conversation.jpg)
+
+To finish probes 3 and 4, send from the linked member's own WhatsApp to the paired number:
+(a) a completion report with a photo for a job assigned to that member, then verify status,
+summary, photo and **Conversation** on the job and the Envoy as actor in its history; (b) from a
+contractor-only member, “Reassign <job> to someone else” or “Delete <job>”, and verify the reply
+refuses and nothing changes.
 
 ## Data model
 
