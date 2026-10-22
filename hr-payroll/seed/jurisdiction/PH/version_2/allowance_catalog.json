@@ -19,7 +19,11 @@
 		"eligibility": "",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.RICE"],
 		"name": "Meal allowance (rice subsidy)",
-		"authority": "Not fixed: a meal allowance is paid for the days it is earned.",
+		"references": [
+			{
+				"title": "Not fixed: a meal allowance is paid for the days it is earned."
+			}
+		],
 		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	},
 	{
@@ -97,7 +101,11 @@
 		"eligibility": "",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.LAUNDRY"],
 		"name": "Laundry allowance",
-		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (g): laundry allowance to ₱400 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the WTAX part `LAUNDRY`.",
+		"references": [
+			{
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (g): laundry allowance to ₱400 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the WTAX part `LAUNDRY`."
+			}
+		],
 		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	},
 	{
@@ -109,7 +117,11 @@
 		"eligibility": "",
 		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.DEP_MEDICAL"],
 		"name": "Medical cash allowance to dependants",
-		"authority": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (c): medical cash allowance to dependants to ₱2,000 a semester (₱333 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the WTAX part `DEP_MEDICAL`. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence.",
+		"references": [
+			{
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (c): medical cash allowance to dependants to ₱2,000 a semester (₱333 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the WTAX part `DEP_MEDICAL`. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence."
+			}
+		],
 		"amount": "allowance.amount / period.parts * period.paid_days / period.days"
 	}
 ]

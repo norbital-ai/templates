@@ -18,7 +18,7 @@
 		{
 			name: 'duty',
 			title: t('section.duty'),
-			fields: ['code', 'title', 'authority', 'occurrence_key']
+			fields: ['code', 'title', 'references', 'occurrence_key']
 		},
 		{
 			name: 'subject',

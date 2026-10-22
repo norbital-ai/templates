@@ -159,7 +159,7 @@ I re-checked every finding against the operative text before changing data. All 
 | TH-S3         | CONFIRMED                                                                                                                                                                                                                                                                                                                                                                                                        | Each entry now has its own instructions: the areas it owns, where on the site the instruments are, and what it does not cover.                                                     | same                                                                               |
 | TH-S4         | CONFIRMED                                                                                                                                                                                                                                                                                                                                                                                                        | Every bot-challenged or unreachable portal was removed (probe log below).                                                                                                          | same                                                                               |
 
-Each holiday row now carries `source` naming its instrument with a URL. The calendar's `authority` lists what is still unpublished.
+Each holiday row now carries `source` naming its instrument with a URL. The calendar's `references` lists what is still unpublished.
 
 ### Final sources (every version)
 

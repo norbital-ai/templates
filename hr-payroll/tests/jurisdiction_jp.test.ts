@@ -8,7 +8,7 @@ import {
 	schemaProblems as kitSchemaProblems,
 	propertiesAt as kitPropertiesAt
 } from './jurisdiction_kit.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { workspace } from './kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 const LAW_KIT = jurisdiction('JP');
@@ -526,8 +526,7 @@ const fixtureValue15 = guardFixture(
 			site: FixtureSchema.mutableKey(FixtureSchema.String),
 			kind: FixtureSchema.mutableKey(FixtureSchema.String),
 			when: FixtureSchema.mutableKey(FixtureSchema.String),
-			message: FixtureSchema.mutableKey(FixtureSchema.String),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String)
+			message: FixtureSchema.mutableKey(FixtureSchema.String)
 		}),
 		[FixtureSchema.Record(FixtureSchema.String, FixtureSchema.mutableKey(FixtureSchema.Unknown))]
 	)
@@ -1406,7 +1405,7 @@ const celOf = (version: string): [string, string][] => {
 	};
 	for (const name of ['rule_set', ...CATALOGS])
 		for (const row of file(version, name)) {
-			const { authority: _a, name: _n, ...rest } = row;
+			const { references: _r, name: _n, ...rest } = row;
 			const configuration = fixtureValue6(rest.configuration);
 			const walkable = configuration?.refuse_when
 				? {
@@ -1524,11 +1523,7 @@ describe('JP public lineage', () => {
 					for (const key of Object.keys(row))
 						assert.ok(fields.has(key), `${version}/${name}:${String(row.code)} carries ${key}`);
 					const authority =
-						name === 'rule_set'
-							? fixtureValue5(row.rules).authority
-							: name === 'jurisdiction_settings'
-								? row.change_summary
-								: row.authority;
+						name === 'jurisdiction_settings' ? row.change_summary : citationText(row.references);
 					assert.ok(
 						typeof authority === 'string' && authority.length > 40,
 						`${version}/${name}:${String(row.code)}`
@@ -2290,7 +2285,7 @@ describe('JP public lineage', () => {
 				const rules = fixtureValue5(check.rules);
 				assert.ok(['contract', 'payslip'].includes(String(rules.site)));
 				assert.ok(['refuse', 'warn', 'hold'].includes(String(rules.kind)));
-				assert.ok(String(rules.message).length > 20 && String(rules.authority).length > 40);
+				assert.ok(String(rules.message).length > 20 && citationText(check.references).length > 40);
 			}
 		}
 		// 36 agreement limits (労働基準法 art.36): 70 h overtime is over 45; with 8 rest-day hours it stays under 100.
@@ -5239,7 +5234,7 @@ describe('JP public lineage', () => {
 			for (const kind of kinds) {
 				for (const key of Object.keys(kind))
 					assert.ok(fields.has(key), `${version} ${String(kind.code)} ${key}`);
-				assert.match(String(kind.authority), /労働基準法|民法|最判|感染症法/);
+				assert.match(citationText(kind.references), /労働基準法|民法|最判|感染症法/);
 				// Every kind leaves the 全労働日 (基発0710第3号) and none counts as attended.
 				assert.equal(
 					evaluateConfigured(
@@ -5939,7 +5934,7 @@ describe('JP public lineage', () => {
 						);
 						assert.equal(roster.length, 15, version);
 						for (const row of roster)
-							assert.ok(String(fixtureValue5(row.rules).authority).length > 40, String(row.code));
+							assert.ok(citationText(row.references).length > 40, String(row.code));
 					}
 				}
 				// ── 平均賃金: the suspended days and their 休業手当 leave the average; a day or hour rate is guaranteed 60% ──────
@@ -5949,7 +5944,7 @@ describe('JP public lineage', () => {
 							file(version, 'suspension_kind').find((row) => row.code === 'EMPLOYER_CAUSED')
 						);
 						assert.equal(kind.name, '使用者の責に帰すべき事由による休業');
-						assert.match(String(kind.authority), /art\.26/);
+						assert.match(citationText(kind.references), /art\.26/);
 						const months = (extra: Row = {}) =>
 							['2026-01', '2026-02', '2026-03'].map((month) => ({
 								month,
@@ -6595,9 +6590,13 @@ describe('JP public lineage', () => {
 				file(version, 'allowance_catalog').some((row) => row.code === 'ATTENDANCE_ALLOWANCE')
 			);
 			assert.ok(
-				!String(fixtureValue5(payrollRules(version).minimum_wage).authority).includes(
-					'not modelled'
-				)
+				!citationText(
+					fixturePresent(
+						file(version, 'rule_set').find(
+							(row) => row.family === 'PAYROLL' && row.code === 'minimum_wage'
+						)
+					).references
+				).includes('not modelled')
 			);
 			// 労働基準法 art.24(2): wages at least monthly.
 			const monthly = fixtureValue23(
@@ -6841,11 +6840,11 @@ describe('JP public lineage', () => {
 				file(version, 'allowance_catalog').find((row) => row.code === 'FAMILY_ALLOWANCE')
 			);
 			assert.ok(
-				!String(familyRow.authority).includes('over-paying') &&
-					String(familyRow.authority).includes('family_allowance_by_dependants')
+				!citationText(familyRow.references).includes('over-paying') &&
+					citationText(familyRow.references).includes('family_allowance_by_dependants')
 			);
 			// ── The electronic method cites the NTA 電算機計算の特例, not the retirement table ──
-			const tax = String(scheme(version, 'INCOME_TAX').authority);
+			const tax = citationText(scheme(version, 'INCOME_TAX').references);
 			assert.ok(!tax.includes('data/18.pdf'), version);
 			assert.ok(Number(version.slice(8)) === 1 || tax.includes('denshi_01.pdf'), version);
 			// ── Night-meal cash stays in the remuneration averages; above the limit the class refuses (wholly taxable) ──
@@ -6862,7 +6861,7 @@ describe('JP public lineage', () => {
 			const meal = fixturePresent(
 				file(version, 'adhoc_catalog').find((row) => row.code === 'NIGHT_MEAL_CASH')
 			);
-			assert.match(String(meal.authority), /wholly taxable/);
+			assert.match(citationText(meal.references), /wholly taxable/);
 			assert.equal(
 				fixtureValue5(fixturePresent(fixtureRecords(meal.bands)[0]).limit).on_exceed,
 				'BLOCK'
@@ -7124,14 +7123,14 @@ describe('JP public lineage', () => {
 			true
 		);
 		for (const version of versions) {
-			const rule = fixtureValue5(
+			const cited = citationText(
 				fixturePresent(file(version, 'rule_set').find((row) => row.code === 'SHORT_TIME_COVERAGE'))
-					.rules
+					.references
 			);
-			assert.match(String(rule.authority), /附則 art\.17の3の2/, version);
-			assert.ok(!String(rule.authority).includes('art.22(2)'), version);
+			assert.match(cited, /附則 art\.17の3の2/, version);
+			assert.ok(!cited.includes('art.22(2)'), version);
 		}
-		const v1 = (code: string) => String(scheme('version_1', code).authority);
+		const v1 = (code: string) => citationText(scheme('version_1', code).references);
 		assert.ok(!v1('INCOME_TAX').includes('zeigakuhyo2026'));
 		assert.match(v1('INCOME_TAX'), /令和7年分/);
 		assert.ok(v1('RETIREMENT_TAX').includes('zeigakuhyo2024/data/18.pdf'));

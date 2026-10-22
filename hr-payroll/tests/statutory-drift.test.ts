@@ -1,22 +1,64 @@
-/** L-TPL-hr-payroll-113 official sources, quote checks, and when to raise an unsealed draft. */
+/** L-TPL-hr-payroll-113 official sources, row evidence, quote checks, and when to raise an unsealed draft. */
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { describe, it } from '@effect/vitest';
+import { jsonDiff } from '@norbital-ai/bolt';
+import { Schema } from 'effect';
 import {
 	allowedUrl,
-	findingFrom,
+	changeSummary,
 	lineageCodes,
 	pageFrom,
 	quotePresent,
-	shouldDraft,
+	rowChanges,
 	sourcesFrom,
 	unverifiedQuotes
 } from '../src/lib/payroll_engine/statutory_drift.ts';
+import {
+	SNAPSHOT_MODELS,
+	SNAPSHOT_OUTPUT,
+	snapshotFields
+} from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import { readSeedRows } from './seed_values.ts';
 
 const sources = sourcesFrom({
 	urls: ['https://www.mom.gov.sg/cpf'],
 	research_domains: ['https://www.mom.gov.sg/'],
 	instructions: 'Cite gazetted rates only.'
 });
+const url = 'https://www.mom.gov.sg/cpf';
+const quote = 'The ordinary wage ceiling is 8000 from 1 January 2026.';
+const reference = {
+	title: 'CPF Act',
+	url,
+	quote,
+	locator: 'First Schedule',
+	effective_from: '2026-01-01'
+};
+
+/** A complete snapshot of one seeded version, as the automation reads it. */
+const folder = path.resolve(import.meta.dirname, '../seed/jurisdiction/SG/version_4');
+const seedSnapshot = () => {
+	const [settings] = readSeedRows(folder, 'jurisdiction_settings');
+	assert.ok(settings);
+	const section = (name: Exclude<keyof typeof SNAPSHOT_MODELS, 'settings'>) =>
+		readSeedRows(folder, name).map((row) => snapshotFields(row, SNAPSHOT_MODELS[name].fields));
+	return {
+		settings: snapshotFields(settings, SNAPSHOT_MODELS.settings.fields),
+		adhoc_catalog: section('adhoc_catalog'),
+		allowance_catalog: section('allowance_catalog'),
+		claim_catalog: section('claim_catalog'),
+		leave_catalog: section('leave_catalog'),
+		loan_catalog: section('loan_catalog'),
+		work_catalog: section('work_catalog'),
+		statutory_contribution_catalog: section('statutory_contribution_catalog'),
+		suspension_kind: section('suspension_kind'),
+		rule_set: section('rule_set')
+	};
+};
+const json = Schema.decodeUnknownSync(Schema.Json);
+const changesOf = (before: object, after: object) =>
+	rowChanges(before, after, jsonDiff(json(before), json(after), SNAPSHOT_OUTPUT.fields.snapshot));
 
 describe('statutory drift', () => {
 	it('L-TPL-hr-payroll-113 admits listed and same-origin URLs and refuses others', () => {
@@ -30,57 +72,93 @@ describe('statutory drift', () => {
 		assert.deepEqual(lineageCodes([{ code: 'SG' }, { code: 'MY' }, { code: 'SG' }]), ['SG', 'MY']);
 	});
 
-	it('L-TPL-hr-payroll-113 drafts only when quotes appear on fetched official pages', () => {
-		const page = pageFrom({
-			url: 'https://www.mom.gov.sg/cpf',
-			title: 'CPF',
-			text: 'The ordinary wage ceiling is 8000 from 1 January 2026.'
-		});
+	it('L-TPL-hr-payroll-113 verifies a quote only on its fetched official page', () => {
+		const page = pageFrom({ url, title: 'CPF', text: `Rates. ${quote} Other text.` });
 		assert.ok(page);
 		assert.equal(pageFrom({ kind: 'timeout', message: 'upstream' }), null);
 		assert.equal(quotePresent(page.text, 'ordinary wage ceiling is 8000'), true);
 		assert.equal(quotePresent(page.text, 'short'), false);
-		const finding = findingFrom({
-			changed: true,
-			summary: 'Raise the ordinary wage ceiling to 8000.',
-			quotes: [
-				{
-					url: 'https://www.mom.gov.sg/cpf',
-					quote: 'The ordinary wage ceiling is 8000 from 1 January 2026.'
-				}
-			]
+		assert.deepEqual(unverifiedQuotes([page], [{ url, quote }], sources), []);
+		assert.equal(
+			unverifiedQuotes([{ ...page, text: 'unrelated bulletin' }], [{ url, quote }], sources).length,
+			1
+		);
+		assert.equal(unverifiedQuotes([], [{ url, quote }], sources).length, 1);
+		assert.equal(
+			unverifiedQuotes([page], [{ url: 'https://example.com/leak', quote }], sources).length,
+			1
+		);
+	});
+
+	it('L-TPL-hr-payroll-113 groups the diff by keyed row and requires fresh evidence on each changed row', () => {
+		const before = seedSnapshot();
+		assert.deepEqual(changesOf(before, seedSnapshot()), []);
+
+		const changed = seedSnapshot();
+		const leave = changed.leave_catalog[0];
+		assert.ok(leave);
+		const code = String(leave['code']);
+		leave['name'] = 'Corrected leave name';
+		leave['references'] = [reference];
+		const rows = changesOf(before, changed);
+		assert.ok(rows);
+		assert.equal(rows.length, 1);
+		const [row] = rows;
+		assert.ok(row);
+		assert.equal(row.section, 'leave_catalog');
+		assert.equal(row.code, code);
+		assert.equal(row.added, false);
+		assert.deepEqual([...row.fields].sort(), ['name', 'references']);
+		assert.deepEqual(row.evidence, [{ url, quote }]);
+		assert.equal(
+			changeSummary(rows, ' Correct the leave name. '),
+			`leave_catalog: changed ${code} (${row.fields.join(', ')})\n\nCorrect the leave name.`
+		);
+
+		const added = seedSnapshot();
+		added.rule_set.push({
+			scope: 'JURISDICTION',
+			family: 'PAYROLL',
+			code: 'probe_rule',
+			name: 'Probe rule',
+			rules: { until: 'exit_date + duration("8760h")' },
+			references: [reference]
 		});
-		assert.equal(shouldDraft(finding, unverifiedQuotes([page], finding.quotes, sources)), true);
+		const addedRows = changesOf(before, added);
+		assert.ok(addedRows);
 		assert.equal(
-			shouldDraft(
-				finding,
-				unverifiedQuotes([{ ...page, text: 'unrelated bulletin' }], finding.quotes, sources)
-			),
-			false
+			changeSummary(addedRows, 'Add the probe rule.'),
+			'rule_set: added probe_rule\n\nAdd the probe rule.'
 		);
-		assert.equal(
-			shouldDraft(
-				finding,
-				unverifiedQuotes(
-					[page],
-					[
-						{
-							url: 'https://example.com/leak',
-							quote: 'The ordinary wage ceiling is 8000 from 1 January 2026.'
-						}
-					],
-					sources
-				)
-			),
-			false
-		);
-		assert.equal(shouldDraft(findingFrom({ changed: true, summary: 'moved' }), []), false);
-		assert.equal(
-			shouldDraft(
-				findingFrom({ changed: false, summary: finding.summary, quotes: finding.quotes }),
-				[]
-			),
-			false
-		);
+	});
+
+	it('L-TPL-hr-payroll-113 never drafts an unevidenced change, a re-cited old quote, a removal or a settings edit', () => {
+		const cited = seedSnapshot();
+		const citedRow = cited.leave_catalog[0];
+		assert.ok(citedRow);
+		citedRow['references'] = [reference];
+
+		const bare = structuredClone(cited);
+		const bareRow = bare.leave_catalog[0];
+		assert.ok(bareRow);
+		bareRow['references'] = [];
+		bareRow['name'] = 'Changed without evidence';
+		assert.equal(changesOf(seedSnapshot(), bare), null);
+
+		// The row already cited this quote: a new value needs new evidence.
+		const recited = structuredClone(cited);
+		const recitedRow = recited.leave_catalog[0];
+		assert.ok(recitedRow);
+		recitedRow['name'] = 'Changed on old evidence';
+		assert.equal(changesOf(cited, recited), null);
+
+		const removed = seedSnapshot();
+		assert.ok(removed.rule_set.length > 0);
+		removed.rule_set.pop();
+		assert.equal(changesOf(seedSnapshot(), removed), null);
+
+		const settings = seedSnapshot();
+		settings.settings['name'] = 'Renamed jurisdiction';
+		assert.equal(changesOf(seedSnapshot(), settings), null);
 	});
 });

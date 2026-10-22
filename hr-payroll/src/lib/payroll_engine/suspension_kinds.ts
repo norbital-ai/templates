@@ -11,8 +11,9 @@ export const SUSPENSION_KIND = {
 			kind: 'text',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		counts_as_attended: {

@@ -455,7 +455,7 @@ export const HR_ADMIN = {
 		create: {
 			fields: [
 				'duty_code',
-				'authority',
+				'references',
 				'trigger_ref',
 				'triggered_on',
 				'due_on',
@@ -476,7 +476,7 @@ export const HR_ADMIN = {
 			fields: [
 				'code',
 				'title',
-				'authority',
+				'references',
 				'subject_collection',
 				'subject_id',
 				'trigger_ref',

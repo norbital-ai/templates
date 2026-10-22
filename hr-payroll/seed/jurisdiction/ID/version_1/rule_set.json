@@ -6,10 +6,20 @@
 		"scope": "JURISDICTION",
 		"code": "record_retention",
 		"name": "Record retention after exit",
+		"references": [
+			{
+				"title": "UU KUP",
+				"locator": "art.28(11)",
+				"url": "https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007"
+			},
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.42(1)(a), 44(1)(a)"
+			}
+		],
 		"rules": {
 			"until": "add_years(employment.exit_date.substring(0, 4) + \"-12-31\", 10)",
-			"description": "The books, records and documents of the exit's tax year — payroll, withholding slips, BPA1 — are kept 10 years in Indonesia (from the end of that tax year); the longest retention after exit. A former employee may be anonymised only after it.",
-			"authority": "UU KUP art.28(11) (https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007); UU 27/2022 arts.42(1)(a), 44(1)(a)"
+			"description": "The books, records and documents of the exit's tax year — payroll, withholding slips, BPA1 — are kept 10 years in Indonesia (from the end of that tax year); the longest retention after exit. A former employee may be anonymised only after it."
 		}
 	},
 	{
@@ -19,6 +29,11 @@
 		"scope": "JURISDICTION",
 		"code": "minimum_wage",
 		"name": "Regional minimum wage (UMP/UMK)",
+		"references": [
+			{
+				"title": "Minimum wages from 1 January 2025 (PP 36/2021 as amended by PP 51/2023; Permenaker 16/2024: 6.5% on 2024). Keys and lookup as in the 2026 versions: every kota and kabupaten is listed at its UMK or at the UMP; the worksite (`terms.facts.worksite_region`), else the company region, by exact key; an absent key or the bare key of a province whose localities are listed refuses. UMPs 2025 as the Kemnaker national list publishes them with their sen (hukumonline, UMP 2025 se-Indonesia): Aceh 3,685,616; Sumatera Utara 2,992,559; Sumatera Barat 2,994,193.47; Riau 3,508,776.22; Jambi 3,234,535; Sumatera Selatan 3,681,571; Bengkulu 2,670,039.39; Lampung 2,893,070; Bangka Belitung 3,876,600; Kepulauan Riau 3,623,654; DKI 5,396,761; DI Yogyakarta 2,264,080.95; Banten 2,905,119.90; Bali 2,996,561; NTB 2,602,931; NTT 2,328,969.69; Kalimantan Barat 2,878,286; Kalimantan Tengah 3,473,621.04; Kalimantan Selatan 3,496,195 (3,282,812.21 × 1.065; one report prints 3,496,150, below that product); Kalimantan Timur 3,579,313.77; Kalimantan Utara 3,580,160; Sulawesi Utara 3,775,425; Sulawesi Tengah 2,915,000; Sulawesi Selatan 3,657,527.37; Sulawesi Tenggara 3,073,551.70; Gorontalo 3,221,731; Sulawesi Barat 3,104,430; Maluku 3,141,700; Maluku Utara 3,408,000; Papua Barat 3,615,000; Papua Barat Daya 3,614,000; Papua, Papua Selatan and Papua Pegunungan 4,285,850; Papua Tengah 4,285,848. UMKs 2025: Jawa Barat 27 (Kep. 561.7/Kep.798-Kesra/2024), Jawa Tengah 35 (Kep. 561/45/2024), Jawa Timur 38 (Kep. 775/2024), Banten eight (Kep. 471/2024), Bali, Lampung, Kepulauan Riau, Riau, DIY as before; and, as each province restated them beside its 2026 decision or in its 2025 decree (secondary: detik, GoodStats, KitaLulus): Aceh — Banda Aceh 3,898,856, Aceh Tamiang 3,717,948; Sumatera Utara 22 UMKs (Kep. 188.44/833/KPTS/2024 for Medan); Jambi four (Kep. 953/Kep.Gub/DISNAKERTRANS-3.3/2024); Sumatera Selatan seven; Bengkulu four (Kep. M.647.DKKTRANS/2024); NTB nine (Lombok Barat at the UMP: the 2,444,067 one report prints is below it); NTT Kota Kupang 2,396,697; Kalimantan Barat eleven (Kep. 908/NAKERTRAN/2024); Kalimantan Tengah 14 (Kep. 188.44/578/2024); Kalimantan Selatan four (Kep. 100.3.3.1/01089/KUM/2024); Kalimantan Timur ten, Mahakam Ulu included; Kalimantan Utara five; Sulawesi Utara Kota Manado 3,824,264 (SK 697/2024); Sulawesi Tengah six; Sulawesi Selatan Makassar 3,880,136; Sulawesi Tenggara three; Sulawesi Barat Mamuju 3,122,680 (SK 1475/2024) and Pasangkayu 3,445,981; Maluku Kota Ambon 3,185,733; Maluku Utara Kota Ternate 3,461,250 (SK 626/KPTS/MU/2024); Papua Tengah Mimika 5,005,678; big-city UMKs Medan 4,014,072, Samarinda 3,724,437.20, Balikpapan 3,701,508, Bontang 3,780,012, Makassar 3,880,136, Palembang 3,916,635. Where two reports disagree the higher figure is seeded (the floor a worker can rely on): Kabupaten Bima 2,662,719, Murung Raya 3,793,932, Kotawaringin Timur 3,559,506.38, Gunung Mas 3,544,506, Tanah Bumbu 3,500,163, Pasangkayu 3,445,981 (one 2025 report lists only Mamuju with a UMK). Kalimantan Selatan UMKs 2025 re-read on Kep. 100.3.3.1/01089/KUM/2024 diktum KEDUA (the Disnakertrans Kalsel scan, 2026-10-08): Tanah Bumbu 3,500,163.21."
+			}
+		],
 		"rules": {
 			"by_region": {
 				"Provinsi Aceh/Kabupaten Aceh Barat": 3685616,
@@ -531,7 +546,6 @@
 				"Provinsi Sumatera Utara/Kota Tanjungbalai": 3244606,
 				"Provinsi Sumatera Utara/Kota Tebing Tinggi": 3006203
 			},
-			"authority": "Minimum wages from 1 January 2025 (PP 36/2021 as amended by PP 51/2023; Permenaker 16/2024: 6.5% on 2024). Keys and lookup as in the 2026 versions: every kota and kabupaten is listed at its UMK or at the UMP; the worksite (`terms.facts.worksite_region`), else the company region, by exact key; an absent key or the bare key of a province whose localities are listed refuses. UMPs 2025 as the Kemnaker national list publishes them with their sen (hukumonline, UMP 2025 se-Indonesia): Aceh 3,685,616; Sumatera Utara 2,992,559; Sumatera Barat 2,994,193.47; Riau 3,508,776.22; Jambi 3,234,535; Sumatera Selatan 3,681,571; Bengkulu 2,670,039.39; Lampung 2,893,070; Bangka Belitung 3,876,600; Kepulauan Riau 3,623,654; DKI 5,396,761; DI Yogyakarta 2,264,080.95; Banten 2,905,119.90; Bali 2,996,561; NTB 2,602,931; NTT 2,328,969.69; Kalimantan Barat 2,878,286; Kalimantan Tengah 3,473,621.04; Kalimantan Selatan 3,496,195 (3,282,812.21 × 1.065; one report prints 3,496,150, below that product); Kalimantan Timur 3,579,313.77; Kalimantan Utara 3,580,160; Sulawesi Utara 3,775,425; Sulawesi Tengah 2,915,000; Sulawesi Selatan 3,657,527.37; Sulawesi Tenggara 3,073,551.70; Gorontalo 3,221,731; Sulawesi Barat 3,104,430; Maluku 3,141,700; Maluku Utara 3,408,000; Papua Barat 3,615,000; Papua Barat Daya 3,614,000; Papua, Papua Selatan and Papua Pegunungan 4,285,850; Papua Tengah 4,285,848. UMKs 2025: Jawa Barat 27 (Kep. 561.7/Kep.798-Kesra/2024), Jawa Tengah 35 (Kep. 561/45/2024), Jawa Timur 38 (Kep. 775/2024), Banten eight (Kep. 471/2024), Bali, Lampung, Kepulauan Riau, Riau, DIY as before; and, as each province restated them beside its 2026 decision or in its 2025 decree (secondary: detik, GoodStats, KitaLulus): Aceh — Banda Aceh 3,898,856, Aceh Tamiang 3,717,948; Sumatera Utara 22 UMKs (Kep. 188.44/833/KPTS/2024 for Medan); Jambi four (Kep. 953/Kep.Gub/DISNAKERTRANS-3.3/2024); Sumatera Selatan seven; Bengkulu four (Kep. M.647.DKKTRANS/2024); NTB nine (Lombok Barat at the UMP: the 2,444,067 one report prints is below it); NTT Kota Kupang 2,396,697; Kalimantan Barat eleven (Kep. 908/NAKERTRAN/2024); Kalimantan Tengah 14 (Kep. 188.44/578/2024); Kalimantan Selatan four (Kep. 100.3.3.1/01089/KUM/2024); Kalimantan Timur ten, Mahakam Ulu included; Kalimantan Utara five; Sulawesi Utara Kota Manado 3,824,264 (SK 697/2024); Sulawesi Tengah six; Sulawesi Selatan Makassar 3,880,136; Sulawesi Tenggara three; Sulawesi Barat Mamuju 3,122,680 (SK 1475/2024) and Pasangkayu 3,445,981; Maluku Kota Ambon 3,185,733; Maluku Utara Kota Ternate 3,461,250 (SK 626/KPTS/MU/2024); Papua Tengah Mimika 5,005,678; big-city UMKs Medan 4,014,072, Samarinda 3,724,437.20, Balikpapan 3,701,508, Bontang 3,780,012, Makassar 3,880,136, Palembang 3,916,635. Where two reports disagree the higher figure is seeded (the floor a worker can rely on): Kabupaten Bima 2,662,719, Murung Raya 3,793,932, Kotawaringin Timur 3,559,506.38, Gunung Mas 3,544,506, Tanah Bumbu 3,500,163, Pasangkayu 3,445,981 (one 2025 report lists only Mamuju with a UMK). Kalimantan Selatan UMKs 2025 re-read on Kep. 100.3.3.1/01089/KUM/2024 diktum KEDUA (the Disnakertrans Kalsel scan, 2026-10-08): Tanah Bumbu 3,500,163.21.",
 			"by_sector": {
 				"Provinsi Papua Tengah/Kabupaten Mimika": [
 					{
@@ -644,6 +658,12 @@
 		"scope": "JURISDICTION",
 		"code": "public_holidays",
 		"name": "National public holidays (SKB 3 Menteri)",
+		"references": [
+			{
+				"title": "UU 13/2003 art.85(1): workers are not obliged to work on official public holidays. The national holidays are those the joint decree of the Ministers of Religious Affairs, Manpower and Administrative Reform fixes: for 2026 SKB No. 1497 Tahun 2025, No. 2 Tahun 2025, No. 5 Tahun 2025 (19 September 2025), Lampiran A — 17 days, Idul Fitri 1447 H on 21–22 March; for 25 December 2025 SKB No. 1017 Tahun 2024, No. 2 Tahun 2024, No. 2 Tahun 2024. The cuti bersama of Lampiran B (16 Feb, 18, 20, 23, 24 Mar, 15, 28 May, 24 Dec 2026) are not holidays: for a private employer they are annual leave taken together (JOINT_LEAVE), so they are not listed. Written to each entity unpublished; HR publishes them.",
+				"url": "https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf"
+			}
+		],
 		"rules": {
 			"holidays": [
 				{
@@ -754,8 +774,7 @@
 					"kind": "PUBLIC_HOLIDAY",
 					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
 				}
-			],
-			"authority": "UU 13/2003 art.85(1): workers are not obliged to work on official public holidays. The national holidays are those the joint decree of the Ministers of Religious Affairs, Manpower and Administrative Reform fixes: for 2026 SKB No. 1497 Tahun 2025, No. 2 Tahun 2025, No. 5 Tahun 2025 (19 September 2025), Lampiran A — 17 days, Idul Fitri 1447 H on 21–22 March (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf); for 25 December 2025 SKB No. 1017 Tahun 2024, No. 2 Tahun 2024, No. 2 Tahun 2024. The cuti bersama of Lampiran B (16 Feb, 18, 20, 23, 24 Mar, 15, 28 May, 24 Dec 2026) are not holidays: for a private employer they are annual leave taken together (JOINT_LEAVE), so they are not listed. Written to each entity unpublished; HR publishes them."
+			]
 		}
 	},
 	{
@@ -765,9 +784,13 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
 		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
+		"references": [
+			{
+				"title": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)"
+			}
+		],
 		"rules": {
 			"description": "Withhold the employee JHT and JP shares and pay them with the employer JHT, JKK, JKM and JP contributions of the wage month by the 15th of the following month; late payment carries a 2% fine per month late, borne by the employer. A 15th on a Saturday, Sunday or published holiday rolls to the next working day (PP 44/2015 art.21(3)).",
-			"authority": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)",
 			"schemes": ["JHT", "JP", "JKK", "JKM"],
 			"due": "next_working_day(add_days(period.to, 15), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -779,9 +802,14 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KESEHATAN_REMITTANCE",
 		"name": "BPJS Kesehatan contribution",
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
 		"rules": {
 			"description": "Collect the worker's 1% (and any elected extra-member 1%) and pay it with the 4% employer contribution by the 10th of each month; unpaid by month end suspends cover from the 1st of the next month. A 10th on a Saturday, Sunday or published holiday rolls to the next working day (art.39(4)).",
-			"authority": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
 			"schemes": ["KESEHATAN"],
 			"due": "next_working_day(add_days(period.from, 9), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -793,9 +821,14 @@
 		"scope": "JURISDICTION",
 		"code": "PPH21_PAYMENT",
 		"name": "PPh 21/26 deposit",
+		"references": [
+			{
+				"title": "PMK 81/2024 art.94(2); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
+				"url": "https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
+			}
+		],
 		"rules": {
 			"description": "Deposit the PPh 21 and PPh 26 withheld in the tax period by the 15th of the following month, rolled to the next working day when that is a weekend or published holiday; PPh 21 borne by the government (PPH21_DTP, a negative charge) is reported, not deposited.",
-			"authority": "PMK 81/2024 art.94(2) (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
 			"schemes": ["PPH21", "PPH21_DTP", "PPH21_FINAL_SEVERANCE", "PPH21_FINAL_PENSION", "PPH26"],
 			"due": "next_working_day(add_days(period.to, 15), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -807,12 +840,24 @@
 		"scope": "JURISDICTION",
 		"code": "PPH21_SPT_MASA",
 		"name": "SPT Masa PPh 21/26",
+		"references": [
+			{
+				"title": "UU KUP",
+				"locator": "art.3(3)(a) and art.7(1)"
+			},
+			{
+				"title": "PMK 81/2024"
+			},
+			{
+				"title": "PER-11/PJ/2025",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			}
+		],
 		"rules": {
 			"description": "File the SPT Masa PPh 21/26 with the month's withholding slips (bukti potong) within 20 days after the tax period ends; late filing Rp100,000 per SPT Masa. A due day on a Saturday, Sunday or published holiday rolls to the next working day.",
-			"authority": "UU KUP art.3(3)(a) and art.7(1); PMK 81/2024; PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "next_working_day(add_days(period.to, 20), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -824,12 +869,22 @@
 		"scope": "JURISDICTION",
 		"code": "PPH21_BPA1_YEAR_END",
 		"name": "Bukti potong 1721-A1 (BPA1) for the tax year",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
 		"rules": {
 			"description": "Give each permanent employee the annual withholding slip (formulir 1721-A1 / BPA1) for the tax year within one month after December, the last tax period.",
-			"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["12"],
 			"due": "month_end(add_months(period.from, 1))"
@@ -842,12 +897,21 @@
 		"scope": "JURISDICTION",
 		"code": "PTKP_STATUS_ANNUAL",
 		"name": "PTKP status as at 1 January",
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.7(2)"
+			}
+		],
 		"rules": {
 			"description": "Fix each employee's PTKP status (marital status and dependants) on the circumstances at the start of the calendar year and record it before the January withholding; the TER category follows it.",
-			"authority": "PMK 168/2023 art.9; UU PPh art.7(2)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"due": "period.from"
@@ -860,12 +924,17 @@
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_COMPLIANCE",
 		"name": "New provincial and city minimum wages in force",
+		"references": [
+			{
+				"title": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf"
+			}
+		],
 		"rules": {
 			"description": "Apply the governor's UMP/UMK decree for the year from its commencement on 1 January: no basic plus fixed allowances below the workplace minimum.",
-			"authority": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025 (https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"due": "period.from"
@@ -878,12 +947,18 @@
 		"scope": "JURISDICTION",
 		"code": "PAYSLIP_ISSUE",
 		"name": "Wage slip",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"description": "Give each worker a wage slip (\"bukti pembayaran Upah\") at the time the wage is paid. Raised per payslip when it is marked paid, due that day.",
-			"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
 			"trigger": {
 				"collection": "payslip",
-				"event": "updated"
+				"events": ["updated"]
 			},
 			"when": "has(row.paid_on) && row.paid_on != null",
 			"due": "row.paid_on"
@@ -896,12 +971,27 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
 		"name": "BPJS Ketenagakerjaan registration of a new worker",
+		"references": [
+			{
+				"title": "PP 45/2015",
+				"locator": "art.4(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf"
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "arts.6–7",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15(1)"
+			}
+		],
 		"rules": {
 			"description": "Register the new worker for JKK, JKM, JHT and JP (JKP follows) within 30 days of the first day of work, with the worker's and family data; the participant card goes to the worker within 3 working days of receipt. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
-			"authority": "PP 45/2015 art.4(1)–(2) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 44/2015 arts.6–7 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15(1)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "add_days(hired_on, 30)",
 			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))"
@@ -914,12 +1004,17 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KESEHATAN_REGISTRATION",
 		"name": "BPJS Kesehatan registration of a new worker",
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.13–14, 17 as amended",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
 		"rules": {
 			"description": "Register the new worker and family (spouse and up to three children) with BPJS Kesehatan on employment; a foreigner once working six months in Indonesia. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
-			"authority": "Perpres 82/2018 arts.13–14, 17 as amended (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "hired_on",
 			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))"
@@ -932,12 +1027,21 @@
 		"scope": "JURISDICTION",
 		"code": "PTKP_STATUS_AT_HIRE",
 		"name": "PTKP status and tax identity of a new employee",
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.21(5a)"
+			}
+		],
 		"rules": {
 			"description": "Record the new employee's NIK/NPWP and PTKP status (marital status, dependants) before the first withholding.",
-			"authority": "PMK 168/2023 art.9; UU PPh art.21(5a)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "hired_on"
 		}
@@ -949,12 +1053,18 @@
 		"scope": "JURISDICTION",
 		"code": "PKWT_REGISTRATION",
 		"name": "PKWT registration with the ministry",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.14",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"description": "Register a fixed-term contract (PKWT) online within 3 working days of signing (in writing at the regency/city manpower office within 7 working days where the online service is unavailable). Three working days (no Saturday, Sunday or published holiday). Waive it for a PKWTT (open-ended) hire.",
-			"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "!has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, t.employment_type == \"CONTRACT\")",
 			"due": "add_working_days(hired_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])"
@@ -967,12 +1077,18 @@
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
 		"name": "RPTKA approval and DKPTKA payment for a foreign worker",
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "arts.1 angka 7, 23",
+				"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
+			}
+		],
 		"rules": {
 			"description": "Before a foreign worker starts, hold the approved RPTKA and pay the DKPTKA compensation fund for the period worked in Indonesia. Raised for a hire whose nationality is not ID (ISO 3166-1 alpha-2).",
-			"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
 			"due": "hired_on"
@@ -985,12 +1101,22 @@
 		"scope": "JURISDICTION",
 		"code": "PPH21_BPA1_EXIT",
 		"name": "Bukti potong 1721-A1 (BPA1) for a leaver",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
 		"rules": {
 			"description": "Give a permanent employee (PERMANENT, or a full-time PKWT paid regularly) who stops working the annual withholding slip for the part year within one month after the exit month, the last tax period. Not raised for a part-time or daily worker (pegawai tidak tetap), who has the monthly bukti potong (PPH21_BUKTI_POTONG).",
-			"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -1005,12 +1131,21 @@
 		"scope": "JURISDICTION",
 		"code": "JKP_PHK_NOTIFICATION",
 		"name": "Termination notice to BPJS Ketenagakerjaan (JKP)",
+		"references": [
+			{
+				"title": "Permenaker 2/2025",
+				"locator": "art.9",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf"
+			},
+			{
+				"title": "PP 37/2021 art.20 as amended by PP 6/2025"
+			}
+		],
 		"rules": {
 			"description": "Report a JKP participant's termination of employment (PHK) to BPJS Ketenagakerjaan through SIAPkerja within 7 working days; seven working days (no Saturday, Sunday or published holiday). Raised only for a termination cause JKP covers (not resignation, retirement, total permanent disability or death; the end of a PKWT records no cause) of an Indonesian national; not raised for a worker 54 or over when hired (never a JKP participant: PP 37/2021 art.4 as amended by PP 6/2025), the hire day standing for the registration day.",
-			"authority": "Permenaker 2/2025 art.9 (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 art.20 as amended by PP 6/2025",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -1025,12 +1160,18 @@
 		"scope": "JURISDICTION",
 		"code": "TERMINATION_REPORT",
 		"name": "Report of a termination of employment",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.38",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report the termination to the ministry and the provincial/regency manpower office once the worker received the notice and did not reject it. Raised for an employer-initiated termination cause (not a resignation or death).",
-			"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -1045,12 +1186,21 @@
 		"scope": "JURISDICTION",
 		"code": "WLKP_ESTABLISHMENT_REPORT",
 		"name": "Compulsory employment report (WLKP) on establishment",
+		"references": [
+			{
+				"title": "UU 7/1981",
+				"locator": "arts.6, 8",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			},
+			{
+				"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
+			}
+		],
 		"rules": {
 			"description": "Report the company's employment data to the manpower ministry (Wajib Lapor Ketenagakerjaan di Perusahaan, online) within 30 days of establishing, reopening or moving the company. Raised when the entity is created; the due day counts from the first day of that month, never later than the deadline. The annual report thereafter is not raised (its anniversary is not on the duty context).",
-			"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
 			"trigger": {
 				"collection": "entity",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "add_days(period.from, 30)"
 		}
@@ -1062,12 +1212,17 @@
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_FLOOR",
 		"name": "Wage at least the workplace minimum wage",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(1)–(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)–(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 — the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.monthly_wage` holds only basic plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) && term.monthly_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] && employment.service_months < 12.0",
-			"message": "The monthly wage (basic plus fixed allowances; where the wage is basic plus non-fixed allowances, the basic alone) of a worker with less than one year of service is below the minimum wage of the worksite (terms.facts.worksite_region, else the company region); UU 13/2003 art.88E bars paying less.",
-			"authority": "UU 13/2003 art.88E(1)–(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)–(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021) — the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.monthly_wage` holds only basic plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE."
+			"message": "The monthly wage (basic plus fixed allowances; where the wage is basic plus non-fixed allowances, the basic alone) of a worker with less than one year of service is below the minimum wage of the worksite (terms.facts.worksite_region, else the company region); UU 13/2003 art.88E bars paying less."
 		}
 	},
 	{
@@ -1077,12 +1232,17 @@
 		"scope": "JURISDICTION",
 		"code": "BASIC_WAGE_SHARE",
 		"name": "Basic wage at least 75% of basic plus fixed allowances",
+		"references": [
+			{
+				"title": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.monthly_wage > 0.0 && term.base_salary < 0.75 * term.monthly_wage",
-			"message": "The basic wage is below 75% of basic wage plus fixed allowances (PP 36/2021 art.7(2)).",
-			"authority": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)."
+			"message": "The basic wage is below 75% of basic wage plus fixed allowances (PP 36/2021 art.7(2))."
 		}
 	},
 	{
@@ -1092,12 +1252,17 @@
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_DAILY_LIMIT",
 		"name": "Overtime at most 4 hours a day",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 hours a week, not counting overtime on the weekly rest day or an official holiday. The hours worked are still paid (art.31), so the run warns rather than refuses.",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "work.days.exists(d, (d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" && d.overtime_hours > 4.0)",
-			"message": "Overtime above 4 hours on a working day (PP 35/2021 art.26(1)); the hours are paid, the limit is breached.",
-			"authority": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 hours a week, not counting overtime on the weekly rest day or an official holiday (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf). The hours worked are still paid (art.31), so the run warns rather than refuses."
+			"message": "Overtime above 4 hours on a working day (PP 35/2021 art.26(1)); the hours are paid, the limit is breached."
 		}
 	},
 	{
@@ -1107,12 +1272,17 @@
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_WEEKLY_LIMIT",
 		"name": "Overtime at most 18 hours a week",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2). The week is read as any seven consecutive days of the attendance window, which never misses a calendar week over the limit; rest-day and holiday overtime is outside the limit (art.26(2)).",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "work.days.exists(d, sum(work.days.filter(x, (x.day_type == \"WORK\" || x.day_type == \"\") && x.holiday_kind == \"\" && calendar_distance_days(x.date, d.date) >= 0.0 && calendar_distance_days(x.date, d.date) <= 6.0).map(x, x.overtime_hours)) > 18.0)",
-			"message": "Overtime above 18 hours in seven consecutive days (PP 35/2021 art.26(1)); the hours are paid, the limit is breached.",
-			"authority": "PP 35/2021 art.26(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf). The week is read as any seven consecutive days of the attendance window, which never misses a calendar week over the limit; rest-day and holiday overtime is outside the limit (art.26(2))."
+			"message": "Overtime above 18 hours in seven consecutive days (PP 35/2021 art.26(1)); the hours are paid, the limit is breached."
 		}
 	},
 	{
@@ -1122,12 +1292,17 @@
 		"scope": "JURISDICTION",
 		"code": "WAGE_DEDUCTION_CEILING",
 		"name": "Wage deductions at most 50% of the wage paid",
+		"references": [
+			{
+				"title": "PP 36/2021 arts.63–65: fines, damages, wage advances, rent, debts and their instalments, and recovered overpaid wages may together take at most 50% of each wage payment (art.65); contributions to the state and social security (BPJS, PPh 21) are outside it (art.64), and so is the pension offset against separation pay. Here: STAFF_LOAN, DEDUCTION and CLAWBACK_OVERTIME against the gross before the clawback. The UU 13/2003 art.62 damages a resigning PKWT worker owes (PKWT_EARLY_TERMINATION_BY_WORKER) are damages within the same 50%.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "payslip.gross + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0) > 0.0 && (has(payslip.lines.STAFF_LOAN) ? -payslip.lines.STAFF_LOAN : 0.0) + (has(payslip.lines.DEDUCTION) ? -payslip.lines.DEDUCTION : 0.0) + (has(payslip.lines.PKWT_EARLY_TERMINATION_BY_WORKER) ? -payslip.lines.PKWT_EARLY_TERMINATION_BY_WORKER : 0.0) + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0) > 0.5 * (payslip.gross + (has(payslip.lines.CLAWBACK_OVERTIME) ? -payslip.lines.CLAWBACK_OVERTIME : 0.0))",
-			"message": "Loan instalments, deductions, art.62 damages and recovered overpayments exceed 50% of this wage payment (PP 36/2021 art.65); the payslip is held.",
-			"authority": "PP 36/2021 arts.63–65: fines, damages, wage advances, rent, debts and their instalments, and recovered overpaid wages may together take at most 50% of each wage payment (art.65); contributions to the state and social security (BPJS, PPh 21) are outside it (art.64), and so is the pension offset against separation pay (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021). Here: STAFF_LOAN, DEDUCTION and CLAWBACK_OVERTIME against the gross before the clawback. The UU 13/2003 art.62 damages a resigning PKWT worker owes (PKWT_EARLY_TERMINATION_BY_WORKER) are damages within the same 50%."
+			"message": "Loan instalments, deductions, art.62 damages and recovered overpayments exceed 50% of this wage payment (PP 36/2021 art.65); the payslip is held."
 		}
 	},
 	{
@@ -1137,12 +1312,17 @@
 		"scope": "JURISDICTION",
 		"code": "WLKP_ANNUAL_REPORT",
 		"name": "Annual compulsory employment report (WLKP)",
+		"references": [
+			{
+				"title": "UU 7/1981 art.8(1): the report is repeated every year; Permenaker 18/2017 as amended by Permenaker 4/2019",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			}
+		],
 		"rules": {
 			"description": "Report the company's employment data to the manpower ministry (WLKP online) every year, on the anniversary of its first report (`company.facts.wlkp_first_reported_on`). Raised once a year with that month's payroll run (one per company); a company without the date recorded raises nothing — record it.",
-			"authority": "UU 7/1981 art.8(1): the report is repeated every year (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "has(company.facts.wlkp_first_reported_on) && months_through(company.facts.wlkp_first_reported_on, period.from) > 1.0 && int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0) % 12 == 0",
 			"due": "add_months(company.facts.wlkp_first_reported_on, int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0))"
@@ -1155,12 +1335,22 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_ACCIDENT_REPORT",
 		"name": "Work accident report to BPJS Ketenagakerjaan (stage I)",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.43",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15"
+			}
+		],
 		"rules": {
 			"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the manpower office within 2 × 24 hours of it (stage I). Raised when a WORK_ACCIDENT_LEAVE absence is recorded, counted from its first day; stage II is WORK_ACCIDENT_REPORT_STAGE2.",
-			"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
 			"trigger": {
 				"collection": "leave_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\"",
 			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, 2)"
@@ -1173,12 +1363,21 @@
 		"scope": "JURISDICTION",
 		"code": "COMPANY_REGULATION_RENEWAL",
 		"name": "Renewal of the company regulations (Peraturan Perusahaan)",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.108(1), 111(3)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			},
+			{
+				"title": "Permenaker 28/2014"
+			}
+		],
 		"rules": {
 			"description": "An employer of 10 or more workers must have company regulations ratified by the minister or official; they are valid for at most 2 years and must be renewed. Raised with the payroll run of the month the recorded validity ends (`company.facts.company_regulation_valid_until`), for a company of 10 or more workers.",
-			"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); Permenaker 28/2014",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "headcount >= 10.0",
 			"when": "has(company.facts.company_regulation_valid_until) && company.facts.company_regulation_valid_until >= period.from && company.facts.company_regulation_valid_until <= period.to",
@@ -1192,30 +1391,18 @@
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_WRITTEN_ORDER",
 		"name": "Written overtime order and consent",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.28–29",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"description": "Overtime needs the employer's order and the worker's written or digital consent, and the employer keeps a list of the overtime worked (art.28). Raised when an attendance day is created or updated carrying approved overtime hours with no recorded consent (`overtime_consented_at`), due that day; meals of 1,400 kcal for 4 hours or more (art.29(1)(c)) are not tracked.",
-			"authority": "PP 35/2021 arts.28–29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 			"trigger": {
 				"collection": "roster_entry",
-				"event": "updated"
-			},
-			"when": "has(row.approved_overtime_hours) && row.approved_overtime_hours != null && row.approved_overtime_hours > 0.0 && (!has(row.overtime_consented_at) || row.overtime_consented_at == null)",
-			"due": "row.work_date"
-		}
-	},
-	{
-		"id": "d8bd2b86-7288-5cd3-89bc-d396537a01bd",
-		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OVERTIME_WRITTEN_ORDER",
-		"name": "Written overtime order and consent",
-		"rules": {
-			"description": "Overtime needs the employer's order and the worker's written or digital consent, and the employer keeps a list of the overtime worked (art.28). Raised when an attendance day is created or updated carrying approved overtime hours with no recorded consent (`overtime_consented_at`), due that day; meals of 1,400 kcal for 4 hours or more (art.29(1)(c)) are not tracked.",
-			"authority": "PP 35/2021 arts.28–29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-			"trigger": {
-				"collection": "roster_entry",
-				"event": "created"
+				"events": ["created", "updated"]
 			},
 			"when": "has(row.approved_overtime_hours) && row.approved_overtime_hours != null && row.approved_overtime_hours > 0.0 && (!has(row.overtime_consented_at) || row.overtime_consented_at == null)",
 			"due": "row.work_date"
@@ -1228,12 +1415,22 @@
 		"scope": "JURISDICTION",
 		"code": "THR_PAYMENT",
 		"name": "THR before the religious holiday",
+		"references": [
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.1(2), 2, 5(1), 5(4), 10",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			}
+		],
 		"rules": {
 			"description": "Pay the religious holiday allowance (THR) at the latest 7 days before each worker’s own religious holiday — Idul Fitri (Islam), Christmas / Kelahiran Yesus Kristus (Catholic and Protestant), Nyepi (Hindu), Waisak (Buddhist), Imlek (Konghucu); a late THR carries a 5% fine (LATE_THR_FINE). Raised with the payroll run of the month the 7-day deadline falls in, from the company’s published holidays (by name, Indonesian SKB names or English); waive it where no worker’s holiday is the one named.",
-			"authority": "Permenaker 6/2016 arts.1(2), 2, 5(1), 5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf); PP 36/2021 art.62",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "holidays_named.exists(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Kelahiran Yesus Kristus\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from && add_days(h.date, -7) <= period.to)",
 			"due": "add_days(first(holidays_named.filter(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Kelahiran Yesus Kristus\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from)).date, -7)"
@@ -1246,12 +1443,16 @@
 		"scope": "JURISDICTION",
 		"code": "SECTOR_MINIMUM_WAGE",
 		"name": "Sector minimum wage at least the governor's UMSP",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the decrees and their KBLI as `minimum_wage.sector_authority` states. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel (4–5 or 3–5 stars), class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (company.facts), and the job category for the DKI bus and hospital rows (terms.facts.umsp_job_category); the worksite is terms.facts.worksite_region, else the company region."
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && employment.service_months < 12.0 && has(rules.minimum_wage.by_sector) && has(term.facts.worksite_kbli) && rules.minimum_wage.by_sector.exists(k, ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")) && rules.minimum_wage.by_sector[k].exists(r, term.facts.worksite_kbli.startsWith(r.kbli) && (r.condition == \"\" || (r.condition == \"RAYON_VISCOSE\" && has(company.facts.umsp_rayon_viscose) && company.facts.umsp_rayon_viscose == true) || (r.condition == \"EXPORT\" && (has(company.facts.umsp_export_oriented) && company.facts.umsp_export_oriented == true)) || (r.condition == \"ASSETS_1T\" && (has(company.facts.umsp_assets_over_1_trillion) && company.facts.umsp_assets_over_1_trillion == true)) || (r.condition == \"ASTRA\" && (has(company.facts.umsp_astra_group) && company.facts.umsp_astra_group == true)) || (r.condition == \"HOTEL_4_5\" && has(company.facts.umsp_hotel_star) && company.facts.umsp_hotel_star >= 4.0) || (r.condition == \"HOTEL_3_5\" && has(company.facts.umsp_hotel_star) && company.facts.umsp_hotel_star >= 3.0) || (r.condition == \"FREEPORT_AREA\" && has(company.facts.umsp_freeport_area) && company.facts.umsp_freeport_area == true) || (r.condition == \"BUS_DRIVER_MECHANIC\" && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") == \"BUS_DRIVER_MECHANIC\") || (r.condition == \"CLASS_A_HOSPITAL_CARE\" && (has(company.facts.umsp_class_a_private_hospital) && company.facts.umsp_class_a_private_hospital == true) && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") in [\"NURSING_MIDWIFERY\", \"MEDICAL_SUPPORT\"])) && term.monthly_wage < r.monthly))",
-			"message": "The monthly wage is below the governor’s sector minimum wage for this worksite’s KBLI (rules.minimum_wage.by_sector: a KBLI code or a group prefix, of the worksite’s province or locality); a worker with less than one year of service may not be paid less.",
-			"authority": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the decrees and their KBLI as `minimum_wage.sector_authority` states. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel (4–5 or 3–5 stars), class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (company.facts), and the job category for the DKI bus and hospital rows (terms.facts.umsp_job_category); the worksite is terms.facts.worksite_region, else the company region."
+			"message": "The monthly wage is below the governor’s sector minimum wage for this worksite’s KBLI (rules.minimum_wage.by_sector: a KBLI code or a group prefix, of the worksite’s province or locality); a worker with less than one year of service may not be paid less."
 		}
 	},
 	{
@@ -1261,9 +1462,14 @@
 		"scope": "JURISDICTION",
 		"code": "DKPTKA_PAYMENT",
 		"name": "DKPTKA foreign-worker compensation fund",
+		"references": [
+			{
+				"title": "PP 34/2021 arts.1 angka 7, 6–7; USD 100 per position per month, paid in advance (Kemnaker PNBP tariff, as PP 34/2021 applies it; secondary)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
 		"rules": {
 			"description": "Pay the DKPTKA, USD 100 per foreign worker per month, in advance: the month’s charge falls due on its first day.",
-			"authority": "PP 34/2021 arts.1 angka 7, 6–7 (https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf); USD 100 per position per month, paid in advance (Kemnaker PNBP tariff, as PP 34/2021 applies it; secondary)",
 			"schemes": ["DKPTKA"],
 			"due": "period.from"
 		}
@@ -1275,12 +1481,25 @@
 		"scope": "JURISDICTION",
 		"code": "PPH21_BUKTI_POTONG",
 		"name": "Monthly PPh 21/26 withholding slips",
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.19(2)–(3), 20(1)(b), 20(3)",
+				"url": "https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
+			},
+			{
+				"title": "PER-11/PJ/2025"
+			},
+			{
+				"title": "PMK 105/2025",
+				"locator": "art.5(3)"
+			}
+		],
 		"rules": {
 			"description": "Make and give each recipient paid in the month the monthly withholding slip (BPMP for a permanent employee, BP21 for a non-permanent one, BP26), including a nil withholding and the DTP incentive, by the end of the month the tax is owed.",
-			"authority": "PMK 168/2023 arts.19(2)–(3), 20(1)(b), 20(3) (https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023); PER-11/PJ/2025; PMK 105/2025 art.5(3)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "month_end(period.from)"
 		}
@@ -1292,12 +1511,18 @@
 		"scope": "JURISDICTION",
 		"code": "LATE_WAGE_FINE",
 		"name": "Late wage: fine owed to the worker",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.55(1), 61(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"description": "A wage paid on or after the 4th day counted from its due day (the due day being day 1) carries a fine to the worker (LATE_WAGE_FINE adhoc class): 5% a day from the 4th to the 8th day, then 1% more a day, at most 50% in a month, plus interest after a month; the wage stays due. Raised when a payslip is marked paid on or after that 4th day.",
-			"authority": "PP 36/2021 arts.55(1), 61(1)–(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
 			"trigger": {
 				"collection": "payslip",
-				"event": "updated"
+				"events": ["updated"]
 			},
 			"when": "has(row.paid_on) && row.paid_on != null && has(row.pay_due_date) && row.pay_due_date != null && row.pay_due_date != \"\" && row.paid_on >= add_days(row.pay_due_date, 3)",
 			"due": "row.paid_on"
@@ -1310,12 +1535,21 @@
 		"scope": "JURISDICTION",
 		"code": "LATE_THR_FINE",
 		"name": "Late THR: 5% fine",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			},
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.5(4), 10(1)–(2)"
+			}
+		],
 		"rules": {
 			"description": "A THR paid later than 7 days before the holiday carries a fine of 5% of the THR due, used for the workers’ welfare (LATE_THR_FINE adhoc class); the THR stays due. Raised when a THR entry is recorded after the deadline.",
-			"authority": "PP 36/2021 art.62; Permenaker 6/2016 arts.5(4), 10(1)–(2)",
 			"trigger": {
 				"collection": "adhoc_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "has(row.catalog_code) && row.catalog_code in [\"THR\", \"THR_HOLIDAY\"] && has(row.facts) && row.facts != null && has(row.facts.holiday_date) && row.occurred_on > add_days(row.facts.holiday_date, -7)",
 			"due": "row.occurred_on"
@@ -1328,12 +1562,18 @@
 		"scope": "JURISDICTION",
 		"code": "PKWT_TERM_END_COMPENSATION",
 		"name": "PKWT period ended: pay its compensation",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.15(2), 15(4), 16",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"description": "A fixed-term (PKWT) period that ends while the employment continues (an extension follows) owes its uang kompensasi at its end, for that period; the extension’s compensation follows when it ends. Raised by the daily tick on the last day of a CONTRACT term that is not the exit day; pay it as a PKWT_COMPENSATION entry.",
-			"authority": "PP 35/2021 arts.15(2), 15(4), 16 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 			"trigger": {
 				"collection": "calendar",
-				"event": "daily"
+				"events": ["daily"]
 			},
 			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"CONTRACT\" && has(t.effective_range) && has(t.effective_range.to) && t.effective_range.to == today) && (exit_on == null || exit_on > today)",
 			"due": "today"
@@ -1346,12 +1586,21 @@
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_COMPANION_TRAINING",
 		"name": "Foreign worker: companion, training and Indonesian language",
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.7(1)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.45 as amended by UU 6/2023"
+			}
+		],
 		"rules": {
 			"description": "Appoint an Indonesian companion worker (tenaga kerja pendamping) for the foreign worker, train the companion for the position, give the foreign worker Indonesian-language training and repatriate the worker when the contract ends. Not owed for directors, commissioners, a representative-office head, foundation organs or temporary work (art.7(3)); waive it then.",
-			"authority": "PP 34/2021 art.7(1)–(3) (https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf); UU 13/2003 art.45 as amended by UU 6/2023",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
 			"due": "hired_on"
@@ -1364,12 +1613,18 @@
 		"scope": "JURISDICTION",
 		"code": "DISABILITY_QUOTA_REVIEW",
 		"name": "Disability employment quota (1%)",
+		"references": [
+			{
+				"title": "UU 8/2016",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
+			}
+		],
 		"rules": {
 			"description": "A private company must employ persons with disabilities as at least 1% of its workers. Raised with the January run of a company of 100 or more workers (where 1% is at least one person) to check the year’s quota.",
-			"authority": "UU 8/2016 art.53(2) (https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"applies_when": "headcount >= 100.0",
@@ -1383,12 +1638,18 @@
 		"scope": "JURISDICTION",
 		"code": "LKS_BIPARTIT_FORMATION",
 		"name": "Bipartite cooperation body (LKS Bipartit)",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.106(1)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"description": "A company employing 50 or more workers must form a bipartite cooperation body (LKS Bipartit) and register it with the manpower office. Raised with each run of such a company until the formation day is recorded (company.facts.lks_bipartit_formed_on).",
-			"authority": "UU 13/2003 art.106(1) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "headcount >= 50.0",
 			"when": "!has(company.facts.lks_bipartit_formed_on) || company.facts.lks_bipartit_formed_on == \"\"",
@@ -1402,12 +1663,26 @@
 		"scope": "JURISDICTION",
 		"code": "K3_SMK3_P2K3",
 		"name": "Occupational safety: SMK3 and P2K3",
+		"references": [
+			{
+				"title": "UU 1/1970",
+				"locator": "art.10"
+			},
+			{
+				"title": "PP 50/2012",
+				"locator": "art.5(2)",
+				"url": "https://peraturan.bpk.go.id/Details/5245/pp-no-50-tahun-2012"
+			},
+			{
+				"title": "Permenaker PER.04/MEN/1987",
+				"locator": "art.2"
+			}
+		],
 		"rules": {
 			"description": "A company of 100 or more workers, or with a high hazard potential (company.facts.k3_high_hazard), must apply an occupational safety and health management system (SMK3) and keep a safety committee (P2K3). Raised with the January run to review both for the year.",
-			"authority": "UU 1/1970 art.10; PP 50/2012 art.5(2) (https://peraturan.bpk.go.id/Details/5245/pp-no-50-tahun-2012); Permenaker PER.04/MEN/1987 art.2",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"applies_when": "headcount >= 100.0 || (company != null && has(company.facts) && has(company.facts.k3_high_hazard) && company.facts.k3_high_hazard == true)",
@@ -1421,12 +1696,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORKER_HEALTH_EXAMINATION",
 		"name": "Periodic health examination of workers",
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf arts.2, 3(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
 		"rules": {
 			"description": "Every company examines its workers’ health periodically, at least once a year; a pre-employment examination precedes work (art.2). Raised with the January run.",
-			"authority": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf arts.2, 3(2)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"due": "period.to"
@@ -1439,12 +1719,18 @@
 		"scope": "JURISDICTION",
 		"code": "WAGE_STRUCTURE_SCALE",
 		"name": "Wage structure and scale",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.20–22",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"description": "Draw up and apply the company’s wage structure and scale, reviewed with the year’s minimum wage, and notify each worker individually of at least the scale of their own grade.",
-			"authority": "PP 36/2021 arts.20–22 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"due": "period.to"
@@ -1457,12 +1743,18 @@
 		"scope": "JURISDICTION",
 		"code": "WAGE_SCALE_NOTICE_AT_HIRE",
 		"name": "Notify a new worker of their wage scale",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.21(2)–(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"description": "Notify the new worker individually of the wage structure and scale of their grade.",
-			"authority": "PP 36/2021 art.21(2)–(3) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "hired_on"
 		}
@@ -1474,12 +1766,18 @@
 		"scope": "JURISDICTION",
 		"code": "TERMINATION_NOTICE_LATE",
 		"name": "Termination notice short of 14 working days",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.37(2)–(4)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"description": "An employer-initiated termination must be notified in writing at least 14 working days before it takes effect (7 during probation). Raised on the recorded exit when no notice day is recorded (exit_facts.notice_given_on) or it was given later than that: the termination is defective until the notice period is honoured.",
-			"authority": "PP 35/2021 art.37(2)–(4) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -1494,12 +1792,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_ACCIDENT_REPORT_STAGE2",
 		"name": "Work accident report, stage II",
+		"references": [
+			{
+				"title": "PP 44/2015 art.43 as amended by PP 82/2019",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report stage II of a work accident or occupational disease to BPJS Ketenagakerjaan within 2 × 24 hours of the doctor’s certificate of its outcome, with the STMB claim. Raised when a WORK_ACCIDENT_LEAVE absence records the certificate day (facts.doctor_certificate_on).",
-			"authority": "PP 44/2015 art.43 as amended by PP 82/2019 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
 			"trigger": {
 				"collection": "leave_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\" && has(row.facts) && row.facts != null && has(row.facts.doctor_certificate_on) && row.facts.doctor_certificate_on != \"\"",
 			"due": "add_days(row.facts.doctor_certificate_on, 2)"
@@ -1512,12 +1815,25 @@
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
 		"name": "Worksite without a seeded minimum wage",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.25",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32(2)–(3)"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "!(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && (!((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) || (!(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).contains(\"/\") && rules.minimum_wage.by_region.exists(k, k.startsWith((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) + \"/\"))))",
-			"message": "Record the worksite (terms.facts.worksite_region, else the company region) as a key of the version’s minimum wages: “Provinsi X/Kota|Kabupaten Y” — every locality is listed, at its UMK or at the UMP — or “Provinsi DKI Jakarta”. A province key whose localities are listed, or an unknown key, cannot fall back to the lower UMP.",
-			"authority": "UU 13/2003 art.88E(2) as amended by UU 6/2023; PP 36/2021 art.25 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); Perpres 82/2018 art.32(2)–(3)"
+			"message": "Record the worksite (terms.facts.worksite_region, else the company region) as a key of the version’s minimum wages: “Provinsi X/Kota|Kabupaten Y” — every locality is listed, at its UMK or at the UMP — or “Provinsi DKI Jakarta”. A province key whose localities are listed, or an unknown key, cannot fall back to the lower UMP."
 		}
 	},
 	{
@@ -1527,12 +1843,21 @@
 		"scope": "JURISDICTION",
 		"code": "DAILY_MINIMUM_WAGE",
 		"name": "Daily minimum wage",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.17, 23(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type == \"DAILY\" && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) && employment.service_months < 12.0 && (!has(terms.facts.working_days_per_week) || !has(terms.facts.daily_wage) || terms.facts.daily_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] / ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 25.0 : 21.0))",
-			"message": "Record the daily wage and the working days a week of a daily worker; the daily wage may not be below the monthly minimum wage ÷ 25 (6-day week) or ÷ 21 (5-day week).",
-			"authority": "PP 36/2021 arts.17, 23(3) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			"message": "Record the daily wage and the working days a week of a daily worker; the daily wage may not be below the monthly minimum wage ÷ 25 (6-day week) or ÷ 21 (5-day week)."
 		}
 	},
 	{
@@ -1542,12 +1867,18 @@
 		"scope": "JURISDICTION",
 		"code": "HOURLY_MINIMUM_WAGE",
 		"name": "Hourly minimum wage (part-time)",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.16(1)–(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type == \"PART_TIME\" && !(has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) && employment.service_months < 12.0 && has(terms.facts.hourly_wage) && terms.facts.hourly_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] / 126.0",
-			"message": "The agreed hourly wage of a part-time worker may not be below the monthly minimum wage ÷ 126.",
-			"authority": "PP 36/2021 art.16(1)–(4) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
+			"message": "The agreed hourly wage of a part-time worker may not be below the monthly minimum wage ÷ 126."
 		}
 	},
 	{
@@ -1557,12 +1888,21 @@
 		"scope": "JURISDICTION",
 		"code": "PKWT_MAXIMUM_TERM",
 		"name": "PKWT at most 5 years",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.8(1)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.59 as amended by UU 6/2023"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type == \"CONTRACT\" && employment.start_date != \"\" && ((terms.effective_to != \"\" && terms.effective_to > add_days(add_years(employment.start_date, 5), -1)) || (employment.exit_date != \"\" && employment.exit_date > add_days(add_years(employment.start_date, 5), -1)))",
-			"message": "A time-based PKWT, extensions included, may not run longer than 5 years from the start of the fixed-term employment; beyond that it is a PKWTT.",
-			"authority": "PP 35/2021 art.8(1)–(3) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.59 as amended by UU 6/2023"
+			"message": "A time-based PKWT, extensions included, may not run longer than 5 years from the start of the fixed-term employment; beyond that it is a PKWTT."
 		}
 	},
 	{
@@ -1572,12 +1912,17 @@
 		"scope": "JURISDICTION",
 		"code": "PROBATION_RULES",
 		"name": "Probation: none in a PKWT, at most 3 months",
+		"references": [
+			{
+				"title": "UU 13/2003 arts.58(1)–(2), 60(1)–(2), as amended by UU 6/2023",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "has(terms.facts.probation_months) && terms.facts.probation_months > 0.0 && (term.employment_type in [\"CONTRACT\", \"DAILY\"] || terms.facts.probation_months > 3.0)",
-			"message": "A PKWT may not require a probation period (it is void); a PKWTT probation is at most 3 months, paid at least the minimum wage.",
-			"authority": "UU 13/2003 arts.58(1)–(2), 60(1)–(2) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003), as amended by UU 6/2023"
+			"message": "A PKWT may not require a probation period (it is void); a PKWTT probation is at most 3 months, paid at least the minimum wage."
 		}
 	},
 	{
@@ -1587,12 +1932,21 @@
 		"scope": "JURISDICTION",
 		"code": "PKWT_WRITTEN_INDONESIAN",
 		"name": "PKWT written in Indonesian",
+		"references": [
+			{
+				"title": "UU 13/2003 art.57(1) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.2, 11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "term.employment_type in [\"CONTRACT\", \"DAILY\"] && has(terms.facts.written_in_indonesian) && terms.facts.written_in_indonesian == false",
-			"message": "A PKWT (a daily one included) must be made in writing in Indonesian, in Latin script.",
-			"authority": "UU 13/2003 art.57(1) as amended by UU 6/2023; PP 35/2021 arts.2, 11(1) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"message": "A PKWT (a daily one included) must be made in writing in Indonesian, in Latin script."
 		}
 	},
 	{
@@ -1602,12 +1956,18 @@
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
 		"name": "No foreign worker in a personnel position",
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "(employee.nationality != \"\" && employee.nationality != \"ID\") && has(terms.facts.personnel_position) && terms.facts.personnel_position == true",
-			"message": "A foreign worker may not be employed in a position that handles personnel (HR).",
-			"authority": "PP 34/2021 art.11(1) (https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf)"
+			"message": "A foreign worker may not be employed in a position that handles personnel (HR)."
 		}
 	},
 	{
@@ -1617,12 +1977,18 @@
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_AGE",
 		"name": "Worker under 13",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.68–70",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "refuse",
 			"when": "employee.date_of_birth != \"\" && double(age_on(employee.date_of_birth, day)) < 13.0",
-			"message": "A child under 13 may not be employed; from 13 to 15 only light work under art.69, from 14 within education under art.70.",
-			"authority": "UU 13/2003 arts.68–70 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A child under 13 may not be employed; from 13 to 15 only light work under art.69, from 14 within education under art.70."
 		}
 	},
 	{
@@ -1632,12 +1998,21 @@
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_PKWT",
 		"name": "Foreign worker on a PKWTT",
+		"references": [
+			{
+				"title": "UU 13/2003 art.42(4) as amended by UU 6/2023",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			},
+			{
+				"title": "PP 34/2021",
+				"locator": "art.2"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "(employee.nationality != \"\" && employee.nationality != \"ID\") && terms.employment_type != \"CONTRACT\"",
-			"message": "A foreign worker may be employed only for a certain position and a certain time (PKWT); this term is not a PKWT.",
-			"authority": "UU 13/2003 art.42(4) as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); PP 34/2021 art.2"
+			"message": "A foreign worker may be employed only for a certain position and a certain time (PKWT); this term is not a PKWT."
 		}
 	},
 	{
@@ -1647,12 +2022,21 @@
 		"scope": "JURISDICTION",
 		"code": "WORKING_TIME_LIMIT",
 		"name": "Ordinary working time 7/8 hours a day, 40 a week",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.21(2)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.77 as amended by UU 6/2023"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "work.days.exists(d, d.scheduled_hours > ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 7.0 : 8.0)) || work.days.exists(d, sum(work.days.filter(x, calendar_distance_days(x.date, d.date) >= 0.0 && calendar_distance_days(x.date, d.date) <= 6.0).map(x, x.scheduled_hours)) > 40.0)",
-			"message": "Ordinary working time above 7 hours a day (6-day week) or 8 (5-day week), or above 40 hours in seven consecutive days; hours beyond it are overtime.",
-			"authority": "PP 35/2021 art.21(2)–(3) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.77 as amended by UU 6/2023"
+			"message": "Ordinary working time above 7 hours a day (6-day week) or 8 (5-day week), or above 40 hours in seven consecutive days; hours beyond it are overtime."
 		}
 	},
 	{
@@ -1662,12 +2046,17 @@
 		"scope": "JURISDICTION",
 		"code": "WEEKLY_REST",
 		"name": "Weekly rest: 1 day (6-day week), 2 days (5-day week)",
+		"references": [
+			{
+				"title": "PP 35/2021 art.22; UU 13/2003 art.79(2)(b) as amended by UU 6/2023 and read by Putusan MK 168/PUU-XXI/2023",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "work.days.exists(d, double(size(work.days.filter(x, x.worked && calendar_distance_days(x.date, d.date) >= 0.0 && calendar_distance_days(x.date, d.date) <= 6.0))) > ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 6.0 : 5.0))",
-			"message": "Fewer weekly rest days in seven consecutive days than the working-time system gives (1 for a 6-day week, 2 for a 5-day week); work on a rest day is overtime with a written order and consent.",
-			"authority": "PP 35/2021 art.22 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.79(2)(b) as amended by UU 6/2023 and read by Putusan MK 168/PUU-XXI/2023"
+			"message": "Fewer weekly rest days in seven consecutive days than the working-time system gives (1 for a 6-day week, 2 for a 5-day week); work on a rest day is overtime with a written order and consent."
 		}
 	},
 	{
@@ -1677,12 +2066,18 @@
 		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_FEMALE_UNDER_18",
 		"name": "Night work: female worker under 18",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(1)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "employee.gender == \"FEMALE\" && employee.date_of_birth != \"\" && work.days.exists(d, double(age_on(employee.date_of_birth, d.date)) < 18.0 && hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0)",
-			"message": "A female worker under 18 may not work between 23:00 and 07:00; the payslip is held.",
-			"authority": "UU 13/2003 art.76(1) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A female worker under 18 may not work between 23:00 and 07:00; the payslip is held."
 		}
 	},
 	{
@@ -1692,12 +2087,18 @@
 		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_PREGNANCY",
 		"name": "Night work: pregnancy at risk",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(2)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "employee.gender == \"FEMALE\" && has(employee.facts.night_work_pregnancy_risk) && employee.facts.night_work_pregnancy_risk == true && work.days.exists(d, hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0)",
-			"message": "A pregnant worker whom a doctor certifies at risk may not work between 23:00 and 07:00; the payslip is held.",
-			"authority": "UU 13/2003 art.76(2) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A pregnant worker whom a doctor certifies at risk may not work between 23:00 and 07:00; the payslip is held."
 		}
 	},
 	{
@@ -1707,12 +2108,18 @@
 		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_FEMALE_DUTIES",
 		"name": "Night work by women: food, security and transport",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(3)–(4)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "employee.gender == \"FEMALE\" && work.days.exists(d, hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0)",
-			"message": "A female worker worked between 23:00 and 07:00: provide nutritious food and drink and keep decency and security at work; between 23:00 and 05:00 provide transport to and from work.",
-			"authority": "UU 13/2003 art.76(3)–(4) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A female worker worked between 23:00 and 07:00: provide nutritious food and drink and keep decency and security at work; between 23:00 and 05:00 provide transport to and from work."
 		}
 	},
 	{
@@ -1722,12 +2129,18 @@
 		"scope": "JURISDICTION",
 		"code": "CHILD_WORKER",
 		"name": "Worker under 18",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.68–71",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "employee.date_of_birth != \"\" && work.days.exists(d, d.worked && double(age_on(employee.date_of_birth, d.date)) < 18.0)",
-			"message": "A worker under 18 worked: lawful only as light work (13–15, with parental consent, at most 3 hours, by day, outside school hours), within education (14 and over) or talent work.",
-			"authority": "UU 13/2003 arts.68–71 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A worker under 18 worked: lawful only as light work (13–15, with parental consent, at most 3 hours, by day, outside school hours), within education (14 and over) or talent work."
 		}
 	},
 	{
@@ -1737,12 +2150,18 @@
 		"scope": "JURISDICTION",
 		"code": "CHILD_LIGHT_WORK_HOURS",
 		"name": "Light work above 3 hours or by night (13–15)",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.69(2)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "employee.date_of_birth != \"\" && work.days.exists(d, double(age_on(employee.date_of_birth, d.date)) < 15.0 && (d.worked_hours > 3.0 || hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0))",
-			"message": "A child under 15 may do light work for at most 3 hours a day, by day; the payslip is held.",
-			"authority": "UU 13/2003 art.69(2) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
+			"message": "A child under 15 may do light work for at most 3 hours a day, by day; the payslip is held."
 		}
 	},
 	{
@@ -1752,12 +2171,18 @@
 		"scope": "JURISDICTION",
 		"code": "DAILY_CASUAL_21_DAYS",
 		"name": "Daily worker on 21 days or more",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.10(3)–(4)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "terms.employment_type == \"DAILY\" && double(size(work.days.filter(d, d.worked))) >= 21.0",
-			"message": "A daily worker worked 21 days or more this month; three such months in a row turn the daily agreement into a PKWTT by law (severance and THR follow).",
-			"authority": "PP 35/2021 art.10(3)–(4) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"message": "A daily worker worked 21 days or more this month; three such months in a row turn the daily agreement into a PKWTT by law (severance and THR follow)."
 		}
 	},
 	{
@@ -1767,12 +2192,18 @@
 		"scope": "JURISDICTION",
 		"code": "GARNISHMENT_CEILING",
 		"name": "Court garnishment at most 20%",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.51",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "has(payslip.lines.COURT_GARNISHMENT) && -payslip.lines.COURT_GARNISHMENT > 0.2 * payslip.gross",
-			"message": "A court-ordered seizure of wages may not exceed 20% of the wage payable; the payslip is held.",
-			"authority": "PP 36/2021 art.51 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
+			"message": "A court-ordered seizure of wages may not exceed 20% of the wage payable; the payslip is held."
 		}
 	},
 	{
@@ -1782,12 +2213,18 @@
 		"scope": "JURISDICTION",
 		"code": "BANKRUPTCY_CEILING",
 		"name": "Worker’s bankruptcy estate at most 25%",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.50",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "hold",
 			"when": "has(payslip.lines.BANKRUPTCY_ESTATE) && -payslip.lines.BANKRUPTCY_ESTATE > 0.25 * payslip.gross",
-			"message": "Where the worker is bankrupt, the court may take at most 25% of the wage and other payments of the employment; the payslip is held.",
-			"authority": "PP 36/2021 art.50 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
+			"message": "Where the worker is bankrupt, the court may take at most 25% of the wage and other payments of the employment; the payslip is held."
 		}
 	},
 	{
@@ -1797,14 +2234,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_DAY",
 		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"references": [
+			{
+				"title": "PP 35/2021 art.21(2): 7 hours a day and 40 a week over six days, or 8 hours a day and 40 a week over five (term fact working_days_per_week); UU 13/2003 art.77 as amended by UU 6/2023. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "day.worked && (day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\" && day.worked_hours - day.overtime_hours > ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 7.0 : 8.0)",
 			"message": "normal hours above 7 in the day on a six-day week (8 on a five-day week) (PP 35/2021 art.21(2)).",
-			"description": "normal hours above 7 in the day on a six-day week (8 on a five-day week) (PP 35/2021 art.21(2)).",
-			"authority": "PP 35/2021 art.21(2): 7 hours a day and 40 a week over six days, or 8 hours a day and 40 a week over five (term fact working_days_per_week); UU 13/2003 art.77 as amended by UU 6/2023. PP 35/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"description": "normal hours above 7 in the day on a six-day week (8 on a five-day week) (PP 35/2021 art.21(2))."
 		}
 	},
 	{
@@ -1814,14 +2256,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
 		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"references": [
+			{
+				"title": "PP 35/2021 art.21(2): 40 normal hours a week. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "week.worked_hours - week.overtime_hours > 40.0",
 			"message": "normal hours above 40 in the seven days ending on this day (PP 35/2021 art.21(2)).",
-			"description": "normal hours above 40 in the seven days ending on this day (PP 35/2021 art.21(2)).",
-			"authority": "PP 35/2021 art.21(2): 40 normal hours a week. PP 35/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"description": "normal hours above 40 in the seven days ending on this day (PP 35/2021 art.21(2))."
 		}
 	},
 	{
@@ -1831,14 +2278,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_DAY",
 		"name": "ROSTER_OVERTIME_DAY",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 a week, rest-day and holiday overtime outside the limit; the hours worked are still paid (art.31), so the import warns. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_out",
 			"when": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\" && day.overtime_hours > 4.0",
 			"message": "more than 4 overtime hours on a working day (PP 35/2021 art.26(1)).",
-			"description": "more than 4 overtime hours on a working day (PP 35/2021 art.26(1)).",
-			"authority": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 a week, rest-day and holiday overtime outside the limit; the hours worked are still paid (art.31), so the import warns. PP 35/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"description": "more than 4 overtime hours on a working day (PP 35/2021 art.26(1))."
 		}
 	},
 	{
@@ -1848,14 +2300,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_WEEK",
 		"name": "ROSTER_OVERTIME_WEEK",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): at most 18 overtime hours a week; overtime on the weekly rest day or an official holiday is outside the limit, so only overtime on planned working days that are not holidays counts (week.overtime_hours_by_day_type WORK less HOLIDAY). PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_out",
 			"when": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\" && day.overtime_hours > 0.0 && max(0.0, week.overtime_hours_by_day_type.WORK - week.overtime_hours_by_day_type.HOLIDAY) > 18.0",
 			"message": "more than 18 overtime hours on working days in the seven days ending on this working day (PP 35/2021 art.26(1)).",
-			"description": "more than 18 overtime hours on working days in the seven days ending on this working day (PP 35/2021 art.26(1)).",
-			"authority": "PP 35/2021 art.26(1)–(2): at most 18 overtime hours a week; overtime on the weekly rest day or an official holiday is outside the limit, so only overtime on planned working days that are not holidays counts (week.overtime_hours_by_day_type WORK less HOLIDAY). PP 35/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"description": "more than 18 overtime hours on working days in the seven days ending on this working day (PP 35/2021 art.26(1))."
 		}
 	},
 	{
@@ -1865,14 +2322,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "ROSTER_WEEKLY_REST",
+		"references": [
+			{
+				"title": "UU 13/2003 art.79(2)(b) as amended by UU 6/2023: one rest day after six working days a week (Putusan MK 168/PUU-XXI/2023 restores two after five on a five-day week); PP 35/2021 art.22. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "work_date",
 			"when": "day.worked && double(week.worked_days) > ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 6.0 : 5.0)",
 			"message": "no weekly rest day in the seven days ending on this day (UU 13/2003 art.79(2)(b); PP 35/2021 art.22).",
-			"description": "no weekly rest day in the seven days ending on this day (UU 13/2003 art.79(2)(b); PP 35/2021 art.22).",
-			"authority": "UU 13/2003 art.79(2)(b) as amended by UU 6/2023: one rest day after six working days a week (Putusan MK 168/PUU-XXI/2023 restores two after five on a five-day week); PP 35/2021 art.22. UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm)"
+			"description": "no weekly rest day in the seven days ending on this day (UU 13/2003 art.79(2)(b); PP 35/2021 art.22)."
 		}
 	},
 	{
@@ -1882,14 +2344,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_NIGHT_FEMALE_UNDER_18",
 		"name": "ROSTER_NIGHT_FEMALE_UNDER_18",
+		"references": [
+			{
+				"title": "UU 13/2003 art.76(1): a female worker under 18 may not be employed between 23:00 and 07:00. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "employee.gender == \"FEMALE\" && employee.date_of_birth != null && employee.date_of_birth != \"\" && double(age_on(employee.date_of_birth, day.date)) < 18.0 && hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0",
 			"message": "a woman under 18 worked between 23:00 and 07:00 (UU 13/2003 art.76(1)).",
-			"description": "a woman under 18 worked between 23:00 and 07:00 (UU 13/2003 art.76(1)).",
-			"authority": "UU 13/2003 art.76(1): a female worker under 18 may not be employed between 23:00 and 07:00. UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm)"
+			"description": "a woman under 18 worked between 23:00 and 07:00 (UU 13/2003 art.76(1))."
 		}
 	},
 	{
@@ -1899,14 +2366,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_NIGHT_PREGNANCY",
 		"name": "ROSTER_NIGHT_PREGNANCY",
+		"references": [
+			{
+				"title": "UU 13/2003 art.76(2): a pregnant worker whom a doctor certifies at risk to her or her pregnancy may not work between 23:00 and 07:00 (employee.facts.night_work_pregnancy_risk). UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "employee.gender == \"FEMALE\" && has(employee.facts.night_work_pregnancy_risk) && employee.facts.night_work_pregnancy_risk == true && hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0",
 			"message": "night work (23:00–07:00) by a pregnant worker whom a doctor declared at risk (UU 13/2003 art.76(2)).",
-			"description": "night work (23:00–07:00) by a pregnant worker whom a doctor declared at risk (UU 13/2003 art.76(2)).",
-			"authority": "UU 13/2003 art.76(2): a pregnant worker whom a doctor certifies at risk to her or her pregnancy may not work between 23:00 and 07:00 (employee.facts.night_work_pregnancy_risk). UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm)"
+			"description": "night work (23:00–07:00) by a pregnant worker whom a doctor declared at risk (UU 13/2003 art.76(2))."
 		}
 	},
 	{
@@ -1916,14 +2388,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_CHILD_LIGHT_WORK",
 		"name": "ROSTER_CHILD_LIGHT_WORK",
+		"references": [
+			{
+				"title": "UU 13/2003 art.69(1)–(2): a child of 13 to 15 does light work only, at most 3 hours a day, in the daytime, with the parent’s written permission. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && double(age_on(employee.date_of_birth, day.date)) >= 13.0 && double(age_on(employee.date_of_birth, day.date)) < 15.0 && (day.worked_hours > 3.0 || hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0)",
 			"message": "a child of 13 to 15 above 3 hours of light work in the day, or at night (UU 13/2003 art.69(2)).",
-			"description": "a child of 13 to 15 above 3 hours of light work in the day, or at night (UU 13/2003 art.69(2)).",
-			"authority": "UU 13/2003 art.69(1)–(2): a child of 13 to 15 does light work only, at most 3 hours a day, in the daytime, with the parent’s written permission. UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm)"
+			"description": "a child of 13 to 15 above 3 hours of light work in the day, or at night (UU 13/2003 art.69(2))."
 		}
 	},
 	{
@@ -1933,14 +2410,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_UNDER_13",
 		"name": "ROSTER_UNDER_13",
+		"references": [
+			{
+				"title": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE). UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "refuse",
 			"column": "employee_number",
 			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\" && day.worked && double(age_on(employee.date_of_birth, day.date)) < 13.0",
 			"message": "a child under 13 may not be employed (UU 13/2003 arts.68–69): remove the day.",
-			"description": "a child under 13 may not be employed (UU 13/2003 arts.68–69): remove the day.",
-			"authority": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE). UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm)"
+			"description": "a child under 13 may not be employed (UU 13/2003 arts.68–69): remove the day."
 		}
 	},
 	{
@@ -1950,12 +2432,18 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
 		"name": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report a change in the worker's wage (basic plus fixed allowances) to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the contract write that adds or changes a term whose wage differs from the term ending the day before — for any effective date, so a term entered late raises too — once per change (repeat_key = the new term's first day); due seven working days after that day (no Saturday, Sunday or published holiday).",
-			"authority": "PP 44/2015 art.9(3) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["facts"]
 			},
 			"when": "has(row.terms_written) && row.terms_written.exists(t, has(t.effective_range) && has(t.base_salary) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(p, has(p.effective_range) && has(p.effective_range.to) && p.effective_range.to == add_days(t.effective_range.from, -1) && has(p.base_salary) && (double(p.base_salary.value) + (has(p.allowances) && size(p.allowances) > 0 ? sum(p.allowances.map(a, double(a.amount.value))) : 0.0)) != (double(t.base_salary.value) + (has(t.allowances) && size(t.allowances) > 0 ? sum(t.allowances.map(a, double(a.amount.value))) : 0.0))))",
@@ -1971,12 +2459,18 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
 		"name": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report the change in the number of workers — the worker leaving — to BPJS Ketenagakerjaan within 7 working days of the exit, whatever the cause (the JKP termination report is JKP_PHK_NOTIFICATION).",
-			"authority": "PP 44/2015 art.9(3) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -1991,12 +2485,18 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
 		"name": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report a change of the employer's own registered data — its name, registration number or the province it is located in (the office address) — to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the entity update that changed one of them (row.before), once per new state; due seven working days after the update.",
-			"authority": "PP 44/2015 art.9(3) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
 			"trigger": {
 				"collection": "entity",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["name", "registration_number", "region"]
 			},
 			"when": "has(row.before) && row.before != null && (\"name\" in row.before || \"registration_number\" in row.before || \"region\" in row.before)",
@@ -2011,12 +2511,18 @@
 		"scope": "JURISDICTION",
 		"code": "TAX_RECORDS_RETENTION",
 		"name": "TAX_RECORDS_RETENTION",
+		"references": [
+			{
+				"title": "UU 6/1983 as amended by UU 28/2007 (KUP)",
+				"locator": "art.28(11)",
+				"url": "https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007"
+			}
+		],
 		"rules": {
 			"description": "Keep the books, records and documents of the past year — payroll, withholding slips and returns, including electronically held data — for 10 years in Indonesia, at the taxpayer's seat. Raised on the January run.",
-			"authority": "UU 6/1983 as amended by UU 28/2007 (KUP) art.28(11) (https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007)",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["01"],
 			"due": "month_end(period.from)"
@@ -2065,12 +2571,18 @@
 		"scope": "JURISDICTION",
 		"code": "PDP_BREACH_NOTICE",
 		"name": "PDP_BREACH_NOTICE",
+		"references": [
+			{
+				"title": "UU 27/2022 (Pelindungan Data Pribadi)",
+				"locator": "art.46(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
 		"rules": {
 			"description": "A failure of personal data protection: notify the data subjects and the supervisory institution in writing within 3 × 24 hours — the data disclosed, when and how, and the handling and recovery steps (art.46(2)). Raised when a PERSONAL_DATA_BREACH case is opened; due three days after its opening day.",
-			"authority": "UU 27/2022 (Pelindungan Data Pribadi) art.46(1)–(2) (https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf)",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
 			"due": "add_days(row.opened_on, 3)"
@@ -2083,12 +2595,18 @@
 		"scope": "JURISDICTION",
 		"code": "PDP_SUBJECT_REQUEST",
 		"name": "PDP_SUBJECT_REQUEST",
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.30(1)–(2), 32(2), 40(2), 41(1)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
 		"rules": {
 			"description": "Answer an employee's personal-data request within 3 × 24 hours of receiving it: give access with the processing record (art.32(2)), update or correct the data and tell the employee (art.30), stop processing on a withdrawn consent (art.40(2)), or suspend or restrict processing (art.41(1)). Raised when such a case is opened; due three days after its opening day.",
-			"authority": "UU 27/2022 arts.30(1)–(2), 32(2), 40(2), 41(1) (https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf)",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\",  \"PERSONAL_DATA_CORRECTION_REQUEST\",  \"PERSONAL_DATA_CONSENT_WITHDRAWAL\",  \"PERSONAL_DATA_RESTRICTION_REQUEST\"]",
 			"due": "add_days(row.opened_on, 3)"
@@ -2101,12 +2619,18 @@
 		"scope": "JURISDICTION",
 		"code": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
 		"name": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
 		"rules": {
 			"description": "Forward a participant's changed personal or family data (marital status, children) to BPJS Ketenagakerjaan within 7 working days of receiving it. Raised on a profile update that changed one of them (row.before holds the prior values), once per family state (repeat_key), due 7 working days after the update.",
-			"authority": "PP 44/2015 art.9(1)–(2) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
 			"trigger": {
 				"collection": "employment_profile",
-				"event": "updated"
+				"events": ["updated"]
 			},
 			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))",
 			"repeat_key": "(has(employee.marital_status) && employee.marital_status != null ? employee.marital_status : \"\") + \":\" + string(has(employee.children) && employee.children != null ? size(employee.children) : 0)",
@@ -2121,12 +2645,22 @@
 		"scope": "JURISDICTION",
 		"code": "PERSONAL_DATA_DISPOSAL",
 		"name": "PERSONAL_DATA_DISPOSAL",
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.42(1)(a), 44(1)(a), 45",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			},
+			{
+				"title": "UU KUP",
+				"locator": "art.28(11)"
+			}
+		],
 		"rules": {
 			"description": "End the processing of a former employee's personal data and destroy it once its retention period ends (anonymise the profile: employment_profile.anonymise), and tell the employee of the deletion. Raised on the exit; due on the record_retention date (10 years after the exit's tax year ends).",
-			"authority": "UU 27/2022 arts.42(1)(a), 44(1)(a), 45 (https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf); UU KUP art.28(11)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -2206,12 +2740,17 @@
 		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_LONG_SERVICE",
 		"name": "Wage below the minimum after one year of service",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023 (“Pengusaha dilarang membayar Upah lebih rendah dari upah minimum”, a prohibition not limited by service; art.185 sanctions it); PP 36/2021 arts.16, 17, 24(2), 35D. The refusal stays with workers under one year (MINIMUM_WAGE_FLOOR, SECTOR_MINIMUM_WAGE, DAILY_ and HOURLY_MINIMUM_WAGE, art.88E(1)); for longer service the employer’s wage scale governs, so the breach warns rather than refuses.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
 		"rules": {
 			"site": "contract",
 			"kind": "warn",
 			"when": "!(has(company.facts) && company.facts != null && has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && employment.service_months >= 12.0 && ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) && ((term.employment_type in [\"PERMANENT\", \"CONTRACT\"] && (term.monthly_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] || (has(rules.minimum_wage.by_sector) && has(term.facts.worksite_kbli) && rules.minimum_wage.by_sector.exists(k, ((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")) && rules.minimum_wage.by_sector[k].exists(r, term.facts.worksite_kbli.startsWith(r.kbli) && (r.condition == \"\" || (r.condition == \"RAYON_VISCOSE\" && has(company.facts.umsp_rayon_viscose) && company.facts.umsp_rayon_viscose == true) || (r.condition == \"EXPORT\" && (has(company.facts.umsp_export_oriented) && company.facts.umsp_export_oriented == true)) || (r.condition == \"ASSETS_1T\" && (has(company.facts.umsp_assets_over_1_trillion) && company.facts.umsp_assets_over_1_trillion == true)) || (r.condition == \"ASTRA\" && (has(company.facts.umsp_astra_group) && company.facts.umsp_astra_group == true)) || (r.condition == \"HOTEL_4_5\" && has(company.facts.umsp_hotel_star) && company.facts.umsp_hotel_star >= 4.0) || (r.condition == \"HOTEL_3_5\" && has(company.facts.umsp_hotel_star) && company.facts.umsp_hotel_star >= 3.0) || (r.condition == \"FREEPORT_AREA\" && has(company.facts.umsp_freeport_area) && company.facts.umsp_freeport_area == true) || (r.condition == \"BUS_DRIVER_MECHANIC\" && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") == \"BUS_DRIVER_MECHANIC\") || (r.condition == \"CLASS_A_HOSPITAL_CARE\" && (has(company.facts.umsp_class_a_private_hospital) && company.facts.umsp_class_a_private_hospital == true) && (has(term.facts.umsp_job_category) ? term.facts.umsp_job_category : \"\") in [\"NURSING_MIDWIFERY\", \"MEDICAL_SUPPORT\"])) && term.monthly_wage < r.monthly))))) || (term.employment_type == \"DAILY\" && has(terms.facts.daily_wage) && terms.facts.daily_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] / ((has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0) ? 25.0 : 21.0)) || (term.employment_type == \"PART_TIME\" && has(terms.facts.hourly_wage) && terms.facts.hourly_wage < rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] / 126.0))",
-			"message": "A worker with one year of service or more is paid below the worksite’s minimum wage (the UMK or UMP, its sector minimum, or the daily ÷25/÷21 and hourly ÷126 floors): UU 13/2003 art.88E(2) bars paying less than the minimum wage; the wage of longer service follows the wage structure and scale above it (PP 36/2021 art.24(2)).",
-			"authority": "UU 13/2003 art.88E(2) as amended by UU 6/2023 (“Pengusaha dilarang membayar Upah lebih rendah dari upah minimum”, a prohibition not limited by service; art.185 sanctions it); PP 36/2021 arts.16, 17, 24(2), 35D (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021). The refusal stays with workers under one year (MINIMUM_WAGE_FLOOR, SECTOR_MINIMUM_WAGE, DAILY_ and HOURLY_MINIMUM_WAGE, art.88E(1)); for longer service the employer’s wage scale governs, so the breach warns rather than refuses."
+			"message": "A worker with one year of service or more is paid below the worksite’s minimum wage (the UMK or UMP, its sector minimum, or the daily ÷25/÷21 and hourly ÷126 floors): UU 13/2003 art.88E(2) bars paying less than the minimum wage; the wage of longer service follows the wage structure and scale above it (PP 36/2021 art.24(2))."
 		}
 	},
 	{
@@ -2221,14 +2760,19 @@
 		"scope": "JURISDICTION",
 		"code": "ROSTER_REST_BREAK",
 		"name": "ROSTER_REST_BREAK",
+		"references": [
+			{
+				"title": "UU 13/2003 art.79(2)(a) as amended by UU 6/2023: a rest between working hours of at least half an hour after four hours of continuous work, not counted as working time; PP 35/2021 art.22. Read from the roster day’s recorded intervals (`day.intervals`): one interval longer than 4 hours, or two separated by less than 30 minutes (no rest) that together exceed 4 hours. A chain of three or more short-gapped intervals is read pairwise.",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "roster",
 			"kind": "warn",
 			"column": "clock_in",
 			"when": "day.worked && has(day.intervals) && day.intervals != null && day.intervals.exists(a, (has(a.start) && has(a.end) && a.start != null && a.end != null && a.start != \"\" && a.end != \"\") && ((calendar_distance_days(day.date, a.end.substring(0, 10)) * 1440.0 + double(int(a.end.substring(11, 13))) * 60.0 + double(int(a.end.substring(14, 16)))) - (calendar_distance_days(day.date, a.start.substring(0, 10)) * 1440.0 + double(int(a.start.substring(11, 13))) * 60.0 + double(int(a.start.substring(14, 16)))) > 240.0 || day.intervals.exists(b, (has(b.start) && has(b.end) && b.start != null && b.end != null && b.start != \"\" && b.end != \"\") && b.start >= a.end && (calendar_distance_days(day.date, b.start.substring(0, 10)) * 1440.0 + double(int(b.start.substring(11, 13))) * 60.0 + double(int(b.start.substring(14, 16)))) - (calendar_distance_days(day.date, a.end.substring(0, 10)) * 1440.0 + double(int(a.end.substring(11, 13))) * 60.0 + double(int(a.end.substring(14, 16)))) < 30.0 && ((calendar_distance_days(day.date, a.end.substring(0, 10)) * 1440.0 + double(int(a.end.substring(11, 13))) * 60.0 + double(int(a.end.substring(14, 16)))) - (calendar_distance_days(day.date, a.start.substring(0, 10)) * 1440.0 + double(int(a.start.substring(11, 13))) * 60.0 + double(int(a.start.substring(14, 16))))) + ((calendar_distance_days(day.date, b.end.substring(0, 10)) * 1440.0 + double(int(b.end.substring(11, 13))) * 60.0 + double(int(b.end.substring(14, 16)))) - (calendar_distance_days(day.date, b.start.substring(0, 10)) * 1440.0 + double(int(b.start.substring(11, 13))) * 60.0 + double(int(b.start.substring(14, 16))))) > 240.0)))",
 			"message": "more than 4 hours of continuous work without a break of at least 30 minutes (UU 13/2003 art.79(2)(a); PP 35/2021 art.22).",
-			"description": "more than 4 hours of continuous work without a break of at least 30 minutes (UU 13/2003 art.79(2)(a); PP 35/2021 art.22).",
-			"authority": "UU 13/2003 art.79(2)(a) as amended by UU 6/2023: a rest between working hours of at least half an hour after four hours of continuous work, not counted as working time; PP 35/2021 art.22 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf). Read from the roster day’s recorded intervals (`day.intervals`): one interval longer than 4 hours, or two separated by less than 30 minutes (no rest) that together exceed 4 hours. A chain of three or more short-gapped intervals is read pairwise."
+			"description": "more than 4 hours of continuous work without a break of at least 30 minutes (UU 13/2003 art.79(2)(a); PP 35/2021 art.22)."
 		}
 	},
 	{
@@ -2238,12 +2782,18 @@
 		"scope": "JURISDICTION",
 		"code": "WORKING_DAYS_PER_WEEK_REQUIRED",
 		"name": "Working days a week missing for rest-day or holiday overtime",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.31(2)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "!has(terms.facts.working_days_per_week) && work.days.exists(d, d.worked_hours - d.banked_hours > 0.0 && (d.day_type == \"REST\" || d.day_type == \"OFF\" || (d.holiday_kind != \"\" && d.holiday_kind != \"MAKEUP_WORKDAY\")))",
-			"message": "Record the working days a week (terms.facts.working_days_per_week, 5 or 6) of a worker with rest-day or holiday overtime: PP 35/2021 art.31(2)–(3) sets different ladders for a six-day and a five-day week, and the overtime is priced on the five-day ladder until it is recorded.",
-			"authority": "PP 35/2021 art.31(2)–(3) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
+			"message": "Record the working days a week (terms.facts.working_days_per_week, 5 or 6) of a worker with rest-day or holiday overtime: PP 35/2021 art.31(2)–(3) sets different ladders for a six-day and a five-day week, and the overtime is priced on the five-day ladder until it is recorded."
 		}
 	},
 	{
@@ -2253,8 +2803,13 @@
 		"scope": "JURISDICTION",
 		"code": "CORETAX_BPMP_XML",
 		"name": "Coretax BPMP — monthly PPh 21 slips of permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPMP (bukti pemotongan bulanan pegawai tetap, PER-11/PJ/2025 Lampiran): one MmPayroll per PERMANENT or CONTRACT employee and month withheld at the TER (PMK 168/2023 art.2), January to November and every month before an exit; Gross is the month’s PPh 21 base, Rate the TER rate applied (tax ÷ base, in percent), TaxObjectCode 21-100-01, TaxCertificate DTP where PPh 21 DTP was borne (PMK 105/2025). The December and exit months are the BPA1.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
 		"rules": {
-			"authority": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPMP (bukti pemotongan bulanan pegawai tetap, PER-11/PJ/2025 Lampiran): one MmPayroll per PERMANENT or CONTRACT employee and month withheld at the TER (PMK 168/2023 art.2), January to November and every month before an exit; Gross is the month’s PPh 21 base, Rate the TER rate applied (tax ÷ base, in percent), TaxObjectCode 21-100-01, TaxCertificate DTP where PPh 21 DTP was borne (PMK 105/2025). The December and exit months are the BPA1.",
 			"file": "\"coretax-bpmp-\" + runs[0].period.substring(0, 7) + \".xml\"",
 			"format": "FIXED",
 			"columns": [],
@@ -2287,8 +2842,13 @@
 		"scope": "JURISDICTION",
 		"code": "CORETAX_BPA1_XML",
 		"name": "Coretax BPA1 — annual PPh 21 slip of permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPA1 (bukti pemotongan tahunan / masa pajak terakhir, PMK 168/2023 art.2(2)(b)): one A1 per PERMANENT or CONTRACT employee whose exported slips hold December or the exit month — export the year’s runs. Months start/end are the first and last month withheld; StatusOfWithholding FullYear (January–December), PartialYear, or Annualized where the terms record a tax-subject start or end in the year (`tax_subject_from` / `tax_subject_until`) with NumberOfMonths; Salary = basic, fixed allowances and their adjustments; OtherBenefit = overtime, leave pay, medical and other allowances; InsurancePaidByEmployer = the employer JKK, JKM and Kesehatan premiums; TantiemBonusThr = bonus and THR; Natura; PensionContribution = the employee JHT and JP; Zakat = `employee.facts.zakat_monthly` × months; Article21IncomeTax = the PPh 21 withheld before the final month (the BPMP total). Gross-up and the previous employer’s slip are not used (GrossUpOpt No, PrevWhTaxSlip nil).",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
 		"rules": {
-			"authority": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPA1 (bukti pemotongan tahunan / masa pajak terakhir, PMK 168/2023 art.2(2)(b)): one A1 per PERMANENT or CONTRACT employee whose exported slips hold December or the exit month — export the year’s runs. Months start/end are the first and last month withheld; StatusOfWithholding FullYear (January–December), PartialYear, or Annualized where the terms record a tax-subject start or end in the year (`tax_subject_from` / `tax_subject_until`) with NumberOfMonths; Salary = basic, fixed allowances and their adjustments; OtherBenefit = overtime, leave pay, medical and other allowances; InsurancePaidByEmployer = the employer JKK, JKM and Kesehatan premiums; TantiemBonusThr = bonus and THR; Natura; PensionContribution = the employee JHT and JP; Zakat = `employee.facts.zakat_monthly` × months; Article21IncomeTax = the PPh 21 withheld before the final month (the BPMP total). Gross-up and the previous employer’s slip are not used (GrossUpOpt No, PrevWhTaxSlip nil).",
 			"file": "\"coretax-bpa1-\" + runs[0].period.substring(0, 7).substring(0, 4) + \".xml\"",
 			"format": "FIXED",
 			"columns": [],
@@ -2322,8 +2882,13 @@
 		"scope": "JURISDICTION",
 		"code": "CORETAX_BP21_XML",
 		"name": "Coretax BP21 — PPh 21 slips other than permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP21 (bukti pemotongan PPh 21 selain pegawai tetap): a bukan pegawai paid through NON_EMPLOYEE_FEE (engagement PAYEE; TaxObjectCode `employee.facts.bp21_tax_object_code`, default 21-100-20 “Imbalan kepada Pemberi Jasa dalam Segala Bidang”, deemed 50%); a non-permanent worker (DAILY: 21-100-24 at the TER harian, or 21-100-30 on 50% above Rp2,500,000 a day; PART_TIME: 21-100-35 at the TER bulanan); final severance (21-401-01) and lump-sum pension (21-401-02). Rate is the tax over the deemed gross, in percent; Document PaymentProof, numbered employee number/period.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
 		"rules": {
-			"authority": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP21 (bukti pemotongan PPh 21 selain pegawai tetap): a bukan pegawai paid through NON_EMPLOYEE_FEE (engagement PAYEE; TaxObjectCode `employee.facts.bp21_tax_object_code`, default 21-100-20 “Imbalan kepada Pemberi Jasa dalam Segala Bidang”, deemed 50%); a non-permanent worker (DAILY: 21-100-24 at the TER harian, or 21-100-30 on 50% above Rp2,500,000 a day; PART_TIME: 21-100-35 at the TER bulanan); final severance (21-401-01) and lump-sum pension (21-401-02). Rate is the tax over the deemed gross, in percent; Document PaymentProof, numbered employee number/period.",
 			"file": "\"coretax-bp21-\" + runs[0].period.substring(0, 7) + \".xml\"",
 			"format": "FIXED",
 			"columns": [],
@@ -2356,8 +2921,13 @@
 		"scope": "JURISDICTION",
 		"code": "CORETAX_BP26_XML",
 		"name": "Coretax BP26 — PPh 26 slips of non-residents (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP26 (bukti pemotongan PPh 26): one per non-resident and month withheld (UU 36/2008 art.26(1); PMK 168/2023 art.14), TaxObjectCode 27-100-99, deemed 100%, Rate 20 or the treaty rate. Customer inputs: the foreign TIN (`employee.facts.foreign_tin`, else the passport), the ISO 3166-1 alpha-3 country (`employee.facts.bp26_country`), birth city (`employee.facts.birth_city`); name, address and birth date from the profile.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
 		"rules": {
-			"authority": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP26 (bukti pemotongan PPh 26): one per non-resident and month withheld (UU 36/2008 art.26(1); PMK 168/2023 art.14), TaxObjectCode 27-100-99, deemed 100%, Rate 20 or the treaty rate. Customer inputs: the foreign TIN (`employee.facts.foreign_tin`, else the passport), the ISO 3166-1 alpha-3 country (`employee.facts.bp26_country`), birth city (`employee.facts.birth_city`); name, address and birth date from the profile.",
 			"file": "\"coretax-bp26-\" + runs[0].period.substring(0, 7) + \".xml\"",
 			"format": "FIXED",
 			"columns": [],
@@ -2390,13 +2960,17 @@
 		"scope": "JURISDICTION",
 		"code": "SECTOR_MINIMUM_WAGE_UNSEEDED",
 		"name": "Sector minimum wage not configured for the worksite",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) (as amended by PP 49/2025 from 2026; with Permenaker 16/2024 art.7 for 2025); UU 13/2003 arts.88E(2) and 185: a governor’s sector minimum wage binds workers under one year of service in the sectors it names. Where the decree is known but its table was not read on an official copy (tracker ID-SETTINGS-15 lists the hosts tried), the run cannot floor the wage at it, so the payslip warns instead of silently flooring the worker at the UMK. Data: `rules.minimum_wage.unseeded_sector.areas.<code>` — `regions` (a province key covers its localities), `kbli` (prefixes of terms.facts.worksite_kbli; empty = any declared KBLI), `decree`; and `outside_tables` (version 1: every worksite area without a 2025 table in `by_sector`). Seeding an area’s table in `minimum_wage.by_sector` replaces its entry. Micro and small enterprises are outside it, as the sector rows are. It warns at any length of service: under one year the sector minimum binds (art.35D), and from one year the wage of the structure and scale may not fall below it either (UU 13/2003 art.88E(2); the long-service reading of MINIMUM_WAGE_LONG_SERVICE)."
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "terms.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts) && company.facts != null && has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && has(terms.facts.worksite_kbli) && terms.facts.worksite_kbli != \"\" && has(rules.minimum_wage.unseeded_sector) && ((has(rules.minimum_wage.unseeded_sector.areas) && rules.minimum_wage.unseeded_sector.areas.exists(c, rules.minimum_wage.unseeded_sector.areas[c].regions.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")) && (rules.minimum_wage.unseeded_sector.areas[c].kbli.size() == 0 || rules.minimum_wage.unseeded_sector.areas[c].kbli.exists(p, terms.facts.worksite_kbli.startsWith(p))))) || (has(rules.minimum_wage.unseeded_sector.outside_tables) && rules.minimum_wage.unseeded_sector.outside_tables == true && !(has(rules.minimum_wage.by_sector) && rules.minimum_wage.by_sector.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")))))",
 			"message": "A 2025 sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it): the governor’s 2025 UMSP/UMSK for this worksite’s area is not configured in this version (only Mimika and the Kalimantan Selatan UMSK of Banjarmasin and Kotabaru are) — check the decree (Permenaker 16/2024 art.7) and pay at least its rate.",
-			"description": "A 2025 sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it): the governor’s 2025 UMSP/UMSK for this worksite’s area is not configured in this version (only Mimika and the Kalimantan Selatan UMSK of Banjarmasin and Kotabaru are) — check the decree (Permenaker 16/2024 art.7) and pay at least its rate.",
-			"authority": "PP 36/2021 art.35D(1) (as amended by PP 49/2025 from 2026; with Permenaker 16/2024 art.7 for 2025); UU 13/2003 arts.88E(2) and 185: a governor’s sector minimum wage binds workers under one year of service in the sectors it names. Where the decree is known but its table was not read on an official copy (tracker ID-SETTINGS-15 lists the hosts tried), the run cannot floor the wage at it, so the payslip warns instead of silently flooring the worker at the UMK. Data: `rules.minimum_wage.unseeded_sector.areas.<code>` — `regions` (a province key covers its localities), `kbli` (prefixes of terms.facts.worksite_kbli; empty = any declared KBLI), `decree`; and `outside_tables` (version 1: every worksite area without a 2025 table in `by_sector`). Seeding an area’s table in `minimum_wage.by_sector` replaces its entry. Micro and small enterprises are outside it, as the sector rows are. It warns at any length of service: under one year the sector minimum binds (art.35D), and from one year the wage of the structure and scale may not fall below it either (UU 13/2003 art.88E(2); the long-service reading of MINIMUM_WAGE_LONG_SERVICE)."
+			"description": "A 2025 sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it): the governor’s 2025 UMSP/UMSK for this worksite’s area is not configured in this version (only Mimika and the Kalimantan Selatan UMSK of Banjarmasin and Kotabaru are) — check the decree (Permenaker 16/2024 art.7) and pay at least its rate."
 		}
 	},
 	{
@@ -2406,13 +2980,17 @@
 		"scope": "JURISDICTION",
 		"code": "SECTOR_KBLI_MISSING",
 		"name": "Worksite KBLI missing where sector minimum wages are set",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025 (2026; Permenaker 16/2024 art.7 for 2025): a sector minimum wage binds by the KBLI of the business line, so the sector checks (SECTOR_MINIMUM_WAGE, MINIMUM_WAGE_LONG_SERVICE, SECTOR_MINIMUM_WAGE_UNSEEDED) need terms.facts.worksite_kbli. A worksite in an area with a table in minimum_wage.by_sector, or with an unconfigured decree in minimum_wage.unseeded_sector.areas, warns while it is missing. Micro and small enterprises are outside the sector wages."
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "terms.employment_type in [\"PERMANENT\", \"CONTRACT\"] && !(has(company.facts) && company.facts != null && has(company.facts.enterprise_size_class) && company.facts.enterprise_size_class == \"MICRO_OR_SMALL\") && !(has(terms.facts.worksite_kbli) && terms.facts.worksite_kbli != null && terms.facts.worksite_kbli != \"\") && ((has(rules.minimum_wage.by_sector) && rules.minimum_wage.by_sector.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\"))) || (has(rules.minimum_wage.unseeded_sector) && has(rules.minimum_wage.unseeded_sector.outside_tables) && rules.minimum_wage.unseeded_sector.outside_tables && !(has(rules.minimum_wage.by_sector) && rules.minimum_wage.by_sector.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")))) || (has(rules.minimum_wage.unseeded_sector) && has(rules.minimum_wage.unseeded_sector.areas) && rules.minimum_wage.unseeded_sector.areas.exists(c, rules.minimum_wage.unseeded_sector.areas[c].regions.exists(k, (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) == k || (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region).startsWith(k + \"/\")))))",
 			"message": "The worksite’s KBLI (terms.facts.worksite_kbli, the business-line code on the company’s NIB) is not declared, and the governor has set sector minimum wages for this worksite’s area: without it the run cannot tell whether a sector minimum binds — declare it.",
-			"description": "The worksite’s KBLI (terms.facts.worksite_kbli, the business-line code on the company’s NIB) is not declared, and the governor has set sector minimum wages for this worksite’s area: without it the run cannot tell whether a sector minimum binds — declare it.",
-			"authority": "PP 36/2021 art.35D(1) as amended by PP 49/2025 (2026; Permenaker 16/2024 art.7 for 2025): a sector minimum wage binds by the KBLI of the business line, so the sector checks (SECTOR_MINIMUM_WAGE, MINIMUM_WAGE_LONG_SERVICE, SECTOR_MINIMUM_WAGE_UNSEEDED) need terms.facts.worksite_kbli. A worksite in an area with a table in minimum_wage.by_sector, or with an unconfigured decree in minimum_wage.unseeded_sector.areas, warns while it is missing. Micro and small enterprises are outside the sector wages."
+			"description": "The worksite’s KBLI (terms.facts.worksite_kbli, the business-line code on the company’s NIB) is not declared, and the governor has set sector minimum wages for this worksite’s area: without it the run cannot tell whether a sector minimum binds — declare it."
 		}
 	},
 	{
@@ -2422,12 +3000,16 @@
 		"scope": "JURISDICTION",
 		"code": "MEDAN_SECTOR_SCOPE_MISSING",
 		"name": "Medan sector wage hotel or bank scope missing",
+		"references": [
+			{
+				"title": "The Medan hotel/bank row scope is specific to Kep. 188.44/909/KPTS/2025, effective 1 January 2026. In this 2025 version the unseeded sector warning applies instead; no 2026 floor or scope is backdated."
+			}
+		],
 		"rules": {
 			"site": "payslip",
 			"kind": "warn",
 			"when": "false",
-			"message": "Medan sector minimum wage scope is incomplete: declare the hotel star class or bank category to identify the annex XI floor.",
-			"authority": "The Medan hotel/bank row scope is specific to Kep. 188.44/909/KPTS/2025, effective 1 January 2026. In this 2025 version the unseeded sector warning applies instead; no 2026 floor or scope is backdated."
+			"message": "Medan sector minimum wage scope is incomplete: declare the hotel star class or bank category to identify the annex XI floor."
 		}
 	},
 	{
@@ -2437,12 +3019,17 @@
 		"scope": "JURISDICTION",
 		"code": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
 		"name": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.2(2), (7)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
 		"rules": {
 			"description": "Conduct the pre-employment examination before work starts. An examination by a qualifying physician within the previous three calendar months, accepted without doubt, exempts a repeat examination (art.2(7)).",
-			"authority": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.2(2), (7)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "!(contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && has(t.effective_range.from) && t.effective_range.from <= hired_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= hired_on) && has(t.facts) && has(t.facts.pre_employment_exam_on) && t.facts.pre_employment_exam_on != \"\" && t.facts.pre_employment_exam_on <= hired_on && t.facts.pre_employment_exam_on >= add_months(hired_on, -3) && has(t.facts.pre_employment_exam_accepted) && t.facts.pre_employment_exam_accepted == true))",
 			"due": "hired_on"
@@ -2455,12 +3042,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORKER_HEALTH_EXAMINATION_REPORT",
 		"name": "WORKER_HEALTH_EXAMINATION_REPORT",
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.6(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
 		"rules": {
 			"description": "Report pre-employment, periodic or special worker health examinations to the local regional office of Ditjen Binalindung Tenaga Kerja within two calendar months after examination. Record a WORKER_HEALTH_EXAMINATION_COMPLETED case with the examination day as its opening date.",
-			"authority": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.6(2)",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind == \"WORKER_HEALTH_EXAMINATION_COMPLETED\"",
 			"due": "add_months(row.opened_on, 2)"

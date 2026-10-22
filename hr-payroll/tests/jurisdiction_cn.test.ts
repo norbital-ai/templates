@@ -8,7 +8,7 @@ import {
 	propertiesAt as kitPropertiesAt,
 	modelFields
 } from './jurisdiction_kit.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction, assertFailure } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 import { workspace } from './kit.js';
@@ -604,7 +604,6 @@ const fixtureValue20 = guardFixture(
 			trigger: FixtureSchema.mutableKey(FixtureSchema.String),
 			due: FixtureSchema.mutableKey(FixtureSchema.String),
 			applies_when: FixtureSchema.mutableKey(FixtureSchema.optionalKey(FixtureSchema.String)),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String),
 			months: FixtureSchema.mutableKey(
 				FixtureSchema.optionalKey(FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String)))
 			)
@@ -2505,7 +2504,7 @@ describe('CN public lineage', () => {
 			for (const row of rows) {
 				const rules = fixtureValue20({ ...fixtureRecord(row.rules), trigger: triggerOf(row) });
 				assert.ok(['OBLIGATIONS', 'TASKS'].includes(String(row.family)));
-				assert.ok(rules.authority.length > 20, String(row.code));
+				assert.ok(citationText(row.references).length > 20, String(row.code));
 				assert.match(
 					String(
 						evaluateConfigured(
@@ -4173,7 +4172,7 @@ describe('CN public lineage', () => {
 				from = '2026-03-10'
 			) => {
 				const row = fixturePresent(kinds.find((item) => item.code === kind));
-				assert.match(String(row.authority), /第十二条|第五十条/);
+				assert.match(citationText(row.references), /第十二条|第五十条/);
 				const context = {
 					...payslipContext,
 					day: { date, worked, day_type: 'WORK' },
@@ -4244,7 +4243,7 @@ describe('CN public lineage', () => {
 					false
 				);
 				assert.match(
-					String(fixturePresent(kinds.find((item) => item.code === kind)).authority),
+					citationText(fixturePresent(kinds.find((item) => item.code === kind)).references),
 					/企业规章制度规定或者集体合同、劳动合同约定的标准发放生活费/
 				);
 				// The cycle runs across pay periods: a suspension from 20 March still pays in full on 15 April.

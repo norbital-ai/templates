@@ -36,6 +36,24 @@ export const LINEAGES = readdirSync(SEED)
 	.sort();
 export const nextDay = (day: string): string => addDays(day, 1);
 
+const CitationText = Schema.optionalKey(Schema.NullOr(Schema.String));
+const References = Schema.Array(
+	Schema.Struct({
+		title: Schema.String,
+		locator: CitationText,
+		url: CitationText,
+		quote: CitationText,
+		effective_from: CitationText
+	})
+);
+/** A statutory row's `references` as one searchable text: each title, locator, link and quote in order. */
+export function citationText(references: unknown): string {
+	return Schema.decodeUnknownSync(References)(references ?? [])
+		.flatMap((reference) => [reference.title, reference.locator, reference.url, reference.quote])
+		.filter((part): part is string => typeof part === 'string')
+		.join(' ');
+}
+
 export function lineage(code: string) {
 	const root = resolve(SEED, code);
 	const rows = (version: string, table: string) => readSeedRows(resolve(root, version), table);

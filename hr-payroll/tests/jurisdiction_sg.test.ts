@@ -11,7 +11,7 @@ import {
 	schemaProblems as kitSchemaProblems,
 	propertiesAt as kitPropertiesAt
 } from './jurisdiction_kit.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 const LAW_KIT = jurisdiction('SG');
 /** SG public seed: version snapshots, CEL on the engine context, and the statutory amounts each version charges. */
@@ -2098,7 +2098,7 @@ describe('SG public seed', () => {
 					`${version} ${duty.code}`
 				);
 				assert.ok(
-					String(rules.description).length > 0 && String(rules.authority).length > 0,
+					String(rules.description).length > 0 && citationText(duty.references).length > 0,
 					String(duty.code)
 				);
 				const context = contextOf(fixtureContext(duty));
@@ -3616,7 +3616,7 @@ describe('SG public seed', () => {
 			assert.equal(cap({}), 0);
 			// s.88A(6) and MOM: the carry is Part 4's only; elsewhere it is contractual, so the seed carries none.
 			for (const code of ['ANNUAL_LEAVE', 'ANNUAL_LEAVE_PART_TIME']) {
-				const authority = String(row(version, 'leave_catalog', code).authority);
+				const authority = citationText(row(version, 'leave_catalog', code).references);
 				assert.doesNotMatch(authority, /for all employees/);
 				assert.match(authority, /outside Part 4 carry is contractual/);
 			}
@@ -4938,7 +4938,7 @@ describe('SG public seed', () => {
 			assert.match(text('SDL_REMITTANCE'), /10% a year/);
 			assert.match(text('RETRENCHMENT_NOTIFICATION'), /5 working days/);
 			const lieu = row(version, 'leave_catalog', 'PUBLIC_HOLIDAY_IN_LIEU');
-			assert.match(String(lieu.authority), /s\.88\(1\)\(a\)/);
+			assert.match(citationText(lieu.references), /s\.88\(1\)\(a\)/);
 			assert.equal(seedClass(lieu).entitlement?.days ?? null, null);
 		}
 	});
@@ -7064,7 +7064,7 @@ describe('SG public seed', () => {
 	it('NS make-up pay: each national service leave spell raises the OneNS claim review, due three months from its start', () => {
 		for (const version of versions) {
 			const rules = fixtureValue11(row(version, 'rule_set', 'NS_MAKE_UP_PAY_CLAIM').rules);
-			assert.deepEqual(rules.trigger, { collection: 'leave_catalog_entry', event: 'created' });
+			assert.deepEqual(rules.trigger, { collection: 'leave_catalog_entry', events: ['created'] });
 			const spell = (extra: Row) => ({
 				row: {
 					catalog_code: 'NS_LEAVE',

@@ -41,7 +41,7 @@ describe('seed CEL presentation', () => {
 			[
 				'statutory_contribution_catalog',
 				{
-					authority: expression,
+					references: [{ title: expression }],
 					configuration: {
 						assessment: expression,
 						assessable: { ordinary: expression },
@@ -59,7 +59,7 @@ describe('seed CEL presentation', () => {
 					}
 				},
 				{
-					authority: expression,
+					references: [{ title: expression }],
 					configuration: {
 						assessment: formatted,
 						assessable: { ordinary: formatted },
@@ -188,7 +188,7 @@ describe('seed CEL presentation', () => {
 						applies_when: expression,
 						due: expression,
 						amount: expression,
-						authority: expression
+						description: expression
 					}
 				}),
 				{
@@ -198,7 +198,7 @@ describe('seed CEL presentation', () => {
 						applies_when: formatted,
 						due: formatted,
 						amount: formatted,
-						authority: expression
+						description: expression
 					}
 				}
 			);

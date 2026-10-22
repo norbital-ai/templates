@@ -4,6 +4,7 @@ const create_columns = [
 	'family',
 	'code',
 	'name',
+	'references',
 	'content_hash',
 	'source_identity',
 	'rules',
@@ -14,6 +15,7 @@ const update_columns = [
 	'family',
 	'code',
 	'name',
+	'references',
 	'content_hash',
 	'source_identity',
 	'rules'

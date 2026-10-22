@@ -31,7 +31,7 @@ const FixtureRange = Schema.Struct({
 	to: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
 const DutyTrigger = Schema.Struct({
-	trigger: Schema.Struct({ collection: Schema.String, event: Schema.String })
+	trigger: Schema.Struct({ collection: Schema.String, events: Schema.Array(Schema.String) })
 });
 const DutySchemes = Schema.Struct({ schemes: Schema.Array(Schema.String) });
 const BalanceContext = Schema.Record(Schema.String, Schema.Union([Schema.Json, Schema.BigInt]));
@@ -96,7 +96,6 @@ export const dutiesOf = (rows: readonly Row[]): Row[] =>
 /** The keys a duty's `rules` may hold. */
 export const DUTY_KEYS = [
 	'description',
-	'authority',
 	'trigger',
 	'schemes',
 	'when',
@@ -113,8 +112,8 @@ export const triggerOf = (row: { readonly family?: unknown; readonly rules?: unk
 	const { trigger } = Schema.decodeUnknownSync(DutyTrigger)(row.rules);
 	if (trigger.collection === 'payroll_run') return 'PAYROLL_RUN';
 	if (trigger.collection === 'employment_contract')
-		return trigger.event === 'created' ? 'HIRE' : 'EXIT';
-	return `${String(trigger.collection)}.${String(trigger.event)}`;
+		return trigger.events.includes('created') ? 'HIRE' : 'EXIT';
+	return `${trigger.collection}.${trigger.events.join('|')}`;
 };
 
 /** The trigger row's own day, as the tap picks it. */
@@ -217,8 +216,18 @@ export function raiseDuties(input: {
 		.flatMap((rule) =>
 			effectWrites(rule, {
 				...context,
-				duties: duties.map((duty) => ({ code: duty.code, name: duty.name, rules: duty.rules })),
-				tasks: tasks.map((task) => ({ code: task.code, name: task.name, rules: task.rules })),
+				duties: duties.map((duty) => ({
+					code: duty.code,
+					name: duty.name,
+					references: duty.references ?? null,
+					rules: duty.rules
+				})),
+				tasks: tasks.map((task) => ({
+					code: task.code,
+					name: task.name,
+					references: task.references ?? null,
+					rules: task.rules
+				})),
 				company: [],
 				employee: [],
 				contract: ['employment_contract', 'calendar'].includes(collection) ? [row] : [],

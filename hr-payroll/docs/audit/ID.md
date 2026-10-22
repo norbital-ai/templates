@@ -254,7 +254,7 @@ None. Every fix is data. (Coordinator check: the G1/G2 formulas rely on the engi
 
 ### Notes
 
-- Five provinces (Kepulauan Riau, Kalimantan Barat, Kalimantan Selatan, Sulawesi Tenggara, Papua Pegunungan) have no source. Every official portal tried is behind a Cloudflare/WAF challenge or does not answer. None was circumvented, and their seeded wages stay as they are, cited from the copies named in `minimum_wage.authority`. Re-probe them next round. The tracker row ID-SETTINGS-17 is PARTIAL for this reason.
+- Five provinces (Kepulauan Riau, Kalimantan Barat, Kalimantan Selatan, Sulawesi Tenggara, Papua Pegunungan) have no source. Every official portal tried is behind a Cloudflare/WAF challenge or does not answer. None was circumvented, and their seeded wages stay as they are, cited from the copies named in `minimum_wage.references`. Re-probe them next round. The tracker row ID-SETTINGS-17 is PARTIAL for this reason.
 - Holidays reach entities through the `write-public-holidays` behaviour (entity `created` and the `calendar` tick). It writes each version's `public_holidays` rows unpublished, skips dates the entity already holds, and filters by `regions`. Indonesia has no regional SKB holidays, so no row carries `regions`. A governor's regional day off (e.g. Bali's Galungan) is the employer's to add. The seed-bank sample `holiday` rows are outside this unit (seed_bank).
 - 2028 holidays and 2027 minimum wages (governors decree in December 2026) are not published yet and are not seeded.
 - Only version_4 (in force, no future version) had its sources rebuilt. Closed versions keep their historical source lists.

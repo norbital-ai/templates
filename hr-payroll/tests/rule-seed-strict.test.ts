@@ -371,9 +371,11 @@ const failures = (
 					if (row.family === 'TASKS' || row.family === 'OBLIGATIONS') {
 						const trigger =
 							row.family === 'OBLIGATIONS'
-								? { collection: 'payroll_run', event: 'created' }
-								: (rules.trigger as { collection: string; event: string });
-						const { collection, event } = trigger;
+								? { collection: 'payroll_run', events: ['created'] }
+								: (rules.trigger as { collection: string; events: string[] });
+						const { collection } = trigger;
+						// A rule answering several events is evaluated for its first: the context is representative.
+						const event = trigger.events[0] ?? '';
 						const employs = ![
 							'payroll_run',
 							'entity',
@@ -648,8 +650,7 @@ describe('every duty and validation row evaluates strictly', () => {
 					code: 'CONTROL_TASK',
 					rules: {
 						description: 'control',
-						authority: 'control',
-						trigger: { collection: 'payroll_run', event: 'created' },
+						trigger: { collection: 'payroll_run', events: ['created'] },
 						when: 'row.no_such_field.flag == true',
 						applies_when: 'false',
 						due: 'today'

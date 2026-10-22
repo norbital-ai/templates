@@ -6,6 +6,12 @@
 		"scope": "JURISDICTION",
 		"code": "deduction_ceiling",
 		"name": "deduction_ceiling",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.32(1): all deductions in a salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) may not exceed 50% of the salary payable for that period — CPF contributions (s.27(1)(h)) count; s.32(2): the last salary on termination or completion of the contract is outside the limit. The independent per-instalment quarter caps of s.31(3) and (5) apply even on final salary; an excessive instalment is left wholly outstanding. See MOM Allowable salary deductions and JKB v JKC [2026] SGECT 11 paras.18–22. EA s.2 salary excludes travelling allowance, expense reimbursements, benefits in kind, gratuity and retrenchment benefits. Catalogue codes in basis_exempt_codes carry those classifications; customer-specific codes must be classified in the sealed settings. Salary overpayment and unearned-benefit recovery are outside s.31 instalment caps (MOM Allowable salary deductions). EA s.31(2): recovery of an advance is spread over no more than 12 months; the first scheduled instalment, including settled history, anchors the limit. EA ss.29–30: damage recovery is a one-time deduction limited to a quarter of one month salary; accepted accommodation and approved amenities/services share a quarter of salary-period salary, no more than their supplied value. These independent limits also apply on final pay. s.32(1) excludes consented registered-co-operative payments from its aggregate half. The damage limit applies per incident; the separate APPROVED_DAMAGE_RECOVERY class requires the Commissioner permission as evidence for the s.29(1) exception. The aggregate s.32 limit still applies. EA s.31(1): actual disbursed_on is required for an advance. If it was paid before employment, recovery starts only with the first completed salary period; pre-employment TRAVEL_ADVANCE is never recoverable from salary.",
+				"url": "https://www.elitigation.sg/gd/s/2026_SGECT_11"
+			}
+		],
 		"rules": {
 			"share": 0.5,
 			"basis": "GROSS",
@@ -14,7 +20,6 @@
 			"loan_instalment_share": 0.25,
 			"exempt_codes": ["COOPERATIVE_DUES"],
 			"final_pay_exempt": true,
-			"authority": "Employment Act 1968 s.32(1): all deductions in a salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) may not exceed 50% of the salary payable for that period — CPF contributions (s.27(1)(h)) count; s.32(2): the last salary on termination or completion of the contract is outside the limit. The independent per-instalment quarter caps of s.31(3) and (5) apply even on final salary; an excessive instalment is left wholly outstanding. See MOM Allowable salary deductions and JKB v JKC [2026] SGECT 11 paras.18–22 (https://www.elitigation.sg/gd/s/2026_SGECT_11). EA s.2 salary excludes travelling allowance, expense reimbursements, benefits in kind, gratuity and retrenchment benefits. Catalogue codes in basis_exempt_codes carry those classifications; customer-specific codes must be classified in the sealed settings. Salary overpayment and unearned-benefit recovery are outside s.31 instalment caps (MOM Allowable salary deductions). EA s.31(2): recovery of an advance is spread over no more than 12 months; the first scheduled instalment, including settled history, anchors the limit. EA ss.29–30: damage recovery is a one-time deduction limited to a quarter of one month salary; accepted accommodation and approved amenities/services share a quarter of salary-period salary, no more than their supplied value. These independent limits also apply on final pay. s.32(1) excludes consented registered-co-operative payments from its aggregate half. The damage limit applies per incident; the separate APPROVED_DAMAGE_RECOVERY class requires the Commissioner permission as evidence for the s.29(1) exception. The aggregate s.32 limit still applies. EA s.31(1): actual disbursed_on is required for an advance. If it was paid before employment, recovery starts only with the first completed salary period; pre-employment TRAVEL_ADVANCE is never recoverable from salary.",
 			"basis_exempt_codes": [
 				"TRAVELLING_ALLOWANCE",
 				"RETRENCHMENT_BENEFIT",
@@ -52,9 +57,13 @@
 		"scope": "JURISDICTION",
 		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
 		"name": "CPF monthly submission and payment",
+		"references": [
+			{
+				"title": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
+			}
+		],
 		"rules": {
 			"description": "Submit and pay the month’s CPF contributions (employer and employee shares) for every Singapore Citizen and SPR employee through the CPF Submission Number, by the 14th of the following month (the next working day when the 14th is a Saturday, Sunday or public holiday). Late payment interest: 1.5% a month on the unpaid contributions, or $5 if higher (CPF Regulations reg.3). Apply to CPF Board for a refund of contributions paid above the Additional Wage ceiling.",
-			"authority": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment).",
 			"schemes": ["CPF"],
 			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -66,9 +75,14 @@
 		"scope": "JURISDICTION",
 		"code": "SDL_REMITTANCE",
 		"name": "Skills Development Levy remittance",
+		"references": [
+			{
+				"title": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy. The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy"
+			}
+		],
 		"rules": {
 			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month (next working day); CPF Board collects it for the Skills and Workforce Development Agency (SWDA), and an employer with only foreign employees pays SWDA directly. The per-employee levies are summed and rounded down to the dollar. Late payment: a penalty of 10% a year on the outstanding amount.",
-			"authority": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy (https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy). The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
 			"schemes": ["SDL"],
 			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])",
 			"amount": "round(total, 1.0, \"DOWN\")"
@@ -81,9 +95,14 @@
 		"scope": "JURISDICTION",
 		"code": "SHG_DEDUCTION_REMITTANCE",
 		"name": "Self-help group fund remittance",
+		"references": [
+			{
+				"title": "CPF Board, Contributions to self-help groups. The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups"
+			}
+		],
 		"rules": {
 			"description": "Remit the CDAC, ECF, MBMF and SINDA deductions with the month’s CPF by the 14th of the following month; apply a fund’s written opt-out or changed-amount instruction from its effective date.",
-			"authority": "CPF Board, Contributions to self-help groups (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups). The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
 			"schemes": ["CDAC", "ECF", "MBMF", "SINDA"],
 			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
 		}
@@ -95,12 +114,17 @@
 		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_LEVY",
 		"name": "Foreign worker levy payment",
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy"
+			}
+		],
 		"rules": {
 			"description": "Pay the month’s foreign worker levy for every Work Permit and S Pass holder by the 17th of the following month (the next working day when it falls on a weekend or public holiday), normally by GIRO, at the amount on the MOM levy bill. Waive the month when no Work Permit or S Pass was in force. Missing two consecutive months revokes the employer’s passes. Raised unless the entity records foreign_worker_levy_payer = false (no S Pass or Work Permit holder). The levy stays a task, not an obligation: its amount is the MOM levy bill (quota tier and sector), which no scheme computes, and an obligation without a computed amount is never raised.",
-			"authority": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy).",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "(company == null || company.facts == null || !has(company.facts.foreign_worker_levy_payer) || company.facts.foreign_worker_levy_payer == true)",
 			"due": "next_working_day(add_days(period.to, 17), holidays, [\"SATURDAY\", \"SUNDAY\"])"
@@ -113,12 +137,18 @@
 		"scope": "JURISDICTION",
 		"code": "SALARY_PAYMENT_DEADLINE",
 		"name": "Salary payment",
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.20, 21(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
 		"rules": {
 			"description": "Pay the salary for a salary period of not more than one month before the expiry of the 7th day after its last day.",
-			"authority": "Employment Act 1968 ss.20, 21(1) (https://sso.agc.gov.sg/Act/EmA1968).",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "add_days(period.to, 7)"
 		}
@@ -130,12 +160,18 @@
 		"scope": "JURISDICTION",
 		"code": "OVERTIME_PAYMENT_DEADLINE",
 		"name": "Overtime payment",
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.21(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
 		"rules": {
 			"description": "Pay overtime worked in the salary period not later than 14 days after its last day. Waive the month when no overtime was worked.",
-			"authority": "Employment Act 1968 s.21(2) (https://sso.agc.gov.sg/Act/EmA1968).",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "add_days(period.to, 14)"
 		}
@@ -147,12 +183,16 @@
 		"scope": "JURISDICTION",
 		"code": "ITEMISED_PAYSLIP",
 		"name": "Itemised payslips",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
+			}
+		],
 		"rules": {
 			"description": "Give each employee an itemised payslip (basic salary, allowances, overtime hours and pay, other additional payments, deductions including CPF, net salary, dates) with the salary or within 3 working days after paying it. Raised when the payslip is paid; due 3 working days after the paid day.",
-			"authority": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it.",
 			"trigger": {
 				"collection": "payslip",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["status"]
 			},
 			"due": "add_working_days(row.paid_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])",
@@ -166,12 +206,21 @@
 		"scope": "JURISDICTION",
 		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
 		"name": "Form IR8A / AIS annual return",
+		"references": [
+			{
+				"title": "Income Tax Act 1947",
+				"locator": "s.68(2)"
+			},
+			{
+				"title": "IRAS, Auto Inclusion Scheme (AIS) for Employment Income",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income"
+			}
+		],
 		"rules": {
 			"description": "Prepare Form IR8A with Appendix 8A and Appendix 8B (Form IR8S is discontinued from YA 2026: excess or voluntary employer CPF is item d6 of Form IR8A) for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
-			"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme (AIS) for Employment Income (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income).",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["12"],
 			"due": "add_months(add_days(period.to, 1), 2)"
@@ -184,12 +233,18 @@
 		"scope": "JURISDICTION",
 		"code": "KEY_EMPLOYMENT_TERMS",
 		"name": "Key employment terms",
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.95A(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
 		"rules": {
 			"description": "Give the employee the key employment terms in writing not later than 14 days after the day the employee starts (an employment of 14 days or more).",
-			"authority": "Employment Act 1968 s.95A(2) (https://sso.agc.gov.sg/Act/EmA1968).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "add_days(hired_on, 14)"
 		}
@@ -201,12 +256,21 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_PASS_IN_FORCE",
 		"name": "Work pass before the start",
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990",
+				"locator": "s.5(1)"
+			},
+			{
+				"title": "MOM, Passes and permits",
+				"url": "https://www.mom.gov.sg/passes-and-permits"
+			}
+		],
 		"rules": {
 			"description": "A foreign employee may start work only with a valid work pass (Employment Pass, S Pass or Work Permit) in force; waive for a Citizen or SPR. Raised for a hire whose profile immigration_status is a work pass, or is unrecorded.",
-			"authority": "Employment of Foreign Manpower Act 1990 s.5(1); MOM, Passes and permits (https://www.mom.gov.sg/passes-and-permits).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
 			"due": "hired_on"
@@ -219,12 +283,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
 		"name": "Work injury compensation insurance",
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance.",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance"
+			}
+		],
 		"rules": {
 			"description": "Have work injury compensation insurance in force from the first day for every employee doing manual work and every non-manual employee earning $2,600 or less a month; waive otherwise.",
-			"authority": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "hired_on",
 			"applies_when": "contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, !has(t.statutory_work_category) || t.statutory_work_category != \"NON_MANUAL\" || !has(t.base_salary) || t.base_salary.value <= 2600.0)"
@@ -237,12 +306,16 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
 		"name": "PDPA purpose notification",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
+			}
+		],
 		"rules": {
 			"description": "Notify the employee of the purposes for which the employer collects, uses and discloses personal data to manage the employment relationship (onboarding, payroll, CPF and IRAS filing, benefits), on or before collection; a new purpose needs fresh notification.",
-			"authority": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"due": "hired_on"
 		}
@@ -254,12 +327,18 @@
 		"scope": "JURISDICTION",
 		"code": "FINAL_SALARY_PAYMENT",
 		"name": "Final salary payment",
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.21(3), 22, 23, 24",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
 		"rules": {
 			"description": "Pay the salary and every sum due on termination: on the last day when the contract ends or notice was served (ss.21(3), 23(1)); on the day of a dismissal or, where impossible, within 3 days excluding rest days and public holidays (s.22); within 7 days after a resignation without notice (s.23(2)). The due day is the last day; subject to IR21 withholding (s.24). Due the last day, or 7 days after a RESIGNATION whose exit_facts do not record notice_served.",
-			"authority": "Employment Act 1968 ss.21(3), 22, 23, 24 (https://sso.agc.gov.sg/Act/EmA1968).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -273,12 +352,16 @@
 		"scope": "JURISDICTION",
 		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
 		"name": "IR21 tax clearance",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide)."
+			}
+		],
 		"rules": {
 			"description": "File Form IR21 for a non-Singapore-Citizen employee (SPRs included) who ceases employment, is posted overseas or leaves Singapore for more than three months, at least one month before the cessation, and withhold all monies due from the day the employer is aware until the Comptroller’s clearance; waive for a Citizen or an IRAS exemption. Late or no filing: fine up to $5,000. Raised for every leaver whose profile immigration_status is not CITIZEN (SPRs included), or is unrecorded.",
-			"authority": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -293,12 +376,16 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_PASS_CANCELLATION",
 		"name": "Work pass cancellation",
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”"
+			}
+		],
 		"rules": {
 			"description": "Cancel the foreign employee’s Employment Pass, S Pass or Work Permit within 1 week after the last day of notice (within 1 week of departure when the employee has left Singapore for good); waive for a Citizen or SPR. Raised for a leaver whose profile immigration_status is a work pass, or is unrecorded.",
-			"authority": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -313,12 +400,16 @@
 		"scope": "JURISDICTION",
 		"code": "RETRENCHMENT_NOTIFICATION",
 		"name": "Mandatory retrenchment notification",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
+			}
+		],
 		"rules": {
 			"description": "An employer registered in Singapore with at least 10 employees (headcount on the day) notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on; due 5 working days after that notice (add_working_days over the entity holidays).",
-			"authority": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment.",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
@@ -333,12 +424,17 @@
 		"scope": "JURISDICTION",
 		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
 		"name": "Government-paid leave reimbursement claim",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave, read 2026-10-07",
+				"url": "https://www.profamilyleave.msf.gov.sg/"
+			}
+		],
 		"rules": {
 			"description": "Claim the reimbursable government-paid maternity, paternity, adoption or shared parental leave (GPML, GPPL, GPAL, GPSPL) through the GPL portal no later than 3 months after the last day of the leave. Raised for each recorded spell of a family-event leave (entry.facts.event_kind set); waive a spell the Government does not reimburse (e.g. GPML weeks 1–8 of a 1st or 2nd child).",
-			"authority": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave (https://www.profamilyleave.msf.gov.sg/), read 2026-10-07",
 			"trigger": {
 				"collection": "leave_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.catalog_code in [\"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\", \"ADOPTION_LEAVE\", \"SHARED_PARENTAL_LEAVE\"] && row.activity == \"TIME_OFF\" && row.to != null",
 			"due": "add_months(row.to, 3)"
@@ -351,12 +447,17 @@
 		"scope": "JURISDICTION",
 		"code": "CHILDCARE_LEAVE_CLAIM",
 		"name": "Childcare and extended childcare leave claim",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave, read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave"
+			}
+		],
 		"rules": {
 			"description": "Claim the government-paid childcare leave (days 4–6, $500 a day, $1,500 a year) and extended childcare leave (both days, $500 a day, $1,000 a year) the employer paid in the calendar year, no later than 3 months after its last day. Raised by the December run; waive when no such leave was taken.",
-			"authority": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave), read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
 			"trigger": {
 				"collection": "payroll_run",
-				"event": "created"
+				"events": ["created"]
 			},
 			"months": ["12"],
 			"due": "add_months(period.to, 3)"
@@ -369,12 +470,16 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_ACCIDENT_REPORT",
 		"name": "Work accident report to MOM",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations and Work Injury Compensation Regulations; Ministry of Manpower official reporting criteria, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. The employer table expressly lists any outpatient/hospitalisation leave, light duty, death and occupational disease; fatal accident reports use accident date, non-fatal reports first employer notice. Primary legislation links were inaccessible (403); current agency guidance is the verified source. MOM parliamentary written answer dated 8 February 2023 confirms the any-instance requirement has applied since 1 September 2020: https://www.mom.gov.sg/newsroom/parliament-questions-and-replies/2023/0206-written-answer-to-pq-on-data-on-healthcare-workers-compensation-under-wica."
+			}
+		],
 		"rules": {
 			"description": "Report a work accident through iReport for any outpatient or hospitalisation leave, including dedicated WICA leave classes. No four-day minimum applies, so the first positive leave entry triggers the report even when later leave is recorded separately. Fatal report: within ten days of the accident; non-fatal report: within ten days of the employer’s first notice. Record work_accident_on, accident_notified_on and work_accident_fatal as applicable. If the actual first notice is not supplied, the accident date is a conservative earlier due date, not an inferred notice date. This leave-triggered duty does not cover incidents recorded without leave (light duty, death, occupational disease), or the separate immediate fatality notification; those need workplace-case coverage.",
-			"authority": "Workplace Safety and Health (Incident Reporting) Regulations and Work Injury Compensation Regulations; Ministry of Manpower official reporting criteria, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. The employer table expressly lists any outpatient/hospitalisation leave, light duty, death and occupational disease; fatal accident reports use accident date, non-fatal reports first employer notice. Primary legislation links were inaccessible (403); current agency guidance is the verified source. MOM parliamentary written answer dated 8 February 2023 confirms the any-instance requirement has applied since 1 September 2020: https://www.mom.gov.sg/newsroom/parliament-questions-and-replies/2023/0206-written-answer-to-pq-on-data-on-healthcare-workers-compensation-under-wica.",
 			"trigger": {
 				"collection": "leave_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.catalog_code in [\"SICK_LEAVE\", \"HOSPITALIZATION_LEAVE\", \"WORK_INJURY_MEDICAL_LEAVE\", \"WORK_INJURY_HOSPITALISATION_LEAVE\"] && row.facts != null && has(row.facts.work_accident_on)",
 			"applies_when": "row.days > 0.0 || (has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true)",
@@ -388,12 +493,17 @@
 		"scope": "JURISDICTION",
 		"code": "CPF_SUBMISSION_NUMBER",
 		"name": "CPF Submission Number registration",
+		"references": [
+			{
+				"title": "Central Provident Fund Act 1953 s.7; CPF Board, How do I start contributing CPF as a new employer, read 2026-10-07: “You will need a CPF Submission Number (CSN) to transact with CPF Board”",
+				"url": "https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer"
+			}
+		],
 		"rules": {
 			"description": "Apply for the CPF Submission Number before the first CPF payment is due. Raised when an entity is created without one; due the first possible CPF deadline, the 14th of the month after the entity’s first month (rolled to the next working day). There is no per-employee CPF registration.",
-			"authority": "Central Provident Fund Act 1953 s.7; CPF Board, How do I start contributing CPF as a new employer (https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer), read 2026-10-07: “You will need a CPF Submission Number (CSN) to transact with CPF Board”",
 			"trigger": {
 				"collection": "entity",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "company == null || company.facts == null || !has(company.facts.cpf_submission_number) || company.facts.cpf_submission_number == \"\"",
 			"due": "next_working_day(add_days(month_end(period.from), 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
@@ -451,12 +561,17 @@
 		"scope": "JURISDICTION",
 		"code": "REEMPLOYMENT_OFFER",
 		"name": "Re-employment offer",
+		"references": [
+			{
+				"title": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en"
+			}
+		],
 		"rules": {
 			"description": "Offer re-employment (or an alternative-employer transfer, or the EAP) to an eligible Citizen or SPR employee reaching the prescribed minimum retirement age (63; 64 for those born on or after 1 July 1963, from 1 July 2026). The Tripartite Guidelines ask employers to engage the employee at least 6 months, and offer the contract at least 3 months, before that age. Raised on the daily tick 6 months before the birthday; due 3 months before it. Waive for an employee not eligible (performance, medical fitness, hired at 55+ with under 2 years of service).",
-			"authority": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
 			"trigger": {
 				"collection": "calendar",
-				"event": "daily"
+				"events": ["daily"]
 			},
 			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && today == add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -6)",
 			"applies_when": "!(employee != null && employee.facts != null && has(employee.facts.immigration_status) && !(employee.facts.immigration_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]))",
@@ -470,8 +585,13 @@
 		"scope": "JURISDICTION",
 		"code": "public_holidays",
 		"name": "Gazetted public holidays",
+		"references": [
+			{
+				"title": "MOM, Public holidays for 2026 and 2027 (https://www.mom.gov.sg/employment-practices/public-holidays, read 2026-10-07), gazetted under the Holidays Act 1998",
+				"url": "https://www.mom.gov.sg/employment-practices/public-holidays"
+			}
+		],
 		"rules": {
-			"authority": "MOM, Public holidays for 2026 and 2027 (https://www.mom.gov.sg/employment-practices/public-holidays, read 2026-10-07), gazetted under the Holidays Act 1998",
 			"holidays": [
 				{
 					"date": "2027-01-01",
@@ -545,8 +665,12 @@
 		"scope": "JURISDICTION",
 		"code": "pwm_wages",
 		"name": "Progressive Wage Model floors",
+		"references": [
+			{
+				"title": "MOM Progressive Wage Model sectoral and occupational wage schedules (sources per role)."
+			}
+		],
 		"rules": {
-			"authority": "MOM Progressive Wage Model sectoral and occupational wage schedules (sources per role).",
 			"roles": {
 				"ADMIN_ASSISTANT": {
 					"sector": "ADMINISTRATOR_OPW",
@@ -1402,9 +1526,14 @@
 		"scope": "JURISDICTION",
 		"code": "NR_DIRECTOR_WITHHOLDING",
 		"name": "Withholding tax on non-resident director fees (IR37)",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director, read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director"
+			}
+		],
 		"rules": {
 			"description": "File Form IR37 and pay the 24% withholding tax on remuneration and fees paid to a non-resident director by the 15th of the second month after the payment.",
-			"authority": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director), read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
 			"schemes": ["WHT_NR_DIRECTOR"],
 			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
 		}
@@ -1416,12 +1545,17 @@
 		"scope": "JURISDICTION",
 		"code": "IR21_LEAVING_SINGAPORE",
 		"name": "IR21 for an overseas posting or departure over 3 months",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees, read 2026-10-07.",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
 		"rules": {
 			"description": "File Form IR21 at least one month before a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months (without ceasing employment). Raised when the profile records facts.leaves_singapore_from (customer input).",
-			"authority": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees), read 2026-10-07.",
 			"trigger": {
 				"collection": "employment_profile",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["facts"]
 			},
 			"when": "row.facts != null && has(row.facts.leaves_singapore_from)",
@@ -1436,12 +1570,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_PASS_MEDICAL_INSURANCE",
 		"name": "Medical insurance for a Work Permit or S Pass holder",
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance"
+			}
+		],
 		"rules": {
 			"description": "Buy and keep medical insurance for each Work Permit and S Pass holder for inpatient care and day surgery, with an annual claim limit of at least $60,000 (employer co-payment terms as MOM states), in force from the start of employment.",
-			"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance) and MOM written answer 1106/2025.",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status in [\"WORK_PERMIT\", \"S_PASS\"]",
 			"due": "hired_on"
@@ -1454,12 +1593,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_PERMIT_SECURITY_BOND",
 		"name": "Security bond for a non-Malaysian Work Permit holder",
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond"
+			}
+		],
 		"rules": {
 			"description": "Furnish a $5,000 security bond for each non-Malaysian Work Permit holder before the worker arrives in Singapore.",
-			"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond), read 2026-10-07: Malaysians are exempt.",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status == \"WORK_PERMIT\" && !(employee.nationality in [\"MY\", \"MALAYSIA\", \"Malaysian\", \"MALAYSIAN\"])",
 			"due": "hired_on"
@@ -1472,12 +1616,17 @@
 		"scope": "JURISDICTION",
 		"code": "YOUNG_PERSON_NOTIFICATION",
 		"name": "Notify MOM of a child or young person in an industrial undertaking",
+		"references": [
+			{
+				"title": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons and Employing young persons and children, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons"
+			}
+		],
 		"rules": {
 			"description": "Notify the Commissioner within 30 days of employing a child aged 13 to under 15 (or a young person) in an industrial undertaking, with a medical report certifying fitness. Raised for a hire under 16 at an entity whose facts record industrial_undertaking (customer input).",
-			"authority": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons (https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons) and Employing young persons and children, read 2026-10-07.",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) >= 13 && age_on(employee.date_of_birth, hired_on) < 16 && company != null && company.facts != null && has(company.facts.industrial_undertaking) && company.facts.industrial_undertaking == true",
 			"due": "add_days(hired_on, 30)"
@@ -1580,12 +1729,17 @@
 		"scope": "JURISDICTION",
 		"code": "MISCONDUCT_DUE_INQUIRY",
 		"name": "Due inquiry before a misconduct dismissal",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07).",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
 		"rules": {
 			"description": "Hold a due inquiry before dismissing an employee for misconduct; pending it the employee may be suspended for up to a week, on at least half pay. Raised when a contract closes as a DISMISSAL with exit_facts.dismissed_for_misconduct; due the dismissal day.",
-			"authority": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07). https://sso.agc.gov.sg/Act/EmA1968",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.dismissed_for_misconduct) && contract.exit_facts.dismissed_for_misconduct == true",
@@ -1599,12 +1753,18 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_DATA_PROTECTION_OFFICER",
 		"name": "Designate a data protection officer",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012",
+				"locator": "ss.11(3)–(5), 12",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012"
+			}
+		],
 		"rules": {
 			"description": "Designate one or more data protection officers, make the business contact of at least one public, and put in place data protection policies and a complaints process. Raised when an entity is created without company.facts.dpo_contact (customer input).",
-			"authority": "Personal Data Protection Act 2012 ss.11(3)–(5), 12 (https://sso.agc.gov.sg/Act/PDPA2012).",
 			"trigger": {
 				"collection": "entity",
-				"event": "created"
+				"events": ["created"]
 			},
 			"applies_when": "company == null || company.facts == null || !has(company.facts.dpo_contact) || company.facts.dpo_contact == \"\"",
 			"due": "today"
@@ -1677,12 +1837,17 @@
 		"scope": "JURISDICTION",
 		"code": "CPF_CONDITIONAL_WAGE_REFUND",
 		"name": "CPF refund on repaid conditional wages",
+		"references": [
+			{
+				"title": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions, read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
+				"url": "https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions"
+			}
+		],
 		"rules": {
 			"description": "When an employee repays wages that attracted CPF (a conditional payment such as a sign-on bonus clawed back), apply to CPF Board for the refund of the CPF contributions paid on them no later than one year from the date the wages were repayable, after refunding the employee’s share to the employee. Raised by each PRIOR_WAGE_CASH_REPAYMENT entry; due one year after its day. An overpayment by error is not known to the engine (it charges the First Schedule exactly); its refund (one year from the payment date) is HR’s.",
-			"authority": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions (https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions), read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
 			"trigger": {
 				"collection": "adhoc_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "has(row.catalog_code) && row.catalog_code == \"PRIOR_WAGE_CASH_REPAYMENT\"",
 			"due": "add_years(row.occurred_on, 1)"
@@ -1695,8 +1860,13 @@
 		"scope": "JURISDICTION",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
+		"references": [
+			{
+				"title": "The SG workplace cases the TASKS below answer: Tripartite Guidelines on Flexible Work Arrangement Requests (in force 1 Dec 2024); Personal Data Protection Act 2012 ss.21–22 and Part 6A. Work incident cases: Ministry of Manpower official reporting criteria, https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report (read 2026-10-10).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
 		"rules": {
-			"authority": "The SG workplace cases the TASKS below answer: Tripartite Guidelines on Flexible Work Arrangement Requests (in force 1 Dec 2024); Personal Data Protection Act 2012 ss.21–22 and Part 6A. Work incident cases: Ministry of Manpower official reporting criteria, https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report (read 2026-10-10).",
 			"kinds": [
 				{
 					"code": "FLEXIBLE_WORK_REQUEST",
@@ -1752,12 +1922,17 @@
 		"scope": "JURISDICTION",
 		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
 		"name": "Written decision on a formal FWA request",
+		"references": [
+			{
+				"title": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers, read 2026-10-07.",
+				"url": "https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers"
+			}
+		],
 		"rules": {
 			"description": "Give the employee a written decision on a formal flexible work arrangement request within two months of receiving it, with the reason when it is rejected (on reasonable business grounds); discussing alternatives is encouraged. Raised when a FLEXIBLE_WORK_REQUEST case is opened (opened_on = the day the request was received).",
-			"authority": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers (https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers), read 2026-10-07.",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind == \"FLEXIBLE_WORK_REQUEST\"",
 			"due": "add_months(row.opened_on, 2)"
@@ -1770,12 +1945,16 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_ACCESS_CORRECTION_REPLY",
 		"name": "Reply to a personal data access or correction request",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07."
+			}
+		],
 		"rules": {
 			"description": "Give access to the personal data and its use and disclosure in the past year as soon as reasonably possible (s.21), or correct it as soon as practicable and send the corrected data to every organisation it was disclosed to in the past year (s.22(2)); if that cannot be done within 30 days of the request, tell the applicant in writing within those 30 days by when it will be. Raised when an access or correction case is opened; due 30 days after the request.",
-			"authority": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07.",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\", \"PERSONAL_DATA_CORRECTION_REQUEST\"]",
 			"due": "add_days(row.opened_on, 30)"
@@ -1788,12 +1967,16 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_BREACH_ASSESSMENT",
 		"name": "Assess whether a data breach is notifiable",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07."
+			}
+		],
 		"rules": {
 			"description": "Assess, in a reasonable and expeditious manner, whether a data breach is notifiable (significant harm, or 500 or more individuals); the PDPC expects the assessment within 30 calendar days of becoming aware (opened_on) and an explanation for any longer. Record the day it is assessed notifiable as facts.notifiable_assessed_on. Raised when a DATA_BREACH case is opened.",
-			"authority": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07.",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind == \"DATA_BREACH\"",
 			"due": "add_days(row.opened_on, 30)"
@@ -1806,12 +1989,16 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_BREACH_NOTIFICATION",
 		"name": "Notify the PDPC of a notifiable data breach",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07."
+			}
+		],
 		"rules": {
 			"description": "Notify the Personal Data Protection Commission as soon as practicable and no later than 3 calendar days after the day the breach is assessed notifiable, then each affected individual (s.26D(2), unless an exception applies). Raised by the daily tick for an open DATA_BREACH case once facts.notifiable_assessed_on is recorded; due 3 calendar days after it.",
-			"authority": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07.",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "daily"
+				"events": ["daily"]
 			},
 			"when": "row.kind == \"DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.notifiable_assessed_on)",
 			"due": "add_days(row.facts.notifiable_assessed_on, 3)"
@@ -1824,8 +2011,13 @@
 		"scope": "JURISDICTION",
 		"code": "record_retention",
 		"name": "Record retention after exit",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.67(1)(a): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it).",
+				"url": "https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-"
+			}
+		],
 		"rules": {
-			"authority": "Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it).",
 			"until": "string(int(employment.exit_date.substring(0, 4)) + 6) + \"-12-31\""
 		}
 	},
@@ -1836,12 +2028,16 @@
 		"scope": "JURISDICTION",
 		"code": "PDPA_RETENTION_DISPOSAL",
 		"name": "Anonymise a former employee’s personal data after retention",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it)."
+			}
+		],
 		"rules": {
 			"description": "Once the statutory retention ends (31 December of the exit year + 6: the Income Tax Act 1947 s.67 five years from the year of assessment, longer than the Employment Act s.95 one year after leaving), cease retaining the former employee’s personal data: anonymise the profile (employment_profile anonymise, which the record_retention rule releases on the same day) unless a legal or business purpose still needs it. Raised at the exit; due that day.",
-			"authority": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it).",
 			"trigger": {
 				"collection": "employment_contract",
-				"event": "updated",
+				"events": ["updated"],
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.effective_range.to != null",
@@ -1855,9 +2051,14 @@
 		"scope": "JURISDICTION",
 		"code": "NR_ENTERTAINER_WITHHOLDING",
 		"name": "Withholding tax on non-resident public entertainers (S45)",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, read 2026-10-07: pay by the 15th of the second month from the date of payment.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer"
+			}
+		],
 		"rules": {
 			"description": "e-File the S45 withholding return and pay the 15% withholding tax on payments to a non-resident public entertainer by the 15th of the second month after the payment.",
-			"authority": "Income Tax Act 1947 s.45; IRAS (https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer), read 2026-10-07: pay by the 15th of the second month from the date of payment.",
 			"schemes": ["WHT_NR_ENTERTAINER"],
 			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
 		}
@@ -1979,9 +2180,14 @@
 		"scope": "JURISDICTION",
 		"code": "CPF_EZPAY_FTP",
 		"name": "CPF EZPay (FTP) submission file",
+		"references": [
+			{
+				"title": "CPF Act 1953 s.7 and the CPF Regulations; CPF Board, CPF EZPay (FTP) File Specifications, effective 16 January 2025, read 2026-10-07.",
+				"url": "https://www.cpf.gov.sg/content/dam/web/employer/making-cpf-contributions/documents/CPFEZPayFTPSpecifications.pdf"
+			}
+		],
 		"rules": {
 			"description": "CPF EZPay (FTP) submission file for the selected run’s month: an Employer Header record carrying the Employer Contribution Summary records (one per payment code with an amount: 01 CPF, 02 MBMF, 03 SINDA, 04 CDAC, 05 ECF, 11 SDL), then one Contribution Detail record for each employee’s CPF (contribution, ordinary and additional wages, employment status E/L/N/O) and each self-help-group fund deduction, and the Employer Trailer (record count including header and trailer, total of the summary amounts). Fixed length 150; amounts in cents, zero-padded. Customer input: company.facts.cpf_submission_number (UEN-PTE-01), employee identity_number. One payment advice (advice code 01); the file creation date is the run’s pay date (time 000000), as no clock is read.",
-			"authority": "CPF Act 1953 s.7 and the CPF Regulations; CPF Board, CPF EZPay (FTP) File Specifications, effective 16 January 2025 (https://www.cpf.gov.sg/content/dam/web/employer/making-cpf-contributions/documents/CPFEZPayFTPSpecifications.pdf), read 2026-10-07.",
 			"file": "(has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[0] + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[1] + (has(company.facts) && has(company.facts.cpf_submission_number) ? company.facts.cpf_submission_number : \"--\").split(\"-\")[2] + [\"JAN\", \"FEB\", \"MAR\", \"APR\", \"MAY\", \"JUN\", \"JUL\", \"AUG\", \"SEP\", \"OCT\", \"NOV\", \"DEC\"][int((runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(5, 7)) - 1] + (runs[0].pay_date != \"\" ? runs[0].pay_date : month_end(runs[0].period.substring(0, 7) + \"-01\")).substring(0, 4) + \"01\" + \".DTL\"",
 			"format": "FIXED",
 			"columns": [],
@@ -2316,9 +2522,14 @@
 		"scope": "JURISDICTION",
 		"code": "IR8A_WORKSHEET",
 		"name": "Form IR8A worksheet (AIS entry)",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(2); IRAS, Explanatory notes for completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026, read 2026-10-07: items a), b), c), d1), d3) and the deductions (I) employee’s compulsory CPF, (II) donations, (III) Mosque Building Fund.",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf"
+			}
+		],
 		"rules": {
 			"description": "One row per employee over the selected runs (a calendar year’s runs for the return), mapping the payroll lines to the Form IR8A items to key into AIS (myTax Portal or the payroll API, which take no file). a) gross salary, fees, leave pay, wages and overtime; b) bonus; c) director’s fees; d1) allowances; d3) notice pay (the taxable lump sum; retrenchment benefit and the EAP are compensation for loss of office, not taxable, and are listed apart); d7) ESOP/ESOW gains (Appendix 8B, the APPENDIX_8B base); d8) value of benefits-in-kind (Appendix 8A, the APPENDIX_8A base); employee’s compulsory CPF; donations (CDAC, ECF, SINDA); Mosque Building Fund (MBMF).",
-			"authority": "Income Tax Act 1947 s.68(2); IRAS, Explanatory notes for completion of Form IR8A and Appendix 8A for the year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf), read 2026-10-07: items a), b), c), d1), d3) and the deductions (I) employee’s compulsory CPF, (II) donations, (III) Mosque Building Fund.",
 			"file": "\"IR8A_\" + runs[0].period.substring(0, 4) + \".csv\"",
 			"columns": [
 				{
@@ -2383,12 +2594,17 @@
 		"scope": "JURISDICTION",
 		"code": "NS_MAKE_UP_PAY_CLAIM",
 		"name": "NS make-up pay claim review",
+		"references": [
+			{
+				"title": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
+				"url": "https://www.ns.gov.sg/web/profiles/employer/nsmen-payment"
+			}
+		],
 		"rules": {
 			"description": "For each national service leave spell (ORNS or SAFVC activity) check the auto-generated make-up pay claim on OneNS ‘Employee Payment Management’ (open about one month before the activity). MUP is generated from the CPF Ordinary Wages two to three months before the activity and the average of Additional Wages received in at least 8 of the last 12 months (less the two highest); a recent increase or a new hire without CPF data needs an amended or new claim. A DIRECT employer keeps paying the full wages as though the employee were not away and is reimbursed (submit changes two weeks before the activity starts); otherwise the salary is reduced for the days away and MINDEF/MHA pays the employee. Every change or appeal must be submitted within three months from the start of the activity (due date).",
-			"authority": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
 			"trigger": {
 				"collection": "leave_catalog_entry",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.catalog_code == \"NS_LEAVE\" && row.activity == \"TIME_OFF\" && row.from != null",
 			"due": "add_months(row.from, 3)"
@@ -2401,9 +2617,14 @@
 		"scope": "JURISDICTION",
 		"code": "APPENDIX_8A_WORKSHEET",
 		"name": "Appendix 8A worksheet (AIS entry)",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(2); IRAS, Appendix 8A (IR8A(A/1/2027)) and Explanatory Notes for Form IR8A and Appendix 8A, year ended 31 Dec 2026, read 2026-10-08: a separate Appendix 8A for each place of residence or break in the period; the total of items 2 to 4 is item d8 of Form IR8A.",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf"
+			}
+		],
 		"rules": {
 			"description": "One record per benefit-in-kind entry the selected runs settled (a calendar year’s runs for the return): each place of residence (items 1–2f), utilities and housekeeping (2g–2j), hotel accommodation (3a–3c), car (4i) and other benefit (4a–4h, 4j), valued as its BIK_* class values it, to key into AIS (no file is taken).",
-			"authority": "Income Tax Act 1947 s.68(2); IRAS, Appendix 8A (IR8A(A/1/2027)) and Explanatory Notes for Form IR8A and Appendix 8A, year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf), read 2026-10-08: a separate Appendix 8A for each place of residence or break in the period; the total of items 2 to 4 is item d8 of Form IR8A.",
 			"file": "\"APPENDIX_8A_\" + runs[0].period.substring(0, 4) + \".csv\"",
 			"columns": [
 				{
@@ -2947,9 +3168,14 @@
 		"scope": "JURISDICTION",
 		"code": "APPENDIX_8B_WORKSHEET",
 		"name": "Appendix 8B worksheet (AIS entry)",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 ss.10(1)(b), (6)–(7), 68(2); IRAS, Appendix 8B (App8B(1/2027)) and its Explanatory Notes, year ended 31 Dec 2026, read 2026-10-08: columns (a)–(h), (h) = (f − e) × g, the total is item d7 of Form IR8A; columns (a)–(b) only when the granting company is not the employer. A deemed-exercise gain (IR21) is listed with its valuation day in (d).",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf"
+			}
+		],
 		"rules": {
 			"description": "One record per share-plan entry the selected runs settled: each ESOP exercise or ESOW grant/vesting (SHARE_PLAN_GAIN, including a gain realised after the employee left, on a slip of its own) and each deemed exercise at tax clearance (SHARE_PLAN_DEEMED_GAIN), with the Appendix 8B columns (a)–(h).",
-			"authority": "Income Tax Act 1947 ss.10(1)(b), (6)–(7), 68(2); IRAS, Appendix 8B (App8B(1/2027)) and its Explanatory Notes, year ended 31 Dec 2026 (https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf), read 2026-10-08: columns (a)–(h), (h) = (f − e) × g, the total is item d7 of Form IR8A; columns (a)–(b) only when the granting company is not the employer. A deemed-exercise gain (IR21) is listed with its valuation day in (d).",
 			"file": "\"APPENDIX_8B_\" + runs[0].period.substring(0, 4) + \".csv\"",
 			"columns": [
 				{
@@ -3163,12 +3389,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_INCIDENT_CASE_REPORT",
 		"name": "Report a work incident to MOM",
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
 		"rules": {
 			"description": "Submit an incident report within ten days. For non-fatal employee light-duty accidents, open the case on the employer’s first notice; for fatal accidents, on the accident date; for a dangerous occurrence or a work-related public/self-employed fatality, on the occurrence date. Dangerous-occurrence and public/self-employed cases are duties of the workplace occupier. Select those cases only where the company is the occupier and the event meets MOM reportable criteria. No medical-leave entry is needed. Cross-reference any leave-triggered report to avoid filing the same incident twice.",
-			"authority": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"WORK_ACCIDENT_LIGHT_DUTY\", \"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\"]",
 			"due": "add_days(row.opened_on, 10)"
@@ -3181,12 +3412,17 @@
 		"scope": "JURISDICTION",
 		"code": "WORK_INCIDENT_NOTIFICATION",
 		"name": "Notify the Commissioner of a workplace incident",
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
 		"rules": {
 			"description": "Notify the Commissioner as soon as reasonably practicable for an employee work-related fatality, a reportable dangerous occurrence, or a work-related public/self-employed fatality or injury sent to hospital. The latter three cases are occupier duties. The case date is an operational prompt to act, not a statutory fixed-day deadline. The Commissioner notification is distinct from the ten-day incident report; public/self-employed hospital treatment here requires notification without inventing a ten-day report duty.",
-			"authority": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\", \"PUBLIC_WORKPLACE_HOSPITAL_TREATMENT\"]",
 			"due": "row.opened_on"
@@ -3199,12 +3435,17 @@
 		"scope": "JURISDICTION",
 		"code": "SUBSEQUENT_WORK_DEATH_NOTIFICATION",
 		"name": "Immediately notify a subsequent death from work injury or disease",
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
 		"rules": {
 			"description": "If an employee subsequently dies from a work injury or disease, immediately notify the Commissioner. Open the case on learning the death, link the original incident and report, and act immediately; do not wait for a medical-leave entry or restart the original ten-day report period.",
-			"authority": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"WORK_ACCIDENT_SUBSEQUENT_DEATH\"]",
 			"due": "row.opened_on"
@@ -3217,12 +3458,17 @@
 		"scope": "JURISDICTION",
 		"code": "OCCUPATIONAL_DISEASE_REPORT",
 		"name": "Report an employee occupational disease diagnosis",
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
 		"rules": {
 			"description": "As employer, submit an incident report within ten days of receiving the occupational-disease diagnosis. Open this case on that receipt date. Covers reportable diseases under WSHA or WICA; no leave entry is required. A doctor’s separate statutory report does not replace the employer report. This employer task does not assert the company is a platform operator or medical practitioner.",
-			"authority": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
 			"trigger": {
 				"collection": "workplace_case",
-				"event": "created"
+				"events": ["created"]
 			},
 			"when": "row.kind in [\"OCCUPATIONAL_DISEASE_DIAGNOSIS\"]",
 			"due": "add_days(row.opened_on, 10)"
@@ -3235,8 +3481,13 @@
 		"scope": "JURISDICTION",
 		"code": "overtime_classification",
 		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act1968 ss35 and38: Part4 excludes managers/executives and non-EA employees, with eligible workman/non-workman monthly basic ceilings4500/2600; covered workers have12-hour daily and72-hour monthly limits. https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (retrieved2026-10-20).",
+				"url": "https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days"
+			}
+		],
 		"rules": {
-			"authority": "Employment Act1968 ss35 and38: Part4 excludes managers/executives and non-EA employees, with eligible workman/non-workman monthly basic ceilings4500/2600; covered workers have12-hour daily and72-hour monthly limits. https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days (retrieved2026-10-20).",
 			"limits": [
 				{
 					"code": "DAILY_HOURS_CAP",

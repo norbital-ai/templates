@@ -57,7 +57,7 @@
 				columns={[
 					{ field: 'code', label: t('component.code') },
 					{ field: 'name', label: t('component.name') },
-					{ field: 'authority', label: t('component.authority') }
+					{ field: 'references', label: t('component.references') }
 				]}
 			/>
 		{/key}

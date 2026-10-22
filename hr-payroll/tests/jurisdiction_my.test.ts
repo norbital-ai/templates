@@ -2,7 +2,7 @@ import canonicalLeave from '../src/data/model/+leave_catalog.model.js';
 import { Schema as FixtureSchema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.js';
 import { refuse } from '../src/lib/payroll_engine/foundation.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 const LAW_KIT = jurisdiction('MY');
@@ -352,8 +352,7 @@ const fixtureValue8 = guardFixture(
 				FixtureSchema.optionalKey(FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String)))
 			),
 			due: FixtureSchema.mutableKey(FixtureSchema.String),
-			description: FixtureSchema.mutableKey(FixtureSchema.String),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String)
+			description: FixtureSchema.mutableKey(FixtureSchema.String)
 		}),
 		[FixtureSchema.Record(FixtureSchema.String, FixtureSchema.mutableKey(FixtureSchema.Unknown))]
 	)
@@ -1245,7 +1244,6 @@ type Duty = {
 	months?: string[];
 	due: string;
 	description: string;
-	authority: string;
 };
 const duties = (version: string) =>
 	new Map(
@@ -1860,7 +1858,12 @@ describe('MY jurisdiction seed', () => {
 			for (const [code, rules] of all) {
 				const where = `${version} ${code}`;
 				for (const key of Object.keys(rules)) assert.ok(DUTY_KEYS.includes(key), `${where}.${key}`);
-				assert.ok(rules.description.length > 0 && rules.authority.length > 0, where);
+				assert.ok(
+					rules.description.length > 0 &&
+						citationText(rows(version, 'rule_set').find((row) => row.code === code)?.references)
+							.length > 0,
+					where
+				);
 				const context = contexts[rules.trigger];
 				assert.ok(context, `${where} trigger ${rules.trigger}`);
 				for (const month of rules.months ?? []) assert.match(month, /^(0[1-9]|1[0-2])$/, where);
@@ -2131,7 +2134,7 @@ describe('MY jurisdiction seed', () => {
 			assert.equal(due('EPF_EMPLOYER_REGISTRATION', entity('2026-10-15')), '2026-11-07');
 			assert.deepEqual(fixtureValue5(rulesOf(version, 'EPF_EMPLOYER_REGISTRATION').trigger), {
 				collection: 'entity',
-				event: 'created'
+				events: ['created']
 			});
 			// HRD: thirty days after becoming liable, for a COMPULSORY registrant only.
 			assert.equal(
@@ -4347,12 +4350,12 @@ describe('MY jurisdiction seed', () => {
 			assert.equal(run('WORK_PASS_RENEWAL', 'due', pass('2026-10-20')), '2027-01-18');
 			assert.deepEqual(rulesOf('WORK_PASS_RENEWAL').trigger, {
 				collection: 'calendar',
-				event: 'daily'
+				events: ['daily']
 			});
 			// s.81H on the entity; s.61 register and the wage statement with each run; ITA s.82 in January.
 			assert.deepEqual(rulesOf('SEXUAL_HARASSMENT_NOTICE').trigger, {
 				collection: 'entity',
-				event: 'created'
+				events: ['created']
 			});
 			const month = { period: { key: '2026-10', from: '2026-10-01', to: '2026-10-31' } };
 			assert.equal(run('EMPLOYEE_REGISTER', 'due', month), '2026-10-31');
@@ -4872,7 +4875,7 @@ describe('MY jurisdiction seed', () => {
 			const epf = fixturePresent(set.find((row) => row.code === 'EPF_CESSATION_NOTICE'));
 			const task = fixtureValue24(epf.rules);
 			assert.equal(epf.family, 'TASKS', version);
-			assert.deepEqual(task.trigger, { collection: 'entity', event: 'updated' });
+			assert.deepEqual(task.trigger, { collection: 'entity', events: ['updated'] });
 			const entity = (to: string | null) => ({
 				row: { id: 'co1', effective_range: { from: '2009-12-01', to }, facts: {} },
 				company: { facts: {} }

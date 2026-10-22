@@ -2852,23 +2852,24 @@ it('regulatory tasks rise on entity, leave and contract events, due on a working
 		family: 'TASKS',
 		code,
 		name: code,
-		rules: { description: code, authority: 'Act', trigger, ...(when ? { when } : {}), due }
+		references: [{ title: 'Act' }],
+		rules: { description: code, trigger, ...(when ? { when } : {}), due }
 	});
 	const rows = [
 		task(
 			'EMPLOYER_REGISTRATION',
-			{ collection: 'entity', event: 'created' },
+			{ collection: 'entity', events: ['created'] },
 			'add_working_days(period.from, 3, holidays, ["SATURDAY", "SUNDAY"])'
 		),
 		task(
 			'MATERNITY_NOTICE',
-			{ collection: 'leave_catalog_entry', event: 'created' },
+			{ collection: 'leave_catalog_entry', events: ['created'] },
 			'next_working_day(add_days(row.occurred_on, 5), holidays, ["SATURDAY", "SUNDAY"])',
 			'has(row.facts.event_kind) && row.facts.event_kind == "BIRTH"'
 		),
 		task(
 			'NEW_HIRE_REPORT',
-			{ collection: 'employment_contract', event: 'created' },
+			{ collection: 'employment_contract', events: ['created'] },
 			'add_days(hired_on, 30)'
 		)
 	];
@@ -4463,7 +4464,7 @@ it.effect(
 				settings_id: versionOn('2026-02'),
 				code: 'CLOSURE',
 				name: 'Closure',
-				authority: 'Act s.1',
+				references: [{ title: 'Act', locator: 's.1' }],
 				counts_as_attended: 'false',
 				scheduled: 'true'
 			}

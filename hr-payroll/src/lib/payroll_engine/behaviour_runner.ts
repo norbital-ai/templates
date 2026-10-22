@@ -62,11 +62,11 @@ const CATALOGS = {
 const DESCRIBE_CATALOG = {
 	adhoc_catalog_entry: {
 		collection: 'adhoc_catalog',
-		select: { ...CATALOG.adhoc_catalog, authority: true }
+		select: { ...CATALOG.adhoc_catalog, references: true }
 	},
 	claim_catalog_entry: {
 		collection: 'claim_catalog',
-		select: { ...CATALOG.claim_catalog, authority: true }
+		select: { ...CATALOG.claim_catalog, references: true }
 	},
 	leave_catalog_entry: {
 		collection: 'leave_catalog',
@@ -74,7 +74,7 @@ const DESCRIBE_CATALOG = {
 			...CATALOG.leave_catalog,
 			...LEAVE_CLASS,
 			description: true,
-			authority: true,
+			references: true,
 			unit: true,
 			encash_on_exit: true,
 			encash_at_window_end: true
@@ -82,7 +82,7 @@ const DESCRIBE_CATALOG = {
 	},
 	loan_catalog_entry: {
 		collection: 'loan_catalog',
-		select: { ...CATALOG.loan_catalog, authority: true }
+		select: { ...CATALOG.loan_catalog, references: true }
 	}
 } as const;
 const isEntry = (collection: string): collection is keyof typeof CATALOGS => collection in CATALOGS;

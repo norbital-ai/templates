@@ -9,8 +9,10 @@ export default model({
 		duty_code: {
 			kind: 'text'
 		},
-		authority: {
-			kind: 'text'
+		references: {
+			kind: 'custom',
+			of: 'references',
+			optional: true
 		},
 		occurrence_key: {
 			kind: 'text',

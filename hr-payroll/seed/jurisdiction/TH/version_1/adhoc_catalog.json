@@ -15,7 +15,11 @@
 				"amount": "round(entry.amount / 30.0 * (add_years(entry.facts.service_from, 20) <= add_days(entry.occurred_on, 1) ? 400.0 : (add_years(entry.facts.service_from, 10) <= add_days(entry.occurred_on, 1) ? 300.0 : (add_years(entry.facts.service_from, 6) <= add_days(entry.occurred_on, 1) ? 240.0 : (add_years(entry.facts.service_from, 3) <= add_days(entry.occurred_on, 1) ? 180.0 : (add_years(entry.facts.service_from, 1) <= add_days(entry.occurred_on, 1) ? 90.0 : (calendar_distance_days(entry.facts.service_from, entry.occurred_on) + 1.0 >= 120.0 ? 30.0 : 0.0)))))), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 (1998) s.118 (as amended by the Labour Protection Act (No. 7) B.E. 2562): on termination by the employer, at the latest wage rate for 30 days after 120 days of service, 90 days after one year, 180 after three, 240 after six, 300 after ten and 400 after twenty years. entry.amount is the latest monthly wage (a day is a thirtieth, s.68) and entry.facts.service_from the first day of continuous service; entry.occurred_on is the last day of employment. Not owed under s.118 para 3 (an end-dated project, seasonal or occasional contract of up to two years) or s.119 (exit fact section_119_ground) — HR raises the entry only where owed. Tax: employment income (s.40(1)) counted toward the PND1 part `severance`, which exempts up to the last 300 days' wages and at most 300,000 except on retirement or the end of a fixed term (Ministerial Regulation No. 126 item 2(51)); the separate-taxation election (s.48(5)) is not modelled. Not SSO wage. Retirement (s.118/1, LPA No. 6 B.E. 2560) is a termination that owes it: at the agreed retirement age, or at 60 on the employee's notice where none or a later age is agreed. An entry is refused on a s.119 ground (exit fact section_119_ground) or for an end-dated project, seasonal or occasional contract of up to two years (exit fact fixed_term_project, s.118 para 3). For a piece worker entry.amount is the total wage of the last 30 days (s.118: \"the total amount of wage paid for the last … days\")."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.118 (as amended by the Labour Protection Act (No. 7) B.E. 2562): on termination by the employer, at the latest wage rate for 30 days after 120 days of service, 90 days after one year, 180 after three, 240 after six, 300 after ten and 400 after twenty years. entry.amount is the latest monthly wage (a day is a thirtieth, s.68) and entry.facts.service_from the first day of continuous service; entry.occurred_on is the last day of employment. Not owed under s.118 para 3 (an end-dated project, seasonal or occasional contract of up to two years) or s.119 (exit fact section_119_ground) — HR raises the entry only where owed. Tax: employment income (s.40(1)) counted toward the PND1 part `severance`, which exempts up to the last 300 days' wages and at most 300,000 except on retirement or the end of a fixed term (Ministerial Regulation No. 126 item 2(51)); the separate-taxation election (s.48(5)) is not modelled. Not SSO wage. Retirement (s.118/1, LPA No. 6 B.E. 2560) is a termination that owes it: at the agreed retirement age, or at 60 on the employee's notice where none or a later age is agreed. An entry is refused on a s.119 ground (exit fact section_119_ground) or for an end-dated project, seasonal or occasional contract of up to two years (exit fact fixed_term_project, s.118 para 3). For a piece worker entry.amount is the total wage of the last 30 days (s.118: \"the total amount of wage paid for the last … days\")."
+			}
+		]
 	},
 	{
 		"id": "0f738867-6a51-5bd2-9389-e1a99cba75d2",
@@ -32,7 +36,12 @@
 				"amount": "has(entry.facts.notice_shortfall_days) ? round(entry.amount / 30.0 * double(entry.facts.notice_shortfall_days), 0.01, \"HALF_UP\") : entry.amount"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.17 para 2: notice of termination of an indefinite contract (including probation) is given on or before a pay date to take effect on the next, and need not exceed three months; s.17/1 (LPA No. 7 B.E. 2562): an employer giving short notice pays the wages for the shortfall. entry.amount is the monthly wage and entry.facts.notice_shortfall_days the days of notice not given (else entry.amount is the wage in lieu itself). Employment income (Revenue Code s.40(1)); not SSO wage. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.17 para 2: notice of termination of an indefinite contract (including probation) is given on or before a pay date to take effect on the next, and need not exceed three months; s.17/1 (LPA No. 7 B.E. 2562): an employer giving short notice pays the wages for the shortfall. entry.amount is the monthly wage and entry.facts.notice_shortfall_days the days of notice not given (else entry.amount is the wage in lieu itself). Employment income (Revenue Code s.40(1)); not SSO wage. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "8ee2f056-859a-5f4f-9da3-22a65aa5e09b",
@@ -50,7 +59,11 @@
 				"amount": "round(max(0.0, double((has(company.facts.minimum_wage_400_business) && company.facts.minimum_wage_400_business ? rules.minimum_wage.business_400 : rules.minimum_wage.by_region[company.region])) * entry.quantity - entry.amount), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024) cl.20 with Labour Protection Act B.E. 2541 (1998) s.90: the employer may not pay less than the minimum wage of the workplace's area. entry.quantity is the normal working days of the shortfall period and entry.amount the wages paid for them; the line pays the difference at the PAYROLL minimum_wage rule (or 400 for a category 2-4 hotel or service establishment)."
+		"references": [
+			{
+				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024) cl.20 with Labour Protection Act B.E. 2541 (1998) s.90: the employer may not pay less than the minimum wage of the workplace's area. entry.quantity is the normal working days of the shortfall period and entry.amount the wages paid for them; the line pays the difference at the PAYROLL minimum_wage rule (or 400 for a category 2-4 hotel or service establishment)."
+			}
+		]
 	},
 	{
 		"id": "d22193b1-bba5-527b-a8bc-058e58b1b515",
@@ -67,7 +80,11 @@
 				"amount": "entry.amount"
 			}
 		],
-		"authority": "Revenue Code s.40(1): a bonus is employment income withheld under s.50(1). It is not SSO wage (SSA s.5: remuneration for normal working time)."
+		"references": [
+			{
+				"title": "Revenue Code s.40(1): a bonus is employment income withheld under s.50(1). It is not SSO wage (SSA s.5: remuneration for normal working time)."
+			}
+		]
 	},
 	{
 		"id": "dea922ca-7501-5211-a80f-04e5aa89e9d8",
@@ -84,7 +101,12 @@
 				"amount": "round(entry.amount / 30.0 * min(360.0, 15.0 * double((int(calendar_completed_months(entry.facts.service_from, add_days(entry.occurred_on, 1))) / 12) + (calendar_distance_days(add_years(entry.facts.service_from, (int(calendar_completed_months(entry.facts.service_from, add_days(entry.occurred_on, 1))) / 12)), entry.occurred_on) + 1.0 > 180.0 ? 1 : 0))), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.122: an employee dismissed under s.121 after six consecutive years gets, beyond s.118, 15 days' final wage for each year of work, at most 360 days; a part year over 180 days counts as a year. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf); not amended by LPA No. 7. Counts toward the severance exemption of Ministerial Regulation No. 126 item 2(51).",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.122: an employee dismissed under s.121 after six consecutive years gets, beyond s.118, 15 days' final wage for each year of work, at most 360 days; a part year over 180 days counts as a year. Office of the Council of State English translation; not amended by LPA No. 7. Counts toward the severance exemption of Ministerial Regulation No. 126 item 2(51).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
 		"qualifies_when": "has(entry.facts.service_from) && (int(calendar_completed_months(entry.facts.service_from, add_days(entry.occurred_on, 1))) / 12) >= 6"
 	},
 	{
@@ -102,7 +124,12 @@
 				"amount": "round(entry.amount / 30.0 * 60.0, 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.121: a dismissal for reorganisation through machinery or technology needs 60 days' notice to the labour inspector and the employees; short or no notice owes special severance of 60 days' final wage in lieu (s.17 para 2 does not apply). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). entry.facts.notice_given_on is the notice day.",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.121: a dismissal for reorganisation through machinery or technology needs 60 days' notice to the labour inspector and the employees; short or no notice owes special severance of 60 days' final wage in lieu (s.17 para 2 does not apply). Office of the Council of State English translation. entry.facts.notice_given_on is the notice day.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
 		"qualifies_when": "has(entry.facts.notice_given_on) ? calendar_distance_days(entry.facts.notice_given_on, entry.occurred_on) < 60.0 : true"
 	},
 	{
@@ -120,7 +147,12 @@
 				"amount": "round(entry.amount / 30.0 * (add_years(entry.facts.service_from, 20) <= add_days(entry.occurred_on, 1) ? 400.0 : (add_years(entry.facts.service_from, 10) <= add_days(entry.occurred_on, 1) ? 300.0 : (add_years(entry.facts.service_from, 6) <= add_days(entry.occurred_on, 1) ? 240.0 : (add_years(entry.facts.service_from, 3) <= add_days(entry.occurred_on, 1) ? 180.0 : (add_years(entry.facts.service_from, 1) <= add_days(entry.occurred_on, 1) ? 90.0 : (calendar_distance_days(entry.facts.service_from, entry.occurred_on) + 1.0 >= 120.0 ? 30.0 : 0.0)))))), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act s.120 paragraph 3 as replaced by Act No. 7 B.E. 2562 section 16: substantial impact on the employee’s or family’s ordinary life and written refusal within 30 days of notice (or relocation if no notice); employment ends on relocation, and special severance is at least the s.118 rate. Section 120 paragraph 4 requires payment within seven days. Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy pages 5-6. https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+		"references": [
+			{
+				"title": "Labour Protection Act s.120 paragraph 3 as replaced by Act No. 7 B.E. 2562 section 16: substantial impact on the employee’s or family’s ordinary life and written refusal within 30 days of notice (or relocation if no notice); employment ends on relocation, and special severance is at least the s.118 rate. Section 120 paragraph 4 requires payment within seven days. Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy pages 5-6.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
 		"qualifies_when": "has(entry.facts.service_from)"
 	},
 	{
@@ -138,7 +170,12 @@
 				"amount": "round(entry.amount / 30.0 * 30.0, 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act s.120 paragraphs 1-2 and 4 as replaced by Act No. 7 B.E. 2562 section 16: if the employer does not post relocation notice for at least 30 days, pay a refusing employee 30 days final wage in lieu, within seven days of employment ending on relocation. https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+		"references": [
+			{
+				"title": "Labour Protection Act s.120 paragraphs 1-2 and 4 as replaced by Act No. 7 B.E. 2562 section 16: if the employer does not post relocation notice for at least 30 days, pay a refusing employee 30 days final wage in lieu, within seven days of employment ending on relocation.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
 		"qualifies_when": "has(entry.facts.notice_given_on) ? calendar_distance_days(entry.facts.notice_given_on, entry.occurred_on) < 30.0 : true"
 	},
 	{
@@ -156,7 +193,12 @@
 				"amount": "entry.amount"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.117: when the investigation clears the employee, the employer pays the full working-day wage for the suspension, crediting the s.116 money paid (entry.amount is the balance withheld); interest at 15% a year is LATE_PAYMENT_INTEREST. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.117: when the investigation clears the employee, the employer pays the full working-day wage for the suspension, crediting the s.116 money paid (entry.amount is the balance withheld); interest at 15% a year is LATE_PAYMENT_INTEREST. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "34c846f2-ec5d-5deb-a785-c9ae74aae74b",
@@ -173,7 +215,12 @@
 				"amount": "!has(entry.facts.days_late) ? 0.0 : round(entry.amount * 0.15 * double(entry.facts.days_late) / 365.0 + ((has(entry.facts.wilful) && entry.facts.wilful) ? entry.amount * 0.15 * double(int(max(0.0, double(entry.facts.days_late) - 7.0)) / 7) : 0.0), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.9: late security money, wages, overtime, holiday pay, severance or special severance carry interest at 15% a year for the whole default; withheld wilfully without reasonable cause, a surcharge of 15% of the unpaid amount for every 7 days after the first 7. entry.amount is the late amount, entry.facts.days_late the days late, entry.facts.wilful the wilful default. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.9: late security money, wages, overtime, holiday pay, severance or special severance carry interest at 15% a year for the whole default; withheld wilfully without reasonable cause, a surcharge of 15% of the unpaid amount for every 7 days after the first 7. entry.amount is the late amount, entry.facts.days_late the days late, entry.facts.wilful the wilful default. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
 		"qualifies_when": "has(entry.facts.days_late) && double(entry.facts.days_late) > 0.0"
 	},
 	{
@@ -191,7 +238,12 @@
 				"amount": "round(entry.quantity * (((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? terms.base_salary : terms.monthly_wage / 30.0) / (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))) * ((has(entry.facts.weekly_holiday) && entry.facts.weekly_holiday && ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") || (has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\"))) ? 2.0 : 1.0), 0.01, \"HALF_UP\")"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.64: holidays of ss.28-30 not given, or given short, are paid at the s.62 (and s.63) rates as if worked. entry.quantity is the normal hours of the holidays not granted; entry.facts.weekly_holiday marks an unpaid weekly holiday of a daily-paid employee (2×). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.64: holidays of ss.28-30 not given, or given short, are paid at the s.62 (and s.63) rates as if worked. entry.quantity is the normal hours of the holidays not granted; entry.facts.weekly_holiday marks an unpaid weekly holiday of a daily-paid employee (2×). Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
 		"qualifies_when": "entry.quantity > 0.0"
 	},
 	{
@@ -209,6 +261,11 @@
 				"amount": "entry.amount"
 			}
 		],
-		"authority": "Labour Protection Act B.E. 2541 s.10: no security money may be taken except for work, in amounts and keeping methods, the Minister's notification allows (contract fact security_deposit_post, customer input); returned with interest within 7 days of the exit (task SECURITY_DEPOSIT_RETURN). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.10: no security money may be taken except for work, in amounts and keeping methods, the Minister's notification allows (contract fact security_deposit_post, customer input); returned with interest within 7 days of the exit (task SECURITY_DEPOSIT_RETURN). Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	}
 ]
