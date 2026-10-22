@@ -4,10 +4,16 @@ import { REFERENCES_SHAPE } from './references.js';
 import { STATUTORY_FIELDS } from './statutory_fields.js';
 import { SUSPENSION_KIND as suspension, type SuspensionKind } from './suspension_kinds.js';
 
-// The research registry (`sources`) is the browsing allowlist and prompt entry points, never an editable answer.
+// The research registry (`sources`) is the browsing allowlist and prompt entry points, never an editable answer; a
+// version's own bookkeeping (its summary, seal, void and effective range) is not law, so research never sees it to edit.
 const {
 	suspension_kinds: _suspension_kinds,
 	sources: _sources,
+	change_summary: _change_summary,
+	sealed_at: _sealed_at,
+	voided_at: _voided_at,
+	void_reason: _void_reason,
+	effective_range: _effective_range,
 	...settingsFields
 } = STATUTORY_FIELDS.settings;
 

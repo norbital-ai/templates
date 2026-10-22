@@ -103,7 +103,8 @@ type SettingsWrite = Pick<
 
 /** Create input of the successor draft: same lineage, open, unsealed, `cloned_from_id` set. */
 export function cloneSettingsFields(
-	version: SettingsLineage & SettingsWrite,
+	// the draft's range is its own (`from`): the governing version's range is never read
+	version: Omit<SettingsLineage, 'effective_range'> & SettingsWrite,
 	from: DatePeriod['from'] | string
 ): Insert<'jurisdiction_settings'> {
 	return {
