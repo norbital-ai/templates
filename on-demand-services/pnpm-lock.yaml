@@ -615,7 +615,7 @@ packages:
     resolution: {integrity: sha512-LYYgJjZMss8vMsDb0kEdX9Ja0UsZUueJ9YPRT8hHOrrVuOnv9KflA7W9BGtpeNVYVZIKGYlptuvco2TPQYOlKg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.1/0a539b8aba7e9e9188fa774d1989ada12869a024}
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-n+Ipda6WB9SBc+ynJGBmtDIlNjWZiYBpCzCrfqVzthYpAFrvYdIFHsL7umC6Ki7rH8JoL+ndW/lFgIugSdIk2Q==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/553a86094815bde0873065e8aa11e3cece1558c3}
+    resolution: {integrity: sha512-IhBG0++hWxTt2ivgbmZcjeurtDXZgfDaNRZ4vb9z6L9vPpR4FOxi4+dkQtOGmlQBGLZisrbVnf3T9iEVrQHXlw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/42b26741fe3d8a2a4b33e030bda7dd22ba55dca7}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
