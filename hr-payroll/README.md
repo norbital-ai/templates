@@ -84,9 +84,10 @@ Why it used to loop: government instruments are often PDFs, and a browser snapsh
 re-opened the same URL turn after turn until the stall guard ended the run. `web_read` returns the document's text, and
 read-only draft turns no longer count as stalls while the step budget lasts.
 
-Started, scheduled and cron-driven automations share one lane per workspace, so `calendar_tick` and
-`late_arrival_notice` wait while a sweep runs; the sweep itself is one run. Row-event automations (`behaviour_taps`)
-run outside that lane.
+Every workspace automation — started, scheduled, cron-driven or row-event, `behaviour_taps` included — runs in one
+lane per workspace; only Bolt's own housekeeping runs beside it. While a sweep runs, behaviours (exit encashment,
+payslip holds, settled-entry pins, obligations), `calendar_tick` and `late_arrival_notice` queue behind it and run
+when it ends.
 
 ### Behaviours
 
@@ -149,20 +150,23 @@ Events → Work → ⚡:
   **Accept and import**. The import is a set over each person's days in the file: rows are created or updated, unsettled
   days the file leaves out or blanks are deleted, and a settled day may only be restated unchanged.
 
-## Verification (2026-10-21)
+## Verification (2026-10-22)
 
-Run locally against the private sample pack (local Colony and `env serve`). Names, employee numbers and entity names in
+Run locally against the private sample pack on local Colony. Names, employee numbers and entity names in
 the screenshots are masked; amounts are real.
 
-| Area                        | Proof                                                                                                                                                                           | Status          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Gates                       | `bolt check` ok; `vitest.node.config.ts` 1,096 tests pass (two suites re-run after load timeouts); `bolt test` e2e: see [Checks](#checks)                                       | ✅              |
-| Payroll calculation (MY)    | Jan 2026 slip, RM5,944 citizen: EPF 660/720, SOCSO 29.75/104.15, EIS 11.90/11.90, HRDF 59.44, PCB 164.70 — each recomputed by hand from the schedules and the MTD formula       | ✅              |
-| Off-cycle, salary unchanged | RM3,000 bonus paid off-cycle in Feb: slip has no salary lines; the later Feb regular slip still pays BASIC 5,644 + allowance 300; month EPF 990/1,080 = 11%/12% of RM9,000 band | ✅              |
-| Export                      | `salary-listings.xlsx`: one sheet per run (Jan regular, Feb extra, Feb regular), values equal the payslips                                                                      | ✅              |
-| Import                      | Feb template downloaded, two cells edited, re-imported: preview warnings accepted → 2 updated, 0 created, 0 deleted                                                             | ✅              |
-| Exit encashment             | Resignation with last day 31 Oct 2026 → `ENCASHMENT` 15 days of annual leave plus `TERMINATION_BENEFITS_FINAL_WAGES` and `PERSONAL_DATA_DISPOSAL` tasks, raised automatically   | ✅              |
-| Statutory research          | Started from **Run now**; see [Statutory research run](#statutory-research-run)                                                                                                 | RESEARCH_STATUS |
+| Area                             | Proof                                                                                                                                                                                                   | Status |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Area                             | Proof                                                                                                                                                                                                   | Status |
+| ---------------------------      | -----                                                                                                                                                                                                   | ------ |
+| Gates                            | `bolt check` ok; `bolt test` e2e 41/41; `vitest.node.config.ts` 1,154/1,154                                                                                                                             | ✅     |
+| Payroll calculation (MY)         | Jan 2026 slip, RM5,944 citizen: EPF 660/720, SOCSO 29.75/104.15, EIS 11.90/11.90, HRDF 59.44, PCB 164.70 — each recomputed by hand from the schedules and the MTD formula                               | ✅     |
+| Off-cycle, statutory on the spot | RM3,000 bonus paid off-cycle in Feb: the slip has no salary lines and withholds EPF 330/360 **and PCB 329.70** itself                                                                                   | ✅     |
+| Salary unchanged                 | The later Feb regular slip still pays BASIC 5,644 + allowance 300 and charges EPF on 8,944 month to date (660): Feb EPF 990/1,080 = 11%/12% of the RM9,000 band, PCB 164.70 + 329.70 = one combined run | ✅     |
+| Export                           | Salary listing: one sheet per run and currency, values equal the payslips                                                                                                                               | ✅     |
+| Import                           | March template downloaded, two days edited, re-imported: exactly those two days created; the same import into the paid February period is refused row by row                                            | ✅     |
+| Exit encashment                  | Resignation → `ENCASHMENT` of annual leave plus final-wages and data-disposal tasks (e2e `exit-encashment`)                                                                                             | ✅     |
+| Statutory research               | One run started from **Run now**; see [Statutory research run](#statutory-research-run)                                                                                                                 | ⚠️ 8/9 |
 
 ### Payroll run and payslip
 
@@ -171,10 +175,14 @@ the screenshots are masked; amounts are real.
 
 ### Off-cycle run
 
-Only the selected entry is paid; the regular run that follows keeps the contractual salary.
+People and Components are comboboxes (Components multi-select); only the ticked entry is paid. The off-cycle slip
+withholds EPF and PCB on the bonus; the regular slip that follows keeps the contractual salary and settles the month to
+date.
 
 ![Off-cycle selection](docs/screenshots/52-offcycle-form.png)
 ![Off-cycle run](docs/screenshots/53-offcycle-run.png)
+![Off-cycle payslip](docs/screenshots/54-offcycle-payslip.png)
+![February regular payslip](docs/screenshots/55-feb-regular-payslip.png)
 
 ### Exports
 
@@ -182,19 +190,37 @@ Only the selected entry is paid; the regular run that follows keeps the contract
 
 ### Work import
 
-![Roster before import](docs/screenshots/81-roster-feb-before.png)
-![Import preview](docs/screenshots/83-import-preview.png)
+![March roster before import](docs/screenshots/81-roster-mar-before.png)
 ![Import result](docs/screenshots/84-import-result.png)
+![Import into a paid period refused](docs/screenshots/85-import-refused-settled.png)
 
 ### Exit encashment
+
+The resignation's annual-leave encashment, raised by the `encash-leave-on-exit` behaviour; the Activity column shows
+the entry's activity and days.
 
 ![Encashment entry](docs/screenshots/91-exit-encashment-leave.png)
 
 ### Statutory research run
 
 ![Run now](docs/screenshots/60-automations-run-now.png)
+![Research running](docs/screenshots/61-drift-started.png)
 
-RESEARCH_TRACE
+Run `01a16136` (local Colony, 2026-10-22, attempt 2: attempt 1 was interrupted at 21 min by a dev-server reload and
+retried) researched all nine lineages in one run:
+
+| Measure    | Value                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| Duration   | 01:46:27 → 02:12:42 UTC (26 min); tools stopped at 02:10:32, the 80% answer deadline     |
+| Tool calls | 487: `web_read` 334, `web_search` 146, `browser_navigate` 6, interleaved across lineages |
+| Lineages   | CN, SG, MY, TW, TH, PH, VN, JP, ID                                                       |
+| Drafted    | none                                                                                     |
+| Failed     | CN: the final answering turn's model call returned nothing within the 20 s model wall    |
+
+Eight lineages answered without a verified change, so nothing was drafted. The draft starts as `changed: false`, so a
+lineage that ran out of tool time before patching also reads as "no change": the run cannot yet tell a verified
+no-change from an unfinished review. CN's snapshot is the largest; its final turn, carrying 24 minutes of findings,
+did not start streaming within Bolt's 20 s per-call wall.
 
 ### Earlier staging walkthrough (2026-10-21)
 
@@ -239,7 +265,11 @@ Each report's Resolution section lists the change per finding.
 
 ## Known gaps
 
-- **Lane.** One started/cron automation at a time per workspace (see [Statutory research](#statutory-research)).
+- **Lane.** On the pinned Bolt, one workspace automation runs at a time: a Saturday sweep holds behaviours (exit
+  encashment, holds, pins) until it ends (see [Statutory research](#statutory-research)). Bolt now runs four lanes per
+  workspace (one automation's own runs still one at a time); it reaches this template with the next Bolt release.
+- **Research outcome.** A lineage that runs out of tool time reads as "no change", and a final turn over a large
+  snapshot can exceed the 20 s model wall (CN in the 2026-10-22 run).
 - **TW §34 bonus premium** is netted per run, not per month.
 - **SG part-time** hourly encashment and leave qualifying service, and the **CN** per-employee year-end payout skip,
   need engine support.
