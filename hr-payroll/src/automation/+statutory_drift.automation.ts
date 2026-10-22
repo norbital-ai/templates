@@ -257,7 +257,11 @@ statutory_drift.run(function* (input, ctx) {
 				pending.length === 0
 					? summaries.join('\n\n')
 					: `${summaries.join('\n\n')}\n\nNot resolved: ${pending.join(', ')}.`;
-			const refuse = (why: string) => ({ code, drafted: false, refused: `${code}: ${why}` });
+			const refuse = (why: string) => ({
+				code,
+				drafted: false,
+				refused: `${code}: ${why}${pending.length === 0 ? '' : `; not resolved: ${pending.join(', ')}`}`
+			});
 			const changes = rowChanges(
 				snapshot,
 				draft,
@@ -278,22 +282,28 @@ statutory_drift.run(function* (input, ctx) {
 				const page = Option.isSome(item) ? pageFrom(item.value) : null;
 				return page == null ? [] : [page];
 			});
-			// a row whose evidence does not hold (an unlisted origin, a quote not on its page) goes back to the governing
-			// version's; the rest are still drafted
+			// a row whose evidence does not hold (none fresh, an unlisted origin, a quote not on its page) goes back to the
+			// governing version's; the rest are still drafted
 			const unverified = unverifiedQuotes(pages, evidence, sources);
-			const dropped = rows.filter((row) => row.evidence.some((cite) => unverified.includes(cite)));
+			const dropped = rows.filter(
+				(row) => row.evidence.length === 0 || row.evidence.some((cite) => unverified.includes(cite))
+			);
 			const kept = rows.filter((row) => !dropped.includes(row));
 			const why = dropped
 				.map(
 					(row) =>
-						`${row.section}/${row.code} (${row.evidence
-							.filter((cite) => unverified.includes(cite))
-							.map((cite) =>
-								allowedUrl(cite.url, sources)
-									? `quote not found: "${cite.quote.slice(0, 60)}" at ${cite.url}`
-									: `cites unlisted ${cite.url}`
-							)
-							.join('; ')})`
+						`${row.section}/${row.code} (${
+							row.evidence.length === 0
+								? 'cites no new url and quote'
+								: row.evidence
+										.filter((cite) => unverified.includes(cite))
+										.map((cite) =>
+											allowedUrl(cite.url, sources)
+												? `quote not found: "${cite.quote.slice(0, 60)}" at ${cite.url}`
+												: `cites unlisted ${cite.url}`
+										)
+										.join('; ')
+						})`
 				)
 				.join(', ');
 			if (kept.length === 0) return refuse(`no row's evidence held: ${why}`);

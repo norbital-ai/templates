@@ -132,7 +132,7 @@ describe('statutory drift', () => {
 		);
 	});
 
-	it('L-TPL-hr-payroll-113 never drafts an unevidenced change, a re-cited old quote, a removal or a settings edit', () => {
+	it('L-TPL-hr-payroll-113 finds no fresh evidence on an unevidenced change or a re-cited old quote, and refuses a removal or a settings edit', () => {
 		const cited = seedSnapshot();
 		const citedRow = cited.leave_catalog[0];
 		assert.ok(citedRow);
@@ -143,9 +143,9 @@ describe('statutory drift', () => {
 		assert.ok(bareRow);
 		bareRow['references'] = [];
 		bareRow['name'] = 'Changed without evidence';
-		assert.equal(
-			refusalOf(seedSnapshot(), bare),
-			`leave_catalog/${String(bareRow['code'])} cites no new url and quote`
+		assert.deepEqual(
+			Result.getOrThrow(changesOf(seedSnapshot(), bare)).map((row) => row.evidence),
+			[[]]
 		);
 
 		// The row already cited this quote: a new value needs new evidence.
@@ -153,9 +153,9 @@ describe('statutory drift', () => {
 		const recitedRow = recited.leave_catalog[0];
 		assert.ok(recitedRow);
 		recitedRow['name'] = 'Changed on old evidence';
-		assert.equal(
-			refusalOf(cited, recited),
-			`leave_catalog/${String(recitedRow['code'])} cites no new url and quote`
+		assert.deepEqual(
+			Result.getOrThrow(changesOf(cited, recited)).map((row) => row.evidence),
+			[[]]
 		);
 
 		const removed = seedSnapshot();
