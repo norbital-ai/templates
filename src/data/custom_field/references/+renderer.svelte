@@ -46,8 +46,8 @@
 			</Badge>
 		{/snippet}
 		{#snippet content()}
-			<Scroll as="span" name="Reference details" max="compact" class="max-w-96 text-xs">
-				<Stack as="span" gap="xs">
+			<Scroll name="Reference details" max="compact" class="max-w-96 text-xs">
+				<Stack gap="xs">
 					<span class="font-semibold">{reference.title}</span>
 					{#if reference.locator}<span>{reference.locator}</span>{/if}
 					{#if reference.quote}<q class="italic">{reference.quote}</q>{/if}
