@@ -67,8 +67,8 @@ One `statutory_drift` run maps every in-force lineage onto its own multi-step `c
 `Effect.forEach(..., { concurrency: 'unbounded' })`: the nine lineages research at the same time inside one run, and a
 lineage that fails is reported in the output's `failed` list without stopping the others. It never seals.
 
-- **Tools:** `web_search`, `web_read` (a page or document — PDF, Word, spreadsheet — as text) and the confined browser
-  (`browser_navigate`, `browser_snapshot`, `browser_act`), granted by the `statutory_drift_automation` policy;
+- **Tools:** `web_search` and the confined browser (`browser_navigate`, `browser_snapshot`, `browser_act`; a PDF
+  opens as its extracted text, page by page), granted by the `statutory_drift_automation` policy;
   `steps: 1000`, then one tool-less turn to submit.
 - **Draft:** the complete snapshot is the model's draft. Every list is keyed by `code`, so the draft tools (`read`,
   `find`, `edit`, `diff`, `submit`) address rows as `/snapshot/<section>/<code>/<field>`, never by position. The

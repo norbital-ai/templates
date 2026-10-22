@@ -1108,8 +1108,7 @@ describe('TW public lineage', () => {
 				'https://www.bli.gov.tw/',
 				'https://gazette.nat.gov.tw/',
 				'https://www.dot.gov.tw/',
-				'https://www.dgpa.gov.tw/',
-				'https://www.wda.gov.tw/'
+				'https://www.dgpa.gov.tw/'
 			]
 		);
 		const leads = entries.map((entry) => String(entry.instructions).split('. Authority for:')[0]);

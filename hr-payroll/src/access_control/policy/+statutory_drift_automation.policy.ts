@@ -9,7 +9,7 @@ export default policy({
 		jurisdiction_settings: { read: true, create: DRAFT_VERSION }
 	},
 	capabilities: {
-		tools: ['web_search', 'web_read', 'browser_navigate', 'browser_snapshot', 'browser_act']
+		tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act']
 	},
 	limits: AUTOMATION_LIMITS
 });

@@ -196,7 +196,7 @@ statutory_drift.run(function* (input, ctx) {
 		Effect.gen(function* () {
 			const result = yield* ctx.ai.sys_2.infer({
 				model: 'strong',
-				tools: ['web_search', 'web_read', 'browser_navigate', 'browser_snapshot', 'browser_act'],
+				tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act'],
 				steps: 1000,
 				system: STATUTORY_RESEARCH_ROLE,
 				prompt: `Jurisdiction ${code}; review as of ${ctx.today}. Official entry points and extraction instructions:\n${JSON.stringify(sources.entries ?? sources.urls)}\nComplete snapshot index (read original values in memory):\n${conciseSnapshot(snapshot)}`,

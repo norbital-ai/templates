@@ -6373,33 +6373,36 @@ describe('ID round 7: the whole law, row by row', () => {
 		const sources = fixtureRecord(settingsOf('version_4').sources);
 		const entries = fixtureValue3(sources.entries);
 		const urls = entries.map((entry) => String(entry.url));
-		// jdih.kemnaker.go.id and www.bpjs-kesehatan.go.id (WAF block pages; JKN's Perpres are read on JDIH Setneg) and oss.go.id (licensing, not HR law) are not sources;
-		// regency portals overlapped their governor's decrees.
-		assert.deepEqual(urls.slice(0, 5), [
-			'https://jdih.setneg.go.id/',
+		// jdih.kemnaker.go.id and www.bpjs-kesehatan.go.id (WAF block pages) and oss.go.id (licensing, not HR law) are not
+		// sources; regency portals overlapped their governor's decrees. Audited through the agents' own browser on
+		// 2026-10-23: JDIH Setneg and peraturan.go.id time out, JDIH BPK is behind a challenge and pajak.go.id's pages crash
+		// the engine, so national law and tax have no reachable source yet.
+		assert.deepEqual(urls.slice(0, 3), [
 			'https://kemnaker.go.id/',
 			'https://www.kemenkopmk.go.id/pengumuman',
-			'https://www.bpjsketenagakerjaan.go.id/',
-			'https://www.pajak.go.id/'
+			'https://www.bpjsketenagakerjaan.go.id/'
 		]);
 		for (const blocked of [
 			'jdih.kemnaker.go.id',
 			'oss.go.id',
 			'gunungkidulkab',
 			'lamongankab',
-			'pontianak'
+			'pontianak',
+			'setneg',
+			'pajak'
 		])
 			assert.ok(!urls.some((url) => url.includes(blocked)), blocked);
 		assert.equal(new Set(urls).size, urls.length);
 		const instructions = entries.map((entry) => String(entry.instructions));
 		assert.equal(new Set(instructions).size, entries.length);
 		// One minimum-wage entry per province with a readable official portal; Kepulauan Riau, Kalimantan Barat,
-		// Kalimantan Selatan (Cloudflare challenge), Sulawesi Tenggara and Papua Pegunungan (unreachable) have none.
+		// Kalimantan Selatan (Cloudflare challenge), Sulawesi Tenggara and Papua Pegunungan (unreachable), Bali and Banten
+		// (JDIH under maintenance), Nusa Tenggara Barat (incomplete TLS chain) and Riau (times out) have none.
 		const provinces = instructions
 			.filter((text) => text.startsWith('Provinsi '))
 			.map((text) => text.slice(0, text.indexOf(':')));
-		assert.equal(provinces.length, 33);
-		assert.equal(new Set(provinces).size, 33);
+		assert.equal(provinces.length, 29);
+		assert.equal(new Set(provinces).size, 29);
 		const regions = new Set(
 			Object.keys(payrollRules('version_4').minimum_wage.by_region).map((key) => key.split('/')[0])
 		);
