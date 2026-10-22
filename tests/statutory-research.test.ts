@@ -111,11 +111,19 @@ function lineage(code: string) {
 	return { folder, settingsRows, version, seededSettings, rows, missing, restored, source, url };
 }
 
-/** Resolve every coverage scope through keyed paths: records verified, the rest declared unverified. */
-const coverage = COVERAGE_SCOPES.map((scope) => ({
+/** Resolve a pass's coverage scope through its keyed path: records verified, the rest declared unverified. */
+const cover = (scope: string) => ({
 	path: `/coverage/${scope}/status`,
 	set: scope === 'records' ? 'verified' : 'unverified'
-}));
+});
+const [first, ...later] = COVERAGE_SCOPES;
+/** Every later scope's pass resolves its coverage and submits unchanged. */
+const rest = later.map((scope): ToolCalls => [
+	{ id: 'cover', name: 'edit', input: { ops: [cover(scope)] } },
+	{ id: 'save', name: 'submit', input: {} }
+]);
+/** The first scope's pass is `turn`. */
+const passes = (turn: ToolCalls): ToolCalls[] => [turn, ...rest];
 /** Add the withheld retention rule at its keyed path, citing `reference` in its own references (none when null). */
 const restore = (
 	restored: Readonly<Record<string, Schema.Json>>,
@@ -143,7 +151,7 @@ const restore = (
 								]
 				}
 			},
-			...coverage,
+			cover(first),
 			{ path: '/changed', set: true },
 			{ path: '/summary', set: summary }
 		]
@@ -313,18 +321,19 @@ const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
 
 describe('statutory drift research transport (mock inference, not live research)', () => {
 	for (const code of fs.readdirSync(root))
-		it.effect(`${code}: one inference saves the complete corrected draft`, () =>
+		it.effect(`${code}: one inference per coverage scope saves the complete corrected draft`, () =>
 			Effect.gen(function* () {
 				const { url, restored } = lineage(code);
-				const result = yield* research(code, [
-					[
+				const result = yield* research(
+					code,
+					passes([
 						{ id: 'navigate', name: 'browser_navigate', input: { url } },
 						{ id: 'snapshot', name: 'browser_snapshot', input: {} },
 						restore(restored, { url, quote }),
 						{ id: 'diff', name: 'diff', input: {} },
 						submit
-					]
-				]);
+					])
+				);
 				const { t, rows, missing, folder, version, settingsRows, source } = result;
 				assert.deepEqual(result.output, {
 					lineages: [code],
@@ -334,7 +343,7 @@ describe('statutory drift research transport (mock inference, not live research)
 				});
 				const ai = t.fakes.ai;
 				assert.ok(ai);
-				assert.equal(ai.requests.length, 1);
+				assert.equal(ai.requests.length, COVERAGE_SCOPES.length);
 				assert.deepEqual(
 					result.browserRequests.map((request) => request.name),
 					['browser_navigate', 'browser_snapshot']
@@ -400,7 +409,8 @@ describe('statutory drift research transport (mock inference, not live research)
 	it.effect('a verified no-change resolves coverage and drafts nothing', () =>
 		Effect.gen(function* () {
 			const result = yield* research('SG', [
-				[{ id: 'cover', name: 'edit', input: { ops: coverage } }, submit]
+				[{ id: 'cover', name: 'edit', input: { ops: [cover(first)] } }, submit],
+				...rest
 			]);
 			assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], refused: [], failed: [] });
 			assert.deepEqual(result.drafts, []);
@@ -409,20 +419,40 @@ describe('statutory drift research transport (mock inference, not live research)
 	);
 
 	it.effect(
-		'a no-change left with pending coverage is reported incomplete, naming the scopes not reached',
+		'a no-change left with pending coverage is reported incomplete, naming the scopes not resolved',
 		() =>
 			Effect.gen(function* () {
-				const result = yield* research('SG', [[submit]]);
+				const result = yield* research(
+					'SG',
+					COVERAGE_SCOPES.map(() => [submit])
+				);
 				assert.deepEqual(result.output.drafted, []);
 				assert.equal(result.output.failed.length, 1);
 				const [failed] = result.output.failed;
 				assert.ok(failed);
-				assert.ok(failed.startsWith('SG: incomplete — not reached: '), failed);
+				assert.ok(failed.startsWith('SG: incomplete — not resolved: '), failed);
 				for (const scope of COVERAGE_SCOPES) assert.ok(failed.includes(scope), failed);
 				assert.deepEqual(result.drafts, []);
 			})
 	);
 
+	it.effect("a scope whose pass fails keeps the other scopes' verified rows and is named", () =>
+		Effect.gen(function* () {
+			const { url, restored } = lineage('SG');
+			// only the first scope's pass has a model turn: every later pass fails
+			const result = yield* research('SG', [[restore(restored, { url, quote }), submit]]);
+			assert.deepEqual(result.output.drafted, ['SG']);
+			const created = result.drafts[0];
+			assert.ok(created);
+			assert.ok(
+				created.change_summary?.startsWith(
+					`rule_set: added record_retention\n\n${summary}\n\nNot resolved: ${later[0]} (`
+				),
+				String(created.change_summary)
+			);
+			for (const scope of later) assert.ok(created.change_summary?.includes(`${scope} (`), scope);
+		})
+	);
 	it.effect('a row whose evidence fails is left out; the verified rows are still drafted', () =>
 		Effect.gen(function* () {
 			const { url, restored } = lineage('SG');
@@ -451,7 +481,7 @@ describe('statutory drift research transport (mock inference, not live research)
 				}
 			};
 			const result = yield* Effect.scoped(
-				research('SG', [[restore(restored, { url, quote }), unlisted, submit]])
+				research('SG', passes([restore(restored, { url, quote }), unlisted, submit]))
 			);
 			assert.deepEqual(result.output.drafted, ['SG']);
 			assert.equal(result.output.refused.length, 1);
@@ -495,7 +525,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			for (const item of cases) {
 				// Each run owns its workspace; only the gathered results leave the scope.
 				const result = yield* Effect.scoped(
-					research('SG', [[restore(restored, item.reference), submit]], item.page)
+					research('SG', passes([restore(restored, item.reference), submit]), item.page)
 				);
 				const { refused, ...rest } = result.output;
 				assert.deepEqual(rest, { lineages: ['SG'], drafted: [], failed: [] }, item.name);
