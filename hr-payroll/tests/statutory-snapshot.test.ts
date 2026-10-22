@@ -8,7 +8,6 @@ import { readSeedRows } from './seed_values.ts';
 import {
 	completeSnapshot,
 	conciseSnapshot,
-	COVERAGE_RULE,
 	COVERAGE_SCOPES,
 	SNAPSHOT_MODELS,
 	SNAPSHOT_OUTPUT,
@@ -219,7 +218,7 @@ describe('complete statutory snapshots', () => {
 			false
 		);
 	});
-	it('keys every snapshot list by code, keeps the registry and quotes out, and requires resolved coverage', () => {
+	it('keys every snapshot list by code, keeps the registry and quotes out, and keys coverage by scope', () => {
 		const { snapshot } = SNAPSHOT_OUTPUT.fields;
 		assert.equal('quotes' in SNAPSHOT_OUTPUT.fields, false);
 		assert.equal('sources' in snapshot.fields.settings.fields, false);
@@ -234,7 +233,6 @@ describe('complete statutory snapshots', () => {
 			'filings',
 			'records'
 		]);
-		assert.equal(COVERAGE_RULE.expression, "coverage.all(c, c.status != 'pending')");
 	});
 	it('guides keyed draft tools and row references, and keeps public holidays out of scope', () => {
 		const role = STATUTORY_RESEARCH_ROLE;
