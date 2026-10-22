@@ -6376,8 +6376,9 @@ describe('ID round 7: the whole law, row by row', () => {
 		// jdih.kemnaker.go.id and www.bpjs-kesehatan.go.id (WAF block pages) and oss.go.id (licensing, not HR law) are not
 		// sources; regency portals overlapped their governor's decrees. Audited through the agents' own browser on
 		// 2026-10-23: JDIH Setneg and peraturan.go.id time out, JDIH BPK is behind a challenge and pajak.go.id's pages crash
-		// the engine, so national law and tax have no reachable source yet.
-		assert.deepEqual(urls.slice(0, 3), [
+		// the engine, so the statutes are read on JDIH DPR and PP/Perpres-only rules stay unresolved.
+		assert.deepEqual(urls.slice(0, 4), [
+			'https://jdih.dpr.go.id/',
 			'https://kemnaker.go.id/',
 			'https://www.kemenkopmk.go.id/pengumuman',
 			'https://www.bpjsketenagakerjaan.go.id/'
