@@ -143,9 +143,9 @@ function rowOf(snapshot: unknown, section: string, code: string): unknown {
 
 /**
  * The keyed rows a research changed or added (from `jsonDiff` paths `/<section>/<code>/<field>`), each with the fresh
- * evidence its own references cite; otherwise why a change cannot be evidenced on a row: a settings change, a row
- * without fresh url + quote, or a removed row. A removal (a removed or renamed code) is never drafted: no row is left
- * to carry its evidence, so a repeal stays in `unresolved` for a person.
+ * evidence its own references cite (none when it cites no new url + quote: the caller leaves that row out); otherwise
+ * why a change cannot be evidenced on a row: a settings change or a removed row. A removal (a removed or renamed code)
+ * is never drafted: no row is left to carry its evidence, so a repeal stays in `unresolved` for a person.
  */
 export function rowChanges(
 	before: unknown,
@@ -177,7 +177,6 @@ export function rowChanges(
 		const evidence = rowEvidence(now).filter(
 			(cite) => !known.some((old) => old.url === cite.url && old.quote === cite.quote)
 		);
-		if (evidence.length === 0) return Result.fail(`${section}/${code} cites no new url and quote`);
 		rows.push({ section, code, added: previous === undefined, fields: [...fields], evidence });
 	}
 	return Result.succeed(rows);

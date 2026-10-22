@@ -496,6 +496,39 @@ describe('statutory drift research transport (mock inference, not live research)
 			assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
 		})
 	);
+	it.effect('an edit that cites nothing new is left out; the verified rows are still drafted', () =>
+		Effect.gen(function* () {
+			const { url, restored, rows } = lineage('SG');
+			const existing = rows.rule_set[0];
+			assert.ok(existing);
+			const uncited: ToolCalls[number] = {
+				id: 'uncited',
+				name: 'edit',
+				input: {
+					ops: [
+						{
+							path: `/snapshot/rule_set/${String(existing['code'])}/name`,
+							set: 'Renamed without evidence'
+						}
+					]
+				}
+			};
+			const result = yield* research(
+				'SG',
+				passes([restore(restored, { url, quote }), uncited, submit])
+			);
+			assert.deepEqual(result.output.drafted, ['SG']);
+			assert.ok(
+				result.output.refused[0]?.includes(
+					`rule_set/${String(existing['code'])} (cites no new url and quote)`
+				),
+				String(result.output.refused[0])
+			);
+			const created = result.drafts[0];
+			assert.ok(created);
+			assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
+		})
+	);
 	it.effect('an unsupported change drafts nothing', () =>
 		Effect.gen(function* () {
 			const { url, restored } = lineage('SG');
