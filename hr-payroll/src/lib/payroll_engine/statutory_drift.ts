@@ -142,22 +142,23 @@ function rowOf(snapshot: unknown, section: string, code: string): unknown {
 
 /**
  * The keyed rows a research changed or added (from `jsonDiff` paths `/<section>/<code>/<field>`), each with the fresh
- * evidence its own references cite; null when any change cannot be evidenced on a row: a settings or reference-less row
- * change, a row without fresh url + quote, or a removed row. A removal (a removed or renamed code) is never drafted:
- * no row is left to carry its evidence, so a repeal stays in `unresolved` for a person.
+ * evidence its own references cite; otherwise why a change cannot be evidenced on a row: a settings change, a row
+ * without fresh url + quote, or a removed row. A removal (a removed or renamed code) is never drafted: no row is left
+ * to carry its evidence, so a repeal stays in `unresolved` for a person.
  */
 export function rowChanges(
 	before: unknown,
 	after: unknown,
 	changes: readonly { readonly path: string }[]
-): RowChange[] | null {
+): Result.Result<RowChange[], string> {
 	const touched = new Map<string, { section: string; code: string; fields: Set<string> }>();
 	for (const { path } of changes) {
 		const [section, code, field] = path
 			.split('/')
 			.slice(1)
 			.map((key) => key.replaceAll('~1', '/').replaceAll('~0', '~'));
-		if (section === undefined || code === undefined) return null;
+		if (section === undefined || code === undefined)
+			return Result.fail(`a change outside any row (${path})`);
 		const id = JSON.stringify([section, code]);
 		const row = touched.get(id) ?? { section, code, fields: new Set<string>() };
 		if (field !== undefined) row.fields.add(field);
@@ -166,16 +167,19 @@ export function rowChanges(
 	const rows: RowChange[] = [];
 	for (const { section, code, fields } of touched.values()) {
 		const now = rowOf(after, section, code);
-		if (now === undefined) return null;
+		if (now === undefined)
+			return Result.fail(
+				section === 'settings' ? `a settings change (${code})` : `removed ${section}/${code}`
+			);
 		const previous = rowOf(before, section, code);
 		const known = rowEvidence(previous);
 		const evidence = rowEvidence(now).filter(
 			(cite) => !known.some((old) => old.url === cite.url && old.quote === cite.quote)
 		);
-		if (evidence.length === 0) return null;
+		if (evidence.length === 0) return Result.fail(`${section}/${code} cites no new url and quote`);
 		rows.push({ section, code, added: previous === undefined, fields: [...fields], evidence });
 	}
-	return rows;
+	return Result.succeed(rows);
 }
 
 /** The version's change summary: the diff's rows per section, then the model's own paragraph. */

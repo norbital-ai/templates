@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { jsonDiff } from '@norbital-ai/bolt';
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import {
 	allowedUrl,
 	changeSummary,
@@ -59,6 +59,8 @@ const seedSnapshot = () => {
 const json = Schema.decodeUnknownSync(Schema.Json);
 const changesOf = (before: object, after: object) =>
 	rowChanges(before, after, jsonDiff(json(before), json(after), SNAPSHOT_OUTPUT.fields.snapshot));
+const refusalOf = (before: object, after: object) =>
+	Result.getOrThrow(Result.flip(changesOf(before, after)));
 
 describe('statutory drift', () => {
 	it('L-TPL-hr-payroll-113 admits listed and same-origin URLs and refuses others', () => {
@@ -92,7 +94,7 @@ describe('statutory drift', () => {
 
 	it('L-TPL-hr-payroll-113 groups the diff by keyed row and requires fresh evidence on each changed row', () => {
 		const before = seedSnapshot();
-		assert.deepEqual(changesOf(before, seedSnapshot()), []);
+		assert.deepEqual(Result.getOrThrow(changesOf(before, seedSnapshot())), []);
 
 		const changed = seedSnapshot();
 		const leave = changed.leave_catalog[0];
@@ -100,8 +102,7 @@ describe('statutory drift', () => {
 		const code = String(leave['code']);
 		leave['name'] = 'Corrected leave name';
 		leave['references'] = [reference];
-		const rows = changesOf(before, changed);
-		assert.ok(rows);
+		const rows = Result.getOrThrow(changesOf(before, changed));
 		assert.equal(rows.length, 1);
 		const [row] = rows;
 		assert.ok(row);
@@ -124,8 +125,7 @@ describe('statutory drift', () => {
 			rules: { until: 'exit_date + duration("8760h")' },
 			references: [reference]
 		});
-		const addedRows = changesOf(before, added);
-		assert.ok(addedRows);
+		const addedRows = Result.getOrThrow(changesOf(before, added));
 		assert.equal(
 			changeSummary(addedRows, 'Add the probe rule.'),
 			'rule_set: added probe_rule\n\nAdd the probe rule.'
@@ -143,22 +143,28 @@ describe('statutory drift', () => {
 		assert.ok(bareRow);
 		bareRow['references'] = [];
 		bareRow['name'] = 'Changed without evidence';
-		assert.equal(changesOf(seedSnapshot(), bare), null);
+		assert.equal(
+			refusalOf(seedSnapshot(), bare),
+			`leave_catalog/${String(bareRow['code'])} cites no new url and quote`
+		);
 
 		// The row already cited this quote: a new value needs new evidence.
 		const recited = structuredClone(cited);
 		const recitedRow = recited.leave_catalog[0];
 		assert.ok(recitedRow);
 		recitedRow['name'] = 'Changed on old evidence';
-		assert.equal(changesOf(cited, recited), null);
+		assert.equal(
+			refusalOf(cited, recited),
+			`leave_catalog/${String(recitedRow['code'])} cites no new url and quote`
+		);
 
 		const removed = seedSnapshot();
-		assert.ok(removed.rule_set.length > 0);
-		removed.rule_set.pop();
-		assert.equal(changesOf(seedSnapshot(), removed), null);
+		const gone = removed.rule_set.pop();
+		assert.ok(gone);
+		assert.equal(refusalOf(seedSnapshot(), removed), `removed rule_set/${String(gone['code'])}`);
 
 		const settings = seedSnapshot();
 		settings.settings['name'] = 'Renamed jurisdiction';
-		assert.equal(changesOf(seedSnapshot(), settings), null);
+		assert.equal(refusalOf(seedSnapshot(), settings), 'a settings change (name)');
 	});
 });
