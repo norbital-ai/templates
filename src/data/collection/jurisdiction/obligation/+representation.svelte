@@ -15,7 +15,7 @@
 		{
 			name: 'duty',
 			title: t('section.duty'),
-			fields: ['duty_code', 'authority', 'occurrence_key', 'trigger_ref']
+			fields: ['duty_code', 'references', 'occurrence_key', 'trigger_ref']
 		},
 		{
 			name: 'timing',

@@ -2,7 +2,7 @@ import { Schema as FixtureSchema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.js';
 import { modelFields } from './jurisdiction_kit.js';
 import { refuse } from '../src/lib/payroll_engine/foundation.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 const LAW_KIT = jurisdiction('TH');
@@ -405,7 +405,6 @@ const fixtureValue16 = guardFixture(
 	FixtureSchema.StructWithRest(
 		FixtureSchema.Struct({
 			description: FixtureSchema.mutableKey(FixtureSchema.String),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String),
 			trigger: FixtureSchema.mutableKey(FixtureSchema.String),
 			months: FixtureSchema.mutableKey(
 				FixtureSchema.optionalKey(FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String)))
@@ -1661,7 +1660,7 @@ describe('TH jurisdiction seed', () => {
 		// The cited scale is the Thai tax-year-2560 page; the English page still shows the 2013 scale.
 		for (const version of VERSIONS)
 			assert.match(
-				String(find(version, 'statutory_contribution_catalog', 'PND1').authority),
+				citationText(find(version, 'statutory_contribution_catalog', 'PND1').references),
 				/https:\/\/www\.rd\.go\.th\/59670\.html/
 			);
 		assert.equal(charge('version_3', 'PND1', 50000).employee, 1704.17);
@@ -2673,7 +2672,7 @@ describe('TH jurisdiction seed', () => {
 				false
 			);
 			assert.match(
-				String(maternity.authority),
+				citationText(maternity.references),
 				version === 'version_1' ? /98 days.*45 days/ : /120 days.*60 days/
 			);
 		}
@@ -2792,7 +2791,7 @@ describe('TH jurisdiction seed', () => {
 			);
 			for (const duty of duties) {
 				const rules = fixtureValue16({ ...fixtureRecord(duty.rules), trigger: triggerOf(duty) });
-				assert.ok(rules.description && rules.authority, String(duty.code));
+				assert.ok(rules.description && citationText(duty.references), String(duty.code));
 				const shared = {
 					company,
 					holidays: [],

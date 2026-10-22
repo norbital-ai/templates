@@ -65,24 +65,27 @@ Any automation that needs no input can be started by hand from **Settings → Au
 
 One `statutory_drift` run maps every in-force lineage onto its own multi-step `ctx.ai.sys_2.infer` call with
 `Effect.forEach(..., { concurrency: 'unbounded' })`: the nine lineages research at the same time inside one run, and a
-lineage that fails is reported in the output's `failed` list without stopping the others.
+lineage that fails is reported in the output's `failed` list without stopping the others. It never seals.
 
-- **Tools:** `web_search` (host web search), `web_read` (reads a page or document — PDF, Word, spreadsheet — as text, in
-  20,000-character windows or the passages around a phrase) and the confined browser — `browser_navigate`,
-  `browser_snapshot`, `browser_act` — granted by the `statutory_drift_automation` policy.
-- **Budget:** `steps: 1000` tool turns, then one tool-less turn to submit.
-- **Role:** `STATUTORY_RESEARCH_ROLE` in `src/lib/payroll_engine/statutory_snapshot.ts` — build a coverage checklist,
-  search, open the governing instrument on a registered official origin, quote it, patch every verified correction,
-  submit once. Documents are read with `web_read` (an empty browser page is a document); no URL is opened twice.
-- **Gate:** a draft is written only when every changed path is backed by a quote that re-appears on the cited page,
-  fetched again by the automation itself (`statutory_drift.ts`).
+- **Tools:** `web_search`, `web_read` (a page or document — PDF, Word, spreadsheet — as text) and the confined browser
+  (`browser_navigate`, `browser_snapshot`, `browser_act`), granted by the `statutory_drift_automation` policy;
+  `steps: 1000`, then one tool-less turn to submit.
+- **Draft:** the complete snapshot is the model's draft. Every list is keyed by `code`, so the draft tools (`read`,
+  `find`, `edit`, `diff`, `submit`) address rows as `/snapshot/<section>/<code>/<field>`, never by position. The
+  research registry (`settings.sources`) is not in the draft: its entries reach the model as entry points and remain
+  the browsing and citation allowlist; the successor keeps the governing version's registry.
+- **Evidence:** every changed or added row cites, in its own `references`, an allowed official `url` and the exact
+  `quote`. The automation diffs the draft against the original (`jsonDiff`), refetches each cited page and drafts only
+  when every changed row carries a fresh quote that re-appears on its page. Removed rows, settings and suspension-kind
+  edits are never drafted; they stay in `unresolved`.
+- **Coverage:** the draft lists `wage_hours`, `leave`, `contributions`, `tax`, `filings` and `records` as `pending`;
+  a CEL rule refuses submission until each is `verified` or `unverified`. A run that ends with a pending scope is
+  reported as `<CODE>: incomplete — …` in `failed`; `changed: false` with every scope resolved is a verified no-change.
+- **Change summary:** composed from the diff (rows added and changed per section, with field names) plus the model's
+  one-paragraph `summary`.
+- **Out of scope:** public holidays — per-entity rows published separately, never researched.
 
-Every tool step is recorded on the run as an `infer.tool` event (`sys_event`), so each run carries the trail of what
-it searched and opened.
-
-Why it used to loop: government instruments are often PDFs, and a browser snapshot of a PDF is empty, so the model
-re-opened the same URL turn after turn until the stall guard ended the run. `web_read` returns the document's text, and
-read-only draft turns no longer count as stalls while the step budget lasts.
+Every tool step is recorded on the run as an `infer.tool` event (`sys_event`).
 
 Every workspace automation — started, scheduled, cron-driven or row-event, `behaviour_taps` included — runs in one
 lane per workspace; only Bolt's own housekeeping runs beside it. While a sweep runs, behaviours (exit encashment,

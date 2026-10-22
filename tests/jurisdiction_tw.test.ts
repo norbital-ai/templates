@@ -10,7 +10,7 @@ import {
 	schemaProblems as kitSchemaProblems,
 	propertiesAt as kitPropertiesAt
 } from './jurisdiction_kit.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 const LAW_KIT = jurisdiction('TW');
 /** The TW public lineage: snapshot structure, CEL on the engine's own contexts, and statutory amounts through a run. */
@@ -2540,8 +2540,8 @@ describe('TW public lineage', () => {
 			const rows = file(version, 'work_catalog');
 			// 勞基法 §24(2) has two tiers; the authority quotes it as it reads, with no 第九小時 clause.
 			assert.equal(
-				String(
-					fixturePresent(rows.find((item) => item.code === 'REST_DAY_WORK')).authority
+				citationText(
+					fixturePresent(rows.find((item) => item.code === 'REST_DAY_WORK')).references
 				).includes('第九小時至第十二小時'),
 				false
 			);
@@ -3643,6 +3643,7 @@ describe('TW public lineage', () => {
 			const duties = dutiesOf(file(version, 'rule_set')).map((duty) => ({
 				...duty,
 				code: fixtureString(duty.code),
+				references: duty.references,
 				rules: { ...fixtureValue1(duty.rules), trigger: triggerOf(duty) }
 			}));
 			assert.equal(duties.length, version === 'version_1' ? 64 : 65, version);
@@ -3662,7 +3663,7 @@ describe('TW public lineage', () => {
 					[],
 					`${version} ${String(duty.code)}`
 				);
-				assert.ok(String(rules.description).length > 0 && String(rules.authority).length > 0);
+				assert.ok(String(rules.description).length > 0 && citationText(duty.references).length > 0);
 				assert.ok(
 					[
 						'PAYROLL_RUN',
@@ -4731,7 +4732,10 @@ describe('TW public lineage', () => {
 				const kind = fixturePresent(kinds.find((row) => row.code === code));
 				for (const key of Object.keys(kind)) assert.ok(fields.has(key), `${code} ${key}`);
 				assert.doesNotMatch(String(kind.name), /§/);
-				assert.match(String(kind.authority), /民法|職業安全衛生法|要點|勞資爭議處理法|注意事項/);
+				assert.match(
+					citationText(kind.references),
+					/民法|職業安全衛生法|要點|勞資爭議處理法|注意事項/
+				);
 				const context = {
 					day: { date: '2026-08-03', worked: false, day_type: 'WORK' },
 					suspension: {}

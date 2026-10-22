@@ -15,7 +15,7 @@
 		{
 			name: 'identity',
 			title: t('section.identity'),
-			fields: ['scope', 'family', 'code', 'name', 'content_hash', 'source_identity']
+			fields: ['scope', 'family', 'code', 'name', 'references', 'content_hash', 'source_identity']
 		},
 		{ name: 'rules', title: t('section.rules'), fields: ['rules'] }
 	]}

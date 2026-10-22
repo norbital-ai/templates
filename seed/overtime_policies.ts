@@ -198,6 +198,7 @@ export function overtimeRule(
 	if (!Predicate.isString(lineage)) return null;
 	const limits = Object.hasOwn(policies, lineage) ? policies[lineage] : undefined;
 	if (limits === undefined) return null;
+	const authority = authorities[lineage];
 	const settingsId = settings['id'];
 	if (!Predicate.isString(settingsId))
 		throw new Error('Overtime policy requires its settings UUID.');
@@ -211,6 +212,7 @@ export function overtimeRule(
 		scope: 'JURISDICTION',
 		code: 'overtime_classification',
 		name: 'Overtime classification',
-		rules: { authority: authorities[lineage] ?? '', limits: limits.map((limit) => ({ ...limit })) }
+		...(authority === undefined ? {} : { references: [{ title: authority }] }),
+		rules: { limits: limits.map((limit) => ({ ...limit })) }
 	};
 }

@@ -13,7 +13,11 @@
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": true,
 		"denominator": "double(period.days)",
-		"authority": "Labour Protection Act B.E. 2541 (1998) s.5 (\"wage\": money paid for work in normal working time) and s.70 (paid at least once a month). A monthly-paid employee: the contract amount scaled to the days employed in the month. A semi-monthly or ten-day period pays the monthly salary divided by the parts of the month (LPA s.70 allows payment more often than monthly)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.5 (\"wage\": money paid for work in normal working time) and s.70 (paid at least once a month). A monthly-paid employee: the contract amount scaled to the days employed in the month. A semi-monthly or ten-day period pays the monthly salary divided by the parts of the month (LPA s.70 allows payment more often than monthly)."
+			}
+		]
 	},
 	{
 		"id": "d3e075f0-e19d-5620-9f87-3245d8cea25f",
@@ -28,7 +32,11 @@
 		"direction": "ADD",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 (1998) s.5, s.56 and s.57-59: a daily-paid employee (contract terms fact pay_basis DAILY; base_salary is the day rate) is paid for each working day worked, each traditional holiday (s.56(2)) and each paid leave day at the leave class's pay fraction; a weekly holiday is unpaid for a daily-paid employee (s.56(1))."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.5, s.56 and s.57-59: a daily-paid employee (contract terms fact pay_basis DAILY; base_salary is the day rate) is paid for each working day worked, each traditional holiday (s.56(2)) and each paid leave day at the leave class's pay fraction; a weekly holiday is unpaid for a daily-paid employee (s.56(1))."
+			}
+		]
 	},
 	{
 		"id": "f356a6ec-9672-5e3f-9fba-9051518ee31e",
@@ -43,7 +51,12 @@
 		"direction": "ADD",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 s.5 (\"wage\" includes money paid by the piece of work), s.70(1): a piece worker is paid at least monthly for the units of normal time (contract fact piece_rate, roster day fact units); units on a holiday are HOLIDAY_WORK and overtime units OVERTIME. Wage for SSO, WCF, PND1, PVD and EWF (SSA s.5, WCA s.5). Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.5 (\"wage\" includes money paid by the piece of work), s.70(1): a piece worker is paid at least monthly for the units of normal time (contract fact piece_rate, roster day fact units); units on a holiday are HOLIDAY_WORK and overtime units OVERTIME. Wage for SSO, WCF, PND1, PVD and EWF (SSA s.5, WCA s.5). Office of the Council of State English translation",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "0a79e3fa-a392-5939-ab31-78f55457055d",
@@ -58,7 +71,12 @@
 		"direction": "ADD",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 s.56(2)-(3): traditional and annual holidays are paid (not the weekly holiday, s.56(1)); ss.57-59: paid sick, sterilisation, military and maternity leave; s.60: for a piece worker the day is \"the average wages paid … for work on the last period of payment before such holiday or leave\" — read as last month's piece-work wages per normal day worked. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)"
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.56(2)-(3): traditional and annual holidays are paid (not the weekly holiday, s.56(1)); ss.57-59: paid sick, sterilisation, military and maternity leave; s.60: for a piece worker the day is \"the average wages paid … for work on the last period of payment before such holiday or leave\" — read as last month's piece-work wages per normal day worked. Office of the Council of State English translation",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "aef9b3e8-64ad-50b5-a8e2-383140606f04",
@@ -73,7 +91,12 @@
 		"direction": "ADD",
 		"counts_toward": ["PND1"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 s.61: overtime on a working day at not less than 1.5 times the hourly wage; s.68: the hourly wage of a monthly-paid employee is the monthly wage ÷ (30 × the average normal hours a day) — contract fact normal_hours_per_day, else 8 (7 for hazardous work, s.23). s.65: an employee with power to hire, reward or dismiss for the employer (contract fact overtime_category MANAGER) gets no overtime pay; the listed s.65(2)-(8) work (SECTION_65_OTHER) is paid 1 × the hourly wage. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Neither SSO nor WCF wage (SSA s.5 and WCA s.5 count only normal working hours and days). s.69: where normal time is fixed by the week (contract fact weekly_normal_hours), overtime is the week's hours beyond it, counting traditional and annual holidays and leave days as working days of the normal day; a Monday-Sunday week is counted within the pay period. Overtime hours are the engine-derived hours worked past the planned shift in completed half-hours, less banked hours; work on a weekly rest day or holiday is priced by HOLIDAY_WORK and HOLIDAY_OVERTIME instead. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.61: overtime on a working day at not less than 1.5 times the hourly wage; s.68: the hourly wage of a monthly-paid employee is the monthly wage ÷ (30 × the average normal hours a day) — contract fact normal_hours_per_day, else 8 (7 for hazardous work, s.23). s.65: an employee with power to hire, reward or dismiss for the employer (contract fact overtime_category MANAGER) gets no overtime pay; the listed s.65(2)-(8) work (SECTION_65_OTHER) is paid 1 × the hourly wage. Office of the Council of State English translation. Neither SSO nor WCF wage (SSA s.5 and WCA s.5 count only normal working hours and days). s.69: where normal time is fixed by the week (contract fact weekly_normal_hours), overtime is the week's hours beyond it, counting traditional and annual holidays and leave days as working days of the normal day; a Monday-Sunday week is counted within the pay period. Overtime hours are the engine-derived hours worked past the planned shift in completed half-hours, less banked hours; work on a weekly rest day or holiday is priced by HOLIDAY_WORK and HOLIDAY_OVERTIME instead. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation. Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "85173e7a-6c6c-546d-a4e1-e570d886e74e",
@@ -88,7 +111,12 @@
 		"direction": "ADD",
 		"counts_toward": ["PND1"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 s.62: work in normal hours on a holiday is paid (1) at least 1 × the hourly wage per hour when the employee is already paid for that holiday — every holiday of a monthly-paid employee and the traditional and annual holidays of a daily-paid one (s.56) — (2) at least 2 × when the holiday is unpaid, the weekly holiday of a daily-paid employee. s.66: none for a s.65(1) manager unless the employer agrees. Hours are the paid hours of the holiday or weekly rest day (the planned hours plus the overtime the engine derives, less banked hours), at most the normal day; on a 0-hour rest day every hour worked is first normal time up to the normal day. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.62: work in normal hours on a holiday is paid (1) at least 1 × the hourly wage per hour when the employee is already paid for that holiday — every holiday of a monthly-paid employee and the traditional and annual holidays of a daily-paid one (s.56) — (2) at least 2 × when the holiday is unpaid, the weekly holiday of a daily-paid employee. s.66: none for a s.65(1) manager unless the employer agrees. Hours are the paid hours of the holiday or weekly rest day (the planned hours plus the overtime the engine derives, less banked hours), at most the normal day; on a 0-hour rest day every hour worked is first normal time up to the normal day. Office of the Council of State English translation. Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "7f4026c7-baa5-5281-a1a8-f3613663e718",
@@ -103,7 +131,12 @@
 		"direction": "ADD",
 		"counts_toward": ["PND1"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 s.63: overtime on a holiday at not less than 3 times the hourly wage; s.65: none for a manager, 1 × for the s.65(2)-(8) work. Hours are the paid hours of the holiday or weekly rest day beyond the normal day (normal_hours_per_day, else 8 or 7 hazardous), less banked hours; the hours within it are HOLIDAY_WORK. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.63: overtime on a holiday at not less than 3 times the hourly wage; s.65: none for a manager, 1 × for the s.65(2)-(8) work. Hours are the paid hours of the holiday or weekly rest day beyond the normal day (normal_hours_per_day, else 8 or 7 hazardous), less banked hours; the hours within it are HOLIDAY_WORK. Office of the Council of State English translation. Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation. Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "b84c3b1a-f4f2-504d-95e7-988fe38e4fa8",
@@ -118,7 +151,11 @@
 		"direction": "SUBTRACT",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 (1998) s.68: a day of a monthly-paid employee is the monthly wage divided by 30; unpaid leave beyond the paid entitlements (ss.57-59) is deducted at that rate, and a partly paid leave day (child-care leave at 50%, s.59/1) deducts its unpaid share (1 - the class's pay fraction)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.68: a day of a monthly-paid employee is the monthly wage divided by 30; unpaid leave beyond the paid entitlements (ss.57-59) is deducted at that rate, and a partly paid leave day (child-care leave at 50%, s.59/1) deducts its unpaid share (1 - the class's pay fraction)."
+			}
+		]
 	},
 	{
 		"id": "dee39641-8f95-5e14-a157-c1511126e65a",
@@ -133,7 +170,12 @@
 		"direction": "SUBTRACT",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"],
 		"prorated": false,
-		"authority": "LPA s.75 and s.68 (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf): a monthly-paid employee keeps the monthly wage (a day is the month ÷ 30) less what each suspended day does not pay under its kind — 25% of a day during a s.75 cessation, a whole working day under force majeure."
+		"references": [
+			{
+				"title": "LPA s.75 and s.68: a monthly-paid employee keeps the monthly wage (a day is the month ÷ 30) less what each suspended day does not pay under its kind — 25% of a day during a s.75 cessation, a whole working day under force majeure.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "fc8abe13-cdbb-55ff-a879-ab681a5009d4",
@@ -148,7 +190,12 @@
 		"direction": "ADD",
 		"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"],
 		"prorated": false,
-		"authority": "LPA s.75 (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf): a daily-paid employee, paid only for days worked (BASIC_DAILY), is paid at least 75% of the day rate for each working day of a s.75 cessation."
+		"references": [
+			{
+				"title": "LPA s.75: a daily-paid employee, paid only for days worked (BASIC_DAILY), is paid at least 75% of the day rate for each working day of a s.75 cessation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
 	},
 	{
 		"id": "5c46e442-7c48-5d18-9539-b2cde6b6c88b",
@@ -163,6 +210,10 @@
 		"direction": "ADD",
 		"counts_toward": ["PND1"],
 		"prorated": false,
-		"authority": "Labour Protection Act B.E. 2541 (1998) s.64 (untaken annual leave the employer did not carry forward) and s.67 (on termination other than under s.119, the year's annual leave in proportion plus accumulated leave) at the day wage (s.68). Employment income under Revenue Code s.40(1); not SSO wage. A piece worker's day is the average day of the last payment period (Labour Protection Act B.E. 2541 s.60)."
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.64 (untaken annual leave the employer did not carry forward) and s.67 (on termination other than under s.119, the year's annual leave in proportion plus accumulated leave) at the day wage (s.68). Employment income under Revenue Code s.40(1); not SSO wage. A piece worker's day is the average day of the last payment period (Labour Protection Act B.E. 2541 s.60)."
+			}
+		]
 	}
 ]

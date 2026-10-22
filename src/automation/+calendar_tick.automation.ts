@@ -23,7 +23,7 @@ const LEAVE_LOOKBACK_DAYS = 731;
  * The daily tick: every employment in force today runs the governing version's behaviour rules as the row event
  * `calendar`/`daily` (its contract the row, with its time off of the last two years as `leave[]`, today the day), so
  * anniversaries, age-reached duties, leave-year ends and repeats while on leave are `TASKS` rows with
- * `trigger: { collection: 'calendar', event: 'daily' }`; every open `workplace_case` runs as `workplace_case`/`daily`
+ * `trigger: { collection: 'calendar', events: ['daily'] }`; every open `workplace_case` runs as `workplace_case`/`daily`
  * (a case still open after its deadline). A version with a `calendar`/`after_exit` task also runs every ended
  * employment as `calendar`/`after_exit` (a certificate or a disposal N days after the exit). A contract whose `encash_at_window_end` class's window closes today carries
  * its balances, which the canonical `encash-leave-at-window-end` rule encashes. One pass per entity; an entity whose version holds no such task is skipped
@@ -162,10 +162,16 @@ calendar_tick.run(function* (_input, ctx) {
 				const trigger = isJsonObject(duty['rules']) ? duty['rules']['trigger'] : undefined;
 				return isJsonObject(trigger) ? trigger : undefined;
 			};
+			const answers = (duty: Row, event: string) => {
+				const events = triggerOf(duty)?.['events'];
+				return Array.isArray(events) && events.includes(event);
+			};
 			const daily = new Set(
 				duties.flatMap((duty) => {
 					const trigger = triggerOf(duty);
-					return trigger?.['event'] === 'daily' ? [String(trigger['collection'])] : [];
+					return trigger !== undefined && answers(duty, 'daily')
+						? [String(trigger['collection'])]
+						: [];
 				})
 			);
 			if (daily.has('workplace_case'))
@@ -193,7 +199,7 @@ calendar_tick.run(function* (_input, ctx) {
 			// A version with a `calendar`/`after_exit` task also ticks every ended employment (a duty N days after exit).
 			const afterExit = duties.some((duty) => {
 				const trigger = triggerOf(duty);
-				return trigger?.['collection'] === 'calendar' && trigger['event'] === 'after_exit';
+				return trigger?.['collection'] === 'calendar' && answers(duty, 'after_exit');
 			});
 			if (!daily.has('calendar') && encashed.length === 0 && !afterExit) return;
 			// Balances (with each class's attendance) only for a version whose daily tasks read them.

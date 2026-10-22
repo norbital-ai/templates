@@ -93,10 +93,10 @@ const tables = new Map<string, Row[]>([
 				family: 'TASKS',
 				code: 'SERVICE_ANNIVERSARY',
 				name: 'Service anniversary',
+				references: [{ title: 'Test' }],
 				rules: {
 					description: 'A record-driven anniversary duty.',
-					authority: 'Test',
-					trigger: { collection: 'calendar', event: 'daily' },
+					trigger: { collection: 'calendar', events: ['daily'] },
 					when: 'today.substring(5) == contract.effective_range.from.substring(5)',
 					applies_when: 'company.headcount == 2.0 && headcount == 2.0',
 					due: 'add_days(today, 7)'
@@ -132,7 +132,7 @@ const withNative = <A, E>(use: (native: Native) => Effect.Effect<A, E>, source =
 					select: {
 						code: true,
 						title: true,
-						authority: true,
+						references: true,
 						subject_collection: true,
 						subject_id: true,
 						trigger_ref: true,
@@ -153,7 +153,7 @@ const withNative = <A, E>(use: (native: Native) => Effect.Effect<A, E>, source =
 					collection: 'obligation',
 					select: {
 						duty_code: true,
-						authority: true,
+						references: true,
 						occurrence_key: true,
 						trigger_ref: true,
 						triggered_on: true,
@@ -422,10 +422,10 @@ it.effect(
 			family: 'TASKS',
 			code: 'FESTIVE_ALLOWANCE',
 			name: 'Festive allowance',
+			references: [{ title: 'Test' }],
 			rules: {
 				description: 'Paid seven days before the named holiday.',
-				authority: 'Test',
-				trigger: { collection: 'calendar', event: 'daily' },
+				trigger: { collection: 'calendar', events: ['daily'] },
 				when: 'today == "2026-02-02" && holidays_named.exists(h, h.name == "Idul Fitri")',
 				due: 'add_days(first(holidays_named.filter(h, h.name == "Idul Fitri")).date, -7)'
 			}
@@ -473,7 +473,8 @@ const task = (code: string, rules: Row): Row => ({
 	family: 'TASKS',
 	code,
 	name: code,
-	rules: { description: code, authority: 'Test', ...rules }
+	references: [{ title: 'Test' }],
+	rules: { description: code, ...rules }
 });
 const fire = (collection: string, action: string, row: Row, day: string, employment?: Row) =>
 	perform({
@@ -525,20 +526,20 @@ it.effect(
 		tables.get('rule_set')!.push(
 			// A dependant change: one notice per change of the children listed, not once per person.
 			task('DEPENDANT_CHANGE', {
-				trigger: { collection: 'employment_profile', event: 'updated' },
+				trigger: { collection: 'employment_profile', events: ['updated'] },
 				when: 'size(employee.children) > 0',
 				repeat_key: 'string(size(employee.children))',
 				due: 'add_days(today, 5)'
 			}),
 			// A mass-layoff threshold over the entity's employer-initiated separations of the last 60 days.
 			task('MASS_LAYOFF', {
-				trigger: { collection: 'employment_contract', event: 'updated' },
+				trigger: { collection: 'employment_contract', events: ['updated'] },
 				when: 'size(separations.filter(s, s.exit_ground == "REDUNDANCY" && s.exit_date >= add_days(today, -60))) >= 1',
 				due: 'today'
 			}),
 			// An application repeated each month the childcare leave runs through.
 			task('CHILDCARE_APPLICATION', {
-				trigger: { collection: 'calendar', event: 'daily' },
+				trigger: { collection: 'calendar', events: ['daily'] },
 				when: 'row.leave.exists(l, l.code == "CHILDCARE_LEAVE" && l.from <= today && l.to >= today)',
 				repeat_key: 'period.key',
 				due: 'month_end(today)'
@@ -610,17 +611,17 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		tables.get('rule_set')!.push(
 			task('FWA_REPLY', {
-				trigger: { collection: 'workplace_case', event: 'created' },
+				trigger: { collection: 'workplace_case', events: ['created'] },
 				when: 'row.kind == "FLEXIBLE_WORK_REQUEST"',
 				due: 'add_months(row.opened_on, 2)'
 			}),
 			task('BREACH_NOTICE_OVERDUE', {
-				trigger: { collection: 'workplace_case', event: 'daily' },
+				trigger: { collection: 'workplace_case', events: ['daily'] },
 				when: 'row.kind == "DATA_BREACH" && row.closed_on == null && today >= add_days(row.opened_on, 3)',
 				due: 'today'
 			}),
 			task('LATE_ANNUAL_SURCHARGE', {
-				trigger: { collection: 'regulatory_task', event: 'updated' },
+				trigger: { collection: 'regulatory_task', events: ['updated'] },
 				when: 'row.state == "DONE" && row.done_on > row.due_on',
 				due: 'row.done_on'
 			})
@@ -679,26 +680,26 @@ it.effect(
 		tables.get('rule_set')!.push(
 			// A worksite threshold over its own headcount and a fixed-term separation there.
 			task('WORKSITE_NOTICE', {
-				trigger: { collection: 'employment_contract', event: 'updated' },
+				trigger: { collection: 'employment_contract', events: ['updated'] },
 				when: 'headcount_by_worksite.NORTH == 1.0 && separations.exists(s, s.worksite == "NORTH" && s.fixed_term)',
 				due: 'today'
 			}),
 			// One duty per threshold crossing: keyed to the separation that crossed it, not to the row that fired.
 			task('CROSSING_DUTY', {
-				trigger: { collection: 'employment_contract', event: 'updated' },
+				trigger: { collection: 'employment_contract', events: ['updated'] },
 				when: 'size(separations) >= 1',
 				occurrence: 'first(separations).exit_date',
 				due: 'today'
 			}),
 			// Raised only when the grant passed its attendance test.
 			task('GRANT_DESIGNATION', {
-				trigger: { collection: 'calendar', event: 'daily' },
+				trigger: { collection: 'calendar', events: ['daily'] },
 				when: 'row.leave_balances.exists(b, b.code == "ATTENDED_GRANT" && b.entitlement >= 10.0)',
 				due: 'add_days(today, 30)'
 			}),
 			// A term written for any day raises on the write.
 			task('TERM_CHANGE', {
-				trigger: { collection: 'employment_contract', event: 'updated' },
+				trigger: { collection: 'employment_contract', events: ['updated'] },
 				when: 'size(row.terms_written) > 0',
 				repeat_key: 'first(row.terms_written).effective_range.from',
 				due: 'add_days(today, 7)'
@@ -818,9 +819,9 @@ it.effect(
 			family: 'OBLIGATIONS',
 			code: 'YEARLY_LEVY',
 			name: 'Yearly levy',
+			references: [{ title: 'Test' }],
 			rules: {
 				description: 'A levy per month the entity employed three or more.',
-				authority: 'Test',
 				schemes: [],
 				due: 'add_days(period.to, 30)',
 				amount:
@@ -895,9 +896,9 @@ it.effect(
 			family: 'OBLIGATIONS',
 			code: 'UNIT_PREMIUM',
 			name: 'Unit premium',
+			references: [{ title: 'Test' }],
 			rules: {
 				description: 'The rate on the run’s insured amounts, not the sum of the per-slip shares.',
-				authority: 'Test',
 				schemes: ['UNIT_FUND'],
 				due: 'add_days(period.to, 30)',
 				amount: 'round(run.statutory.UNIT_FUND.charged_base * 0.000333, 0.01)'
@@ -993,13 +994,13 @@ it.effect(
 		});
 		tables.get('rule_set')!.push(
 			task('PERMANENT_COUNT', {
-				trigger: { collection: 'work_suspension', event: 'created' },
+				trigger: { collection: 'work_suspension', events: ['created'] },
 				when: 'headcount_permanent == 1.0 && headcount == 2.0 && headcount_permanent_by_worksite[""] == 1.0 && headcount_by_worksite[""] == 2.0 && row.kind == "CLOSURE"',
 				due: 'row.starts_on'
 			}),
 			// Separations come sorted by exit day, so a window count is a binary search.
 			task('WINDOW_COUNT', {
-				trigger: { collection: 'work_suspension', event: 'updated' },
+				trigger: { collection: 'work_suspension', events: ['updated'] },
 				when: 'separations[0].exit_date <= separations[1].exit_date && separations.exists(s, count_within(separations, "exit_date", s.exit_date, add_days(s.exit_date, 59)) >= 2)',
 				due: 'today'
 			})
@@ -1036,7 +1037,7 @@ it.effect(
 		k2!.facts = {};
 		tables.get('rule_set')!.push(
 			task('ALL_PERMANENT', {
-				trigger: { collection: 'work_suspension', event: 'created' },
+				trigger: { collection: 'work_suspension', events: ['created'] },
 				when: 'headcount_permanent == headcount && row.kind == "CLOSURE"',
 				due: 'row.starts_on'
 			})
@@ -1091,7 +1092,7 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		tables.get('rule_set')!.push(
 			task('ESTABLISHMENT_UPDATE', {
-				trigger: { collection: 'entity', event: 'updated' },
+				trigger: { collection: 'entity', events: ['updated'] },
 				when: 'has(row.before) && ("address" in row.before || "name" in row.before)',
 				repeat_key: 'today',
 				due: 'add_days(today, 30)'
@@ -1119,7 +1120,7 @@ it.effect(
 		tables.get('employment_contract')![1] = payee;
 		tables.get('rule_set')!.push(
 			task('PAYEE_RETURN', {
-				trigger: { collection: 'calendar', event: 'daily' },
+				trigger: { collection: 'calendar', events: ['daily'] },
 				when: 'today.endsWith("-06-30") && row.engagement == "PAYEE" && contract.engagement == "PAYEE"',
 				due: 'add_days(today, 59)'
 			})
@@ -1143,7 +1144,7 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		tables.get('rule_set')!.push(
 			task('PRIOR_YEAR_RETURN', {
-				trigger: { collection: 'entity', event: 'calendar' },
+				trigger: { collection: 'entity', events: ['calendar'] },
 				when: 'headcount == 0.0 && size(previous_year_headcount_months) == 12 && previous_year_headcount_months.all(m, m.headcount == 1.0 && m.month.startsWith("2025-"))',
 				occurrence: 'add_years(today, -1).substring(0, 4)',
 				due: 'month_end(today)'
@@ -1179,7 +1180,7 @@ it.effect(
 	Effect.fnUntraced(function* () {
 		tables.get('rule_set')!.push(
 			task('MONTHLY_RENEWAL', {
-				trigger: { collection: 'entity', event: 'calendar' },
+				trigger: { collection: 'entity', events: ['calendar'] },
 				when: 'today.substring(8) == "15"',
 				repeat_key: 'period.key',
 				due: 'month_end(today)'
@@ -1203,7 +1204,7 @@ it.effect(
 		// raised and the run a success.
 		tables.get('rule_set')!.push(
 			task('BROKEN_NOTICE', {
-				trigger: { collection: 'workplace_case', event: 'created' },
+				trigger: { collection: 'workplace_case', events: ['created'] },
 				when: 'row.no_such_field.flag == true',
 				applies_when: 'false',
 				due: 'today'
@@ -1242,7 +1243,7 @@ it.effect(
 				rules: { by_region: { NORTH: { notice_days: 5, levy: 12.5 } } }
 			},
 			task('REGIONAL_NOTICE', {
-				trigger: { collection: 'workplace_case', event: 'created' },
+				trigger: { collection: 'workplace_case', events: ['created'] },
 				when: 'rules.regions.by_region[company.region].notice_days > 0',
 				due: 'add_days(row.opened_on, int(rules.regions.by_region[company.region].notice_days))'
 			}),
@@ -1252,9 +1253,9 @@ it.effect(
 				family: 'OBLIGATIONS',
 				code: 'REGIONAL_LEVY',
 				name: 'Regional levy',
+				references: [{ title: 'Test' }],
 				rules: {
 					description: 'A levy by the entity’s region.',
-					authority: 'Test',
 					schemes: [],
 					applies_when: 'company.region in rules.regions.by_region',
 					due: 'add_days(period.to, 10)',

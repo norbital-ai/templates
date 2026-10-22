@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * One statutory contribution class: its identity, its authority text and its configuration as
+	 * One statutory contribution class: its identity, its references and its configuration as
 	 * assessment, assessable parts, person facts, guards, ordered rules and limitation instead of one stacked list.
 	 */
 	import { bolt } from '$bolt';
@@ -78,7 +78,7 @@
 						<Field name="code" />
 						<Field name="name" />
 					</Grid>
-					<Field name="authority" />
+					<Field name="references" />
 				</Section>
 				<Section name="configuration" title={t('section.configuration')}>
 					<Field name="configuration">

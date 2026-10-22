@@ -2,7 +2,7 @@ import { collection } from '@norbital-ai/bolt';
 const create_columns = [
 	'code',
 	'title',
-	'authority',
+	'references',
 	'subject_collection',
 	'subject_id',
 	'trigger_ref',

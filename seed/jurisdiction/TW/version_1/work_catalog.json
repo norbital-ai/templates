@@ -27,7 +27,11 @@
 		],
 		"prorated": true,
 		"denominator": "double(period.days)",
-		"authority": "勞動基準法 §22: the agreed monthly salary; a part month pays the days employed at monthly ÷ 30, the same day value an unpaid day deducts — or ÷ the month’s calendar days where the entity records day_wage_calendar_days (勞動部 102年11月15日勞動2字第1020083156號函: either basis by agreement, applied consistently)."
+		"references": [
+			{
+				"title": "勞動基準法 §22: the agreed monthly salary; a part month pays the days employed at monthly ÷ 30, the same day value an unpaid day deducts — or ÷ the month’s calendar days where the entity records day_wage_calendar_days (勞動部 102年11月15日勞動2字第1020083156號函: either basis by agreement, applied consistently)."
+			}
+		]
 	},
 	{
 		"id": "171ad2cb-9421-5ee3-b09b-4a30f833ddd8",
@@ -41,7 +45,12 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1.34 and every further hour at 1.67 of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — a day the roster marks facts.emergency_extension (hours extended under §32(4) for a natural disaster, incident or emergency) is paid 2.0 for every overtime hour instead. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)). (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24)"
+		"references": [
+			{
+				"title": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1.34 and every further hour at 1.67 of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — a day the roster marks facts.emergency_extension (hours extended under §32(4) for a natural disaster, incident or emergency) is paid 2.0 for every overtime hour instead. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24"
+			}
+		]
 	},
 	{
 		"id": "78ab4f00-104d-5ede-bb8d-86fbf0be5767",
@@ -55,7 +64,12 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §40(1): 因天災、事變或突發事件…停止第三十六條至第三十八條所定勞工之假期。但停止假期之工資，應加倍發給，並應於事後補假休息 — one further day’s wage for each worked day whose shift is REST (the §36 例假); the rest in lieu is STATUTORY_REST_IN_LIEU. Work on a 例假 outside §40 is unlawful but its wage is still owed. (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40)"
+		"references": [
+			{
+				"title": "勞動基準法 §40(1): 因天災、事變或突發事件…停止第三十六條至第三十八條所定勞工之假期。但停止假期之工資，應加倍發給，並應於事後補假休息 — one further day’s wage for each worked day whose shift is REST (the §36 例假); the rest in lieu is STATUTORY_REST_IN_LIEU. Work on a 例假 outside §40 is unlawful but its wage is still owed.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40"
+			}
+		]
 	},
 	{
 		"id": "25cd230f-6836-5a0f-9dfd-35e952871c1d",
@@ -69,7 +83,12 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — the statute has two tiers only; the 2.67 kept for the ninth to twelfth hours is above its 1⅔ floor (the twelve-hour day of §32(2) counted as rest-day hours beyond the eighth), never below it. Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假). (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24)"
+		"references": [
+			{
+				"title": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — the statute has two tiers only; the 2.67 kept for the ninth to twelfth hours is above its 1⅔ floor (the twelve-hour day of §32(2) counted as rest-day hours beyond the eighth), never below it. Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24"
+			}
+		]
 	},
 	{
 		"id": "ae73e83e-7677-512a-9f03-136fa76bb562",
@@ -121,7 +140,12 @@
 			"INCOME_TAX_NON_RESIDENT",
 			"NHI_SUPPLEMENT_EMPLOYER"
 		],
-		"authority": "The unpaid part of a leave class paid below full wage, from its own pay_fraction evaluated per leave row: 勞工請假規則 §4(3) sickness at half pay within thirty days a year; 性別平等工作法 §14 menstrual leave at half pay; 勞動基準法 §50(2) maternity at half pay under six months’ service, and the unpaid early-miscarriage leaves (性別平等工作法 §15(1)). (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=4)"
+		"references": [
+			{
+				"title": "The unpaid part of a leave class paid below full wage, from its own pay_fraction evaluated per leave row: 勞工請假規則 §4(3) sickness at half pay within thirty days a year; 性別平等工作法 §14 menstrual leave at half pay; 勞動基準法 §50(2) maternity at half pay under six months’ service, and the unpaid early-miscarriage leaves (性別平等工作法 §15(1)).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=4"
+			}
+		]
 	},
 	{
 		"id": "6aa96bae-0937-5e3c-9860-58c0c2ee8cba",
@@ -135,7 +159,11 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["INCOME_TAX_BONUS", "INCOME_TAX_NON_RESIDENT", "NHI_PART_TIME"],
-		"authority": "勞動基準法 §38(4); 施行細則 §24-1(2)(1): 按勞工未休畢之特別休假日數，乘以其一日工資 — the last month’s normal-hours wage ÷ 30, regular allowances included (terms.monthly_wage)."
+		"references": [
+			{
+				"title": "勞動基準法 §38(4); 施行細則 §24-1(2)(1): 按勞工未休畢之特別休假日數，乘以其一日工資 — the last month’s normal-hours wage ÷ 30, regular allowances included (terms.monthly_wage)."
+			}
+		]
 	},
 	{
 		"id": "33258753-3868-537c-83d6-c50d37bd1bb9",
@@ -149,7 +177,11 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §32-1(2): the untaken 補休 hours, already weighted by their §24 band (COMP_TIME_PAYOUT_VALUE), at the hourly wage (monthly wage ÷ 30 ÷ 8, as OVERTIME); overtime pay within the §32 limits is outside salary income (所得稅法 §14(1)(3)) and the insured wage."
+		"references": [
+			{
+				"title": "勞動基準法 §32-1(2): the untaken 補休 hours, already weighted by their §24 band (COMP_TIME_PAYOUT_VALUE), at the hourly wage (monthly wage ÷ 30 ÷ 8, as OVERTIME); overtime pay within the §32 limits is outside salary income (所得稅法 §14(1)(3)) and the insured wage."
+			}
+		]
 	},
 	{
 		"id": "73a88187-0f99-5c78-a19e-6093d57dba35",
@@ -163,7 +195,11 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §39: 休假日…工作者，工資應加倍發給 — one further day’s wage (monthly wage ÷ 30) for each published holiday actually worked; a holiday not worked is already in the monthly salary. 改制前勞委會 87年9月14日(87)台勞動二字第039675號函: hours beyond eight follow §24 (HOLIDAY_OVERTIME)."
+		"references": [
+			{
+				"title": "勞動基準法 §39: 休假日…工作者，工資應加倍發給 — one further day’s wage (monthly wage ÷ 30) for each published holiday actually worked; a holiday not worked is already in the monthly salary. 改制前勞委會 87年9月14日(87)台勞動二字第039675號函: hours beyond eight follow §24 (HOLIDAY_OVERTIME)."
+			}
+		]
 	},
 	{
 		"id": "dded383d-8c79-5b13-895f-769a22e11250",
@@ -177,7 +213,12 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §39 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=39): work on a §37 放假日 is paid one further day’s wage (monthly ÷ 30). The ritual day worked is the roster day marked facts.indigenous_ritual_day for an indigenous worker; hours beyond eight are overtime at the §24 rates as on any holiday (the time recorded past the planned shift, priced by OVERTIME)."
+		"references": [
+			{
+				"title": "勞動基準法 §39: work on a §37 放假日 is paid one further day’s wage (monthly ÷ 30). The ritual day worked is the roster day marked facts.indigenous_ritual_day for an indigenous worker; hours beyond eight are overtime at the §24 rates as on any holiday (the time recorded past the planned shift, priced by OVERTIME).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=39"
+			}
+		]
 	},
 	{
 		"id": "bc4690d4-248b-5eac-8aa0-b2fe7c339782",
@@ -191,7 +232,11 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": [],
-		"authority": "勞動基準法 §39 with §24(1): paid hours on a holiday beyond the eighth and past the planned shift (on a planned rest or off day, every recorded hour after the eighth), less any banked as 補休, at 1.34 for the first two and 1.67 after (改制前勞委會 87年9月14日(87)台勞動二字第039675號函; 高雄市勞工局 115年休假日一覽表 附註三). They count toward the §32 monthly overtime ceiling."
+		"references": [
+			{
+				"title": "勞動基準法 §39 with §24(1): paid hours on a holiday beyond the eighth and past the planned shift (on a planned rest or off day, every recorded hour after the eighth), less any banked as 補休, at 1.34 for the first two and 1.67 after (改制前勞委會 87年9月14日(87)台勞動二字第039675號函; 高雄市勞工局 115年休假日一覽表 附註三). They count toward the §32 monthly overtime ceiling."
+			}
+		]
 	},
 	{
 		"id": "dc87f8d2-8b9f-5f9c-937a-9092fb079656",
@@ -210,7 +255,12 @@
 			"NHI_SUPPLEMENT_EMPLOYER",
 			"NHI_PART_TIME"
 		],
-		"authority": "營利事業所得稅查核準則 §88(2)(1) (amended 2023-12-11): a meal allowance of up to NT$3,000 a month is not the employee’s salary income; the part above it is. MEAL_ALLOWANCE counts toward no withholding base; this EMPLOYER-destination line (a tax-base line, not paid) carries the excess into it. https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027 The NT$3,000 is a month’s: a semi-monthly part exempts 3,000 ÷ its parts."
+		"references": [
+			{
+				"title": "營利事業所得稅查核準則 §88(2)(1) (amended 2023-12-11): a meal allowance of up to NT$3,000 a month is not the employee’s salary income; the part above it is. MEAL_ALLOWANCE counts toward no withholding base; this EMPLOYER-destination line (a tax-base line, not paid) carries the excess into it. https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027 The NT$3,000 is a month’s: a semi-monthly part exempts 3,000 ÷ its parts.",
+				"url": "https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027"
+			}
+		]
 	},
 	{
 		"id": "b87b892e-9cfa-50d4-8b10-5f0feb08c445",
@@ -229,7 +279,11 @@
 			"NHI_SUPPLEMENT_EMPLOYER",
 			"NHI_PART_TIME"
 		],
-		"authority": "所得稅法 §14(1) 第三類: 加班之延長工作時間…在勞動基準法規定之時數以內者…免稅 — overtime pay for the hours above the month’s 46 (54 with consent) is salary income. The pay is apportioned by hours (the month’s overtime pay × hours above the ceiling ÷ all overtime hours). An EMPLOYER-destination line: it moves the tax bases it counts toward and is not paid. Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month. The month’s earlier parts’ excess (earned.month) is not taxed again."
+		"references": [
+			{
+				"title": "所得稅法 §14(1) 第三類: 加班之延長工作時間…在勞動基準法規定之時數以內者…免稅 — overtime pay for the hours above the month’s 46 (54 with consent) is salary income. The pay is apportioned by hours (the month’s overtime pay × hours above the ceiling ÷ all overtime hours). An EMPLOYER-destination line: it moves the tax bases it counts toward and is not paid. Two consents (勞動基準法 §32(1)–(2)): the collective approval — the union, or the labour-management conference where there is none — dated, is the entity fact overtime_extension_approval_on with overtime_extension_approved_by, and alone lifts the 46-hour month to 54 and opens the 138 hours in three months; the worker’s own agreement to each day’s overtime is the day’s overtime_consented (owner ruling: per day), checked on the work-day import (ROSTER_OVERTIME_WITHOUT_CONSENT). Read on the month to date (work.month_days: the 1st through the period’s end), so a semi-monthly half sums the month. The month’s earlier parts’ excess (earned.month) is not taxed again."
+			}
+		]
 	},
 	{
 		"id": "a447e36c-7257-563a-aa64-fdd3aac8a7ee",
@@ -242,7 +296,12 @@
 		"eligibility": "work.days.exists(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\" && !d.worked && (d.suspended.kind == \"STRIKE\" || (d.suspended.kind == \"NATURAL_DISASTER\" && has(d.suspended.facts.withhold_wage) && d.suspended.facts.withhold_wage == true) || d.suspended.kind == \"REDUCED_WORK_AGREEMENT\"))",
 		"destination": "PAY",
 		"direction": "SUBTRACT",
-		"authority": "The suspended working days a work suspension leaves unpaid, at the day wage (monthly ÷ 30, or ÷ the calendar days by agreement, as NO_PAY_LEAVE): a STRIKE day (民法 §482: no work, no wage), a NATURAL_DISASTER day whose suspension records facts.withhold_wage (天然災害發生事業單位勞工出勤管理及工資給付要點), and a 減班休息 day (REDUCED_WORK_AGREEMENT) — those capped so a monthly-paid full-time worker keeps the minimum wage (因應景氣影響勞雇雙方協商減少工時應行注意事項, https://www.mol.gov.tw/1607/1632/1640/12438/post). An employer shutdown or a government stop-work order is paid in full (民法 §487; 職業安全衛生法 §36(2)). On a semi-monthly entity the minimum-wage floor is each part’s share (÷ period.parts).",
+		"references": [
+			{
+				"title": "The suspended working days a work suspension leaves unpaid, at the day wage (monthly ÷ 30, or ÷ the calendar days by agreement, as NO_PAY_LEAVE): a STRIKE day (民法 §482: no work, no wage), a NATURAL_DISASTER day whose suspension records facts.withhold_wage (天然災害發生事業單位勞工出勤管理及工資給付要點), and a 減班休息 day (REDUCED_WORK_AGREEMENT) — those capped so a monthly-paid full-time worker keeps the minimum wage (因應景氣影響勞雇雙方協商減少工時應行注意事項, https://www.mol.gov.tw/1607/1632/1640/12438/post). An employer shutdown or a government stop-work order is paid in full (民法 §487; 職業安全衛生法 §36(2)). On a semi-monthly entity the minimum-wage floor is each part’s share (÷ period.parts).",
+				"url": "https://www.mol.gov.tw/1607/1632/1640/12438/post"
+			}
+		],
 		"counts_toward": [
 			"LI",
 			"EI",

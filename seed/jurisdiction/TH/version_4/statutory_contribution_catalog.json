@@ -4,7 +4,12 @@
 		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
 		"code": "SSO",
 		"name": "Social Security Fund (กองทุนประกันสังคม)",
-		"authority": "Social Security Act B.E. 2533 (1990) s.33 (an employee aged 15 to 60 at entry is insured and stays insured past 60), s.46 (employee and employer contribute at equal rates), s.47 (the employer deducts the employee contribution from wages); the 5% rate of the Ministerial Regulation on contribution rates; Ministerial Regulation Prescribing the Minimum and Maximum Wage for Calculating the Contributions of an Insured Person under Section 33 B.E. 2568 (Royal Gazette 12 December 2025): from 1 January 2026 to 31 December 2028 the wage base is not less than 1,650 and not more than 17,500 baht a month (20,000 from 2029, 23,000 from 2032). https://www.sso.go.th/",
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 (1990) s.33 (an employee aged 15 to 60 at entry is insured and stays insured past 60), s.46 (employee and employer contribute at equal rates), s.47 (the employer deducts the employee contribution from wages); the 5% rate of the Ministerial Regulation on contribution rates; Ministerial Regulation Prescribing the Minimum and Maximum Wage for Calculating the Contributions of an Insured Person under Section 33 B.E. 2568 (Royal Gazette 12 December 2025): from 1 January 2026 to 31 December 2028 the wage base is not less than 1,650 and not more than 17,500 baht a month (20,000 from 2029, 23,000 from 2032).",
+				"url": "https://www.sso.go.th/"
+			}
+		],
 		"configuration": {
 			"person": {
 				"normal_pending": "period.salary_paid || period.salary_run ? 0.0 : terms.monthly_wage"
@@ -27,7 +32,11 @@
 		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
 		"code": "WCF",
 		"name": "Workmen's Compensation Fund (กองทุนเงินทดแทน)",
-		"authority": "Workmen's Compensation Act B.E. 2537 as amended B.E. 2561 ss.5, 44-45 https://www.sso.go.th/wpr/download/download_by_pool_file/47436; the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.5 (an employer of one or more employees), cl.6 and Table 1 (1,091 business codes, 0.20%-1.00% of wages), cl.11 (annual wages capped at \"สองแสนสี่หมื่นบาทต่อปี\" a person; whole-baht rounding), cl.19 (experience rating from the fifth year) https://www.sso.go.th/wpr/download/download_by_pool_file/14479",
+		"references": [
+			{
+				"title": "Workmen's Compensation Act B.E. 2537 as amended B.E. 2561 ss.5, 44-45 https://www.sso.go.th/wpr/download/download_by_pool_file/47436; the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.5 (an employer of one or more employees), cl.6 and Table 1 (1,091 business codes, 0.20%-1.00% of wages), cl.11 (annual wages capped at \"สองแสนสี่หมื่นบาทต่อปี\" a person; whole-baht rounding), cl.19 (experience rating from the fifth year) https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
 		"configuration": {
 			"person": {
 				"normal_pending": "period.salary_paid || period.salary_run ? 0.0 : terms.monthly_wage"
@@ -56,7 +65,12 @@
 		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
 		"code": "PVD",
 		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ)",
-		"authority": "Provident Fund Act B.E. 2530 s.10, amended by Act No. 4 B.E. 2558 (2015): employee and employer contribute at their separate registered fund-rule rates, each 2%-15% of wages. Higher rates require ministerial approval. https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf",
+		"references": [
+			{
+				"title": "Provident Fund Act B.E. 2530 s.10, amended by Act No. 4 B.E. 2558 (2015): employee and employer contribute at their separate registered fund-rule rates, each 2%-15% of wages. Higher rates require ministerial approval.",
+				"url": "https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf"
+			}
+		],
 		"configuration": {
 			"rules": [
 				{
@@ -79,7 +93,12 @@
 		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
 		"code": "PND1",
 		"name": "Personal income tax withholding (ภ.ง.ด.1)",
-		"authority": "Revenue Code s.40(1), s.42 bis, s.47, s.48(1), s.50(1) and Departmental Instruction Tor Por 4/2528 (withholding by annualising the income); Revenue Code Amendment Act (No. 44) B.E. 2560 (personal allowance 60,000; expense 50% up to 100,000; brackets to 5,000,000) and Royal Decree No. 470 (first 150,000 of net income exempt). https://www.rd.go.th/59670.html",
+		"references": [
+			{
+				"title": "Revenue Code s.40(1), s.42 bis, s.47, s.48(1), s.50(1) and Departmental Instruction Tor Por 4/2528 (withholding by annualising the income); Revenue Code Amendment Act (No. 44) B.E. 2560 (personal allowance 60,000; expense 50% up to 100,000; brackets to 5,000,000) and Royal Decree No. 470 (first 150,000 of net income exempt).",
+				"url": "https://www.rd.go.th/59670.html"
+			}
+		],
 		"configuration": {
 			"person": {
 				"normal_pending": "period.salary_paid || period.salary_run ? 0.0 : terms.monthly_wage",
@@ -104,7 +123,11 @@
 		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
 		"code": "EWF",
 		"name": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง)",
-		"authority": "Labour Protection Act B.E. 2541 (1998) ss.126-131 with the Ministerial Regulation prescribing the contribution rates of the Employee Welfare Fund B.E. 2568 cl.1, 3(1): from 1 October 2026 to 30 September 2031 \"เงินสะสมของลูกจ้าง ๐.๒๕\" and \"เงินสมทบของนายจ้าง ๐.๒๕\" per cent of the member's wages (0.5% each from 1 October 2031). https://ratchakitcha.soc.go.th/documents/86102.pdf Membership/exemption scope: DLPW Legal Division guidance paragraph 2.2(5)(2), reproduced copy https://www.siamsafety.com/Employee_welfare_fund.pdf",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.126-131 with the Ministerial Regulation prescribing the contribution rates of the Employee Welfare Fund B.E. 2568 cl.1, 3(1): from 1 October 2026 to 30 September 2031 \"เงินสะสมของลูกจ้าง ๐.๒๕\" and \"เงินสมทบของนายจ้าง ๐.๒๕\" per cent of the member's wages (0.5% each from 1 October 2031). https://ratchakitcha.soc.go.th/documents/86102.pdf Membership/exemption scope: DLPW Legal Division guidance paragraph 2.2(5)(2), reproduced copy https://www.siamsafety.com/Employee_welfare_fund.pdf"
+			}
+		],
 		"configuration": {
 			"rules": [
 				{

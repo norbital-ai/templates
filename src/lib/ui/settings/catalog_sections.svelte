@@ -18,8 +18,8 @@
 		editors?: Readonly<Record<string, Snippet<[FieldEditor]>>>;
 	} = $props();
 
-	const PROSE = new Set(['authority', 'description']);
-	const CODE = new Set([...CEL_KEYS, 'entitlement', 'bands']);
+	const PROSE = new Set(['description']);
+	const CODE = new Set([...CEL_KEYS, 'entitlement', 'bands', 'references']);
 </script>
 
 {#snippet prose(field: FieldEditor)}

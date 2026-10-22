@@ -70,10 +70,10 @@ const reset = () => {
 			family: 'TASKS',
 			code: 'EXIT_NOTICE',
 			name: 'Exit notice',
+			references: [{ title: 'Test' }],
 			rules: {
 				description: 'A record-driven exit duty.',
-				authority: 'Test',
-				trigger: { collection: 'employment_contract', event: 'updated' },
+				trigger: { collection: 'employment_contract', events: ['updated'] },
 				when: 'contract != null && contract.exit_facts != null && contract.effective_range.to != null',
 				due: 'add_days(exit_on, 7)'
 			}
@@ -111,7 +111,7 @@ const snapshot = Effect.fnUntraced(function* (read: CallerRead) {
 			select: {
 				code: true,
 				title: true,
-				authority: true,
+				references: true,
 				subject_collection: true,
 				subject_id: true,
 				trigger_ref: true,
@@ -133,7 +133,7 @@ const snapshot = Effect.fnUntraced(function* (read: CallerRead) {
 			collection: 'obligation',
 			select: {
 				duty_code: true,
-				authority: true,
+				references: true,
 				occurrence_key: true,
 				trigger_ref: true,
 				triggered_on: true,
@@ -295,7 +295,7 @@ it.effect(
 			company_id: COMPANY,
 			settings_id: settings['id'],
 			duty_code: id,
-			authority: 'Test',
+			references: [{ title: 'Test' }],
 			triggered_on: '2026-03-01',
 			due_on: '2026-03-31',
 			currency: 'SGD',

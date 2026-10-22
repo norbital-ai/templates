@@ -8,7 +8,10 @@ import { readSeedRows } from './seed_values.ts';
 import {
 	completeSnapshot,
 	conciseSnapshot,
-	supportedSnapshotChanges,
+	COVERAGE_RULE,
+	COVERAGE_SCOPES,
+	SNAPSHOT_OUTPUT,
+	STATUTORY_RESEARCH_ROLE,
 	type StatutorySnapshot
 } from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import { allowedUrl, sourcesFrom } from '../src/lib/payroll_engine/statutory_drift.ts';
@@ -115,8 +118,8 @@ describe('complete statutory snapshots', () => {
 		const value = {
 			settings: { code: 'test', reference_tables: { rates: [1, 2] } },
 			rules: [
-				{ code: 'first', authority: repeated },
-				{ code: 'second', authority: repeated }
+				{ code: 'first', references: [{ title: 'Act', quote: repeated }] },
+				{ code: 'second/part', references: [{ title: 'Act', quote: repeated }] }
 			],
 			empty: []
 		};
@@ -146,8 +149,8 @@ describe('complete statutory snapshots', () => {
 		assert.deepEqual(
 			concise.sections.rules.rows.map((row) => [row.code, row.path]),
 			[
-				['first', '/snapshot/rules/0'],
-				['second', '/snapshot/rules/1']
+				['first', '/snapshot/rules/first'],
+				['second/part', '/snapshot/rules/second~1part']
 			]
 		);
 		assert.equal(
@@ -159,15 +162,14 @@ describe('complete statutory snapshots', () => {
 		assert.deepEqual(value, original);
 		assert.ok(conciseSnapshot(value).length < JSON.stringify(value).length / 5);
 	});
-	it('refuses partial snapshots, switched lineage/source registries and corrections without precise evidence', () => {
+	it('refuses partial snapshots, duplicate row codes and switched lineage identity', () => {
 		const before: StatutorySnapshot = {
 			settings: {
 				code: 'test',
 				jurisdiction_code: 'test',
 				name: 'Test',
 				effective_range: datePeriod('2026-01-01', null),
-				payroll: {},
-				sources: { entries: [{ url: 'https://www.mom.gov.sg/', instructions: 'Official source' }] }
+				payroll: {}
 			},
 			adhoc_catalog: [],
 			allowance_catalog: [],
@@ -179,17 +181,7 @@ describe('complete statutory snapshots', () => {
 			suspension_kind: [],
 			rule_set: []
 		};
-		const copy = structuredClone(before);
-		assert.equal(completeSnapshot(before, copy), true);
-		const after = {
-			...copy,
-			settings: {
-				...copy.settings,
-				sources: {
-					entries: [{ instructions: 'Official source', url: 'https://www.mom.gov.sg/' }]
-				}
-			}
-		};
+		const after = structuredClone(before);
 		assert.equal(completeSnapshot(before, after), true);
 		assert.equal(
 			completeSnapshot(before, {
@@ -206,20 +198,38 @@ describe('complete statutory snapshots', () => {
 		assert.equal(
 			completeSnapshot(before, {
 				...after,
-				settings: { ...after.settings, sources: { entries: [{ url: 'https://evil.invalid/' }] } }
+				rule_set: [
+					{ family: 'TASKS', code: 'same', name: 'One', rules: {} },
+					{ family: 'TASKS', code: 'same', name: 'Two', rules: {} }
+				]
 			}),
 			false
 		);
-		const restored = { ...after, rule_set: [{ code: 'restored', rules: { due: 'period.to' } }] };
-		assert.equal(supportedSnapshotChanges(before, restored, []), false);
-		assert.equal(supportedSnapshotChanges(before, restored, [{ paths: ['/snapshot'] }]), false);
-		assert.equal(
-			supportedSnapshotChanges(before, restored, [{ paths: ['/snapshot/rule_set/0'] }]),
-			true
-		);
-		assert.equal(
-			supportedSnapshotChanges(before, before, [{ paths: ['/snapshot/rule_set/0'] }]),
-			false
-		);
+	});
+	it('keys every snapshot list by code, keeps the registry and quotes out, and requires resolved coverage', () => {
+		const { snapshot } = SNAPSHOT_OUTPUT.fields;
+		assert.equal('quotes' in SNAPSHOT_OUTPUT.fields, false);
+		assert.equal('sources' in snapshot.fields.settings.fields, false);
+		for (const [name, section] of Object.entries(snapshot.fields))
+			if (name !== 'settings') assert.equal('key' in section && section.key, 'code', name);
+		assert.equal(SNAPSHOT_OUTPUT.fields.coverage.key, 'scope');
+		assert.deepEqual(COVERAGE_SCOPES, [
+			'wage_hours',
+			'leave',
+			'contributions',
+			'tax',
+			'filings',
+			'records'
+		]);
+		assert.equal(COVERAGE_RULE.expression, "coverage.all(c, c.status != 'pending')");
+	});
+	it('guides keyed draft tools and row references, and keeps public holidays out of scope', () => {
+		const role = STATUTORY_RESEARCH_ROLE;
+		assert.match(role, /\/snapshot\/<section>\/<code>\/<field>/);
+		for (const tool of ['edit', 'read', 'find', 'diff', 'submit', 'references', 'coverage'])
+			assert.match(role, new RegExp(`\\b${tool}\\b`), tool);
+		assert.doesNotMatch(role, /\bpatch\b|calendar|quotes/i);
+		assert.deepEqual(role.match(/holiday/gi), ['holiday']);
+		assert.match(role, /Public holidays are out of scope/);
 	});
 });

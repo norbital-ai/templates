@@ -151,8 +151,9 @@ export const STATUTORY_FIELDS = {
 			kind: 'text',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		destination: {
@@ -250,8 +251,9 @@ export const STATUTORY_FIELDS = {
 			optional: true,
 			help: 'CEL amount over the payslip context; `allowance.amount` is the contract’s monthly figure.'
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		counts_toward: {
@@ -281,8 +283,9 @@ export const STATUTORY_FIELDS = {
 			kind: 'text',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		destination: {
@@ -370,8 +373,9 @@ export const STATUTORY_FIELDS = {
 			kind: 'text',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		eligibility: {
@@ -509,8 +513,9 @@ export const STATUTORY_FIELDS = {
 			kind: 'text',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		destination: {
@@ -571,7 +576,7 @@ export const STATUTORY_FIELDS = {
 	work_catalog: {
 		code: { kind: 'text' },
 		name: { kind: 'text', optional: true },
-		authority: { kind: 'text', format: 'markdown', optional: true },
+		references: { kind: 'custom', of: 'references', optional: true },
 		component_code: { kind: 'text' },
 		eligibility: {
 			kind: 'text',
@@ -612,8 +617,9 @@ export const STATUTORY_FIELDS = {
 			kind: 'int',
 			optional: true
 		},
-		authority: {
-			kind: 'text',
+		references: {
+			kind: 'custom',
+			of: 'references',
 			optional: true
 		},
 		configuration: {
@@ -726,6 +732,11 @@ export const STATUTORY_FIELDS = {
 		},
 		name: {
 			kind: 'text'
+		},
+		references: {
+			kind: 'custom',
+			of: 'references',
+			optional: true
 		},
 		content_hash: {
 			kind: 'text',

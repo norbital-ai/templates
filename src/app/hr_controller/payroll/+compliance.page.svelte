@@ -155,7 +155,7 @@
 						}
 					]
 				}}
-				columns={['duty_code', 'authority', 'triggered_on', 'due_on', 'amount_due']}
+				columns={['duty_code', 'references', 'triggered_on', 'due_on', 'amount_due']}
 			/>
 			<Table
 				of="regulatory_task"
@@ -185,7 +185,7 @@
 				}}
 				columns={[
 					{ field: 'title', cell: titleCell },
-					'authority',
+					'references',
 					'subject_collection',
 					'triggered_on',
 					'due_on'

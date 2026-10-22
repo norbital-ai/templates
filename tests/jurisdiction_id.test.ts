@@ -6,7 +6,7 @@ import type { StatutoryConfiguration } from '../src/lib/payroll_engine/payslip/c
 import { Schema as FixtureSchema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.js';
 import { refuse } from '../src/lib/payroll_engine/foundation.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 import { workspace } from './kit.js';
@@ -347,7 +347,6 @@ const dutyRules = guardFixture(
 	Schema.StructWithRest(
 		Schema.Struct({
 			description: Schema.String,
-			authority: Schema.String,
 			due: Schema.String,
 			months: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
 			when: Schema.optionalKey(Schema.NullOr(Schema.String)),
@@ -1103,7 +1102,7 @@ const celOf = (version: string): string[] => {
 		if (Array.isArray(value)) for (const item of value) walk(item, key);
 		else if (value != null && typeof value === 'object')
 			for (const [child, item] of Object.entries(value))
-				if (child !== 'authority' && child !== 'limitation' && child !== 'description')
+				if (child !== 'references' && child !== 'limitation' && child !== 'description')
 					walk(item, child);
 	};
 	for (const table of CATALOGS)
@@ -1640,12 +1639,15 @@ describe('ID jurisdiction seed', () => {
 			row: { terms_written: [raised] }
 		};
 		const counts = versions.map((version) => obligations(version).length);
-		// OVERTIME_WRITTEN_ORDER is two rows of one code: its created and updated roster triggers.
-		assert.deepEqual(counts, [47, 47, 47, 47]);
+		// OVERTIME_WRITTEN_ORDER is one row answering both roster events (created and updated).
+		assert.deepEqual(counts, [46, 46, 46, 46]);
 		for (const version of versions)
 			for (const row of obligations(version)) {
 				const rules = row.rules;
-				assert.ok(rules.description.length > 0 && rules.authority.length > 0, row.code);
+				assert.ok(
+					rules.description.length > 0 && citationText(row.references).length > 0,
+					row.code
+				);
 				assert.ok(
 					[
 						'PAYROLL_RUN',
@@ -1653,8 +1655,7 @@ describe('ID jurisdiction seed', () => {
 						'EXIT',
 						'entity.created',
 						'payslip.updated',
-						'roster_entry.updated',
-						'roster_entry.created',
+						'roster_entry.created|updated',
 						'leave_catalog_entry.created',
 						'adhoc_catalog_entry.created',
 						'calendar.daily',
@@ -3037,8 +3038,9 @@ describe('ID jurisdiction seed', () => {
 				'WORKING_DAYS_PER_WEEK_REQUIRED',
 				'WORKING_TIME_LIMIT'
 			]);
-			for (const check of Object.values(checks))
-				assert.ok(fixtureString(check.authority).length > 0);
+			for (const row of read(version, 'rule_set'))
+				if (row.family === 'VALIDATIONS' && fixtureString(row.code) in checks)
+					assert.ok(citationText(row.references).length > 0, fixtureString(row.code));
 			const floor = version === 'version_1' ? 5396761 : 5729876;
 			// A contract write: the term as the subject context builds it, plus `term` and `rules`.
 			// A worker in the first year of service: the minimum wage binds below 12 months (UU 13/2003 art.88E(1)).
@@ -3313,8 +3315,8 @@ describe('ID jurisdiction seed', () => {
 			assert.deepEqual(
 				rows
 					.filter((row) => row.code === 'OVERTIME_WRITTEN_ORDER')
-					.map((row) => fixtureValue0(fixtureRecord(row.rules).trigger).event),
-				['updated', 'created']
+					.map((row) => fixtureValue0(fixtureRecord(row.rules).trigger).events),
+				[['created', 'updated']]
 			);
 		}
 	});

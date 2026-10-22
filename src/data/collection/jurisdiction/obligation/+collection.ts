@@ -2,7 +2,7 @@ import { collection, type TransformCtx } from '@norbital-ai/bolt';
 import { currency } from '@norbital-ai/std/decimal';
 const create_columns = [
 	'duty_code',
-	'authority',
+	'references',
 	'occurrence_key',
 	'trigger_ref',
 	'triggered_on',

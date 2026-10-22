@@ -4,7 +4,7 @@ const create_columns = [
 	'name',
 	'eligibility',
 	'amount',
-	'authority',
+	'references',
 	'counts_toward',
 	'destination',
 	'direction',
@@ -15,7 +15,7 @@ const update_columns = [
 	'name',
 	'eligibility',
 	'amount',
-	'authority',
+	'references',
 	'counts_toward',
 	'destination',
 	'direction'

@@ -3,7 +3,7 @@ import { Schema as FixtureSchema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.js';
 import { modelFields } from './jurisdiction_kit.js';
 import { refuse } from '../src/lib/payroll_engine/foundation.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 const LAW_KIT = jurisdiction('VN');
@@ -404,8 +404,7 @@ const fixtureValue15 = guardFixture(
 			),
 			applies_when: FixtureSchema.mutableKey(FixtureSchema.optionalKey(FixtureSchema.String)),
 			due: FixtureSchema.mutableKey(FixtureSchema.String),
-			description: FixtureSchema.mutableKey(FixtureSchema.String),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String)
+			description: FixtureSchema.mutableKey(FixtureSchema.String)
 		}),
 		[FixtureSchema.Record(FixtureSchema.String, FixtureSchema.mutableKey(FixtureSchema.Unknown))]
 	)
@@ -419,8 +418,7 @@ const fixtureValue17 = guardFixture(
 			site: FixtureSchema.mutableKey(FixtureSchema.String),
 			kind: FixtureSchema.mutableKey(FixtureSchema.String),
 			when: FixtureSchema.mutableKey(FixtureSchema.String),
-			message: FixtureSchema.mutableKey(FixtureSchema.String),
-			authority: FixtureSchema.mutableKey(FixtureSchema.String)
+			message: FixtureSchema.mutableKey(FixtureSchema.String)
 		}),
 		[FixtureSchema.Record(FixtureSchema.String, FixtureSchema.mutableKey(FixtureSchema.Unknown))]
 	)
@@ -2160,7 +2158,7 @@ describe('VN jurisdiction seed', () => {
 					const row = fixturePresent(rows(version, 'rule_set').find((item) => item.code === code));
 					const rules = fixtureValue2(row.rules);
 					assert.equal(rules.site, 'roster', code);
-					assert.ok(String(rules.authority).includes('Labour Code 2019'), code);
+					assert.ok(citationText(row.references).includes('Labour Code 2019'), code);
 					return (context: Row) =>
 						evaluateConfigured(
 							fixtureString(String(rules.when)),
@@ -2593,7 +2591,13 @@ describe('VN jurisdiction seed', () => {
 			for (const [code, rules] of all) {
 				const where = `${version} ${code}`;
 				for (const key of Object.keys(rules)) assert.ok(DUTY_KEYS.includes(key), `${where}.${key}`);
-				assert.ok(rules.description.length > 0 && rules.authority.length > 0, where);
+				assert.ok(
+					rules.description.length > 0 &&
+						citationText(
+							fixturePresent(rows(version, 'rule_set').find((row) => row.code === code)).references
+						).length > 0,
+					where
+				);
 				const context = contexts[rules.trigger];
 				assert.ok(context, `${where} trigger ${rules.trigger}`);
 				for (const month of rules.months ?? []) assert.match(month, /^(0[1-9]|1[0-2])$/, where);
@@ -2790,7 +2794,7 @@ describe('VN jurisdiction seed', () => {
 				(item) => item.family === 'VALIDATIONS' && item.code === code
 			);
 			assert.ok(row, `${version} ${code}`);
-			return fixtureValue17(row.rules);
+			return { ...fixtureValue17(row.rules), citation: citationText(row.references) };
 		};
 		for (const version of VERSIONS)
 			for (const code of [
@@ -2801,7 +2805,7 @@ describe('VN jurisdiction seed', () => {
 			]) {
 				const rules = check(version, code);
 				assert.ok(
-					['contract', 'payslip'].includes(rules.site) && rules.message && rules.authority,
+					['contract', 'payslip'].includes(rules.site) && rules.message && rules.citation,
 					code
 				);
 			}
@@ -4498,7 +4502,7 @@ describe('VN jurisdiction seed', () => {
 				contract: { ...CONTRACT, facts: { contract_terms: terms } }
 			});
 			const extension = duty('WORK_PERMIT_EXTENSION');
-			assert.deepEqual(extension.trigger, { collection: 'calendar', event: 'daily' });
+			assert.deepEqual(extension.trigger, { collection: 'calendar', events: ['daily'] });
 			assert.equal(
 				evaluateConfigured(
 					fixtureString(String(extension.when)),

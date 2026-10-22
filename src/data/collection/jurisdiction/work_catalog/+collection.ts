@@ -2,7 +2,7 @@ import { collection } from '@norbital-ai/bolt';
 const columns = [
 	'code',
 	'name',
-	'authority',
+	'references',
 	'component_code',
 	'eligibility',
 	'quantity',

@@ -12,6 +12,7 @@ import {
 	SNAPSHOT_OUTPUT,
 	snapshotFields
 } from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import { STATUTORY_FIELDS } from '../src/lib/payroll_engine/statutory_fields.ts';
 import { nativeId } from './fixture_values.ts';
 import { workspace } from './kit.ts';
 import { readSeedRows } from './seed_values.ts';
@@ -28,6 +29,12 @@ const snapshotShape = SNAPSHOT_OUTPUT.fields.snapshot;
 const snapshotCodec = inputSchema(snapshotShape);
 const NativeSnapshot = Schema.declare<ValueOf<typeof snapshotShape>>(
 	(candidate): candidate is ValueOf<typeof snapshotShape> => Schema.is(snapshotCodec)(candidate)
+);
+// The research registry is not part of the snapshot: a successor carries the governing version's own.
+const sourcesShape = STATUTORY_FIELDS.settings.sources;
+const sourcesCodec = inputSchema(sourcesShape);
+const Sources = Schema.declare<ValueOf<typeof sourcesShape>>(
+	(candidate): candidate is ValueOf<typeof sourcesShape> => Schema.is(sourcesCodec)(candidate)
 );
 const tables = [
 	'adhoc_catalog',
@@ -80,7 +87,8 @@ const { pack, snapshots } = (() => {
 		const snapshot = Schema.decodeUnknownSync(NativeSnapshot)(
 			Schema.decodeUnknownSync(snapshotCodec)(rawSnapshot)
 		);
-		snapshots.push({ code, settings, snapshot });
+		const sources = Schema.decodeUnknownSync(Sources)(settingsRow['sources']);
+		snapshots.push({ code, settings, snapshot, sources });
 	}
 	return { pack, snapshots };
 })();
@@ -96,10 +104,11 @@ layer(workspace({ seed: pack, now: '2026-10-10T00:00:00.000Z' }))(
 					const actor = t.as(t.member(['statutory_drift_automation']));
 					const admin = t.as(t.admin);
 					const results = [];
-					for (const { code, settings, snapshot } of snapshots) {
+					for (const { code, settings, snapshot, sources } of snapshots) {
 						const sourceId = nativeId('jurisdiction_settings', settings.id);
 						const outcome = yield* actor.act('jurisdiction_settings.create', {
 							...snapshot.settings,
+							sources,
 							effective_range: datePeriod('2026-10-10', null),
 							sealed_at: null,
 							voided_at: null,
@@ -172,6 +181,7 @@ layer(workspace({ seed: pack, now: '2026-10-10T00:00:00.000Z' }))(
 				const sourceId = nativeId('jurisdiction_settings', first.settings.id);
 				const created = yield* editor.act('jurisdiction_settings.create', {
 					...first.snapshot.settings,
+					sources: first.sources,
 					effective_range: datePeriod('2026-10-11', null),
 					sealed_at: null,
 					voided_at: null,

@@ -2,7 +2,7 @@ import { collection } from '@norbital-ai/bolt';
 const create_columns = [
 	'code',
 	'name',
-	'authority',
+	'references',
 	'destination',
 	'direction',
 	'bands',
@@ -13,7 +13,7 @@ const create_columns = [
 const update_columns = [
 	'code',
 	'name',
-	'authority',
+	'references',
 	'destination',
 	'direction',
 	'bands',

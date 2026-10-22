@@ -33,7 +33,7 @@
 						{
 							name: 'identity',
 							title: t('section.identity'),
-							fields: ['code', 'name', 'authority', 'eligibility']
+							fields: ['code', 'name', 'references', 'eligibility']
 						},
 						{
 							name: 'settlement',

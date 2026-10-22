@@ -1,19 +1,20 @@
 import { Effect, Option, Schema } from 'effect';
-import { automation } from '@norbital-ai/bolt';
+import { automation, jsonDiff } from '@norbital-ai/bolt';
 import { cloneSettingsFields } from '../lib/payroll_engine/settings_version.js';
 import {
 	allowedUrl,
-	findingFrom,
+	changeSummary,
 	lineageCodes,
 	pageFrom,
-	shouldDraft,
+	rowChanges,
 	sourcesFrom,
 	unverifiedQuotes
 } from '../lib/payroll_engine/statutory_drift.js';
 import {
 	completeSnapshot,
-	supportedSnapshotChanges,
 	conciseSnapshot,
+	COVERAGE_RULE,
+	COVERAGE_SCOPES,
 	snapshotFields,
 	snapshotSelect,
 	SNAPSHOT_MODELS,
@@ -24,7 +25,8 @@ import {
 /**
  * Every Saturday at 03:00 UTC, and when started by payroll authority: one run researches every sealed in-force
  * jurisdiction lineage (or the one `code` given) at once — one multi-step inference per lineage, side by side — and
- * persists a complete corrected unsealed successor where official evidence verifies the changes. It never seals.
+ * persists a complete corrected unsealed successor where every changed row cites official evidence that re-appears on
+ * its page. A run that leaves a coverage scope pending is reported as incomplete. It never seals.
  */
 const statutory_drift = automation({
 	description:
@@ -186,6 +188,7 @@ statutory_drift.run(function* (input, ctx) {
 			return { code, version, sources, snapshot };
 		});
 	type Prepared = Exclude<Effect.Success<ReturnType<typeof prepare>>, null>;
+	const json = Schema.decodeUnknownSync(Schema.Json);
 	// One lineage's long multi-step inference; a verified change becomes an unsealed draft.
 	const research = ({ code, version, sources, snapshot }: Prepared) =>
 		Effect.gen(function* () {
@@ -195,24 +198,31 @@ statutory_drift.run(function* (input, ctx) {
 				steps: 1000,
 				system: STATUTORY_RESEARCH_ROLE,
 				prompt: `Jurisdiction ${code}; review as of ${ctx.today}. Official entry points and extraction instructions:\n${JSON.stringify(sources.entries ?? sources.urls)}\nComplete snapshot index (read original values in memory):\n${conciseSnapshot(snapshot)}`,
-				initial: Schema.decodeUnknownSync(Schema.Json)({
+				initial: json({
 					changed: false,
 					summary: '',
 					effective_from: ctx.today,
-					quotes: [],
+					coverage: COVERAGE_SCOPES.map((scope) => ({ scope, status: 'pending' })),
 					unresolved: [],
 					snapshot
 				}),
-				output: SNAPSHOT_OUTPUT
+				output: SNAPSHOT_OUTPUT,
+				rules: [COVERAGE_RULE]
 			});
-			const finding = findingFrom(result);
 			if (
-				!finding.changed ||
-				!completeSnapshot(snapshot, result.snapshot) ||
-				!supportedSnapshotChanges(snapshot, result.snapshot, result.quotes)
+				!result.changed ||
+				result.summary.trim() === '' ||
+				!completeSnapshot(snapshot, result.snapshot)
 			)
 				return { code, drafted: false };
-			const cited = [...new Set(finding.quotes.map((row) => row.url))];
+			const rows = rowChanges(
+				snapshot,
+				result.snapshot,
+				jsonDiff(json(snapshot), json(result.snapshot), SNAPSHOT_OUTPUT.fields.snapshot)
+			);
+			if (rows === null || rows.length === 0) return { code, drafted: false };
+			const evidence = rows.flatMap((row) => row.evidence);
+			const cited = [...new Set(evidence.map((row) => row.url))];
 			if (cited.some((url) => !allowedUrl(url, sources))) return { code, drafted: false };
 			// A page that cannot be read verifies none of its quotes: its failure is the page's absence.
 			const fetched = yield* Effect.forEach(cited, (url) => Effect.option(ctx.web.read(url)), {
@@ -222,12 +232,12 @@ statutory_drift.run(function* (input, ctx) {
 				const page = Option.isSome(item) ? pageFrom(item.value) : null;
 				return page == null ? [] : [page];
 			});
-			if (!shouldDraft(finding, unverifiedQuotes(pages, finding.quotes, sources)))
-				return { code, drafted: false };
+			if (unverifiedQuotes(pages, evidence, sources).length > 0) return { code, drafted: false };
 			const corrected = result.snapshot;
+			// The governing version's research registry (`sources`) carries over unchanged through `version`.
 			yield* ctx.act('jurisdiction_settings.create', {
 				...cloneSettingsFields({ ...version, ...corrected.settings }, result.effective_from),
-				change_summary: finding.summary,
+				change_summary: changeSummary(rows, result.summary),
 				adhoc_catalog: { create: corrected.adhoc_catalog },
 				allowance_catalog: { create: corrected.allowance_catalog },
 				claim_catalog: { create: corrected.claim_catalog },
@@ -242,8 +252,15 @@ statutory_drift.run(function* (input, ctx) {
 		});
 	const lineages = lineageCodes(inForce);
 	type Outcome = { readonly code: string; readonly drafted: boolean; readonly failed?: string };
+	// A draft left with a pending coverage scope fails the coverage rule: incomplete, never a verified no-change.
 	const failure = (code: string) => (error: { readonly message: string }) =>
-		Effect.succeed({ code, drafted: false, failed: `${code}: ${error.message}` });
+		Effect.succeed({
+			code,
+			drafted: false,
+			failed: error.message.includes(COVERAGE_RULE.message)
+				? `${code}: incomplete — ${error.message}`
+				: `${code}: ${error.message}`
+		});
 	// Snapshots are read one lineage at a time: concurrent reads share one host crossing and its size limit. The
 	// inferences then run at once; a lineage that fails is reported and the others still finish.
 	const prepared = yield* Effect.forEach(lineages, (code) =>

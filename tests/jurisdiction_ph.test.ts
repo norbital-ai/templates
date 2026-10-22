@@ -2,7 +2,7 @@ import { modelFields as kitModelFields } from './jurisdiction_kit.js';
 import { Schema as FixtureSchema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.js';
 import { refuse } from '../src/lib/payroll_engine/foundation.js';
-import { world, type Tables } from './jurisdiction_kit.js';
+import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
 const LAW_KIT = jurisdiction('PH');
@@ -1335,7 +1335,7 @@ describe('PH jurisdiction seed', () => {
 					...fixtureValue0(duty.rules),
 					trigger: triggerOf(duty)
 				};
-				assert.ok(rules.description && rules.authority, `${version} ${duty.code}`);
+				assert.ok(rules.description && citationText(duty.references), `${version} ${duty.code}`);
 				assert.ok(rules.trigger in contexts, `${version} ${duty.code}`);
 				for (const month of fixtureValue1(rules.months ?? []))
 					assert.match(month, /^(0[1-9]|1[0-2])$/);
@@ -3397,7 +3397,7 @@ describe('PH: the whole tracker, row by row', () => {
 		);
 		assert.deepEqual(row('adhoc_catalog', 'FRINGE_BENEFIT').counts_toward, ['FBT', 'WTAX.FRINGE']);
 		assert.equal(row('adhoc_catalog', 'FRINGE_BENEFIT').destination, 'EMPLOYER');
-		assert.ok(fixtureString(wtax.authority).includes('Annex E'));
+		assert.ok(citationText(wtax.references).includes('Annex E'));
 	});
 	it('PH-TAX: every de minimis ceiling in both versions', () => {
 		const excess = (version: string, wage: Row, year: Row) => {
@@ -3489,7 +3489,7 @@ describe('PH: the whole tracker, row by row', () => {
 		);
 		assert.ok(
 			!/refuses assessment/.test(
-				fixtureString(sss.authority) + (fixtureConfiguration(sss.configuration).limitation ?? '')
+				citationText(sss.references) + (fixtureConfiguration(sss.configuration).limitation ?? '')
 			)
 		);
 	});
@@ -3921,7 +3921,7 @@ describe('PH: the whole tracker, row by row', () => {
 			const aep = fixturePresent(
 				load(version, 'rule_set').find((row) => row.code === 'ALIEN_EMPLOYMENT_PERMIT')
 			);
-			assert.ok(fixtureString(fixtureRecord(aep.rules).authority).includes('248 s.2025'), version);
+			assert.ok(citationText(aep.references).includes('248 s.2025'), version);
 		}
 	});
 	it('PH-SETTINGS: every wage key covers the window newest-first; BARMM’s provincial second tranche; the change summary and stale texts', () => {
@@ -3965,11 +3965,8 @@ describe('PH: the whole tracker, row by row', () => {
 		const coe = fixturePresent(
 			load(latest, 'rule_set').find((item) => item.code === 'CERTIFICATE_OF_EMPLOYMENT')
 		);
-		assert.match(
-			fixtureString(fixtureRecord(coe.rules).authority),
-			/three days from the employee’s request/
-		);
-		assert.match(fixtureString(fixtureRecord(coe.rules).authority), /RA 10361 s\.35/);
+		assert.match(citationText(coe.references), /three days from the employee’s request/);
+		assert.match(citationText(coe.references), /RA 10361 s\.35/);
 		// Contract allowances enter SSS and Pag-IBIG but not PhilHealth (5% of the basic only).
 		for (const allowance of load(latest, 'allowance_catalog'))
 			assert.ok(
@@ -4129,15 +4126,14 @@ describe('PH: the whole tracker, row by row', () => {
 		);
 		assert.equal(due(latest, 'ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES', december(2026)), '2027-08-31');
 		for (const version of versions) {
-			const report = fixtureRecord(
-				fixturePresent(
-					load(version, 'rule_set').find(
-						(item) => item.code === 'ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES'
-					)
-				).rules
+			const reportRow = fixturePresent(
+				load(version, 'rule_set').find(
+					(item) => item.code === 'ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES'
+				)
 			);
-			assert.deepEqual(report.trigger, { collection: 'entity', event: 'calendar' });
-			assert.match(fixtureString(report.authority), /art\.124/);
+			const report = fixtureRecord(reportRow.rules);
+			assert.deepEqual(report.trigger, { collection: 'entity', events: ['calendar'] });
+			assert.match(citationText(reportRow.references), /art\.124/);
 		}
 		// OSHS Rule 1023(2): a new establishment registers within thirty days before operation — due on its first day.
 		const entity = {
@@ -4816,8 +4812,8 @@ describe('PH: the whole tracker, row by row', () => {
 				),
 				'2032-12-31'
 			);
-			assert.match(fixtureString(fixtureRecord(retention.rules).authority), /five \(5\) years/);
-			assert.match(fixtureString(fixtureRecord(retention.rules).authority), /s\.11\(e\)/);
+			assert.match(citationText(retention.references), /five \(5\) years/);
+			assert.match(citationText(retention.references), /s\.11\(e\)/);
 		}
 	});
 	describe('PH-WORK: work-day sheet import rules (roster validations)', () => {
@@ -5440,12 +5436,16 @@ describe('PH: the whole tracker, row by row', () => {
 		assert.equal(settingsOf(latest).name, 'Philippines — 6 January 2026 (RR 29-2025)');
 		for (const version of versions) {
 			const wages = fixtureValue0(payrollRules(version).minimum_wage);
-			const text = JSON.stringify(wages);
-			assert.match(
-				String(wages.authority),
-				/accepted design for regional wage orders, coordinator design decision/
+			const cited = citationText(
+				fixturePresent(
+					load(version, 'rule_set').find(
+						(item) => item.family === 'PAYROLL' && item.code === 'minimum_wage'
+					)
+				).references
 			);
-			assert.match(String(wages.authority), /can exempt days earned before the order/);
+			const text = JSON.stringify(wages) + cited;
+			assert.match(cited, /accepted design for regional wage orders, coordinator design decision/);
+			assert.match(cited, /can exempt days earned before the order/);
 			for (const stale of [
 				'not transcribed',
 				'not yet transcribed',
@@ -5460,10 +5460,10 @@ describe('PH: the whole tracker, row by row', () => {
 				assert.ok(!text.includes(stale), `${version}: ${stale}`);
 			// Rule VIII s.14(c): the loss-and-damage cap is stated as the weekly 20% summed over the period's weeks.
 			assert.match(
-				String(
+				citationText(
 					fixturePresent(
 						load(version, 'adhoc_catalog').find((item) => item.code === 'LOSS_DAMAGE_DEDUCTION')
-					).authority
+					).references
 				),
 				/Recorded default \(weekly cap\)/
 			);

@@ -1,6 +1,6 @@
 /**
- * L-TPL-hr-payroll-113: official-source URLs on a settings version, quote checks against fetched pages,
- * and whether a lineage should raise an unsealed draft. The automation never seals.
+ * L-TPL-hr-payroll-113: official-source URLs on a settings version, the rows a research changed with the evidence
+ * their own references cite, and quote checks against fetched pages. The automation never seals.
  */
 import { Predicate, Result, Schema } from 'effect';
 
@@ -20,12 +20,6 @@ type DriftSources = {
 };
 
 type DriftQuote = { readonly url: string; readonly quote: string };
-
-type DriftFinding = {
-	readonly changed: boolean;
-	readonly summary: string;
-	readonly quotes: readonly DriftQuote[];
-};
 
 type DriftPage = {
 	readonly url: string;
@@ -105,22 +99,6 @@ export function unverifiedQuotes(
 	});
 }
 
-export function findingFrom(value: unknown): DriftFinding {
-	if (!Predicate.isObject(value)) return { changed: false, summary: '', quotes: [] };
-	const quotes: DriftQuote[] = [];
-	if (isUnknownArray(value.quotes)) {
-		for (const item of value.quotes) {
-			if (!Predicate.isObject(item) || !isString(item.url) || !isString(item.quote)) continue;
-			quotes.push({ url: item.url, quote: item.quote });
-		}
-	}
-	return {
-		changed: value.changed === true,
-		summary: isString(value.summary) ? value.summary : '',
-		quotes
-	};
-}
-
 export function pageFrom(value: unknown): DriftPage | null {
 	if (
 		!Predicate.isObject(value) ||
@@ -137,13 +115,83 @@ export function pageFrom(value: unknown): DriftPage | null {
 	};
 }
 
-export function shouldDraft(finding: DriftFinding, unverified: readonly DriftQuote[]): boolean {
-	return (
-		finding.changed &&
-		finding.summary.trim() !== '' &&
-		finding.quotes.length > 0 &&
-		unverified.length === 0
+type RowChange = {
+	readonly section: string;
+	readonly code: string;
+	readonly added: boolean;
+	readonly fields: readonly string[];
+	/** The row's references with `url` and `quote` that its previous version did not carry. */
+	readonly evidence: readonly DriftQuote[];
+};
+
+function rowEvidence(row: unknown): DriftQuote[] {
+	if (!Predicate.isObject(row) || !isUnknownArray(row.references)) return [];
+	return row.references.flatMap((item) =>
+		Predicate.isObject(item) && isString(item.url) && isString(item.quote)
+			? [{ url: item.url, quote: item.quote }]
+			: []
 	);
+}
+
+function rowOf(snapshot: unknown, section: string, code: string): unknown {
+	const rows = Predicate.isObject(snapshot) ? snapshot[section] : undefined;
+	return isUnknownArray(rows)
+		? rows.find((row) => Predicate.isObject(row) && row.code === code)
+		: undefined;
+}
+
+/**
+ * The keyed rows a research changed or added (from `jsonDiff` paths `/<section>/<code>/<field>`), each with the fresh
+ * evidence its own references cite; null when any change cannot be evidenced on a row: a settings or reference-less row
+ * change, a row without fresh url + quote, or a removed row. A removal (a removed or renamed code) is never drafted:
+ * no row is left to carry its evidence, so a repeal stays in `unresolved` for a person.
+ */
+export function rowChanges(
+	before: unknown,
+	after: unknown,
+	changes: readonly { readonly path: string }[]
+): RowChange[] | null {
+	const touched = new Map<string, { section: string; code: string; fields: Set<string> }>();
+	for (const { path } of changes) {
+		const [section, code, field] = path
+			.split('/')
+			.slice(1)
+			.map((key) => key.replaceAll('~1', '/').replaceAll('~0', '~'));
+		if (section === undefined || code === undefined) return null;
+		const id = JSON.stringify([section, code]);
+		const row = touched.get(id) ?? { section, code, fields: new Set<string>() };
+		if (field !== undefined) row.fields.add(field);
+		touched.set(id, row);
+	}
+	const rows: RowChange[] = [];
+	for (const { section, code, fields } of touched.values()) {
+		const now = rowOf(after, section, code);
+		if (now === undefined) return null;
+		const previous = rowOf(before, section, code);
+		const known = rowEvidence(previous);
+		const evidence = rowEvidence(now).filter(
+			(cite) => !known.some((old) => old.url === cite.url && old.quote === cite.quote)
+		);
+		if (evidence.length === 0) return null;
+		rows.push({ section, code, added: previous === undefined, fields: [...fields], evidence });
+	}
+	return rows;
+}
+
+/** The version's change summary: the diff's rows per section, then the model's own paragraph. */
+export function changeSummary(rows: readonly RowChange[], summary: string): string {
+	const sections = [...new Set(rows.map((row) => row.section))].map(
+		(section) =>
+			`${section}: ${rows
+				.filter((row) => row.section === section)
+				.map((row) =>
+					row.added || row.fields.length === 0
+						? `${row.added ? 'added' : 'changed'} ${row.code}`
+						: `changed ${row.code} (${row.fields.join(', ')})`
+				)
+				.join('; ')}`
+	);
+	return [...sections, '', summary.trim()].join('\n');
 }
 
 export function lineageCodes(rows: readonly { readonly code: string }[]): string[] {
