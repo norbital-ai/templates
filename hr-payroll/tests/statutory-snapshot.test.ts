@@ -10,6 +10,7 @@ import {
 	conciseSnapshot,
 	COVERAGE_RULE,
 	COVERAGE_SCOPES,
+	SNAPSHOT_MODELS,
 	SNAPSHOT_OUTPUT,
 	STATUTORY_RESEARCH_ROLE,
 	type StatutorySnapshot
@@ -30,6 +31,18 @@ const diagnostics = Schema.decodeUnknownSync(
 	)
 );
 describe('complete statutory snapshots', () => {
+	it("never shows research a version's bookkeeping to edit", () => {
+		for (const field of [
+			'change_summary',
+			'sealed_at',
+			'voided_at',
+			'void_reason',
+			'effective_range',
+			'sources'
+		])
+			assert.equal(field in SNAPSHOT_MODELS.settings.fields, false, field);
+		assert.equal('payroll' in SNAPSHOT_MODELS.settings.fields, true);
+	});
 	it('isolates nested seed values between snapshot reads', () => {
 		const folder = path.join(root, 'SG', 'version_4');
 		const [settings] = readSeedRows(folder, 'jurisdiction_settings');
