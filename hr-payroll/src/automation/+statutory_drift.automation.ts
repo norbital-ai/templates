@@ -8,12 +8,12 @@ import {
 	pageFrom,
 	rowChanges,
 	sourcesFrom,
-	unverifiedQuotes
+	unverifiedQuotes,
+	withoutRows
 } from '../lib/payroll_engine/statutory_drift.js';
 import {
 	completeSnapshot,
 	conciseSnapshot,
-	COVERAGE_RULE,
 	COVERAGE_SCOPES,
 	snapshotFields,
 	snapshotSelect,
@@ -26,7 +26,8 @@ import {
  * Every Saturday at 03:00 UTC, and when started by payroll authority: one run researches every sealed in-force
  * jurisdiction lineage (or the one `code` given) at once — one multi-step inference per lineage, side by side — and
  * persists a complete corrected unsealed successor where every changed row cites official evidence that re-appears on
- * its page. A run that leaves a coverage scope pending is reported as incomplete. It never seals.
+ * its page; a row whose evidence does not hold is left out. A no-change that leaves a coverage scope pending is
+ * reported as incomplete, and a change names the scopes it did not reach. It never seals.
  */
 const statutory_drift = automation({
 	description:
@@ -208,10 +209,25 @@ statutory_drift.run(function* (input, ctx) {
 					unresolved: [],
 					snapshot
 				}),
-				output: SNAPSHOT_OUTPUT,
-				rules: [COVERAGE_RULE]
+				output: SNAPSHOT_OUTPUT
 			});
-			if (!result.changed) return { code, drafted: false };
+			// the scopes research did not reach before its budget ran out: a no-change with any of them is incomplete, never
+			// a verified no-change; a change still drafts its verified rows and names them in its summary
+			const pending = result.coverage
+				.filter((scope) => scope.status === 'pending')
+				.map((scope) => scope.scope);
+			if (!result.changed)
+				return pending.length === 0
+					? { code, drafted: false }
+					: {
+							code,
+							drafted: false,
+							failed: `${code}: incomplete — not reached: ${pending.join(', ')}`
+						};
+			const summary =
+				pending.length === 0
+					? result.summary
+					: `${result.summary}\n\nNot reached within the research budget: ${pending.join(', ')}.`;
 			const refuse = (why: string) => ({ code, drafted: false, refused: `${code}: ${why}` });
 			if (result.summary.trim() === '') return refuse('a change without a summary');
 			if (!completeSnapshot(snapshot, result.snapshot)) return refuse('an incomplete snapshot');
@@ -224,9 +240,9 @@ statutory_drift.run(function* (input, ctx) {
 			const rows = changes.success;
 			if (rows.length === 0) return refuse('a change that edits no row');
 			const evidence = rows.flatMap((row) => row.evidence);
-			const cited = [...new Set(evidence.map((row) => row.url))];
-			const unlisted = cited.filter((url) => !allowedUrl(url, sources));
-			if (unlisted.length > 0) return refuse(`cites unlisted ${unlisted.join(', ')}`);
+			const cited = [...new Set(evidence.map((row) => row.url))].filter((url) =>
+				allowedUrl(url, sources)
+			);
 			// A page that cannot be read verifies none of its quotes: its failure is the page's absence.
 			const fetched = yield* Effect.forEach(cited, (url) => Effect.option(ctx.web.read(url)), {
 				concurrency: 'unbounded'
@@ -235,16 +251,30 @@ statutory_drift.run(function* (input, ctx) {
 				const page = Option.isSome(item) ? pageFrom(item.value) : null;
 				return page == null ? [] : [page];
 			});
+			// a row whose evidence does not hold (an unlisted origin, a quote not on its page) goes back to the governing
+			// version's; the rest are still drafted
 			const unverified = unverifiedQuotes(pages, evidence, sources);
-			if (unverified.length > 0)
-				return refuse(
-					`quote not found: ${unverified.map((row) => `"${row.quote.slice(0, 60)}" at ${row.url}`).join('; ')}`
-				);
-			const corrected = result.snapshot;
+			const dropped = rows.filter((row) => row.evidence.some((cite) => unverified.includes(cite)));
+			const kept = rows.filter((row) => !dropped.includes(row));
+			const why = dropped
+				.map(
+					(row) =>
+						`${row.section}/${row.code} (${row.evidence
+							.filter((cite) => unverified.includes(cite))
+							.map((cite) =>
+								allowedUrl(cite.url, sources)
+									? `quote not found: "${cite.quote.slice(0, 60)}" at ${cite.url}`
+									: `cites unlisted ${cite.url}`
+							)
+							.join('; ')})`
+				)
+				.join(', ');
+			if (kept.length === 0) return refuse(`no row's evidence held: ${why}`);
+			const corrected = withoutRows(snapshot, result.snapshot, dropped);
 			// The governing version's research registry (`sources`) carries over unchanged through `version`.
 			yield* ctx.act('jurisdiction_settings.create', {
 				...cloneSettingsFields({ ...version, ...corrected.settings }, result.effective_from),
-				change_summary: changeSummary(rows, result.summary),
+				change_summary: changeSummary(kept, summary),
 				adhoc_catalog: { create: corrected.adhoc_catalog },
 				allowance_catalog: { create: corrected.allowance_catalog },
 				claim_catalog: { create: corrected.claim_catalog },
@@ -255,7 +285,9 @@ statutory_drift.run(function* (input, ctx) {
 				suspension_kinds: corrected.suspension_kind,
 				rule_set: { create: corrected.rule_set }
 			});
-			return { code, drafted: true };
+			return dropped.length === 0
+				? { code, drafted: true }
+				: { code, drafted: true, refused: `${code}: dropped ${why}` };
 		});
 	const lineages = lineageCodes(inForce);
 	type Outcome = {
@@ -264,15 +296,8 @@ statutory_drift.run(function* (input, ctx) {
 		readonly refused?: string;
 		readonly failed?: string;
 	};
-	// A draft left with a pending coverage scope fails the coverage rule: incomplete, never a verified no-change.
 	const failure = (code: string) => (error: { readonly message: string }) =>
-		Effect.succeed({
-			code,
-			drafted: false,
-			failed: error.message.includes(COVERAGE_RULE.message)
-				? `${code}: incomplete — ${error.message}`
-				: `${code}: ${error.message}`
-		});
+		Effect.succeed({ code, drafted: false, failed: `${code}: ${error.message}` });
 	// Snapshots are read one lineage at a time: concurrent reads share one host crossing and its size limit. The
 	// inferences then run at once; a lineage that fails is reported and the others still finish.
 	const prepared = yield* Effect.forEach(lineages, (code) =>

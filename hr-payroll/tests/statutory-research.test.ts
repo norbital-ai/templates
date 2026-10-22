@@ -8,11 +8,7 @@ import { Context, Effect, Layer, Schema } from 'effect';
 import { Browser, Reads, WebRead, type AiResponse, type HostTool } from '@norbital-ai/bolt/engine';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import type { DeclaredRow, Page } from '@norbital-ai/bolt';
-import {
-	COVERAGE_RULE,
-	COVERAGE_SCOPES,
-	SNAPSHOT_MODELS
-} from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import { COVERAGE_SCOPES, SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import { nativeId } from './fixture_values.ts';
 import { workspace } from './kit.ts';
 
@@ -412,20 +408,64 @@ describe('statutory drift research transport (mock inference, not live research)
 		})
 	);
 
-	it.effect('a draft left with pending coverage is reported incomplete, not as a no-change', () =>
-		Effect.gen(function* () {
-			// Each submission is refused by the coverage rule; the unchanged draft ends the call `invalid`.
-			const result = yield* research('SG', [[submit], [submit], [submit], [submit]]);
-			assert.deepEqual(result.output.drafted, []);
-			assert.equal(result.output.failed.length, 1);
-			const [failed] = result.output.failed;
-			assert.ok(failed);
-			assert.ok(failed.startsWith('SG: incomplete — '), failed);
-			assert.ok(failed.includes(COVERAGE_RULE.message), failed);
-			assert.deepEqual(result.drafts, []);
-		})
+	it.effect(
+		'a no-change left with pending coverage is reported incomplete, naming the scopes not reached',
+		() =>
+			Effect.gen(function* () {
+				const result = yield* research('SG', [[submit]]);
+				assert.deepEqual(result.output.drafted, []);
+				assert.equal(result.output.failed.length, 1);
+				const [failed] = result.output.failed;
+				assert.ok(failed);
+				assert.ok(failed.startsWith('SG: incomplete — not reached: '), failed);
+				for (const scope of COVERAGE_SCOPES) assert.ok(failed.includes(scope), failed);
+				assert.deepEqual(result.drafts, []);
+			})
 	);
 
+	it.effect('a row whose evidence fails is left out; the verified rows are still drafted', () =>
+		Effect.gen(function* () {
+			const { url, restored } = lineage('SG');
+			const unlisted: ToolCalls[number] = {
+				id: 'extra',
+				name: 'edit',
+				input: {
+					ops: [
+						{
+							path: '/snapshot/rule_set/EXTRA_RULE',
+							set: {
+								...restored,
+								code: 'EXTRA_RULE',
+								references: [
+									{
+										title: 'Unofficial copy',
+										url: 'https://example.invalid/law',
+										quote,
+										locator: 's. 1',
+										effective_from: '2026-10-10'
+									}
+								]
+							}
+						}
+					]
+				}
+			};
+			const result = yield* Effect.scoped(
+				research('SG', [[restore(restored, { url, quote }), unlisted, submit]])
+			);
+			assert.deepEqual(result.output.drafted, ['SG']);
+			assert.equal(result.output.refused.length, 1);
+			assert.ok(
+				result.output.refused[0]?.includes(
+					'rule_set/EXTRA_RULE (cites unlisted https://example.invalid/law)'
+				),
+				String(result.output.refused[0])
+			);
+			const created = result.drafts[0];
+			assert.ok(created);
+			assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
+		})
+	);
 	it.effect('an unsupported change drafts nothing', () =>
 		Effect.gen(function* () {
 			const { url, restored } = lineage('SG');
