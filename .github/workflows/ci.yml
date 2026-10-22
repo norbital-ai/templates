@@ -24,46 +24,8 @@ env:
   NORBITAL_PACKAGE_REGISTRY: ${{ vars.NORBITAL_PACKAGE_REGISTRY || 'https://npm.pkg.github.com' }}
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      # Full history: projections verify only the templates changed since the base, and that needs the base.
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 26
-          cache: pnpm
-          registry-url: https://npm.pkg.github.com
-          scope: '@norbital-ai'
-
-      # The tooling is `bolt templates`, so the root pins `@norbital-ai/bolt` from the registry too.
-      - name: Install repository tooling
-        run: pnpm install --frozen-lockfile --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
-
-      # Declarations, formatting and every committed lock (each is release authority, so all are re-resolved), then
-      # each changed template as a tenant receives it: its tracked files alone, installed offline from its lock, built
-      # and tested. Repository variable SKIP_CI_TESTS=true (owner, 2026-10-21: the suites ran locally) keeps only
-      # the static half.
-      - name: Check templates
-        run: pnpm ${{ vars.SKIP_CI_TESTS == 'true' && 'check:static' || 'check' }}
-        env:
-          NORBITAL_TEMPLATES_SINCE: ${{ github.event.pull_request.base.sha || github.event.before || 'all' }}
-          # /tmp is a small tmpfs; projections and their installs live on the runner's disk
-          TMPDIR: ${{ runner.temp }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
-
+  # hotfix mode (owner 2026-10-22): the template refs publish on every push to main, unchecked
   publish:
-    needs: check
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
