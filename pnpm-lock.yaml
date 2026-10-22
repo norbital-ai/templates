@@ -217,7 +217,7 @@ packages:
     os: [win32]
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-UALkkiXZXOQDrmXmDwBvQOs4No2qkT+kes4wGwBwx/Q3PtZukOcuzyuXSUbaevT/LfN8CTfcgYv2YAlQpyOg9A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/e146f6475363adf51aedd0b47bf3f02bffe819a4}
+    resolution: {integrity: sha512-eAvVsMrMnSB48VorwQsEnhbSQgtxB9c1TGwdnrXHm3p1gjhtXR7l8LYIWfO82x91wauVwImBhxU+B2Nah7pzkw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/64f4a80a1cd11187d83d142edfc32722d0cd30b3}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
