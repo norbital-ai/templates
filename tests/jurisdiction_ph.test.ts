@@ -3902,13 +3902,13 @@ describe('PH: the whole tracker, row by row', () => {
 	it('PH-SETTINGS: research sources are readable portals, each with its own areas; the AEP rule cites DO 248 s.2025', () => {
 		for (const version of versions) {
 			const entries = fixtureValue4(fixtureRecord(settingsOf(version).sources).entries);
-			// E-Library (browser block) and pagibigfund.gov.ph (browser challenge) are replaced by lawphil.net and ONAR.
+			// E-Library (browser block) and pagibigfund.gov.ph (browser challenge) are replaced by lawphil.net and ONAR;
+			// bir.gov.ph renders no text in the agents' browser, and BIR's revenue regulations are published on ONAR.
 			assert.deepEqual(
 				entries.map((e) => e.url),
 				[
 					'https://lawphil.net/',
 					'https://nwpc.dole.gov.ph/',
-					'https://www.bir.gov.ph/',
 					'https://www.sss.gov.ph/',
 					'https://www.philhealth.gov.ph/',
 					'https://naro.law.upd.edu.ph/'

@@ -46,11 +46,6 @@
 					"instructions": "National Wages and Productivity Commission. Authority here for minimum wages only: every Regional Tripartite Wages and Productivity Board's wage orders for non-agriculture, agriculture, retail/service and small-establishment classes (RTWPBs menu, one page per region such as /ncr/ and /car/, with the order number, tranche dates and rates), the domestic-worker (kasambahay) wage orders on the same regional pages, and the consolidated 'Latest Wage Orders Matrix' PDF under Resources (wp-content/uploads). Record each order's effectivity and tranche dates, the daily rate per class, exemptions and any litigation or suspension note on the regional page."
 				},
 				{
-					"url": "https://www.bir.gov.ph/",
-					"instructions": "Bureau of Internal Revenue. Authority here for payroll income tax: withholding on compensation (NIRC s.24(A) and s.79, the RR 2-98 withholding rules as amended, the RR 11-2018 withholding tables), minimum-wage-earner exemption, de minimis benefit ceilings (RR 29-2025 and later), the 13th-month and other-benefits exemption ceiling, fringe benefit tax, year-end adjustment, tax-record retention (NIRC s.235), and the employer filings and employee certificates (BIR Forms 1601-C, 1604-C, 2316, alphalist). The site needs JavaScript: use Tax Information & Regulations, Tax Code and Revenue Issuances (Revenue Regulations, Revenue Memorandum Circulars) and the search box; the signed PDFs live on bir-cdn.bir.gov.ph. Confirm the issuance number, signing and publication dates and effectivity clause; never seed a draft or proposed regulation.",
-					"document_origins": ["https://bir-cdn.bir.gov.ph/"]
-				},
-				{
 					"url": "https://www.sss.gov.ph/",
 					"instructions": "Social Security System. Authority here for SSS contributions under RA 11199 (contribution rate, monthly salary credit brackets, minimum and maximum MSC, the Mandatory Provident Fund (WISP) split), the Employees' Compensation premium SSS collects for private employers, household-employer coverage, employer remittance and contribution reporting, and the employer-advanced sickness and maternity benefits and the unemployment benefit. Use the Pay Contribution and Employees' Compensation Program pages and the circulars listed on the site (Circular No. and effectivity month)."
 				},

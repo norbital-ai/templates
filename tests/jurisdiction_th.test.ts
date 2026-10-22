@@ -1293,10 +1293,11 @@ describe('TH jurisdiction seed', () => {
 	it('research sources: one accessible official entry per area, each with its own instructions', () => {
 		for (const version of VERSIONS) {
 			const entries = fixtureSources(fixtureRecord(settings(version).sources).entries);
-			assert.equal(entries.length, 8, version);
-			assert.equal(new Set(entries.map((entry) => new URL(entry.url).host)).size, 8, version);
-			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, 8, version);
-			// Bot-challenged or unreachable portals are not sources (probed 2026-10-22).
+			assert.equal(entries.length, 7, version);
+			assert.equal(new Set(entries.map((entry) => new URL(entry.url).host)).size, 7, version);
+			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, 7, version);
+			// Bot-challenged or unreachable portals are not sources (probed 2026-10-22; ocs.go.th serves an incomplete TLS
+			// chain, dropped 2026-10-23).
 			for (const entry of entries)
 				assert.doesNotMatch(
 					new URL(entry.url).host,

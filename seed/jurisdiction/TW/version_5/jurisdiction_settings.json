@@ -62,10 +62,6 @@
 				{
 					"url": "https://www.dgpa.gov.tw/",
 					"instructions": "行政院人事行政總處 (DGPA). Authority for: the dated public-holiday calendar — each year’s 政府行政機關辦公日曆表 (常用捷徑 > 辦公日曆表, /informationlist?uid=30), published by 30 June of the year before, giving the date of every 紀念日 and 節日 holiday including 除夕, 春節, 清明節, 端午節 and 中秋節. Private employers observe the holiday dates themselves; the civil-service 補假 and 調整放假 dates are not private-sector holidays (勞資協商, 施行細則 §23-1). ROC year + 1911 = Gregorian year. Record the exact document URL, issuer, 文號, publication and effective dates and the quoted clause or table cell for each proposed change; a press release is a pointer, not the instrument."
-				},
-				{
-					"url": "https://www.wda.gov.tw/",
-					"instructions": "勞動部勞動力發展署 (Workforce Development Agency). Authority for: foreign-worker rules — the 就業安定費 (employment stabilisation fee) amounts by sector and how the bill is issued and paid, migrant-worker hiring, absence and separation notices, the domestic migrant wage, and foreign professionals’ work permits (法規專區 and 業務專區 > 外國人聘僱). ROC year + 1911 = Gregorian year. Record the exact document URL, issuer, 文號, publication and effective dates and the quoted clause or table cell for each proposed change; a press release is a pointer, not the instrument."
 				}
 			],
 			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."

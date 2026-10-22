@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { vi } from 'vitest';
 import { Context, Effect, Layer, Schema } from 'effect';
-import { Reads, WebRead, type AiResponse, type HostTool } from '@norbital-ai/bolt/engine';
+import { Browser, Reads, WebRead, type AiResponse, type HostTool } from '@norbital-ai/bolt/engine';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import type { DeclaredRow, Page } from '@norbital-ai/bolt';
 import {
@@ -46,43 +46,6 @@ const RunOutput = Schema.Struct({
 	refused: Schema.Array(Schema.String),
 	failed: Schema.Array(Schema.String)
 });
-const NavigateInput = Schema.Struct({
-	url: Schema.optionalKey(Schema.String),
-	go: Schema.optionalKey(Schema.Literals(['back', 'forward', 'reload'])),
-	find: Schema.optionalKey(Schema.String)
-}).annotate({ parseOptions: { onExcessProperty: 'error' } });
-const SnapshotInput = Schema.Struct({
-	find: Schema.optionalKey(Schema.String),
-	from: Schema.optionalKey(Schema.Finite)
-}).annotate({ parseOptions: { onExcessProperty: 'error' } });
-const BrowserStep = Schema.Union([
-	Schema.Struct({ click: Schema.String }),
-	Schema.Struct({
-		type: Schema.Struct({
-			ref: Schema.String,
-			text: Schema.String,
-			submit: Schema.optionalKey(Schema.Boolean)
-		})
-	}),
-	Schema.Struct({ select: Schema.Struct({ ref: Schema.String, value: Schema.String }) }),
-	Schema.Struct({ press: Schema.String }),
-	Schema.Struct({ hover: Schema.String }),
-	Schema.Struct({
-		scroll: Schema.Struct({
-			ref: Schema.optionalKey(Schema.String),
-			y: Schema.optionalKey(Schema.Finite)
-		})
-	}),
-	Schema.Struct({
-		wait: Schema.Struct({
-			text: Schema.optionalKey(Schema.String),
-			ms: Schema.optionalKey(Schema.Finite)
-		})
-	})
-]).annotate({ parseOptions: { onExcessProperty: 'error' } });
-const ActInput = Schema.Struct({
-	steps: Schema.Array(BrowserStep).check(Schema.isMinLength(1), Schema.isMaxLength(20))
-}).annotate({ parseOptions: { onExcessProperty: 'error' } });
 const BrowserPage = Schema.Struct({
 	url: Schema.String,
 	title: Schema.String,
@@ -90,11 +53,6 @@ const BrowserPage = Schema.Struct({
 	lines: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
 	next: Schema.optionalKey(Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)))
 });
-const toolInput = (schema: Schema.Top) => {
-	const document = Schema.toJsonSchemaDocument(schema);
-	return Schema.decodeUnknownSync(Schema.Json)({ ...document.schema, $defs: document.definitions });
-};
-
 const quote = 'Payroll records must be kept for the statutory retention period.';
 const summary = 'Restore the omitted statutory retention rule.';
 type ToolCalls = AiResponse['toolCalls'];
@@ -225,7 +183,7 @@ const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
 			browserPages.push(result.page);
 			return Schema.decodeUnknownSync(Schema.Json)(result);
 		};
-		const browserTools: readonly HostTool[] = [
+		const hostTools: readonly HostTool[] = [
 			{
 				name: 'web_search',
 				description: 'Search the web; this fixture expects no searches.',
@@ -233,45 +191,35 @@ const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
 				async call() {
 					assert.fail('The fixture research reads the cited instrument without searching.');
 				}
-			},
-			{
-				name: 'browser_navigate',
-				description: 'Open the official instrument fixture and answer its page text.',
-				input: toolInput(NavigateInput),
-				async call(input, _context, signal) {
-					signal.throwIfAborted();
-					browserRequests.push({ name: 'browser_navigate', input });
-					const wanted = Schema.decodeUnknownSync(NavigateInput)(input);
-					assert.equal(wanted.go, undefined, 'The fixture has no browser history.');
-					assert.equal(wanted.url, url, 'Only the cited official instrument may be opened.');
-					openedUrl = Schema.decodeUnknownSync(Schema.String)(wanted.url);
-					return snapshot(wanted.find);
-				}
-			},
-			{
-				name: 'browser_snapshot',
-				description: 'Read the open official instrument fixture as page text.',
-				readOnly: true,
-				input: toolInput(SnapshotInput),
-				async call(input, _context, signal) {
-					signal.throwIfAborted();
-					browserRequests.push({ name: 'browser_snapshot', input });
-					const wanted = Schema.decodeUnknownSync(SnapshotInput)(input);
-					return snapshot(wanted.find, wanted.from);
-				}
-			},
-			{
-				name: 'browser_act',
-				description: 'Validate browser actions; this official instrument fixture permits no edits.',
-				input: toolInput(ActInput),
-				async call(input, _context, signal) {
-					signal.throwIfAborted();
-					browserRequests.push({ name: 'browser_act', input });
-					Schema.decodeUnknownSync(ActInput)(input);
-					assert.fail('The official instrument fixture expects no browser actions.');
-				}
 			}
 		];
+		// the host's browsing facility, behind Bolt's own browser tools
+		const browser = Layer.succeed(Browser, {
+			navigate: (_profile, to, find) =>
+				Effect.sync(() => {
+					browserRequests.push({
+						name: 'browser_navigate',
+						input: { ...to, ...(find === undefined ? {} : { find }) }
+					});
+					assert.ok('url' in to, 'The fixture has no browser history.');
+					assert.equal(to.url, url, 'Only the cited official instrument may be opened.');
+					openedUrl = to.url;
+					return snapshot(find);
+				}),
+			snapshot: (_profile, options) =>
+				Effect.sync(() => {
+					browserRequests.push({ name: 'browser_snapshot', input: { ...options } });
+					return snapshot(options.find, options.from);
+				}),
+			act: () =>
+				Effect.sync(() =>
+					assert.fail('The official instrument fixture expects no browser actions.')
+				),
+			evaluate: () =>
+				Effect.sync(() => assert.fail('The official instrument fixture runs no scripts.')),
+			screenshot: () =>
+				Effect.sync(() => assert.fail('The official instrument fixture takes no screenshots.'))
+		});
 		const responses: AiResponse[] = turns.map((toolCalls) => ({
 			content: '',
 			toolCalls,
@@ -283,15 +231,22 @@ const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
 				now: '2026-10-10T00:00:00Z',
 				seed: { jurisdiction_settings: seeded.seededSettings, ...rows },
 				fakes: { ai: { cassette: { strong: responses } } },
-				host: { agent: { hostTools: browserTools } },
-				ports: Layer.succeed(WebRead, {
-					read: (wanted) =>
-						Effect.sync(() => {
-							fetched.push(wanted);
-							assert.equal(wanted, url, 'Quote verification reads the cited official instrument.');
-							return { url: wanted, title: 'Official instrument fixture', text: page };
-						})
-				})
+				host: { agent: { hostTools } },
+				ports: Layer.merge(
+					browser,
+					Layer.succeed(WebRead, {
+						read: (wanted) =>
+							Effect.sync(() => {
+								fetched.push(wanted);
+								assert.equal(
+									wanted,
+									url,
+									'Quote verification reads the cited official instrument.'
+								);
+								return { url: wanted, title: 'Official instrument fixture', text: page };
+							})
+					})
+				)
 			})
 		);
 		const t = Context.get(context, TestWorkspace);
