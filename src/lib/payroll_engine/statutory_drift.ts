@@ -3,6 +3,7 @@
  * their own references cite, and quote checks against fetched pages. The automation never seals.
  */
 import { Predicate, Result, Schema } from 'effect';
+import type { StatutorySnapshot } from './statutory_snapshot.js';
 
 const isString = Schema.is(Schema.String);
 const isUnknownArray = Schema.is(Schema.Array(Schema.Unknown));
@@ -183,6 +184,57 @@ export function rowChanges(
 }
 
 /** The version's change summary: the diff's rows per section, then the model's own paragraph. */
+/** One section's rows with each dropped code put back as it was (a dropped addition removed). */
+function revert<R extends { readonly code: string }>(
+	before: readonly R[],
+	after: readonly R[],
+	drop: ReadonlySet<string>
+): R[] {
+	const kept = after.flatMap((row) => {
+		if (!drop.has(row.code)) return [row];
+		const was = before.find((old) => old.code === row.code);
+		return was === undefined ? [] : [was];
+	});
+	return kept;
+}
+
+/**
+ * The corrected snapshot without the rows whose evidence did not hold: each goes back to the governing version's row,
+ * an added one is left out. The draft keeps every row whose evidence was verified.
+ */
+export function withoutRows(
+	before: StatutorySnapshot,
+	after: StatutorySnapshot,
+	drop: readonly { readonly section: string; readonly code: string }[]
+): StatutorySnapshot {
+	const codes = (section: string) =>
+		new Set(drop.filter((row) => row.section === section).map((row) => row.code));
+	return {
+		...after,
+		adhoc_catalog: revert(before.adhoc_catalog, after.adhoc_catalog, codes('adhoc_catalog')),
+		allowance_catalog: revert(
+			before.allowance_catalog,
+			after.allowance_catalog,
+			codes('allowance_catalog')
+		),
+		claim_catalog: revert(before.claim_catalog, after.claim_catalog, codes('claim_catalog')),
+		leave_catalog: revert(before.leave_catalog, after.leave_catalog, codes('leave_catalog')),
+		loan_catalog: revert(before.loan_catalog, after.loan_catalog, codes('loan_catalog')),
+		work_catalog: revert(before.work_catalog, after.work_catalog, codes('work_catalog')),
+		statutory_contribution_catalog: revert(
+			before.statutory_contribution_catalog,
+			after.statutory_contribution_catalog,
+			codes('statutory_contribution_catalog')
+		),
+		suspension_kind: revert(
+			before.suspension_kind,
+			after.suspension_kind,
+			codes('suspension_kind')
+		),
+		rule_set: revert(before.rule_set, after.rule_set, codes('rule_set'))
+	};
+}
+
 export function changeSummary(rows: readonly RowChange[], summary: string): string {
 	const sections = [...new Set(rows.map((row) => row.section))].map(
 		(section) =>
