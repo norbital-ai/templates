@@ -43,6 +43,7 @@ const SettingsIndex = Schema.Struct({ fields: Schema.Record(Schema.String, Schem
 const RunOutput = Schema.Struct({
 	lineages: Schema.Array(Schema.String),
 	drafted: Schema.Array(Schema.String),
+	refused: Schema.Array(Schema.String),
 	failed: Schema.Array(Schema.String)
 });
 const NavigateInput = Schema.Struct({
@@ -374,7 +375,12 @@ describe('statutory drift research transport (mock inference, not live research)
 					]
 				]);
 				const { t, rows, missing, folder, version, settingsRows, source } = result;
-				assert.deepEqual(result.output, { lineages: [code], drafted: [code], failed: [] });
+				assert.deepEqual(result.output, {
+					lineages: [code],
+					drafted: [code],
+					refused: [],
+					failed: []
+				});
 				const ai = t.fakes.ai;
 				assert.ok(ai);
 				assert.equal(ai.requests.length, 1);
@@ -445,7 +451,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			const result = yield* research('SG', [
 				[{ id: 'cover', name: 'edit', input: { ops: coverage } }, submit]
 			]);
-			assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], failed: [] });
+			assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], refused: [], failed: [] });
 			assert.deepEqual(result.drafts, []);
 			assert.deepEqual(result.fetched, []);
 		})
@@ -469,18 +475,26 @@ describe('statutory drift research transport (mock inference, not live research)
 		Effect.gen(function* () {
 			const { url, restored } = lineage('SG');
 			const cases = [
-				{ name: 'no reference', reference: null, page: quote, fetched: [] },
+				{
+					name: 'no reference',
+					reference: null,
+					page: quote,
+					fetched: [],
+					why: 'cites no new url and quote'
+				},
 				{
 					name: 'quote not on its page',
 					reference: { url, quote },
 					page: 'An unrelated bulletin.',
-					fetched: [url]
+					fetched: [url],
+					why: `quote not found: "${quote.slice(0, 60)}" at ${url}`
 				},
 				{
 					name: 'disallowed origin',
 					reference: { url: 'https://example.invalid/law', quote },
 					page: quote,
-					fetched: []
+					fetched: [],
+					why: 'cites unlisted https://example.invalid/law'
 				}
 			];
 			for (const item of cases) {
@@ -488,7 +502,11 @@ describe('statutory drift research transport (mock inference, not live research)
 				const result = yield* Effect.scoped(
 					research('SG', [[restore(restored, item.reference), submit]], item.page)
 				);
-				assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], failed: [] }, item.name);
+				const { refused, ...rest } = result.output;
+				assert.deepEqual(rest, { lineages: ['SG'], drafted: [], failed: [] }, item.name);
+				assert.equal(refused.length, 1, item.name);
+				const [why] = refused;
+				assert.ok(why?.startsWith('SG: ') && why.includes(item.why), String(why));
 				assert.deepEqual(result.drafts, [], item.name);
 				assert.deepEqual(result.fetched, item.fetched, item.name);
 			}

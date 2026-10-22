@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Option, Result, Schema } from 'effect';
 import { automation, jsonDiff } from '@norbital-ai/bolt';
 import { cloneSettingsFields } from '../lib/payroll_engine/settings_version.js';
 import {
@@ -38,6 +38,8 @@ const statutory_drift = automation({
 		fields: {
 			lineages: { kind: 'list', of: { kind: 'text' } },
 			drafted: { kind: 'list', of: { kind: 'text' } },
+			// A change the research reported that its evidence could not carry, as `<CODE>: <why>`.
+			refused: { kind: 'list', of: { kind: 'text' } },
 			failed: { kind: 'list', of: { kind: 'text' } }
 		}
 	},
@@ -209,21 +211,22 @@ statutory_drift.run(function* (input, ctx) {
 				output: SNAPSHOT_OUTPUT,
 				rules: [COVERAGE_RULE]
 			});
-			if (
-				!result.changed ||
-				result.summary.trim() === '' ||
-				!completeSnapshot(snapshot, result.snapshot)
-			)
-				return { code, drafted: false };
-			const rows = rowChanges(
+			if (!result.changed) return { code, drafted: false };
+			const refuse = (why: string) => ({ code, drafted: false, refused: `${code}: ${why}` });
+			if (result.summary.trim() === '') return refuse('a change without a summary');
+			if (!completeSnapshot(snapshot, result.snapshot)) return refuse('an incomplete snapshot');
+			const changes = rowChanges(
 				snapshot,
 				result.snapshot,
 				jsonDiff(json(snapshot), json(result.snapshot), SNAPSHOT_OUTPUT.fields.snapshot)
 			);
-			if (rows === null || rows.length === 0) return { code, drafted: false };
+			if (Result.isFailure(changes)) return refuse(changes.failure);
+			const rows = changes.success;
+			if (rows.length === 0) return refuse('a change that edits no row');
 			const evidence = rows.flatMap((row) => row.evidence);
 			const cited = [...new Set(evidence.map((row) => row.url))];
-			if (cited.some((url) => !allowedUrl(url, sources))) return { code, drafted: false };
+			const unlisted = cited.filter((url) => !allowedUrl(url, sources));
+			if (unlisted.length > 0) return refuse(`cites unlisted ${unlisted.join(', ')}`);
 			// A page that cannot be read verifies none of its quotes: its failure is the page's absence.
 			const fetched = yield* Effect.forEach(cited, (url) => Effect.option(ctx.web.read(url)), {
 				concurrency: 'unbounded'
@@ -232,7 +235,11 @@ statutory_drift.run(function* (input, ctx) {
 				const page = Option.isSome(item) ? pageFrom(item.value) : null;
 				return page == null ? [] : [page];
 			});
-			if (unverifiedQuotes(pages, evidence, sources).length > 0) return { code, drafted: false };
+			const unverified = unverifiedQuotes(pages, evidence, sources);
+			if (unverified.length > 0)
+				return refuse(
+					`quote not found: ${unverified.map((row) => `"${row.quote.slice(0, 60)}" at ${row.url}`).join('; ')}`
+				);
 			const corrected = result.snapshot;
 			// The governing version's research registry (`sources`) carries over unchanged through `version`.
 			yield* ctx.act('jurisdiction_settings.create', {
@@ -251,7 +258,12 @@ statutory_drift.run(function* (input, ctx) {
 			return { code, drafted: true };
 		});
 	const lineages = lineageCodes(inForce);
-	type Outcome = { readonly code: string; readonly drafted: boolean; readonly failed?: string };
+	type Outcome = {
+		readonly code: string;
+		readonly drafted: boolean;
+		readonly refused?: string;
+		readonly failed?: string;
+	};
 	// A draft left with a pending coverage scope fails the coverage rule: incomplete, never a verified no-change.
 	const failure = (code: string) => (error: { readonly message: string }) =>
 		Effect.succeed({
@@ -282,6 +294,7 @@ statutory_drift.run(function* (input, ctx) {
 	return {
 		lineages,
 		drafted: results.filter((result) => result.drafted).map((result) => result.code),
+		refused: results.flatMap((result) => (result.refused === undefined ? [] : [result.refused])),
 		failed: results.flatMap((result) => (result.failed === undefined ? [] : [result.failed]))
 	};
 });
