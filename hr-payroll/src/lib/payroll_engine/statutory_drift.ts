@@ -14,15 +14,14 @@ type DriftEntry = {
 	readonly agent: ResearchAgent;
 	readonly url: string;
 	readonly instructions: string;
-	readonly document_origins: readonly string[];
 };
 type DriftSources = {
 	readonly urls: readonly string[];
 	readonly entries: readonly DriftEntry[];
 	/** Each agent's supplementary instructions for the jurisdiction. */
 	readonly agents: Partial<Readonly<Record<ResearchAgent, string>>>;
-	/** Every registered origin: entry urls and their document origins. */
-	readonly research_domains: readonly string[];
+	/** The official sites the entries are on (see `siteOf`). */
+	readonly sites: readonly string[];
 };
 
 type DriftQuote = { readonly url: string; readonly quote: string };
@@ -32,11 +31,6 @@ type DriftPage = {
 	readonly title: string | null;
 	readonly text: string;
 };
-
-function urlList(value: unknown): string[] {
-	if (!isUnknownArray(value)) return [];
-	return value.filter((item): item is string => isString(item) && URL_TEXT.test(item));
-}
 
 const isAgent = Schema.is(Schema.Literals(RESEARCH_AGENT_NAMES));
 export function sourcesFrom(value: unknown): DriftSources {
@@ -49,14 +43,7 @@ export function sourcesFrom(value: unknown): DriftSources {
 				URL_TEXT.test(item.url) &&
 				isString(item.instructions) &&
 				item.instructions.trim() !== ''
-					? [
-							{
-								agent: item.agent,
-								url: item.url,
-								instructions: item.instructions,
-								document_origins: urlList(item.document_origins)
-							}
-						]
+					? [{ agent: item.agent, url: item.url, instructions: item.instructions }]
 					: []
 			)
 		: [];
@@ -69,28 +56,27 @@ export function sourcesFrom(value: unknown): DriftSources {
 			)
 		: {};
 	const urls = entries.map((item) => item.url);
-	return {
-		urls,
-		entries,
-		agents,
-		research_domains: [...urls, ...entries.flatMap((entry) => entry.document_origins)]
-	};
+	return { urls, entries, agents, sites: [...new Set(urls.flatMap((url) => siteOf(url) ?? []))] };
 }
 
-function originOf(url: string): string | null {
-	return Result.getOrElse(
-		Result.try(() => new URL(url).origin.toLowerCase()),
-		() => null
-	);
+/**
+ * The official site a URL is on: a government's whole domain (`gov.my`, `go.id`), otherwise the registered name
+ * (`chinhphu.vn`, `kyoukaikenpo.or.jp`). An instrument is often served from another host of the same site (a CDN).
+ * ponytail: a short list of generic second-level labels, the Public Suffix List if a jurisdiction needs more.
+ */
+const GENERIC = /^(or|co|com|ac|org|net|edu|ne|gob|govt|mil)$/;
+export function siteOf(url: string): string | null {
+	const host = URL_TEXT.test(url) ? URL.parse(url)?.hostname.toLowerCase() : undefined;
+	if (host == null) return null;
+	const labels = host.split('.');
+	const second = labels.at(-2) ?? '';
+	return labels.slice(/^(gov|go)$/.test(second) ? -2 : GENERIC.test(second) ? -3 : -2).join('.');
 }
 
-/** A URL is admitted when it is listed, or its origin matches `research_domains`. */
+/** A URL is admitted when it is on one of the registered official sites. */
 export function allowedUrl(url: string, sources: DriftSources): boolean {
-	if (!URL_TEXT.test(url)) return false;
-	if (sources.urls.includes(url)) return true;
-	const origin = originOf(url);
-	if (origin == null) return false;
-	return sources.research_domains.some((domain) => originOf(domain) === origin);
+	const site = siteOf(url);
+	return site != null && sources.sites.includes(site);
 }
 
 /**

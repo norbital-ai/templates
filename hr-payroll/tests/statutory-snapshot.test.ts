@@ -75,23 +75,27 @@ describe('complete statutory snapshots', () => {
 			[]
 		);
 	});
-	it('permits explicitly registered official document origins without permitting unrelated hosts', () => {
+	it("admits a registered official site's other hosts without permitting unrelated hosts", () => {
 		const sources = sourcesFrom({
 			entries: [
 				{
 					agent: 'contribution',
 					url: 'https://www.bir.gov.ph/',
-					instructions: 'Follow the public issuance library.',
-					document_origins: ['https://bir-cdn.bir.gov.ph/']
-				}
+					instructions: 'Follow the public issuance library.'
+				},
+				{ agent: 'rules', url: 'https://congbao.chinhphu.vn/', instructions: 'The gazette.' },
+				{ agent: 'rules', url: 'https://www.kyoukaikenpo.or.jp/', instructions: 'Kenpo.' }
 			]
 		});
 		assert.equal(allowedUrl('https://bir-cdn.bir.gov.ph/issuance.pdf', sources), true);
+		assert.equal(allowedUrl('https://www.dole.gov.ph/law', sources), true);
+		assert.equal(allowedUrl('https://datafiles.chinhphu.vn/act.pdf', sources), true);
 		assert.equal(
 			allowedUrl('https://bir-cdn.bir.gov.ph.evil.invalid/issuance.pdf', sources),
 			false
 		);
-		assert.equal(allowedUrl('https://unlisted.bir.gov.ph/issuance.pdf', sources), false);
+		assert.equal(allowedUrl('https://www.mom.gov.sg/law', sources), false);
+		assert.equal(allowedUrl('https://other.or.jp/law', sources), false);
 	});
 	it('preserves every section across all jurisdictions and supplies each agent its own sources and instructions', () => {
 		for (const code of fs.readdirSync(root)) {
