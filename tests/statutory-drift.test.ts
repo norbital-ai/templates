@@ -105,6 +105,29 @@ describe('statutory drift', () => {
 			),
 			true
 		);
+		// a quote across a page break, and a quote elided in order; never parts out of order or too short to mean anything
+		assert.equal(
+			quotePresent(
+				'pension are concerned\n[Page 99]\nemployees with the same',
+				'pension are concerned employees with the same'
+			),
+			true
+		);
+		assert.equal(
+			quotePresent(
+				'every employer shall pay contributions monthly to the organisation',
+				'every employer shall … to the organisation'
+			),
+			true
+		);
+		assert.equal(
+			quotePresent(
+				'every employer shall pay contributions monthly to the organisation',
+				'to the organisation … every employer'
+			),
+			false
+		);
+		assert.equal(quotePresent('every employer shall pay', 'every employer ... pay'), false);
 		// a PDF's line break inside the official wording is the same wording (Act 265 s.60FA as extracted)
 		assert.equal(
 			quotePresent(
