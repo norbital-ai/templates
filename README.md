@@ -85,7 +85,7 @@ lineage that fails is reported in the output's `failed` list without stopping th
   one-paragraph `summary`.
 - **Out of scope:** public holidays — per-entity rows published separately, never researched.
 
-Every tool step is recorded on the run as an `infer.tool` event (`sys_event`).
+Every tool step is recorded on the run as an `infer.tool` event in the workspace's runtime log.
 
 Every workspace automation — started, scheduled, cron-driven or row-event, `behaviour_taps` included — runs in one
 lane per workspace; only Bolt's own housekeeping runs beside it. While a sweep runs, behaviours (exit encashment,

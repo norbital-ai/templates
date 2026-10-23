@@ -490,13 +490,10 @@ it.live.skipIf(!sample)(
 							params: []
 						}
 					);
-					const events = yield* t.db.rows(
-						Schema.Struct({ event: Schema.String, a: Schema.NullOr(Schema.String) }),
-						{
-							text: `SELECT event, attributes::text AS a FROM sys_event WHERE severity <> 'info' ORDER BY at DESC LIMIT 5`,
-							params: []
-						}
-					);
+					const events = t.fakes.logs
+						.filter((line) => line.severity !== 'info')
+						.slice(-5)
+						.map(({ event, attributes }) => ({ event, attributes }));
 					expect(runs, JSON.stringify([runs, events])).toEqual([
 						{ state: 'succeeded', error: null }
 					]);
