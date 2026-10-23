@@ -217,7 +217,7 @@ packages:
     os: [win32]
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-Gqjy0v/E5mJRQDAQKOjswAfQlq8IaPe1NVSkvPhl38oG4YWRCQ92JMDfG2A4V0rCu4TETL/5G2XzRAuBfhKcoQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/a85710c8dc9b474b376823da105522311ef05460}
+    resolution: {integrity: sha512-etRzWMSf1O6mq7Dy7flGPHhxoBDfaVDlylW7zsQgsY+UR/I9vLArgNgMGSH1NbTXGnrzRo65EkT7d1/0ysaDIQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/6714643ea7b8f1b1fa10e965c0b33bfd14e576d0}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
@@ -231,7 +231,7 @@ packages:
       effect: 4.0.0-rc.112
 
   '@norbital-ai/ui@0.0.1':
-    resolution: {integrity: sha512-6T6YzaLsKgTXjdCCV21iWqnBe8NMOZyaS+1j430D8wRaL0DFZDUn/VtQ79n3hBeNgCTcO7Uu5Hn2CwJuPBc9qA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/da9d00d621c6b210f5858be6161299a21704b4c6}
+    resolution: {integrity: sha512-uFmOZFg59I7BMBIlGpz1hi5LmIouMnv7Gvicjyb3FpgzIRL3hL1RqcKH1/5TP3Mjw9/uVJvooR50yZmOqnWQ9g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/2c6173cc14e831cddcd67edf671aca1cb4ac50ba}
     peerDependencies:
       svelte: ^5.56.10
 
