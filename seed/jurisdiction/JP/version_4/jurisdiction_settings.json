@@ -38,41 +38,157 @@
 		"sources": {
 			"entries": [
 				{
+					"agent": "catalog",
 					"url": "https://www.mhlw.go.jp/",
-					"instructions": "厚生労働省 — authority for the labour code and labour insurance: 労働基準法 with 施行規則 and 割増賃金令 (working hours, 36協定 overtime limits, overtime/rest-day/night premiums, weekly rest, annual paid leave arts.39, dismissal notice art.20, final wages art.23, worker register/wage ledger/records retention arts.107–109); 育児・介護休業法 leave and measures; 男女雇用機会均等法 (maternity protection, sexual and job-seeker harassment) and 労働施策総合推進法 (power and customer harassment) with their 指針 告示; 労働安全衛生法 health checks; 最低賃金法 and the regional minimum wages (地域別最低賃金の全国一覧, each amount with its 発効日; 特定最低賃金); 雇用保険 premium rates (雇用保険料率, fiscal year from April) and 労働保険徴収法/労災保険率; 障害者雇用促進法 employment rate and annual report; 外国人雇用状況の届出. Statute, order, ordinance and 告示 text, as amended to a chosen date, is in 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索, 本文検索; 通知 for 通達). Policy pages are under 政策について > 分野別の政策一覧 > 雇用・労働; prefectural labour bureau pages (minimum wage 発効日, local notices) are on jsite.mhlw.go.jp. Not this entry: health/pension premiums and social insurance filings (協会けんぽ, 日本年金機構), the disability levy filing (JEED).",
+					"instructions": "厚生労働省 — pay and leave catalogue law. Leave classes and entitlements: 労働基準法 art.39 年次有給休暇 (grant table by length of service, 比例付与 for short weeks, hourly leave up to 5 days, 計画的付与, 時季指定 of 5 days), arts.65–68 産前産後休業, 育児時間 and 生理休暇, art.7 公民権行使; 育児・介護休業法 (育児休業, 出生時育児休業, 介護休業, 子の看護等休暇, 介護休暇) and their 施行規則. Work items pay is built from: 割増賃金 for overtime, 法定休日 work and night work (労働基準法 art.37 and 割増賃金令: 25%, 50% beyond 60 hours a month, 35%, 25%), 平均賃金 (art.12) as the base of leave pay and 休業手当, art.39(9) leave pay options, 出来高払 保障給 (art.27). Payments and suspensions: 解雇予告手当 (art.20, 30 days' 平均賃金), 休業手当 for employer-caused suspension (art.26, 60%), 労災 待期 days paid by the employer (art.76 and 労働者災害補償保険法). Japan has no statutory severance, bonus or loan scheme: they are work-rule items. Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達). Policy pages are under 政策について > 分野別の政策一覧 > 雇用・労働 > 労働基準 and > 雇用環境・均等 (育児・介護休業 leaflets carry the current day counts)."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.kyoukaikenpo.or.jp/",
+					"instructions": "全国健康保険協会（協会けんぽ） — the insurer benefits that replace pay during leave: 傷病手当金 (sickness, after 3 waiting days, two-thirds of the standard daily amount) and 出産手当金 (maternity leave days), and how employer pay during those days reduces them. Find them under 健康保険ガイド > 健康保険の給付 (病気やケガで会社を休んだとき, 出産で会社を休んだとき); quote the benefit conditions and the reduction rule."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.mhlw.go.jp/",
+					"instructions": "厚生労働省 — labour insurance and the disability employment rate. 雇用保険料率 for each fiscal year from April (一般の事業, 農林水産・清酒製造, 建設; employee and employer shares) on the 雇用保険料率について page (政策について > 雇用・労働 > 雇用 > 雇用保険制度), the coverage tests of 雇用保険法 (weekly hours, expected 31 days, the widening to 10 hours a week from its effective date) and the rounding of the employee share (50銭 rule, in the 通達); 労働保険徴収法 労災保険率表 (per mille by industry, employer only) and the 一般拠出金率; 障害者雇用促進法 法定雇用率 and its step dates, the counting of 常用労働者 and short-time workers that the levy uses. Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達).",
 					"document_origins": ["https://jsite.mhlw.go.jp/"]
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.nenkin.go.jp/",
-					"instructions": "日本年金機構 — authority for 厚生年金保険 and social insurance administration: the pension rate (18.3%) and 保険料額表 grades (標準報酬月額 88,000–650,000 and the ceiling increases of 令和7年法律第74号), standard bonus cap, 子ども・子育て拠出金 (employer), enrolment and loss notices (資格取得届/喪失届, 5-day deadlines), 算定基礎届/月額変更届/賞与支払届, the short-time worker coverage expansion (特定適用事業所, company-size steps), 保険料調整制度 (ratio table per grade, refund three months later), maternity/childcare exemptions and social security agreements. Find them under 年金の制度・手続き > 厚生年金保険 > 保険料 (保険料額表: /service/kounen/hokenryo/ryogaku/), 事業主向け 適用・届出, and お知らせ > 事業所向け (/oshirase/taisetu/jigyosho/). Not this entry: the 協会けんぽ health, nursing and support-levy rates (use the 協会けんぽ entry even where a 保険料額表 prints them)."
+					"instructions": "日本年金機構 — 厚生年金保険 contributions: the rate, the 標準報酬月額 grade table and its ceiling increases under 令和7年法律第74号 (read each step's effective month), the 標準賞与額 cap per payment, the employer-only 子ども・子育て拠出金 rate, the employee/employer split and the rounding of the employee share when deducted from wages, coverage (short-time workers, 特定適用事業所 company-size steps, students, 70歳以上被用者), the 保険料調整制度 ratio table per grade and its refund timing, and social security agreements. Find them under 年金の制度・手続き > 厚生年金保険 > 保険料 (保険料額表 at /service/kounen/hokenryo/ryogaku/, one page per period) and お知らせ > 事業所向け (/oshirase/taisetu/jigyosho/). Read only the pension column of the 保険料額表; the health and nursing columns are the 協会けんぽ entry's."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.kyoukaikenpo.or.jp/",
-					"instructions": "全国健康保険協会（協会けんぽ） — authority for health insurance contributions of 協会けんぽ members: the 47 prefectural health rates, the 介護保険 (nursing care, age 40–64) rate and the 子ども・子育て支援金 rate, each from its 月分 (fiscal year from March or April), and the health/nursing columns of each branch's 保険料額表; also 傷病手当金/出産手当金 benefit rules. Rates are under 協会けんぽについて > 事業内容 > 保険料率 > 都道府県毎の保険料率 (/about/business/insurance_rate/rate_prefectures/rNN, one page per fiscal year, with an Excel/PDF 保険料額表 per prefecture). A 健康保険組合 sets its own rates (company input), not this site. Not this entry: the pension column of the 保険料額表 and the grade table (日本年金機構)."
+					"instructions": "全国健康保険協会（協会けんぽ） — health insurance contributions of 協会けんぽ members: the 47 prefectural health rates, the 介護保険 rate (insured aged 40–64) and the 子ども・子育て支援金 rate, each from its 月分 (the fiscal year changes from March or April), with the health and nursing columns of each branch's 保険料額表 and the 50/50 split. Rates are under 協会けんぽについて > 事業内容 > 保険料率 > 都道府県毎の保険料率 (/about/business/insurance_rate/rate_prefectures/rNN, one page per fiscal year, an Excel/PDF 保険料額表 per prefecture). A 健康保険組合 sets its own rates; this site does not carry them."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.nta.go.jp/",
-					"instructions": "国税庁 — authority for income tax withholding on wages and retirement allowances: 源泉徴収税額表 (月額表 甲欄/乙欄, 日額表, 賞与に対する源泉徴収税額の算出率の表) and 電子計算機等を使用して源泉徴収税額を計算する方法 for each calendar year (刊行物等 > パンフレット・手引き > 源泉徴収関係 > 源泉徴収税額表, /publication/pamph/gensen/zeigakuhyo20NN/); 年末調整 (年末調整のしかた, reform years such as 令和8年度改正), 扶養控除等申告書; non-taxable commuting allowance limits and meals/housing in kind (/users/gensen/); 退職所得の源泉徴収 and 退職所得の受給に関する申告書; 給与所得の源泉徴収票 and 給与支払明細書 delivery (所得税法 arts.226, 231), 給与支払事務所等の開設届 and the 10th-of-month payment deadline (納期の特例). Statute, 通達 (所得税基本通達) and Q&A are under 法令等 (/law/index.htm) and タックスアンサー. Not this entry: individual resident tax (総務省)."
+					"instructions": "国税庁 — income tax withholding on wages, bonuses and retirement allowances for each calendar year: 源泉徴収税額表 (月額表 甲欄/乙欄, 日額表, 賞与に対する源泉徴収税額の算出率の表) and 電子計算機等を使用して源泉徴収税額を計算する方法, under 刊行物等 > パンフレット・手引き > 源泉徴収関係 > 源泉徴収税額表 (/publication/pamph/gensen/zeigakuhyo20NN/); 復興特別所得税; 年末調整 computation (年末調整のしかた, reform years such as 令和8年度改正: 基礎控除, 給与所得控除, 特定親族特別控除); the withholding base: non-taxable commuting allowance limits and meals and housing in kind (/users/gensen/), 退職所得控除 and the rate without a 退職所得の受給に関する申告書. Statute, 所得税基本通達 and Q&A are under 法令等 (/law/index.htm) and タックスアンサー."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.soumu.go.jp/",
-					"instructions": "総務省 — authority for individual resident tax (個人住民税) collected through payroll under 地方税法: 特別徴収 by the employer of the municipality's notified amounts from June to May (payment by the 10th of the next month, 納期の特例), the leaver's 一括徴収 and 異動届出, 給与支払報告書 due 31 January, and the 10% separate taxation of retirement income (退職所得の分離課税, 特別徴収). Find them under 政策 > 地方行財政 > 地方税制度 > 個人住民税 (/main_sosiki/jichi_zeisei/czaisei/czaisei_seido/150790_06.html) and 地方税法 改正 pages; the amounts themselves come from each municipality's 特別徴収税額決定通知書 (company input). Not this entry: national income tax withholding (国税庁)."
+					"instructions": "総務省 — individual resident tax (個人住民税) withheld through payroll under 地方税法: the 特別徴収 of the municipality's notified annual amount in twelve instalments from June to May (the first instalment carries the rounding remainder) and the 10% separate taxation of retirement income (退職所得の分離課税: 市町村民税 6%, 道府県民税 4%, its computation and rounding). Find them under 政策 > 地方行財政 > 地方税制度 > 個人住民税 (/main_sosiki/jichi_zeisei/czaisei/czaisei_seido/150790_06.html) and the 地方税法 改正 pages; each employee's amounts come from the municipality's 特別徴収税額決定通知書 (company input), never from this site."
 				},
 				{
-					"url": "https://www.ppc.go.jp/",
-					"instructions": "個人情報保護委員会 — authority for employee personal data protection: 個人情報保護法 and its 施行令/施行規則, the ガイドライン（通則編） on security measures, retention and disposal, third-party provision and employee monitoring; 漏えい等報告 (速報 within about 3–5 days, 確報 within 30 days or 60 days for unauthorised access, 規則 arts.7–8) and notice to the person; マイナンバー法 and the 特定個人情報の適正な取扱いに関するガイドライン（事業者編） for collecting and disposing of employees' My Numbers in payroll. Find them under 個人情報保護法等 > 法令・ガイドライン等 (/personalinfo/legal/), マイナンバー法 > ガイドライン (/legal/policy/), and 申請・手続・報告 > 漏えい等報告."
-				},
-				{
-					"url": "https://www.cao.go.jp/",
-					"instructions": "内閣府 — authority for public holidays only: 国民の祝日に関する法律 (national holidays, 振替休日 when a holiday falls on Sunday, 国民の休日 between two holidays) and the official annual list at 内閣府の政策 > 制度 > 国民の祝日について (https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html), with the machine-readable syukujitsu.csv on the same page. Japan has no regional public holidays and no statutory holiday pay premium. The vernal/autumnal equinox dates of a year are fixed by the 国立天文台 暦要項 published in 官報 on the first weekday of February of the preceding year: add a year's holidays only once this list carries them.",
-					"document_origins": ["https://www8.cao.go.jp/"]
-				},
-				{
+					"agent": "contribution",
 					"url": "https://www.jeed.go.jp/",
-					"instructions": "独立行政法人高齢・障害・求職者雇用支援機構 (JEED) — authority for the disability employment levy administration only: 障害者雇用納付金 (employers of more than 100 workers short of the legal rate, 50,000 yen per person-month), 障害者雇用調整金/報奨金, and the annual 申告・申請 from 1 April to 15 May with its 記入説明書 and 申告申請書. Find them under 障害者の雇用支援 > 障害者雇用納付金制度 (/disability/levy_grant_system_about_procedure.html). Not this entry: the legal employment rate and the 6月1日 障害者雇用状況報告 (厚生労働省)."
+					"instructions": "独立行政法人高齢・障害・求職者雇用支援機構 (JEED) — the disability employment levy scheme: 障害者雇用納付金 (employers of more than 100 regular workers short of the legal rate, amount per person-month of shortfall), 障害者雇用調整金 and 報奨金 amounts and their thresholds. Find them under 障害者の雇用支援 > 障害者雇用納付金制度 (/disability/levy_grant_system_about_procedure.html) and the year's 記入説明書."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.mhlw.go.jp/",
+					"instructions": "厚生労働省 — the limits labour law sets. Minimum wage: 最低賃金法 and the regional amounts (地域別最低賃金の全国一覧 under 政策について > 雇用・労働 > 労働基準 > 賃金 > 最低賃金制度, each amount with its 発効日; prefectural labour bureau pages on jsite.mhlw.go.jp give the 発効日 and 特定最低賃金 per industry). Hours: 労働基準法 arts.32–32-5 (40 hours/8 hours, 変形労働時間制), art.40 and 施行規則 art.25-2 (44-hour 特例措置対象事業場), art.34 breaks, art.35 weekly rest (4週4日), art.36 and 施行規則 overtime limits (45/360, special clause 100/720/80-hour average, six months) with the deferred sectors (建設, 自動車運転, 医師) and their own caps, art.41 exclusions. Wages: art.24 payment principles (currency, direct, full, at least monthly, fixed date; account and digital payment consent under 施行規則 art.7-2), deductions only by law or 労使協定, art.17 offset of advances, art.91 減給 limits. Young workers: arts.56–64. Records: art.109 retention (5 years, 3 transitional) of 労働者名簿, 賃金台帳 and 出勤簿. Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達).",
+					"document_origins": ["https://jsite.mhlw.go.jp/"]
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.nta.go.jp/",
+					"instructions": "国税庁 — retention limits for withholding records: how long the employer keeps 扶養控除等申告書, 基礎控除申告書, 保険料控除申告書 and 退職所得の受給に関する申告書 (所得税法施行規則, 7 years from the deadline). Find the rule in タックスアンサー (search 申告書 保存) and the 年末調整のしかた chapter on 申告書の保存."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.ppc.go.jp/",
+					"instructions": "個人情報保護委員会 — limits on keeping employee personal data: retention and disposal under the 個人情報保護法 ガイドライン（通則編） (/personalinfo/legal/) and, for My Numbers, the 特定個人情報の適正な取扱いに関するガイドライン（事業者編） (マイナンバー法 > ガイドライン, /legal/policy/): My Numbers may be kept only while a statutory document needs them and must be deleted or disposed of afterwards; quote the retention and disposal clauses."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.mhlw.go.jp/",
+					"instructions": "厚生労働省 — event rules of labour law. Rest days: a 法定休日 is the weekly rest of art.35, not a national holiday; 振替休日 (rest day swapped in advance, no 法定休日 premium but a weekly 40-hour excess can arise) versus 代休 (rest given after the work, premium still due), in the 通達 on 休日の振替. Exit: final wages and return of money within 7 days of a request (art.23), 退職時の証明 (art.22), dismissal notice periods and their shortening by paid days (art.20). Payroll run: 平均賃金 computed from the three months before the event, ending at the last 賃金締切日 (art.12); employment insurance premium charged on each payment of wages, including the final pay. Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達)."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.nenkin.go.jp/",
+					"instructions": "日本年金機構 — social insurance event rules: 資格取得日 is the hire date, 資格喪失日 is the day after the exit date, and premiums run to the month before the loss month (an exit on the last day of a month owes that month; acquisition and loss in one month owe one month); premiums are deducted from the following month's pay (翌月徴収), so a final pay may carry two months; 定時決定 (April–June pay, applied from September) and 随時改定 (a two-grade change after a fixed-wage change, three months' average, applied from the fourth month); the start and end months of maternity and childcare exemptions. Find them under 事業主向け 適用・届出 > 被保険者の資格喪失, 標準報酬月額の定時決定, 随時改定, and 保険料 > 保険料の納付と徴収."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.kyoukaikenpo.or.jp/",
+					"instructions": "全国健康保険協会（協会けんぽ） — the age events of the 介護保険 premium: it starts from the month in which the insured reaches 40 (the day before the 40th birthday) and stops from the month in which they reach 65. Find it under 保険料と保険料率 > 介護保険の保険料 (search 40歳 介護保険料)."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.nta.go.jp/",
+					"instructions": "国税庁 — withholding event rules: 年末調整 runs in the last pay of the year for employees employed on 31 December and for the leavers it names (death, departure abroad, December leavers after their final pay, those unable to work for the rest of the year); other mid-year leavers are not adjusted; an employee without a 扶養控除等申告書 is withheld on 乙欄; the retirement allowance is withheld at payment (with or without a 申告書). Find them in 年末調整のしかた (年末調整の対象となる人) and タックスアンサー (No.2665 and the 退職手当等 pages)."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.soumu.go.jp/",
+					"instructions": "総務省 — resident tax events on exit and transfer: a leaver between January and May has the remaining instalments collected in one sum (一括徴収) from the final pay when it suffices; a June–December leaver may ask for it; otherwise the balance moves to 普通徴収. Find the rule under 個人住民税 (特別徴収) and the 地方税法 art.321-5 explanation pages."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.mhlw.go.jp/",
+					"instructions": "厚生労働省 — employer duties with deadlines under labour law: 労働条件通知 on hire (労働基準法 art.15), 36協定届 and 就業規則 filing (10 or more workers) to the 労働基準監督署, registers 労働者名簿, 賃金台帳 and 出勤簿 (arts.107–108) and the 年次有給休暇管理簿, 雇用保険 資格取得届 (by the 10th of the next month) and 資格喪失届 with 離職証明書 (within 10 days), 労働保険 年度更新 (1 June–10 July), 外国人雇用状況の届出 on hire and departure, 障害者雇用状況報告 and 高年齢者雇用状況等報告 (as of 1 June, by 15 July), 再就職援助計画 and 大量雇用変動届 for mass separations, 一般事業主行動計画 duties, harassment prevention measures (男女雇用機会均等法, 労働施策総合推進法 and their 指針 告示), 労働安全衛生法 health checks and stress checks with their reports. Forms and deadlines are on each policy page under 政策について > 分野別の政策一覧 > 雇用・労働 and on the prefectural labour bureau pages (jsite.mhlw.go.jp). Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達).",
+					"document_origins": ["https://jsite.mhlw.go.jp/"]
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.nenkin.go.jp/",
+					"instructions": "日本年金機構 — social insurance filings and remittance: 資格取得届 and 資格喪失届 (within 5 days), 被扶養者異動届, 算定基礎届 (1–10 July), 月額変更届, 賞与支払届 (within 5 days of payment), 育児休業等取得者申出書 and 産前産後休業取得者申出書, and payment of the monthly premiums by the end of the following month. Find them under 事業主向け 適用・届出 (届書様式, 電子申請) and 保険料 > 保険料の納付."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.nta.go.jp/",
+					"instructions": "国税庁 — withholding duties: 給与支払事務所等の開設届出書 (within one month), payment of withheld tax by the 10th of the next month or, under 納期の特例, by 10 July and 20 January, 給与所得の源泉徴収票 to employees and the 法定調書合計表 with 源泉徴収票 to the tax office by 31 January (leavers within one month of leaving; 所得税法 art.226), 給与支払明細書 delivery (art.231), 退職所得の源泉徴収票. Find them under 税の情報・手続・用紙 > 申告・申請・届出等、用紙 > 源泉所得税 and the 法定調書の提出 pages; e-Tax specifications are linked there."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.soumu.go.jp/",
+					"instructions": "総務省 — resident tax duties: 給与支払報告書 to each employee's municipality by 31 January, remittance of 特別徴収 by the 10th of the next month (納期の特例 for fewer than 20 employees: 10 June and 10 December), the 異動届出 for a leaver or transfer by the 10th of the next month, and the 退職所得 特別徴収 remittance. Find them under 地方税制度 > 個人住民税 and the eLTAX pages linked from it."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.ppc.go.jp/",
+					"instructions": "個人情報保護委員会 — personal data duties: security measures for employee data (ガイドライン（通則編） 安全管理措置), records of third-party provision, 漏えい等報告 (速報 within about 3–5 days, 確報 within 30 days or 60 days for unauthorised access; 施行規則 arts.7–8) and notice to the person, and the My Number identity check on collection. Find them under 個人情報保護法等 > 法令・ガイドライン等 (/personalinfo/legal/) and 申請・手続・報告 > 漏えい等報告."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.jeed.go.jp/",
+					"instructions": "独立行政法人高齢・障害・求職者雇用支援機構 (JEED) — the annual 障害者雇用納付金 申告・申請 and payment between 1 April and 15 May (instalment option), with its 申告申請書 and 記入説明書. Find them under 障害者の雇用支援 > 障害者雇用納付金制度 (/disability/levy_grant_system_about_procedure.html) > 申告・申請の手続."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.mhlw.go.jp/",
+					"instructions": "厚生労働省 — payroll settings and employer facts from labour law: the monthly-wage basis of 割増賃金 (労働基準法施行規則 art.19, monthly wage divided by the average monthly scheduled hours, and art.21 exclusions: 家族手当, 通勤手当, 別居手当, 子女教育手当, 住宅手当, 臨時の賃金, wages paid over periods longer than a month); the 労使協定 and filings an entity holds (36協定 period and special clause, 変形労働時間制, 事業場外/裁量 deemed hours, 時間単位年休, wage deduction agreement, 44-hour 特例措置対象事業場, 定年 and 継続雇用 measures, 産業医 appointment); the 労働保険番号 and 雇用保険適用事業所番号, and each employee's 雇用保険被保険者番号. Statute, order, ordinance and 告示 text as amended to a chosen date is in the 厚生労働省法令等データベース at https://www.mhlw.go.jp/hourei/ (法令検索 by name, 本文検索 for a phrase; 通知 for 通達)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.nenkin.go.jp/",
+					"instructions": "日本年金機構 — social insurance facts: the 事業所整理記号 and 事業所番号, 特定適用事業所 status and the insured headcount it rests on, and per employee the 基礎年金番号 and the 標準報酬月額 grade decided by 資格取得時決定, 定時決定 or 随時改定. Find them under 事業主向け 適用・届出 (事業所の適用, 被保険者の資格取得)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.kyoukaikenpo.or.jp/",
+					"instructions": "全国健康保険協会（協会けんぽ） — health insurer facts: which prefecture's rate applies (the 事業所's location, 支部), membership of 協会けんぽ versus a 健康保険組合 (whose own rates and shares are company input), and the employee's 被保険者記号・番号. Find them under 健康保険ガイド > 事業主の皆さまへ."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.nta.go.jp/",
+					"instructions": "国税庁 — withholding settings and facts: the calendar tax year, the 甲欄/乙欄 column from the 扶養控除等申告書 and its dependants, the 所轄税務署 of the 給与支払事務所, the 納期の特例 approval, and the 法人番号. Find them in 年末調整のしかた, the 扶養控除等（異動）申告書 page under 源泉所得税 用紙, and タックスアンサー."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.soumu.go.jp/",
+					"instructions": "総務省 — resident tax facts: the employee's municipality (address on 1 January), the 特別徴収義務者指定番号 per municipality, the 納期の特例 approval, and the June–May collection year. Find them under 地方税制度 > 個人住民税 (特別徴収)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.ppc.go.jp/",
+					"instructions": "個人情報保護委員会 — the employee My Number as a payroll fact: when the employer may collect it, the purposes (源泉徴収票, social insurance and employment insurance filings) and the identity check, in the 特定個人情報の適正な取扱いに関するガイドライン（事業者編） (/legal/policy/) and its Q&A."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Each area has exactly one entry below; apply that entry's own guidance. Read the current Japanese instrument (an English page never overrides a later Japanese one); record the exact document URL, issuer, instrument number (法律/政令/省令/告示/通達 番号), publication and effective dates and the quoted clause or table; read annexes and amendments, and verify figures from scanned PDFs visually. Separate calendar years (withholding), fiscal years from April (rates) and the deduction month of a premium (翌月徴収). Never seed a bill, 審議会 draft or announced proposal before its instrument is published. Never sign in or upload customer records. e-Gov 法令検索 (laws.e-gov.go.jp) refuses both research tools (403) and is deliberately not a source: labour statutes are read in the 厚生労働省法令等データベース, tax and other statutes through their ministry's entry."
+			"agents": {
+				"catalog": "Japan: leave classes and pay items come from 労働基準法 and 育児・介護休業法; national holidays carry no statutory premium (the 35% applies to 法定休日 work only). Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing.",
+				"contribution": "Japan: separate calendar years (withholding tax), fiscal years from March or April (insurance rates) and the 月分 a rate applies to; each insurer's table is read only for its own column. Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing.",
+				"rules": "Japan: limits come from 労働基準法 and 最低賃金法 with their 施行規則 and 告示; regional minimum wages change on each prefecture's own 発効日. Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing.",
+				"behaviour": "Japan: event rules are spread over 労働基準法, the social insurance acts, 所得税法 and 地方税法; read the operative clause, not a leaflet's summary, where they differ. Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing.",
+				"obligations": "Japan: each filing has its own receiving office (労働基準監督署, ハローワーク, 年金事務所, 税務署, municipality, JEED, 個人情報保護委員会); take the deadline from the operative rule. Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing.",
+				"settings": "Japan: currency JPY, Asia/Tokyo; withholding runs on the calendar year and resident tax on June–May; employer numbers and agreements are company input, the law fixes only what they must be. Read the current Japanese instrument (an English page never overrides a later Japanese one), with annexes and amendments; read figures in scanned PDFs visually; never take a bill, 審議会 draft or announced proposal before its instrument (法律/政令/省令/告示/通達 番号) is published. e-Gov 法令検索 refuses research tools and is not a source: read labour statutes in the 厚生労働省法令等データベース and tax statutes through their ministry. Never sign in or upload records; verify each instrument's effective date against this version's period, quote the exact wording with its URL, issuer and number, and report unresolved evidence instead of guessing."
+			}
 		},
 		"change_summary": "1 April 2026: the 令和8年度 employment insurance rates (13.5/1000 general: worker 5, employer 8.5) apply, and the 子ども・子育て支援金 (0.23%, split equally) is collected with the health insurance premium from the April 2026 premium (子ども・子育て支援法 art.71の3 as enacted by Law 47 of 2024).",
 		"reference_tables": {

@@ -3899,21 +3899,37 @@ describe('PH: the whole tracker, row by row', () => {
 		assert.ok(car.includes('2026-07-15') && car.includes('2026-09-11'));
 		assert.ok(!car.includes('2026-11-16') && !car.includes('2026-09-14'));
 	});
-	it('PH-SETTINGS: research sources are readable portals, each with its own areas; the AEP rule cites DO 248 s.2025', () => {
+	it('PH-SETTINGS: research sources are readable portals, each entry serving one agent; the AEP rule cites DO 248 s.2025', () => {
+		const agentNames = ['catalog', 'contribution', 'rules', 'behaviour', 'obligations', 'settings'];
 		for (const version of versions) {
-			const entries = fixtureValue4(fixtureRecord(settingsOf(version).sources).entries);
+			const sources = fixtureRecord(settingsOf(version).sources);
+			const entries = fixtureValue4(sources.entries);
 			// E-Library (browser block) and pagibigfund.gov.ph (browser challenge) are replaced by lawphil.net and ONAR;
 			// bir.gov.ph renders no text in the agents' browser, and BIR's revenue regulations are published on ONAR.
 			assert.deepEqual(
-				entries.map((e) => e.url),
+				[...new Set(entries.map((e) => fixtureString(e.url)))].sort(),
 				[
 					'https://lawphil.net/',
+					'https://naro.law.upd.edu.ph/',
 					'https://nwpc.dole.gov.ph/',
-					'https://www.sss.gov.ph/',
 					'https://www.philhealth.gov.ph/',
-					'https://naro.law.upd.edu.ph/'
+					'https://www.sss.gov.ph/'
 				],
 				version
+			);
+			assert.ok(sources.instructions === undefined, `${version} no registry-wide instructions`);
+			const agents = fixtureRecord(sources.agents);
+			assert.deepEqual(Object.keys(agents).sort(), [...agentNames].sort(), version);
+			for (const agent of agentNames) {
+				assert.ok(fixtureString(agents[agent]).length > 0, `${version} ${agent} supplementary`);
+				assert.ok(
+					entries.some((e) => e.agent === agent),
+					`${version} ${agent} has entries`
+				);
+			}
+			assert.ok(
+				entries.every((e) => agentNames.includes(fixtureString(e.agent))),
+				`${version} every entry serves one agent`
 			);
 			const instructions = entries.map((e) => fixtureString(e.instructions));
 			assert.equal(new Set(instructions).size, instructions.length, `${version} no shared text`);

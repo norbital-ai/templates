@@ -8,7 +8,8 @@ import { Context, Effect, Layer, Schema } from 'effect';
 import { Browser, Reads, WebRead, type AiResponse, type HostTool } from '@norbital-ai/bolt/engine';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import type { DeclaredRow, Page } from '@norbital-ai/bolt';
-import { COVERAGE_SCOPES, SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import { SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import { RESEARCH_AGENT_NAMES, RULE_FAMILIES } from '../src/lib/payroll_engine/research_agents.ts';
 import { nativeId } from './fixture_values.ts';
 import { workspace } from './kit.ts';
 
@@ -29,13 +30,14 @@ const Settings = Schema.Struct({
 		from: Schema.String,
 		to: Schema.optionalKey(Schema.NullOr(Schema.String))
 	}),
-	sources: Schema.Struct({ entries: Schema.Array(Schema.Struct({ url: Schema.String })) })
+	sources: Schema.Struct({
+		entries: Schema.Array(Schema.Struct({ agent: Schema.String, url: Schema.String }))
+	})
 });
 const Index = Schema.Struct({ sections: Schema.Record(Schema.String, Schema.Unknown) });
 const RuleIndex = Schema.Struct({
 	rows: Schema.Array(Schema.Struct({ code: Schema.String, path: Schema.String }))
 });
-const SettingsIndex = Schema.Struct({ fields: Schema.Record(Schema.String, Schema.Unknown) });
 const RunOutput = Schema.Struct({
 	lineages: Schema.Array(Schema.String),
 	drafted: Schema.Array(Schema.String),
@@ -105,25 +107,23 @@ function lineage(code: string) {
 	const restored = Object.fromEntries(
 		Object.entries(missing).filter(([key]) => key in SNAPSHOT_MODELS.rule_set.fields)
 	);
-	const source = version.sources.entries[0];
+	// record_retention is a PAYROLL rule: the rules agent's own, read from its own sources
+	const source = version.sources.entries.find((entry) => entry.agent === 'rules');
 	assert.ok(source);
 	const url = new URL('/probe-instrument', source.url).href;
 	return { folder, settingsRows, version, seededSettings, rows, missing, restored, source, url };
 }
 
-/** Resolve a pass's coverage scope through its keyed path: records verified, the rest declared unverified. */
-const cover = (scope: string) => ({
-	path: `/coverage/${scope}/status`,
-	set: scope === 'records' ? 'verified' : 'unverified'
-});
-const [first, ...later] = COVERAGE_SCOPES;
-/** Every later scope's pass resolves its coverage and submits unchanged. */
-const rest = later.map((scope): ToolCalls => [
-	{ id: 'cover', name: 'edit', input: { ops: [cover(scope)] } },
+/** Resolve an agent's coverage through its keyed path. */
+const cover = (agent: string) => ({ path: `/coverage/${agent}/status`, set: 'verified' });
+/** An agent that finds nothing to change: it resolves its coverage and submits unchanged. */
+const idle = (agent: string): ToolCalls => [
+	{ id: 'cover', name: 'edit', input: { ops: [cover(agent)] } },
 	{ id: 'save', name: 'submit', input: {} }
-]);
-/** The first scope's pass is `turn`. */
-const passes = (turn: ToolCalls): ToolCalls[] => [turn, ...rest];
+];
+/** One model turn per agent, in the order the six start; the rules agent (record_retention's owner) answers `turn`. */
+const passes = (turn: ToolCalls): ToolCalls[] =>
+	RESEARCH_AGENT_NAMES.map((agent) => (agent === 'rules' ? turn : idle(agent)));
 /** Add the withheld retention rule at its keyed path, citing `reference` in its own references (none when null). */
 const restore = (
 	restored: Readonly<Record<string, Schema.Json>>,
@@ -151,7 +151,7 @@ const restore = (
 								]
 				}
 			},
-			cover(first),
+			cover('rules'),
 			{ path: '/changed', set: true },
 			{ path: '/summary', set: summary }
 		]
@@ -343,7 +343,7 @@ describe('statutory drift research transport (mock inference, not live research)
 				});
 				const ai = t.fakes.ai;
 				assert.ok(ai);
-				assert.equal(ai.requests.length, COVERAGE_SCOPES.length);
+				assert.equal(ai.requests.length, RESEARCH_AGENT_NAMES.length);
 				assert.deepEqual(
 					result.browserRequests.map((request) => request.name),
 					['browser_navigate', 'browser_snapshot']
@@ -354,26 +354,35 @@ describe('statutory drift research transport (mock inference, not live research)
 					`# Official instrument fixture\n${quote}`
 				]);
 				assert.deepEqual(result.fetched, [url]);
-				const request = ai.requests[0];
+				const marker = 'Index of the snapshot sections you own (read original values in memory):\n';
+				const request = ai.requests.find((item) =>
+					item.messages.some(
+						(message) =>
+							typeof message.content === 'string' &&
+							message.content.includes('You are the rules agent')
+					)
+				);
 				assert.ok(request);
 				assert.match(request.system ?? '', /Public holidays are out of scope/);
-				const marker = 'Complete snapshot index (read original values in memory):\n';
 				const prompt = request.messages.find(
 					(message) => typeof message.content === 'string' && message.content.includes(marker)
 				);
 				assert.ok(prompt);
 				const content = Schema.decodeUnknownSync(Schema.String)(prompt.content);
-				// The registry reaches the model as entry points only, never as an editable snapshot field.
+				// The registry reaches the model as entry points only, never as an editable snapshot field; each agent sees
+				// only its own sources.
 				assert.ok(content.includes(source.url));
+				assert.ok(!content.includes('"agent":"catalog"'));
 				const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
 					content.slice(content.indexOf(marker) + marker.length).split('\n', 1)[0]
 				);
-				assert.deepEqual(Object.keys(index.sections).sort(), Object.keys(SNAPSHOT_MODELS).sort());
-				assert.equal(
-					'sources' in Schema.decodeUnknownSync(SettingsIndex)(index.sections['settings']).fields,
-					false
-				);
+				// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
+				assert.deepEqual(Object.keys(index.sections), ['rule_set']);
 				const ruleIndex = Schema.decodeUnknownSync(RuleIndex)(index.sections['rule_set']).rows;
+				const owned = rows.rule_set.filter((row) =>
+					RULE_FAMILIES.rules.includes(String(row['family']))
+				);
+				assert.equal(ruleIndex.length, owned.length);
 				assert.equal(
 					ruleIndex.some((row) => row.code === missing['code']),
 					false
@@ -387,7 +396,10 @@ describe('statutory drift research transport (mock inference, not live research)
 				assert.ok(created);
 				assert.equal(created.sealed_at, null);
 				assert.equal(created.cloned_from_id, version.id);
-				assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
+				assert.equal(
+					created.change_summary,
+					`rule_set: added record_retention\n\nrules: ${summary}`
+				);
 				assert.deepEqual(created.sources, settingsRows[0]?.['sources']);
 				assert.deepEqual(created.suspension_kinds, readSeedRows(folder, 'suspension_kind'));
 				assert.equal('suspension_kind' in created, false);
@@ -408,10 +420,7 @@ describe('statutory drift research transport (mock inference, not live research)
 
 	it.effect('a verified no-change resolves coverage and drafts nothing', () =>
 		Effect.gen(function* () {
-			const result = yield* research('SG', [
-				[{ id: 'cover', name: 'edit', input: { ops: [cover(first)] } }, submit],
-				...rest
-			]);
+			const result = yield* research('SG', [...RESEARCH_AGENT_NAMES.map(idle)]);
 			assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], refused: [], failed: [] });
 			assert.deepEqual(result.drafts, []);
 			assert.deepEqual(result.fetched, []);
@@ -424,33 +433,53 @@ describe('statutory drift research transport (mock inference, not live research)
 			Effect.gen(function* () {
 				const result = yield* research(
 					'SG',
-					COVERAGE_SCOPES.map(() => [submit])
+					RESEARCH_AGENT_NAMES.map(() => [submit])
 				);
 				assert.deepEqual(result.output.drafted, []);
 				assert.equal(result.output.failed.length, 1);
 				const [failed] = result.output.failed;
 				assert.ok(failed);
 				assert.ok(failed.startsWith('SG: incomplete — not resolved: '), failed);
-				for (const scope of COVERAGE_SCOPES) assert.ok(failed.includes(scope), failed);
+				for (const agent of RESEARCH_AGENT_NAMES) assert.ok(failed.includes(agent), failed);
 				assert.deepEqual(result.drafts, []);
 			})
 	);
 
-	it.effect("a scope whose pass fails keeps the other scopes' verified rows and is named", () =>
+	it.effect(
+		"an agent whose inference fails keeps the other agents' verified rows and is named",
+		() =>
+			Effect.gen(function* () {
+				const { url, restored } = lineage('SG');
+				// the last agent to start (settings) finds no model turn left: its inference fails
+				const result = yield* research(
+					'SG',
+					passes([restore(restored, { url, quote }), submit]).slice(0, -1)
+				);
+				assert.deepEqual(result.output.drafted, ['SG']);
+				const created = result.drafts[0];
+				assert.ok(created);
+				assert.ok(
+					created.change_summary?.startsWith(
+						`rule_set: added record_retention\n\nrules: ${summary}\n\nNot resolved: settings (`
+					),
+					String(created.change_summary)
+				);
+			})
+	);
+	it.effect("an agent's edit to a row another agent owns is never merged", () =>
 		Effect.gen(function* () {
 			const { url, restored } = lineage('SG');
-			// only the first scope's pass has a model turn: every later pass fails
-			const result = yield* research('SG', [[restore(restored, { url, quote }), submit]]);
-			assert.deepEqual(result.output.drafted, ['SG']);
-			const created = result.drafts[0];
-			assert.ok(created);
-			assert.ok(
-				created.change_summary?.startsWith(
-					`rule_set: added record_retention\n\n${summary}\n\nNot resolved: ${later[0]} (`
-				),
-				String(created.change_summary)
+			// the catalog agent restores a PAYROLL rule: the rules agent's row, so nothing of it is taken
+			const turns = RESEARCH_AGENT_NAMES.map((agent) =>
+				agent === 'catalog' ? [restore(restored, { url, quote }), submit] : idle(agent)
 			);
-			for (const scope of later) assert.ok(created.change_summary?.includes(`${scope} (`), scope);
+			const result = yield* research('SG', turns);
+			assert.deepEqual(result.output.drafted, []);
+			// its turn resolved another agent's coverage, so its own stays unresolved
+			assert.deepEqual(result.output.refused, [
+				'SG: a change that edits no row; not resolved: catalog'
+			]);
+			assert.deepEqual(result.drafts, []);
 		})
 	);
 	it.effect('a row whose evidence fails is left out; the verified rows are still drafted', () =>
@@ -493,13 +522,16 @@ describe('statutory drift research transport (mock inference, not live research)
 			);
 			const created = result.drafts[0];
 			assert.ok(created);
-			assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
+			assert.equal(created.change_summary, `rule_set: added record_retention\n\nrules: ${summary}`);
 		})
 	);
 	it.effect('an edit that cites nothing new is left out; the verified rows are still drafted', () =>
 		Effect.gen(function* () {
 			const { url, restored, rows } = lineage('SG');
-			const existing = rows.rule_set[0];
+			// a rule the rules agent owns: an edit elsewhere would never be merged at all
+			const existing = rows.rule_set.find((row) =>
+				RULE_FAMILIES.rules.includes(String(row['family']))
+			);
 			assert.ok(existing);
 			const uncited: ToolCalls[number] = {
 				id: 'uncited',
@@ -526,7 +558,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			);
 			const created = result.drafts[0];
 			assert.ok(created);
-			assert.equal(created.change_summary, `rule_set: added record_retention\n\n${summary}`);
+			assert.equal(created.change_summary, `rule_set: added record_retention\n\nrules: ${summary}`);
 		})
 	);
 	it.effect('an unsupported change drafts nothing', () =>

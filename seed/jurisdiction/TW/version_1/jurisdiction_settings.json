@@ -39,47 +39,119 @@
 		"sources": {
 			"entries": [
 				{
-					"url": "https://data.gov.tw/",
-					"instructions": "首頁 ｜ 政府資料開放平臺. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://gazette.nat.gov.tw/",
-					"instructions": "行政院公報資訊網. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://law-out.mof.gov.tw/",
-					"instructions": "財政部主管法規共用系統-最新訊息. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://law.moj.gov.tw/",
-					"instructions": "全國法規資料庫. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "全國法規資料庫 (Ministry of Justice). Read 勞動基準法 (pcode N0030001) and its 施行細則 (N0030002) for the pay items: overtime, rest-day and holiday work pay (§24, §39, §40), annual leave and its pay (§38), termination notice and pay in lieu (§16), severance (§17) and old-system retirement pay (§55). Read 勞工請假規則 (N0030006) and 性別平等工作法 (N0030014) for statutory leave classes, entitlements and pay — maternity, paternity, parental, family-care and menstrual leave, childcare hours — and 育嬰留職停薪 as a suspension; 勞工退休金條例 (N0030020) §12 for new-system severance. Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
 				},
 				{
-					"url": "https://www.bli.gov.tw/",
-					"instructions": "www.bli.gov.tw. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.dgpa.gov.tw/",
-					"instructions": "行政院人事行政總處全球資訊網-DGPA-. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.dot.gov.tw/",
-					"instructions": "財政部賦稅署. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.mohw.gov.tw/",
-					"instructions": "衛生福利部. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://www.mol.gov.tw/",
-					"instructions": "勞動部全球資訊網中文網. Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "勞動部 (Ministry of Labor). Statute text is the law.moj entry; rulings (函釋) are in 勞動法令查詢系統, linked from 勞動法令. Read the 勞動部令 amending 勞工請假規則 and the other leave rules (新聞公告 > 新聞稿 / 公布欄), and the 函釋 on leave pay, overtime pay, average wage, suspensions and termination payments."
 				},
 				{
+					"agent": "contribution",
+					"url": "https://www.bli.gov.tw/",
+					"instructions": "勞動部勞工保險局 (Bureau of Labor Insurance). Read labour, employment and occupational accident insurance — rates, the 勞工保險投保薪資分級表 and the 職災 grades, the 保險費分擔金額表 with its shares, the 職業災害保險適用行業別及費率表 — the new-system labour pension (勞工退休金月提繳工資分級表, the 6% employer contribution, voluntary worker contributions) and the 積欠工資墊償基金 levy (0.025% on the unit total). Use 業務專區 (勞工保險 / 就業保險 / 職災保險 / 勞工退休金 / 工資墊償) and 公告資訊; the tables are PDFs under /Files/."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://law.moj.gov.tw/",
+					"instructions": "全國法規資料庫. Read coverage, base, shares and rounding in the statutes: 勞工保險條例 (N0050001), 就業保險法 (N0050021), 勞工職業災害保險及保護法, 勞工退休金條例 (N0030020), 全民健康保險法 (L0060001) with its supplementary-premium articles, 勞動基準法 §56 and the 勞工退休準備金提撥及管理辦法 for the old-system reserve, 所得稅法 (G0340003) for salary withholding, 身心障礙者權益保障法 (D0050046) §38 and §43 for the disabled-employment quota levy, and 職工福利金條例 (N0040001) for the employee welfare fund. Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://gazette.nat.gov.tw/",
+					"instructions": "行政院公報資訊網 (Executive Yuan Gazette). Read the 衛生福利部 公告 on national health insurance in the 衛生勞動篇: the premium rate, the average-dependants factor, the 全民健康保險投保金額分級表 and the supplementary premium rate (公報瀏覽, or 搜尋 for 「全民健康保險投保金額分級表」 / 「全民健康保險保險費率」). Use it too for the 勞動部 and 財政部 公告 of the insurance grade tables and withholding amounts when the agency page lacks the operative text."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.dot.gov.tw/",
+					"instructions": "財政部賦稅署 (Taxation Administration, Ministry of Finance). Read payroll income-tax withholding: the annual 綜合所得稅免稅額、標準扣除額、薪資所得特別扣除額、課稅級距 and 退職所得定額免稅 announcement, the year’s 薪資所得扣繳稅額表 with its 說明, the bonus withholding threshold and the non-resident salary rates (各類所得扣繳率標準). The amounts and table are under 公告訊息 and the page 年度綜合所得稅免稅額等金額 / 薪資所得扣繳稅額表 (/multiplehtml/06afbfc0e60e4ccb88f3f7f956aaacc7)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.mohw.gov.tw/",
+					"instructions": "衛生福利部. Read the 公告 on national health insurance — premium rate, average-dependants factor, 全民健康保險投保金額分級表 and supplementary premium rate — under 最新消息 / 公告 and its 法規 links."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://law-out.mof.gov.tw/",
+					"instructions": "財政部主管法規共用系統. Read the withholding instruments and their 函釋: 所得稅法, 各類所得扣繳率標準 and 薪資所得扣繳辦法; use 法規查詢 and 最新訊息 for amendments."
+				},
+				{
+					"agent": "contribution",
 					"url": "https://www.etax.nat.gov.tw/etwmain/",
-					"instructions": "Ministry of Finance eTax portal (withholding tables). Use 最新消息, 法規, 保費/投保薪資/提繳級距 tables, withholding tables and official calendars. Verify 公告/令, amendment history, annexes and effective dates; ROC year +1911 equals Gregorian year. Separate labour/employment/occupational-accident insurance, pension and NHI, contribution shares, dependent counts, declared insured wage and tax residence. Do not synthesize unpublished 116年 (2027) tables from 115年 data. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Ministry of Finance eTax portal. Read the year’s 薪資所得扣繳稅額表 and the withholding rate tables for residents and non-residents; download the table files from the withholding pages."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://data.gov.tw/",
+					"instructions": "政府資料開放平臺. Use site search for the official datasets of the 投保薪資 / 提繳工資 / 投保金額 grade tables as a cross-check; follow each dataset to its issuing agency’s 公告, which is the instrument."
+				},
+				{
+					"agent": "rules",
+					"url": "https://law.moj.gov.tw/",
+					"instructions": "全國法規資料庫. Read 勞動基準法 (N0030001) and 施行細則 (N0030002) for the limits: working hours and flexible schedules (§30, §30-1), overtime caps and classification (§32, §32-1), shift rest (§34), 例假 and 休息日 (§36), wage payment in legal tender, in full and at least twice a month unless agreed (§22, §23), the bar on pre-deducting penalties or damages (§26), child and young workers (§44–§48), and retention of the wage roster and attendance records (§23, §30). Read 最低工資法 for how the minimum wage is set and what it covers. Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.mol.gov.tw/",
+					"instructions": "勞動部 (Ministry of Labor). Statute text is the law.moj entry; rulings (函釋) are in 勞動法令查詢系統, linked from 勞動法令. Read the minimum wage — monthly and hourly, one national rate — from the 最低工資審議會 decision and the 行政院 核定 under 最低工資法 §10 (新聞公告 > 新聞稿 / 公布欄), and the 函釋 on hours, overtime, rest days and wage payment."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://law.moj.gov.tw/",
+					"instructions": "全國法規資料庫. Read the event rules in the operative articles of 勞動基準法 (N0030001) and 施行細則 (N0030002): what a §37 holiday falling on a §36 例假 or 休息日 must cause (施行細則 §23-1), the pay-out of unused annual leave at the leave-year end or contract end (§38(4)), the pay-out of unused 補休 at its expiry or contract end (§32-1), and when severance falls due after termination (§17(2)). Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.mol.gov.tw/",
+					"instructions": "勞動部 (Ministry of Labor). Statute text is the law.moj entry; rulings (函釋) are in 勞動法令查詢系統, linked from 勞動法令. Read the 函釋 on 補假 when a holiday meets a rest day, the expiry and pay-out of 補休, and the annual-leave pay-out on exit."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.bli.gov.tw/",
+					"instructions": "勞動部勞工保險局. Read the employer duties: enrolment (加保) on hire and withdrawal (退保) on exit for labour, employment and occupational accident insurance, the 勞退 提繳 申報 on hire and exit, the monthly premium bill (保險費繳款單) deadline and late fees, and the forms. Use 業務專區 > 投保單位 and 下載專區 (表單)."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://law.moj.gov.tw/",
+					"instructions": "全國法規資料庫. Read the duties with deadlines: the payslip breakdown (勞動基準法 §23, 施行細則 §14-1), the wage roster and attendance registers (§23, §30), the mass-layoff plan and notice (大量解僱勞工保護法 N0020012 §4), the 資遣 notification (就業服務法 N0090001 §33), NHI enrolment, withdrawal and supplementary-premium remittance (全民健康保險法 L0060001 and 全民健康保險扣取及繳納補充保險費辦法), salary withholding remittance and the annual 扣繳憑單 filing (所得稅法 G0340003 §88, §92), and payment of the quota levy (身心障礙者權益保障法 D0050046 §43). Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.dot.gov.tw/",
+					"instructions": "財政部賦稅署. Read the withholding remittance and 各類所得扣繳暨免扣繳憑單 filing deadlines and forms under 公告訊息 and the withholding pages."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.etax.nat.gov.tw/etwmain/",
+					"instructions": "Ministry of Finance eTax portal. Read the 扣免繳憑單 申報 deadlines, forms and filing channels; do not open any signed-in filing service."
+				},
+				{
+					"agent": "settings",
+					"url": "https://law.moj.gov.tw/",
+					"instructions": "全國法規資料庫. Read 勞動基準法 (N0030001) §2 for wage and average wage, which set the monthly-wage basis, 所得稅法 (G0340003) §7 for tax residence and the calendar tax year, and 個人資料保護法 (I0050021) for the employee data an employer may hold. Use 法規內容 for the article, 沿革 for amendment and commencement dates, LawAll.aspx?pcode=… for a whole Act and LawSingle.aspx?pcode=…&flno=… for one article; search by name where no pcode is given."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.bli.gov.tw/",
+					"instructions": "勞動部勞工保險局. Read 業務專區 > 投保單位 and the enrolment forms for the employer numbers (投保單位保險證號, 勞退 提繳單位) and the employee facts enrolment requires (identity or residence-permit number, insured wage, nationality status)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.dot.gov.tw/",
+					"instructions": "財政部賦稅署. Read the withholding pages for the employer withholding unit number and the employee facts withholding needs: residency, dependants claimed for 免稅額 and the election between the 扣繳稅額表 and the flat rate."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"agents": {
+				"catalog": "Taiwan’s pay and leave catalogues come from 勞動基準法 and its 施行細則, 勞工請假規則 and 性別平等工作法 on law.moj, applied through MOL 函釋. ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing.",
+				"contribution": "Taiwan runs labour, employment and occupational accident insurance, the new-system labour pension, the wage arrears fund, the old-system retirement reserve, national health insurance with its supplementary premium and salary income-tax withholding, each with its own grade table or rate announcement for the year; keep their coverage, dependant counts, declared insured wage and tax residence apart. Read each year’s own table — never build one from the previous year’s — and treat an unpublished table as unresolved. Read NHI from the 衛生福利部 公告 on mohw or in the gazette; www.nhi.gov.tw serves a security-verification challenge to the research tools, so do not try to get past it. ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing.",
+				"rules": "Taiwan has one national minimum wage, monthly and hourly, with no regional rates; a 最低工資審議會 decision is not in force until the 行政院 核定 is announced. Hours, overtime, rest days, wage payment and young-worker limits are 勞動基準法 articles. ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing.",
+				"behaviour": "Read event rules from the operative articles, not summaries; the civil-service 補假 and 調整放假 dates are not private-sector rules — a private employer agrees its 補假 with the workers (勞資協商, 施行細則 §23-1). ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing.",
+				"obligations": "Employer duties split by authority: BLI for insurance and pension enrolment and premium bills, 全民健康保險法 for health insurance enrolment and supplementary premium, the tax administration for withholding remittance and statements, the labour code for registers, payslips and notices. Take each duty’s trigger, deadline and form from the operative article or 公告. ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing.",
+				"settings": "Payroll settings follow the labour code’s wage definitions and the calendar tax year under 所得稅法; the statutory facts held are those the insurance, pension and withholding filings require. ROC year + 1911 = Gregorian year; a press release is a pointer, not the instrument, and a scanned PDF is OCRed and its figures checked against the page image. Never sign in or upload customer records, verify effective dates, quote the exact wording with issuer, 文號 and document URL, use another registered portal when a page is inaccessible, and report unresolved evidence instead of guessing."
+			}
 		},
 		"change_summary": "The law in force on 1 December 2025 (民國114年 tables): minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, the non-resident 6% breakpoint at 42,885, and the 勞動基準法 leave and part-time rules.",
 		"employee_input_schema": {

@@ -28,6 +28,7 @@ import { leaveBalances, movementFromRow } from '../src/lib/payroll_engine/leave.
 import { type PayrollRunKind } from '../src/lib/payroll_engine/payslip/context.js';
 import { recordDocuments } from '../src/lib/payroll_engine/export.js';
 import { bankRow } from '../seed/seed.ts';
+import { RESEARCH_AGENT_NAMES } from '../src/lib/payroll_engine/research_agents.js';
 const fixturePresent = <A>(value: A): NonNullable<A> => {
 	assert.ok(value != null, 'The fixture contains the required authored value.');
 	return value;
@@ -41,6 +42,18 @@ const guardFixture =
 	};
 const fixtureRecord = guardFixture(
 	FixtureSchema.Record(FixtureSchema.String, FixtureSchema.mutableKey(FixtureSchema.Unknown))
+);
+const fixtureSources = guardFixture(
+	FixtureSchema.Struct({
+		entries: FixtureSchema.Array(
+			FixtureSchema.Struct({
+				agent: FixtureSchema.Literals(RESEARCH_AGENT_NAMES),
+				url: FixtureSchema.String,
+				instructions: FixtureSchema.String
+			})
+		),
+		agents: FixtureSchema.Record(FixtureSchema.String, FixtureSchema.String)
+	})
 );
 const fixtureRecords = guardFixture(
 	FixtureSchema.mutable(
@@ -6370,17 +6383,26 @@ describe('ID round 7: the whole law, row by row', () => {
 		}
 	});
 	it('ID-SETTINGS-17: the in-force sources — one readable official entry per area, each with its own instructions', () => {
-		const sources = fixtureRecord(settingsOf('version_4').sources);
-		const entries = fixtureValue3(sources.entries);
-		const urls = entries.map((entry) => String(entry.url));
+		for (const version of versions) {
+			const { entries, agents } = fixtureSources(settingsOf(version).sources);
+			for (const agent of RESEARCH_AGENT_NAMES) {
+				assert.ok(
+					entries.some((entry) => entry.agent === agent),
+					`${version} ${agent} entries`
+				);
+				assert.ok((agents[agent] ?? '').trim().length > 0, `${version} ${agent} supplementary`);
+			}
+		}
+		const { entries } = fixtureSources(settingsOf('version_4').sources);
+		const urls = [...new Set(entries.map((entry) => entry.url))];
 		// jdih.kemnaker.go.id and www.bpjs-kesehatan.go.id (WAF block pages) and oss.go.id (licensing, not HR law) are not
 		// sources; regency portals overlapped their governor's decrees. Audited through the agents' own browser on
 		// 2026-10-23: JDIH Setneg and peraturan.go.id time out, JDIH BPK is behind a challenge and pajak.go.id's pages crash
-		// the engine, so the statutes are read on JDIH DPR and PP/Perpres-only rules stay unresolved.
-		assert.deepEqual(urls.slice(0, 4), [
+		// the engine, so the statutes are read on JDIH DPR and PP/Perpres-only rules stay unresolved. Public holidays are no
+		// agent's subject, so the Kemenko PMK holiday decree page is not a source.
+		assert.deepEqual(urls.slice(0, 3), [
 			'https://jdih.dpr.go.id/',
 			'https://kemnaker.go.id/',
-			'https://www.kemenkopmk.go.id/pengumuman',
 			'https://www.bpjsketenagakerjaan.go.id/'
 		]);
 		for (const blocked of [
@@ -6390,12 +6412,18 @@ describe('ID round 7: the whole law, row by row', () => {
 			'lamongankab',
 			'pontianak',
 			'setneg',
-			'pajak'
+			'pajak',
+			'kemenkopmk'
 		])
 			assert.ok(!urls.some((url) => url.includes(blocked)), blocked);
-		assert.equal(new Set(urls).size, urls.length);
-		const instructions = entries.map((entry) => String(entry.instructions));
+		assert.equal(
+			new Set(entries.map((entry) => `${entry.agent} ${entry.url}`)).size,
+			entries.length
+		);
+		const instructions = entries.map((entry) => entry.instructions);
 		assert.equal(new Set(instructions).size, entries.length);
+		for (const entry of entries)
+			if (entry.instructions.startsWith('Provinsi ')) assert.equal(entry.agent, 'rules', entry.url);
 		// One minimum-wage entry per province with a readable official portal; Kepulauan Riau, Kalimantan Barat,
 		// Kalimantan Selatan (Cloudflare challenge), Sulawesi Tenggara and Papua Pegunungan (unreachable), Bali and Banten
 		// (JDIH under maintenance), Nusa Tenggara Barat (incomplete TLS chain) and Riau (times out) have none.
@@ -6408,7 +6436,6 @@ describe('ID round 7: the whole law, row by row', () => {
 			Object.keys(payrollRules('version_4').minimum_wage.by_region).map((key) => key.split('/')[0])
 		);
 		for (const province of provinces) assert.ok(regions.has(province), province);
-		assert.ok(String(sources.instructions).length > 100);
 	});
 	it('ID-CONTRIBUTION-4, ID-OBLIGATION-20/28: construction-services JKK, BPJS wage and headcount changes, 10-year tax records', () => {
 		for (const version of versions) {

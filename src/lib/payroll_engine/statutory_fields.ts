@@ -1,3 +1,6 @@
+import { REFERENCES_SHAPE } from './references.js';
+import { RESEARCH_AGENT_NAMES } from './research_agents.js';
+
 export const STATUTORY_FIELDS = {
 	settings: {
 		suspension_kinds: {
@@ -13,6 +16,12 @@ export const STATUTORY_FIELDS = {
 		},
 		name: {
 			kind: 'text'
+		},
+		// the legal basis of the version's own settings (payroll, input schemas, reference tables)
+		references: {
+			kind: 'custom',
+			of: 'references',
+			optional: true
 		},
 		employee_input_schema: {
 			kind: 'json',
@@ -40,7 +49,8 @@ export const STATUTORY_FIELDS = {
 								when: { kind: 'text', format: 'cel', optional: true },
 								fields: { kind: 'list', of: { kind: 'text' }, optional: true },
 								reads: { kind: 'record', of: { kind: 'json' }, optional: true },
-								effect: { kind: 'text', format: 'cel', optional: true }
+								effect: { kind: 'text', format: 'cel', optional: true },
+								references: { ...REFERENCES_SHAPE, optional: true }
 							}
 						}
 					}
@@ -125,6 +135,8 @@ export const STATUTORY_FIELDS = {
 						of: {
 							kind: 'object',
 							fields: {
+								// the one research agent this entry serves; its instructions name that agent's subject matter only
+								agent: { kind: 'enum', values: RESEARCH_AGENT_NAMES },
 								url: { kind: 'text', format: 'url' },
 								instructions: { kind: 'text' },
 								document_origins: {
@@ -135,8 +147,12 @@ export const STATUTORY_FIELDS = {
 							}
 						}
 					},
-					instructions: {
-						kind: 'text',
+					// each agent's supplementary instructions for this jurisdiction
+					agents: {
+						kind: 'object',
+						fields: Object.fromEntries(
+							RESEARCH_AGENT_NAMES.map((name) => [name, { kind: 'text', optional: true }])
+						) as { [K in (typeof RESEARCH_AGENT_NAMES)[number]]: { kind: 'text'; optional: true } },
 						optional: true
 					}
 				}

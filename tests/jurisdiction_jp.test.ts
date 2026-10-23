@@ -3392,30 +3392,57 @@ describe('JP public lineage', () => {
 		assert.ok(routes('RETIREMENT_ALLOWANCE').includes('RESIDENT_TAX_RETIREMENT.RETIREMENT'));
 		assert.deepEqual(routes('LONG_SERVICE_AWARD'), []);
 	});
-	it('sources: one official entry per area, each with its own guidance, none behind a block', () => {
+	it('sources: every research agent has official entries and its own guidance, none behind a block', () => {
+		const agents = [
+			'catalog',
+			'contribution',
+			'rules',
+			'behaviour',
+			'obligations',
+			'settings'
+		] as const;
 		const Sources = FixtureSchema.Struct({
 			entries: FixtureSchema.Array(
-				FixtureSchema.Struct({ url: FixtureSchema.String, instructions: FixtureSchema.String })
-			)
+				FixtureSchema.Struct({
+					agent: FixtureSchema.Literals(agents),
+					url: FixtureSchema.String,
+					instructions: FixtureSchema.String
+				})
+			),
+			agents: FixtureSchema.Struct({
+				catalog: FixtureSchema.String,
+				contribution: FixtureSchema.String,
+				rules: FixtureSchema.String,
+				behaviour: FixtureSchema.String,
+				obligations: FixtureSchema.String,
+				settings: FixtureSchema.String
+			})
 		});
+		const registry = new Set([
+			'https://www.mhlw.go.jp/',
+			'https://www.nenkin.go.jp/',
+			'https://www.kyoukaikenpo.or.jp/',
+			'https://www.nta.go.jp/',
+			'https://www.soumu.go.jp/',
+			'https://www.ppc.go.jp/',
+			'https://www.jeed.go.jp/'
+		]);
 		for (const version of versions) {
-			const { entries } = guardFixture(Sources)(settingsOf(version).sources);
-			assert.deepEqual(
-				entries.map((entry) => entry.url),
-				[
-					'https://www.mhlw.go.jp/',
-					'https://www.nenkin.go.jp/',
-					'https://www.kyoukaikenpo.or.jp/',
-					'https://www.nta.go.jp/',
-					'https://www.soumu.go.jp/',
-					'https://www.ppc.go.jp/',
-					'https://www.cao.go.jp/',
-					'https://www.jeed.go.jp/'
-				],
-				version
-			);
+			const sources = guardFixture(Sources)(settingsOf(version).sources);
+			for (const agent of agents) {
+				assert.ok(
+					sources.entries.some((entry) => entry.agent === agent),
+					`${version} ${agent}`
+				);
+				assert.ok(sources.agents[agent].length > 0, `${version} ${agent}`);
+			}
+			for (const entry of sources.entries)
+				assert.ok(registry.has(entry.url), `${version} ${entry.url}`);
 			// No shared boilerplate: every entry's guidance is its own.
-			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, entries.length);
+			assert.equal(
+				new Set(sources.entries.map((entry) => entry.instructions)).size,
+				sources.entries.length
+			);
 		}
 	});
 	it('leave classes, the national holidays row and the hourly leave cap', () => {

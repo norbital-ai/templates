@@ -1245,26 +1245,38 @@ describe('CN public lineage', () => {
 		}
 		assert.equal(fixtureValue7(previous?.effective_range).to, null);
 	});
-	it('research sources: one reachable official portal per area, each with its own instructions', () => {
+	it('research sources: reachable official portals, each entry serving one agent with its own instructions', () => {
+		const AGENTS = ['catalog', 'contribution', 'rules', 'behaviour', 'obligations', 'settings'];
 		for (const version of VERSIONS) {
 			const sources = fixtureValue4(settingsOf(version).sources);
 			const entries = fixtureValue0(sources.entries);
 			const urls = entries.map((entry) => String(entry.url));
-			assert.deepEqual(urls, [
+			assert.deepEqual([...new Set(urls)].sort(), [
 				'http://www.npc.gov.cn/',
-				'https://www.gov.cn/',
-				'https://www.cac.gov.cn/',
+				'https://longling.gov.cn/',
 				'https://rsj.sh.gov.cn/',
-				'https://ybj.sh.gov.cn/',
 				'https://shanghai.chinatax.gov.cn/',
+				'https://www.cac.gov.cn/',
+				'https://www.gov.cn/',
 				'https://www.shanghai.gov.cn/',
 				'https://www.ynrd.gov.cn/',
-				'https://longling.gov.cn/'
+				'https://ybj.sh.gov.cn/'
 			]);
 			// mohrss.gov.cn and fgk.chinatax.gov.cn serve script challenges and kunming.cn is a news portal: none is a source.
 			const instructions = entries.map((entry) => String(entry.instructions));
 			assert.equal(new Set(instructions).size, entries.length, version);
-			assert.ok(String(sources.instructions).length > 100, version);
+			assert.equal(sources.instructions, undefined, version);
+			const agents = fixtureValue4(sources.agents);
+			assert.deepEqual(Object.keys(agents), AGENTS, version);
+			for (const entry of entries)
+				assert.ok(AGENTS.includes(String(entry.agent)), `${version}:${String(entry.url)}`);
+			for (const agent of AGENTS) {
+				assert.ok(
+					entries.some((entry) => entry.agent === agent),
+					`${version}:${agent}`
+				);
+				assert.ok(String(agents[agent]).length > 0, `${version}:${agent}`);
+			}
 		}
 	});
 	it.effect(

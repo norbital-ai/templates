@@ -8,13 +8,13 @@ import { readSeedRows } from './seed_values.ts';
 import {
 	completeSnapshot,
 	conciseSnapshot,
-	COVERAGE_SCOPES,
 	SNAPSHOT_MODELS,
 	SNAPSHOT_OUTPUT,
 	STATUTORY_RESEARCH_ROLE,
 	type StatutorySnapshot
 } from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import { allowedUrl, sourcesFrom } from '../src/lib/payroll_engine/statutory_drift.ts';
+import { RESEARCH_AGENT_NAMES } from '../src/lib/payroll_engine/research_agents.ts';
 
 const root = path.resolve(import.meta.dirname, '../seed/jurisdiction');
 const diagnostics = Schema.decodeUnknownSync(
@@ -79,6 +79,7 @@ describe('complete statutory snapshots', () => {
 		const sources = sourcesFrom({
 			entries: [
 				{
+					agent: 'contribution',
 					url: 'https://www.bir.gov.ph/',
 					instructions: 'Follow the public issuance library.',
 					document_origins: ['https://bir-cdn.bir.gov.ph/']
@@ -92,7 +93,7 @@ describe('complete statutory snapshots', () => {
 		);
 		assert.equal(allowedUrl('https://unlisted.bir.gov.ph/issuance.pdf', sources), false);
 	});
-	it('preserves every section across all jurisdictions and supplies per-source portal instructions', () => {
+	it('preserves every section across all jurisdictions and supplies each agent its own sources and instructions', () => {
 		for (const code of fs.readdirSync(root)) {
 			const versions = fs.readdirSync(path.join(root, code)).filter((n) => /^version_\d+$/.test(n));
 			let governing = 0;
@@ -112,7 +113,15 @@ describe('complete statutory snapshots', () => {
 					assert.ok(typeof settings.void_reason === 'string' && settings.void_reason.length > 20);
 				}
 				const entries = sources.entries;
-				assert.ok(entries?.length, `${code}/${version}`);
+				assert.ok(entries.length, `${code}/${version}`);
+				// every agent has its own sources and supplementary instructions
+				for (const agent of RESEARCH_AGENT_NAMES) {
+					assert.ok(
+						entries.some((entry) => entry.agent === agent),
+						`${code}/${version}: ${agent} has no source`
+					);
+					assert.ok(sources.agents[agent], `${code}/${version}: ${agent} has no instructions`);
+				}
 				for (const entry of entries) {
 					assert.ok(entry.instructions.length > 100);
 					assert.equal(allowedUrl(new URL('/some-instrument', entry.url).href, sources), true);
@@ -191,7 +200,8 @@ describe('complete statutory snapshots', () => {
 			work_catalog: [],
 			statutory_contribution_catalog: [],
 			suspension_kind: [],
-			rule_set: []
+			rule_set: [],
+			behaviour_rule: []
 		};
 		const after = structuredClone(before);
 		assert.equal(completeSnapshot(before, after), true);
@@ -225,13 +235,13 @@ describe('complete statutory snapshots', () => {
 		for (const [name, section] of Object.entries(snapshot.fields))
 			if (name !== 'settings') assert.equal('key' in section && section.key, 'code', name);
 		assert.equal(SNAPSHOT_OUTPUT.fields.coverage.key, 'scope');
-		assert.deepEqual(COVERAGE_SCOPES, [
-			'wage_hours',
-			'leave',
-			'contributions',
-			'tax',
-			'filings',
-			'records'
+		assert.deepEqual(RESEARCH_AGENT_NAMES, [
+			'catalog',
+			'contribution',
+			'rules',
+			'behaviour',
+			'obligations',
+			'settings'
 		]);
 	});
 	it('guides keyed draft tools and row references, and keeps public holidays out of scope', () => {
