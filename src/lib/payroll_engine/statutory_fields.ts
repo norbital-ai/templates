@@ -135,15 +135,11 @@ export const STATUTORY_FIELDS = {
 						of: {
 							kind: 'object',
 							fields: {
-								// the one research agent this entry serves; its instructions name that agent's subject matter only
+								// the one research agent this entry serves; its instructions name that agent's subject matter only. An
+								// entry is a live official page, never a document link: documents are found from it on each run
 								agent: { kind: 'enum', values: RESEARCH_AGENT_NAMES },
 								url: { kind: 'text', format: 'url' },
-								instructions: { kind: 'text' },
-								document_origins: {
-									kind: 'list',
-									of: { kind: 'text', format: 'url' },
-									optional: true
-								}
+								instructions: { kind: 'text' }
 							}
 						}
 					},

@@ -205,6 +205,65 @@ statutory_drift.run(function* (input, ctx) {
 		});
 	type Prepared = Exclude<Effect.Success<ReturnType<typeof prepare>>, null>;
 	const json = Schema.decodeUnknownSync(Schema.Json);
+	// The rows a merged draft changed whose evidence holds: each cites a fresh quote that re-appears on its page on a
+	// registered official site. A row whose evidence does not hold goes back to the governing version's; the failure
+	// says why no row is left.
+	const verify = (
+		sources: Prepared['sources'],
+		snapshot: StatutorySnapshot,
+		draft: StatutorySnapshot
+	) =>
+		Effect.gen(function* () {
+			const changes = rowChanges(
+				snapshot,
+				draft,
+				jsonDiff(json(snapshot), json(draft), SNAPSHOT_OUTPUT.fields.snapshot)
+			);
+			if (Result.isFailure(changes)) return Result.fail(changes.failure);
+			const rows = changes.success;
+			if (rows.length === 0) return Result.fail('a change that edits no row');
+			const evidence = rows.flatMap((row) => row.evidence);
+			const cited = [...new Set(evidence.map((row) => row.url))].filter((url) =>
+				allowedUrl(url, sources)
+			);
+			// A page that cannot be read verifies none of its quotes: its failure is the page's absence.
+			const fetched = yield* Effect.forEach(cited, (url) => Effect.option(ctx.web.read(url)), {
+				concurrency: 'unbounded'
+			});
+			const pages = fetched.flatMap((item) => {
+				const page = Option.isSome(item) ? pageFrom(item.value) : null;
+				return page == null ? [] : [page];
+			});
+			const unverified = unverifiedQuotes(pages, evidence, sources);
+			const dropped = rows.filter(
+				(row) => row.evidence.length === 0 || row.evidence.some((cite) => unverified.includes(cite))
+			);
+			const kept = rows.filter((row) => !dropped.includes(row));
+			const why = dropped
+				.map(
+					(row) =>
+						`${row.section}/${row.code} (${
+							row.evidence.length === 0
+								? 'cites no new url and quote'
+								: row.evidence
+										.filter((cite) => unverified.includes(cite))
+										.map((cite) =>
+											allowedUrl(cite.url, sources)
+												? `quote not found: "${cite.quote.slice(0, 60)}" at ${cite.url}`
+												: `cites unlisted ${cite.url}`
+										)
+										.join('; ')
+						})`
+				)
+				.join(', ');
+			if (kept.length === 0) return Result.fail(`no row's evidence held: ${why}`);
+			return Result.succeed({
+				kept,
+				dropped,
+				why,
+				corrected: withoutRows(snapshot, draft, dropped)
+			});
+		});
 	// One lineage's research: six agents side by side, each one multi-step inference with its own step budget over the
 	// sections it owns and its own sources; their answers merge into one snapshot, and a verified change becomes an
 	// unsealed draft.
@@ -228,6 +287,9 @@ statutory_drift.run(function* (input, ctx) {
 								effective_from: ctx.today,
 								coverage: [{ scope: agent, status: 'pending' }],
 								unresolved: [],
+								sources: sources.entries
+									.filter((entry) => entry.agent === agent)
+									.map(({ url, instructions }) => ({ url, instructions })),
 								snapshot
 							}),
 							output: SNAPSHOT_OUTPUT
@@ -269,80 +331,114 @@ statutory_drift.run(function* (input, ctx) {
 				// one draft takes effect once its latest correction does
 				if (result.effective_from > effective_from) effective_from = result.effective_from;
 			}
+			// Each agent's source entries as it left them: an added or changed entry is taken only when it is a live page
+			// (not a document) on a registered official site and readable now; an agent always keeps one entry.
+			const switched = yield* Effect.forEach(
+				answers,
+				({ agent, answer }) =>
+					Effect.gen(function* () {
+						const own = sources.entries.filter((entry) => entry.agent === agent);
+						const proposed = Result.isSuccess(answer) ? answer.success.sources : own;
+						const fresh = proposed.filter(
+							(entry) =>
+								!own.some((old) => old.url === entry.url && old.instructions === entry.instructions)
+						);
+						const live = yield* Effect.forEach(
+							fresh,
+							(entry) =>
+								allowedUrl(entry.url, sources)
+									? Effect.option(ctx.web.read(entry.url)).pipe(
+											Effect.map(
+												(page) =>
+													Option.isSome(page) &&
+													/html/i.test(page.value.contentType ?? '') &&
+													page.value.text.trim() !== ''
+											)
+										)
+									: Effect.succeed(false),
+							{ concurrency: 'unbounded' }
+						);
+						const refused = fresh.filter((_, at) => !live[at]);
+						const reasons = refused.map(
+							(entry) =>
+								`${agent} source ${entry.url} (${allowedUrl(entry.url, sources) ? 'not a readable live page' : 'not on a registered official site'})`
+						);
+						const next = proposed
+							.filter((entry) => !refused.includes(entry))
+							.map(({ url, instructions }) => ({ agent, url, instructions }));
+						if (next.length === 0)
+							return {
+								entries: own,
+								notes: [],
+								refused: proposed.length === 0 ? [`${agent} removed every source`] : reasons
+							};
+						const notes = [
+							...next.flatMap((entry) => {
+								const was = own.find((old) => old.url === entry.url);
+								return was === undefined
+									? [`${agent} added ${entry.url}`]
+									: was.instructions === entry.instructions
+										? []
+										: [`${agent} rewrote the instructions for ${entry.url}`];
+							}),
+							...own
+								.filter((old) => !next.some((entry) => entry.url === old.url))
+								.map((old) => `${agent} removed ${old.url}`)
+						];
+						return { entries: next, notes, refused: reasons };
+					}),
+				{ concurrency: 'unbounded' }
+			);
+			const sourceNotes = switched.flatMap((item) => item.notes);
+			const refusals = switched.flatMap((item) => item.refused);
 			// a no-change with any unresolved agent is incomplete, never a verified no-change; a change still drafts its
 			// verified rows and names the unresolved agents in its summary
-			if (summaries.length === 0)
-				return pending.length === 0
-					? { code, drafted: false }
-					: {
-							code,
-							drafted: false,
-							failed: `${code}: incomplete — not resolved: ${pending.join(', ')}`
-						};
+			if (summaries.length === 0 && sourceNotes.length === 0)
+				return {
+					code,
+					drafted: false,
+					...(pending.length === 0
+						? {}
+						: { failed: `${code}: incomplete — not resolved: ${pending.join(', ')}` }),
+					...(refusals.length === 0 ? {} : { refused: `${code}: ${refusals.join(', ')}` })
+				};
+			const notResolved = pending.length === 0 ? '' : `; not resolved: ${pending.join(', ')}`;
+			// the rows whose evidence holds; a failure says why none is drafted
+			const checked =
+				summaries.length === 0
+					? Result.succeed({ kept: [], dropped: [], why: '', corrected: snapshot })
+					: yield* verify(sources, snapshot, draft);
+			if (Result.isFailure(checked) && sourceNotes.length === 0)
+				return {
+					code,
+					drafted: false,
+					refused: `${code}: ${[checked.failure, ...refusals].join(', ')}${notResolved}`
+				};
+			const { kept, dropped, why, corrected } = Result.isSuccess(checked)
+				? checked.success
+				: { kept: [], dropped: [], why: '', corrected: snapshot };
 			const summary = [
 				...summaries,
+				...(sourceNotes.length === 0
+					? []
+					: [`Sources:\n${sourceNotes.map((item) => `- ${item}`).join('\n')}`]),
 				...(unresolved.length === 0
 					? []
 					: [`Unresolved:\n${unresolved.map((item) => `- ${item}`).join('\n')}`]),
 				...(pending.length === 0 ? [] : [`Not resolved: ${pending.join(', ')}.`])
 			].join('\n\n');
-			const refuse = (why: string) => ({
-				code,
-				drafted: false,
-				refused: `${code}: ${why}${pending.length === 0 ? '' : `; not resolved: ${pending.join(', ')}`}`
-			});
-			const changes = rowChanges(
-				snapshot,
-				draft,
-				jsonDiff(json(snapshot), json(draft), SNAPSHOT_OUTPUT.fields.snapshot)
-			);
-			if (Result.isFailure(changes)) return refuse(changes.failure);
-			const rows = changes.success;
-			if (rows.length === 0) return refuse('a change that edits no row');
-			const evidence = rows.flatMap((row) => row.evidence);
-			const cited = [...new Set(evidence.map((row) => row.url))].filter((url) =>
-				allowedUrl(url, sources)
-			);
-			// A page that cannot be read verifies none of its quotes: its failure is the page's absence.
-			const fetched = yield* Effect.forEach(cited, (url) => Effect.option(ctx.web.read(url)), {
-				concurrency: 'unbounded'
-			});
-			const pages = fetched.flatMap((item) => {
-				const page = Option.isSome(item) ? pageFrom(item.value) : null;
-				return page == null ? [] : [page];
-			});
-			// a row whose evidence does not hold (none fresh, an unlisted origin, a quote not on its page) goes back to the
-			// governing version's; the rest are still drafted
-			const unverified = unverifiedQuotes(pages, evidence, sources);
-			const dropped = rows.filter(
-				(row) => row.evidence.length === 0 || row.evidence.some((cite) => unverified.includes(cite))
-			);
-			const kept = rows.filter((row) => !dropped.includes(row));
-			const why = dropped
-				.map(
-					(row) =>
-						`${row.section}/${row.code} (${
-							row.evidence.length === 0
-								? 'cites no new url and quote'
-								: row.evidence
-										.filter((cite) => unverified.includes(cite))
-										.map((cite) =>
-											allowedUrl(cite.url, sources)
-												? `quote not found: "${cite.quote.slice(0, 60)}" at ${cite.url}`
-												: `cites unlisted ${cite.url}`
-										)
-										.join('; ')
-						})`
-				)
-				.join(', ');
-			if (kept.length === 0) return refuse(`no row's evidence held: ${why}`);
-			const corrected = withoutRows(snapshot, draft, dropped);
-			// The governing version's research registry (`sources`) carries over unchanged through `version`.
+			// The governing version's research registry (`sources`) carries over through `version`, with each agent's
+			// admitted entries when one switched.
 			yield* ctx.act('jurisdiction_settings.create', {
 				...cloneSettingsFields(
 					{
 						...version,
 						...corrected.settings,
+						...(sourceNotes.length === 0
+							? {}
+							: {
+									sources: { ...version.sources, entries: switched.flatMap((item) => item.entries) }
+								}),
 						behaviours: {
 							version: 1,
 							rules: corrected.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
@@ -361,9 +457,17 @@ statutory_drift.run(function* (input, ctx) {
 				suspension_kinds: corrected.suspension_kind,
 				rule_set: { create: corrected.rule_set }
 			});
-			return dropped.length === 0
+			const reasons = [
+				...(Result.isFailure(checked)
+					? [checked.failure]
+					: dropped.length === 0
+						? []
+						: [`dropped ${why}`]),
+				...refusals
+			];
+			return reasons.length === 0
 				? { code, drafted: true }
-				: { code, drafted: true, refused: `${code}: dropped ${why}` };
+				: { code, drafted: true, refused: `${code}: ${reasons.join(', ')}` };
 		});
 	const lineages = lineageCodes(inForce);
 	type Outcome = {

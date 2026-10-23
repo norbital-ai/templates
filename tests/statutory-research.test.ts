@@ -159,8 +159,18 @@ const restore = (
 });
 const submit: ToolCalls[number] = { id: 'save', name: 'submit', input: {} };
 
-/** One `statutory_drift` run for `code` over a cassette of model turns; `page` is the cited page's fetched text. */
-const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
+/**
+ * One `statutory_drift` run for `code` over a cassette of model turns; `page` is the cited page's fetched text, `other`
+ * what any other page reads as.
+ */
+const research = (
+	code: string,
+	turns: readonly ToolCalls[],
+	page = quote,
+	other: Readonly<
+		Record<string, { title: string | null; text: string; contentType?: string; pages?: number }>
+	> = {}
+) =>
 	Effect.gen(function* () {
 		const seeded = lineage(code);
 		const { url, rows } = seeded;
@@ -242,6 +252,8 @@ const research = (code: string, turns: readonly ToolCalls[], page = quote) =>
 						read: (wanted) =>
 							Effect.sync(() => {
 								fetched.push(wanted);
+								const known = other[wanted];
+								if (known !== undefined) return { url: wanted, ...known };
 								assert.equal(
 									wanted,
 									url,
@@ -600,5 +612,50 @@ describe('statutory drift research transport (mock inference, not live research)
 				assert.deepEqual(result.fetched, item.fetched, item.name);
 			}
 		})
+	);
+	it.effect(
+		'an agent replaces a source only with a live page on a registered official site; that alone is a draft',
+		() =>
+			Effect.gen(function* () {
+				const { source } = lineage('MY');
+				const live = new URL('/new-guide', source.url).href;
+				const pdf = new URL('/act.pdf', source.url).href;
+				const sources: ToolCalls[number] = {
+					id: 'sources',
+					name: 'edit',
+					input: {
+						ops: [
+							{ path: '/sources', append: { url: live, instructions: 'The new guide.' } },
+							{ path: '/sources', append: { url: pdf, instructions: 'The Act.' } },
+							{
+								path: '/sources',
+								append: { url: 'https://example.invalid/law', instructions: 'A copy.' }
+							},
+							cover('rules')
+						]
+					}
+				};
+				const result = yield* Effect.scoped(
+					research('MY', passes([sources, submit]), quote, {
+						[live]: { title: 'Guide', text: 'The guide.', contentType: 'text/html' },
+						[pdf]: {
+							title: null,
+							text: '[Page 1] The Act.',
+							contentType: 'application/pdf',
+							pages: 1
+						}
+					})
+				);
+				assert.deepEqual(result.output.drafted, ['MY']);
+				assert.deepEqual(result.output.refused, [
+					`MY: rules source ${pdf} (not a readable live page), rules source https://example.invalid/law (not on a registered official site)`
+				]);
+				const created = result.drafts[0];
+				assert.ok(created);
+				const entries = Schema.decodeUnknownSync(Settings.fields.sources)(created.sources).entries;
+				assert.ok(entries.some((entry) => entry.agent === 'rules' && entry.url === live));
+				assert.ok(!entries.some((entry) => entry.url === pdf));
+				assert.ok(String(created.change_summary).includes(`Sources:\n- rules added ${live}`));
+			})
 	);
 });
