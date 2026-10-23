@@ -232,7 +232,9 @@ const research = (
 			evaluate: () =>
 				Effect.sync(() => assert.fail('The official instrument fixture runs no scripts.')),
 			screenshot: () =>
-				Effect.sync(() => assert.fail('The official instrument fixture takes no screenshots.'))
+				Effect.sync(() => assert.fail('The official instrument fixture takes no screenshots.')),
+			download: () =>
+				Effect.sync(() => assert.fail('The official instrument fixture downloads no files.'))
 		});
 		const responses: AiResponse[] = turns.map((toolCalls) => ({
 			content: '',
