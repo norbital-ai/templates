@@ -97,6 +97,14 @@ describe('statutory drift', () => {
 		assert.equal(pageFrom({ kind: 'timeout', message: 'upstream' }), null);
 		assert.equal(quotePresent(page.text, 'ordinary wage ceiling is 8000'), true);
 		assert.equal(quotePresent(page.text, 'short'), false);
+		// a PDF's split token and punctuation inside the official wording are the same wording (Act 265 s.60KA)
+		assert.equal(
+			quotePresent(
+				'termination of employment of foreign employee, etc. 60 ka . (1) if the service of',
+				'60KA. (1) If the service of'
+			),
+			true
+		);
 		// a PDF's line break inside the official wording is the same wording (Act 265 s.60FA as extracted)
 		assert.equal(
 			quotePresent(

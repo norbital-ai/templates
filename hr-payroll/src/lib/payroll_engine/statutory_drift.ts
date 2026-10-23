@@ -93,12 +93,15 @@ export function allowedUrl(url: string, sources: DriftSources): boolean {
 	return sources.research_domains.some((domain) => originOf(domain) === origin);
 }
 
-/** Spacing never decides a quote: a PDF's text breaks lines (and pads columns) where the official wording runs on. */
-const spaced = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+/**
+ * A quote is its words and numbers: a PDF's text breaks lines and splits tokens ("60KA." extracts as "60 ka ."), and
+ * punctuation and dashes vary, so only letters and digits are compared.
+ */
+const wording = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 export function quotePresent(text: string, quote: string): boolean {
-	const needle = spaced(quote);
+	const needle = wording(quote);
 	if (needle.length < 8) return false;
-	return spaced(text).includes(needle);
+	return wording(text).includes(needle);
 }
 
 export function unverifiedQuotes(
