@@ -38,27 +38,134 @@
 		"sources": {
 			"entries": [
 				{
+					"agent": "catalog",
 					"url": "https://lawphil.net/",
-					"instructions": "Statute and presidential-issuance texts (Arellano Law Foundation's law library; the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put research tools behind a security check, so this library is the readable copy). Authority here for: the Labor Code (PD 442, Statutes > Presidential Decrees > 1974) on hours of work, overtime, night-shift differential, weekly rest, holiday pay, service incentive leave, termination, separation pay, final pay and retirement (RA 7641, RA 10757 under Statutes > Republic Acts); the statutory leave laws (RA 11210 maternity, RA 8187 paternity, RA 11861 solo parent, RA 9262 VAWC, RA 9710 special leave for women); RA 10361 Kasambahay terms of employment; payslip and payroll-record duties in the Labor Code and RA 10361; and the national and regional holiday calendar (RA 9492; Executive Issuances > Proclamations, by year: the yearly regular and special days proclamation, the separate Eid'l Fitr and Eid'l Adha proclamations, and special days declared for a whole region). Ignore proclamations limited to one city, municipality or province. Quote the signed text and date of the instrument; contribution rates, tax, minimum wages and data privacy belong to the other entries."
+					"instructions": "Pay and leave items in the statutes. Labor Code (PD 442: Statutes > Presidential Decrees > 1974, direct https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): Book III arts.86 (night-shift differential), 87 (overtime pay), 93 (rest-day and special-day premium), 94 (regular holiday pay), 95 (service incentive leave and its exclusions), 96 as amended by RA 11360 (service-charge shares); Book VI arts.298-299 (separation pay), 301 (suspension of operations: the kinds of bona fide suspension and their pay) and 302 (retirement pay, with RA 7641 and RA 10757 under Statutes > Republic Acts). PD 851 13th-month pay (Statutes > Presidential Decrees > 1975, https://lawphil.net/statutes/presdecs/pd1975/pd_851_1975.html). Statutory leave under Statutes > Republic Acts by year: RA 11210 maternity (with its allocation to the other parent and the unpaid extension), RA 8187 paternity, RA 11861 solo parent, RA 9262 s.43 VAWC leave and protection-order support, RA 9710 s.18 special leave for women; RA 10361 (Batas Kasambahay) and RA 11965 (caregivers) for domestic and caregiver leave, 13th-month and benefit terms. For each item read who qualifies, the days or amount, the pay basis and the service conditions; quote the signed text and enactment date."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://nwpc.dole.gov.ph/",
-					"instructions": "National Wages and Productivity Commission. Authority here for minimum wages only: every Regional Tripartite Wages and Productivity Board's wage orders for non-agriculture, agriculture, retail/service and small-establishment classes (RTWPBs menu, one page per region such as /ncr/ and /car/, with the order number, tranche dates and rates), the domestic-worker (kasambahay) wage orders on the same regional pages, and the consolidated 'Latest Wage Orders Matrix' PDF under Resources (wp-content/uploads). Record each order's effectivity and tranche dates, the daily rate per class, exemptions and any litigation or suspension note on the regional page."
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, under Resources; direct PDF https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf). Read the chapters on overtime, night-shift differential, premium pay for rest-day and special-day work, holiday pay, service incentive leave, the 13th-month pay with its Revised Guidelines (who is covered, what counts as basic salary), separation pay, retirement pay and the statutory leave benefits: the rates for each day type taken alone and the worked computation examples. Cite the chapter and section and the statute it restates."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://www.sss.gov.ph/",
-					"instructions": "Social Security System. Authority here for SSS contributions under RA 11199 (contribution rate, monthly salary credit brackets, minimum and maximum MSC, the Mandatory Provident Fund (WISP) split), the Employees' Compensation premium SSS collects for private employers, household-employer coverage, employer remittance and contribution reporting, and the employer-advanced sickness and maternity benefits and the unemployment benefit. Use the Pay Contribution and Employees' Compensation Program pages and the circulars listed on the site (Circular No. and effectivity month)."
+					"instructions": "SSS benefits that pass through payroll and SSS member loans. Sickness Benefit (https://www.sss.gov.ph/sickness-benefit/) and Maternity Benefit (https://www.sss.gov.ph/maternity-benefit/): the employer-advanced daily allowance, the days covered, the average-daily-salary-credit basis and what SSS reimburses; Unemployment Benefit (https://www.sss.gov.ph/unemployment-benefit/) for involuntary separation; Salary Loan (https://www.sss.gov.ph/salary-loan/) and Calamity Loan (https://www.sss.gov.ph/calamity-loan/) for the amortisation the employer deducts. Record the circular number and effectivity listed on each page."
 				},
 				{
-					"url": "https://www.philhealth.gov.ph/",
-					"instructions": "PhilHealth. Authority here for the National Health Insurance premium under RA 11223 (premium rate, income floor and ceiling, employer/employee split, kasambahay and household-employer coverage) and employer registration and remittance (ER2, RF-1). Read Circulars (/circulars/, by year) and Advisories (/advisories/<year>/) and open the signed PDF; record the circular or advisory number, signing date and the contribution month it applies from."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://naro.law.upd.edu.ph/",
-					"instructions": "Office of the National Administrative Register (UP Law Center): the official filed copies of agency rules. Authority here for three areas whose own sites put research tools behind a security check: Pag-IBIG Fund (HDMF) membership and contribution circulars (Agencies > home-development-mutual-fund and pag-ibig-fund, e.g. Circular 274 membership, Circular 460 maximum fund salary); National Privacy Commission circulars on employee personal data (registration, data protection officer, breach notification, security, retention: Agencies > national-privacy-commission); and DOLE department orders on employing foreign nationals (alien employment permit, DO 248 s.2025: Agencies > department-of-labor-and-employment). Use the search box with the issuance number; open 'View document' for the certified scan and read it page by page. Record the ONAR registration number and filing date with the issue date."
+					"instructions": "Pag-IBIG Fund loan circulars (Agencies > home-development-mutual-fund and pag-ibig-fund): the multi-purpose and calamity loan programmes, the amortisation the employer deducts from pay and the voluntary and MP2 savings an employee may elect through payroll. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "SSS contributions under RA 11199: the Pay Contribution page (https://www.sss.gov.ph/pay-contribution/) and the circulars it lists (Circular No. and effectivity month) for the contribution rate, the monthly salary credit brackets, the minimum and maximum MSC, the employer/employee shares and the Mandatory Provident Fund (WISP) split above the regular MSC ceiling; the household-employer schedule (Circular 2024-007, published as https://www.sss.gov.ph/wp-content/uploads/2024/12/Cir-2024-007-HR-Kasambahay-scaled.jpg) for kasambahay coverage and the employer-borne share below the RA 10361 threshold; the Employees' Compensation Program page (https://www.sss.gov.ph/employees-compensation-program/) for the EC premium SSS collects from private employers. Record coverage age limits, the compensation counted, rounding and the month each schedule applies from."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "National Health Insurance premium under RA 11223: premium rate, income floor and ceiling, employer/employee split and the compensation counted, and kasambahay and household-employer premiums (Circular 2020-0005 Rev.1, https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf). Read Circulars (/circulars/, by year) and Advisories (/advisories/<year>/), open the signed PDF, and record the circular or advisory number, signing date and the contribution month it applies from."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Pag-IBIG Fund (HDMF) contribution circulars (Agencies > home-development-mutual-fund and pag-ibig-fund): coverage and membership (Circular 274, https://naro.law.upd.edu.ph/issuances/5476), the contribution rates and the maximum monthly fund salary (Circular 460). BIR revenue regulations on withholding on compensation (Agencies > bureau-of-internal-revenue, https://naro.law.upd.edu.ph/agencies/bureau-of-internal-revenue): RR 2-98 as amended by RR 11-2018 for the withholding tables by pay period (Annex E), the exempt minimum-wage-earner pay, the 13th-month and other-benefits exclusion, the de minimis ceilings of RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (dated 27 October 2025, posted 22 December 2025, in force fifteen days later on 6 January 2026 under its s.3), the year-end annualisation method, and the fringe benefit tax on managerial and supervisory employees. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://lawphil.net/",
+					"instructions": "Statute texts of the contribution and tax schemes (Statutes > Republic Acts, by year): RA 11199 Social Security Act of 2018 ss.4, 8, 9, 18-19 (https://lawphil.net/statutes/repacts/ra2019/ra_11199_2019.html); RA 11223 Universal Health Care Act s.10 (https://lawphil.net/statutes/repacts/ra2019/ra_11223_2019.html); RA 9679 HDMF Law ss.6-7 (https://lawphil.net/statutes/repacts/ra2009/ra_9679_2009.html); RA 10361 s.30 for who pays a kasambahay's contributions; and the NIRC (RA 8424, https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) as amended by RA 10963 TRAIN (https://lawphil.net/statutes/repacts/ra2017/ra_10963_2017.html): ss.24(A)(2) individual rate table, 25 non-resident aliens, 32(B)(6)-(7) exclusions, 33 fringe benefit tax, 79 withholding on compensation. Quote the section as amended and in force for the period."
+				},
+				{
+					"agent": "rules",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "Minimum wages only. Each Regional Tripartite Wages and Productivity Board has a page under the RTWPBs menu (e.g. /ncr/, /car/, /region-iva/) listing its wage orders for non-agriculture, agriculture, retail/service and small-establishment classes and its domestic-worker (kasambahay) wage orders, with the order number, tranche dates and rates; the consolidated 'Latest Wage Orders Matrix' PDF sits under Resources (wp-content/uploads). Record each order's effectivity and tranche dates, the daily or monthly rate per class and area, exemptions, and any litigation or suspension note on the regional page."
+				},
+				{
+					"agent": "rules",
+					"url": "https://lawphil.net/",
+					"instructions": "Limits in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): Book III arts.82-90 (coverage, normal hours, meal periods, compressed and emergency overtime), 91-92 (weekly rest day), 102-105 (forms, frequency, place and direct payment of wages), 113-116 (permitted deductions and their ceilings), 139 with RA 9231 (https://lawphil.net/statutes/repacts/ra2003/ra_9231_2003.html) for child and young-worker age and hours, 158 as inserted by RA 10151 for night work, Book VI arts.296-302 (probation, just and authorised causes, retirement age). RA 10361 for kasambahay minimum age, daily and weekly rest and wage payment. Record retention: the Labor Code's implementing rules on payroll records, NIRC s.235 as amended by RA 11976 (https://lawphil.net/statutes/repacts/ra2024/ra_11976_2024.html) and RA 10173 Data Privacy Act s.11(e) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html). Quote the limit and its unit."
+				},
+				{
+					"agent": "rules",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "National Privacy Commission circulars on how long employee personal data may be retained (Agencies > national-privacy-commission), and DOLE department orders setting working-time limits such as flexible work and telecommuting arrangements (Agencies > department-of-labor-and-employment). Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the holiday-pay chapter's rules for coinciding day types (a regular or special day falling on the rest day, two regular holidays on one day, successive holidays, absence on the workday before a holiday), the 13th-month chapter on separation before the payment date (Revised Guidelines on PD 851 para.6), the service incentive leave chapter on conversion of unused leave at separation, and which payments a separation by each ground must raise. Record which event triggers which payment and when."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://lawphil.net/",
+					"instructions": "Event consequences in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): arts.93-94 and the Omnibus Rules Book III Rule IV on holiday pay where a holiday coincides with a rest day or another holiday; art.95 on commutation of unused service incentive leave; art.301 on a suspension of operations beyond six months becoming a termination; arts.298-299 on which exits must raise separation pay. RA 10361 on what a kasambahay's early termination by either side forfeits or indemnifies. Quote the trigger and the consequence."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "BIR revenue regulations on when withholding must be reconciled (Agencies > bureau-of-internal-revenue): RR 2-98 s.2.79(B)(5) as amended by RR 11-2018 on the year-end adjustment on the last payroll of the year and on separation before year end, and the refund or deficiency it causes. DOLE department orders on suspension of operations: what the end of the permitted period causes (Agencies > department-of-labor-and-employment). Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "Employer duties to SSS: the Employer page (https://www.sss.gov.ph/employer-er/) for employer registration, reporting new and separated employees, monthly contribution and loan remittance deadlines by employer number, the contribution collection list and late-payment penalties; the Sickness and Maternity Benefit pages for the employer's notification deadlines; the Employees' Compensation Program page for contingency reporting. Record each duty's trigger, deadline and form."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "Employer duties to PhilHealth: Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php) for employer registration, the ER2 for new employees and separation reporting; Payment Procedures (https://www.philhealth.gov.ph/partners/employers/pay_procedures.php) for the monthly remittance deadline, the RF-1 remittance report and interest on late remittance. Confirm deadlines against the signed circular in Circulars or Advisories."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Filed rules that set employer deadlines. Pag-IBIG Fund (Agencies > home-development-mutual-fund and pag-ibig-fund): employer and employee registration, remittance deadlines, separation reports and late-remittance penalties. BIR (Agencies > bureau-of-internal-revenue): registration as withholding agent and of employees' TINs, BIR Forms 1601-C (monthly), 1603Q (fringe benefits), 1604-C with the alphalist schedules and its file format, 2316 issuance and substituted filing. National Privacy Commission (Agencies > national-privacy-commission): registration of data processing systems and its renewal, data protection officer designation, breach notification and full report deadlines, disposal of personal data after retention. DOLE (Agencies > department-of-labor-and-employment): DO 248 s.2025 alien employment permit (https://naro.law.upd.edu.ph/issuances/7205), DO 147-15 termination notices, establishment registration, occupational safety and health reports and notices of flexible work, telecommuting and suspension of operations. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://lawphil.net/",
+					"instructions": "Employer duties in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): arts.292(b), 297-299 on the twin-notice rule and the thirty-day notice of an authorised-cause termination to the employee and DOLE; art.96 as amended by RA 11360 on when service-charge shares are distributed. NIRC (https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) ss.58, 81, 83 and 236 as amended by RA 11976 on returns, certificates and registration. RA 10361 on the kasambahay contract, registry and termination notice; RA 11965 s.5 on the caregiver's written contract; RA 11861 on the solo parent's flexible schedule; RA 9262 on remitting support under a protection order; payslip and payroll-record duties in the Labor Code's implementing rules and RA 10361. Quote the deadline and the addressee."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the 13th-month chapter's compliance report to DOLE and payment deadline, the final-pay and certificate-of-employment release periods, the termination chapter's report to the DOLE field office, and any establishment report on wages the Handbook names. Cite the chapter and the advisory or order it restates."
+				},
+				{
+					"agent": "settings",
+					"url": "https://lawphil.net/",
+					"instructions": "Payroll-level settings. NIRC (https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) for the taxable year of individuals and the currency of tax amounts. Statutory facts the payroll must hold: the identifiers each law requires an employer and employee to carry (TIN under NIRC s.236, SSS number under RA 11199, PhilHealth number under RA 11223, Pag-IBIG MID under RA 9679), minimum wage earner status (NIRC s.24(A)(2)), solo parent identification (RA 11861), kasambahay and caregiver status (RA 10361, RA 11965) and a foreign national's permit (Labor Code art.40)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the equivalent monthly rate and the factors for converting daily and monthly rates (by days paid a year), which allowances integrate into the monthly wage, and the final-pay chapter on how an exit is settled in the last pay and how amounts owed by the employee are recovered. On the regional pages read only which wage region an establishment belongs to."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "The Employer (https://www.sss.gov.ph/employer-er/) and Employees (https://www.sss.gov.ph/employees/) pages for the employer number and SS number a payroll holds and the household-employer and business-employer classes; read only which facts and numbers must be held, not the duties or rates."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php): the PhilHealth employer number and member identification number (PIN) the payroll must hold for the entity and each employee, as the ER2 and RF-1 fields require them."
+				},
+				{
+					"agent": "settings",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "BIR (Agencies > bureau-of-internal-revenue): the facts the withholding rules need the payroll to hold, such as the employee's previous-employer compensation and tax from the 2316 and the minimum wage earner and non-resident alien status in RR 2-98 as amended by RR 11-2018; Pag-IBIG (Agencies > home-development-mutual-fund) for the employer and member ID numbers. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"agents": {
+				"catalog": "Compare this version's leave, claim, ad hoc, allowance, loan, work and suspension catalogues with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Read pay-law definitions and amounts only: the tax and contribution treatment of an item, its event consequences and its filing duties are read elsewhere. Public holidays and the holiday calendar are out of scope. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"contribution": "Compare this version's SSS, SSS EC, Mandatory Provident Fund, PhilHealth, Pag-IBIG and withholding-tax schemes with the law in force from 6 January 2026. bir.gov.ph renders no text and pagibigfund.gov.ph challenges the browser: read BIR regulations and HDMF circulars as filed on ONAR, and NIRC text on lawphil.net. Read coverage, base, rates, bands, ceilings, shares and rounding; for a schedule changed mid-period record both with their start months. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"rules": "Compare this version's minimum wage, hours, overtime limits, rest days, wage payment, deduction ceilings, young-worker limits, probation and record retention rules with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. A regional wage order is dated within the minimum-wage rule, not a version of its own. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"behaviour": "Compare this version's event rules with what the law requires an event to cause from 6 January 2026: a holiday coinciding with a rest day or another holiday, an exit by each ground, a suspension of operations, the last payroll of the year. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Read triggers and consequences, not rates or deadlines. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"obligations": "Compare this version's employer duties with the law in force from 6 January 2026: registrations, remittances, returns and forms, notices of hire, separation and termination, registers, payslips and statutory exports. bir.gov.ph renders no text, and pagibigfund.gov.ph and privacy.gov.ph block the browser: read their rules as filed on ONAR. For each duty record its trigger, deadline, form and addressee. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"settings": "Compare this version's payroll settings (currency, tax year, pay date and semi-monthly split, monthly-wage basis, negative net, exit handling) and its employee and entity input facts with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing."
+			}
 		},
 		"cloned_from_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"change_summary": "RR 29-2025 (dated 27 October 2025, posted on the BIR website 22 December 2025, in force fifteen days later, 6 January 2026; s.3) raises every de minimis ceiling of RR 2-98 s.2.78.1(A)(3): monetised leave 10 → 12 days, dependants’ medical ₱1,500 → ₱2,000 a semester, rice ₱2,000 → ₱2,500 and laundry ₱300 → ₱400 a month, uniform ₱7,000 → ₱8,000, medical assistance, achievement awards and CBA/productivity ₱10,000 → ₱12,000, Christmas gifts ₱5,000 → ₱6,000, the overtime/night meal 25% → 30% of the regional minimum wage. Later regional wage orders are dated entries of the PAYROLL rule `minimum_wage`, not versions.",

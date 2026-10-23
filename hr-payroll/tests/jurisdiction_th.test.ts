@@ -5,6 +5,7 @@ import { refuse } from '../src/lib/payroll_engine/foundation.js';
 import { citationText, world, type Tables } from './jurisdiction_kit.js';
 import { lineage as jurisdiction } from './jurisdiction_kit.js';
 import { readSeedRows } from './seed_values.js';
+import { RESEARCH_AGENT_NAMES } from '../src/lib/payroll_engine/research_agents.js';
 const LAW_KIT = jurisdiction('TH');
 /** TH public lineage: snapshot structure, CEL on the engine context, obligations and statutory amounts per version. */
 import assert from 'node:assert/strict';
@@ -640,9 +641,16 @@ const fixtureValue33 = guardFixture(
 	FixtureSchema.mutable(FixtureSchema.Array(FixtureSchema.String))
 );
 const fixtureSources = guardFixture(
-	FixtureSchema.Array(
-		FixtureSchema.Struct({ url: FixtureSchema.String, instructions: FixtureSchema.String })
-	)
+	FixtureSchema.Struct({
+		entries: FixtureSchema.Array(
+			FixtureSchema.Struct({
+				agent: FixtureSchema.Literals(RESEARCH_AGENT_NAMES),
+				url: FixtureSchema.String,
+				instructions: FixtureSchema.String
+			})
+		),
+		agents: FixtureSchema.Record(FixtureSchema.String, FixtureSchema.String)
+	})
 );
 type Row = {
 	[key: string]: unknown;
@@ -1290,12 +1298,21 @@ describe('TH jurisdiction seed', () => {
 					`${version}/${file}`
 				);
 	});
-	it('research sources: one accessible official entry per area, each with its own instructions', () => {
+	it('research sources: every agent has its own official entries and supplementary text', () => {
 		for (const version of VERSIONS) {
-			const entries = fixtureSources(fixtureRecord(settings(version).sources).entries);
-			assert.equal(entries.length, 7, version);
-			assert.equal(new Set(entries.map((entry) => new URL(entry.url).host)).size, 7, version);
-			assert.equal(new Set(entries.map((entry) => entry.instructions)).size, 7, version);
+			const { entries, agents } = fixtureSources(settings(version).sources);
+			for (const agent of RESEARCH_AGENT_NAMES) {
+				assert.ok(
+					entries.some((entry) => entry.agent === agent),
+					`${version} ${agent} entries`
+				);
+				assert.ok((agents[agent] ?? '').trim().length > 0, `${version} ${agent} supplementary`);
+			}
+			assert.equal(
+				new Set(entries.map((entry) => entry.instructions)).size,
+				entries.length,
+				version
+			);
 			// Bot-challenged or unreachable portals are not sources (probed 2026-10-22; ocs.go.th serves an incomplete TLS
 			// chain, dropped 2026-10-23).
 			for (const entry of entries)

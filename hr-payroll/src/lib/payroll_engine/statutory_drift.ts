@@ -4,20 +4,25 @@
  */
 import { Predicate, Result, Schema } from 'effect';
 import type { StatutorySnapshot } from './statutory_snapshot.js';
+import { RESEARCH_AGENT_NAMES, type ResearchAgent } from './research_agents.js';
 
 const isString = Schema.is(Schema.String);
 const isUnknownArray = Schema.is(Schema.Array(Schema.Unknown));
 const URL_TEXT = /^https?:\/\//i;
 
+type DriftEntry = {
+	readonly agent: ResearchAgent;
+	readonly url: string;
+	readonly instructions: string;
+	readonly document_origins: readonly string[];
+};
 type DriftSources = {
 	readonly urls: readonly string[];
-	readonly entries?: readonly {
-		readonly url: string;
-		readonly instructions: string;
-		readonly document_origins?: readonly string[];
-	}[];
-	readonly instructions?: string;
-	readonly research_domains?: readonly string[];
+	readonly entries: readonly DriftEntry[];
+	/** Each agent's supplementary instructions for the jurisdiction. */
+	readonly agents: Partial<Readonly<Record<ResearchAgent, string>>>;
+	/** Every registered origin: entry urls and their document origins. */
+	readonly research_domains: readonly string[];
 };
 
 type DriftQuote = { readonly url: string; readonly quote: string };
@@ -33,17 +38,20 @@ function urlList(value: unknown): string[] {
 	return value.filter((item): item is string => isString(item) && URL_TEXT.test(item));
 }
 
+const isAgent = Schema.is(Schema.Literals(RESEARCH_AGENT_NAMES));
 export function sourcesFrom(value: unknown): DriftSources {
-	if (!Predicate.isObject(value)) return { urls: [] };
-	const entries = isUnknownArray(value.entries)
-		? value.entries.flatMap((item) =>
+	const record = Predicate.isObject(value) ? value : {};
+	const entries = isUnknownArray(record.entries)
+		? record.entries.flatMap((item) =>
 				Predicate.isObject(item) &&
+				isAgent(item.agent) &&
 				isString(item.url) &&
 				URL_TEXT.test(item.url) &&
 				isString(item.instructions) &&
 				item.instructions.trim() !== ''
 					? [
 							{
+								agent: item.agent,
 								url: item.url,
 								instructions: item.instructions,
 								document_origins: urlList(item.document_origins)
@@ -52,17 +60,20 @@ export function sourcesFrom(value: unknown): DriftSources {
 					: []
 			)
 		: [];
-	const urls = entries.length > 0 ? entries.map((item) => item.url) : urlList(value.urls);
-	const research_domains =
-		entries.length > 0
-			? [...urls, ...entries.flatMap((entry) => entry.document_origins)]
-			: urlList(value.research_domains);
-	const instructions = isString(value.instructions) ? value.instructions : undefined;
+	const agents = Predicate.isObject(record.agents)
+		? Object.fromEntries(
+				RESEARCH_AGENT_NAMES.flatMap((name) => {
+					const text = Predicate.isObject(record.agents) ? record.agents[name] : undefined;
+					return isString(text) && text.trim() !== '' ? [[name, text]] : [];
+				})
+			)
+		: {};
+	const urls = entries.map((item) => item.url);
 	return {
 		urls,
-		...(entries.length === 0 ? {} : { entries }),
-		...(instructions == null || instructions === '' ? {} : { instructions }),
-		...(research_domains.length === 0 ? {} : { research_domains })
+		entries,
+		agents,
+		research_domains: [...urls, ...entries.flatMap((entry) => entry.document_origins)]
 	};
 }
 
@@ -79,13 +90,15 @@ export function allowedUrl(url: string, sources: DriftSources): boolean {
 	if (sources.urls.includes(url)) return true;
 	const origin = originOf(url);
 	if (origin == null) return false;
-	return (sources.research_domains ?? []).some((domain) => originOf(domain) === origin);
+	return sources.research_domains.some((domain) => originOf(domain) === origin);
 }
 
+/** Spacing never decides a quote: a PDF's text breaks lines (and pads columns) where the official wording runs on. */
+const spaced = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 export function quotePresent(text: string, quote: string): boolean {
-	const needle = quote.trim().toLowerCase();
+	const needle = spaced(quote);
 	if (needle.length < 8) return false;
-	return text.toLowerCase().includes(needle);
+	return spaced(text).includes(needle);
 }
 
 export function unverifiedQuotes(
@@ -134,7 +147,10 @@ function rowEvidence(row: unknown): DriftQuote[] {
 	);
 }
 
+/** The settings object is one row of its own: its fields are what changed, its references their evidence. */
+const SETTINGS = 'settings';
 function rowOf(snapshot: unknown, section: string, code: string): unknown {
+	if (section === SETTINGS) return Predicate.isObject(snapshot) ? snapshot[SETTINGS] : undefined;
 	const rows = Predicate.isObject(snapshot) ? snapshot[section] : undefined;
 	return isUnknownArray(rows)
 		? rows.find((row) => Predicate.isObject(row) && row.code === code)
@@ -154,10 +170,11 @@ export function rowChanges(
 ): Result.Result<RowChange[], string> {
 	const touched = new Map<string, { section: string; code: string; fields: Set<string> }>();
 	for (const { path } of changes) {
-		const [section, code, field] = path
+		const [section, second, third] = path
 			.split('/')
 			.slice(1)
 			.map((key) => key.replaceAll('~1', '/').replaceAll('~0', '~'));
+		const [code, field] = section === SETTINGS ? [SETTINGS, second] : [second, third];
 		if (section === undefined || code === undefined)
 			return Result.fail(`a change outside any row (${path})`);
 		const id = JSON.stringify([section, code]);
@@ -168,10 +185,7 @@ export function rowChanges(
 	const rows: RowChange[] = [];
 	for (const { section, code, fields } of touched.values()) {
 		const now = rowOf(after, section, code);
-		if (now === undefined)
-			return Result.fail(
-				section === 'settings' ? `a settings change (${code})` : `removed ${section}/${code}`
-			);
+		if (now === undefined) return Result.fail(`removed ${section}/${code}`);
 		const previous = rowOf(before, section, code);
 		const known = rowEvidence(previous);
 		const evidence = rowEvidence(now).filter(
@@ -210,6 +224,8 @@ export function withoutRows(
 		new Set(drop.filter((row) => row.section === section).map((row) => row.code));
 	return {
 		...after,
+		settings: codes(SETTINGS).size === 0 ? after.settings : before.settings,
+		behaviour_rule: revert(before.behaviour_rule, after.behaviour_rule, codes('behaviour_rule')),
 		adhoc_catalog: revert(before.adhoc_catalog, after.adhoc_catalog, codes('adhoc_catalog')),
 		allowance_catalog: revert(
 			before.allowance_catalog,

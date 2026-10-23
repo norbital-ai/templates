@@ -38,35 +38,114 @@
 		"sources": {
 			"entries": [
 				{
+					"agent": "catalog",
 					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
-					"instructions": "Ministry of Labour provincial labour office page listing the Wage Committee notifications on minimum wage rates (ประกาศคณะกรรมการค่าจ้าง เรื่อง อัตราค่าจ้างขั้นต่ำ ฉบับที่ 12, 13, 14 ...) with their effective dates and repeal status. The authority here for the statutory minimum daily wage of every province and district (rule minimum_wage.by_region), the 400-baht categories (Bangkok, hotels of categories 2-4, service establishments) and the Wage Committee skill-standard wage notifications (อัตราค่าจ้างตามมาตรฐานฝีมือ) under its download and labour-law menus. Open each notification PDF and read the clause-by-clause province table; check whether a newer ฉบับ is listed and when it takes effect. A Wage Committee resolution or Cabinet acknowledgment is not law until the notification is gazetted. The Ministry's main portal (mol.go.th) is bot-challenged and is not used."
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the statutory leave classes and entitlements (sick, business, maternity, sterilisation, military, training and annual leave, with pay conditions), the termination benefits (the severance pay bands by length of service, special severance on relocation or technology change, payment in lieu of notice) and the work items pay is built from (overtime, holiday work and holiday overtime pay, rest-day pay, leave pay, piece-rate wages) with their multipliers."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://www.sso.go.th/wpr/",
-					"instructions": "Social Security Office. The authority here for social security and work injury: SSF contributions of s.33 insured employees (rate, wage floor and ceiling and their dated steps, insurable age, wage exclusions, wage-paid assessment), the s.39/s.40 distinction, maternity, sickness and unemployment cash benefits that coordinate with leave pay, employer and employee registration and exit notices (สปส.1-01, 1-03, 6-09), the monthly contribution return สปส.1-10 and its file layout, the s.49 late surcharge, and the Workmen's Compensation Fund (rates by business code, experience rating, annual wage statements กท.20ก, instalments, injury notification กท.16). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts, ministerial regulations and notifications, and the download and manual sections for forms and file specifications. A news item announcing a rate change is not the instrument: find the ministerial regulation."
+					"instructions": "Social Security Office. Read only the cash benefits that coordinate with leave pay: maternity, sickness and unemployment benefits (who pays which days, the benefit rate and its wage base). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Act and ministerial regulations fixing the benefits, and the benefit pages for the current amounts."
 				},
 				{
+					"agent": "contribution",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the SSF contribution of s.33 insured employees (rate, wage floor and ceiling and their dated steps, insurable age, wage exclusions, assessment on wages paid), the s.39/s.40 distinction, and the Workmen's Compensation Fund (rates by business code, experience rating, the wage base and ceiling). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts, ministerial regulations and notifications. A news item announcing a rate change is not the instrument: find the ministerial regulation."
+				},
+				{
+					"agent": "contribution",
 					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
-					"instructions": "Department of Labour Protection and Welfare public portal of the Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง). The authority here only for the Employee Welfare Fund: coverage (employers of ten or more), the contribution rates and their dated steps under the Ministerial Regulation B.E. 2568, the wage base and ceiling, the exemption of members of a registered provident fund (individual eligibility evidence), remittance in the month after the wage-payment month and the late surcharge. Open the manuals and FAQs (ewfund-media.php) and the public media files (e.g. media-file.php?id=18); do not use the ewfund or e-Service logins."
+					"instructions": "Department of Labour Protection and Welfare public portal of the Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง). Read coverage (employers of ten or more), the contribution rates and their dated steps under the Ministerial Regulation B.E. 2568, the wage base and ceiling, and the exemption of members of a registered provident fund (individual eligibility evidence). Open the manuals and FAQs (ewfund-media.php) and the public media files (e.g. media-file.php?id=18); do not use the ewfund or e-Service logins."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.rd.go.th/284.html",
-					"instructions": "Revenue Department tax-law collection (รวมกฎหมายภาษี). The authority here for salary withholding: Revenue Code ss.40, 42, 47, 48, 50, 52, 58 and 59, personal allowances and deductions, Royal Decree exemptions, the severance exemption (Ministerial Regulation No. 126 item 2(51)), PND1 and PND1 Kor filing and their e-filing extension, the 50 Tawi certificate, the PND1 attachment file format, and retention of tax documents. Follow the Revenue Code, royal decree, ministerial regulation and departmental instruction lists on this page and the individual income tax pages (the rate scale is at https://www.rd.go.th/59670.html). The English pages are not kept current; read the Thai pages."
+					"instructions": "Revenue Department tax-law collection (รวมกฎหมายภาษี). Read salary withholding: Revenue Code ss.40, 42, 47, 48 and 50 (income classes, exemptions, allowances and deductions, the progressive rate scale and the withholding computation), Royal Decree exemptions and the severance exemption (Ministerial Regulation No. 126 item 2(51)). Follow the Revenue Code, royal decree, ministerial regulation and departmental instruction lists on this page and the individual income tax pages (the rate scale is at https://www.rd.go.th/59670.html). The English pages are not kept current; read the Thai pages."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://sdfund.dsd.go.th/",
-					"instructions": "Skill Development Fund of the Department of Skill Development. The authority here for the Skill Development Promotion Act levy: which employers are in scope (100 or more employees), the 50% training ratio, the contribution base and rate, the Sor Tor 2 return and payment by March, the late surcharge, and the course certification and application deadlines. Use กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads. www.dsd.go.th is bot-challenged and is not used."
+					"instructions": "Skill Development Fund of the Department of Skill Development. Read the Skill Development Promotion Act levy: employers in scope (100 or more employees), the 50% training ratio, the contribution base and rate. Use กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads. www.dsd.go.th is bot-challenged and is not used."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://ejob.dep.go.th/",
-					"instructions": "Department of Empowerment of Persons with Disabilities site on employing persons with disabilities. The authority here for the disability employment quota: one person with disabilities per 100 employees (headcount date), the s.34 fund payment and its 31 March due date, the s.35 alternatives, the 7.5% late interest and the annual report. Use คลังความรู้ and แบบรายงาน for the ministerial regulations, notifications and forms. www.dep.go.th does not respond and is not used."
+					"instructions": "Department of Empowerment of Persons with Disabilities site on employing persons with disabilities. Read the employment quota (one person with disabilities per 100 employees, the headcount date) and the s.34 fund payment base for a shortfall. Use คลังความรู้ for the ministerial regulations and notifications. www.dep.go.th does not respond and is not used."
 				},
 				{
-					"url": "https://www.bot.or.th/th/financial-institutions-holiday.html",
-					"instructions": "Bank of Thailand financial-institution holiday calendar. The authority here for the dated holiday calendar of each year (rule public_holidays): the annual Bank of Thailand notification, gazetted in the Royal Gazette, fixes the traditional holidays with their lunar dates and weekend substitutes (e.g. No. 37/2569 for 2027), and the special closures that follow a Cabinet resolution (e.g. Bangkok, 16 October 2026). Click each year on the page to open its notification PDF and read clause 4. Government-only days (Khao Phansa, the Royal Ploughing Ceremony, Cabinet special government holidays that banks do not observe, provincial special days) are evidenced by the Cabinet resolution as restated in an official notice; report a day you cannot evidence rather than guessing. The 13-day rule itself (LPA s.29) is read from the Council of State entry."
+					"agent": "rules",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "This page lists the Wage Committee notifications on minimum wage rates (ประกาศคณะกรรมการค่าจ้าง เรื่อง อัตราค่าจ้างขั้นต่ำ ฉบับที่ 12, 13, 14 ...) with their effective dates and repeal status: the authority for the statutory minimum daily wage of every province and district, the 400-baht categories (Bangkok, hotels of categories 2-4, service establishments) and, under the download and labour-law menus, the skill-standard wage notifications (อัตราค่าจ้างตามมาตรฐานฝีมือ). Open each notification PDF and read the clause-by-clause province table; check whether a newer ฉบับ is listed and when it takes effect. A Wage Committee resolution or Cabinet acknowledgment is not law until the notification is gazetted. Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for hours of work, overtime and holiday-work limits and consent, rest days, wage periods and payment methods, deduction ceilings, child and young-worker limits and employer record retention."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read only the retention period of tax and withholding documents (Revenue Code and departmental instructions on this page). Read the Thai pages."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the event rules it requires: a traditional holiday falling on a weekly rest day and its substitute day, what an employee's termination or exit must trigger (final wages and severance payable within the statutory period, payment in lieu of notice), and what each wage payment date must settle (overtime and holiday pay paid with the wages)."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read only the event effects of an employee's exit on social security: when s.33 insured status ends and the s.39 continuation election. Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Act sections."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the employer duties and deadlines: employer and employee registration and exit notices (สปส.1-01, 1-03, 6-09), the monthly contribution return สปส.1-10 and its file layout, the s.49 late surcharge, and for the Workmen's Compensation Fund the annual wage statement กท.20ก, instalments and the injury notification กท.16. Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts and the download and manual sections for forms and file specifications."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
+					"instructions": "Employee Welfare Fund public portal. Read remittance in the month after the wage-payment month and the late surcharge, from the manuals and FAQs (ewfund-media.php) and the public media files; do not use the ewfund or e-Service logins."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read Revenue Code ss.52, 58 and 59 and the departmental instructions for PND1 and PND1 Kor filing and their e-filing extension, the 50 Tawi certificate and the PND1 attachment file format. Read the Thai pages."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://sdfund.dsd.go.th/",
+					"instructions": "Skill Development Fund. Read the Sor Tor 2 return and payment by March, the late surcharge, and the course certification and application deadlines, from กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://ejob.dep.go.th/",
+					"instructions": "Department of Empowerment of Persons with Disabilities site. Read the s.34 payment due date (31 March), the s.35 alternatives, the 7.5% late interest and the annual report. Use คลังความรู้ and แบบรายงาน for the regulations and forms."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for employer notices and registers: work rules and their filing, the employee register and wage and overtime records, notices to the labour inspector (child employment, retrenchment on technology change) and their deadlines."
+				},
+				{
+					"agent": "settings",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the payroll settings it fixes: how often and when wages must be paid (wage periods and pay date), and the monthly-wage basis for deriving a daily or hourly rate."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read the tax year and the taxpayer identification the employer and each employee must hold for withholding (tax identification number, the employee allowance declaration ล.ย.01). Read the Thai pages."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the identifiers and facts a payroll must hold: the employer account and branch numbers, the employee's insured number and registration facts, and the Workmen's Compensation business classification code. Use the download and manual sections for the registration forms."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"agents": {
+				"catalog": "Thai labour law is read in Thai; the leave and termination provisions sit in the Labour Protection Act as amended, and social security benefits only where they coordinate with employer-paid leave. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"contribution": "Thailand's statutory schemes are social security (SSF), the Workmen's Compensation Fund, the Employee Welfare Fund, the skill development levy, the disability quota payment and salary withholding tax; each rate change is made by a ministerial regulation or notification, not by news items. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"rules": "Minimum wages are set per province by gazetted Wage Committee notifications; the other limits come from the Labour Protection Act as amended. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"behaviour": "Event rules come from the Labour Protection Act as amended and the Social Security Act; public holiday dates are out of scope. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"obligations": "Each agency publishes its own forms and deadlines (SSO, Revenue Department, Employee Welfare Fund, Skill Development Fund, disability employment); read the forms and manuals alongside the instruments. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"settings": "The Thai tax year is the calendar year and wages are paid in THB; read the Thai pages, the English pages are not kept current. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing."
+			}
 		},
 		"change_summary": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette 7 November 2025, in force 7 December 2025): maternity leave of up to 120 days per pregnancy with up to 60 days' wages from the employer (ss.41, 59); 15 further days of child-care leave at 50% of wages (s.41 para 4, s.59/1); 15 days of paid leave for a husband to support his wife at childbirth (ss.41/1, 59/2).",
 		"behaviours": {

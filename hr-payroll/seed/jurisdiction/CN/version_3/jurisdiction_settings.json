@@ -38,43 +38,169 @@
 		"sources": {
 			"entries": [
 				{
+					"agent": "catalog",
 					"url": "http://www.npc.gov.cn/",
-					"instructions": "中国人大网 (NPC). Authority for the national statutes and NPC Standing Committee decisions: 劳动法 (hours, overtime caps and premiums, rest), 劳动合同法 (contracts, probation, termination grounds, notice, economic compensation N/2N, final settlement), 社会保险法 (the five insurances, contribution duties, withholding), 个人所得税法, 工会法 (2% union fund), 个人信息保护法 (statute text), 就业促进法, and the 2024 decision on the gradual raising of the statutory retirement age. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+					"instructions": "中国人大网 (NPC). Read 劳动法 for the overtime, rest-day and statutory-holiday work premiums (150% / 200% / 300%) and 劳动合同法 for economic compensation (N, the 2N damages for unlawful termination, the cap at three times the local average wage and 12 years), the one month's pay in lieu of notice (代通知金) and the double wage for missing written contracts. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://www.gov.cn/",
-					"instructions": "中国政府网 (State Council). Authority for: the annual 国务院办公厅关于部分节假日安排的通知 (调休, makeup workdays; usually published in November for the next year) and 全国年节及纪念日放假办法; State Council administrative regulations and ministry rules in 国务院政策文件库 (zhengceku): 职工带薪年休假条例 and 企业职工带薪年休假实施办法, 劳动合同法实施条例, 女职工劳动保护特别规定 (maternity leave), 工伤保险条例, 失业保险条例, 最低工资规定, 工资支付暂行规定, 保障农民工工资支付条例, 住房公积金管理条例, the 21.75-day monthly pay-day notice, national MOHRSS/MOF notices on the phased unemployment-insurance rate, and the foreign-worker rules (外国人在中国就业管理规定, 在中国境内就业的外国人参加社会保险暂行办法, 外国人入境出境管理条例). Search 政策 > 国务院政策文件库 by title or 文号."
+					"instructions": "中国政府网 (State Council). Read 职工带薪年休假条例 and 企业职工带薪年休假实施办法 (entitlement by cumulative service, pro-rating, excluded periods), 女职工劳动保护特别规定 (national maternity leave), 工伤保险条例 (停工留薪期 pay and the employer-paid work-injury benefits) and 工资支付暂行规定 (stoppage pay and pay during statutory activities). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
 				},
 				{
-					"url": "https://www.cac.gov.cn/",
-					"instructions": "国家互联网信息办公室. Authority for the implementing rules of employee personal-data protection: personal information protection compliance audits, sensitive personal information handling, the cross-border transfer rules (标准合同办法, 促进和规范数据跨境流动规定 and its HR-management exemption) and security assessments. Use 政务 > 政策法规 and 通知公告; the PIPL statute text itself is under npc.gov.cn."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://rsj.sh.gov.cn/",
-					"instructions": "上海市人力资源和社会保障局. Authority for Shanghai: the monthly and hourly minimum wage and its exclusions, the social-insurance contribution base floor and ceiling (contribution year from 1 July), pension, unemployment and work-injury rates and industry classes, 上海市企业工资支付办法 (overtime base, final pay, stoppage pay, deductions), sick-pay scale and medical period, the high-temperature allowance and the one-off work-injury subsidies. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+					"instructions": "上海市人力资源和社会保障局. Read 上海市企业工资支付办法 for the overtime pay base and stoppage pay, the Shanghai sick-pay scale and medical treatment period, the high-temperature allowance and the one-off work-injury subsidies. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://ybj.sh.gov.cn/",
-					"instructions": "上海市医疗保障局. Authority for Shanghai employee basic medical insurance (including maternity) rates and base, maternity benefits and long-term-care insurance. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期 (the medical rate notice is time-limited)."
+					"instructions": "上海市医疗保障局. Read the Shanghai maternity benefit (生育津贴) rules: who pays during maternity leave, the benefit base and the employer's top-up of any difference. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期."
 				},
 				{
-					"url": "https://shanghai.chinatax.gov.cn/",
-					"instructions": "国家税务总局上海市税务局. Authority for all tax and tax-collected levies (the national 国家税务总局 portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge): in 政策文件 > 政策法规库 (个人所得税 and 社会保险费 categories) the national IIT instruments it republishes — the cumulative withholding method (公告2018年第61号) and rate table, the 5,000 basic deduction and special additional deductions (国发〔2023〕13号 and later amounts), preferential treatments (annual bonus, separation pay, equity incentives, expatriate allowances and their expiry dates) and the monthly declaration calendar; and Shanghai collection — social-insurance and union-fund payment and declaration due days, the annual contribution-base declaration window, the disabled-employment security fund rate and calculation, and local IIT withholding guidance (纳税服务 > 办税指南, 通知公告)."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://www.shanghai.gov.cn/",
-					"instructions": "上海市人民政府. Authority for Shanghai local regulations and government rules not issued by the bureaus above: 上海市人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 上海市女职工劳动保护办法 (prenatal and nursing leave), 上海市老年人权益保障条例 (elder-care leave), 上海市工会条例, and the 上海市住房公积金管理委员会 notices on housing-fund rates and base limits (the fund centre's own site is unreachable). Use 政策发布 / 信息公开 > 规章 and the site search."
+					"instructions": "上海市人民政府. Read 上海市人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 上海市女职工劳动保护办法 (prenatal and nursing leave) and 上海市老年人权益保障条例 (elder-care leave): length, eligibility and whether the leave is paid. Use 政策发布 / 信息公开 > 规章 and the site search."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://www.ynrd.gov.cn/",
-					"instructions": "云南人大网 (Yunnan Provincial People's Congress). Authority for Yunnan and Kunming local regulations: 云南省人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 云南省老年人权益保障条例 (elder-care leave), 云南省失业保险条例, and Kunming regulations it approves such as 昆明市工资支付条例 (final pay within 5 working days, sick and stoppage pay). Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+					"instructions": "云南人大网 (Yunnan Provincial People's Congress). Read 云南省人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 云南省老年人权益保障条例 (elder-care leave) and 昆明市工资支付条例 for sick pay and stoppage pay. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://longling.gov.cn/",
-					"instructions": "龙陵县人民政府 (a Yunnan county portal that republishes province-wide notices; the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use it only for Yunnan province-wide instruments: the minimum-wage classes (云人社发 最低工资标准) and the Kunming county classification, the pension, unemployment and work-injury contribution bases and rates (including the phased unemployment rate), Yunnan work-injury local measures and the Yunnan high-temperature allowance. Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+					"instructions": "Read the Yunnan high-temperature allowance notice and the Yunnan work-injury local measures for the employer-paid work-injury benefits. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "contribution",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 社会保险法 (the five insurances, who contributes, employee withholding), 个人所得税法 (rate tables, the cumulative withholding basis, resident taxation) and 工会法 (the 2% trade-union fund on the payroll). Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 工伤保险条例 (industry risk classes and rate floating), 失业保险条例, 住房公积金管理条例 (5–12% shares and the base), the national MOHRSS/MOF notices on the phased unemployment-insurance rate, and 在中国境内就业的外国人参加社会保险暂行办法 (foreign-employee coverage). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read the Shanghai social-insurance contribution base floor and ceiling (the contribution year runs from 1 July), the pension, unemployment and work-injury rates and the work-injury industry classes. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://ybj.sh.gov.cn/",
+					"instructions": "上海市医疗保障局. Read the Shanghai employee basic medical insurance (maternity merged in) rates and base, and how long-term-care insurance is funded. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期 (the medical rate notice is time-limited)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). In 政策文件 > 政策法规库 (个人所得税 and 社会保险费 categories) read the national IIT instruments it republishes: the cumulative withholding method (公告2018年第61号) and its rate table, the 5,000 basic deduction and special additional deductions (国发〔2023〕13号 and later amounts), and the preferential treatments (annual bonus, separation pay, equity incentives, expatriate allowances, each with its expiry date); also the disabled-employment security fund rate and calculation, the union-fund collection by tax, and local IIT withholding guidance (纳税服务 > 办税指南, 通知公告)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.shanghai.gov.cn/",
+					"instructions": "上海市人民政府. Read the 上海市住房公积金管理委员会 notices on housing-fund rates and base limits (the fund centre's own site is unreachable) and 上海市工会条例 for the union fund. Use 政策发布 / 信息公开 > 规章 and the site search."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 云南省失业保险条例. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://longling.gov.cn/",
+					"instructions": "Read the Yunnan pension, unemployment and work-injury contribution bases and rates, including the phased unemployment rate. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "rules",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 劳动法 for hours of work, the overtime limits (1 hour a day, 3 hours in special cases, 36 hours a month), the weekly rest day and the young-worker (16–18) restrictions; 劳动合同法 for probation length and the probation pay floor; 就业促进法 for the equal-employment prohibitions. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 最低工资规定 (what is excluded from the minimum-wage test), 工资支付暂行规定 (pay in currency, at least monthly, the 20% ceiling on deductions for losses, wage-record retention), 保障农民工工资支付条例 (payment and wage-register retention) and 国务院关于职工工作时间的规定 (the 40-hour week). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "rules",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read the Shanghai monthly and hourly minimum wage and its exclusions, and 上海市企业工资支付办法 for payment timing and deduction limits. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 昆明市工资支付条例 for Kunming payment timing and deduction limits. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "rules",
+					"url": "https://longling.gov.cn/",
+					"instructions": "Read the Yunnan minimum-wage classes (云人社发 最低工资标准) and the classification of Kunming's districts and counties into them. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "behaviour",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 劳动法 art. 44 for what rest-day work causes (compensatory rest first, otherwise premium pay) and what statutory-holiday work causes; 劳动合同法 arts. 44–45 for the events that end or extend a contract (reaching the statutory retirement age, medical treatment periods, pregnancy) and art. 50 for what an exit requires on the last day. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 企业职工带薪年休假实施办法 for what joining and leaving cause (pro-rated entitlement, 300% pay for untaken leave on exit) and 全国年节及纪念日放假办法 only for the rule on a holiday falling on a weekend (补假), not for dates. Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read 上海市企业工资支付办法 for when final pay is due on an exit and what a stoppage longer than one wage cycle changes. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 昆明市工资支付条例 for the final pay due within 5 working days of an exit. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "obligations",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 社会保险法 for social-insurance registration within 30 days of hire and the monthly declaration and payment duty; 劳动合同法 for the written contract within one month, notice periods, the duty to notify the union before a unilateral termination, the retrenchment procedure (art. 41: explain to the union or all staff 30 days ahead and report to the labour administration) and the termination certificate and file transfer within 15 days; 个人信息保护法 for the employer's personal-data duties. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 住房公积金管理条例 (housing-fund registration and deposit deadlines), 工伤保险条例 (the work-injury report deadline), 工资支付暂行规定 (the written wage list to each employee), and the foreign-worker rules (外国人在中国就业管理规定, 外国人入境出境管理条例: work permit, employment registration and residence duties). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.cac.gov.cn/",
+					"instructions": "国家互联网信息办公室. Read the implementing rules of employee personal-data protection: personal information protection compliance audits, sensitive personal information handling, the cross-border transfer rules (标准合同办法 and its filing, 促进和规范数据跨境流动规定 and its HR-management exemption) and security assessments. Use 政务 > 政策法规 and 通知公告; the PIPL statute text itself is under npc.gov.cn."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). Read the monthly IIT declaration calendar and annual reconciliation duty, the social-insurance and union-fund payment and declaration due days, the annual contribution-base declaration window and the disabled-employment security fund declaration period (纳税服务 > 办税指南, 通知公告)."
+				},
+				{
+					"agent": "settings",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 个人所得税法 for the tax year (the calendar year) and the resident / non-resident test (183 days), and the 2024 NPC Standing Committee decision on the gradual raising of the statutory retirement age for the retirement-age schedule by birth date, gender and job category. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read the notice on 职工全年月平均工作时间和工资折算 (the 21.75-day monthly pay days) for the monthly-wage basis, 工资支付暂行规定 for the pay date when it falls on a rest day or holiday, and the foreign-worker rules (外国人在中国就业管理规定, 在中国境内就业的外国人参加社会保险暂行办法) for the facts held for foreign employees (work permit, nationality, social-insurance exemption by treaty). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "settings",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). Read 纳税服务 > 办税指南 for the identifiers a withholding agent and each employee must hold (纳税人识别号, 证件类型 and number, resident status) and the IIT tax year."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance; an area belongs to the one entry that names it. Open each portal directly and use its navigation or site search. Record the exact document URL, issuer, instrument number, publication and effective dates, the quoted clause or table and its scope for each proposed change. Read annexes and amendments; inspect scanned PDFs visually. A draft, 征求意见稿, budget speech or press summary is not operative law. Never sign in or upload customer records. Kunming municipal medical security (昆明市医疗保障局) and the Kunming housing provident fund centre have no portal the research tools can reach (km.gov.cn hosts return empty replies or time out): report those values as unverified rather than guessing."
+			"agents": {
+				"catalog": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Shanghai and Kunming (Yunnan) entities carry their own local leave and allowance rules on top of the national ones: read both levels and keep the region each applies to. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"contribution": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Rates and bases are set per province or city (Shanghai, Yunnan/Kunming) and revised on fixed cycles; note each notice's validity period. Kunming municipal medical security (昆明市医疗保障局) and the Kunming housing provident fund centre have no portal the research tools can reach (km.gov.cn hosts return empty replies or time out): report those values as unverified. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"rules": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Minimum wage is set per locality (Shanghai, Yunnan classes): match each entity's district or county to its class. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"behaviour": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Read the operative clause for what each event (rest-day or holiday work, exit, contract end, payroll run) must cause; national rules apply unless a Shanghai or Kunming instrument says otherwise. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"obligations": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Record each duty's trigger, deadline and receiving authority; Shanghai collection calendars are published by the local tax bureau. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"settings": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Settings follow the national rules unless a Shanghai or Kunming instrument varies them. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing."
+			}
 		},
 		"cloned_from_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
 		"change_summary": "1 July 2026: Shanghai 2026 contribution year — social insurance base 7546–37731 (2025 average wage 12577, published 18 August 2026) and housing provident fund upper base 37731 (沪公积金管委会〔2026〕3号).",

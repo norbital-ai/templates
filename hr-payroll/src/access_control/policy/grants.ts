@@ -222,6 +222,7 @@ const JURISDICTION_EDIT = {
 				'code',
 				'jurisdiction_code',
 				'name',
+				'references',
 				'employee_input_schema',
 				'entity_input_schema',
 				'behaviours',

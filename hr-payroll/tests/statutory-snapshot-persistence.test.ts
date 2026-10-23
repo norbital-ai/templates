@@ -36,6 +36,9 @@ const sourcesCodec = inputSchema(sourcesShape);
 const Sources = Schema.declare<ValueOf<typeof sourcesShape>>(
 	(candidate): candidate is ValueOf<typeof sourcesShape> => Schema.is(sourcesCodec)(candidate)
 );
+const StoredBehaviours = Schema.Struct({
+	behaviours: Schema.Struct({ rules: Schema.Array(Schema.Record(Schema.String, Schema.Json)) })
+});
 const tables = [
 	'adhoc_catalog',
 	'allowance_catalog',
@@ -70,12 +73,16 @@ const { pack, snapshots } = (() => {
 		assert.ok(settingsRow);
 		const settings = Schema.decodeUnknownSync(SettingsIdentity)(settingsRow);
 		const rawSnapshot: Record<string, unknown> = {
-			settings: snapshotFields(settingsRow, SNAPSHOT_MODELS.settings.fields)
+			settings: snapshotFields(settingsRow, SNAPSHOT_MODELS.settings.fields),
+			// behaviour rules are a snapshot section of their own, keyed by code = the rule's id
+			behaviour_rule: Schema.decodeUnknownSync(StoredBehaviours)(settingsRow).behaviours.rules.map(
+				({ id, ...rule }) => ({ code: String(id), ...rule })
+			)
 		};
 		pack.jurisdiction_settings ??= [];
 		pack.jurisdiction_settings.push({ ...settingsRow, cloned_from_id: null });
 		for (const [name, model] of Object.entries(SNAPSHOT_MODELS)) {
-			if (name === 'settings') continue;
+			if (name === 'settings' || name === 'behaviour_rule') continue;
 			const rows = readSeedRows(folder, name);
 			rawSnapshot[name] = rows.map((row) => snapshotFields(row, model.fields));
 			if (name === 'suspension_kind') continue;
@@ -109,6 +116,10 @@ layer(workspace({ seed: pack, now: '2026-10-10T00:00:00.000Z' }))(
 						const outcome = yield* actor.act('jurisdiction_settings.create', {
 							...snapshot.settings,
 							sources,
+							behaviours: {
+								version: 1,
+								rules: snapshot.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
+							},
 							effective_range: datePeriod('2026-10-10', null),
 							sealed_at: null,
 							voided_at: null,

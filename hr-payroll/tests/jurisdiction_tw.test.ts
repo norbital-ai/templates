@@ -1098,23 +1098,27 @@ describe('TW public lineage', () => {
 			to: '2025-12-31'
 		});
 	});
-	it('the in-force sources: one entry per area, each with its own instructions, none behind a challenge', () => {
-		const entries = fixtureValue6(fixtureRecord(settingsOf('version_4').sources).entries);
-		assert.deepEqual(
-			entries.map((entry) => entry.url),
-			[
-				'https://law.moj.gov.tw/',
-				'https://www.mol.gov.tw/',
-				'https://www.bli.gov.tw/',
-				'https://gazette.nat.gov.tw/',
-				'https://www.dot.gov.tw/',
-				'https://www.dgpa.gov.tw/'
-			]
-		);
-		const leads = entries.map((entry) => String(entry.instructions).split('. Authority for:')[0]);
-		assert.equal(new Set(leads).size, entries.length);
-		for (const entry of entries)
-			assert.match(String(entry.instructions), /Authority for: /, String(entry.url));
+	it('the sources: every entry serves one research agent, every agent has entries and its own instructions, none behind a challenge', () => {
+		const agents = ['catalog', 'contribution', 'rules', 'behaviour', 'obligations', 'settings'];
+		for (const version of versions) {
+			const sources = fixtureRecord(settingsOf(version).sources);
+			assert.deepEqual(Object.keys(sources), ['entries', 'agents'], version);
+			const entries = fixtureValue6(sources.entries);
+			for (const entry of entries) {
+				assert.ok(agents.includes(fixtureString(entry.agent)), `${version}: ${String(entry.url)}`);
+				assert.ok(fixtureString(entry.instructions).length > 0, `${version}: ${String(entry.url)}`);
+				assert.doesNotMatch(fixtureString(entry.url), /nhi\.gov\.tw/, version);
+			}
+			const supplementary = fixtureRecord(sources.agents);
+			assert.deepEqual(Object.keys(supplementary), agents, version);
+			for (const agent of agents) {
+				assert.ok(
+					entries.some((entry) => entry.agent === agent),
+					`${version}: ${agent}`
+				);
+				assert.ok(fixtureString(supplementary[agent]).length > 0, `${version}: ${agent}`);
+			}
+		}
 	});
 	it('every row carries only its model’s fields', () => {
 		for (const version of versions)

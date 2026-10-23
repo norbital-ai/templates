@@ -41,39 +41,119 @@
 		"sources": {
 			"entries": [
 				{
-					"url": "https://www.cpf.gov.sg/",
-					"instructions": "Central Provident Fund Board (CPFB). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
-					"url": "https://www.iras.gov.sg/",
-					"instructions": "IRAS. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
-				},
-				{
+					"agent": "catalog",
 					"url": "https://www.mom.gov.sg/",
-					"instructions": "Ministry of Manpower. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Ministry of Manpower, Employment Act 1968 pay and leave items. Under Employment practices > Leave: annual, sick and hospitalisation leave (service bands, eligibility and approval conditions such as medical certification) and Employment Act maternity and childcare leave for a non-citizen child. Under Employment practices > Salary and Hours of work, rest day and public holidays: the pay for overtime, rest-day work and public-holiday work and the gross / basic rate definitions the work items are built from, plus AWS and bonus pages. Under Termination: retrenchment benefit, salary in lieu of notice and other termination payments; the Retirement and Re-employment Act Employment Assistance Payment (Tripartite Guidelines PDF linked from Employment practices > Re-employment); suspension pending a misconduct inquiry (Termination of employment pages; site search \"misconduct\"); kinds of permitted deductions (loans, advances, recoveries) in the Salary topic's deductions page; pro-rated leave and pay for part-timers under the Employment (Part-Time Employees) Regulations page."
 				},
 				{
+					"agent": "catalog",
 					"url": "https://www.profamilyleave.msf.gov.sg/",
-					"instructions": "Government-Paid Leave (GPL) Portal | Government-Paid Leave (GPL) Portal. Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Government-Paid Leave portal (Ministry of Social and Family Development), Child Development Co-Savings Act schemes for a citizen child. Open Schemes for each scheme page: Government-Paid Maternity, Paternity, Shared Parental, Adoption and Childcare Leave, Extended Childcare Leave and Unpaid Infant Care Leave — eligibility, weeks or days by the child's birth date, splitting between parents and which leave the employer pays and the government reimburses (reimbursement caps)."
 				},
 				{
-					"url": "https://sso.agc.gov.sg/",
-					"instructions": "Singapore Statutes Online (SSO). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"agent": "contribution",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer pages for CPF contributions: rate tables by age band and citizen / SPR year (the yearly contribution-rate PDF under Employer obligations > How much CPF contributions to pay), the Ordinary and Additional Wage ceilings, wage bands and rounding, and which payments attract CPF (including NS make-up pay and termination payments). Also the Skills Development Levy (rate, minimum and maximum) and the self-help-group fund schedules and opt-out rules (CDAC, ECF, MBMF, SINDA) under Employer obligations > Contributions to self-help groups. Check the effective date on each table; senior-worker rate steps appear in the service FAQ articles before the PDF is published."
 				},
 				{
-					"url": "https://www.pdpc.gov.sg/",
-					"instructions": "Personal Data Protection Commission (PDPC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"agent": "contribution",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, employment income tax as it touches payroll. Under Taxes > Individual income tax > Employers: taxable versus exempt allowances and benefits (the tax base). Under Taxes > Withholding tax: withholding on payments to non-resident directors and public entertainers (Section 45) — rates and base. Resident employees have no monthly withholding."
 				},
 				{
+					"agent": "contribution",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, Passes and permits: the foreign worker levy for Work Permit and S Pass holders — tiers, quota-linked rates and how the levy is charged per month."
+				},
+				{
+					"agent": "contribution",
 					"url": "https://www.muis.gov.sg/",
-					"instructions": "Islamic Religious Council of Singapore (MUIS). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Islamic Religious Council of Singapore: the Mosque Building and Mendaki Fund (MBMF) contribution schedule by wage band, coverage and opt-out rules; cross-check against the CPF self-help-group page."
 				},
 				{
+					"agent": "contribution",
 					"url": "https://www.cdac.org.sg/",
-					"instructions": "Chinese Development Assistance Council (CDAC). Use employer obligations, employment practices, tax/employer guides, legislation references and government-paid leave sections. Open statutory text and official current tables/FAQs together, checking effective dates, citizen/SPR/foreign classes, age and service bands, wage ceilings, rounding, opt-outs, approval conditions and deadlines. Keep CPF, community funds, SDL, leave entitlements and reimbursements distinct. Open this public portal directly; use its navigation/site search and follow official document links. Record the exact document URL, issuer, instrument number, publication/effective dates, quoted clause/table and relevant scope for each proposed change. Read all relevant annexes and amendments; if a PDF is scanned, inspect/OCR the original pages and verify figures visually. Use another registered official portal if a page is inaccessible, and report unresolved evidence instead of guessing. Never sign in, upload customer records, or treat a press summary as the full operative instrument."
+					"instructions": "Chinese Development Assistance Council: the CDAC Fund contribution schedule by wage band, coverage and opt-out rules; cross-check against the CPF self-help-group page."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, limits under the Employment Act 1968 and related law. Contract coverage: Part 4 salary thresholds, workman / non-workman, managers and executives (Employment Act coverage pages). Employment practices > Salary: salary period and payment deadlines, deduction ceilings. Hours of work, rest day and overtime: daily and weekly hours, the monthly overtime cap, rest-day frequency. The Employment (Part-Time Employees) Regulations hour threshold, young persons and children limits, Retirement and Re-employment Act minimum retirement and re-employment ages, the Progressive Wage Model sector and occupational wage floors and the Local Qualifying Salary (Employment practices > Progressive Wage Model), and how long employment records must be kept."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore: how long employers must keep payroll and tax records (site search \"record keeping\" from Taxes > Individual income tax > Employers)."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.pdpc.gov.sg/",
+					"instructions": "Personal Data Protection Commission: the Personal Data Protection Act 2012 retention limitation obligation as it applies to employee data. Use Overview of PDPA > The legislation and the advisory guidelines chapter on employment under Guidelines and consultation."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, event rules under the Employment Act 1968. Employment practices > Public holidays: what follows when a public holiday falls on a rest day or non-working day, or the employee works it. Leave pages: what happens to leave and pay when an exit occurs mid-year (encashment or offset of unused annual leave). Termination: notice and salary in lieu, payment of salary on dismissal, resignation, retrenchment or death and its deadlines."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, Taxes > Individual income tax > Employers > Tax clearance for foreign & SPR employees (IR21): what an exit of a non-citizen employee must cause on payroll — withholding all monies due from the notice date until clearance."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave portal: under Schemes, what an employer must still pay or keep when employment ends, the employee is dismissed or a leave block spans an exit or a new child's birth date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, employer duties with deadlines: key employment terms in writing, itemised payslips and employment records (Employment practices > Salary > Itemised payslips and Employment records), mandatory retrenchment notification, flexible work arrangement request handling and fair employment / Workplace Fairness legislation duties, work pass security bond and medical insurance (Passes and permits), and work injury compensation insurance and workplace incident reporting (Workplace safety and health). Newsroom > Press releases dates a change; the topic page states the operative duty."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer obligations: CPF, SDL and self-help-group payment due date, the submission (e-Submit / CPF EZPay) process, late-payment interest and penalties, and new-employer registration for a CPF Submission Number."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, Taxes > Individual income tax > Employers: the Auto-Inclusion Scheme and Form IR8A filing deadline, Appendix 8A (benefits in kind) and 8B (share gains), Form IR21 filing deadlines for departing non-citizen employees, and Taxes > Withholding tax: Section 45 filing and payment deadlines."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.pdpc.gov.sg/",
+					"instructions": "Personal Data Protection Commission, Personal Data Protection Act 2012 duties over employee data: purpose notification and the employment exceptions to consent, appointing a data protection officer, access and correction request time limits, and data breach assessment and notification to PDPC and affected employees. Use Overview of PDPA > The legislation and the employment chapter of the advisory guidelines under Guidelines and consultation."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave portal: under Schemes and the employer claim pages, how and by when an employer claims government reimbursement and the records it must keep."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, Employment practices > Salary: the monthly-wage basis (the incomplete-month formula and the hourly and daily basic rate formulas), the salary period and pay date the version's settings use, and how a shortfall or final settlement may be carried (negative net, exit handling). Passes and permits: the work pass types an employee record must hold."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer pages: the employer and employee facts CPF and self-help-group computation needs — CPF Submission Number, citizenship or SPR status and year, date of birth for age bands, and the race / religion that selects the fund."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore: the currency and the Year of Assessment basis for employment income (calendar-year income), the employer tax reference number, the employee identification numbers IR8A requires and the tax-residency test (Taxes > Individual income tax; Employers > Filing employee earnings for the IR8A fields)."
 				}
 			],
-			"instructions": "Compare the complete jurisdiction snapshot against operative, published official law. Specific document URLs are evidence citations, not source registry entries. Apply each entry's own extraction guidance."
+			"agents": {
+				"catalog": "Compare the pay and leave catalogues and suspension kinds against operative law; keep leave entitlements, government-paid leave and reimbursements distinct, and keep Employment Act leave for a non-citizen child (MOM) apart from the citizen-child schemes (Government-Paid Leave portal). Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"contribution": "Compare contribution, levy and withholding schemes against operative law: coverage by citizen / SPR / foreign class, age bands, base, rates, ceilings, rounding and opt-outs; keep CPF, self-help-group funds, SDL and the foreign worker levy distinct; check the effective date on every table. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"rules": "Compare the statutory limits against operative law; a press release or factsheet dates a change, the topic page states the operative figure. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"behaviour": "Compare the event rules against what the law requires when the event occurs; quote the provision that fixes the outcome. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"obligations": "Compare employer duties against operative law, each with its deadline, form and recipient. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"settings": "Compare the version's payroll settings and the statutory facts and employer numbers it holds against operative law. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing."
+			}
 		},
 		"entity_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

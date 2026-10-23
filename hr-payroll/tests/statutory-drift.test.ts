@@ -22,9 +22,16 @@ import {
 import { readSeedRows } from './seed_values.ts';
 
 const sources = sourcesFrom({
-	urls: ['https://www.mom.gov.sg/cpf'],
-	research_domains: ['https://www.mom.gov.sg/'],
-	instructions: 'Cite gazetted rates only.'
+	entries: [
+		{
+			agent: 'contribution',
+			url: 'https://www.mom.gov.sg/cpf',
+			instructions: 'The CPF rate tables.'
+		},
+		// an entry that serves no agent is no source
+		{ url: 'https://example.com/cpf', instructions: 'Unassigned.' }
+	],
+	agents: { contribution: 'Cite gazetted rates only.' }
 });
 const url = 'https://www.mom.gov.sg/cpf';
 const quote = 'The ordinary wage ceiling is 8000 from 1 January 2026.';
@@ -41,7 +48,7 @@ const folder = path.resolve(import.meta.dirname, '../seed/jurisdiction/SG/versio
 const seedSnapshot = () => {
 	const [settings] = readSeedRows(folder, 'jurisdiction_settings');
 	assert.ok(settings);
-	const section = (name: Exclude<keyof typeof SNAPSHOT_MODELS, 'settings'>) =>
+	const section = (name: Exclude<keyof typeof SNAPSHOT_MODELS, 'settings' | 'behaviour_rule'>) =>
 		readSeedRows(folder, name).map((row) => snapshotFields(row, SNAPSHOT_MODELS[name].fields));
 	return {
 		settings: snapshotFields(settings, SNAPSHOT_MODELS.settings.fields),
@@ -53,10 +60,16 @@ const seedSnapshot = () => {
 		work_catalog: section('work_catalog'),
 		statutory_contribution_catalog: section('statutory_contribution_catalog'),
 		suspension_kind: section('suspension_kind'),
-		rule_set: section('rule_set')
+		rule_set: section('rule_set'),
+		behaviour_rule: Schema.decodeUnknownSync(Behaviours)(settings).behaviours.rules.map(
+			({ id, ...rule }) => ({ code: String(id), ...rule })
+		)
 	};
 };
 const json = Schema.decodeUnknownSync(Schema.Json);
+const Behaviours = Schema.Struct({
+	behaviours: Schema.Struct({ rules: Schema.Array(Schema.Record(Schema.String, Schema.Json)) })
+});
 const changesOf = (before: object, after: object) =>
 	rowChanges(before, after, jsonDiff(json(before), json(after), SNAPSHOT_OUTPUT.fields.snapshot));
 const refusalOf = (before: object, after: object) =>
@@ -65,7 +78,11 @@ const refusalOf = (before: object, after: object) =>
 describe('statutory drift', () => {
 	it('L-TPL-hr-payroll-113 admits listed and same-origin URLs and refuses others', () => {
 		assert.deepEqual(sources.urls, ['https://www.mom.gov.sg/cpf']);
-		assert.equal(sources.instructions, 'Cite gazetted rates only.');
+		assert.deepEqual(sources.agents, { contribution: 'Cite gazetted rates only.' });
+		assert.deepEqual(
+			sources.entries.map((entry) => entry.agent),
+			['contribution']
+		);
 		assert.equal(allowedUrl('https://www.mom.gov.sg/cpf', sources), true);
 		assert.equal(allowedUrl('https://www.mom.gov.sg/employment-pass', sources), true);
 		assert.equal(allowedUrl('https://example.com/cpf', sources), false);
@@ -80,6 +97,14 @@ describe('statutory drift', () => {
 		assert.equal(pageFrom({ kind: 'timeout', message: 'upstream' }), null);
 		assert.equal(quotePresent(page.text, 'ordinary wage ceiling is 8000'), true);
 		assert.equal(quotePresent(page.text, 'short'), false);
+		// a PDF's line break inside the official wording is the same wording (Act 265 s.60FA as extracted)
+		assert.equal(
+			quotePresent(
+				'Subject to subsection (3), a married male employee \nshall be entitled to a paid paternity',
+				'a married male employee shall be entitled'
+			),
+			true
+		);
 		assert.deepEqual(unverifiedQuotes([page], [{ url, quote }], sources), []);
 		assert.equal(
 			unverifiedQuotes([{ ...page, text: 'unrelated bulletin' }], [{ url, quote }], sources).length,
@@ -132,7 +157,7 @@ describe('statutory drift', () => {
 		);
 	});
 
-	it('L-TPL-hr-payroll-113 finds no fresh evidence on an unevidenced change or a re-cited old quote, and refuses a removal or a settings edit', () => {
+	it('L-TPL-hr-payroll-113 finds no fresh evidence on an unevidenced change, a re-cited old quote or a settings edit without its own references, and refuses a removal', () => {
 		const cited = seedSnapshot();
 		const citedRow = cited.leave_catalog[0];
 		assert.ok(citedRow);
@@ -164,7 +189,15 @@ describe('statutory drift', () => {
 		assert.equal(refusalOf(seedSnapshot(), removed), `removed rule_set/${String(gone['code'])}`);
 
 		const settings = seedSnapshot();
+		// the settings object is one row: a settings edit is evidenced by the settings' own fresh references
 		settings.settings['name'] = 'Renamed jurisdiction';
-		assert.equal(refusalOf(seedSnapshot(), settings), 'a settings change (name)');
+		assert.deepEqual(
+			Result.getOrThrow(changesOf(seedSnapshot(), settings)).map(({ section, code, evidence }) => ({
+				section,
+				code,
+				evidence
+			})),
+			[{ section: 'settings', code: 'settings', evidence: [] }]
+		);
 	});
 });

@@ -13,8 +13,9 @@ import {
 } from '../lib/payroll_engine/statutory_drift.js';
 import {
 	completeSnapshot,
+	agentView,
 	conciseSnapshot,
-	COVERAGE_SCOPES,
+	mergeAgent,
 	snapshotFields,
 	snapshotSelect,
 	SNAPSHOT_MODELS,
@@ -22,17 +23,22 @@ import {
 	STATUTORY_RESEARCH_ROLE,
 	type StatutorySnapshot
 } from '../lib/payroll_engine/statutory_snapshot.js';
+import {
+	AGENT_JOBS,
+	AGENT_SECTIONS,
+	RESEARCH_AGENT_NAMES
+} from '../lib/payroll_engine/research_agents.js';
 /**
  * Every Saturday at 03:00 UTC, and when started by payroll authority: one run researches every sealed in-force
- * jurisdiction lineage (or the one `code` given) at once — lineages side by side, one multi-step inference per coverage
- * scope in turn — and
- * persists a complete corrected unsealed successor where every changed row cites official evidence that re-appears on
- * its page; a row whose evidence does not hold is left out. A no-change that leaves a coverage scope pending is
- * reported as incomplete, and a change names the scopes it did not reach. It never seals.
+ * jurisdiction lineage (or the one `code` given) at once — six agents per lineage (catalog, contribution, rules,
+ * behaviour, obligations, settings), all lineages and agents side by side — merges each lineage's answers and persists
+ * a complete corrected unsealed successor where every changed row cites official evidence that re-appears on its page;
+ * a row whose evidence does not hold is left out. A no-change that leaves an agent unresolved is reported as
+ * incomplete, and a change names the agents it did not resolve. It never seals: a person reviews and seals the draft.
  */
 const statutory_drift = automation({
 	description:
-		'Every Saturday, research every sealed in-force jurisdiction lineage at once — one web-researching inference per coverage scope — and save a corrected unsealed draft where official evidence verifies a change. A manual start may name one code. It never seals a version.',
+		'Every Saturday, research every sealed in-force jurisdiction lineage at once — six web-researching agents per lineage, side by side — and save a corrected unsealed draft where official evidence verifies a change. A manual start may name one code. It never seals a version.',
 	on: { cron: '0 3 * * 6' },
 	input: { code: { kind: 'text', optional: true } },
 	output: {
@@ -87,6 +93,7 @@ statutory_drift.run(function* (input, ctx) {
 							employee_input_schema: true,
 							entity_input_schema: true,
 							behaviours: true,
+							references: true,
 							payroll: true,
 							suspension_kinds: true,
 							sources: true,
@@ -187,45 +194,58 @@ statutory_drift.run(function* (input, ctx) {
 				suspension_kind: version.suspension_kinds ?? [],
 				rule_set: rules.rows
 					.filter((row) => row.settings_id === version.id)
-					.map((row) => snapshotFields(row, SNAPSHOT_MODELS.rule_set.fields))
+					.map((row) => snapshotFields(row, SNAPSHOT_MODELS.rule_set.fields)),
+				behaviour_rule: (version.behaviours?.rules ?? []).map(({ id, ...rule }) => ({
+					code: id,
+					...rule
+				}))
 			} as StatutorySnapshot;
 			return { code, version, sources, snapshot };
 		});
 	type Prepared = Exclude<Effect.Success<ReturnType<typeof prepare>>, null>;
 	const json = Schema.decodeUnknownSync(Schema.Json);
-	// One lineage's research: one multi-step inference per coverage scope, each with its own step budget, over the draft
-	// the scope before it left; a verified change becomes an unsealed draft.
+	// One lineage's research: six agents side by side, each one multi-step inference with its own step budget over the
+	// sections it owns and its own sources; their answers merge into one snapshot, and a verified change becomes an
+	// unsealed draft.
 	const research = ({ code, version, sources, snapshot }: Prepared) =>
 		Effect.gen(function* () {
+			const answers = yield* Effect.forEach(
+				RESEARCH_AGENT_NAMES,
+				(agent) =>
+					Effect.result(
+						ctx.ai.sys_2.infer({
+							model: 'strong',
+							tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act'],
+							steps: 1000,
+							system: STATUTORY_RESEARCH_ROLE,
+							prompt: `Jurisdiction ${code}; review as of ${ctx.today}. You are the ${agent} agent: you own ${AGENT_JOBS[agent]} (snapshot sections: ${AGENT_SECTIONS[agent].join(', ')}).${sources.agents[agent] === undefined ? '' : `\nSupplementary instructions for ${code}: ${sources.agents[agent]}`}\nYour official sources and how to read them:\n${JSON.stringify(sources.entries.filter((entry) => entry.agent === agent))}\nIndex of the snapshot sections you own (read original values in memory):\n${conciseSnapshot(agentView(snapshot, agent))}`,
+							initial: json({
+								changed: false,
+								summary: '',
+								effective_from: ctx.today,
+								coverage: [{ scope: agent, status: 'pending' }],
+								unresolved: [],
+								snapshot
+							}),
+							output: SNAPSHOT_OUTPUT
+						})
+					).pipe(Effect.map((answer) => ({ agent, answer }))),
+				{ concurrency: 'unbounded' }
+			);
 			let draft = snapshot;
 			let effective_from = ctx.today;
 			const summaries: string[] = [];
-			// the scopes not resolved: their pass failed, ran out of budget, or answered an unusable draft
+			// what each agent could not verify, for the person who reviews the draft
+			const unresolved: string[] = [];
+			// the agents not resolved: their inference failed, ran out of budget, or answered an unusable draft
 			const pending: string[] = [];
-			for (const scope of COVERAGE_SCOPES) {
-				const pass = yield* Effect.result(
-					ctx.ai.sys_2.infer({
-						model: 'strong',
-						tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act'],
-						steps: 1000,
-						system: STATUTORY_RESEARCH_ROLE,
-						prompt: `Jurisdiction ${code}; review as of ${ctx.today}. This pass researches coverage scope ${scope} only. Official entry points and extraction instructions:\n${JSON.stringify(sources.entries ?? sources.urls)}\nComplete snapshot index (read original values in memory):\n${conciseSnapshot(draft)}`,
-						initial: json({
-							changed: false,
-							summary: '',
-							effective_from: ctx.today,
-							coverage: [{ scope, status: 'pending' }],
-							unresolved: [],
-							snapshot: draft
-						}),
-						output: SNAPSHOT_OUTPUT
-					})
-				);
-				if (Result.isFailure(pass)) {
-					pending.push(`${scope} (${pass.failure.message})`);
+			for (const { agent, answer } of answers) {
+				if (Result.isFailure(answer)) {
+					pending.push(`${agent} (${answer.failure.message})`);
 					continue;
 				}
-				const result = pass.success;
+				const result = answer.success;
+				unresolved.push(...result.unresolved.map((item) => `${agent}: ${item}`));
 				const open = result.coverage.some((item) => item.status === 'pending');
 				if (
 					!result.changed ||
@@ -233,18 +253,19 @@ statutory_drift.run(function* (input, ctx) {
 					!completeSnapshot(snapshot, result.snapshot)
 				) {
 					if (result.changed)
-						pending.push(`${scope} (a change without a summary or a complete snapshot)`);
-					else if (open) pending.push(scope);
+						pending.push(`${agent} (a change without a summary or a complete snapshot)`);
+					else if (open) pending.push(agent);
 					continue;
 				}
-				if (open) pending.push(scope);
-				draft = result.snapshot;
-				summaries.push(result.summary);
+				if (open) pending.push(agent);
+				// only the agent's own rows are taken: what it edited elsewhere belongs to another agent
+				draft = mergeAgent(draft, agent, result.snapshot);
+				summaries.push(`${agent}: ${result.summary}`);
 				// one draft takes effect once its latest correction does
 				if (result.effective_from > effective_from) effective_from = result.effective_from;
 			}
-			// a no-change with any pending scope is incomplete, never a verified no-change; a change still drafts its
-			// verified rows and names the pending scopes in its summary
+			// a no-change with any unresolved agent is incomplete, never a verified no-change; a change still drafts its
+			// verified rows and names the unresolved agents in its summary
 			if (summaries.length === 0)
 				return pending.length === 0
 					? { code, drafted: false }
@@ -253,10 +274,13 @@ statutory_drift.run(function* (input, ctx) {
 							drafted: false,
 							failed: `${code}: incomplete — not resolved: ${pending.join(', ')}`
 						};
-			const summary =
-				pending.length === 0
-					? summaries.join('\n\n')
-					: `${summaries.join('\n\n')}\n\nNot resolved: ${pending.join(', ')}.`;
+			const summary = [
+				...summaries,
+				...(unresolved.length === 0
+					? []
+					: [`Unresolved:\n${unresolved.map((item) => `- ${item}`).join('\n')}`]),
+				...(pending.length === 0 ? [] : [`Not resolved: ${pending.join(', ')}.`])
+			].join('\n\n');
 			const refuse = (why: string) => ({
 				code,
 				drafted: false,
@@ -310,7 +334,17 @@ statutory_drift.run(function* (input, ctx) {
 			const corrected = withoutRows(snapshot, draft, dropped);
 			// The governing version's research registry (`sources`) carries over unchanged through `version`.
 			yield* ctx.act('jurisdiction_settings.create', {
-				...cloneSettingsFields({ ...version, ...corrected.settings }, effective_from),
+				...cloneSettingsFields(
+					{
+						...version,
+						...corrected.settings,
+						behaviours: {
+							version: 1,
+							rules: corrected.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
+						}
+					},
+					effective_from
+				),
 				change_summary: changeSummary(kept, summary),
 				adhoc_catalog: { create: corrected.adhoc_catalog },
 				allowance_catalog: { create: corrected.allowance_catalog },
