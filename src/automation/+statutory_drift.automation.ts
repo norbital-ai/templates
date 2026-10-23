@@ -17,6 +17,7 @@ import {
 	conciseSnapshot,
 	mergeAgent,
 	snapshotFields,
+	snapshotProblem,
 	snapshotSelect,
 	SNAPSHOT_MODELS,
 	SNAPSHOT_OUTPUT,
@@ -247,20 +248,21 @@ statutory_drift.run(function* (input, ctx) {
 				const result = answer.success;
 				unresolved.push(...result.unresolved.map((item) => `${agent}: ${item}`));
 				const open = result.coverage.some((item) => item.status === 'pending');
-				if (
-					!result.changed ||
-					result.summary.trim() === '' ||
-					!completeSnapshot(snapshot, result.snapshot)
-				) {
+				if (!result.changed || !completeSnapshot(snapshot, result.snapshot)) {
 					if (result.changed)
-						pending.push(`${agent} (a change without a summary or a complete snapshot)`);
+						pending.push(
+							`${agent} (an incomplete snapshot: ${snapshotProblem(snapshot, result.snapshot) ?? ''})`
+						);
 					else if (open) pending.push(agent);
 					continue;
 				}
 				if (open) pending.push(agent);
 				// only the agent's own rows are taken: what it edited elsewhere belongs to another agent
 				draft = mergeAgent(draft, agent, result.snapshot);
-				summaries.push(`${agent}: ${result.summary}`);
+				// a missing paragraph never discards evidenced rows: the change summary lists every row anyway
+				summaries.push(
+					`${agent}: ${result.summary.trim() === '' ? '(no summary written; see the rows above)' : result.summary}`
+				);
 				// one draft takes effect once its latest correction does
 				if (result.effective_from > effective_from) effective_from = result.effective_from;
 			}

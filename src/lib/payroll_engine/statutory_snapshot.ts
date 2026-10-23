@@ -231,26 +231,33 @@ The answer is already in memory as your draft; the concise input indexes it. Row
 
 const isString = Schema.is(Schema.String);
 const isRecord = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
-/** All sections must survive, with unique row codes and unchanged lineage identity. */
-export function completeSnapshot(
-	before: StatutorySnapshot,
-	after: unknown
-): after is StatutorySnapshot {
-	if (!isRecord(after) || !isRecord(after.settings)) return false;
-	if (after.settings.voided_at != null) return false;
+/** What makes `after` no complete snapshot of `before`, if anything: every section must survive, with unique row
+ * codes and unchanged lineage identity. */
+export function snapshotProblem(before: StatutorySnapshot, after: unknown): string | undefined {
+	if (!isRecord(after) || !isRecord(after.settings)) return 'no settings';
+	if (after.settings.voided_at != null) return 'a voided version';
 	if (
 		after.settings.code !== before.settings.code ||
 		after.settings.jurisdiction_code !== before.settings.jurisdiction_code
 	)
-		return false;
+		return 'a changed lineage identity';
 	for (const key of Object.keys(SNAPSHOT_MODELS)) {
 		if (key === 'settings') continue;
 		const rows = after[key];
-		if (!Array.isArray(rows) || !rows.every((row) => isRecord(row) && isString(row.code)))
-			return false;
-		if (new Set(rows.map((row) => row.code)).size !== rows.length) return false;
+		if (!Array.isArray(rows)) return `no ${key}`;
+		const uncoded = rows.findIndex((row) => !(isRecord(row) && isString(row.code)));
+		if (uncoded >= 0) return `${key} row ${uncoded} has no code`;
+		const codes = rows.map((row) => row.code);
+		const twice = codes.find((code, index) => codes.indexOf(code) !== index);
+		if (twice !== undefined) return `${key}/${twice} twice`;
 	}
-	return true;
+	return undefined;
+}
+export function completeSnapshot(
+	before: StatutorySnapshot,
+	after: unknown
+): after is StatutorySnapshot {
+	return snapshotProblem(before, after) === undefined;
 }
 
 /** Whether a snapshot row is the agent's own: its section, and for `rule_set` its family. */
