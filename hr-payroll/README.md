@@ -68,12 +68,14 @@ One `statutory_drift` run maps every in-force lineage onto its own multi-step `c
 lineage that fails is reported in the output's `failed` list without stopping the others. It never seals.
 
 - **Tools:** `web_search` and the confined browser (`browser_navigate`, `browser_snapshot`, `browser_act`; a PDF
-  opens as its extracted text, page by page), granted by the `statutory_drift_automation` policy;
+  linked from a source page opens as its extracted text, page by page), granted by the `statutory_drift_automation` policy;
   `steps: 1000`, then one tool-less turn to submit.
 - **Draft:** the complete snapshot is the model's draft. Every list is keyed by `code`, so the draft tools (`read`,
   `find`, `edit`, `diff`, `submit`) address rows as `/snapshot/<section>/<code>/<field>`, never by position. The
   research registry (`settings.sources`) is not in the draft: its entries reach the model as entry points and remain
-  the browsing and citation allowlist; the successor keeps the governing version's registry.
+  the browsing and citation allowlist. Sources are live official pages, never document links; each agent may
+  replace, add or remove its own entries in `sources`, and a new one is kept only when it reads as a live page on a
+  registered official site.
 - **Evidence:** every changed or added row cites, in its own `references`, an allowed official `url` and the exact
   `quote`. The automation diffs the draft against the original (`jsonDiff`), refetches each cited page and drafts only
   when every changed row carries a fresh quote that re-appears on its page. Removed rows, settings and suspension-kind
