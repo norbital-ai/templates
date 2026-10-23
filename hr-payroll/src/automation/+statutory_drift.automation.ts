@@ -218,6 +218,8 @@ statutory_drift.run(function* (input, ctx) {
 							model: 'strong',
 							tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act'],
 							steps: 1000,
+							// its transcript reads as `statutory_drift · MY · contribution` in the agent panel
+							label: `${code} · ${agent}`,
 							system: STATUTORY_RESEARCH_ROLE,
 							prompt: `Jurisdiction ${code}; review as of ${ctx.today}. You are the ${agent} agent: you own ${AGENT_JOBS[agent]} (snapshot sections: ${AGENT_SECTIONS[agent].join(', ')}).${sources.agents[agent] === undefined ? '' : `\nSupplementary instructions for ${code}: ${sources.agents[agent]}`}\nYour official sources and how to read them:\n${JSON.stringify(sources.entries.filter((entry) => entry.agent === agent))}\nIndex of the snapshot sections you own (read original values in memory):\n${conciseSnapshot(agentView(snapshot, agent))}`,
 							initial: json({
@@ -248,17 +250,18 @@ statutory_drift.run(function* (input, ctx) {
 				const result = answer.success;
 				unresolved.push(...result.unresolved.map((item) => `${agent}: ${item}`));
 				const open = result.coverage.some((item) => item.status === 'pending');
-				if (!result.changed || !completeSnapshot(snapshot, result.snapshot)) {
-					if (result.changed)
-						pending.push(
-							`${agent} (an incomplete snapshot: ${snapshotProblem(snapshot, result.snapshot) ?? ''})`
-						);
-					else if (open) pending.push(agent);
+				if (!completeSnapshot(snapshot, result.snapshot)) {
+					pending.push(
+						`${agent} (an incomplete snapshot: ${snapshotProblem(snapshot, result.snapshot) ?? ''})`
+					);
 					continue;
 				}
 				if (open) pending.push(agent);
-				// only the agent's own rows are taken: what it edited elsewhere belongs to another agent
-				draft = mergeAgent(draft, agent, result.snapshot);
+				// only the agent's own rows are taken: what it edited elsewhere belongs to another agent. What it drafted is
+				// that difference, declared or not: an agent its time ran out on keeps every edit it made, verified below
+				const merged = mergeAgent(draft, agent, result.snapshot);
+				if (JSON.stringify(merged) === JSON.stringify(draft)) continue;
+				draft = merged;
 				// a missing paragraph never discards evidenced rows: the change summary lists every row anyway
 				summaries.push(
 					`${agent}: ${result.summary.trim() === '' ? '(no summary written; see the rows above)' : result.summary}`

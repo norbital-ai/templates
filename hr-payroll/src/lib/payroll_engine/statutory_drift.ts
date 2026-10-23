@@ -95,13 +95,28 @@ export function allowedUrl(url: string, sources: DriftSources): boolean {
 
 /**
  * A quote is its words and numbers: a PDF's text breaks lines and splits tokens ("60KA." extracts as "60 ka ."), and
- * punctuation and dashes vary, so only letters and digits are compared.
+ * punctuation and dashes vary, so only letters and digits are compared; an extracted document's page markers are not
+ * its wording. A quote elided with "..." or "…" holds when each part is on the page, in order.
  */
-const wording = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const wording = (text: string) =>
+	text
+		.replace(/\[Page \d+\]/g, ' ')
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}]+/gu, '');
 export function quotePresent(text: string, quote: string): boolean {
-	const needle = wording(quote);
-	if (needle.length < 8) return false;
-	return wording(text).includes(needle);
+	const parts = quote
+		.split(/\.{3}|…/)
+		.map(wording)
+		.filter((part) => part !== '');
+	if (parts.length === 0 || parts.some((part) => part.length < 8)) return false;
+	const page = wording(text);
+	let from = 0;
+	for (const part of parts) {
+		const at = page.indexOf(part, from);
+		if (at < 0) return false;
+		from = at + part.length;
+	}
+	return true;
 }
 
 export function unverifiedQuotes(

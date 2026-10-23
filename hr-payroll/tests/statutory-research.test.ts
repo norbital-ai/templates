@@ -475,10 +475,9 @@ describe('statutory drift research transport (mock inference, not live research)
 			);
 			const result = yield* research('SG', turns);
 			assert.deepEqual(result.output.drafted, []);
-			// its turn resolved another agent's coverage, so its own stays unresolved
-			assert.deepEqual(result.output.refused, [
-				'SG: a change that edits no row; not resolved: catalog'
-			]);
+			// nothing of its own changed, and its turn resolved another agent's coverage: incomplete, never a draft
+			assert.deepEqual(result.output.refused, []);
+			assert.deepEqual(result.output.failed, ['SG: incomplete — not resolved: catalog']);
 			assert.deepEqual(result.drafts, []);
 		})
 	);

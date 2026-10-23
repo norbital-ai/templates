@@ -294,14 +294,24 @@ export function mergeAgent(
 	agent: ResearchAgent,
 	answer: StatutorySnapshot
 ): StatutorySnapshot {
+	// each row keeps its place: the agent's version replaces its own rows where they stand, its additions follow
 	const take = <R>(
 		section: keyof StatutorySnapshot,
 		mine: readonly R[],
 		theirs: readonly R[]
-	): R[] => [
-		...mine.filter((row) => !owns(agent, section, row)),
-		...theirs.filter((row) => owns(agent, section, row))
-	];
+	): R[] => {
+		const codeOf = (row: R) => (isRecord(row) && isString(row.code) ? row.code : undefined);
+		const answered = new Map(
+			theirs.filter((row) => owns(agent, section, row)).map((row) => [codeOf(row), row] as const)
+		);
+		const kept = mine.flatMap((row) => {
+			if (!owns(agent, section, row)) return [row];
+			const now = answered.get(codeOf(row));
+			answered.delete(codeOf(row));
+			return now === undefined ? [] : [now];
+		});
+		return [...kept, ...answered.values()];
+	};
 	return {
 		settings: AGENT_SECTIONS[agent].includes('settings') ? answer.settings : merged.settings,
 		adhoc_catalog: take('adhoc_catalog', merged.adhoc_catalog, answer.adhoc_catalog),
