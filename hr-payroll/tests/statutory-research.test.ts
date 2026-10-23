@@ -366,7 +366,8 @@ describe('statutory drift research transport (mock inference, not live research)
 					`# Official instrument fixture\n${quote}`
 				]);
 				assert.deepEqual(result.fetched, [url]);
-				const marker = 'Index of the snapshot sections you own (read original values in memory):\n';
+				const marker =
+					'## Index of the snapshot sections you own (read original values in memory)\n\n```json\n';
 				const request = ai.requests.find((item) =>
 					item.messages.some(
 						(message) =>

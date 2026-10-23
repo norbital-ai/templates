@@ -280,7 +280,24 @@ statutory_drift.run(function* (input, ctx) {
 							// its transcript reads as `statutory_drift · MY · contribution` in the agent panel
 							label: `${code} · ${agent}`,
 							system: STATUTORY_RESEARCH_ROLE,
-							prompt: `Jurisdiction ${code}; review as of ${ctx.today}. You are the ${agent} agent: you own ${AGENT_JOBS[agent]} (snapshot sections: ${AGENT_SECTIONS[agent].join(', ')}).${sources.agents[agent] === undefined ? '' : `\nSupplementary instructions for ${code}: ${sources.agents[agent]}`}\nYour official sources and how to read them:\n${JSON.stringify(sources.entries.filter((entry) => entry.agent === agent))}\nIndex of the snapshot sections you own (read original values in memory):\n${conciseSnapshot(agentView(snapshot, agent))}`,
+							// Markdown, as the transcript renders it: headed sections, the sources a list, the index a fenced block
+							prompt: [
+								`# ${code} · ${agent}`,
+								`Review as of ${ctx.today}. You are the ${agent} agent: you own ${AGENT_JOBS[agent]} (snapshot sections: ${AGENT_SECTIONS[agent].map((section) => `\`${section}\``).join(', ')}).`,
+								...(sources.agents[agent] === undefined
+									? []
+									: [`## Supplementary instructions for ${code}`, sources.agents[agent]]),
+								'## Your official sources and how to read them',
+								sources.entries
+									.filter((entry) => entry.agent === agent)
+									.map(
+										(entry, at) =>
+											`${at}. <${entry.url}> (\`/sources/${at}\`)\n   ${entry.instructions}`
+									)
+									.join('\n'),
+								'## Index of the snapshot sections you own (read original values in memory)',
+								`\`\`\`json\n${conciseSnapshot(agentView(snapshot, agent))}\n\`\`\``
+							].join('\n\n'),
 							initial: json({
 								changed: false,
 								summary: '',
