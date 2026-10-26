@@ -3,14 +3,14 @@
 	"key": "norbital_blank",
 	"name": "Blank",
 	"industry": "General",
-	"description": "An empty workspace with a single starter note collection, ready to be built out by the workspace agent.",
+	"description": "An empty workspace with a single starter note model, ready to be built out by the workspace agent.",
 	"visibility": "public",
 	"counts": {
-		"collections": 1,
+		"models": 1,
 		"apps": 0,
 		"automations": 0
 	},
 	"tags": ["Starter", "Blank"],
 	"name_zh": "空白",
-	"description_zh": "一个带有单一笔记集合的空白工作区，可由工作区智能体继续构建。"
+	"description_zh": "一个带有单一笔记模型的空白工作区，可由工作区智能体继续构建。"
 }

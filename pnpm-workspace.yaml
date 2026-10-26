@@ -22,7 +22,6 @@ patchedDependencies:
 minimumReleaseAgeExclude:
   - '@norbital-ai/bolt@0.0.1'
   - '@norbital-ai/bolt-server@0.0.1'
-  - '@norbital-ai/doctor@0.0.1'
   - '@norbital-ai/providers@0.0.1'
   - '@norbital-ai/std@0.0.1'
   - '@norbital-ai/ui@0.0.1'

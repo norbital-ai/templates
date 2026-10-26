@@ -1,6 +1,6 @@
 # Blank
 
-An empty Norbital workspace: one read-only starter collection (`notes`), no apps and no automations.
+An empty Norbital workspace: one read-only starter model (`notes`), no apps and no automations.
 It is the starting point for building a workspace from scratch with the workspace agent.
 
 ## Apps and roles
@@ -11,9 +11,9 @@ the workspace shell owns theme behavior. Add other dependencies when your source
 
 ## Data model
 
-| Collection | Purpose                                                                   |
-| ---------- | ------------------------------------------------------------------------- |
-| `notes`    | A free-form note (`title`, optional `body`); read-only, no write contract |
+| Model   | Purpose                                                                   |
+| ------- | ------------------------------------------------------------------------- |
+| `notes` | A free-form note (`title`, optional `body`); read-only, no write contract |
 
 Replace or delete `notes` once the first real model exists.
 
@@ -21,8 +21,9 @@ Replace or delete `notes` once the first real model exists.
 
 None. To build on the starter:
 
-- Models under `src/data/model/+<name>.model.ts`, exposed through
-  `src/data/collection/<name>/+collection.ts` (a model no collection exposes is invisible).
+- Models under `src/data/model/<name>/+model.ts`: storage, `ref` fields, exposure (`read`,
+  `create`, `update`, `delete`) and logic in one `model('<name>', …)` call (a model without `read`
+  is invisible).
 - Apps under `src/app/<app>/+app.ts` with one `+<page>.page.svelte` per page.
 - Automations under `src/automation/+<name>.automation.ts`.
 - External accounts are integrations: a definition under `src/integration/<name>/+integration.ts`
@@ -45,10 +46,9 @@ None.
 
 ```bash
 pnpm install
-pnpm check   # bolt check
+pnpm exec bolt check   # types, Svelte warnings, layout and declarations
 pnpm test    # bolt test
-pnpm lint    # prettier --check .
 ```
 
-`tests/blank.test.ts` recomputes the collection, app and automation counts from `src/` and fails when
+`tests/blank.test.ts` recomputes the model, app and automation counts from `src/` and fails when
 they disagree with `counts` in `norbital.template.json`: update both in the same change.
