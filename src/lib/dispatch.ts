@@ -10,13 +10,12 @@ export const searchTextFor = (
 ): string => [title, site?.name, site?.site_code].filter((part) => part != null).join(', ');
 /**
  * What filing a job stamps on it: unassigned until somebody holds it, dispatched the moment somebody does, and the
- * search copy. A job is filed through `job_assignments` and nested under its site, and a nested create runs only the
- * parent's transform, so both transforms use this.
+ * search copy. `job_assignments`' create callback runs it for every job filed, a job nested under its site included.
  */
 export const dispatchFacts = <T>(
 	job: {
 		readonly title?: string | undefined;
-		readonly assignee_user_id?: unknown;
+		readonly assignee_user_id?: string | null | undefined;
 		readonly status?: 'unassigned' | 'assigned' | 'completed' | null | undefined;
 		readonly dispatched_at?: T | null | undefined;
 	},

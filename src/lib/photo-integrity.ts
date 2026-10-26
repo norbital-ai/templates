@@ -1,4 +1,4 @@
-import type { ImageFacts, Instant, Point } from '@norbital-ai/bolt';
+import type { ImageFacts, Instant, Point, ValueOf } from '@norbital-ai/bolt';
 import { exceedsSiteTolerance } from './geo.js';
 /**
  * The template's photo rules over the host's `ctx.files.image` facts (§5.8.1): the host decodes (JPEG, PNG, HEIC),
@@ -12,19 +12,7 @@ export type PhotoFlag =
 	| 'low_quality'
 	| 'missing_geolocation'
 	| 'location_mismatch';
-type PhotoSource =
-	| {
-			readonly kind: 'workspace_upload';
-	  }
-	| {
-			readonly kind: 'message';
-			readonly integration: string;
-			readonly conversation_id: string;
-			readonly message_id: string;
-			readonly attachment_id: string;
-			readonly sender_id: string;
-			readonly sent_at?: unknown;
-	  };
+type PhotoSource = ValueOf<{ kind: 'custom'; of: 'photo_source' }>;
 /** Meta PDQ near-duplicate threshold as Hamming distance (ThreatExchange ≤ 31); L2 over 0/1 vectors is √Hamming. */
 export const VISUAL_DUPLICATE_MAX_L2 = Math.sqrt(31);
 const PDQ_DIMENSIONS = 256;
@@ -49,7 +37,7 @@ export const photoSourceKey = (source: PhotoSource, fileId: string): string =>
 export const photoSummary = (source: PhotoSource): string =>
 	source.kind === 'workspace_upload'
 		? 'Workspace upload'
-		: `From ${source.integration || 'a message'}${source.sent_at ? ` · ${String(source.sent_at).slice(0, 10)}` : ''}`;
+		: `From ${source.integration || 'a message'}${source.sent_at ? ` · ${source.sent_at.slice(0, 10)}` : ''}`;
 /** A PDQ hex digest as the 256-dim 0/1 vector `perceptual_embedding` stores. */
 export const hexToBinaryEmbedding = (hex: string): number[] =>
 	[...hex].flatMap((digit) =>
@@ -88,5 +76,7 @@ export function imageFlags(
 	return [...flags];
 }
 /** Photo evidence hangs off exactly one of a job assignment or a variation request. */
-export const exactlyOneParent = (job: unknown, variation: unknown): boolean =>
-	(job != null && job !== '') !== (variation != null && variation !== '');
+export const exactlyOneParent = (
+	job: string | null | undefined,
+	variation: string | null | undefined
+): boolean => (job != null && job !== '') !== (variation != null && variation !== '');

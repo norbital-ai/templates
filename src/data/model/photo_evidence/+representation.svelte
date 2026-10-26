@@ -2,11 +2,8 @@
 	import { type RecordView, Form, RecordShell } from '@norbital-ai/ui';
 	let { view }: { view: RecordView<'photo_evidence'> } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	// The readonly provenance renderer cannot supply the create form's required value.
-	const values = $derived({
-		...(view.mode === 'create' ? view.values : {}),
-		source: { kind: 'workspace_upload' as const }
-	});
+	// a photo filed here is a workspace upload: its create callback states the source
+	const values = $derived(view.mode === 'create' ? view.values : {});
 </script>
 
 {#if record === null}

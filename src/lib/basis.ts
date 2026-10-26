@@ -1,3 +1,5 @@
+import photos from '../data/model/photo_evidence/+model.js';
+import sites from '../data/model/sites/+model.js';
 const point = {
 	kind: 'object',
 	fields: { lat: { kind: 'number' }, lng: { kind: 'number' } },
@@ -6,6 +8,7 @@ const point = {
 const identity = { kind: 'text' } as const;
 const nullableText = { kind: 'text', optional: true } as const;
 const texts = { kind: 'list', of: { kind: 'text' } } as const;
+const photo = { kind: 'id', of: 'photo_evidence' } as const;
 /** The stored evidence language, shared by inference reviews and findings. */
 const REVIEW_BASIS_FIELDS = {
 	assignment: {
@@ -35,7 +38,12 @@ const REVIEW_BASIS_FIELDS = {
 	site: {
 		kind: 'object',
 		optional: true,
-		fields: { id: identity, name: identity, location: point, house_type: nullableText }
+		fields: {
+			id: identity,
+			name: identity,
+			location: point,
+			house_type: sites.spec.fields.house_type
+		}
 	},
 	photos: {
 		kind: 'list',
@@ -45,7 +53,7 @@ const REVIEW_BASIS_FIELDS = {
 				id: identity,
 				file_id: identity,
 				sha256: identity,
-				flags: texts,
+				flags: photos.spec.fields.flags,
 				matched_evidence_ids: texts,
 				created_at: nullableText
 			}
@@ -56,12 +64,12 @@ const REVIEW_BASIS_FIELDS = {
 		of: {
 			kind: 'object',
 			fields: {
-				id: identity,
+				id: photo,
 				file_id: identity,
 				sha256: identity,
-				flags: texts,
+				flags: photos.spec.fields.flags,
 				distance: { kind: 'number' },
-				matched_photo_ids: texts
+				matched_photo_ids: { kind: 'list', of: photo }
 			}
 		}
 	},

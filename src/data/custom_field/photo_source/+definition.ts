@@ -1,6 +1,6 @@
 import { customField } from '@norbital-ai/bolt';
 /** Where a photo came from: a workspace upload, or the integration message and attachment that delivered it. */
-const photo_source = customField({
+export default customField('photo_source', {
 	description:
 		'Where a photo came from: either a workspace upload, or the messaging conversation, message, attachment and sender that delivered it.',
 	shape: {
@@ -17,18 +17,16 @@ const photo_source = customField({
 				sent_at: { kind: 'instant', optional: true }
 			}
 		}
-	}
+	},
+	validate: (value) =>
+		value.kind === 'message' &&
+		[
+			value.integration,
+			value.conversation_id,
+			value.message_id,
+			value.attachment_id,
+			value.sender_id
+		].some((part) => part.trim() === '')
+			? 'A message photo source names its integration, conversation, message, attachment and sender.'
+			: undefined
 });
-export default photo_source;
-photo_source.validate((value) =>
-	value.kind === 'message' &&
-	[
-		value.integration,
-		value.conversation_id,
-		value.message_id,
-		value.attachment_id,
-		value.sender_id
-	].some((part) => part.trim() === '')
-		? 'A message photo source names its integration, conversation, message, attachment and sender.'
-		: undefined
-);

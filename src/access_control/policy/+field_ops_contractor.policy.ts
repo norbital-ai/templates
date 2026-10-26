@@ -1,11 +1,22 @@
-import { policy } from '@norbital-ai/bolt';
-/** Their own assignments: the one collection where the member appears as a column. */
+import { policy, type Flow } from '@norbital-ai/bolt';
+import type { Decimal } from '@norbital-ai/std/decimal';
+/** Their own assignments: the one model where the member appears as a column. */
 const OWN = { assignee_user_id: { eq: { actor: 'id' } } } as const;
 const OWN_JOB = { job_assignment_id: { is: OWN } } as const;
+/** From this amount (SGD) a variation also needs commercial sign-off. */
+const SIGN_OFF_FROM = 5000;
+/** A variation's money is a commercial decision: controllers review it, and Commercial Managers sign off a large one. */
+const review = (flow: Flow, amount: Decimal | null) =>
+	flow
+		.step('Controller review', { teams: ['field_ops_controllers'] })
+		.if(amount !== null && amount.gte(SIGN_OFF_FROM), (f) =>
+			f.step('Commercial sign-off', { teams: ['commercial_managers'] })
+		)
+		.supersededBy(['field_ops_controllers']);
 /**
  * The contractor: the jobs they were assigned and nothing else. Everything is scoped through the assignment's
- * `assignee_user_id`; read masks are part of the boundary (processing and provenance fields stay private). A
- * variation is a commercial decision, so raising or changing one is held for Field Operations Controllers.
+ * `assignee_user_id`; read masks are part of the boundary (processing and provenance fields stay private). Raising a
+ * variation, or changing its amount, is held for that review; a wording fix is saved directly.
  */
 export default policy({
 	description:
@@ -66,15 +77,16 @@ export default policy({
 				where: OWN_JOB,
 				fields: ['id', 'job_assignment_id', 'requested_at', 'title', 'description', 'amount']
 			},
-			approval: {
-				create: {
-					fields: ['job_assignment_id', 'requested_at', 'title', 'description', 'amount'],
-					steps: [['019f8a40-0000-7000-8000-000000000001']]
-				},
-				update: {
-					fields: ['title', 'description', 'amount'],
-					steps: [['019f8a40-0000-7000-8000-000000000001']]
-				}
+			create: {
+				where: OWN_JOB,
+				fields: ['job_assignment_id', 'requested_at', 'title', 'description', 'amount'],
+				approval: (write, flow) => review(flow, write.record.amount)
+			},
+			update: {
+				where: OWN_JOB,
+				fields: ['title', 'description', 'amount'],
+				approval: (write, flow) =>
+					write.changed.includes('amount') ? review(flow, write.record.amount) : flow.allow()
 			}
 		},
 		photo_evidence: {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * A job: its scope, its progress (the dispatch is naming the contractor), its variations, its conversation, and for
+	 * A job: its scope and progress (the dispatch is naming the contractor), its variations, its conversation, and for
 	 * a controller its review evidence and findings. Creating one can first add the site by its address.
 	 */
 	import { bolt } from '$bolt';
@@ -10,17 +10,15 @@
 		Dialog,
 		Field,
 		Form,
-		format,
 		RecordShell,
 		Section,
-		Show,
+		Table,
 		useKinds
 	} from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import Conversation from '../../../lib/conversation.svelte';
 	import SuspicionPanel from '../../../lib/suspicion-panel.svelte';
-	import { live } from '../../../lib/live.svelte.js';
 	let {
 		view
 	}: {
@@ -33,28 +31,16 @@
 	/** Controllers read the review ledgers; the evidence tab and the finding banner are theirs. */
 	const reviewer = $derived(kinds.catalog?.['suspicion_reviews'] !== undefined);
 	const talker = $derived(kinds.catalog?.['communication_logs'] !== undefined);
-	const site = live(() =>
-		record == null ? null : bolt.get('sites', record.site_id, { name: true })
-	);
-	const variations = live(() =>
-		id == null
-			? null
-			: bolt.read('variation_requests', {
-					where: { job_assignment_id: { eq: id } },
-					orderBy: { requested_at: 'desc' },
-					limit: 50
-				})
-	);
-	const open = live(() =>
+	const open = $derived(
 		id == null || !reviewer
 			? null
-			: bolt.read('suspicious_activity_logs', {
+			: bolt.query('suspicious_activity_logs', {
 					where: { job_assignment_id: { eq: id }, resolved_at: { isNull: true } },
 					select: { reason: true },
 					limit: 1
 				})
 	);
-	const finding = $derived(open.current?.rows[0]);
+	const finding = $derived(open?.current?.rows[0]);
 	let addingSite = $state(false);
 	let opened = $state<{
 		name: string;
@@ -63,62 +49,15 @@
 	const show = (photo: { name: string; url: string }) => (opened = photo);
 </script>
 
-{#snippet scope()}
-	<Grid minimum="card">
-		<div>
-			<p class="text-xs text-muted-foreground">{t('component.site')}</p>
-			<p class="text-sm">{site.current?.name ?? t('component.not_recorded')}</p>
-		</div>
-		<div>
-			<p class="text-xs text-muted-foreground">{t('component.job_title')}</p>
-			<p class="text-sm">{record?.title ?? '—'}</p>
-		</div>
-		<div>
-			<p class="text-xs text-muted-foreground">{t('component.job_nature')}</p>
-			<p class="text-sm">{record?.nature ?? '—'}</p>
-		</div>
-		<div>
-			<p class="text-xs text-muted-foreground">{t('component.scheduled_date')}</p>
-			<p class="text-sm">{record?.scheduled_for ?? '—'}</p>
-		</div>
-		<Column span="all">
-			<p class="text-xs text-muted-foreground">{t('component.job_description_scope')}</p>
-			<p class="text-sm whitespace-pre-wrap">{record?.description ?? '—'}</p>
-		</Column>
-	</Grid>
-{/snippet}
-
 {#snippet variationList()}
-	<Stack gap="sm">
-		<p class="text-meta">
-			{t('component.variations_description')} · {t('component.recorded_count', {
-				count: variations.current?.rows.length ?? 0
-			})}
-		</p>
-		{#each variations.current?.rows ?? [] as variation (variation.id)}
-			<Stack gap="xs" class="rounded-md border p-3">
-				<p class="text-sm font-medium">
-					{variation.title}
-					<span class="float-right"
-						><Show kind={{ kind: 'money' }} value={variation.amount ?? null} /></span
-					>
-				</p>
-				<p class="text-sm text-muted-foreground">{variation.description}</p>
-				<p class="text-meta">
-					{t('component.requested_at_instant', {
-						instant: format({ kind: 'instant' }, variation.requested_at ?? null, {
-							locale: kinds.locale ?? bolt.locale,
-							...(kinds.zone == null ? {} : { zone: kinds.zone })
-						})
-					})}
-				</p>
-			</Stack>
-		{:else}
-			<p class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-				{t('component.no_variations')}
-			</p>
-		{/each}
-	</Stack>
+	{#if id}<Table
+			of="variation_requests"
+			key="job-variations"
+			where={{ job_assignment_id: { eq: id } }}
+			orderBy={{ requested_at: 'desc' }}
+			columns={['title', 'description', 'amount', 'requested_at']}
+			toolbar={{ new: false, description: t('component.variations_description') }}
+		/>{/if}
 {/snippet}
 
 {#snippet conversation()}{#if id}<Conversation job={id} onOpen={show} />{/if}{/snippet}
@@ -190,7 +129,6 @@
 			? { icon: 'lucide:shield-alert', badge: t('component.suspicion_open'), hint: finding.reason }
 			: {}}
 		tabs={[
-			{ name: 'scope', title: t('component.job_scope'), body: scope },
 			{ name: 'variations', title: t('component.variations'), body: variationList },
 			...(talker
 				? [{ name: 'conversation', title: t('component.conversation'), body: conversation }]
@@ -202,7 +140,18 @@
 	>
 		<Form of="job_assignments" mode="update" id={record.id} {record}>
 			{#snippet children()}
-				<Section first name="progress" title={t('section.progress')}>
+				<Section first name="job" title={t('component.job_scope')}>
+					<Grid minimum="card">
+						<Field name="site_id" label={t('component.site')} />
+						<Field name="title" label={t('component.job_title')} />
+						<Field name="nature" label={t('component.job_nature')} />
+						<Field name="scheduled_for" label={t('component.scheduled_date')} />
+						<Column span="all"
+							><Field name="description" label={t('component.job_description_scope')} /></Column
+						>
+					</Grid>
+				</Section>
+				<Section name="progress" title={t('section.progress')}>
 					<Grid minimum="card">
 						<Field name="status" />
 						<Field name="assignee_user_id" label={t('component.contractor')} />

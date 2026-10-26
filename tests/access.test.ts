@@ -1,9 +1,10 @@
+import type { ActInput, Committed, PendingApproval } from '@norbital-ai/bolt';
 import { present } from './test-runtime.js';
 import { Schema, Effect } from 'effect';
 /**
  * Who may do what: a contractor reads and progresses only the jobs they hold (and their sites, photos and messages),
- * never the review ledgers; their variation is held for Field Operations Controllers; the review automation writes one
- * transition each.
+ * never the review ledgers; their variation is held for Field Operations Controllers, a large one also for Commercial
+ * Managers, and a wording fix is saved directly; the review automation writes one transition each.
  */
 import { expect, it } from '@effect/vitest';
 import { committed, CONTRACTOR, CONTROLLER, person, rows, siteWithJob, workspace } from './kit.ts';
@@ -17,13 +18,13 @@ it.live(
 			const mine = yield* siteWithJob(t, { assignee_user_id: fixtureId('sys_user', me.id) });
 			const theirs = yield* siteWithJob(t);
 			const as = t.as(me);
-			expect((yield* as.read('job_assignments', { limit: 50 })).rows.map((r) => r.id)).toEqual([
+			expect((yield* as.query('job_assignments', { limit: 50 })).rows.map((r) => r.id)).toEqual([
 				mine.job
 			]);
-			expect((yield* as.read('sites', { limit: 50 })).rows.map((r) => r.id)).toEqual([mine.site]);
+			expect((yield* as.query('sites', { limit: 50 })).rows.map((r) => r.id)).toEqual([mine.site]);
 			yield* Effect.tryPromise({
 				try: () =>
-					expect(Effect.runPromise(as.read('suspicion_reviews', { limit: 1 }))).rejects.toThrow(),
+					expect(Effect.runPromise(as.query('suspicion_reviews', { limit: 1 }))).rejects.toThrow(),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			committed(
@@ -44,33 +45,65 @@ it.live(
 			).toMatchObject({ _tag: 'ActRefused' });
 		})
 );
-it.live("a contractor's variation waits for a Field Operations Controllers decision", () =>
-	Effect.gen(function* () {
-		const t = yield* workspace();
-		const me = yield* person(t, CONTRACTOR);
-		const { job } = yield* siteWithJob(t, { assignee_user_id: fixtureId('sys_user', me.id) });
-		const outcome = yield* t.as(me).act('variation_requests.create', {
-			job_assignment_id: job,
-			requested_at: '2026-09-25T10:00:00.000Z',
-			title: 'Extra grab bar',
-			description: 'Tenant asked for a second one'
-		});
-		expect(outcome.kind).toBe('pendingApproval');
-		const controller = yield* t.as(t.member(CONTROLLER)).act('variation_requests.create', {
-			job_assignment_id: job,
-			requested_at: '2026-09-25T10:00:00.000Z',
-			title: 'Ramp',
-			description: 'Dispatch adds it'
-		});
-		expect(controller.kind).toBe('committed');
-	})
+it.live(
+	"a contractor's variation is held for controller review, and a large one for commercial sign-off too",
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const me = yield* person(t, CONTRACTOR);
+			const { job } = yield* siteWithJob(t, { assignee_user_id: fixtureId('sys_user', me.id) });
+			const as = t.as(me);
+			const controller = t.as(t.member(CONTROLLER));
+			const variation = (
+				title: string,
+				amount: number | null
+			): Exclude<ActInput<'variation_requests.create'>, readonly unknown[]> => ({
+				job_assignment_id: job,
+				requested_at: '2026-09-25T10:00:00.000Z',
+				title,
+				description: 'Tenant asked for it',
+				amount
+			});
+			/** The named steps the held variation waits on. */
+			const steps = Effect.fnUntraced(function* (outcome: Committed<unknown> | PendingApproval) {
+				expect(outcome.kind).toBe('pendingApproval');
+				const id = fixtureId('variation_requests', present(outcome.records[0]).id);
+				const held = present(yield* controller.query('variation_requests', { id }));
+				return present(held.$approval).steps.map((step) => step.name);
+			});
+			expect(
+				yield* steps(yield* as.act('variation_requests.create', variation('Bar', null)))
+			).toEqual(['Controller review']);
+			expect(
+				yield* steps(yield* as.act('variation_requests.create', variation('Grille', 4999)))
+			).toEqual(['Controller review']);
+			expect(
+				yield* steps(yield* as.act('variation_requests.create', variation('Ramp', 5000)))
+			).toEqual(['Controller review', 'Commercial sign-off']);
+			// dispatch writes directly; on its record a wording fix is saved, a new amount is held again
+			const [filed] = committed(
+				yield* controller.act('variation_requests.create', variation('Rail', 300))
+			);
+			const rail = fixtureId('variation_requests', filed);
+			expect(
+				(yield* as.act('variation_requests.update', {
+					target: rail,
+					set: { description: 'Two rails' }
+				})).kind
+			).toBe('committed');
+			expect(
+				yield* steps(
+					yield* as.act('variation_requests.update', { target: rail, set: { amount: 8000 } })
+				)
+			).toEqual(['Controller review', 'Commercial sign-off']);
+		})
 );
 it.live('the review stamps an unchecked job once, and fills a photo’s facts once', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
 		const { job } = yield* siteWithJob(t);
 		const review = t.as(t.member(['suspicion_review_automation']));
-		const stamp: import('@norbital-ai/bolt').ActInput<'job_assignments.update'> = {
+		const stamp: ActInput<'job_assignments.update'> = {
 			target: job,
 			set: { suspicion_checked_at: '2026-09-25T10:00:00.000Z' }
 		};

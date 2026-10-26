@@ -33,10 +33,10 @@ On WhatsApp the envoy's task narrows this to answering about jobs and filing rep
   photo under `photo_evidence.create` (an upload in the app is `source: { kind: "workspace_upload" }`)
   and each message under `communication_logs.create`.
 - **A work-order sheet:** read the attachment as a sheet, then pass its rows to
-  `job_assignments.import_work_orders`, which matches or files the sites and skips rows already
+  `job_assignments_import_work_orders`, which matches or files the sites and skips rows already
   filed. One call for the whole sheet.
 - **A handover:** start `automation.site_handover` with the sites' ids.
-- **Closing a finding:** `suspicious_activity_logs.resolve`, with the controller's conclusion.
+- **Closing a finding:** `suspicious_activity_logs_resolve`, with the controller's conclusion.
 
 ## What the collections mean
 

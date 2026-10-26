@@ -1,9 +1,8 @@
 <script lang="ts">
 	/** A site: its details, the jobs still ahead of it (scheduled from today, or overdue and not done), and its history. */
 	import { bolt } from '$bolt';
-	import { type RecordView, Field, Form, RecordShell, Table, useKinds } from '@norbital-ai/ui';
+	import { type RecordView, Field, Form, RecordShell, Table } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { dayIn } from '../../../lib/format.js';
 	let {
 		view
 	}: {
@@ -11,7 +10,8 @@
 	} = $props();
 	const t = bolt.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	const today = dayIn(useKinds().zone);
+	/** Rolls over at midnight in the workspace zone, so "upcoming" follows the day. */
+	const clock = bolt.clock('day');
 </script>
 
 {#snippet upcoming()}
@@ -21,7 +21,10 @@
 			toolbar={{ title: t('component.upcoming_scheduled_jobs') }}
 			where={{
 				site_id: { eq: record.id },
-				or: [{ scheduled_for: { gte: today } }, { status: { in: ['unassigned', 'assigned'] } }]
+				or: [
+					{ scheduled_for: { gte: clock.today } },
+					{ status: { in: ['unassigned', 'assigned'] } }
+				]
 			}}
 			orderBy={{ scheduled_for: 'asc' }}
 			columns={[

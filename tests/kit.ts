@@ -1,20 +1,16 @@
-import type { Committed, PendingApproval, ActInput } from '@norbital-ai/bolt';
+import type { Committed, PendingApproval, ActInput, Id } from '@norbital-ai/bolt';
 import { Writes, type ActRequest, type Authority, type Json } from '@norbital-ai/bolt/engine';
 import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-import { Context, Effect } from 'effect';
+import { Context, Effect, Schema } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';
 /** The template root: `bolt test` runs from it. */
 const root = `${process.cwd()}/`;
 export const CONTROLLER = ['field_ops_controller'];
 export const CONTRACTOR = ['field_ops_contractor'];
-type Options<P extends TestPorts> = Omit<Extract<TestOptions<P>, { artifact?: never }>, 'root'> & {
-	sample?: true;
-};
-export const workspace = <P extends TestPorts = never>(options: Options<P> = {}) => {
-	const { sample, ...rest } = options;
-	return acquireWorkspace({ root, seed: sample ? 'sample' : 'none', ...rest });
-};
+type Options<P extends TestPorts> = Omit<Extract<TestOptions<P>, { artifact?: never }>, 'root'>;
+export const workspace = <P extends TestPorts = never>(options: Options<P> = {}) =>
+	acquireWorkspace({ root, seed: 'none', ...options });
 /** The ids an act committed, or the outcome as the failure. */
 export function committed<O, N extends string>(outcome: Committed<O, N> | PendingApproval<N>) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
@@ -67,6 +63,20 @@ export const rows = Effect.fnUntraced(function* (t: T, text: string, params: Jso
 	const [result] = yield* t.db.read([{ text, params }]);
 	if (result === undefined) throw new Error('Missing SQL result');
 	return result.rows;
+});
+/** Advance the native queue and inspect this run's recorded completion, without pretending its start was its result. */
+export const completedRun = Effect.fnUntraced(function* (t: T, id: Id<'sys_run'>) {
+	yield* t.runDue();
+	const [run] = yield* rows(t, 'SELECT state, output, error FROM sys_run WHERE id = $1', [id]);
+	return Schema.decodeUnknownSync(
+		Schema.Struct({
+			state: Schema.String,
+			output: Schema.Json,
+			error: Schema.NullOr(
+				Schema.Struct({ code: Schema.String, message: Schema.optionalKey(Schema.String) })
+			)
+		})
+	)(run);
 });
 /** A real member (a `sys_user` row) holding `policies`, with a WhatsApp number when given. */
 export const person = Effect.fnUntraced(function* (

@@ -1,13 +1,15 @@
 import type { BankReader, SeedSource } from '@norbital-ai/bolt';
 import { hexToBinaryEmbedding, photoSourceKey, photoSummary } from '../src/lib/photo-integrity.js';
 import { siteKey } from '../src/lib/site-key.js';
-import { Predicate, Schema } from 'effect';
+import { Instant } from '@norbital-ai/std/date';
+import { Predicate, Schema, SchemaTransformation } from 'effect';
 
 /**
  * The sample pack from the bank tree `field-operations`, read without rewriting it. The rows are 0.0.0.x shapes; the
  * conversions are to 0.0.1 kinds: a `geolocation()` value becomes a point plus its address field, a day instant a
- * date, and the formerly generated `site_key` and photo `summary` are derived as the SQL did. The photos are produced
- * from `simulation.json` (one row per exported photo, its inspected facts included) and carry their JPEG as an asset.
+ * date, a member's team id its team handle, and the formerly generated `site_key` and photo `summary` are derived as
+ * the SQL did. The photos are produced from `simulation.json` (one row per exported photo, its inspected facts included)
+ * and carry their JPEG as an asset.
  * `NORBITAL_SEED_PHOTOS` (`all` or a per-assignment count) samples them evenly across assignments.
  */
 
@@ -61,6 +63,19 @@ const Simulation = Schema.Struct({
 });
 type Simulation = Schema.Schema.Type<typeof Simulation>;
 
+/** The bank's team ids as this template's team handles (`+team.ts`); the bank itself is never rewritten. */
+const TEAMS: { readonly [bankTeam: string]: string } = {
+	'019f8a40-0000-7000-8000-000000000001': 'field_ops_controllers',
+	'019f8a40-0000-7000-8000-000000000002': 'contractors',
+	'019f8a40-0000-7000-8000-000000000003': 'contractor_controllers'
+};
+const teamOf = (bankTeam: string | null | undefined) => {
+	if (bankTeam == null) return null;
+	const handle = TEAMS[bankTeam];
+	if (handle === undefined)
+		throw new Error(`user.json names team ${bankTeam}, which no team handle maps`);
+	return handle;
+};
 /** The sender each contractor appears as in the exported WhatsApp conversation. */
 const SENDERS: { readonly [contractor: string]: string } = { bob: '~ B', yu_kiat: '~ YK - BCA' };
 const pad12 = (n: number) => String(n).padStart(12, '0');
@@ -71,10 +86,21 @@ const point = (geo: Geo) =>
 		? null
 		: { lat: geo.geometry.lat, lng: geo.geometry.lon };
 const day = (value: Row[string]) => (Predicate.isString(value) ? value.slice(0, 10) : value);
-const amount = (value: Row[string]) =>
-	Predicate.isObject(value) && 'value' in value
-		? Schema.decodeUnknownSync(Schema.Struct({ value: Schema.Json }))(value).value
-		: value;
+/** A 0.0.0.x money object `{ value }` unwraps to its value; any other value passes through. */
+const amount = Schema.decodeUnknownSync(
+	Schema.Union([
+		Schema.Struct({ value: Schema.Json }).pipe(
+			Schema.decodeTo(
+				Schema.Json,
+				SchemaTransformation.transform({
+					decode: ({ value }) => value,
+					encode: (value) => ({ value })
+				})
+			)
+		),
+		Schema.Json
+	])
+);
 
 /** Photos per assignment, spread evenly; ids come from the index in the full manifest, so a sample is a subset. */
 function sample(simulation: Simulation, override = process.env['NORBITAL_SEED_PHOTOS']) {
@@ -116,7 +142,7 @@ function photoRows(bank: Pick<BankReader, 'has' | 'json'>): Row[] {
 			message_id: photo.fileName.slice(0, 8),
 			attachment_id: photo.fileName,
 			sender_id: SENDERS[job.contractor] ?? job.contractor,
-			sent_at: photo.sentAt
+			sent_at: Instant(photo.sentAt)
 		};
 		return {
 			id: `019f6f10-5000-7000-8000-${pad12(index + 1)}`,
@@ -138,7 +164,7 @@ function photoRows(bank: Pick<BankReader, 'has' | 'json'>): Row[] {
 }
 
 /**
- * The public base pack (no bank): this directory's invented `<collection>.json` fixtures, read through the same
+ * The public base pack (no bank): this directory's invented `<model>.json` fixtures, read through the same
  * conversions. They name no member and carry no photos; an assignee no member on file holds is left unassigned.
  */
 const PUBLIC = import.meta.glob<unknown>('./*.json', { eager: true, import: 'default' });
@@ -166,7 +192,7 @@ const source: SeedSource = {
 				kind: 'staff',
 				active: r['active'] ?? true,
 				admin: r['status'] === 'admin',
-				team: r['team_id'] ?? null
+				team: teamOf(r['team_id'])
 			})),
 			sites: rows('sites.json').map(({ location, ...site }) => {
 				const geo = Schema.decodeUnknownSync(Geo)(location);

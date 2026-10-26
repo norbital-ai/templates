@@ -1,12 +1,17 @@
-import type { Row } from '@norbital-ai/bolt';
+import type { Id, Row } from '@norbital-ai/bolt';
 import { expect, it } from '@effect/vitest';
 import { reviewCandidatesFrom } from '../src/lib/suspicion-evidence.ts';
+import { fixtureId } from './test-runtime.js';
 
 it('retains the newest decoded review evidence in first-seen order', () => {
-	const first = '019f6f10-0003-7000-8000-000000000001';
-	const second = '019f6f10-0003-7000-8000-000000000002';
-	const photoA = '019f6f10-0003-7000-8000-000000000003';
-	const photoB = '019f6f10-0003-7000-8000-000000000004';
+	const photo = (n: number) =>
+		fixtureId('photo_evidence', `019f6f10-0003-7000-8000-00000000000${n}`);
+	const first = photo(1);
+	const second = photo(2);
+	const photoA = photo(3);
+	const photoB = photo(4);
+	const duplicate = photo(5);
+	const stale = photo(6);
 	const basis = (
 		candidates: Row<'suspicion_reviews'>['basis']['candidates']
 	): Row<'suspicion_reviews'>['basis'] => ({
@@ -28,7 +33,11 @@ it('retains the newest decoded review evidence in first-seen order', () => {
 		communications: [],
 		candidates
 	});
-	const candidate = (id: string, distance: number, matched_photo_ids: string[]) => ({
+	const candidate = (
+		id: Id<'photo_evidence'>,
+		distance: number,
+		matched_photo_ids: Id<'photo_evidence'>[]
+	) => ({
 		id,
 		distance,
 		matched_photo_ids,
@@ -38,10 +47,10 @@ it('retains the newest decoded review evidence in first-seen order', () => {
 	});
 	const newest = basis([
 		candidate(first, 0.1, [photoA]),
-		candidate(first, 0.9, ['duplicate']),
+		candidate(first, 0.9, [duplicate]),
 		candidate(second, 0.2, [photoB])
 	]);
-	const older = basis([candidate(first, 0.5, ['older'])]);
+	const older = basis([candidate(first, 0.5, [stale])]);
 	expect(reviewCandidatesFrom([newest, older])).toEqual([
 		{ id: first, distance: 0.1, matchedPhotoIds: [photoA] },
 		{ id: second, distance: 0.2, matchedPhotoIds: [photoB] }

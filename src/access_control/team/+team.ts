@@ -1,18 +1,20 @@
 import { team } from '@norbital-ai/bolt';
-/** Source access roles: stable handles are membership and approval identities. */
+/** Source access roles: stable handles are membership and approval identities (`seed/seed.ts` maps the bank's ids). */
 export default team({
-	'019f8a40-0000-7000-8000-000000000001': {
+	field_ops_controllers: {
 		name: 'Field Operations Controllers',
 		parent: null,
 		policies: ['field_ops_controller']
 	},
-	'019f8a40-0000-7000-8000-000000000002': {
-		name: 'Contractor',
-		parent: null,
-		policies: ['field_ops_contractor']
-	},
-	'019f8a40-0000-7000-8000-000000000003': {
+	contractors: { name: 'Contractor', parent: null, policies: ['field_ops_contractor'] },
+	contractor_controllers: {
 		name: 'Contractor (Controller)',
+		parent: null,
+		policies: ['field_ops_controller']
+	},
+	/** Sign off large variations (the contractor policy's second step); they hold dispatch to read what they decide. */
+	commercial_managers: {
+		name: 'Commercial Managers',
 		parent: null,
 		policies: ['field_ops_controller']
 	}

@@ -35,7 +35,8 @@ it.live(
 					remove: (key) =>
 						Effect.sync(() => {
 							blobs.delete(key);
-						})
+						}),
+					download: () => Port.unavailable('files', 'the handover downloads nothing')
 				})
 			});
 			const { site } = yield* siteWithJob(t);

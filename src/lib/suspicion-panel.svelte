@@ -2,32 +2,33 @@
 	/**
 	 * A job's review evidence for a controller: the integrity facts of its photos, the photos from other assignments
 	 * the review showed the model beside its own (from the reviews' stored bases), and its findings, each open one
-	 * closed by writing what was concluded.
+	 * closed by writing what was concluded. Embedded in a review's own evidence, `findings` leaves the findings out.
 	 */
 	import { bolt } from '$bolt';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
 	import { Form } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
-	import { live } from './live.svelte.js';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
 	let {
 		job,
-		onOpen
+		onOpen,
+		findings = true
 	}: {
 		job: Id<'job_assignments'>;
 		onOpen: (photo: { name: string; url: string }) => void;
+		findings?: boolean;
 	} = $props();
 	const t = bolt.t;
-	const photos = live(() =>
-		bolt.read('photo_evidence', {
+	const photos = $derived(
+		bolt.query('photo_evidence', {
 			where: { job_assignment_id: { eq: job } },
 			select: { photo: true, flags: true },
 			limit: 250
 		})
 	);
-	const reviews = live(() =>
-		bolt.read('suspicion_reviews', {
+	const reviews = $derived(
+		bolt.query('suspicion_reviews', {
 			where: { job_assignment_id: { eq: job } },
 			orderBy: { reviewed_at: 'desc' },
 			select: { basis: true },
@@ -37,28 +38,30 @@
 	const candidates = $derived(
 		reviewCandidatesFrom((reviews.current?.rows ?? []).map((r) => r.basis))
 	);
-	const others = live(() =>
+	const others = $derived(
 		candidates.length === 0
 			? null
-			: bolt.read('photo_evidence', {
+			: bolt.query('photo_evidence', {
 					where: { id: { in: candidates.map((c) => c.id) } },
 					select: { photo: true, job_assignment_id: { select: { title: true } } },
 					limit: 250
 				})
 	);
-	const logs = live(() =>
-		bolt.read('suspicious_activity_logs', {
-			where: { job_assignment_id: { eq: job } },
-			orderBy: 'created_at',
-			select: { reason: true, resolution: true, resolved_at: true },
-			limit: 100
-		})
+	const logs = $derived(
+		!findings
+			? null
+			: bolt.query('suspicious_activity_logs', {
+					where: { job_assignment_id: { eq: job } },
+					orderBy: 'created_at',
+					select: { reason: true, resolution: true, resolved_at: true },
+					limit: 100
+				})
 	);
 	const view = (file: FileRef) => ({ name: file.name, url: bolt.fileUrl(file) });
 	const flagged = $derived((photos.current?.rows ?? []).filter((p) => p.flags.length > 0));
 	const pairs = $derived(
 		candidates.flatMap((candidate) => {
-			const other = (others.current?.rows ?? []).find((row) => row.id === candidate.id);
+			const other = (others?.current?.rows ?? []).find((row) => row.id === candidate.id);
 			return candidate.matchedPhotoIds.flatMap((own) => {
 				const mine = (photos.current?.rows ?? []).find((p) => p.id === own);
 				return mine === undefined || other === undefined
@@ -70,7 +73,9 @@
 </script>
 
 <Stack gap="md">
-	<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
+	{#if findings}<p class="text-tiny text-muted-foreground">
+			{t('component.suspicion_logs_description')}
+		</p>{/if}
 	<Grid minimum="compact" gap="md">
 		<section class="rounded-md border p-3" aria-label={t('component.evidence_facts')}>
 			<h4 class="text-sm font-semibold">{t('component.evidence_facts')}</h4>
@@ -151,45 +156,46 @@
 				</Stack>{/if}
 		</section>
 	</Grid>
-	<section aria-label={t('component.suspicion_judgements')}>
-		<h4 class="text-sm font-semibold">{t('component.suspicion_judgements')}</h4>
-		{#if logs.error}<p class="text-tiny text-destructive" role="alert">
-				{t('component.suspicion_load_failed')}
-			</p>{/if}
-		{#if (logs.current?.rows ?? []).length === 0}<p class="text-tiny text-muted-foreground">
-				{t('component.suspicion_logs_empty')}
-			</p>{/if}
-		<Stack gap="sm">
-			{#each logs.current?.rows ?? [] as log (log.id)}
-				<Stack
-					gap="xs"
-					class={log.resolved_at == null
-						? 'rounded-md border border-warning/40 bg-warning/5 p-3'
-						: 'rounded-md border p-3'}
-				>
-					<p class="text-tiny font-semibold">
-						<Icon
-							icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
-							class="inline size-4"
-						/>
-						{log.resolved_at == null
-							? t('component.suspicion_open')
-							: t('component.suspicion_resolved')}
-					</p>
-					<p class="text-tiny break-words">{log.reason}</p>
-					{#if log.resolved_at != null}
-						<p class="text-tiny text-muted-foreground">
-							{log.resolution ?? t('component.suspicion_resolution_missing')}
+	{#if findings}<section aria-label={t('component.suspicion_judgements')}>
+			<h4 class="text-sm font-semibold">{t('component.suspicion_judgements')}</h4>
+			{#if logs?.error}<p class="text-tiny text-destructive" role="alert">
+					{t('component.suspicion_load_failed')}
+				</p>{/if}
+			{#if (logs?.current?.rows ?? []).length === 0}<p class="text-tiny text-muted-foreground">
+					{t('component.suspicion_logs_empty')}
+				</p>{/if}
+			<Stack gap="sm">
+				{#each logs?.current?.rows ?? [] as log (log.id)}
+					<Stack
+						gap="xs"
+						class={log.resolved_at == null
+							? 'rounded-md border border-warning/40 bg-warning/5 p-3'
+							: 'rounded-md border p-3'}
+					>
+						<p class="text-tiny font-semibold">
+							<Icon
+								icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
+								class="inline size-4"
+							/>
+							{log.resolved_at == null
+								? t('component.suspicion_open')
+								: t('component.suspicion_resolved')}
 						</p>
-					{:else}
-						<Form
-							of={{ action: 'suspicious_activity_logs.resolve' }}
-							id={log.id}
-							submit={t('component.suspicion_resolve')}
-						/>
-					{/if}
-				</Stack>
-			{/each}
-		</Stack>
-	</section>
+						<p class="text-tiny break-words">{log.reason}</p>
+						{#if log.resolved_at != null}
+							<p class="text-tiny text-muted-foreground">
+								{log.resolution ?? t('component.suspicion_resolution_missing')}
+							</p>
+						{:else}
+							<Form
+								of={{ automation: 'suspicious_activity_logs_resolve' }}
+								values={{ finding: log.id }}
+								fields={['resolution']}
+								submit={t('component.suspicion_resolve')}
+							/>
+						{/if}
+					</Stack>
+				{/each}
+			</Stack>
+		</section>{/if}
 </Stack>

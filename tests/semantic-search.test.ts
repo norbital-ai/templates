@@ -62,7 +62,7 @@ it.live('a job is embedded once filed and found by meaning, within what the read
 			dimensions: DIM
 		});
 		const similar = Effect.fnUntraced(function* (as: typeof controller, to: string) {
-			const page = yield* t.as(as).read('job_assignments', { where: { $similar: to }, limit: 20 });
+			const page = yield* t.as(as).query('job_assignments', { where: { $similar: to }, limit: 20 });
 			return page.rows.map((row) => row.id).sort();
 		});
 		expect(yield* similar(controller, 'water leak')).toEqual([mine.job, theirs.job].sort());

@@ -29,19 +29,21 @@ ledger and every suspicion-log field render only for controllers. Contractors se
 assignment's progress and their evidence photos — never the integrity results.
 
 The controller reads assignments, people, sites and open suspicion logs directly from the
-sync-backed collections. Its board cards and map points are local projections of those rows, so they
+sync-backed models. Its board cards and map points are local projections of those rows, so they
 stay live without a remote query handler or refresh control.
 
-Teams (`src/access_control/team/+team.ts`): **Field Operations Controllers** and **Contractor
-(Controller)** hold `field_ops_controller`; **Contractor** holds `field_ops_contractor`. A contractor
-is a role, not a record: a user whose team holds `field_ops_contractor`.
+Teams (`src/access_control/team/+team.ts`, handles `field_ops_controllers`, `contractor_controllers`,
+`commercial_managers`, `contractors`): **Field Operations Controllers**, **Contractor (Controller)**
+and **Commercial Managers** hold `field_ops_controller`; **Contractor** holds `field_ops_contractor`.
+Commercial Managers sign off large variations. A contractor is a role, not a record: a user whose
+team holds `field_ops_contractor`.
 
-| Policy                        | What it grants                                                                                                                                                                                                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                       |
-| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own variations (`read` + opt-in source approval for `create`/`update` proposals); own evidence (`read` + `create`).         |
-| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                  |
-| `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review. |
+| Policy                        | What it grants                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                      |
+| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own variations (`read`; `create` and an `update` of the amount held by the approval flow, a wording fix saved directly); own evidence (`read` + `create`). |
+| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
+| `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                |
 
 ## Operating walkthrough
 
@@ -68,8 +70,8 @@ An administrator opens **Settings → People** (`/settings/people`), invites the
 international mobile number, and selects an existing team. Use **Field Operations Controllers**
 for dispatchers and variation approvers, **Contractor** for field staff who should see only their
 own work, or **Contractor (Controller)** when the person also dispatches the workspace. Keep the
-member **Active**. Team definitions and approval routes come from source; People assigns those
-roles to people.
+member **Active**. Use **Commercial Managers** for whoever signs off variations of SGD 5,000 or
+more. Team definitions and approval flows come from source; People assigns those roles to people.
 
 For WhatsApp, open the member, enter their **Mobile number** in international format, and press
 **Save**. The sender's number must match this active account. A contractor is assigned by that
@@ -181,41 +183,43 @@ recorded requests; it is not a separate submission form.
 
 ![A Contractor's variation proposal](docs/screenshots/07-variation-proposal.jpg)
 
-Submitting as a contractor returns **Pending approval** for **Field Operations Controllers**.
-The proposal is held while the decision is outstanding, so its presence is not evidence that
-the commercial change has been approved. Creating the same variation as a controller uses the
-controller's direct authority and commits immediately.
+Submitting as a contractor returns **Pending approval**. The contractor policy's flow
+(`src/access_control/policy/+field_ops_contractor.policy.ts`) names the steps: **Controller
+review** by Field Operations Controllers, then **Commercial sign-off** by Commercial Managers when
+the amount is SGD 5,000 or more; Field Operations Controllers may decide in either step's place.
+Changing the amount later is held the same way; a wording fix is saved directly. The proposal is
+held while the decision is outstanding, so its presence is not evidence that the commercial change
+has been approved. Creating the same variation as a controller uses the controller's direct
+authority and commits immediately.
 
-The controller opens **Approvals** (`/inbox`) and opens the request to review its record. The
+The approver opens **Approvals** (`/inbox`) and opens the request to review its record. The
 inbox offers only the moves allowed for the current person and state. The requester and
 approvers retain access to the held record while unrelated changes are blocked.
 
-The current decision, the next person to act and the latest decision reason appear first in the
-record's **Approval** panel. Enter a **Reason or comment** before choosing **Request changes**;
-the inbox also opens an inline reason form for that action. The compact **RFC** status expands
-to **Request for change** on hover or keyboard focus.
+The record's **Approval** panel shows a timeline: the request, then one node per step, each with
+who decided and when, or that it is waiting. Hover or focus a node for that step's history. Whoever
+may decide the current step chooses **Approve**, **Reject** or **Request changes**; a reason is
+required to reject or request changes. A record that had several requests offers a selector
+between them.
 
 | Decision        | What happens to the proposal                                                                                   | What to do next                                                              |
 | --------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Approve         | The proposed values are accepted.                                                                              | Continue the job.                                                            |
-| Request changes | The proposal remains held; its values stay available for correction.                                           | The requester edits it, saves with **Request approval**, then **Resubmit**.  |
+| Approve         | The step is done; after the last step the proposed values are accepted.                                        | Continue the job.                                                            |
+| Request changes | The proposal remains held; its values stay available for correction.                                           | The requester edits it and saves: saving resubmits it for approval.          |
 | Reject          | The proposal is reverted. A newly created record is removed; an updated record returns to its previous values. | Read the reason and restoration result. A later attempt needs a new request. |
-| Withdraw        | The requester ends the request and reverts the proposal.                                                       | Return to the previous record state.                                         |
 
 For example, rejecting a proposed change from SGD25 to SGD35 restores SGD25. Rejection ends the
 request; it is different from asking the requester to correct and resubmit that same request.
-The panel reports the actual restoration result, including anything that could not be restored.
-Expand **Decision history** for reasons, timestamps and resubmission events, or **Previous
-requests** for an earlier decision. A rejected creation can still be reviewed from **Approvals**
-after its proposed record has been removed.
+A requester who no longer wants a change asks an approver to reject it. A rejected creation can
+still be reviewed from **Approvals** after its proposed record has been removed.
 
 ![Controller approval actions](docs/screenshots/08-approvals.jpg)
 
-![Changes requested: the compact RFC status, the reason, and Resubmit, Withdraw and Comment](docs/screenshots/29-approval-changes-requested.jpg)
+![Changes requested](docs/screenshots/29-approval-changes-requested.jpg)
 
-![After Resubmit: pending again, awaiting Field Operations Controllers](docs/screenshots/30-approval-resubmitted.jpg)
+![After the requester saved: pending again](docs/screenshots/30-approval-resubmitted.jpg)
 
-![Approved: Decision history shows Requested, Requested changes, Resubmitted and Approved](docs/screenshots/31-approval-approved.jpg)
+![Approved](docs/screenshots/31-approval-approved.jpg)
 
 ![A later SGD25 to SGD35 proposal rejected with a reason; the panel reports Variations restored](docs/screenshots/33-approval-rejected.jpg)
 
@@ -405,9 +409,10 @@ site → job assignment → user (the assignee)
   `assigned` → `completed`; whether the work was legitimately done is a suspicion question and is
   never stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by
   the review automation after a run).
-- **variation_requests** — a scope change against one assignment. The new-record mutation is governed
-  by the contractor policy's approval flow: writing one raises a platform approval request for a
-  controller review step, not a row that is directly applied.
+- **variation_requests** — a scope change against one assignment. A contractor's create, and an
+  update of its amount, are governed by the contractor policy's approval flow: writing one raises a
+  platform approval request (controller review, then commercial sign-off from SGD 5,000), not a row
+  that is directly applied.
 - **photo_evidence** — one explicitly filed photo attached to exactly one assignment or one
   variation, with deterministic integrity facts. Channel history and attachments are stored
   separately by the platform; the assignment's message **content** is retained in
@@ -439,7 +444,7 @@ visual slot. The selected asset, parent and source provenance are immutable: cor
 requires new evidence so every check runs again.
 
 - **Duplicates.** The 256-bit PDQ hash is stored as a 256-dim 0/1 `perceptual_embedding` (L2 metric,
-  so L2 distance is √Hamming). The collection's `pdq` similarity finds near-duplicates within √31
+  so L2 distance is √Hamming). The model's `pdq` search index finds near-duplicates within √31
   (PDQ Hamming 31) as `visual_duplicate`; a byte-identical file under another assignment is
   `exact_duplicate`. Both carry `matched_evidence_ids`. A match inside the photo's own assignment is
   a neutral repeat.
@@ -451,7 +456,9 @@ requires new evidence so every check runs again.
   `suspect`: the judgement belongs to the review and lives in `suspicious_activity_logs`.
 - **Scene reuse.** PDQ cannot separate a crop of the same scene from an unrelated pair, so inspection
   also embeds the photo (`ctx.ai.embed` with the `scene` model) into `scene_embedding`, and the
-  `scene` similarity ranks by cosine. The host maps the `scene` embedding model; the review context
+  `scene` search index ranks by cosine. Both indexes read the vector fields the inspection writes
+  (`search.indexes` with `vector: '<field>'`), since image facts need the host. The host maps the
+  `scene` embedding model; the review context
   reports `scene_embedding_photos` so a review taken without it is visible rather than silently clear.
 
 ### The suspicion review
@@ -485,8 +492,9 @@ they send. One report is one update on the assignment it is about, carrying:
 - `communication_logs.create` — the messages with text that are this assignment's slice
   of the conversation, keyed by the WhatsApp message id so each change traces to its message.
 
-The assignment transform stamps the filed photos uninspected (as a direct upload is) and clears
-`suspicion_checked_at`, so the review picks the assignment up on its next run.
+Each filed photo's own create callback stamps it uninspected (as a direct upload is), and the
+assignment's update callback clears `suspicion_checked_at`, so the review picks the assignment up
+on its next run.
 
 The envoy's authority depends on the conversation:
 
@@ -520,9 +528,7 @@ what it files on the assignment. The reply goes back through the same instance.
 src/
 ├── +workspace.ts                   Asia/Singapore, SGD, the app order, the AI model classes, the field_ops_whatsapp connection
 ├── data/
-│   ├── +relationship.ts            every foreign key
-│   ├── model/+<c>.model.ts         the seven models
-│   ├── collection/<c>/             +collection.ts (write contract, transform, queries/actions) and +representation.svelte
+│   ├── model/<m>/                  +model.ts (fields and refs, exposure, write callbacks, actions, search indexes) and +representation.svelte
 │   └── custom_field/photo_source/  where a photo came from: workspace upload or a WhatsApp message
 ├── access_control/                 policy/: the four +<name>.policy.ts (the variation approval is in the contractor's); team/+team.ts
 ├── agent/                          +agent.md
@@ -536,16 +542,16 @@ seed/                               base pack JSON; seed.ts reads the bank tree 
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
 its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
-work from activity history. Each collection's `+collection.ts` declares what a caller may submit
-and its transform carries the domain rules, so they apply to every client, function, and agent —
-not only the UI:
+work from activity history. Each model's `+model.ts` declares what a caller may submit, and its
+`create.transform`, `update.transform` and `delete.check` carry the domain rules, so they apply to
+every client, function, and agent — not only the UI:
 
 - A dispatched job must reference an existing site. Creating it with a contractor defaults to
   `assigned`; dispatching an existing unassigned job sets both its contractor and status.
 - `external_ref` is an imported job's dispatch-system reference and `source_message_id` the
   WhatsApp message's; both are unique idempotency keys.
 - A reported location beyond the site tolerance is recorded as an evidence fact and never sets
-  `suspect`; completion is stamped by the collection's own transform.
+  `suspect`; completion is stamped by the model's own update callback.
 - Photo evidence: JPEG/PNG/HEIC, exactly one parent, fingerprints and integrity flags recorded by
   inspection; its asset, parent, and provenance cannot be swapped after filing.
 - Communication logs and suspicion reviews declare no `update` and no `delete`: immutable by
@@ -553,8 +559,7 @@ not only the UI:
 
 ## Seed
 
-- **base** — `seed/*.json`: sites, job assignments and communication logs, verified by
-  `tests/public-seed.test.ts`.
+- **base** — `seed/*.json`: sites, job assignments and communication logs.
 - **sample** (private) — `seed/seed.ts` reads the seed bank tree `field-operations` with
   `bolt build --bank=<checkout>`. The bank is read without rewriting it, so `seed.ts` converts its
   shapes (a `geolocation()` value to a point and address, a day instant to a date, derived `site_key`
@@ -571,11 +576,10 @@ The job-assignment import CSV template and its column reference live in `assets/
 
 ```bash
 pnpm install
-pnpm check      # bolt check
-pnpm test       # bolt build --bank=$SEED_BANK (default ../../seed_bank), then bolt test
-pnpm test:e2e   # the same build, then bolt test with E2E=1 (mounted app sweep)
-pnpm lint       # prettier --check .
+pnpm exec bolt check   # types, Svelte warnings, layout and declarations
+pnpm test       # bolt test: builds the template standalone, then the suite and the mounted app sweep
 ```
 
-Use the private bank checkout read-only. `.norbital/` is generated and never committed; there is
-no incremental migration chain.
+Use the private bank checkout read-only. `.norbital/` is generated and never committed. Schema
+changes generate an editable SQL migration under `migrations/` and verify the complete history
+against the declaration. Commit the SQL, `snapshot.json` and `migrations.lock.json` together.

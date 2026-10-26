@@ -1,9 +1,10 @@
 import { policy } from '@norbital-ai/bolt';
 /**
  * The WhatsApp envoy's authority: read every assignment and bring any one up to date in one update (its status,
- * completion and summary, the photos sent and the messages they came in). A group turn runs under this policy alone
- * (P32), so a group report may update any assignment. It cannot create, delete or reassign an assignment, change the
- * work order, or reach the review collections. Its limits bound every turn.
+ * completion and summary, the photos sent and the messages they came in). A photo is filed only through that update
+ * (its `with` carries the message source), so it is judged by the assignment's grant. A group turn runs under this
+ * policy alone (P32), so a group report may update any assignment. It cannot create, delete or reassign an assignment,
+ * change the work order, or reach the review models. Its limits bound every turn.
  */
 export default policy({
 	description:
@@ -13,11 +14,6 @@ export default policy({
 			read: true,
 			update: {
 				fields: ['status', 'completed_at', 'summary', 'photo_evidence', 'communication_logs']
-			}
-		},
-		photo_evidence: {
-			create: {
-				fields: ['job_assignment_id', 'photo', 'source']
 			}
 		},
 		communication_logs: {

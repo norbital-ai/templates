@@ -44,7 +44,7 @@ export const xlsxRecords = Effect.fnUntraced(function* (bytes: ArrayBuffer) {
 		.find((tag) => attribute(tag, 'Id') === firstSheetId);
 	const path = attribute(target ?? '', 'Target')?.replace(/^\/?(xl\/)?/, 'xl/');
 	if (path === undefined)
-		return yield* Effect.fail(new WorkbookInvalid({ message: 'This workbook has no worksheet.' }));
+		return yield* new WorkbookInvalid({ message: 'This workbook has no worksheet.' });
 	const shared = [...(yield* read('xl/sharedStrings.xml')).matchAll(/<si>([\s\S]*?)<\/si>/g)].map(
 		([, item]) => texts(item ?? '')
 	);

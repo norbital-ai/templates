@@ -15,6 +15,7 @@
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
+	import EvidenceBasis from '../../../lib/evidence-basis.svelte';
 	let {
 		view
 	}: {
@@ -62,11 +63,13 @@
 					? record.basis.reason
 					: (record.basis?.job.title ?? t('component.not_recorded'))}
 			>
-				<p class="text-sm whitespace-pre-wrap break-words">
-					{record.basis == null
-						? t('component.not_recorded')
-						: JSON.stringify(record.basis, null, 2)}
-				</p>
+				{#if record.basis?.kind === 'review'}
+					<EvidenceBasis basis={record.basis} job={record.job_assignment_id} />
+				{:else}
+					<p class="text-sm break-words whitespace-pre-wrap">
+						{record.basis?.reason ?? t('component.not_recorded')}
+					</p>
+				{/if}
 			</Section>
 			{#if !open}
 				<Section name="resolution" title={t('component.suspicion_resolution')}>
@@ -86,8 +89,9 @@
 			{:else}
 				<Section name="resolution" title={t('component.suspicion_resolution')}>
 					<Form
-						of={{ action: 'suspicious_activity_logs.resolve' }}
-						id={record.id}
+						of={{ automation: 'suspicious_activity_logs_resolve' }}
+						values={{ finding: record.id }}
+						fields={['resolution']}
 						submit={t('component.suspicion_resolve')}
 					/>
 				</Section>
