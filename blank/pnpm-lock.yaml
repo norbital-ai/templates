@@ -15,14 +15,14 @@ importers:
   .:
     dependencies:
       '@norbital-ai/bolt':
-        specifier: 0.0.1
-        version: 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
+        specifier: 0.0.3
+        version: 0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
       '@norbital-ai/std':
-        specifier: 0.0.1
-        version: 0.0.1(effect@4.0.0-rc.112)
+        specifier: 0.0.3
+        version: 0.0.3(effect@4.0.0-rc.112)
       '@norbital-ai/ui':
-        specifier: 0.0.1
-        version: 0.0.1(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)
+        specifier: 0.0.3
+        version: 0.0.3(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)
       svelte:
         specifier: ^5.57.1
         version: 5.57.1
@@ -34,8 +34,8 @@ importers:
         specifier: 4.0.0-rc.112
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))
       '@norbital-ai/bolt-server':
-        specifier: 0.0.1
-        version: 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
+        specifier: 0.0.3
+        version: 0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
       '@types/node':
         specifier: ^26.4.0
         version: 26.6.2
@@ -587,30 +587,36 @@ packages:
     resolution: {integrity: sha512-QviPdJImDi/jMAvBfqaw+19BndMd/sizXVW3NnpMd3VJGz++QXkOHcP9kWR/smHG0hNjHeyuHFyrx/5lD0oNcQ==}
     engines: {node: '>= 10'}
 
-  '@norbital-ai/bolt-server@0.0.1':
-    resolution: {integrity: sha512-W6FbPvRFKHf4+U2kjRk4T85QVs04v2IWaaaEaD2fCkC+uAc0QbR7LMSNfeVSd49PsLZSrXabqK8XtucTT/9DrQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.1/7a8eaaa84645a92a2e47cf1994da5f2e1d496674}
+  '@norbital-ai/bolt-server@0.0.3':
+    resolution: {integrity: sha512-2pIdz8jLF8GNvWbYoxuIKcpBS9HdOK/BSz2ze/u46CqRNaviyPRzgwTH3Y1PKtZm5XgKIgQCPnf2ssNQXytt1A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.3/8c11b661c5c00c8892859d06ea37045be8c934b8}
 
-  '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-e2n1w1FFbYqQtAckbDVHUlz+x2CZDj1rQPYSNdAXWlxXTsmnTwI96wzQ2r5/KgqXTT4oP7bT0iNyvTwhQBem9g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/7557d6c9e24531341cb885469de5aa0ab3b99e1a}
+  '@norbital-ai/bolt@0.0.3':
+    resolution: {integrity: sha512-7/FYd8UFEoMJv07dksnuGArLWGVI7rFzu4ua3Lab631qUu5XCeF418qtlaXQgIAJljFx18q07m5qPtpD9NsLog==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.3/786543c0b17d87cd3eea66c9e5e8e0f32e5f8241}
     hasBin: true
     peerDependencies:
+      '@typescript/native': npm:typescript@7.0.2
       svelte: ^5.0.0
 
-  '@norbital-ai/doctor@0.0.1':
-    resolution: {integrity: sha512-r43BQrWGfpe808ul+eWa80CAddFxj17zywTpOsJFhowHUgiZi2hYC8YcSUfdQBUpgvQPksQUKs9qpV92YsuTNQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.1/5d5b2ca64bb2dd70536fce12318eddc1f0c19231}
+  '@norbital-ai/providers@0.0.3':
+    resolution: {integrity: sha512-aBUOYej3m9WHQJ+ORujpXMI6lcCGv7Fidbpjw0H/3mUotD+PGpijdhzQiHBZEHFA9ujwwr1n+4HEB+ONcLoSfA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/providers/0.0.3/1cc0bd42859b45f806f23b788a16d3e282911b84}
 
-  '@norbital-ai/providers@0.0.1':
-    resolution: {integrity: sha512-PHt0hWv5c2T+V7vozsA5AaDdsSDUAjodRV9EIIzr2s8kMfMhjz28s6YfomWXuzxj2zUGMMt3P/KGT4wx4KHv4A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/providers/0.0.1/2ce7b7aef84e418ec67fb4e25150a76c0c99d51c}
-
-  '@norbital-ai/std@0.0.1':
-    resolution: {integrity: sha512-fmWYRJ6PZoHzklTDALF3nk3jpip05XWY4gNd+Xfgbr6wDoCOvedL97aNAKFWpAq5mjVZfkV4o3pM8L81GG5sTA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/f5b861d7012b4b1749df66439e4d5165b67e792d}
+  '@norbital-ai/std@0.0.3':
+    resolution: {integrity: sha512-/nb76qJfL06kdAYlZjdpLoc3klyZ1O7uOLUOooZiw4WYejlD3lpNuX+JITnlo+UhR87wf/PnHh+d1HPN6iSX7A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.3/66ec2524e08fedb31c85e491241545beed6ac4ab}
     peerDependencies:
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.1':
-    resolution: {integrity: sha512-uFmOZFg59I7BMBIlGpz1hi5LmIouMnv7Gvicjyb3FpgzIRL3hL1RqcKH1/5TP3Mjw9/uVJvooR50yZmOqnWQ9g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/2c6173cc14e831cddcd67edf671aca1cb4ac50ba}
+  '@norbital-ai/store@0.0.3':
+    resolution: {integrity: sha512-mF6xMnhAkMOEeOk7GdUwVQtPHGe/5+tSAQD+8fNogvWKBdt1zYDcDmcxM6Wm0rxcVGAqFwZPj40mMRhjdMGJ/A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/store/0.0.3/f389560523188a9dfd590beb32ae31d8c4be8ca0}
+    peerDependencies:
+      effect: 4.0.0-rc.112
+
+  '@norbital-ai/ui@0.0.3':
+    resolution: {integrity: sha512-HW/vHOgbZIKI4L2vpbRKyB/zVNr0ePEJIh3JUHeGy0HuUb3kMNJwGpXMg1ZeyIRIDt5eJf9abtM4K++Mje3hvw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.3/9f785186b921c54f4427b43a0c819f05275b1949}
     peerDependencies:
       svelte: ^5.56.10
+
+  '@oxc-project/types@0.146.0':
+    resolution: {integrity: sha512-XC0QsnnhVe7sLIWmYmdPw7x5P0h4W8vUU3Nv1ySgWXtvCz8NizoAEpGXA0sOYoJQV2Rl13LgURAHQ5cI5ILCSA==}
 
   '@oxc-project/types@0.149.0':
     resolution: {integrity: sha512-Efcc+iF0j3Bf67YjEqIqWXbX5XddXoK/Mw4K1/JuXwRCZ8N16VR7iT23nlCc9XrveFVh/E5Rqs2StT0V8v9LdA==}
@@ -681,10 +687,22 @@ packages:
     peerDependencies:
       '@redis/client': ^6.3.0
 
+  '@rolldown/binding-android-arm-eabi@1.2.5':
+    resolution: {integrity: sha512-DLe/i+l8ynIBY7XEQ191TeZvCoowIGa18R+dIV30GW7DiOtp74i/xX8hs8GUjW5ARV7VZuie3d6AumSmCwbeRA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [android]
+
   '@rolldown/binding-android-arm-eabi@1.2.8':
     resolution: {integrity: sha512-tN5aztYkKCte4i5SIrrz5yK/HMjEuCqCSCJa418jOV8tZ1cBY3YF2otxB1ktPxzsLA1BeTqwapK0bfjxNvHJVw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
+    os: [android]
+
+  '@rolldown/binding-android-arm64@1.2.5':
+    resolution: {integrity: sha512-zXcwKlQApYAOELHd8PwKDFkagYF9Wy4e0RJ+0qnzl9Pjnpj75TEG8ufv40p2J7kCEfwZAsNiuzRIyNNMWT38ig==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
     os: [android]
 
   '@rolldown/binding-android-arm64@1.2.8':
@@ -693,10 +711,22 @@ packages:
     cpu: [arm64]
     os: [android]
 
+  '@rolldown/binding-darwin-arm64@1.2.5':
+    resolution: {integrity: sha512-dK4QakI42nzWgJT5sm4y4y/O//D4OxM75/cH28RLV+nzIN9AY+YsbuUVrUTjlLjXR6vpyxFbSsbmNuJ6BP9sww==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [darwin]
+
   '@rolldown/binding-darwin-arm64@1.2.8':
     resolution: {integrity: sha512-PCSDQGXD2IyTEFrcgPyBM8jJuGmrbCMuoIOXdbEGVemruKACXoLQJrb+A45Z0L5t1RQkdfJprAYPkikbh7dzdA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
+    os: [darwin]
+
+  '@rolldown/binding-darwin-x64@1.2.5':
+    resolution: {integrity: sha512-fqSALaUu1Wjd1nK2uW2kJDWdLCc8lx1IcY+MTY26Aurfdx19anlzhqXOgCFbBFQnlFDTn4TC1/7Nz4Bl2mLP3A==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.2.8':
@@ -705,17 +735,36 @@ packages:
     cpu: [x64]
     os: [darwin]
 
+  '@rolldown/binding-freebsd-x64@1.2.5':
+    resolution: {integrity: sha512-/vCnNxlkxs9tKxNDcyWUePpJ/PgTzxIaVhoM5SmG8UV+GR/IcPam4VYxi7GIMo7PSDuNqlJqvprqii9NqqVCMw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [freebsd]
+
   '@rolldown/binding-freebsd-x64@1.2.8':
     resolution: {integrity: sha512-DjszaTEVogPqA5bYzsEeqDCQxbcp2fexQwKcRspYji2yzR68fCf+e4fx6kBSRDwX5/brZaHw/hWS9+A/+/w9sQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [freebsd]
 
+  '@rolldown/binding-linux-arm-gnueabihf@1.2.5':
+    resolution: {integrity: sha512-abk0NLA519LxRCszmbE0jYKuQ9YPocOXTiOXOo6Yr+YAT95VH+PtqYAjOJvGKt3viEd/x4qzabAlwd5bHOOARg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [linux]
+
   '@rolldown/binding-linux-arm-gnueabihf@1.2.8':
     resolution: {integrity: sha512-zmwa7FTmdzB6aaEEuuls18H6Ap5JmJPSoPTuXixeJZV6tG40SyLkApQtz1g8ptZtiEKqj9OM0oNLPh1AgvE31Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [linux]
+
+  '@rolldown/binding-linux-arm64-gnu@1.2.5':
+    resolution: {integrity: sha512-Y7eALiJ8lr0M2HH103Js+g7V34wf6snlpZLAsHI90uLhr3PVlNsbFVAXJC9d/V6BnPyKtpSwI+NcB/RLxsQxuA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
 
   '@rolldown/binding-linux-arm64-gnu@1.2.8':
     resolution: {integrity: sha512-KdYQDPHwJVnbFwdTGMgxsI9SqblBlz6STGM+w1We/d5B8OWWidYH0MwkU/uA1wM5fIpO2MkOVxXrNzzuZhw9ew==}
@@ -724,6 +773,13 @@ packages:
     os: [linux]
     libc: [glibc]
 
+  '@rolldown/binding-linux-arm64-musl@1.2.5':
+    resolution: {integrity: sha512-xMvZgnbZg4YVnR/AX2b3oOPDTFYJvUVaJg5FedA/LuvexAtXibZQej4cnTkw3rjsJ/ggUROB64TdtETiim+FYA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
   '@rolldown/binding-linux-arm64-musl@1.2.8':
     resolution: {integrity: sha512-jFJTifHnNPY+yzOoNZQfSIysrVyXzEQPhPnOUjmD1bcQGHH6s7c8cViKWar8YplQImE5N9JRqMCLrM2CdxOrZA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -731,10 +787,24 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@rolldown/binding-linux-ppc64-gnu@1.2.5':
+    resolution: {integrity: sha512-GRjeqTUDHTo5GwntsLaAMcBahG3nlpjftXWZLN73HiYQlhwEowvarFgQnRnQZtIp4keXX7quXFbG38uPZBa2EA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
   '@rolldown/binding-linux-ppc64-gnu@1.2.8':
     resolution: {integrity: sha512-FhiOziBDWPBjbcmRzfLyIJnaP7AVMFXT7YCXPjXxj7wKU3vx24RjrCNN/zjvVa+N2vVoHJwCoUBvsrN/DG3zIA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@rolldown/binding-linux-s390x-gnu@1.2.5':
+    resolution: {integrity: sha512-vLNTR45F2Uwc8AufkNXPmB4VliaXs+FvcheEogIzOXzO4l+LzieXF5A/TWxLy5HtqpsRCHUfd0lPVrrdgXdLHQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [s390x]
     os: [linux]
     libc: [glibc]
 
@@ -745,12 +815,26 @@ packages:
     os: [linux]
     libc: [glibc]
 
+  '@rolldown/binding-linux-x64-gnu@1.2.5':
+    resolution: {integrity: sha512-Mgj59/HTuYeK9Gz2MA+mBWKnHsAgkBSec15ZMb1st3oIfFbX7gCjOae7GydHhzcyQi9Z/7M1QuN9bR3oFqF0jQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
   '@rolldown/binding-linux-x64-gnu@1.2.8':
     resolution: {integrity: sha512-H9tRr5ibfXFVLxbPOseVewewFpl28zcEdjRDt2FTUZU7odxP0gEv1ki4/kGmcGOh78oRwZuuQllGLZ9zTJp84g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@rolldown/binding-linux-x64-musl@1.2.5':
+    resolution: {integrity: sha512-mY8AP0/ichsbhAxGnLa3d3+MwV0EfgrPND2bplI3Ym8T6R2pJ0N87bvrKVwNXmdy3jnr6eQBecdqx/HMknBmpA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
 
   '@rolldown/binding-linux-x64-musl@1.2.8':
     resolution: {integrity: sha512-UefiqfM3D6IVNlZ8tSGs9+Ejjud2T+oxO0IHADU45Y+lyEjD2dVFyZHbkfX0LUb5Zugo/oIv1eCO/KVYhgYJYA==}
@@ -759,16 +843,34 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@rolldown/binding-openharmony-arm64@1.2.5':
+    resolution: {integrity: sha512-8SLssA2oweAxyRgDp789ACfRb/3P+zNRJpzZxSizxF9m8NUDQ4+3xjo8ttjhVGGw6Qxb70oZiEtIjaKikCO7Yw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [openharmony]
+
   '@rolldown/binding-openharmony-arm64@1.2.8':
     resolution: {integrity: sha512-637Ke4kWSy6rp9cxQ9gMOXlxPgIw/c1beASV4M//3+9I4uwBVOOl74G+e3zyU3u19U7RkRl/HuewixZ/Z6+Rjg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
 
+  '@rolldown/binding-win32-arm64-msvc@1.2.5':
+    resolution: {integrity: sha512-vGbruD5zquhoc8D9SViXgN2FBJtNdTyQ4DtG+SWiEGlJiAzoKcZ2xp+xuXCffhubVdt0NJlTZqkeRuERy7g8Cw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [win32]
+
   '@rolldown/binding-win32-arm64-msvc@1.2.8':
     resolution: {integrity: sha512-xWBkPOF1Q9k/Gv1nQXnVdLxKu74jXppuOM4Z3mnypVUJJJwLsMl7hNJGRAUJoG8A5MgOI1ACKM+wBFxSJzKy4A==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
+    os: [win32]
+
+  '@rolldown/binding-win32-x64-msvc@1.2.5':
+    resolution: {integrity: sha512-e/SXpgISz+IoqVcSSI0rx/d/he8zqLex+/rCWpnHpmVfmPIUjag9H6P7zotf0gJHwPUhQxZ/mF8tr6acebT9yw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
     os: [win32]
 
   '@rolldown/binding-win32-x64-msvc@1.2.8':
@@ -2228,6 +2330,11 @@ packages:
   robust-predicates@3.0.3:
     resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
 
+  rolldown@1.2.5:
+    resolution: {integrity: sha512-VD2IE5PUG4Oj8zz2VGykiYd5wbnjdIiSsNQb8Qu5B+noEp+A78mu2iVvpp27g8es14Tk9rofNs5Tku9iQCS4fA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+
   rolldown@1.2.8:
     resolution: {integrity: sha512-Z67nTmhZe7anqnM/EjI392w5i/ANUinjip7QYsOyN37oayduxt3ksdX0hf5OOamkAd53BiIHfbfSzfUmzKFQqQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3286,12 +3393,13 @@ snapshots:
       '@napi-rs/canvas-win32-x64-msvc': 1.0.9
     optional: true
 
-  '@norbital-ai/bolt-server@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
+  '@norbital-ai/bolt-server@0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
     dependencies:
       '@effect/platform-node': 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.3.0)
-      '@norbital-ai/bolt': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
-      '@norbital-ai/providers': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
-      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      '@norbital-ai/bolt': 0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
+      '@norbital-ai/providers': 0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
+      '@norbital-ai/std': 0.0.3(effect@4.0.0-rc.112)
+      '@norbital-ai/store': 0.0.3(effect@4.0.0-rc.112)
       effect: 4.0.0-rc.112
       exceljs: 4.4.0
       mammoth: 1.12.2
@@ -3302,6 +3410,7 @@ snapshots:
     transitivePeerDependencies:
       - '@sveltejs/kit'
       - '@types/node'
+      - '@typescript/native'
       - '@vitejs/devtools'
       - audio-decode
       - bufferutil
@@ -3325,7 +3434,7 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/bolt@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
+  '@norbital-ai/bolt@0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@effect/platform-node': 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.3.0)
@@ -3336,18 +3445,20 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.57.1)
       '@jridgewell/trace-mapping': 0.3.31
       '@modelcontextprotocol/client': 2.0.0
-      '@norbital-ai/doctor': 0.0.1
-      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
-      '@norbital-ai/ui': 0.0.1(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)
+      '@norbital-ai/std': 0.0.3(effect@4.0.0-rc.112)
+      '@norbital-ai/store': 0.0.3(effect@4.0.0-rc.112)
+      '@norbital-ai/ui': 0.0.3(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)
       '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.57.1)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
       '@tailwindcss/vite': 4.3.3(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
       effect: 4.0.0-rc.112
       exifr: 7.1.3
       fast-png: 8.0.0
+      fflate: 0.8.3
       isolated-vm: 7.0.1(patch_hash=b1e019643d694a5e527a3041db64bf787b3f7c73f5a7b4f459da04822d65dc83)
       jpeg-js: 0.4.4
       libheif-js: 1.23.2
       pdq-wasm: 0.3.9
+      rolldown: 1.2.5
       runed: 0.37.1(svelte@5.57.1)(zod@4.6.2)
       svelte: 5.57.1
       svelte2tsx: 0.7.61(svelte@5.57.1)(typescript@6.0.3)
@@ -3374,16 +3485,10 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/doctor@0.0.1':
+  '@norbital-ai/providers@0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
     dependencies:
-      effect: 4.0.0-rc.112
-      typescript: 6.0.3
-      yaml: 2.9.0
-
-  '@norbital-ai/providers@0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)':
-    dependencies:
-      '@norbital-ai/bolt': 0.0.1(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
-      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      '@norbital-ai/bolt': 0.0.3(@types/node@26.6.2)(jiti@2.7.0)(redis@6.3.0)(svelte@5.57.1)(vitest@4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.6.2)
+      '@norbital-ai/std': 0.0.3(effect@4.0.0-rc.112)
       effect: 4.0.0-rc.112
       imapflow: 2.1.2
       nodemailer: 10.0.12
@@ -3393,6 +3498,7 @@ snapshots:
     transitivePeerDependencies:
       - '@sveltejs/kit'
       - '@types/node'
+      - '@typescript/native'
       - '@vitejs/devtools'
       - audio-decode
       - bufferutil
@@ -3415,12 +3521,18 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/std@0.0.1(effect@4.0.0-rc.112)':
+  '@norbital-ai/std@0.0.3(effect@4.0.0-rc.112)':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.1(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)':
+  '@norbital-ai/store@0.0.3(effect@4.0.0-rc.112)':
+    dependencies:
+      '@norbital-ai/std': 0.0.3(effect@4.0.0-rc.112)
+      effect: 4.0.0-rc.112
+      fflate: 0.8.3
+
+  '@norbital-ai/ui@0.0.3(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.6.2)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -3432,7 +3544,7 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.57.1)
       '@internationalized/date': 3.12.4
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.112)
+      '@norbital-ai/std': 0.0.3(effect@4.0.0-rc.112)
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       bits-ui: 2.19.2(@internationalized/date@3.12.4)(svelte@5.57.1)
       clsx: 2.1.1
@@ -3453,6 +3565,8 @@ snapshots:
       - '@sveltejs/kit'
       - tailwindcss
       - zod
+
+  '@oxc-project/types@0.146.0': {}
 
   '@oxc-project/types@0.149.0': {}
 
@@ -3505,46 +3619,91 @@ snapshots:
     dependencies:
       '@redis/client': 6.3.0
 
+  '@rolldown/binding-android-arm-eabi@1.2.5':
+    optional: true
+
   '@rolldown/binding-android-arm-eabi@1.2.8':
+    optional: true
+
+  '@rolldown/binding-android-arm64@1.2.5':
     optional: true
 
   '@rolldown/binding-android-arm64@1.2.8':
     optional: true
 
+  '@rolldown/binding-darwin-arm64@1.2.5':
+    optional: true
+
   '@rolldown/binding-darwin-arm64@1.2.8':
+    optional: true
+
+  '@rolldown/binding-darwin-x64@1.2.5':
     optional: true
 
   '@rolldown/binding-darwin-x64@1.2.8':
     optional: true
 
+  '@rolldown/binding-freebsd-x64@1.2.5':
+    optional: true
+
   '@rolldown/binding-freebsd-x64@1.2.8':
+    optional: true
+
+  '@rolldown/binding-linux-arm-gnueabihf@1.2.5':
     optional: true
 
   '@rolldown/binding-linux-arm-gnueabihf@1.2.8':
     optional: true
 
+  '@rolldown/binding-linux-arm64-gnu@1.2.5':
+    optional: true
+
   '@rolldown/binding-linux-arm64-gnu@1.2.8':
+    optional: true
+
+  '@rolldown/binding-linux-arm64-musl@1.2.5':
     optional: true
 
   '@rolldown/binding-linux-arm64-musl@1.2.8':
     optional: true
 
+  '@rolldown/binding-linux-ppc64-gnu@1.2.5':
+    optional: true
+
   '@rolldown/binding-linux-ppc64-gnu@1.2.8':
+    optional: true
+
+  '@rolldown/binding-linux-s390x-gnu@1.2.5':
     optional: true
 
   '@rolldown/binding-linux-s390x-gnu@1.2.8':
     optional: true
 
+  '@rolldown/binding-linux-x64-gnu@1.2.5':
+    optional: true
+
   '@rolldown/binding-linux-x64-gnu@1.2.8':
+    optional: true
+
+  '@rolldown/binding-linux-x64-musl@1.2.5':
     optional: true
 
   '@rolldown/binding-linux-x64-musl@1.2.8':
     optional: true
 
+  '@rolldown/binding-openharmony-arm64@1.2.5':
+    optional: true
+
   '@rolldown/binding-openharmony-arm64@1.2.8':
     optional: true
 
+  '@rolldown/binding-win32-arm64-msvc@1.2.5':
+    optional: true
+
   '@rolldown/binding-win32-arm64-msvc@1.2.8':
+    optional: true
+
+  '@rolldown/binding-win32-x64-msvc@1.2.5':
     optional: true
 
   '@rolldown/binding-win32-x64-msvc@1.2.8':
@@ -5006,6 +5165,27 @@ snapshots:
 
   robust-predicates@3.0.3: {}
 
+  rolldown@1.2.5:
+    dependencies:
+      '@oxc-project/types': 0.146.0
+      '@rolldown/pluginutils': 1.0.1
+    optionalDependencies:
+      '@rolldown/binding-android-arm-eabi': 1.2.5
+      '@rolldown/binding-android-arm64': 1.2.5
+      '@rolldown/binding-darwin-arm64': 1.2.5
+      '@rolldown/binding-darwin-x64': 1.2.5
+      '@rolldown/binding-freebsd-x64': 1.2.5
+      '@rolldown/binding-linux-arm-gnueabihf': 1.2.5
+      '@rolldown/binding-linux-arm64-gnu': 1.2.5
+      '@rolldown/binding-linux-arm64-musl': 1.2.5
+      '@rolldown/binding-linux-ppc64-gnu': 1.2.5
+      '@rolldown/binding-linux-s390x-gnu': 1.2.5
+      '@rolldown/binding-linux-x64-gnu': 1.2.5
+      '@rolldown/binding-linux-x64-musl': 1.2.5
+      '@rolldown/binding-openharmony-arm64': 1.2.5
+      '@rolldown/binding-win32-arm64-msvc': 1.2.5
+      '@rolldown/binding-win32-x64-msvc': 1.2.5
+
   rolldown@1.2.8:
     dependencies:
       '@oxc-project/types': 0.149.0
@@ -5409,7 +5589,8 @@ snapshots:
 
   y18n@4.0.3: {}
 
-  yaml@2.9.0: {}
+  yaml@2.9.0:
+    optional: true
 
   yargs-parser@18.1.3:
     dependencies:
