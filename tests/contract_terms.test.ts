@@ -1,7 +1,7 @@
 /** L-TPL-hr-payroll-032 hire; L-TPL-hr-payroll-033 change terms; L-TPL-hr-payroll-036 no overlapping terms. */
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { PlainDate } from '@norbital-ai/std/date';
+import { datePeriod, PlainDate } from '@norbital-ai/std/date';
 import {
 	changeTermsSet,
 	allowancesOf,
@@ -11,7 +11,8 @@ import {
 	termInForceOn,
 	termsFromFacts,
 	salaryOf,
-	type ContractTerm
+	type ContractTerm,
+	type TermDraft
 } from '../src/lib/payroll_engine/contract_terms.ts';
 import { missingRequired, requiredOf } from '../src/lib/ui/person/input_schema.ts';
 
@@ -23,7 +24,7 @@ const values = {
 	work_classification: 'EA_COVERED',
 	statutory_work_category: 'NON_MANUAL',
 	facts: { mom_declared_monthly_salary: 4500 }
-};
+} as const;
 const allowances = [{ code: 'TRANSPORT', amount: 200 }];
 const hire = (overrides: object = {}) => {
 	const set = hireContractSet({
@@ -41,16 +42,17 @@ const hire = (overrides: object = {}) => {
 
 describe('contract terms', () => {
 	it('keeps an allowance identified by its catalogue item when changing terms', () => {
-		const stored = termsFromFacts({
+		const stored = termsFromFacts<ContractTerm>({
 			contract_terms: [
 				{
 					...values,
-					effective_range: { from: '2020-01-01', to: null },
+					effective_range: datePeriod('2020-01-01', null),
 					allowances: [{ catalogue_id: 'catalogue-1', amount: { value: 200, currency: 'SGD' } }]
 				}
 			]
 		});
 		assert.equal(refuseTermsOverlap(stored), null);
+		assert.deepEqual(salaryOf(stored[0]!), { value: 4500, currency: 'SGD' });
 		const changed = changeTermsSet(stored, {
 			start: '2026-04-01',
 			values,
@@ -62,8 +64,8 @@ describe('contract terms', () => {
 		]);
 		assert.equal(
 			refuseTermsOverlap(
-				termsFromFacts({
-					contract_terms: [{ ...stored[0], allowances: [{ amount: { value: 200 } }] }]
+				termsFromFacts<ContractTerm>({
+					contract_terms: [{ ...stored[0]!, allowances: [{ amount: { value: 200 } }] }]
 				})
 			),
 			'Each allowance needs a catalogue code or item.'
@@ -76,7 +78,7 @@ describe('contract terms', () => {
 		assert.deepEqual(set.effective_range, { from: '2020-01-15', to: null });
 		assert.equal(set.facts.contract_terms.length, 1);
 		const [term] = set.facts.contract_terms;
-		assert.deepEqual(salaryOf(term!), { value: 4500, currency: 'SGD' });
+		assert.deepEqual(term?.base_salary, { value: 4500, currency: 'SGD' });
 		assert.deepEqual(term?.allowances, [{ code: 'TRANSPORT', amount: { value: 200 } }]);
 		assert.equal(typeof term?.id, 'string');
 		// Nothing is defaulted: an unset key is absent, never a date or a code source chose.
@@ -121,8 +123,14 @@ describe('contract terms', () => {
 		assert.deepEqual(next?.allowances, [
 			{ code: 'TRANSPORT', catalogue_id: 'a1', amount: { value: 250, currency: 'SGD' } }
 		]);
-		assert.equal(salaryOf(termInForceOn(changed.facts.contract_terms, '2024-03-31')!)?.value, 4500);
-		assert.equal(salaryOf(termInForceOn(changed.facts.contract_terms, '2024-04-01')!)?.value, 5200);
+		assert.deepEqual(termInForceOn(changed.facts.contract_terms, '2024-03-31')?.base_salary, {
+			value: 4500,
+			currency: 'SGD'
+		});
+		assert.deepEqual(termInForceOn(changed.facts.contract_terms, '2024-04-01')?.base_salary, {
+			value: 5200,
+			currency: 'SGD'
+		});
 	});
 
 	it('L-TPL-hr-payroll-036 refuses overlapping terms and admits a closed successor', () => {
@@ -171,7 +179,7 @@ describe('contract terms', () => {
 			'These terms are already paid through 2026-03-31. Start the change on or after 2026-04-01, or delete the payroll run that paid the period.'
 		);
 		assert.equal(raise('2026-04-01'), null);
-		const edit = (change: (term: ContractTerm) => ContractTerm) => ({
+		const edit = (change: (term: TermDraft) => TermDraft) => ({
 			contract_terms: terms.map(change)
 		});
 		// An allowance, a fact or a declared key edited in place on the open term rewrites paid March too.

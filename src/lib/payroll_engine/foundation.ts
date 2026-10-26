@@ -1,26 +1,25 @@
-import { Predicate } from 'effect';
+import { Array as EffectArray, Predicate } from 'effect';
 import { Context, Data, Effect, Result, Schema } from 'effect';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { addDays, datePeriod, eachDay, isPlainDate, monthOf } from '@norbital-ai/std/date';
 import {
 	isMasked,
-	type CallerReads,
+	type CallerQuery,
 	type Cursor,
 	type DeclaredQuery,
 	type DeclaredRow,
 	type Masked,
 	type Page,
 	type Paged,
-	type QueryCtx,
+	type QueryMember,
+	type QuerySet,
+	type QuerySetAnswer,
 	type ReadableName,
-	type ReadMember,
-	type ReadSet,
-	type ReadSetAnswer,
 	type Row,
 	type Select,
 	type StoredAnswer,
 	type StoredMember,
-	type WorkspaceReads,
+	type WorkspaceQuery,
 	type Where
 } from '@norbital-ai/bolt';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
@@ -46,16 +45,14 @@ export class Refusal extends Data.TaggedError('Refusal')<{
 	readonly message: string;
 	readonly detail?: string | undefined;
 }> {}
-export const refuse = (message: string, detail?: string): Effect.Effect<never, Refusal> =>
-	Effect.fail(new Refusal({ message, ...(detail === undefined ? {} : { detail }) }));
 /** A required native field stays unavailable until the caller's actual read admits it. */
 export const fieldValue = <A>(value: A | Masked, field: string): Result.Result<A, Refusal> =>
 	isMasked(value)
 		? Result.fail(new Refusal({ message: `This operation needs access to ${field}.` }))
 		: Result.succeed(value);
-/** Native readers retain Bolt's actual collection, projection and keyed-answer types. */
-export type HostRead = WorkspaceReads['read'];
-export type CallerRead = CallerReads<ReadFailed>['read'];
+/** Native readers retain Bolt's actual model, selection and keyed-answer types. */
+export type HostRead = WorkspaceQuery['query'];
+export type CallerRead = CallerQuery<ReadFailed>['query'];
 export type HostRow<C extends ReadableName> = Row<C>;
 export type StoredSelect<C extends ReadableName> = NonNullable<
 	Extract<StoredMember<C>, { readonly all: true }>['select']
@@ -71,24 +68,27 @@ type ReadRow<C extends ReadableName, S extends StoredSelect<C> & Select<C>> =
 /** Both native readers admit these inputs; each answer retains its native projections and caller masks. */
 export interface Read<E = ReadFailed> {
 	<C extends ReadableName>(
-		collection: C,
+		model: C,
 		query: DeclaredQuery
 	): Effect.Effect<Page<DeclaredRow<C>>, ReadFailed>;
 	<C extends ReadableName, const S extends StoredSelect<C> & Select<C> = {}>(
-		collection: C,
+		model: C,
 		query: { where?: NoInfer<StoredWhere<C> & Where<C>>; select?: S } & Paged
 	): Effect.Effect<Page<ReadRow<C, S>>, E>;
-	<const M extends ReadSet>(
+	<const M extends QuerySet>(
 		set: M & {
-			readonly [K in keyof M]: StoredMember<M[K]['collection']> & ReadMember<M[K]['collection']>;
+			readonly [K in keyof M]: StoredMember<M[K]['from']> & QueryMember<M[K]['from']>;
 		}
-	): Effect.Effect<{ readonly [K in keyof M]: StoredAnswer<M[K]> } | ReadSetAnswer<M>, E>;
+	): Effect.Effect<{ readonly [K in keyof M]: StoredAnswer<M[K]> } | QuerySetAnswer<M>, E>;
 }
 export type ReadError = Refusal | ReadFailed;
 type ReadsShape = { readonly read: Read };
 export class Reads extends Context.Service<Reads, ReadsShape>()('payroll/Reads') {}
 export const readsFrom = (read: HostRead | CallerRead | Read): ReadsShape => ({ read });
-/** Concurrent native reads share the guest crossing; refusal selection follows the input order. */
+/**
+ * Walks run concurrently and refusal selection follows the input order. Each read a walk makes is its own crossing, so a
+ * write callback (two reads per call) reads for the whole batch in one keyed read instead of walking with a reader.
+ */
 export const eachBatched = Effect.fnUntraced(function* <I, O, E, R, Reader extends Read>(
 	inputs: readonly I[],
 	read: Reader,
@@ -107,10 +107,10 @@ export const eachBatched = Effect.fnUntraced(function* <I, O, E, R, Reader exten
 	return values;
 });
 /** A guest engine computation stays inside its caller's Effect, including authored refusal. */
-export const runEngine = <A>(
+export const runEngine = <A, F>(
 	effect: Effect.Effect<A, ReadError, Reads>,
 	read: Read,
-	refuse: QueryCtx['refuse']
+	refuse: (message: string) => Effect.Effect<never, F>
 ) =>
 	effect.pipe(
 		Effect.provideService(Reads, readsFrom(read)),
@@ -134,9 +134,11 @@ export const moneyNumber = (value: unknown): number | null =>
 /** A host row's values as CEL reads them: a stored decimal is its number, everything else as it came. */
 export const celValues = (value: unknown): unknown => {
 	if (value instanceof Decimal) return Number(value.toString());
-	if (Array.isArray(value)) return value.map(celValues);
+	if (EffectArray.isArray(value)) return value.map(celValues);
 	if (isCelObject(value))
-		return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, celValues(entry)]));
+		return Object.fromEntries(
+			Object.entries(value).map(([key, entry]): [string, unknown] => [key, celValues(entry)])
+		);
 	return value;
 };
 /** Deterministic JSON for hashing and comparison: object keys in sorted order. */
@@ -149,10 +151,11 @@ export const beforeOf = (
 	[field: string]: Json;
 } => {
 	const held: Readonly<Record<string, unknown>> = { ...existing };
+	const supplied: Readonly<Record<string, unknown>> = { ...input };
 	const out: {
 		[field: string]: Json;
 	} = {};
-	for (const [field, value] of Object.entries(input))
+	for (const [field, value] of Object.entries(supplied))
 		if (field !== 'before' && field !== 'id' && stableJson(held[field]) !== stableJson(value)) {
 			const prior = celValues(held[field] ?? null);
 			out[field] = Schema.is(Schema.Json)(prior) ? prior : null;
@@ -160,12 +163,12 @@ export const beforeOf = (
 	return out;
 };
 const sortValue = (value: unknown): unknown => {
-	if (Array.isArray(value)) return value.map(sortValue);
+	if (EffectArray.isArray(value)) return value.map(sortValue);
 	if (isJsonObject(value))
 		return Object.fromEntries(
 			Object.entries(value)
 				.sort(([left], [right]) => left.localeCompare(right))
-				.map(([key, entry]) => [key, sortValue(entry)])
+				.map(([key, entry]): [string, unknown] => [key, sortValue(entry)])
 		);
 	return value;
 };
@@ -252,13 +255,12 @@ export const PAYROLL_SLOTS = {
 	overtime_classification: 'optional'
 } as const satisfies Readonly<Record<string, 'required' | 'optional'>>;
 /** An actual `YYYY-MM-DD` calendar date. */
-export const isCalendarDate = isPlainDate;
 /** One refused value: the engine's single error, thrown where no Effect channel exists. */
 const refuseNow = (message: string, detail?: string): never => {
 	throw new Refusal({ message, ...(detail === undefined ? {} : { detail }) });
 };
 export const dateKey = (value: unknown): string =>
-	isCalendarDate(value) ? value : refuseNow('A stored date requires its actual calendar day.');
+	isPlainDate(value) ? value : refuseNow('A stored date requires its actual calendar day.');
 export const calendarDateInTimeZone = (instant: Date, timezone: string): string =>
 	new Intl.DateTimeFormat('en-CA', {
 		timeZone: timezone,
@@ -326,7 +328,7 @@ export const payPeriodWindow = (
 		return { start, end: addDays(start, 6) };
 	}
 	if (frequency === 'DAILY') {
-		if (!isCalendarDate(period))
+		if (!isPlainDate(period))
 			return refuseNow('A daily pay period requires its actual calendar day.');
 		return { start: period, end: period };
 	}

@@ -3,11 +3,12 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	/**
 	 * What one legal entity still owes the authorities: the open remittances its payroll runs raised (with their
-	 * amounts) and the open regulatory tasks its row events raised. Done and dismiss write the row's own state. Below,
-	 * the entity's workplace cases and work suspensions, which raise tasks and mark days: New and a row open their record.
+	 * amounts) and the open regulatory tasks its row events raised, each under its name. Done and dismiss write the row's
+	 * own state. Beside them, the entity's workplace cases and work suspensions, which raise tasks and mark days: New and a
+	 * row open their record. One tab per list.
 	 */
 	import { bolt } from '$bolt';
-	import type { Id, Outcome } from '@norbital-ai/bolt';
+	import type { Id, Outcome, Row } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
@@ -15,16 +16,48 @@
 		Label,
 		RecordShell,
 		Sheet,
+		singular,
 		Table,
+		Tabs,
 		Textarea,
-		toast
+		notifyOutcome,
+		toast,
+		useBolt
 	} from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import { readableTitle } from '../../../lib/ui/format/display_formatters.js';
+	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 	const scope = companyScope();
 	const t = bolt.t;
+	const ui = useBolt();
+	/** A remittance reads as the OBLIGATIONS rule that raised it, a case and a suspension as their kind's name. */
+	const duties = $derived.by(() =>
+		bolt.query('rule_set', {
+			where: { family: { eq: 'OBLIGATIONS' } },
+			select: { code: true, name: true },
+			all: true
+		})
+	);
+	const dutyName = $derived(
+		new Map((duties?.current?.rows ?? []).map((row) => [row.code, row.name] as const))
+	);
+	const caseName = listedKindNames('case_kinds');
+	const suspensions = $derived.by(() =>
+		bolt.query('jurisdiction_settings', {
+			where: { sealed_at: { isNull: false } },
+			select: { suspension_kinds: true },
+			all: true
+		})
+	);
+	const suspensionName = $derived(
+		new Map(
+			(suspensions?.current?.rows ?? []).flatMap((row) =>
+				(row.suspension_kinds ?? []).map((kind) => [kind.code, kind.name ?? kind.code] as const)
+			)
+		)
+	);
 	let dismissing = $state<
 		| {
 				kind: 'obligation';
@@ -44,6 +77,8 @@
 	function report(outcome: Outcome<unknown>): void {
 		if (outcome.kind === 'pendingApproval') toast.info(t('offboarding.pending'));
 		else if (outcome.kind === 'committed') toast.success(t('compliance.saved'));
+		// a refusal fails the act; what is left is a write still running past the person-wait
+		else notifyOutcome(bolt, outcome);
 	}
 	function settle(ids: Id<'obligation'>[]): void {
 		fork(
@@ -117,7 +152,130 @@
 	}
 </script>
 
-{#snippet titleCell({ value }: { value: unknown })}{readableTitle(String(value ?? ''))}{/snippet}
+{#snippet titleCell({
+	value
+}: {
+	value: Row<'regulatory_task'>['title'] | undefined;
+})}{readableTitle(value ?? '')}{/snippet}
+{#snippet dutyCell({ value }: { value: Row<'obligation'>['duty_code'] | undefined })}{@const code =
+		value ?? ''}{dutyName.get(code) ?? readableTitle(code)}{/snippet}
+{#snippet subjectCell({
+	value
+}: {
+	value: Row<'regulatory_task'>['subject_collection'] | undefined;
+})}{singular(ui, value ?? '')}{/snippet}
+{#snippet caseCell({ value }: { value: Row<'workplace_case'>['kind'] | undefined })}{caseName(
+		value ?? ''
+	)}{/snippet}
+{#snippet suspensionCell({
+	value
+}: {
+	value: Row<'work_suspension'>['kind'] | undefined;
+})}{@const code = value ?? ''}{suspensionName.get(code) ?? readableTitle(code)}{/snippet}
+
+{#snippet obligations()}
+	{#if scope.id != null}
+		<Table
+			of="obligation"
+			key={`obligation-${scope.id}`}
+			where={{ company_id: { eq: scope.id }, state: { eq: 'OPEN' } }}
+			orderBy={{ due_on: 'asc' }}
+			toolbar={{
+				title: t('app.compliance.obligations'),
+				actions: [
+					{
+						run: settle,
+						requiresSelection: true,
+						icon: 'lucide:check',
+						name: t('compliance.settle')
+					},
+					{
+						run: (ids: Id<'obligation'>[]) => {
+							reason = '';
+							dismissing = { kind: 'obligation', ids };
+							sheetOpen = true;
+						},
+						requiresSelection: true,
+						icon: 'lucide:x',
+						name: t('compliance.waive')
+					}
+				]
+			}}
+			columns={[
+				{ field: 'duty_code', label: t('compliance.duty'), cell: dutyCell },
+				'references',
+				'triggered_on',
+				'due_on',
+				'amount_due'
+			]}
+		/>
+	{/if}
+{/snippet}
+{#snippet tasks()}
+	{#if scope.id != null}
+		<Table
+			of="regulatory_task"
+			key={`regulatory_task-${scope.id}`}
+			where={{ company_id: { eq: scope.id }, state: { eq: 'OPEN' } }}
+			orderBy={{ due_on: 'asc' }}
+			toolbar={{
+				title: t('app.compliance.tasks'),
+				actions: [
+					{
+						run: done,
+						requiresSelection: true,
+						icon: 'lucide:check',
+						name: t('compliance.done')
+					},
+					{
+						run: (ids: Id<'regulatory_task'>[]) => {
+							reason = '';
+							dismissing = { kind: 'task', ids };
+							sheetOpen = true;
+						},
+						requiresSelection: true,
+						icon: 'lucide:x',
+						name: t('compliance.dismiss')
+					}
+				]
+			}}
+			columns={[
+				{ field: 'title', cell: titleCell },
+				'references',
+				{ field: 'subject_collection', label: t('section.subject'), cell: subjectCell },
+				'triggered_on',
+				'due_on'
+			]}
+		/>
+	{/if}
+{/snippet}
+{#snippet cases()}
+	{#if scope.id != null}
+		<Table
+			of="workplace_case"
+			key={`workplace_case-${scope.id}`}
+			where={{ company_id: { eq: scope.id } }}
+			orderBy={{ opened_on: 'desc' }}
+			toolbar={{ title: t('app.compliance.cases'), new: () => (creating = 'workplace_case') }}
+			columns={[{ field: 'kind', cell: caseCell }, 'employment_id', 'opened_on', 'closed_on']}
+		/>
+	{/if}
+{/snippet}
+{#snippet suspended()}
+	{#if scope.id != null}
+		<Table
+			of="work_suspension"
+			key={`work_suspension-${scope.id}`}
+			where={{ company_id: { eq: scope.id } }}
+			orderBy={{ starts_on: 'desc' }}
+			toolbar={{
+				title: t('app.compliance.suspensions'),
+				new: () => (creating = 'work_suspension')
+			}}
+			columns={[{ field: 'kind', cell: suspensionCell }, 'starts_on', 'ends_on', 'worksite']}
+		/>
+	{/if}
+{/snippet}
 
 <AppShell
 	icon="lucide:clipboard-check"
@@ -128,89 +286,14 @@
 	{#if scope.id == null}
 		<EmptyState title={t('app.payroll.empty_runs')} />
 	{:else}
-		<Stack gap="md">
-			<Table
-				of="obligation"
-				key={`obligation-${scope.id}`}
-				where={{ company_id: { eq: scope.id }, state: { eq: 'OPEN' } }}
-				orderBy={{ due_on: 'asc' }}
-				toolbar={{
-					title: t('app.compliance.obligations'),
-					actions: [
-						{
-							run: settle,
-							requiresSelection: true,
-							icon: 'lucide:check',
-							name: t('compliance.settle')
-						},
-						{
-							run: (ids: Id<'obligation'>[]) => {
-								reason = '';
-								dismissing = { kind: 'obligation', ids };
-								sheetOpen = true;
-							},
-							requiresSelection: true,
-							icon: 'lucide:x',
-							name: t('compliance.waive')
-						}
-					]
-				}}
-				columns={['duty_code', 'references', 'triggered_on', 'due_on', 'amount_due']}
-			/>
-			<Table
-				of="regulatory_task"
-				key={`regulatory_task-${scope.id}`}
-				where={{ company_id: { eq: scope.id }, state: { eq: 'OPEN' } }}
-				orderBy={{ due_on: 'asc' }}
-				toolbar={{
-					title: t('app.compliance.tasks'),
-					actions: [
-						{
-							run: done,
-							requiresSelection: true,
-							icon: 'lucide:check',
-							name: t('compliance.done')
-						},
-						{
-							run: (ids: Id<'regulatory_task'>[]) => {
-								reason = '';
-								dismissing = { kind: 'task', ids };
-								sheetOpen = true;
-							},
-							requiresSelection: true,
-							icon: 'lucide:x',
-							name: t('compliance.dismiss')
-						}
-					]
-				}}
-				columns={[
-					{ field: 'title', cell: titleCell },
-					'references',
-					'subject_collection',
-					'triggered_on',
-					'due_on'
-				]}
-			/>
-			<Table
-				of="workplace_case"
-				key={`workplace_case-${scope.id}`}
-				where={{ company_id: { eq: scope.id } }}
-				orderBy={{ opened_on: 'desc' }}
-				toolbar={{ title: t('app.compliance.cases'), new: () => (creating = 'workplace_case') }}
-				columns={['kind', 'employment_id', 'opened_on', 'closed_on']}
-			/>
-			<Table
-				of="work_suspension"
-				key={`work_suspension-${scope.id}`}
-				where={{ company_id: { eq: scope.id } }}
-				orderBy={{ starts_on: 'desc' }}
-				toolbar={{
-					title: t('app.compliance.suspensions'),
-					new: () => (creating = 'work_suspension')
-				}}
-				columns={['kind', 'starts_on', 'ends_on', 'worksite']}
-			/>
-		</Stack>
+		<Tabs
+			tabs={[
+				{ name: 'obligations', title: t('app.compliance.obligations'), body: obligations },
+				{ name: 'tasks', title: t('app.compliance.tasks'), body: tasks },
+				{ name: 'cases', title: t('app.compliance.cases'), body: cases },
+				{ name: 'suspensions', title: t('app.compliance.suspensions'), body: suspended }
+			]}
+		/>
 	{/if}
 </AppShell>
 

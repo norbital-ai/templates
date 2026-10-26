@@ -24,18 +24,18 @@
 		type LoanRepayment,
 		type LoanScheduleInput
 	} from '../../loan_schedule.js';
-	import { live, liveRows } from '../state/live.svelte.js';
 	import { governingPayroll } from '../format/version_money.svelte.js';
+	import { formatNumeric } from '../format/display_formatters.js';
 	import { loanCalendar } from '../../loan_values.js';
 
 	let { form, record }: { form: FormState; record: Row<'loan_catalog_entry'> | null } = $props();
 	const uid = $props.id();
 	const controller = useRecordController();
 	const historical = $derived(controller?.historical === true);
-	const stored = liveRows(() =>
+	const stored = $derived.by(() =>
 		record == null || historical
 			? null
-			: bolt.read('loan_repayment_entry', {
+			: bolt.query('loan_repayment_entry', {
 					where: { loan_id: { eq: record.id } },
 					select: {
 						occurred_on: true,
@@ -69,16 +69,18 @@
 	};
 	// the schedule keeps the money and calendar of the version governing the loan's class, as the server does
 	const catalogId = $derived(form.id<'loan_catalog'>('catalog_id'));
-	const loanClass = live(() =>
+	const loanClass = $derived.by(() =>
 		catalogId == null || catalogId === ''
 			? null
-			: bolt.get('loan_catalog', catalogId, { settings_id: true })
+			: bolt.query('loan_catalog', { id: catalogId, select: { settings_id: true } })
 	);
 	const payroll = governingPayroll(() => {
-		const version = loanClass.current?.settings_id;
+		const version = loanClass?.current?.settings_id;
 		return version == null ? null : { version };
 	});
 	const calendar = $derived(loanCalendar(payroll()));
+	const money = (value: Decimal) =>
+		formatNumeric(value.toString(), payroll()?.currency, payroll()?.minor_units);
 	const principal = $derived.by(() => {
 		const value = form.get('principal_amount');
 		return calendar != null &&
@@ -105,10 +107,15 @@
 				form.get('repayment_frequency') === 'SEMI_MONTHLY' ? 'SEMI_MONTHLY' : 'MONTHLY'
 		};
 	});
-	const ready = $derived(record == null || stored.current != null);
+	const ready = $derived(record == null || stored?.current?.rows != null);
 	const queued = $derived(form.children['repayments'] ?? []);
 	const automatic = $derived.by(() => {
-		if (!ready || (stored.current?.length ?? 0) !== 0 || queued.length !== 0 || parameters == null)
+		if (
+			!ready ||
+			(stored?.current?.rows?.length ?? 0) !== 0 ||
+			queued.length !== 0 ||
+			parameters == null
+		)
 			return null;
 		const built = buildLoanSchedule(parameters);
 		return built.ok ? built.repayments : null;
@@ -116,7 +123,7 @@
 	const rows = $derived.by((): readonly Draft[] => {
 		if (automatic != null) return automatic.map((row, index) => ({ ...row, key: `new:${index}` }));
 		const deleted = new Set(queued.flatMap((op) => (op.action === 'delete' ? [op.id] : [])));
-		const entries: Draft[] = (stored.current ?? [])
+		const entries: Draft[] = (stored?.current?.rows ?? [])
 			.filter((row) => !deleted.has(row.id))
 			.map((row) => {
 				const edit = queued.find((op) => op.action === 'update' && op.id === row.id);
@@ -207,8 +214,8 @@
 			found.push({
 				field: 'repayments',
 				message: bolt.t('loan.total_mismatch', {
-					total: total.round(2).toString(),
-					principal: parameters.principal_amount.round(2).toString()
+					total: money(total),
+					principal: money(parameters.principal_amount)
 				})
 			});
 		return found;
@@ -229,7 +236,7 @@
 	function queue(draft: readonly Draft[]) {
 		const operations: Parameters<FormState['queueChildren']>[1][number][] = [];
 		const retained = new Set(draft.flatMap((row) => (row.id == null ? [] : [row.id])));
-		for (const row of stored.current ?? [])
+		for (const row of stored?.current?.rows ?? [])
 			if (!retained.has(row.id)) {
 				const prior = queued.find(
 					(op) => (op.action === 'delete' || op.action === 'update') && op.id === row.id
@@ -247,7 +254,7 @@
 					values: { occurred_on: row.occurred_on, amount: row.amount }
 				});
 			else {
-				const original = stored.current?.find((old) => old.id === row.id);
+				const original = stored?.current?.rows?.find((old) => old.id === row.id);
 				if (
 					original != null &&
 					row.revision != null &&
@@ -441,8 +448,8 @@
 				key="loan_repayments"
 				layout="grid"
 				columns={[
-					{ field: 'amount', label: bolt.t('loan.repayment_amount'), width: 200, cell: amountCell },
-					{ field: 'occurred_on', label: bolt.t('loan.column_date'), width: 240, cell: dateCell }
+					{ field: 'amount', label: bolt.t('loan.repayment_amount'), cell: amountCell },
+					{ field: 'occurred_on', label: bolt.t('loan.column_date'), cell: dateCell }
 				]}
 				toolbar={{
 					title: bolt.t('loan.repayments'),
@@ -477,7 +484,7 @@
 						? 'text-sm text-destructive tabular-nums'
 						: 'text-sm text-muted-foreground tabular-nums'}
 				>
-					{bolt.t('loan.schedule_total')}: {total.round(2).toString()}
+					{bolt.t('loan.schedule_total')}: {money(total)}
 				</p>
 				{#if mismatch != null}{@render problem(mismatch)}{/if}
 			</Inline>

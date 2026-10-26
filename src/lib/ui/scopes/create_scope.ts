@@ -1,4 +1,4 @@
-import * as Predicate from 'effect/Predicate';
+import type { Row } from '@norbital-ai/bolt';
 
 /**
  * How a person reads everywhere on these pages: "AMIL BIN SULEIMAN (NHPMY0302)". A list that
@@ -7,19 +7,15 @@ import * as Predicate from 'effect/Predicate';
  */
 export const employmentLabel = (
 	employment:
-		| {
-				readonly employee_number?: unknown | undefined;
-				readonly employee_id?: { readonly name?: unknown } | string | null | undefined;
-		  }
+		| (Pick<Row<'employment_contract'>, 'employee_number'> & {
+				readonly employee_id: Pick<Row<'employment_profile'>, 'name'>;
+		  })
 		| null
 		| undefined
 ): string => {
 	if (employment == null) return '—';
-	const person = employment.employee_id;
-	const rawName = Predicate.isObjectOrArray(person) ? person.name : undefined;
-	const name = Predicate.isString(rawName) ? rawName : '';
-	const rawNumber = employment.employee_number;
-	const number = rawNumber != null && rawNumber !== '' ? String(rawNumber) : '';
+	const name = employment.employee_id.name;
+	const number = employment.employee_number;
 	if (name !== '' && number !== '') return `${name} (${number})`;
 	return name !== '' ? name : number !== '' ? number : '—';
 };

@@ -33,22 +33,21 @@
 
 ## 数据模型
 
-各国法规是数据而非代码。每个辖区是一组带生效日期、已封存的 `jurisdiction_settings` 版本，附带目录行（`statutory_contribution`、`leave`、`claim`、`adhoc`、`loan`、`allowance`、`work`）和 `rule_set` 行。费率、档位、资格和计价都是这些行上的 CEL 表达式，行为（例如离职休假兑现）是设置版本上的规则。`src/lib/payroll_engine/` 下的引擎只负责求值，不含任何辖区专属逻辑。法规变更即新版本，无需改动源代码。
+各国法规是数据而非代码。每个辖区是一组带生效日期、已封存的 `jurisdiction_settings` 版本，附带目录行（`statutory_contribution_catalog`、`leave_catalog`、`claim_catalog`、`adhoc_catalog`、`loan_catalog`、`allowance_catalog`、`work_catalog`）和 `rule_set` 行。费率、档位、资格和计价都是这些行上的 CEL 表达式，行为（例如离职休假兑现）是设置版本上的规则。`src/lib/payroll_engine/` 下的引擎只负责求值，不含任何辖区专属逻辑。法规变更即新版本，无需改动源代码。
 
 各辖区的配置内容及缺口记录在[各辖区跟踪表](docs/inventory/README.md)。
 
-辖区版本以经校验的自定义字段持有停工类别定义。工作区共有 27 个模型；薪资变动、结算/付款记录以及独立复核的运营记录各自保留身份。
+辖区版本以经校验的自定义字段持有停工类别定义。工作区共有 29 个模型，声明位于 `src/data/model/<name>/+model.ts`：字段、关系、各写入操作的回调和查询都在模型内声明，同目录的 `+representation.svelte` 呈现记录。业务操作在 `src/automation/` 中声明为普通自动化。薪资变动、结算/付款记录以及独立复核的运营记录各自保留身份。
 
 ## 自动化与集成
 
-| 自动化                | 触发方式                                 | 结果                                                             |
-| --------------------- | ---------------------------------------- | ---------------------------------------------------------------- |
-| `behaviour_taps`      | 创建薪资批次；雇佣合同离职事实或期间更新 | 执行版本的行为规则：每条规则读取其声明的记录并返回写入。         |
-| `statutory_drift`     | 每月或按需                               | 为每个已封存且生效的谱系排队一次 `statutory_lineage`。不会封存。 |
-| `statutory_lineage`   | 由 `statutory_drift` 排队或按需          | 对照官方来源检查一个谱系；变更生成一个未封存草稿供复核。         |
-| `late_arrival_notice` | 每五分钟                                 | 排班超过实体宽限时间仍无打卡时，每人每日提醒一次。               |
-| `calendar_tick`       | 每日                                     | 为每个在职雇佣执行行为规则，使按日期触发的义务生成任务。         |
-| `invitation_profile`  | 邀请员工；创建员工用户或其联系方式变更   | 为受邀员工创建雇佣档案，并在接受邀请后关联其身份。               |
+| 自动化                | 触发方式                                             | 结果                                                                                                         |
+| --------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `behaviour_taps`      | 薪资批次、工资单、合同、档案、实体与变动记录的行事件 | 执行版本的行为规则：每条规则读取其声明的记录并返回写入。                                                     |
+| `statutory_drift`     | 每周六 UTC 03:00 或手动启动                          | 逐一研究已封存且生效的谱系；每个谱系的六名代理并行核对官方来源，有证据的变更生成未封存草稿供复核，不会封存。 |
+| `late_arrival_notice` | 每五分钟                                             | 排班超过实体宽限时间仍无打卡时，每人每日提醒一次。                                                           |
+| `calendar_tick`       | 每日                                                 | 为每个在职雇佣执行行为规则，使按日期触发的义务生成任务。                                                     |
+| `invitation_profile`  | 邀请员工；创建员工用户或其联系方式变更               | 为受邀员工创建雇佣档案，并在接受邀请后关联其身份。                                                           |
 
 ### 薪资热线
 
@@ -66,9 +65,9 @@
 ## 检查
 
 ```bash
-pnpm install
-pnpm check      # bolt check
-pnpm test       # bolt build --bank=$SEED_BANK（默认 ../../seed_bank）、bolt test，然后 test:node
-pnpm test:node  # vitest.node.config.ts：tests/ 中的 Node 端测试
-pnpm lint       # prettier --check .
+pnpm install --frozen-lockfile
+pnpm exec bolt check   # 声明、TypeScript 与 Svelte
+pnpm test              # 独立运行核心机制与边界用例，不启动 Colony、不读取私有种子库
 ```
+
+测试使用小型合成数据验证核心机制、受控写入、状态及失败路径，不验证种子法规数值，也不重复辖区、版本或界面布局矩阵。

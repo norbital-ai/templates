@@ -1,5 +1,9 @@
 # VN: HR & Payroll seed compliance audit (2026-10-21)
 
+> **Historical audit (2026-10-21).** The `tests/jurisdiction_*.test.ts` suites cited below were removed under the
+> owner's mechanism-only test policy; their counts, names and pass lines are historical evidence, not current
+> coverage. The jurisdiction seed catalogues this audit reviewed remain the workspace's runtime data.
+
 Audit only. No repository file was edited. Scope: `templates/hr-payroll/seed/jurisdiction/VN/version_*`, `docs/inventory/VN.csv`, engine context in `src/lib/payroll_engine/payslip/context.ts`.
 
 ## Summary verdict

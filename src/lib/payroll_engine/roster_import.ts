@@ -1,5 +1,5 @@
 /**
- * The work-day sheet behind the `roster_entry` pipeline: one row per person-day — the shift, the clock, overtime
+ * The work-day sheet behind the `roster_entry` file sync: one row per person-day — the shift, the clock, overtime
  * and the leave taken. `sheetKnown` resolves what a sheet names (employee numbers, shift codes, the
  * entity's time zone, recorded leave, the stored intervals a row keeps); `sheetRow` and `sheetLeave` map one row onto
  * its roster day and its one-day time off; `sheetFindings` judges the file before it is written: structural problems,
@@ -47,7 +47,7 @@ type Entry = Pick<
 	| 'overtime_consented_at'
 	| 'payslip_id'
 >;
-/** A mapped row as the pipeline hands it back to `check`: the collection's columns as JSON. */
+/** A row's native model values after file-sync mapping, before validation. */
 type Mapped = {
 	readonly employment_id: Id<'employment_contract'>;
 	readonly work_date: PlainDate;
@@ -224,19 +224,19 @@ const loadSheetScope = (
 ) =>
 	read({
 		entity: {
-			collection: 'entity',
+			from: 'entity',
 			where: context.company_id == null ? {} : { id: { eq: context.company_id } },
 			select: ENTITY,
 			all: true
 		},
 		contracts: {
-			collection: 'employment_contract',
+			from: 'employment_contract',
 			where: { company_id: { in: { member: 'entity', field: 'id' } } },
 			select: { ...CONTRACT, employee_number: true },
 			all: true
 		},
 		named: {
-			collection: 'employment_contract',
+			from: 'employment_contract',
 			where: {
 				company_id: { in: { member: 'entity', field: 'id' } },
 				employee_number: { in: [...new Set(records.map((record) => record.employee_number))] }
@@ -245,13 +245,13 @@ const loadSheetScope = (
 			all: true
 		},
 		people: {
-			collection: 'employment_profile',
+			from: 'employment_profile',
 			where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
 			select: PROFILE,
 			all: true
 		},
 		entries: {
-			collection: 'roster_entry',
+			from: 'roster_entry',
 			where: {
 				employment_id: { in: { member: 'named', field: 'id' } },
 				work_date: {
@@ -263,19 +263,19 @@ const loadSheetScope = (
 			all: true
 		},
 		definitions: {
-			collection: 'shift_definition',
+			from: 'shift_definition',
 			where: { company_id: { in: { member: 'entity', field: 'id' } } },
 			select: { company_id: true, code: true, variant: true, effective_range: true },
 			all: true
 		},
 		patterns: {
-			collection: 'shift_pattern',
+			from: 'shift_pattern',
 			where: { company_id: { in: { member: 'entity', field: 'id' } } },
 			select: { company_id: true, pattern: true, effective_range: true },
 			all: true
 		},
 		holidays: {
-			collection: 'holiday',
+			from: 'holiday',
 			where: {
 				company_id: { in: { member: 'entity', field: 'id' } },
 				date: {
@@ -288,7 +288,7 @@ const loadSheetScope = (
 			all: true
 		},
 		versions: {
-			collection: 'jurisdiction_settings',
+			from: 'jurisdiction_settings',
 			where: {
 				code: { in: { member: 'entity', field: 'settings_code' } },
 				voided_at: { isNull: true },
@@ -304,7 +304,7 @@ const loadSheetScope = (
 			all: true
 		},
 		rules: {
-			collection: 'rule_set',
+			from: 'rule_set',
 			where: {
 				settings_id: { in: { member: 'versions', field: 'id' } },
 				family: { in: ['VALIDATIONS', 'PAYROLL'] }
@@ -313,13 +313,13 @@ const loadSheetScope = (
 			all: true
 		},
 		classes: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
 			select: { code: true, settings_id: true },
 			all: true
 		},
 		leave: {
-			collection: 'leave_catalog_entry',
+			from: 'leave_catalog_entry',
 			where: {
 				employment_id: { in: { member: 'named', field: 'id' } },
 				activity: { eq: 'TIME_OFF' },
@@ -339,19 +339,19 @@ const loadSheetScope = (
 			all: true
 		},
 		catalogues: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
 			select: { code: true },
 			all: true
 		},
 		slips: {
-			collection: 'payslip',
+			from: 'payslip',
 			where: { employment_id: { in: { member: 'named', field: 'id' } } },
 			select: { employment_id: true, payroll_run_id: true },
 			all: true
 		},
 		ran: {
-			collection: 'payroll_run',
+			from: 'payroll_run',
 			where: {
 				company_id: { in: { member: 'entity', field: 'id' } },
 				kind: { eq: 'REGULAR' }
@@ -367,7 +367,7 @@ const loadSheetScope = (
 			all: true
 		},
 		runs: {
-			collection: 'payroll_run',
+			from: 'payroll_run',
 			where: { id: { in: { member: 'slips', field: 'payroll_run_id' } } },
 			select: {
 				kind: true,
@@ -825,7 +825,7 @@ const changedFields = (row: Mapped, stored: Entry): readonly (keyof Mapped)[] =>
 	);
 
 /**
- * The file judged before anything is written, mirroring the pipeline's scope (per employment, its first to its last
+ * The file judged before anything is written, mirroring the file sync's scope (per employment, its first to its last
  * mapped day): structural problems and changes to settled days refuse it, `roster` validations warn or refuse as each
  * is configured, a blank row the scope cannot reach warns that its stored day stays, and an unlocked change inside a
  * regular run that already ran warns that it applies off the payslip.
@@ -867,7 +867,7 @@ export const sheetFindings = (
 			for (let after = 0; after < 7; after++)
 				affected.add(keyOf(employment_id, addDays(day, after)));
 		};
-		// the pipeline's scope: per employment, its first to its last mapped day
+		// the file sync's scope: per employment, its first to its last mapped day
 		const spans = new Map<string, { from: string; to: string }>();
 		for (const row of rows) {
 			if (row == null) continue;
@@ -1222,13 +1222,13 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 		const to = context.to ?? dayOf(addDays(`${addDays(`${month}-28`, 4).slice(0, 7)}-01`, -1));
 		const got = yield* read({
 			entities: {
-				collection: 'entity',
+				from: 'entity',
 				where: context.company_id == null ? {} : { id: { eq: context.company_id } },
 				select: ENTITY,
 				all: true
 			},
 			contracts: {
-				collection: 'employment_contract',
+				from: 'employment_contract',
 				where: { company_id: { in: { member: 'entities', field: 'id' } } },
 				select: {
 					id: true,
@@ -1240,13 +1240,13 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 				all: true
 			},
 			people: {
-				collection: 'employment_profile',
+				from: 'employment_profile',
 				where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
 				select: { name: true },
 				all: true
 			},
 			entries: {
-				collection: 'roster_entry',
+				from: 'roster_entry',
 				where: {
 					employment_id: { in: { member: 'contracts', field: 'id' } },
 					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
@@ -1255,13 +1255,13 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 				all: true
 			},
 			definitions: {
-				collection: 'shift_definition',
+				from: 'shift_definition',
 				where: { company_id: { in: { member: 'entities', field: 'id' } } },
 				select: { code: true },
 				all: true
 			},
 			holidays: {
-				collection: 'holiday',
+				from: 'holiday',
 				where: {
 					company_id: { in: { member: 'entities', field: 'id' } },
 					date: { gte: PlainDate(from), lte: PlainDate(to) },
@@ -1271,7 +1271,7 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 				all: true
 			},
 			leave: {
-				collection: 'leave_catalog_entry',
+				from: 'leave_catalog_entry',
 				where: {
 					employment_id: { in: { member: 'contracts', field: 'id' } },
 					activity: { eq: 'TIME_OFF' },
@@ -1291,13 +1291,13 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 				all: true
 			},
 			catalogues: {
-				collection: 'leave_catalog',
+				from: 'leave_catalog',
 				where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
 				select: { code: true },
 				all: true
 			},
 			versions: {
-				collection: 'jurisdiction_settings',
+				from: 'jurisdiction_settings',
 				where: {
 					code: { in: { member: 'entities', field: 'settings_code' } },
 					voided_at: { isNull: true },
@@ -1312,12 +1312,10 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 			got.entries.rows.map((row) => [keyOf(row.employment_id, dayOf(row.work_date)), row])
 		);
 		if (got.entries.rows.some((entry) => (entry.approved_overtime_intervals?.length ?? 0) > 2))
-			return yield* Effect.fail(
-				new Refusal({
-					message:
-						'This worksheet supports two approved OT windows per day. A stored day has more and cannot be exported without losing windows.'
-				})
-			);
+			return yield* new Refusal({
+				message:
+					'This worksheet supports two approved OT windows per day. A stored day has more and cannot be exported without losing windows.'
+			});
 		const codes = new Map(got.definitions.rows.map((row) => [row.id, row.code]));
 		const names = new Map(got.people.rows.map((row) => [row.id, row.name]));
 		const holidays = new Map(
@@ -1350,7 +1348,7 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 					return [
 						{
 							employee_number: contract.employee_number,
-							work_date: day,
+							work_date: PlainDate(day),
 							shift_code:
 								entry?.shift_definition_id == null
 									? null
@@ -1412,7 +1410,7 @@ const sheetRecord = (cells: SheetCells): SheetRecord => {
 };
 
 /**
- * The pipeline's `known` → `map` → `check` in one call, as the import runs them: the rows it would write, the leave
+ * The file sync's lookup, mapping and validation in one call: the rows it would write, the leave
  * it would record, and its findings split into `errors` (refuse) and `warnings` (warn). Nothing is written.
  */
 export const planRosterImport = (

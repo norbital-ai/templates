@@ -9,15 +9,15 @@
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
-	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import { decodeNumber } from '../../../lib/payroll_engine/foundation.js';
 
+	const clock = bolt.clock('day');
 	const scope = companyScope();
 	const today = todayKey();
-	const employment_contracts = liveRows(() =>
+	const employment_contracts = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: { company_id: { eq: scope.id } },
 					select: { employee_id: true, effective_range: true },
 					all: true
@@ -25,7 +25,7 @@
 	);
 	// an open contract runs to the end of time
 	const ranges = $derived(
-		(employment_contracts.current ?? []).map((row) => ({
+		(employment_contracts?.current?.rows ?? []).map((row) => ({
 			employee: row.employee_id,
 			start: row.effective_range.from,
 			end: row.effective_range.to ?? '9999-12-31'
@@ -137,7 +137,7 @@
 					}
 				}}
 				initialFilter={{
-					employment_contract: { some: { effective_range: { contains: { today: '' } } } }
+					employment_contract: { some: { effective_range: { contains: clock.today } } }
 				}}
 				orderBy={{ name: 'asc' }}
 				columns={[
@@ -163,16 +163,16 @@
 	<Tabs
 		tabs={[
 			{
-				name: 'overview',
-				title: bolt.t('component.tab_overview'),
-				icon: 'lucide:chart-no-axes-combined',
-				body: overview
-			},
-			{
 				name: 'profiles',
 				title: bolt.t('app.people.tab_profiles'),
 				icon: 'lucide:users',
 				body: profiles
+			},
+			{
+				name: 'overview',
+				title: bolt.t('component.tab_overview'),
+				icon: 'lucide:chart-no-axes-combined',
+				body: overview
 			}
 		]}
 	/>

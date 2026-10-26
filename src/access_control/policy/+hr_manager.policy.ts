@@ -12,7 +12,7 @@ export default policy({
 	description:
 		'HR administration plus payroll authority: creates, deletes and pays payroll runs without review.',
 	capabilities: { apps: [...HR_APPS] },
-	automations: ['statutory_drift'],
+	automations: ['statutory_drift', 'employment_profile_anonymise'],
 	grants: { ...HR_ADMIN, ...HR_ENTRIES_DIRECT, ...PAYROLL_AUTHORITY },
 	limits: MEMBER_LIMITS
 });

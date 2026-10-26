@@ -8,7 +8,6 @@ import {
 	entryContext,
 	earlierContext,
 	type PayslipRow,
-	moneyValue,
 	evaluateNumber,
 	evaluateBoolean,
 	type SlipContext
@@ -93,7 +92,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 		const paidIn = options.history.runWindows.get(String(slip.payroll_run_id ?? ''));
 		yield* add(
 			row,
-			-moneyValue(line.amount),
+			-line.amount,
 			{
 				family: EXIT_FAMILY,
 				source_id: `${source}:reversal`,
@@ -177,8 +176,8 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			);
 			const now = covered == null ? 0 : days(covered);
 			const code = String(held.component_code ?? '');
-			const paid = moneyValue(held.prorated_amount);
-			const full = moneyValue(held.contract_amount);
+			const paid = held.prorated_amount;
+			const full = held.contract_amount;
 			const was = num(held.days);
 			const target =
 				now === was
@@ -191,7 +190,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			const source = `${String(slip.id)}:${code}`;
 			const done = lines
 				.filter(({ line }) => line.family === CORRECTION_FAMILY && line.source_id === source)
-				.reduce((total, { line }) => total + moneyValue(line.amount), 0);
+				.reduce((total, { line }) => total + line.amount, 0);
 			const owed = money(target - paid - done);
 			if (owed === 0) continue;
 			const row = options.jurisdiction.workRows.find(

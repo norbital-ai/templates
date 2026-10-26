@@ -1,6 +1,8 @@
 <script lang="ts">
 	/** One legal entity's configured loans; generated repayments stay inside each loan. */
 	import { bolt } from '$bolt';
+	import type { Row } from '@norbital-ai/bolt';
+	import { Decimal } from '@norbital-ai/std/decimal';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, Table } from '@norbital-ai/ui';
 	import Skeleton from '../../../lib/ui/components/skeleton.svelte';
@@ -10,9 +12,7 @@
 		employmentNames,
 		offerPageEntity
 	} from '../../../lib/ui/scopes/company_scope.svelte.js';
-	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import { versionMoney } from '../../../lib/ui/format/version_money.svelte.js';
-	import { moneyNumber } from '../../../lib/payroll_engine/foundation.js';
 	import { loanBalances } from '../../../lib/ui/payroll/loan_balance.js';
 
 	const scope = offerPageEntity(companyScope());
@@ -21,10 +21,10 @@
 		const lineage = scope.company?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
-	const loans = liveRows(() =>
+	const loans = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.read('loan_catalog_entry', {
+			: bolt.query('loan_catalog_entry', {
 					where: { company_id: { eq: scope.id } },
 					select: {
 						principal_amount: true,
@@ -36,14 +36,18 @@
 					all: true
 				})
 	);
-	const balances = $derived(loanBalances(loans.current ?? []));
+	const balances = $derived(loanBalances(loans?.current?.rows ?? []));
 </script>
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
-{#snippet amountCell({ value }: { value: unknown })}{@const amount =
-		moneyNumber(value)}{#if amount == null}—{:else}{money(amount)}{/if}{/snippet}
-{#snippet balanceCell({ row }: { row: { readonly id: string }; value: unknown })}{@const left =
-		balances.get(String(row.id))}{#if left == null}—{:else}{money(left)}{/if}{/snippet}
+{#snippet amountCell({
+	value
+}: {
+	value: Row<'loan_catalog_entry'>['principal_amount'] | undefined;
+})}{#if value instanceof Decimal}{money(value.toNumber())}{:else}—{/if}{/snippet}
+{#snippet balanceCell({ row }: { row: { readonly id: string } })}{@const left = balances.get(
+		row.id
+	)}{#if left == null}—{:else}{money(left)}{/if}{/snippet}
 
 {#snippet companyControl()}<CompanyScope {scope} />{/snippet}
 

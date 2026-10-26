@@ -146,9 +146,14 @@ export const STATUTORY_FIELDS = {
 					// each agent's supplementary instructions for this jurisdiction
 					agents: {
 						kind: 'object',
-						fields: Object.fromEntries(
-							RESEARCH_AGENT_NAMES.map((name) => [name, { kind: 'text', optional: true }])
-						) as { [K in (typeof RESEARCH_AGENT_NAMES)[number]]: { kind: 'text'; optional: true } },
+						fields: {
+							catalog: { kind: 'text', optional: true },
+							contribution: { kind: 'text', optional: true },
+							rules: { kind: 'text', optional: true },
+							behaviour: { kind: 'text', optional: true },
+							obligations: { kind: 'text', optional: true },
+							settings: { kind: 'text', optional: true }
+						},
 						optional: true
 					}
 				}

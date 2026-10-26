@@ -1,6 +1,5 @@
 import type { Id } from '@norbital-ai/bolt';
 import type { ComboboxOption } from '@norbital-ai/ui';
-import { t } from '../../../lib/ui/i18n/t.js';
 /**
  * The Settings app's scope: which law, and which version of it.
  *
@@ -22,7 +21,6 @@ import {
 	newest_first
 } from '../../../lib/ui/scopes/settings_scope.js';
 import { todayKey } from '../../../lib/ui/format/calendar.js';
-import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 
 /** What a selected node carries back to the page, so it never re-reads the tree to find it. */
 type JurisdictionScopeNode = Readonly<{
@@ -32,22 +30,22 @@ type JurisdictionScopeNode = Readonly<{
 
 /** Every committed version of every lineage, live. Call during component initialisation. */
 export function jurisdictionVersions() {
-	return liveRows(() =>
-		bolt.read('jurisdiction_settings', {
-			where: {},
-			select: {
-				code: true,
-				name: true,
-				effective_range: true,
-				sealed_at: true,
-				voided_at: true
-			},
-			orderBy: { code: 'asc' },
-			all: true
-		})
-	);
+	return bolt.query('jurisdiction_settings', {
+		where: {},
+		select: {
+			code: true,
+			name: true,
+			effective_range: true,
+			sealed_at: true,
+			voided_at: true
+		},
+		orderBy: { code: 'asc' },
+		all: true
+	});
 }
-type JurisdictionScopeRow = NonNullable<ReturnType<typeof jurisdictionVersions>['current']>[number];
+type JurisdictionScopeRow = NonNullable<
+	ReturnType<typeof jurisdictionVersions>['current']
+>['rows'][number];
 type Versions = readonly JurisdictionScopeRow[];
 
 /** Every version of every lineage, newest first within each, keyed by code and sorted by code. */
@@ -103,12 +101,12 @@ export function jurisdictionOptions(
 			const inForce = is_in_force_candidate(row) && covers_day(row.effective_range, today);
 			const [icon, badge] =
 				row.voided_at != null
-					? (['lucide:circle-slash', t('app.settings.version_voided')] as const)
+					? (['lucide:circle-slash', bolt.t('app.settings.version_voided')] as const)
 					: inForce
-						? (['lucide:circle-check', t('app.settings.version_in_force')] as const)
+						? (['lucide:circle-check', bolt.t('app.settings.version_in_force')] as const)
 						: row.sealed_at != null
-							? (['lucide:lock', t('app.settings.version_sealed')] as const)
-							: (['lucide:pencil', t('app.settings.version_draft')] as const);
+							? (['lucide:lock', bolt.t('app.settings.version_sealed')] as const)
+							: (['lucide:pencil', bolt.t('app.settings.version_draft')] as const);
 			const range = formatSettingsRange(row.effective_range);
 			return {
 				value: row.id,

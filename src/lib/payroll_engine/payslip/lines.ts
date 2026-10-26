@@ -7,7 +7,6 @@ import {
 	type JsonObject,
 	completedMonths,
 	fieldValue,
-	isDynObject,
 	isJsonObject,
 	Refusal
 } from '../foundation.js';
@@ -113,7 +112,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		);
 		const monthDays = days(month);
 		const paidDays = salaryRun && employed != null ? days(employed) : 0;
-		const baseSalary = moneyValue(term?.base_salary?.value);
+		const baseSalary = term?.base_salary?.value ?? 0;
 		// Roster facts as recorded: the days, the hours they carry and the published holidays they fall on. Which of
 		// them a jurisdiction pays, and at how many hours a day, is the work catalogue's CEL.
 		const byDate = new Map(options.attendance.holidays.map((holiday) => [holiday.date, holiday]));
@@ -623,7 +622,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 								).toFixed(4)
 							);
 				const portion = day < from ? from : day;
-				const facts = isDynObject(row.facts) ? row.facts : {};
+				const facts = row.facts ?? {};
 				const event = eventIdOf(row.facts);
 				// Days taken before this row's share here, for the same absence: earlier movements of its event (or,
 				// without one, its chain), and the row's own share of earlier periods. By class code, and this class's.
@@ -852,7 +851,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				if (!isSalaryRun(options.history.runKind.get(String(slip.payroll_run_id ?? '')))) continue;
 				for (const line of slip.base ?? []) {
 					const code = String(line.component_code ?? '');
-					paid.set(code, money((paid.get(code) ?? 0) + moneyValue(line.amount)));
+					paid.set(code, money((paid.get(code) ?? 0) + line.amount));
 				}
 			}
 			return {
@@ -872,11 +871,9 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					'payroll.base_salary_required'
 				);
 			if (baseSalary <= 0 && payroll?.base_salary_required === true)
-				return yield* Effect.fail(
-					new Refusal({
-						message: `${who}: the contract in force for ${period} carries no base salary.`
-					})
-				);
+				return yield* new Refusal({
+					message: `${who}: the contract in force for ${period} carries no base salary.`
+				});
 			const settling = options.payroll.switched ? yield* monthToDate() : undefined;
 			const priceOn = settling?.context ?? context;
 			const priced = new Set<string>();
@@ -930,9 +927,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			const allowanceByCode = new Map(
 				options.jurisdiction.allowanceRows.map((row) => [row.code, row])
 			);
-			const capturedAllowances = (term.allowances ?? []).filter(
-				(line) => moneyValue(line.amount?.value) !== 0
-			);
+			const capturedAllowances = (term.allowances ?? []).filter((line) => line.amount.value !== 0);
 			for (const line of capturedAllowances) {
 				const code =
 					line.code ??
@@ -942,21 +937,19 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 							options.jurisdiction.capturedAllowanceCodes.get(line.catalogue_id)));
 				const row = code == null ? undefined : allowanceByCode.get(code);
 				if (row == null)
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${who}: a contract allowance names no allowance class of ${options.jurisdiction.version.code}.`
-						})
-					);
+					return yield* new Refusal({
+						message: `${who}: a contract allowance names no allowance class of ${options.jurisdiction.version.code}.`
+					});
 				const where = `allowance_catalog ${row.code}`;
 				const allowanceContext: DynObject = {
 					...priceOn,
-					allowance: { code: row.code, amount: moneyValue(line.amount?.value) }
+					allowance: { code: row.code, amount: line.amount.value }
 				};
 				if (!(yield* evaluateBoolean(row.eligibility, allowanceContext, where))) continue;
 				if (row.amount == null)
-					return yield* Effect.fail(
-						new Refusal({ message: `${where}: the class states no amount expression.` })
-					);
+					return yield* new Refusal({
+						message: `${where}: the class states no amount expression.`
+					});
 				const amount = owed(
 					row,
 					row.code,
@@ -995,11 +988,9 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				if (salaryRun && !salaried && !unsalaried(row)) continue;
 				const priced = options.jurisdiction.classes.get(String(row.catalog_id));
 				if (priced == null)
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${who}: entry ${row.id} names a class ${options.jurisdiction.version.code} does not carry.`
-						})
-					);
+					return yield* new Refusal({
+						message: `${who}: entry ${row.id} names a class ${options.jurisdiction.version.code} does not carry.`
+					});
 				const earlier = earlierContext(family.siblings, {
 					id: row.id,
 					code: priced.code,
@@ -1012,17 +1003,13 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				};
 				const where = `${family.collection.replace('_entry', '')} ${priced.code}`;
 				if (!(yield* evaluateBoolean(priced.eligibility, entryCtx, where)))
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${who}: ${priced.name ?? priced.code} is not available to this employment.`
-						})
-					);
+					return yield* new Refusal({
+						message: `${who}: ${priced.name ?? priced.code} is not available to this employment.`
+					});
 				if (!(yield* evaluateBoolean(priced.qualifies_when, entryCtx, where)))
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${who}: entry ${row.reference ?? row.id} does not qualify as ${priced.name ?? priced.code}.`
-						})
-					);
+					return yield* new Refusal({
+						message: `${who}: entry ${row.reference ?? row.id} does not qualify as ${priced.name ?? priced.code}.`
+					});
 				let priceAmount = moneyValue(row.amount);
 				const label = `${priced.name ?? priced.code} ${row.reference ?? occurred}`;
 				for (const band of priced.bands ?? []) {
@@ -1227,7 +1214,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				if (line.family === CARRY_FAMILY && line.component_code != null)
 					outstanding.set(
 						line.component_code,
-						money((outstanding.get(line.component_code) ?? 0) + moneyValue(line.amount))
+						money((outstanding.get(line.component_code) ?? 0) + line.amount)
 					);
 		for (const [component, owed] of [...outstanding].toSorted()) {
 			const left = money(gross + netAdd - employeeStatutory - netSubtract);
@@ -1258,9 +1245,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				'payroll.negative_net'
 			);
 		if (net < 0 && payroll?.negative_net === 'refuse')
-			return yield* Effect.fail(
-				new Refusal({ message: `${who}: net pay would be negative (${net}).` })
-			);
+			return yield* new Refusal({ message: `${who}: net pay would be negative (${net}).` });
 		// The payslip validations read the slip as built: `payslip` (its totals and lines by code) and `statutory`.
 		const lines: {
 			[code: string]: number;
@@ -1292,7 +1277,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			options.subject.entity.validation_severity
 		)) {
 			if (check.kind === 'refuse')
-				return yield* Effect.fail(new Refusal({ message: `${who}: ${check.message}` }));
+				return yield* new Refusal({ message: `${who}: ${check.message}` });
 			warnings.push(`${who}: ${check.message}`);
 			if (check.kind === 'hold') hold ??= check.message;
 		}

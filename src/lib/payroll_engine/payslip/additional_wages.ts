@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from 'effect';
 import { addDays, addMonths, monthOf } from '@norbital-ai/std/date';
 import { evaluateStrict } from '../expressions.js';
-import { isDynObject, numberOf, Refusal, type DynObject } from '../foundation.js';
+import { Refusal, type DynObject } from '../foundation.js';
 import {
 	num,
 	slipPeriod,
@@ -60,7 +60,8 @@ export const reconcileAdditionalWages = (input: {
 	readonly currentWindow: { readonly from: string; readonly to: string };
 	readonly salaryRun: boolean;
 	readonly yearStart: string;
-	readonly subject: DynObject;
+	/** The subject's `employment` root: its `start_date` is the first month read, and a settled month replays on it. */
+	readonly subject: { readonly employment: DynObject & { readonly start_date: string } };
 	readonly currentRule: Rule;
 	readonly currentParts: Readonly<Record<string, number>>;
 	readonly currentWages: Readonly<Record<string, number>>;
@@ -93,11 +94,8 @@ export const reconcileAdditionalWages = (input: {
 			});
 		if (!Number.isFinite(input.ceiling) || input.ceiling < 0 || input.part === '')
 			return yield* Effect.fail(missing('the annual ceiling or wage part is invalid'));
-		const employment = isDynObject(input.subject.employment) ? input.subject.employment : {};
-		const start = yield* Effect.try({
-			try: () => Schema.decodeUnknownSync(Schema.String)(employment.start_date),
-			catch: () => missing('the employment start date is missing')
-		});
+		const { employment } = input.subject;
+		const start = employment.start_date;
 		if (start === '') return yield* Effect.fail(missing('the employment start date is missing'));
 		const firstMonth = [input.yearStart, start.slice(0, 7)].toSorted().at(-1)!;
 		const requiredParts = Object.keys(input.currentParts);
@@ -227,11 +225,11 @@ export const reconcileAdditionalWages = (input: {
 					?.find((row) => row.code === input.code)?.configuration;
 				if (
 					lines.length === 0 &&
-					numberOf(slip.gross) === 0 &&
+					slip.gross.isZero() &&
 					slip.base != null &&
-					slip.base.every((line) => numberOf(line.amount) === 0) &&
+					slip.base.every((line) => line.amount === 0) &&
 					slip.adjustments != null &&
-					slip.adjustments.every((line) => numberOf(line.amount) === 0) &&
+					slip.adjustments.every((line) => line.amount === 0) &&
 					configuration?.assess_without_wage !== true &&
 					(configuration?.rules?.length ?? 0) > 0
 				) {
@@ -418,11 +416,9 @@ export const reconcileAdditionalWages = (input: {
 					input.policy.on_original_error === 'REFUSE' &&
 					(month.paid.employee < original.employee || month.paid.employer < original.employer)
 				)
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${where}: ${month.key} contains an earlier contribution error, not only an annual-ceiling adjustment. Review that correction and employee-share recoverability with the authority; it cannot be deducted automatically from later wages (annual_reconciliation.on_original_error is REFUSE).`
-						})
-					);
+					return yield* new Refusal({
+						message: `${where}: ${month.key} contains an earlier contribution error, not only an annual-ceiling adjustment. Review that correction and employee-share recoverability with the authority; it cannot be deducted automatically from later wages (annual_reconciliation.on_original_error is REFUSE).`
+					});
 				targetEmployee = money(targetEmployee + charge.employee);
 				targetEmployer = money(targetEmployer + charge.employer);
 				paidEmployee = money(paidEmployee + month.paid.employee);
@@ -434,18 +430,14 @@ export const reconcileAdditionalWages = (input: {
 			input.policy.on_underpaid === 'REFUSE' &&
 			(targetEmployee > paidEmployee || targetEmployer > paidEmployer)
 		)
-			return yield* Effect.fail(
-				new Refusal({
-					message: `${where}: earlier contributions fall short of the recalculated liability. Review the shortfall with the authority before settling this month (annual_reconciliation.on_underpaid is REFUSE).`
-				})
-			);
+			return yield* new Refusal({
+				message: `${where}: earlier contributions fall short of the recalculated liability. Review the shortfall with the authority before settling this month (annual_reconciliation.on_underpaid is REFUSE).`
+			});
 		const overpaid = targetEmployee < paidEmployee || targetEmployer < paidEmployer;
 		if (overpaid && input.policy.on_overpaid === 'REFUSE')
-			return yield* Effect.fail(
-				new Refusal({
-					message: `${where}: earlier contributions exceed the recalculated liability. Apply to the authority for a refund before settling this month (annual_reconciliation.on_overpaid is REFUSE).`
-				})
-			);
+			return yield* new Refusal({
+				message: `${where}: earlier contributions exceed the recalculated liability. Apply to the authority for a refund before settling this month (annual_reconciliation.on_overpaid is REFUSE).`
+			});
 		const warnings = overpaid
 			? [
 					`${where}: earlier contributions exceed the recalculated liability. Apply to the authority for a refund; this payroll keeps the current month's contribution.`
@@ -460,11 +452,9 @@ export const reconcileAdditionalWages = (input: {
 			input.policy.on_current_excess === 'REFUSE' &&
 			(monthCharge.employee < currentPaid.employee || monthCharge.employer < currentPaid.employer)
 		)
-			return yield* Effect.fail(
-				new Refusal({
-					message: `${where}: this month already contains excess contributions. Review the authority's adjustment or refund process before further settlement; payroll cannot automatically refund or offset them (annual_reconciliation.on_current_excess is REFUSE).`
-				})
-			);
+			return yield* new Refusal({
+				message: `${where}: this month already contains excess contributions. Review the authority's adjustment or refund process before further settlement; payroll cannot automatically refund or offset them (annual_reconciliation.on_current_excess is REFUSE).`
+			});
 		return {
 			monthCharge,
 			assessedPart: money(Math.max(0, annualAssessed - previouslyAssessed)),

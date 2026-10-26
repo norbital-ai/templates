@@ -10,8 +10,6 @@
 	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn, openRecord } from '@norbital-ai/ui';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { t } from '../i18n/t.js';
-	import { liveRows } from '../state/live.svelte.js';
 	import Skeleton from '../components/skeleton.svelte';
 	import DayCell from './day_cell.svelte';
 	import { openCreate } from '../scopes/create_values.js';
@@ -65,45 +63,47 @@
 
 	const dates = $derived(datesBetween(from, to));
 	const ids = $derived(people.map((person) => person.id));
-	const entries = liveRows(() => (ids.length === 0 ? null : entryRead(ids, from, to)));
-	const holidays = liveRows(() => holidayRead(companyId, from, to));
-	const leave = liveRows(() => (ids.length === 0 ? null : leaveRead(ids, from, to)));
+	const entries = $derived.by(() => (ids.length === 0 ? null : entryRead(ids, from, to)));
+	const holidays = $derived.by(() => holidayRead(companyId, from, to));
+	const leave = $derived.by(() => (ids.length === 0 ? null : leaveRead(ids, from, to)));
 	/** What plans a day without a roster shift: the person's terms' pattern, and the entity's shifts by code. */
-	const plans = liveRows(() =>
+	const plans = $derived.by(() =>
 		ids.length === 0
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: { id: { in: [...ids] } },
 					select: { facts: true },
 					all: true
 				})
 	);
-	const shifts = liveRows(() => shiftRead(companyId));
-	const patterns = liveRows(() => patternRead(companyId));
+	const shifts = $derived.by(() => shiftRead(companyId));
+	const patterns = $derived.by(() => patternRead(companyId));
 	const shiftOf = $derived(
 		plannedShiftOf({
-			contracts: plans.current ?? [],
-			definitions: shifts.current ?? [],
-			patterns: patterns.current ?? []
+			contracts: plans?.current?.rows ?? [],
+			definitions: shifts?.current?.rows ?? [],
+			patterns: patterns?.current?.rows ?? []
 		})
 	);
-	const loading = $derived(entries.current === undefined && ids.length > 0);
+	const loading = $derived(entries?.current?.rows === undefined && ids.length > 0);
 	const holidayByDate = $derived(
-		new Map((holidays.current ?? []).map((row) => [String(row.date).slice(0, 10), row.name]))
+		new Map((holidays?.current?.rows ?? []).map((row) => [String(row.date).slice(0, 10), row.name]))
 	);
 	const days = $derived(
 		buildDays({
 			dates,
 			people,
-			entries: entries.current ?? [],
-			holidays: holidays.current ?? [],
-			leave: leave.current ?? [],
+			entries: entries?.current?.rows ?? [],
+			holidays: holidays?.current?.rows ?? [],
+			leave: leave?.current?.rows ?? [],
 			timeZone,
 			policy,
 			shiftOf
 		})
 	);
-	const error = $derived(entries.error ?? holidays.error ?? leave.error);
+	const error = $derived(
+		entries?.error?.message ?? holidays?.error?.message ?? leave?.error?.message
+	);
 
 	let body: HTMLElement | null = $state(null);
 	let track: HTMLElement | null = $state(null);
@@ -129,9 +129,9 @@
 		onwheel={forwardWheel}
 	>
 		<Stack gap="none" justify="center" shrink={false} class="w-40 border-r bg-card px-3">
-			<span class="font-semibold">{t('roster.person')}</span>
+			<span class="font-semibold">{bolt.t('roster.person')}</span>
 			<span class="text-tiny text-muted-foreground">
-				{t('roster.plan_recorded')} · {t('component.work_day_actual')}
+				{bolt.t('roster.plan_recorded')} · {bolt.t('component.work_day_actual')}
 			</span>
 		</Stack>
 		<Bound size="full" clip grow>
@@ -156,7 +156,7 @@
 							<span class="block text-meta">
 								{holiday == null
 									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00Z`).getUTCDay()]
-									: t('roster.public_holiday_mark')}
+									: bolt.t('roster.public_holiday_mark')}
 							</span>
 							<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
 						</Stack>
@@ -170,13 +170,13 @@
 {#if error != null}
 	<p class="text-sm text-destructive" role="alert">{error}</p>
 {:else if people.length === 0}
-	<p class="text-sm text-muted-foreground">{t('roster.no_employments')}</p>
+	<p class="text-sm text-muted-foreground">{bolt.t('roster.no_employments')}</p>
 {:else}
 	<Cover as="div" gap="none" top={header} class="rounded-lg border bg-card" aria-busy={loading}>
 		<Scroll
 			bind:ref={body}
 			axis="both"
-			name={t('roster.board_scroll_name')}
+			name={bolt.t('roster.board_scroll_name')}
 			class="relative bg-card"
 			onscroll={syncHeader}
 		>

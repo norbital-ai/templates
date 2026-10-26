@@ -4,7 +4,7 @@ import {
 	plannedShiftId,
 	type PlannedShift
 } from '../../payroll_engine/shift_pattern.js';
-import * as Predicate from 'effect/Predicate';
+import type { Row } from '@norbital-ai/bolt';
 
 /**
  * A day's planned shift as the board reads it: the rostered definition, else the one the cycle of the pattern the
@@ -12,17 +12,9 @@ import * as Predicate from 'effect/Predicate';
  * definition is named by its id and plans no hours.
  */
 export const plannedShiftOf = (input: {
-	readonly contracts: readonly { readonly id: string; readonly facts?: unknown }[];
-	readonly definitions: readonly {
-		readonly id: string;
-		readonly code?: string | null;
-		readonly variant?: unknown;
-	}[];
-	readonly patterns: readonly {
-		readonly id: string;
-		readonly pattern?: unknown;
-		readonly effective_range?: { readonly from: unknown; readonly to?: unknown } | null;
-	}[];
+	readonly contracts: readonly Pick<Row<'employment_contract'>, 'id' | 'facts'>[];
+	readonly definitions: readonly Pick<Row<'shift_definition'>, 'id' | 'code' | 'variant'>[];
+	readonly patterns: readonly Pick<Row<'shift_pattern'>, 'id' | 'pattern' | 'effective_range'>[];
 }) => {
 	const shifts = new Map(input.definitions.map((row) => [String(row.id), plannedShift(row)]));
 	const terms = new Map(input.contracts.map((row) => [String(row.id), termsFromFacts(row.facts)]));
@@ -33,7 +25,7 @@ export const plannedShiftOf = (input: {
 		rostered: string | null
 	): (PlannedShift & { readonly id: string }) | null => {
 		const patternId = termInForceOn(terms.get(employmentId) ?? [], date)?.shift_pattern_id;
-		const pattern = Predicate.isString(patternId) ? patterns.get(patternId) : undefined;
+		const pattern = patternId == null ? undefined : patterns.get(patternId);
 		const range = pattern?.effective_range;
 		const from = range?.from == null ? null : String(range.from).slice(0, 10);
 		const inRange =

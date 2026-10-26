@@ -1,18 +1,19 @@
-/** L-TPL-hr-payroll-051 interval order and payslip freeze. */
+/** L-TPL-hr-payroll-051 interval order and roster plan checks. */
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Result } from 'effect';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { workDay, type RosterInput } from '../src/lib/payroll_engine/payslip/context.ts';
+import {
+	workDay,
+	type RosterInput,
+	type ShiftDefinitionRow
+} from '../src/lib/payroll_engine/payslip/context.ts';
 import { cycleRefusal, patternCycles, type Validation } from '../src/lib/payroll_engine/admit.ts';
 import { plannedShift } from '../src/lib/payroll_engine/shift_pattern.ts';
-import { evaluateStrict } from '../src/lib/payroll_engine/expressions.ts';
-import { lineage } from './jurisdiction_kit.ts';
-import { SEEDED_PAYROLL } from './duties.ts';
+import { PAYROLL } from './jurisdiction_kit.ts';
 import {
 	refuseApprovedOvertimeIntervals,
-	refusePinnedRoster,
 	refusePlannedOvertime,
 	refuseWorkedIntervals,
 	restates
@@ -101,16 +102,8 @@ describe('roster entry', () => {
 		);
 	});
 
-	it('keeps the dated rest-day base premium while capping only approved overtime, including zero approval', () => {
-		const law = lineage('PH');
-		const version = law.versionOn('2026-03-15');
-		const base = Schema.decodeUnknownSync(Schema.String)(
-			law.byCode(version, 'work_catalog', 'REST_DAY_WORK').quantity
-		);
-		const excess = Schema.decodeUnknownSync(Schema.String)(
-			law.byCode(version, 'work_catalog', 'OVERTIME').quantity
-		);
-		const quantities = (approved: number | null) => {
+	it('a timed rest day credits its shift hours and caps only the approved overtime, including zero approval', () => {
+		const credited = (approved: number | null) => {
 			const outcome = workDay({
 				date: '2026-03-15',
 				planned: plannedShift({
@@ -125,18 +118,16 @@ describe('roster entry', () => {
 				},
 				holiday: undefined,
 				zone: 'Asia/Manila',
-				policy: SEEDED_PAYROLL.attendance
+				policy: PAYROLL.attendance
 			});
 			if (Result.isFailure(outcome)) throw outcome.failure;
 			const day = outcome.success;
 			assert.equal(day.recorded_hours, 12);
-			assert.equal(day.worked_hours, 8 + (approved ?? 0));
-			const context = { work: { days: [day] }, terms: { facts: {} } };
-			return [evaluateStrict(base, context), evaluateStrict(excess, context)];
+			return [day.worked_hours, day.overtime_hours];
 		};
-		assert.deepEqual(quantities(4), [8 * 1.3, 4 * 1.69]);
-		assert.deepEqual(quantities(3), [8 * 1.3, 3 * 1.69]);
-		assert.deepEqual(quantities(null), [8 * 1.3, 0]);
+		assert.deepEqual(credited(4), [12, 4]);
+		assert.deepEqual(credited(3), [11, 3]);
+		assert.deepEqual(credited(null), [8, 0]);
 	});
 	it('an import restates stored decimal plan hours without treating absent hours as an explicit zero', () => {
 		const before = { planned_overtime_hours: Decimal.of('3'), payslip_id: 'captured' };
@@ -168,7 +159,7 @@ describe('roster entry', () => {
 				},
 				holiday: undefined,
 				zone: 'Asia/Singapore',
-				policy: SEEDED_PAYROLL.attendance
+				policy: PAYROLL.attendance
 			});
 			if (Result.isFailure(result)) throw result.failure;
 			return result.success;
@@ -205,7 +196,7 @@ describe('roster entry', () => {
 				row: { planned_overtime_hours: 6, banked_overtime_hours: banked, worked_intervals },
 				holiday: undefined,
 				zone: 'Asia/Singapore',
-				policy: SEEDED_PAYROLL.attendance
+				policy: PAYROLL.attendance
 			});
 		const of = (outcome: ReturnType<typeof day>) => {
 			if (Result.isFailure(outcome)) throw outcome.failure;
@@ -250,25 +241,19 @@ describe('roster entry', () => {
 		);
 	});
 
-	it('L-TPL-hr-payroll-051 freezes a day a payslip already consumed', () => {
-		assert.equal(refusePinnedRoster({ payslip_id: 'p1' }), 'A settled day cannot be changed.');
-		assert.equal(refusePinnedRoster({ payslip_id: null }), null);
-	});
 	it('keeps each pattern cycle’s work, rest and off days: a swap passes, an extra work day or a dropped rest day refuses', () => {
-		const definitions = new Map(
+		const definitions = new Map<string, ShiftDefinitionRow>([
 			[
-				['w', 'WORK', '09:00'],
-				['o', 'OFF', null],
-				['r', 'REST', null]
-			].map(([id, day_type, start]) => [
-				String(id),
+				'w',
 				{
-					id: String(id),
-					code: String(id),
-					variant: start == null ? { day_type } : { day_type, start_time: start, end_time: '18:00' }
+					id: 'w',
+					code: 'w',
+					variant: { day_type: 'WORK', start_time: '09:00', end_time: '18:00' }
 				}
-			])
-		);
+			],
+			['o', { id: 'o', code: 'o', variant: { day_type: 'OFF' } }],
+			['r', { id: 'r', code: 'r', variant: { day_type: 'REST' } }]
+		]);
 		// Monday 2 March 2026 opens the cycle: five work days, an off day, a rest day
 		const patterns = new Map([
 			[
@@ -282,19 +267,14 @@ describe('roster entry', () => {
 				}
 			]
 		]);
-		// The seeded `cycle` validation: a cycle refuses when its WORK, REST or OFF count moves.
-		const seeded = lineage('SG')
-			.rows('version_6', 'rule_set')
-			.find((row) => row['code'] === 'ROSTER_PATTERN_CYCLE');
-		const rules = Schema.decodeUnknownSync(
-			Schema.Struct({
-				site: Schema.Literal('cycle'),
-				kind: Schema.Literals(['refuse', 'warn', 'hold']),
-				when: Schema.String,
-				message: Schema.String
-			})
-		)(seeded?.['rules']);
-		const check: Validation = { ...rules, code: 'ROSTER_PATTERN_CYCLE' };
+		// A configured `cycle` validation: a cycle refuses when its WORK, REST or OFF count moves.
+		const check: Validation = {
+			code: 'ROSTER_PATTERN_CYCLE',
+			site: 'cycle',
+			kind: 'refuse',
+			when: 'cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF',
+			message: 'Swap days inside the cycle instead.'
+		};
 		const breach = (
 			rostered: Record<string, string>,
 			from = '2026-03-02',

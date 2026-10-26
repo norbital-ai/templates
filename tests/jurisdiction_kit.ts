@@ -1,380 +1,565 @@
+/**
+ * The suites' one synthetic jurisdiction, `XX`, and one employer on it. Every row is written here, small and invented —
+ * no country's law — so a test proves a mechanism over the values it states. `world` seeds a fresh workspace with them.
+ */
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
-import { existsSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { Cause, Effect, Exit, Layer, Schema } from 'effect';
-import { TestWorkspace, type KitFailure } from '@norbital-ai/bolt/test';
-import { seed } from '@norbital-ai/bolt/engine';
-import { addDays } from '@norbital-ai/std/date';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { Reads, readsFrom, type CallerRead } from '../src/lib/payroll_engine/foundation.js';
-import { buildPayrollRun } from '../src/lib/payroll_engine/run.js';
-import type { PayrollRunKind } from '../src/lib/payroll_engine/payslip/context.js';
-import { readSeedRows } from './seed_values.js';
+import { TestWorkspace, type Caller } from '@norbital-ai/bolt/test';
+import {
+	fieldValue,
+	moneyNumber,
+	Reads,
+	readsFrom,
+	type CallerRead
+} from '../src/lib/payroll_engine/foundation.js';
+import { fixtureId, fixtureRows, nativeId } from './fixture_values.js';
 import { workspace } from './kit.js';
-import relationships from '../src/data/+relationship.js';
-import { SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.js';
-import settingsModel from '../src/data/model/+jurisdiction_settings.model.js';
-import { fixtureRows } from './fixture_values.js';
 
 export type Row = Record<string, unknown>;
 export type Tables = Map<string, Row[]>;
-export const CATALOGS = [
-	'statutory_contribution_catalog',
-	'leave_catalog',
-	'claim_catalog',
-	'adhoc_catalog',
-	'loan_catalog',
-	'allowance_catalog',
-	'work_catalog'
-] as const;
-export const TABLES = ['jurisdiction_settings', 'rule_set', ...CATALOGS] as const;
-export type Table = (typeof TABLES)[number] | 'suspension_kind';
-export const SEED = resolve(process.cwd(), 'seed/jurisdiction');
-export const LINEAGES = readdirSync(SEED)
-	.filter((name) => existsSync(resolve(SEED, name, 'version_1')))
-	.sort();
-export const nextDay = (day: string): string => addDays(day, 1);
 
-const CitationText = Schema.optionalKey(Schema.NullOr(Schema.String));
-const References = Schema.Array(
-	Schema.Struct({
-		title: Schema.String,
-		locator: CitationText,
-		url: CitationText,
-		quote: CitationText,
-		effective_from: CitationText
-	})
-);
-/** A statutory row's `references` as one searchable text: each title, locator, link and quote in order. */
-export function citationText(references: unknown): string {
-	return Schema.decodeUnknownSync(References)(references ?? [])
-		.flatMap((reference) => [reference.title, reference.locator, reference.url, reference.quote])
-		.filter((part): part is string => typeof part === 'string')
-		.join(' ');
-}
+/** The `XX` version's payroll settings: every key the engine requires. */
+export const PAYROLL = {
+	currency: 'USD',
+	timezone: 'UTC',
+	tax_year_start_month: 1,
+	pay_date: 'period.to',
+	week_start: 0,
+	semi_monthly_split: 15,
+	roster_week: 'ROLLING',
+	rolling_hours_months: 3,
+	base_salary_required: true,
+	off_cycle_families: ['ADHOC', 'CLAIM'],
+	ten_day_splits: [10, 20],
+	permanent_when: 'true',
+	monthly_wage: 'terms.base_salary + sum(terms.allowances.map(a, a.amount))',
+	negative_net: 'refuse',
+	exit_raise_when: 'employment.exit_date >= add_months(period.from, -1)',
+	exit_overpayment: 'note',
+	history_months: 12,
+	attendance: {
+		step_hours: 0.5,
+		rounding: 'DOWN',
+		overtime_window: 'AFTER_SHIFT',
+		untimed_credit_day_types: ['REST', 'OFF']
+	}
+} as const;
 
-export function lineage(code: string) {
-	const root = resolve(SEED, code);
-	const rows = (version: string, table: string) => readSeedRows(resolve(root, version), table);
-	const versions = readdirSync(root)
-		.filter((name) => /^version_\d+$/.test(name))
-		.filter((name) => rows(name, 'jurisdiction_settings')[0]?.['voided_at'] == null)
-		.toSorted((left, right) => {
-			const from = (name: string) => {
-				const range = rows(name, 'jurisdiction_settings')[0]?.['effective_range'];
-				return Schema.is(Schema.Record(Schema.String, Schema.Json))(range)
-					? String(range['from'])
-					: '';
-			};
-			return from(left).localeCompare(from(right));
-		});
-	const settingsOf = (version: string): Row => {
-		const [settings] = rows(version, 'jurisdiction_settings');
-		assert.ok(settings, `${code}/${version} has its settings row`);
-		return settings;
-	};
-	const byCode = (version: string, table: string, wanted: string) => {
-		const row = rows(version, table).find((row) => row['code'] === wanted);
-		assert.ok(row, `${code}/${version}/${table} ${wanted}`);
-		return row;
-	};
-	const versionOn = (day: string): string => {
-		const version = versions.find((name) => {
-			const range = settingsOf(name)['effective_range'];
-			return (
-				Schema.is(Schema.Record(Schema.String, Schema.Json))(range) &&
-				String(range['from']) <= day &&
-				(range['to'] == null || day <= String(range['to']))
-			);
-		});
-		assert.ok(version, `${code} has a version governing ${day}`);
-		return version;
-	};
-	return {
-		root,
-		versions,
-		rows,
-		settingsOf,
-		byCode,
-		versionOn,
-		payrollRules: (version: string): Row =>
-			Object.fromEntries(
-				rows(version, 'rule_set')
-					.filter((row) => row['family'] === 'PAYROLL')
-					.map((row) => [String(row['code']), row['rules']])
-			),
-		law: (): Tables =>
-			new Map(TABLES.map((table) => [table, versions.flatMap((version) => rows(version, table))]))
-	};
-}
+const id = <C extends string>(collection: C, label: string) =>
+	nativeId(collection, fixtureId(`xx-${label}`));
+export const VERSION = id('jurisdiction_settings', 'version');
+export const COMPANY = id('entity', 'company');
+export const WORK = id('shift_definition', 'work');
+export const REST = id('shift_definition', 'rest');
+export const WEEK = id('shift_pattern', 'week');
+export const CATALOG = {
+	BONUS: id('adhoc_catalog', 'bonus'),
+	DAMAGE: id('adhoc_catalog', 'damage'),
+	MEAL_CLAIM: id('claim_catalog', 'meal-claim'),
+	ADVANCE: id('loan_catalog', 'advance'),
+	ANNUAL: id('leave_catalog', 'annual'),
+	UNPAID: id('leave_catalog', 'unpaid')
+} as const;
+export const employment = (key: string) => id('employment_contract', `k-${key}`);
+export const profile = (key: string) => id('employment_profile', `p-${key}`);
 
-/** Model keys and authored foreign keys, read from the actual declarations. */
-export function modelFields(table: string): ReadonlySet<string> {
-	const fields =
-		table === 'jurisdiction_settings'
-			? Object.keys(settingsModel.fields)
-			: Object.entries(SNAPSHOT_MODELS).find(([name]) => name === table)?.[1].fields;
-	return new Set([
-		'id',
-		...(Array.isArray(fields) ? fields : Object.keys(fields ?? {})),
-		...Object.keys(relationships)
-			.filter((key) => key.startsWith(`${table}.`))
-			.map((key) => key.slice(table.length + 1))
+/** Every line counts toward the three schemes. */
+const SCHEMES = ['FUND', 'WHT', 'PIT'];
+/**
+ * The schemes, one per mechanism: FUND charges the rate of the band its wage falls in (a band covers up to its ceiling
+ * inclusive), WHT withholds a percentage only from a minimum wage, PIT is a progressive ladder over the month's wage.
+ */
+const STATUTORY = {
+	FUND: 'round(base.assessed * bracket(base.assessed, [[3000.0, 0.05], [null, 0.1]]), 0.01, "HALF_UP")',
+	WHT: 'round(base.assessed * 0.1, 0.01, "HALF_UP")',
+	PIT: 'round(ladder(base.assessed, [[1000.0, 0.0], [5000.0, 0.1], [null, 0.2]]), 0.01, "HALF_UP")'
+} as const;
+const WHEN = {
+	FUND: 'base.assessed > 0.0',
+	WHT: 'base.assessed >= 2000.0',
+	PIT: 'base.assessed > 0.0'
+};
+
+/** The engine's own behaviour records: admit a run, pin what it settled, hold what a validation held, write holidays. */
+const BEHAVIOURS = {
+	version: 1,
+	rules: [
+		{
+			id: 'payroll-run',
+			catalog: 'WORK',
+			events: ['PAYROLL_CREATE'],
+			when: 'event.data.request.kind in ["REGULAR", "OFF_CYCLE"]'
+		},
+		{
+			id: 'pin-settled-entries',
+			target_collection: 'payroll_run',
+			events: ['created'],
+			when: 'true',
+			fields: ['pins'],
+			reads: {
+				slips: {
+					collection: 'payslip',
+					where: { payroll_run_id: { eq: 'event.row.id' } },
+					select: ['id', 'employment_id']
+				}
+			},
+			effect:
+				'event.row.pins.map(p, { "collection": p.collection, "operation": "update", "data": { "target": [p.id], "set": { "payslip_id": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)'
+		},
+		{
+			id: 'hold-payslips',
+			target_collection: 'payroll_run',
+			events: ['created'],
+			when: 'has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0',
+			fields: ['holds'],
+			reads: {
+				slips: {
+					collection: 'payslip',
+					where: { payroll_run_id: { eq: 'event.row.id' }, status: { eq: '"DRAFT"' } },
+					select: ['id', 'employment_id']
+				}
+			},
+			effect:
+				'event.row.holds.map(h, { "collection": "payslip", "operation": "update", "data": { "target": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), "set": { "status": "ON_HOLD" } } }).filter(w, size(w.data.target) > 0)'
+		},
+		{
+			id: 'write-public-holidays',
+			target_collection: 'entity',
+			events: ['created', 'calendar'],
+			when: 'true',
+			reads: {
+				calendar: {
+					collection: 'rule_set',
+					where: {
+						settings_id: { eq: 'event.settings_id' },
+						family: { eq: '"PAYROLL"' },
+						code: { eq: '"public_holidays"' }
+					},
+					select: ['rules']
+				},
+				held: {
+					collection: 'holiday',
+					where: { company_id: { eq: 'event.company_id' } },
+					select: ['date']
+				}
+			},
+			effect:
+				'calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, !held.exists(x, x.date == h.date)).map(h, { "collection": "holiday", "operation": "create", "data": { "company_id": event.company_id, "date": h.date, "name": h.name, "kind": "PUBLIC_HOLIDAY", "replaces": null, "given_to": "EVERYONE" } }) : []'
+		}
+	]
+};
+
+const rule = (family: string, code: string, rules: Row): Row => ({
+	id: id('rule_set', code),
+	settings_id: VERSION,
+	family,
+	scope: 'JURISDICTION',
+	code,
+	name: code,
+	rules
+});
+const work = (code: string, row: Row): Row => ({
+	id: id('work_catalog', code),
+	settings_id: VERSION,
+	code,
+	name: code,
+	component_code: code,
+	destination: 'PAY',
+	direction: 'ADD',
+	counts_toward: SCHEMES,
+	...row
+});
+const entryClass = (row: Row & { readonly id: string; readonly code: string }): Row => ({
+	settings_id: VERSION,
+	name: row.code,
+	eligibility: '',
+	bands: [{ when: '', amount: 'entry.amount', limit: null }],
+	...row
+});
+
+/** The `XX` version with its rules and catalogues: fresh rows on every call. */
+export function law(): Tables {
+	return new Map<string, Row[]>([
+		[
+			'jurisdiction_settings',
+			[
+				{
+					id: VERSION,
+					code: 'XX',
+					jurisdiction_code: 'XX',
+					name: 'Fixture jurisdiction',
+					effective_range: { from: '2020-01-01', to: null },
+					sealed_at: '2020-01-01T00:00:00.000Z',
+					voided_at: null,
+					sources: { entries: [] },
+					payroll: PAYROLL,
+					behaviours: BEHAVIOURS
+				}
+			]
+		],
+		[
+			'rule_set',
+			[
+				rule('PAYROLL', 'record_retention', { until: 'add_years(employment.exit_date, 6)' }),
+				rule('PAYROLL', 'exit_grounds', { kinds: [{ code: 'RESIGNATION', name: 'Resignation' }] }),
+				rule('PAYROLL', 'holiday_kinds', {
+					kinds: [{ code: 'PUBLIC_HOLIDAY', name: 'Public holiday' }]
+				}),
+				rule('PAYROLL', 'public_holidays', {
+					holidays: [{ date: '2026-03-25', name: 'Founders Day' }]
+				}),
+				rule('VALIDATIONS', 'HELD_PAY', {
+					site: 'payslip',
+					kind: 'hold',
+					when: 'has(employee.facts.held) && employee.facts.held == true',
+					message: 'Pay is held for review.'
+				})
+			]
+		],
+		[
+			'work_catalog',
+			[
+				work('BASIC', {
+					// a part month pays its covered working days over the month's working days; a whole month pays one
+					quantity:
+						'employment.start_date > period.month_from || period.covered_working_days < period.working_days ? double(period.covered_working_days) / double(period.month_working_days + period.month_holiday_work_days) : 1.0',
+					rate: 'terms.base_salary',
+					eligibility: 'true',
+					prorated: true,
+					denominator: 'double(period.month_working_days + period.month_holiday_work_days)'
+				}),
+				work('OVERTIME', {
+					quantity: 'work.overtime_hours',
+					rate: '15.0',
+					eligibility: 'work.overtime_hours > 0.0'
+				}),
+				work('HOLIDAY', {
+					quantity: 'double(size(work.days.filter(d, d.holiday_kind == "PUBLIC_HOLIDAY")))',
+					rate: '100.0',
+					eligibility: 'work.days.exists(d, d.holiday_kind == "PUBLIC_HOLIDAY")'
+				}),
+				work('NO_PAY_LEAVE', {
+					quantity:
+						'sum(leave.rows.filter(r, r.activity == "TIME_OFF").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction)))',
+					rate: 'terms.monthly_wage / double(period.month_working_days + period.month_holiday_work_days)',
+					eligibility:
+						'leave.rows.exists(r, r.activity == "TIME_OFF" && r.days > 0.0 && (r.is_npl || r.pay_fraction < 1.0))',
+					direction: 'SUBTRACT'
+				})
+			]
+		],
+		[
+			'allowance_catalog',
+			[
+				{
+					id: id('allowance_catalog', 'meal'),
+					settings_id: VERSION,
+					code: 'MEAL',
+					name: 'Meal allowance',
+					eligibility: 'true',
+					amount: 'allowance.amount',
+					destination: 'PAY',
+					direction: 'ADD',
+					counts_toward: SCHEMES
+				}
+			]
+		],
+		[
+			'adhoc_catalog',
+			[
+				entryClass({
+					id: CATALOG.BONUS,
+					code: 'BONUS',
+					destination: 'PAY',
+					direction: 'ADD',
+					counts_toward: SCHEMES
+				}),
+				entryClass({
+					id: CATALOG.DAMAGE,
+					code: 'DAMAGE',
+					destination: 'NET',
+					direction: 'SUBTRACT',
+					counts_toward: []
+				})
+			]
+		],
+		[
+			'claim_catalog',
+			[
+				entryClass({
+					id: CATALOG.MEAL_CLAIM,
+					code: 'MEAL_CLAIM',
+					destination: 'NET',
+					direction: 'ADD',
+					counts_toward: []
+				})
+			]
+		],
+		[
+			'loan_catalog',
+			[
+				{
+					id: CATALOG.ADVANCE,
+					settings_id: VERSION,
+					code: 'ADVANCE',
+					name: 'Salary advance',
+					destination: 'NET',
+					direction: 'SUBTRACT',
+					eligibility: '',
+					bands: []
+				}
+			]
+		],
+		[
+			'leave_catalog',
+			[
+				{
+					id: CATALOG.ANNUAL,
+					settings_id: VERSION,
+					code: 'ANNUAL',
+					name: 'Annual leave',
+					eligibility: '',
+					unit: 'DAY',
+					can_encash: true,
+					is_npl: false,
+					pay_fraction: '',
+					entitlement: { unit: 'DAY', days: '5.0', overdraw: '0', window: 'CALENDAR_YEAR' }
+				},
+				{
+					id: CATALOG.UNPAID,
+					settings_id: VERSION,
+					code: 'UNPAID',
+					name: 'Unpaid leave',
+					eligibility: '',
+					unit: 'DAY',
+					can_encash: false,
+					is_npl: true,
+					pay_fraction: '',
+					entitlement: null
+				}
+			]
+		],
+		[
+			'statutory_contribution_catalog',
+			(['FUND', 'WHT', 'PIT'] as const).map((code) => ({
+				id: id('statutory_contribution_catalog', code),
+				settings_id: VERSION,
+				code,
+				name: code,
+				configuration: { rules: [{ when: WHEN[code], employee: STATUTORY[code], employer: '0.0' }] }
+			}))
+		]
 	]);
 }
-const KEYWORDS = new Set([
-	'type',
-	'properties',
-	'items',
-	'additionalProperties',
-	'required',
-	'enum',
-	'const',
-	'minimum',
-	'maximum',
-	'minLength',
-	'maxLength',
-	'minItems',
-	'maxItems',
-	'pattern',
-	'format',
-	'description',
-	'title',
-	'default',
-	'$schema',
-	'$id',
-	'$ref',
-	'$defs',
-	'allOf',
-	'anyOf',
-	'oneOf',
-	'not',
-	'if',
-	'then',
-	'else',
-	'examples',
-	'exclusiveMinimum',
-	'exclusiveMaximum',
-	'multipleOf',
-	'uniqueItems'
-]);
-const TYPES = new Set(['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']);
-const record = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
-export function schemaProblems(node: unknown, path: string, out: string[] = []): string[] {
-	if (node === true || node === false) return out;
-	if (!record(node)) return [...out, `${path} is not a schema`];
-	for (const [key, value] of Object.entries(node)) {
-		if (!KEYWORDS.has(key)) out.push(`${path}.${key} is not a keyword`);
-		if (key === 'type' && ![value].flat().every((type) => TYPES.has(String(type))))
-			out.push(`${path}.type`);
-		if (key === 'properties') {
-			if (!record(value)) out.push(`${path}.properties`);
-			else
-				for (const [name, child] of Object.entries(value))
-					schemaProblems(child, `${path}.${name}`, out);
+
+export type Person = {
+	readonly key: string;
+	readonly salary: number;
+	/** The employment's first day; 2020-01-01 unless stated. */
+	readonly from?: string;
+	readonly allowances?: readonly { readonly code: string; readonly amount: number }[];
+	readonly facts?: Row;
+};
+
+/**
+ * The law, one UTC employer paying monthly on a Monday-to-Friday 09:00–18:00 week (an hour's break: eight scheduled
+ * hours), and its people; every entry and run collection starts empty.
+ */
+export function employer(people: readonly Person[]): Tables {
+	const rows = law();
+	rows.set('entity', [
+		{
+			id: COMPANY,
+			name: 'Fixture employer',
+			settings_code: 'XX',
+			pay_frequency: 'MONTHLY',
+			pay_cutoff_day: 1,
+			time_zone: 'UTC',
+			effective_range: { from: '2020-01-01', to: null },
+			facts: {}
 		}
-		if (key === 'items' || key === 'additionalProperties')
-			schemaProblems(value, `${path}.${key}`, out);
-		if (key === 'enum' && (!Array.isArray(value) || value.length === 0)) out.push(`${path}.enum`);
-		if (['minimum', 'maximum'].includes(key) && typeof value !== 'number')
-			out.push(`${path}.${key}`);
-	}
-	return out;
-}
-export function propertiesAt(schema: unknown, ...path: string[]): Set<string> {
-	let node = schema;
-	for (const key of path) node = record(node) ? node[key] : undefined;
-	return new Set(record(node) && record(node['properties']) ? Object.keys(node['properties']) : []);
+	]);
+	rows.set(
+		'employment_profile',
+		people.map((person) => ({
+			id: profile(person.key),
+			name: `Person ${person.key}`,
+			email: `${person.key}@example.com`,
+			facts: person.facts ?? {}
+		}))
+	);
+	rows.set(
+		'employment_contract',
+		people.map((person) => {
+			const from = person.from ?? '2020-01-01';
+			return {
+				id: employment(person.key),
+				employee_id: profile(person.key),
+				company_id: COMPANY,
+				employee_number: person.key,
+				contract_number: 1,
+				effective_range: { from, to: null },
+				facts: {
+					contract_terms: [
+						{
+							effective_range: { from, to: null },
+							base_salary: { value: person.salary, currency: 'USD' },
+							employment_type: 'PERMANENT',
+							shift_pattern_id: WEEK,
+							allowances: (person.allowances ?? []).map((line) => ({
+								code: line.code,
+								amount: { value: line.amount, currency: 'USD' }
+							})),
+							facts: {}
+						}
+					]
+				}
+			};
+		})
+	);
+	rows.set('shift_definition', [
+		{
+			id: WORK,
+			company_id: COMPANY,
+			code: 'DAY',
+			variant: { day_type: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 }
+		},
+		{ id: REST, company_id: COMPANY, code: 'REST', variant: { day_type: 'REST' } }
+	]);
+	rows.set('shift_pattern', [
+		{
+			id: WEEK,
+			company_id: COMPANY,
+			code: 'WEEK',
+			// a Monday: the cycle's first five days work
+			effective_range: { from: '2020-01-06', to: null },
+			pattern: {
+				days: [WORK, WORK, WORK, WORK, WORK, REST, REST].map((roster_code_id) => ({
+					roster_code_id
+				}))
+			}
+		}
+	]);
+	for (const name of [
+		'holiday',
+		'roster_entry',
+		'adhoc_catalog_entry',
+		'claim_catalog_entry',
+		'leave_catalog_entry',
+		'loan_catalog_entry',
+		'loan_repayment_entry',
+		'payroll_run',
+		'payslip'
+	])
+		rows.set(name, []);
+	return rows;
 }
 
 const SeedTable = Schema.Array(Schema.Record(Schema.String, Schema.Json));
-const SeedRows = Schema.Record(Schema.String, SeedTable);
-/** Every query is performed by the real workspace database, including keyed references and native relation arms. */
-export function world(tables: Tables) {
-	const normalized = new Map<
-		string,
-		{ readonly encoded: string; readonly rows: typeof SeedTable.Type }
-	>();
-	const seedRows = (): typeof SeedRows.Type =>
-		Object.fromEntries(
-			[...tables].map(([table, rows]): [string, typeof SeedTable.Type] => {
-				// Compare full values, including defaults and in-place edits; array identity is insufficient.
-				const encoded = JSON.stringify(fixtureRows(table, rows));
-				let stored = normalized.get(table);
-				if (stored === undefined || stored.encoded !== encoded) {
-					const parsed: unknown = JSON.parse(encoded);
-					stored = { encoded, rows: Schema.decodeUnknownSync(SeedTable)(parsed) };
-					normalized.set(table, stored);
-				}
-				return [table, structuredClone(stored.rows)];
-			})
-		);
-	const layer = Layer.unwrap(
-		Effect.sync(() => {
-			return Layer.effect(
-				Reads,
-				TestWorkspace.pipe(Effect.map((t) => readsFrom(t.as(t.admin).read)))
-			).pipe(Layer.provideMerge(workspace({ seed: seedRows() })));
-		})
+/** The tables as a seed pack: each row's omitted model defaults filled, every value plain JSON. */
+export const seedPack = (tables: Tables) =>
+	Object.fromEntries(
+		[...tables].map(([table, rows]): [string, typeof SeedTable.Type] => [
+			table,
+			Schema.decodeUnknownSync(SeedTable)(JSON.parse(JSON.stringify(fixtureRows(table, rows))))
+		])
 	);
-	const provide = <A, E>(effect: Effect.Effect<A, E, Reads>) => effect.pipe(Effect.provide(layer));
+/** One fresh workspace seeded with `tables` per call, its clock at `now` when given; its reads are the real database's. */
+export function world(tables: Tables, now?: string) {
+	const layer = Layer.unwrap(
+		Effect.sync(() =>
+			Layer.effect(
+				Reads,
+				TestWorkspace.pipe(Effect.map((t) => readsFrom(t.as(t.admin).query)))
+			).pipe(
+				Layer.provideMerge(
+					workspace({ ...(now === undefined ? {} : { now }), seed: seedPack(tables) })
+				)
+			)
+		)
+	);
 	const withRead = <A, E, R>(use: (read: CallerRead) => Effect.Effect<A, E, R>) =>
 		TestWorkspace.pipe(
-			Effect.flatMap((t) => use(t.as(t.admin).read)),
+			Effect.flatMap((t) => use(t.as(t.admin).query)),
 			Effect.provide(layer)
 		);
-	const companyFrom = (read: CallerRead, wanted: string) =>
-		read('entity', { all: true }).pipe(
-			Effect.map((page) => {
-				const row = page.rows.find((row) => row.id === wanted);
-				assert.ok(row, `The fixture seeds entity ${wanted}.`);
-				return row.id;
-			})
-		);
-	const company = (wanted: string) => withRead((read) => companyFrom(read, wanted));
-	const runWith = (
-		readWith: <A, E>(
-			use: (read: CallerRead) => Effect.Effect<A, E>
-		) => Effect.Effect<A, E | KitFailure>
-	) =>
-		Effect.fnUntraced(function* (
-			companyId: string,
-			period: string,
-			kind: PayrollRunKind,
-			sources?: readonly string[]
-		) {
-			const plan = yield* readWith((read) =>
-				Effect.gen(function* () {
-					const company_id = yield* companyFrom(read, companyId);
-					return yield* buildPayrollRun({
-						company_id,
-						period,
-						kind,
-						...(sources === undefined ? {} : { sources })
-					}).pipe(Effect.provideService(Reads, readsFrom(read)));
-				})
-			);
-			const id = randomUUID();
-			tables.set('payroll_run', [...(tables.get('payroll_run') ?? []), { ...plan.run, id }]);
-			for (const slip of plan.payslips) {
-				const slipId = randomUUID();
-				const { pins, warnings: _warnings, hold: _hold, ...stored } = slip;
-				tables.set('payslip', [
-					...(tables.get('payslip') ?? []),
-					{
-						...stored,
-						gross: Decimal.of(String(stored.gross)),
-						total_deductions: Decimal.of(String(stored.total_deductions)),
-						net: Decimal.of(String(stored.net)),
-						employer_cost: Decimal.of(String(stored.employer_cost)),
-						id: slipId,
-						payroll_run_id: id,
-						terms_through: slip.salary_to,
-						status: 'DRAFT'
-					}
-				]);
-				for (const pin of pins)
-					tables.set(
-						pin.collection,
-						(tables.get(pin.collection) ?? []).map((row) =>
-							row['id'] === pin.id ? { ...row, payslip_id: slipId } : row
-						)
-					);
-			}
-			return plan;
-		});
-	const run = runWith(withRead);
-	/** The suite's scoped workspace owns the history; each call restores its exact current table snapshot. */
-	const useRun = <A, E, R>(use: (historyRun: typeof run) => Effect.Effect<A, E, R>) =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			// The native schema creates a stored relation for every model, including uncollected ones.
-			// Built-in tables carry `table`; retain their authentication and source-catalogue rows.
-			const models = Object.entries(t.manifest.models)
-				.filter(([, model]) => model.table === undefined)
-				.map(([name]) => name);
-			assert.ok(models.length > 0, 'The fixture has authored stored models.');
-			// A delta omits old given-derived values. Keep full native drift checks for any rollup schema.
-			const appendSafe = !Object.values(t.manifest.models).some((model) =>
-				Object.values(model.fields).some((field) => field.kind === 'sum' || field.kind === 'count')
-			);
-			let restored:
-				| {
-						readonly at: string;
-						readonly rows: Readonly<Record<string, readonly string[]>>;
-				  }
-				| undefined;
-			const restore = Effect.gen(function* () {
-				const rows = seedRows();
-				for (const name of Object.keys(rows))
-					assert.ok(models.includes(name), `Dependent histories seed an authored model: ${name}.`);
-				const at = t.clock.now();
-				let append =
-					appendSafe &&
-					restored !== undefined &&
-					restored.at === at &&
-					Object.keys(restored.rows).length === Object.keys(rows).length;
-				const snapshot: Record<string, readonly string[]> = {};
-				const additions: Record<string, (typeof SeedRows.Type)[string]> = {};
-				for (const [name, entries] of Object.entries(rows)) {
-					const prior = restored?.rows[name];
-					const current = entries.map((row) => JSON.stringify(row));
-					const ids = entries.map((row) => row['id']);
-					if (
-						prior === undefined ||
-						prior.length > current.length ||
-						prior.some((row, index) => row !== current[index]) ||
-						ids.some((id) => typeof id !== 'string') ||
-						new Set(ids).size !== ids.length
-					)
-						append = false;
-					snapshot[name] = current;
-					// Retain empty collection keys so native relationship ordering and validation still run.
-					additions[name] = entries.slice(prior?.length ?? 0);
-				}
-				// A failed refresh must never authorize another delta against a partially restored database.
-				restored = undefined;
-				if (!append) {
-					// RESTRICT cannot silently clear a referenced system table. Full refresh also removes
-					// deleted rows and restores modified inputs, including source pins and older snapshots.
-					yield* t.db.write({
-						text: `TRUNCATE TABLE ${models.map((name) => `"${name.replaceAll('"', '""')}"`).join(', ')} RESTRICT`,
-						params: []
-					});
-					yield* t.db.write({
-						text: 'DELETE FROM bolt_history WHERE collection IN (SELECT jsonb_array_elements_text($1::jsonb))',
-						params: [models]
-					});
-					yield* t.db.write({
-						text: 'DELETE FROM bolt_seq WHERE model IN (SELECT jsonb_array_elements_text($1::jsonb))',
-						params: [models]
-					});
-				}
-				yield* seed(t.manifest, t.db, append ? additions : rows, at);
-				restored = { at, rows: snapshot };
-			});
-			const readWith = <B, F>(read: (reader: CallerRead) => Effect.Effect<B, F>) =>
-				Effect.andThen(
-					restore,
-					Effect.suspend(() => read(t.as(t.admin).read))
-				);
-			return yield* use(runWith(readWith));
-		});
-	return { tables, layer, provide, run, useRun, withRead, company };
+	return { withRead };
 }
-export const statutoryLines = (slip: {
-	readonly statutory: readonly {
-		readonly scheme_code: string;
-		readonly employee_amount: number;
-		readonly employer_amount: number;
-	}[];
-}): Record<string, [number, number]> =>
-	Object.fromEntries(
-		slip.statutory
-			.filter((line) => line.employee_amount !== 0 || line.employer_amount !== 0)
-			.map((line) => [line.scheme_code, [line.employee_amount, line.employer_amount]])
+
+const Pins = Schema.Array(
+	Schema.Struct({ collection: Schema.String, id: Schema.String, employment_id: Schema.String })
+);
+/**
+ * The `period` run of `kind` as the caller reads it back: its warnings, its settlement ledger and each payslip by
+ * employment, with every line's amount and quantity by code and each scheme's employee share.
+ */
+export const runOf = Effect.fnUntraced(function* (
+	actor: Caller,
+	period: string,
+	kind: 'REGULAR' | 'OFF_CYCLE' = 'REGULAR'
+) {
+	const [run] = (yield* actor.query('payroll_run', {
+		where: { period: { eq: period }, kind: { eq: kind } },
+		select: { warnings: true, pins: true },
+		all: true
+	})).rows;
+	assert.ok(run, `The ${period} ${kind} run exists.`);
+	const { rows } = yield* actor.query('payslip', {
+		where: { payroll_run_id: { eq: run.id } },
+		select: {
+			employment_id: true,
+			status: true,
+			base: true,
+			adjustments: true,
+			statutory: true,
+			gross: true,
+			net: true
+		},
+		all: true
+	});
+	const slips = new Map(
+		yield* Effect.forEach(rows, (row) =>
+			Effect.gen(function* () {
+				const base = (yield* Effect.fromResult(fieldValue(row.base, 'payslip.base'))) ?? [];
+				const adjustments =
+					(yield* Effect.fromResult(fieldValue(row.adjustments, 'payslip.adjustments'))) ?? [];
+				const statutory =
+					(yield* Effect.fromResult(fieldValue(row.statutory, 'payslip.statutory'))) ?? [];
+				const lines = [...base, ...adjustments];
+				return [
+					String(row.employment_id),
+					{
+						id: row.id,
+						status: String(row.status),
+						gross: moneyNumber(row.gross),
+						net: moneyNumber(row.net),
+						lines: Object.fromEntries(lines.map((line) => [line.component_code, line.amount])),
+						quantities: Object.fromEntries(
+							base.map((line) => [line.component_code, line.quantity ?? null])
+						),
+						statutory: Object.fromEntries(
+							statutory.map((line) => [line.scheme_code, line.employee_amount])
+						)
+					}
+				] as const;
+			})
+		)
 	);
+	return {
+		id: run.id,
+		warnings: yield* Effect.fromResult(fieldValue(run.warnings, 'payroll_run.warnings')),
+		pins: Schema.decodeUnknownSync(Pins)(
+			(yield* Effect.fromResult(fieldValue(run.pins, 'payroll_run.pins'))) ?? []
+		),
+		/** The payslip of `key`'s employment. */
+		slip: (key: string) => {
+			const found = slips.get(employment(key));
+			assert.ok(found, `The ${period} run pays ${key}.`);
+			return found;
+		},
+		count: slips.size
+	};
+});
 
 /** The same rejection predicate as node:assert, over an Effect failure rather than a Promise. */
 export const assertFailure = Effect.fnUntraced(function* <A, E, R>(

@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 import { Predicate } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
 import type { Act, CollectionName } from '@norbital-ai/bolt';
@@ -161,7 +162,9 @@ export function resolveWhere(
 			return rule === undefined ? evaluateStrict(value, context) : evaluate(rule, value, context);
 		if (Schema.is(Schema.Array(Schema.Json))(value)) return value.map(walk);
 		if (isJsonObject(value))
-			return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, walk(entry)]));
+			return Object.fromEntries(
+				Object.entries(value).map(([key, entry]): [string, Json] => [key, walk(entry)])
+			);
 		return value;
 	};
 	return walk(where);
@@ -222,7 +225,7 @@ export function effectWrites(rule: Behaviour, context: CelContext): readonly Beh
  * one collection go as one act too (a year's holiday calendar is one statement); a review then covers the batch. The
  * whole list is one native act: the batch's writes planned together and committed as one statement.
  */
-export function actBehaviourWrites(act: Pick<Act, 'many'>, writes: readonly BehaviourWrite[]) {
+export function actBehaviourWrites(act: Pick<Act, 'checked'>, writes: readonly BehaviourWrite[]) {
 	return Effect.fnUntraced(function* () {
 		const runs: BehaviourWrite[][] = [];
 		if (writes.every((write) => write.operation === 'update')) {
@@ -239,7 +242,7 @@ export function actBehaviourWrites(act: Pick<Act, 'many'>, writes: readonly Beha
 				if (last?.[0]?.callable === write.callable) last.push(write);
 				else runs.push([write]);
 			}
-		const acts = runs.flatMap((run) => {
+		const acts = runs.flatMap((run): Parameters<Act['checked']>[0] => {
 			const [first] = run;
 			if (first === undefined) return [];
 			// Malformed delete inputs must reach the native validator verbatim.
@@ -261,19 +264,24 @@ export function actBehaviourWrites(act: Pick<Act, 'many'>, writes: readonly Beha
 								? {
 										target: run.flatMap(({ data }) => {
 											const target = data['target'];
-											return target === undefined ? [] : Array.isArray(target) ? target : [target];
+											return target === undefined
+												? []
+												: EffectArray.isArray<typeof target>(target)
+													? target
+													: [target];
 										})
 									}
 								: run.flatMap(({ data }): JsonObject[] => {
 										const target = data['target'];
-										return first.operation === 'update' && Array.isArray(target)
+										return first.operation === 'update' &&
+											EffectArray.isArray<typeof target>(target)
 											? target.map((id) => ({ ...data, target: id }))
 											: [data];
 									})
 				}
 			];
 		});
-		if (acts.length > 0) yield* act.many(acts);
+		if (acts.length > 0) yield* act.checked(acts);
 	})();
 }
 /**
@@ -287,7 +295,7 @@ const evaluate = (rule: Behaviour, expression: string, context: CelContext): Jso
 	const cause = evaluated.failure;
 	const failed = cause instanceof Refusal ? cause.detail : undefined;
 	const owner = Object.values(context)
-		.flatMap((value) => (Array.isArray(value) ? value : []))
+		.flatMap((value) => (EffectArray.isArray(value) ? value : []))
 		.find(
 			(row) =>
 				isJsonObject(row) &&

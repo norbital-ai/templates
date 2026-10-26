@@ -21,8 +21,6 @@ import {
 	type JsonObject,
 	completedMonths,
 	fieldValue,
-	isDynObject,
-	isJsonObject,
 	Reads,
 	readAll,
 	type Read,
@@ -38,7 +36,14 @@ import {
 	readsAttendance,
 	serviceMonthsAt
 } from '../leave.js';
-import { roundHours, type PlannedShift, plannedShift, plannedShiftId } from '../shift_pattern.js';
+import {
+	roundHours,
+	type PlannedShift,
+	plannedShift,
+	plannedShiftId,
+	type ShiftPattern,
+	type ShiftVariant
+} from '../shift_pattern.js';
 import {
 	SETTINGS,
 	ENTITY,
@@ -53,7 +58,7 @@ import {
 	STATUTORY
 } from '../rows.js';
 import { type SettlementPeriod } from '../frequency.js';
-import { inForce, type Validation } from '../admit.js';
+import type { Validation } from '../admit.js';
 export const round2 = (value: number): number => Math.round(value * 100 + Number.EPSILON) / 100;
 /** A currency's minor units (ISO 4217 exponent, as the runtime's currency data holds it): JPY 0, SGD 2. */
 export const currencyScale = (currency: string): number => {
@@ -119,6 +124,24 @@ export const payrollMonths = (
 	});
 export const dayInRange = (day: string, range: CalendarRange): boolean =>
 	(range.from == null || day >= range.from) && (range.to == null || day <= range.to);
+
+/** Active employee contracts on a day, preserving failures for masked fields. */
+export const inForce = (
+	contracts: readonly Pick<ContractRow, 'effective_range' | 'engagement'>[],
+	day: string
+) =>
+	Result.gen(function* () {
+		let count = 0;
+		for (const contract of contracts) {
+			const engagement = yield* fieldValue(contract.engagement, 'employment_contract.engagement');
+			const range = yield* fieldValue(
+				contract.effective_range,
+				'employment_contract.effective_range'
+			);
+			if (engagement !== 'PAYEE' && dayInRange(day, range)) count++;
+		}
+		return count;
+	});
 export type PayrollRunKind = 'REGULAR' | 'OFF_CYCLE';
 /** Salary runs pay the contract; settlement runs pay only their selected entries. */
 export const SALARY_RUNS: readonly PayrollRunKind[] = ['REGULAR'];
@@ -336,7 +359,7 @@ export interface EntryColumns {
 	readonly due_on?: string | null | undefined;
 	readonly label?: string | null | undefined;
 	readonly reference?: string | null | undefined;
-	readonly facts?: unknown;
+	readonly facts?: JsonObject | null | undefined;
 }
 type NativeEntryRow =
 	| Row<'adhoc_catalog_entry'>
@@ -364,7 +387,7 @@ const LooseEntryRowSchema = Schema.Struct({
 	due_on: Schema.optional(Schema.NullOr(Schema.String)),
 	label: Schema.optional(Schema.NullOr(Schema.String)),
 	reference: Schema.optional(Schema.NullOr(Schema.String)),
-	facts: Schema.optional(Schema.NullOr(Schema.Unknown)),
+	facts: Schema.optional(Schema.NullOr(Schema.Record(Schema.String, Schema.Json))),
 	payslip_id: Schema.optional(Schema.NullOr(Schema.String))
 });
 export type LooseEntryRow = Schema.Schema.Type<typeof LooseEntryRowSchema>;
@@ -390,7 +413,7 @@ export const entryContext = (row: EntryColumns, occurred_on: string): DynObject 
 		const value = row[key];
 		if (value != null) typed[key] = value instanceof Decimal ? value.toNumber() : value;
 	}
-	const facts = isDynObject(row.facts) ? row.facts : {};
+	const facts = row.facts ?? {};
 	return {
 		...typed,
 		...facts,
@@ -432,7 +455,7 @@ export const earlierContext = (
 		round2(rows.reduce((total, row) => total + signed(row), 0));
 	return {
 		rows: before.map((row): JsonObject => {
-			const facts = isJsonObject(row.facts) ? row.facts : {};
+			const facts = row.facts ?? {};
 			return {
 				...facts,
 				facts,
@@ -499,8 +522,8 @@ interface SuspensionRow {
 	readonly starts_on: string;
 	readonly ends_on: string;
 	readonly worksite?: string | null;
-	readonly employment_ids?: unknown;
-	readonly facts?: unknown;
+	readonly employment_ids?: readonly string[] | null;
+	readonly facts?: JsonObject | null;
 }
 /** The suspension covering one employment's day: it names the employment, or names none and its worksite (if any)
  * is the day's (the roster's worksite, else the terms' `facts.worksite`). */
@@ -512,7 +535,7 @@ export const suspensionOn = (
 ): SuspensionRow | undefined =>
 	suspensions.find((held) => {
 		if (date < held.starts_on || date > held.ends_on) return false;
-		const named = Array.isArray(held.employment_ids) ? held.employment_ids : [];
+		const named = held.employment_ids ?? [];
 		if (named.length > 0) return named.includes(employment_id);
 		return held.worksite == null || held.worksite === '' || held.worksite === worksite;
 	});
@@ -560,11 +583,11 @@ export const worksiteOn = (row: RosterInput | undefined, term: ContractTerm | un
 export interface ShiftDefinitionRow {
 	readonly id: string;
 	readonly code?: string;
-	readonly variant?: unknown;
+	readonly variant?: ShiftVariant;
 }
 export interface ShiftPatternRow {
 	readonly id: string;
-	readonly pattern?: unknown;
+	readonly pattern?: ShiftPattern;
 	readonly effective_range?: CalendarRange | null;
 }
 /** A leave movement as the payslip reads its absence event: the event key and the day it covers from. */
@@ -615,19 +638,24 @@ export type PayslipRow = Pick<
 /** What each read selects: a caller's list read without `select` leaves json, custom and file fields out (Bolt X-33),
  * so every engine read names its fields. */
 export const payrollRules = (
-	version: unknown
+	version:
+		| {
+				readonly rule_set?: readonly {
+					readonly family: string;
+					readonly code: string;
+					readonly rules: Json;
+				}[];
+		  }
+		| null
+		| undefined
 ): {
 	readonly [code: string]: Json;
-} => {
-	const listed: unknown = isJsonObject(version) ? version['rule_set'] : undefined;
-	return Object.fromEntries(
-		(Array.isArray(listed) ? listed : []).flatMap((row: unknown): [string, Json][] => {
-			if (!isJsonObject(row) || (row['family'] ?? 'PAYROLL') !== 'PAYROLL') return [];
-			const code = row['code'];
-			return Predicate.isString(code) ? [[code, row['rules'] ?? {}]] : [];
-		})
+} =>
+	Object.fromEntries(
+		(version?.rule_set ?? []).flatMap((row): [string, Json][] =>
+			row.family === 'PAYROLL' ? [[row.code, row.rules ?? {}]] : []
+		)
 	);
-};
 export const FAMILIES = [
 	{ collection: 'adhoc_catalog_entry', catalog: 'adhoc_catalog', family: 'ADHOC' },
 	{ collection: 'claim_catalog_entry', catalog: 'claim_catalog', family: 'CLAIM' },
@@ -642,55 +670,55 @@ export const governanceMembers = (
 		'member' in ids ? { in: { member: ids.member, field: ids.field } } : { in: ids };
 	return {
 		versions: {
-			collection: 'jurisdiction_settings',
+			from: 'jurisdiction_settings',
 			where: { id: membership },
 			select: { suspension_kinds: true },
 			all: true
 		},
 		statutory: {
-			collection: 'statutory_contribution_catalog',
+			from: 'statutory_contribution_catalog',
 			where: { settings_id: membership },
 			select: { ...STATUTORY, settings_id: true },
 			all: true
 		},
 		work: {
-			collection: 'work_catalog',
+			from: 'work_catalog',
 			where: { settings_id: membership },
 			select: { ...CATALOG.work_catalog, settings_id: true },
 			all: true
 		},
 		allowance: {
-			collection: 'allowance_catalog',
+			from: 'allowance_catalog',
 			where: { settings_id: membership },
 			select: { ...CATALOG.allowance_catalog, settings_id: true },
 			all: true
 		},
 		adhoc: {
-			collection: 'adhoc_catalog',
+			from: 'adhoc_catalog',
 			where: { settings_id: membership },
 			select: CATALOG.adhoc_catalog,
 			all: true
 		},
 		claim: {
-			collection: 'claim_catalog',
+			from: 'claim_catalog',
 			where: { settings_id: membership },
 			select: CATALOG.claim_catalog,
 			all: true
 		},
 		leave: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { settings_id: membership },
 			select: CATALOG.leave_catalog,
 			all: true
 		},
 		loan: {
-			collection: 'loan_catalog',
+			from: 'loan_catalog',
 			where: { settings_id: membership },
 			select: CATALOG.loan_catalog,
 			all: true
 		},
 		rules: {
-			collection: 'rule_set',
+			from: 'rule_set',
 			where: { settings_id: membership },
 			select: { code: true, family: true, rules: true, settings_id: true },
 			all: true
@@ -853,7 +881,7 @@ export const governingVersion = Effect.fnUntraced(function* (
 	const { read } = yield* Reads;
 	const got = yield* read({
 		versions: {
-			collection: 'jurisdiction_settings',
+			from: 'jurisdiction_settings',
 			where: {
 				code: { eq: entity.settings_code },
 				voided_at: { isNull: true },
@@ -863,7 +891,7 @@ export const governingVersion = Effect.fnUntraced(function* (
 			all: true
 		},
 		rules: {
-			collection: 'rule_set',
+			from: 'rule_set',
 			where: {
 				settings_id: { in: { member: 'versions', field: 'id' } },
 				family: { eq: 'PAYROLL' }
@@ -879,57 +907,55 @@ export const entityOf = (company_id: Id<'entity'>) =>
 	Effect.gen(function* () {
 		const [entity] = yield* readAll('entity', { id: { eq: company_id } }, undefined, ENTITY);
 		if (entity == null)
-			return yield* Effect.fail(
-				new Refusal({ message: 'This needs an actual approved legal entity.' })
-			);
+			return yield* new Refusal({ message: 'This needs an actual approved legal entity.' });
 		return entity;
 	});
 const subjectMembers = (ids: readonly Id<'employment_contract'>[]) =>
 	({
 		employment: {
-			collection: 'employment_contract',
+			from: 'employment_contract',
 			where: { id: { in: ids } },
 			select: CONTRACT,
 			all: true
 		},
 		people: {
-			collection: 'employment_profile',
+			from: 'employment_profile',
 			where: { id: { in: { member: 'employment', field: 'employee_id' } } },
 			select: PROFILE,
 			all: true
 		},
 		companies: {
-			collection: 'entity',
+			from: 'entity',
 			where: { id: { in: { member: 'employment', field: 'company_id' } } },
 			select: ENTITY,
 			all: true
 		},
 		staffing: {
-			collection: 'employment_contract',
+			from: 'employment_contract',
 			where: { company_id: { in: { member: 'companies', field: 'id' } } },
 			select: { effective_range: true, engagement: true, company_id: true },
 			all: true
 		},
 		payslips: {
-			collection: 'payslip',
+			from: 'payslip',
 			where: { employment_id: { in: { member: 'employment', field: 'id' } } },
 			select: HISTORY,
 			all: true
 		},
 		runs: {
-			collection: 'payroll_run',
+			from: 'payroll_run',
 			where: { id: { in: { member: 'payslips', field: 'payroll_run_id' } } },
 			select: { kind: true },
 			all: true
 		},
 		entries: {
-			collection: 'leave_catalog_entry',
+			from: 'leave_catalog_entry',
 			where: { employment_id: { in: { member: 'employment', field: 'id' } } },
 			select: ENTRY.leave_catalog_entry,
 			all: true
 		},
 		catalogues: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { id: { in: { member: 'entries', field: 'catalog_id' } } },
 			select: { code: true },
 			all: true
@@ -1073,10 +1099,10 @@ export const subjectContext = (input: {
 			engagement: contract.engagement ?? 'EMPLOYEE',
 			exit_date: contract.effective_range?.to ?? '',
 			exit_ground: contract.exit_ground ?? '',
-			exit_facts: isDynObject(contract.exit_facts) ? contract.exit_facts : {}
+			exit_facts: contract.exit_facts ?? {}
 		};
 		const birth = employee?.date_of_birth;
-		const base_salary = moneyValue(term?.base_salary?.value);
+		const base_salary = term?.base_salary?.value ?? 0;
 		const subject = {
 			employee: {
 				gender: employee?.gender ?? '',
@@ -1084,23 +1110,23 @@ export const subjectContext = (input: {
 				nationality: employee?.nationality ?? '',
 				date_of_birth: birth ?? '',
 				age: birth == null || birth === '' ? null : Math.floor(completedMonths(birth, day) / 12),
-				children: Array.isArray(employee?.children) ? employee.children : [],
-				facts: isDynObject(employee?.facts) ? employee.facts : {}
+				children: employee?.children ?? [],
+				facts: employee?.facts ?? {}
 			},
 			company: {
 				region: entity?.region ?? '',
 				risk_class: entity?.risk_class ?? '',
 				pay_frequency: entity?.pay_frequency ?? '',
 				headcount: input.headcount,
-				facts: isDynObject(entity?.facts) ? entity.facts : {}
+				facts: entity?.facts ?? {}
 			},
 			terms: {
 				// Every key the term carries (a grade, a pay frequency, a department), beside the engine's own below.
-				...(isDynObject(term) ? term : {}),
+				...term,
 				work_classification: term?.work_classification ?? '',
 				statutory_work_category: term?.statutory_work_category ?? '',
 				employment_type: term?.employment_type ?? '',
-				facts: isDynObject(term?.facts) ? term.facts : {},
+				facts: term?.facts ?? {},
 				residency_status: term?.residency_status ?? '',
 				residency_since: term?.residency_since ?? '',
 				base_salary,
@@ -1111,7 +1137,7 @@ export const subjectContext = (input: {
 						line.code ??
 						(line.catalogue_id == null ? '' : (input.allowanceCodes?.get(line.catalogue_id) ?? '')),
 					catalogue_id: line.catalogue_id ?? '',
-					amount: moneyValue(line.amount?.value)
+					amount: line.amount.value
 				})),
 				monthly_wage: 0
 			},
@@ -1133,13 +1159,10 @@ export const subjectContext = (input: {
 			);
 		const wage =
 			rule == null ? null : (numberOf(evaluateConfigured(rule, { terms: subject.terms })) ?? 0);
-		const out = { ...subject, terms: { ...subject.terms, monthly_wage: wage } };
-		if (!isDynObject(out))
-			return yield* Result.fail(
-				new Refusal({ message: 'The payroll subject requires its actual declared values.' })
-			);
-		return out;
+		return { ...subject, terms: { ...subject.terms, monthly_wage: wage } };
 	});
+/** The payroll subject: the CEL roots `employee`, `company`, `terms`, `employment` and `person`. */
+export type Subject = Result.Result.Success<ReturnType<typeof subjectContext>>;
 /** How many of the entity's contracts are in force on a day: the CEL `company.headcount` (and `headcount`). */
 export const schemePart = (target: string): [scheme: string, part: string] => {
 	const [scheme = '', part = 'ordinary'] = target.split('.');
@@ -1178,12 +1201,11 @@ export const slipSums = (slips: readonly PayslipRow[]): DynObject => {
 	let gross = 0;
 	let net = 0;
 	for (const slip of slips) {
-		gross += moneyValue(slip.gross);
-		net += moneyValue(slip.net);
+		gross += slip.gross.toNumber();
+		net += slip.net.toNumber();
 		for (const line of [...(slip.base ?? []), ...(slip.adjustments ?? [])]) {
 			const code = line.component_code;
-			if (code != null && code !== '')
-				lines[code] = round2((lines[code] ?? 0) + moneyValue(line.amount));
+			if (code != null && code !== '') lines[code] = round2((lines[code] ?? 0) + line.amount);
 		}
 		for (const line of slip.statutory ?? []) {
 			const code = line.scheme_code;
@@ -1283,7 +1305,7 @@ export const earnedFrom = (input: {
 			history: monthsBefore(Math.max(LONG_HISTORY_MONTHS, input.historyMonths)),
 			previous_month: {
 				...slipSums(previousSlips),
-				base_salary: moneyValue(previousTerm?.base_salary?.value)
+				base_salary: previousTerm?.base_salary?.value ?? 0
 			}
 		};
 	});
@@ -1818,7 +1840,7 @@ export const workDay = (input: {
 			overtime_consented_at: consent == null ? null : consent,
 			overtime_consented: consent != null,
 			worksite: worksite ?? '',
-			facts: isJsonObject(facts) ? facts : {},
+			facts: facts ?? {},
 			suspended:
 				input.suspension == null
 					? null
@@ -1826,7 +1848,7 @@ export const workDay = (input: {
 							kind: input.suspension.kind,
 							from: input.suspension.starts_on,
 							to: input.suspension.ends_on,
-							facts: isJsonObject(input.suspension.facts) ? input.suspension.facts : {}
+							facts: input.suspension.facts ?? {}
 						},
 			/** Credited clock intersections, preserving lateness and internal gaps rather than shifting paid time. */
 			intervals: clocks(
@@ -1975,20 +1997,101 @@ export const hoursFrom = (input: {
 export const hoursStart = (from: string, historyMonths: number): string =>
 	String(addMonths(String(monthOf(from).from), 1 - historyMonths));
 // ponytail: `attendance` reads the 24 months before the day read (a previous service year); a longer one needs more.
-const ATTENDANCE_MONTHS = 24;
+export const ATTENDANCE_MONTHS = 24;
 /**
  * The employment's days from 24 months before `asOf` (or its start) through `asOf`, as the leave entitlement's
  * `attendance` root counts them: the planned day type (the roster's shift, else the pattern of the terms in force),
  * recorded attendance, a published holiday, and the codes of the approved time off covering the day — each movement
  * named by its own class's code, whatever version captured it.
  */
+/** The shared attendance window of a write batch, read once for every employment it touches. */
+export const attendanceMembers = (
+	employmentIds: readonly Id<'employment_contract'>[],
+	companyIds: readonly Id<'entity'>[],
+	span: { readonly from: string; readonly to: string }
+) =>
+	({
+		roster: {
+			from: 'roster_entry',
+			where: {
+				employment_id: { in: employmentIds },
+				work_date: { gte: PlainDate(span.from), lte: PlainDate(span.to) }
+			},
+			select: ROSTER,
+			all: true
+		},
+		leave: {
+			from: 'leave_catalog_entry',
+			where: { employment_id: { in: employmentIds }, activity: { eq: 'TIME_OFF' } },
+			select: {
+				employment_id: true,
+				catalog_id: true,
+				occurred_on: true,
+				days: true,
+				from: true,
+				to: true
+			},
+			all: true
+		},
+		catalogues: {
+			from: 'leave_catalog',
+			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
+			select: { code: true },
+			all: true
+		},
+		definitions: {
+			from: 'shift_definition',
+			where: { company_id: { in: companyIds } },
+			select: { company_id: true, code: true, variant: true },
+			all: true
+		},
+		patterns: {
+			from: 'shift_pattern',
+			where: { company_id: { in: companyIds } },
+			select: { company_id: true, pattern: true, effective_range: true },
+			all: true
+		},
+		holidays: {
+			from: 'holiday',
+			where: {
+				company_id: { in: companyIds },
+				date: { gte: PlainDate(span.from), lte: PlainDate(span.to) },
+				published_at: { isNull: false }
+			},
+			select: { ...HOLIDAY, company_id: true },
+			all: true
+		},
+		suspensions: {
+			from: 'work_suspension',
+			where: {
+				company_id: { in: companyIds },
+				starts_on: { lte: PlainDate(span.to) },
+				ends_on: { gte: PlainDate(span.from) }
+			},
+			select: {
+				company_id: true,
+				kind: true,
+				starts_on: true,
+				ends_on: true,
+				worksite: true,
+				employment_ids: true,
+				facts: true
+			},
+			all: true
+		}
+	}) as const;
+const readAttendance = (read: Read, ...args: Parameters<typeof attendanceMembers>) =>
+	read(attendanceMembers(...args));
+export type AttendanceRead = Effect.Success<ReturnType<typeof readAttendance>>;
+
 export const attendanceDays = (
 	contract: ContractRow,
 	asOf: string,
 	context: DynObject,
 	zone: string,
 	/** The version governing `asOf` (its suspension kinds), when the caller holds it. */
-	governing?: SettingsRow
+	governing?: SettingsRow,
+	prefetched?: AttendanceRead
 ) =>
 	Effect.gen(function* () {
 		const from = [String(addMonths(asOf, -ATTENDANCE_MONTHS)), contract.effective_range?.from ?? '']
@@ -1998,86 +2101,40 @@ export const attendanceDays = (
 		if (from > to) return [];
 		// One read: the days, the time off with its classes' codes, and the entity's calendar over the window.
 		const { read } = yield* Reads;
-		const got = yield* read({
-			roster: {
-				collection: 'roster_entry',
-				where: {
-					employment_id: { eq: contract.id },
-					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
-				},
-				select: ROSTER,
-				all: true
-			},
-			leave: {
-				collection: 'leave_catalog_entry',
-				where: { employment_id: { eq: contract.id }, activity: { eq: 'TIME_OFF' } },
-				select: { catalog_id: true, occurred_on: true, days: true, from: true, to: true },
-				all: true
-			},
-			catalogues: {
-				collection: 'leave_catalog',
-				where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			definitions: {
-				collection: 'shift_definition',
-				where: { company_id: { eq: contract.company_id } },
-				select: { code: true, variant: true },
-				all: true
-			},
-			patterns: {
-				collection: 'shift_pattern',
-				where: { company_id: { eq: contract.company_id } },
-				select: { pattern: true, effective_range: true },
-				all: true
-			},
-			holidays: {
-				collection: 'holiday',
-				where: {
-					company_id: { eq: contract.company_id },
-					date: { gte: PlainDate(from), lte: PlainDate(to) },
-					published_at: { isNull: false }
-				},
-				select: HOLIDAY,
-				all: true
-			},
-			suspensions: {
-				collection: 'work_suspension',
-				where: {
-					company_id: { eq: contract.company_id },
-					starts_on: { lte: PlainDate(to) },
-					ends_on: { gte: PlainDate(from) }
-				},
-				select: {
-					kind: true,
-					starts_on: true,
-					ends_on: true,
-					worksite: true,
-					employment_ids: true,
-					facts: true
-				},
-				all: true
-			}
-		});
-		const roster = got.roster.rows;
+		const got =
+			prefetched ??
+			(yield* readAttendance(read, [contract.id], [contract.company_id], { from, to }));
+		const roster = got.roster.rows.filter(
+			(row) => row.employment_id === contract.id && row.work_date >= from && row.work_date <= to
+		);
 		const definitions = new Map<string, ShiftDefinitionRow>(
-			got.definitions.rows.map((row) => [row.id, row])
+			got.definitions.rows
+				.filter((row) => row.company_id === contract.company_id)
+				.map((row) => [row.id, row])
 		);
 		const patterns = new Map<string, ShiftPatternRow>(
-			got.patterns.rows.map((row) => [row.id, row])
+			got.patterns.rows
+				.filter((row) => row.company_id === contract.company_id)
+				.map((row) => [row.id, row])
 		);
-		const holidays = new Set<string>(got.holidays.rows.map((holiday) => holiday.date));
-		const leave = got.leave.rows;
+		const holidays = new Set<string>(
+			got.holidays.rows
+				.filter((row) => row.company_id === contract.company_id)
+				.map((holiday) => holiday.date)
+		);
+		const leave = got.leave.rows.filter((row) => row.employment_id === contract.id);
 		const codes = new Map<string, string>(got.catalogues.rows.map((row) => [row.id, row.code]));
-		const suspensions = got.suspensions.rows;
+		const suspensions = got.suspensions.rows.filter(
+			(row) => row.company_id === contract.company_id
+		);
 		const version =
 			governing ?? (yield* governingVersion(yield* entityOf(contract.company_id), asOf));
 		const policy = yield* Effect.fromResult(attendancePolicy(version));
-		const kinds =
-			suspensions.length === 0
-				? new Map<string, SuspensionKind>()
-				: yield* suspensionKinds(version.id);
+		const kinds = new Map(
+			(yield* Effect.fromResult(
+				fieldValue(version.suspension_kinds, 'jurisdiction_settings.suspension_kinds')
+			)).map((kind) => [kind.code, kind])
+		);
 		const covered = leave.flatMap((row) => {
 			const range = coverageRange(row.from, row.to, num(row.days, 1), row.occurred_on);
 			return range == null || range.to < from
@@ -2121,7 +2178,7 @@ export const attendanceDays = (
 							day: { date, worked: day.worked === true, day_type: planned?.day_type ?? '' },
 							suspension: {
 								kind: suspension.kind,
-								facts: isJsonObject(suspension.facts) ? suspension.facts : {}
+								facts: suspension.facts ?? {}
 							}
 						});
 			out.push({
@@ -2167,12 +2224,13 @@ export const leaveSubject = (
 	/** The version governing `asOf`, when the caller holds it; else it is read. */
 	governing?: SettingsRow,
 	/** The employment read with `SUBJECT_ARMS`, when the caller holds it; else it is read. */
-	preloaded?: Employment
+	preloaded?: Employment,
+	attendanceRead?: AttendanceRead
 ) =>
 	Effect.gen(function* () {
 		const contract = preloaded ?? (yield* employmentOf(employment_id));
 		if (contract == null)
-			return yield* Effect.fail(new Refusal({ message: 'This entry needs an actual employment.' }));
+			return yield* new Refusal({ message: 'This entry needs an actual employment.' });
 		const entity = contract.company ?? undefined;
 		const employee = contract.person ?? undefined;
 		const slips = contract.payslip;
@@ -2227,7 +2285,8 @@ export const leaveSubject = (
 					asOf,
 					context,
 					yield* Effect.fromResult(zoneOf(entity ?? { time_zone: null }, found)),
-					found
+					found,
+					attendanceRead
 				)
 			: undefined;
 		return { context, employmentStart: contract.effective_range?.from ?? null, days };
@@ -2245,7 +2304,7 @@ export const leaveStateMembers = (
 	return {
 		...subjectMembers([...new Set(wants.map((want) => want.employment_id))]),
 		versions: {
-			collection: 'jurisdiction_settings',
+			from: 'jurisdiction_settings',
 			where: {
 				code: { in: { member: 'companies', field: 'settings_code' } },
 				voided_at: { isNull: true },
@@ -2262,13 +2321,13 @@ export const leaveStateMembers = (
 			all: true
 		},
 		classes: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
 			select: { ...LEAVE_CLASS, settings_id: true },
 			all: true
 		},
 		rules: {
-			collection: 'rule_set',
+			from: 'rule_set',
 			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
 			select: { code: true, family: true, rules: true, settings_id: true },
 			all: true
@@ -2293,7 +2352,7 @@ export const leaveState = (
 		const got = prefetched ?? (yield* loadLeaveState(read, [{ employment_id, asOf }]));
 		const contract = employmentFrom(got, employment_id);
 		if (contract == null)
-			return yield* Effect.fail(new Refusal({ message: 'This entry needs an actual employment.' }));
+			return yield* new Refusal({ message: 'This entry needs an actual employment.' });
 		const company = yield* companyOf(contract);
 		const selected = yield* Effect.fromResult(
 			versionOn(

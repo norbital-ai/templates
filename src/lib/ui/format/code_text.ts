@@ -1,7 +1,4 @@
-/**
- * Code as people read it: a CEL expression broken over lines, a stored value as indented lines, and a line diff
- * of two such texts. The settings editors and the snapshot compare share them.
- */
+/** CEL expression formatting for seed output and expression field names for settings editors. */
 import * as Predicate from 'effect/Predicate';
 import { Result } from 'effect';
 import { parse, type ASTNode } from '@marcbachmann/cel-js';
@@ -206,87 +203,4 @@ export function formatCel(source: string): string {
 		}),
 		() => source
 	);
-}
-
-/**
- * A stored value as indented `key: value` lines, keys sorted, CEL formatted and prose one sentence a line, so a
- * diff lands on the line that moved.
- */
-export function valueLines(value: unknown, key = ''): string[] {
-	if (value === null || value === undefined) return ['—'];
-	if (!Predicate.isObjectOrArray(value)) {
-		if (!Predicate.isString(value)) return [String(value)];
-		if (CEL_KEYS.has(key)) return formatCel(value).split('\n');
-		return value.split(/\n|(?<=[.;。；])\s+/);
-	}
-	const list = Array.isArray(value);
-	const entries: [string, unknown, string][] = list
-		? value.map((item): [string, unknown, string] => ['-', item, key])
-		: Object.entries(value)
-				.toSorted(([left], [right]) => left.localeCompare(right))
-				.map(([name, item]): [string, unknown, string] => [`${name}:`, item, name]);
-	if (entries.length === 0) return [list ? '[]' : '{}'];
-	return entries.flatMap(([label, item, name]) => {
-		const inner = valueLines(item, name);
-		const scalar = !Predicate.isObjectOrArray(item);
-		return scalar && inner.length === 1
-			? [`${label} ${inner[0]}`]
-			: [label, ...inner.map((text) => STEP + text)];
-	});
-}
-
-type DiffLine = { readonly kind: 'same' | 'removed' | 'added'; readonly text: string };
-
-/** A line diff by longest common subsequence. */
-export function lineDiff(left: readonly string[], right: readonly string[]): DiffLine[] {
-	// ponytail: O(n·m) table; past ~4M cells it reports a whole replacement instead of a minimal diff
-	if (left.length * right.length > 4_000_000)
-		return [
-			...left.map((text) => ({ kind: 'removed' as const, text })),
-			...right.map((text) => ({ kind: 'added' as const, text }))
-		];
-	const n = left.length;
-	const m = right.length;
-	const table = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
-	for (let i = n - 1; i >= 0; i -= 1)
-		for (let j = m - 1; j >= 0; j -= 1)
-			table[i]![j] =
-				left[i] === right[j]
-					? table[i + 1]![j + 1]! + 1
-					: Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
-	const out: DiffLine[] = [];
-	let i = 0;
-	let j = 0;
-	while (i < n && j < m) {
-		if (left[i] === right[j]) {
-			out.push({ kind: 'same', text: left[i]! });
-			i += 1;
-			j += 1;
-		} else if (table[i + 1]![j]! >= table[i]![j + 1]!)
-			out.push({ kind: 'removed', text: left[i++]! });
-		else out.push({ kind: 'added', text: right[j++]! });
-	}
-	while (i < n) out.push({ kind: 'removed', text: left[i++]! });
-	while (j < m) out.push({ kind: 'added', text: right[j++]! });
-	return out;
-}
-
-/** The diff with runs of unchanged lines beyond `context` of a change folded into a count. */
-export function foldDiff(
-	lines: readonly DiffLine[],
-	context = 3
-): (DiffLine | { readonly kind: 'fold'; readonly count: number })[] {
-	const near = lines.map((_, at) =>
-		lines.slice(Math.max(0, at - context), at + context + 1).some((line) => line.kind !== 'same')
-	);
-	const out: (DiffLine | { kind: 'fold'; count: number })[] = [];
-	for (const [at, line] of lines.entries()) {
-		if (line.kind !== 'same' || near[at]) out.push(line);
-		else {
-			const last = out[out.length - 1];
-			if (last?.kind === 'fold') last.count += 1;
-			else out.push({ kind: 'fold', count: 1 });
-		}
-	}
-	return out;
 }

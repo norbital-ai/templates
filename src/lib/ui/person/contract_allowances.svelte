@@ -3,7 +3,7 @@
 	import { Button, Input } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import type { Schema } from 'effect';
-	import { t } from '../i18n/t.js';
+	import { bolt } from '$bolt';
 
 	let {
 		lines = $bindable(),
@@ -24,12 +24,12 @@
 </script>
 
 <Stack gap="xs">
-	<span class="text-xs font-medium text-muted-foreground">{t('component.allowances')}</span>
-	<p class="text-xs text-muted-foreground">{t('component.allowances_hint')}</p>
+	<span class="text-xs font-medium text-muted-foreground">{bolt.t('component.allowances')}</span>
+	<p class="text-xs text-muted-foreground">{bolt.t('component.allowances_hint')}</p>
 	{#each lines as line, index (index)}
 		<Cluster gap="sm">
 			<Input
-				aria-label={t('component.allowances')}
+				aria-label={bolt.t('component.allowances')}
 				value={line.code}
 				{disabled}
 				onchange={(event: Event & { currentTarget: HTMLInputElement }) => {
@@ -40,7 +40,7 @@
 			/>
 			<Input
 				type="number"
-				aria-label={t('component.allowance_amount')}
+				aria-label={bolt.t('component.allowance_amount')}
 				value={line.amount}
 				{disabled}
 				onchange={(event: Event & { currentTarget: HTMLInputElement }) => {
@@ -50,11 +50,11 @@
 				}}
 			/>
 			<Button variant="outline" {disabled} onclick={() => remove(index)}>
-				{t('component.contract_allowances_remove')}
+				{bolt.t('component.contract_allowances_remove')}
 			</Button>
 		</Cluster>
 	{/each}
 	<Button size="sm" variant="outline" {disabled} onclick={add}>
-		{t('component.contract_allowances_add')}
+		{bolt.t('component.contract_allowances_add')}
 	</Button>
 </Stack>

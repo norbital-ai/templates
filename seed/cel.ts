@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 import { Predicate, Schema } from 'effect';
 import { STATUTORY_FIELDS } from '../src/lib/payroll_engine/statutory_fields.js';
 import { SUSPENSION_KINDS_SHAPE } from '../src/lib/payroll_engine/suspension_kinds.js';
@@ -18,7 +19,7 @@ const cel: Shape = { kind: 'text', format: 'cel' };
 const object = (fields: Readonly<Record<string, Shape>>): Shape => ({ kind: 'object', fields });
 const list = (of: Shape): Shape => ({ kind: 'list', of });
 const expressions = (names: readonly string[]): Readonly<Record<string, Shape>> =>
-	Object.fromEntries(names.map((name) => [name, cel]));
+	Object.fromEntries(names.map((name): [string, Shape] => [name, cel]));
 const declarations: Readonly<Record<string, Readonly<Record<string, Shape>>>> = {
 	...STATUTORY_FIELDS,
 	jurisdiction_settings: {
@@ -31,7 +32,11 @@ const declarations: Readonly<Record<string, Readonly<Record<string, Shape>>>> = 
 function formatDeclared(value: Json, shape: Shape): Json {
 	if (shape.format === 'cel' && Predicate.isString(value)) return formatCel(value);
 	if (shape.shape !== undefined) return formatDeclared(value, shape.shape);
-	if (shape.kind === 'list' && Array.isArray(value) && Predicate.isObject(shape.of)) {
+	if (
+		shape.kind === 'list' &&
+		EffectArray.isArray<typeof value>(value) &&
+		Predicate.isObject(shape.of)
+	) {
 		const item = shape.of;
 		return value.map((entry) => formatDeclared(entry, item));
 	}
@@ -40,7 +45,7 @@ function formatDeclared(value: Json, shape: Shape): Json {
 	if (shape.fields !== undefined) {
 		const fields = shape.fields;
 		return Object.fromEntries(
-			Object.entries(record).map(([key, entry]) => [
+			Object.entries(record).map(([key, entry]): [string, Json] => [
 				key,
 				fields[key] === undefined ? entry : formatDeclared(entry, fields[key])
 			])
@@ -49,7 +54,10 @@ function formatDeclared(value: Json, shape: Shape): Json {
 	if (shape.kind === 'record' && Predicate.isObject(shape.of)) {
 		const item = shape.of;
 		return Object.fromEntries(
-			Object.entries(record).map(([key, entry]) => [key, formatDeclared(entry, item)])
+			Object.entries(record).map(([key, entry]): [string, Json] => [
+				key,
+				formatDeclared(entry, item)
+			])
 		);
 	}
 	return value;
@@ -58,10 +66,12 @@ function formatDeclared(value: Json, shape: Shape): Json {
 /** Behaviour read predicates define every string leaf as CEL, including strings inside operator arrays. */
 function formatWhere(value: Json): Json {
 	if (Predicate.isString(value)) return formatCel(value);
-	if (Array.isArray(value)) return value.map(formatWhere);
+	if (EffectArray.isArray<typeof value>(value)) return value.map(formatWhere);
 	const record = rowOf(value);
 	return record !== null
-		? Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, formatWhere(entry)]))
+		? Object.fromEntries(
+				Object.entries(record).map(([key, entry]): [string, Json] => [key, formatWhere(entry)])
+			)
 		: value;
 }
 
@@ -83,7 +93,7 @@ export function formatSeedRow(collection: string, row: Row): Row {
 	if (declared === null) return row;
 	const behaviours = rowOf(declared['behaviours']);
 	if (collection === 'jurisdiction_settings' && behaviours !== null) {
-		if (Array.isArray(behaviours['rules'])) {
+		if (EffectArray.isArray<Json | undefined>(behaviours['rules'])) {
 			return {
 				...declared,
 				behaviours: {
@@ -95,7 +105,7 @@ export function formatSeedRow(collection: string, row: Row): Row {
 						return {
 							...entry,
 							reads: Object.fromEntries(
-								Object.entries(reads).map(([key, read]) => {
+								Object.entries(reads).map(([key, read]): [string, Json] => {
 									const definition = rowOf(read);
 									return [
 										key,

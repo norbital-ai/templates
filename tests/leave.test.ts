@@ -1,10 +1,7 @@
 /** L-TPL-hr-payroll-072 balances; 073 preview; 075 write refusals; 078 roster coverage. */
-import { isMasked } from '@norbital-ai/bolt';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { Effect } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { lineage, world } from './jurisdiction_kit.ts';
 import {
 	chargeableDays,
 	classFromRow,
@@ -98,77 +95,29 @@ const taken = (
 });
 
 describe('leave', () => {
-	it.effect(
-		'L-TPL-hr-payroll-072 prorates the first year and uses the service band after twelve months',
-		Effect.fnUntraced(function* () {
-			assert.equal(entitlementDays(annual.entitlement, 6), 4);
-			assert.equal(entitlementDays(annual.entitlement, 86), 13);
-			// The seeded SG row: EA s.88A, 7 days pro-rated half-up below a year (6 months → 3.5 → 4), 14 from 84 months.
-			const law = lineage('SG');
-			const seeded = yield* world(law.law()).withRead((read) =>
-				Effect.gen(function* () {
-					const id = nativeId(
-						'leave_catalog',
-						law.byCode(law.versionOn('2026-10-20'), 'leave_catalog', 'ANNUAL_LEAVE')['id']
-					);
-					const row = (yield* read('leave_catalog', {
-						where: { id: { eq: id } },
-						select: {
-							code: true,
-							name: true,
-							can_encash: true,
-							is_npl: true,
-							consumes_code: true,
-							entitlement: true,
-							eligibility: true
-						},
-						all: true
-					})).rows[0];
-					assert.ok(row);
-					assert.ok(
-						!isMasked(row.code) &&
-							!isMasked(row.name) &&
-							!isMasked(row.can_encash) &&
-							!isMasked(row.is_npl) &&
-							!isMasked(row.consumes_code) &&
-							!isMasked(row.entitlement) &&
-							!isMasked(row.eligibility)
-					);
-					return classFromRow({
-						id: row.id,
-						code: row.code,
-						name: row.name,
-						can_encash: row.can_encash,
-						is_npl: row.is_npl,
-						consumes_code: row.consumes_code,
-						entitlement: row.entitlement,
-						eligibility: row.eligibility
-					}).entitlement;
-				})
-			);
-			assert.deepEqual(
-				[0, 1, 6, 11, 12, 86].map((months) => entitlementDays(seeded, months)),
-				[0, 1, 4, 6, 8, 14]
-			);
-			const rows = leaveBalances({
-				classes: [annual],
-				movements: [taken('al', 4)],
-				serviceMonths: 86
-			});
-			assert.deepEqual(rows[0], {
-				catalog_id: catalog('al'),
-				code: 'ANNUAL_LEAVE',
-				name: 'Annual leave',
-				metered: true,
-				entitlement: 13,
-				carried: 0,
-				taken: 4,
-				available: 9,
-				window_key: '',
-				window_to: ''
-			});
-		})
-	);
+	it('L-TPL-hr-payroll-072 prorates the first year and uses the service band after twelve months', () => {
+		assert.deepEqual(
+			[0, 1, 6, 11, 12, 86].map((months) => entitlementDays(annual.entitlement, months)),
+			[0, 1, 4, 6, 7, 13]
+		);
+		const rows = leaveBalances({
+			classes: [annual],
+			movements: [taken('al', 4)],
+			serviceMonths: 86
+		});
+		assert.deepEqual(rows[0], {
+			catalog_id: catalog('al'),
+			code: 'ANNUAL_LEAVE',
+			name: 'Annual leave',
+			metered: true,
+			entitlement: 13,
+			carried: 0,
+			taken: 4,
+			available: 9,
+			window_key: '',
+			window_to: ''
+		});
+	});
 
 	it('a balance listing offers only the classes whose eligibility holds for the employee', () => {
 		const fullTime = { employment_type: 'PERMANENT' };

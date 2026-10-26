@@ -3126,7 +3126,7 @@
 			}
 		],
 		"rules": {
-			"description": "Erase or destroy a former employee's personal data when its retention period ends (anonymise the profile: employment_profile.anonymise), unless keeping it is needed to establish or defend legal claims or to comply with the law. Raised on the exit; due on the record_retention date (five years after the exit year ends).",
+			"description": "Erase or destroy a former employee's personal data when its retention period ends (anonymise the profile: employment_profile_anonymise), unless keeping it is needed to establish or defend legal claims or to comply with the law. Raised on the exit; due on the record_retention date (five years after the exit year ends).",
 			"trigger": {
 				"collection": "employment_contract",
 				"events": ["updated"],

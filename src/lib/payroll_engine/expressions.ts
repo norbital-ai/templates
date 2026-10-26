@@ -1,14 +1,14 @@
+import { Array as EffectArray } from 'effect';
 import { Predicate } from 'effect';
 import { Result, Schema, SchemaTransformation } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
 import { context as formulaContext, compile, evaluate } from '@norbital-ai/std/formula';
-import { addDays, addMonths, datePeriod, days, monthOf } from '@norbital-ai/std/date';
+import { isPlainDate, addDays, addMonths, datePeriod, days, monthOf } from '@norbital-ai/std/date';
 import {
 	type DynObject,
 	type Json,
 	completedMonths,
 	getErrorMessage,
-	isCalendarDate,
 	isDynObject,
 	Refusal
 } from './foundation.js';
@@ -21,11 +21,21 @@ const environment = (roots: readonly string[]) => {
 	let held = environments.get(key);
 	if (held === undefined) {
 		held = formulaContext(
-			Object.fromEntries(roots.map((name) => [name, { kind: 'json' as const }])),
+			Object.fromEntries(
+				roots.map((name): [string, { readonly kind: 'json' }] => [name, { kind: 'json' }])
+			),
 			{
 				numbers: 'float',
 				functions: Object.fromEntries(
-					registrations.map(([signature, fn], index) => [String(index), { signature, fn }])
+					registrations.map(
+						(
+							[signature, fn],
+							index
+						): [
+							string,
+							{ readonly signature: string; readonly fn: (typeof registrations)[number][1] }
+						] => [String(index), { signature, fn }]
+					)
 				)
 			}
 		);
@@ -90,7 +100,7 @@ const RECORD = {
 const DATE = {
 	schema: Schema.String.check(
 		Schema.makeFilter((value: string) =>
-			isCalendarDate(value.slice(0, 10)) ? undefined : 'a valid calendar date'
+			isPlainDate(value.slice(0, 10)) ? undefined : 'a valid calendar date'
 		)
 	).pipe(
 		Schema.decodeTo(
@@ -219,7 +229,8 @@ register('sum', [1], (list) =>
  */
 register('count_within', [4], (list, field, from, to) => {
 	// Only the items the search touches are read: validating the whole list per call would make a window test O(n²).
-	if (!Array.isArray(list)) throw new Refusal({ message: 'Count within requires an actual list.' });
+	if (!EffectArray.isArray(list))
+		throw new Refusal({ message: 'Count within requires an actual list.' });
 	const items: readonly unknown[] = list;
 	const key = String(field);
 	const at = (i: number) => {
@@ -257,12 +268,12 @@ register('bracket', [2], (value, table) => {
 	const amount = argument(NUMBER, value, 'Bracket');
 	const bands = argument(LIST, table, 'Bracket');
 	const figure = (band: unknown): number => {
-		if (Array.isArray(band)) return argument(NUMBER, band[1], 'Bracket');
+		if (EffectArray.isArray(band)) return argument(NUMBER, band[1], 'Bracket');
 		const record = argument(RECORD, band, 'Bracket');
 		return argument(NUMBER, 'rate' in record ? record.rate : record.amount, 'Bracket');
 	};
 	for (const band of bands) {
-		const upTo = Array.isArray(band) ? band[0] : argument(RECORD, band, 'Bracket').up_to;
+		const upTo = EffectArray.isArray(band) ? band[0] : argument(RECORD, band, 'Bracket').up_to;
 		if (upTo == null || amount <= argument(NUMBER, upTo, 'Bracket')) return figure(band);
 	}
 	return bands.length === 0 ? 0 : figure(bands.at(-1));
@@ -273,7 +284,7 @@ register('ladder', [2], (value, table) => {
 	let total = 0;
 	let previous = 0;
 	for (const band of argument(LIST, table, 'Ladder')) {
-		const pair = Array.isArray(band)
+		const pair = EffectArray.isArray(band)
 			? band
 			: [argument(RECORD, band, 'Ladder').up_to, argument(RECORD, band, 'Ladder').rate];
 		const upTo = pair[0] == null ? amount : argument(NUMBER, pair[0], 'Ladder');

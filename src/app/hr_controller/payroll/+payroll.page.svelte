@@ -7,9 +7,9 @@
 	 * consumed catalogue entry to its slip. Selected runs have separate bank-file and salary-listing export actions.
 	 */
 	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
+	import type { Id, Row } from '@norbital-ai/bolt';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
-	import { downloadTextFiles, EmptyState, Table, toast } from '@norbital-ai/ui';
+	import { Badge, downloadTextFiles, EmptyState, Table, toast } from '@norbital-ai/ui';
 	import { downloadSalaryReport } from '../../../lib/ui/payroll/salary_report.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
@@ -21,7 +21,7 @@
 		if (ids.length === 0 || exporting) return;
 		exporting = true;
 		fork(
-			bolt.query('payroll_run.export_payroll', { ids, kind }).pipe(
+			bolt.query('payroll_run.export_payroll', { ids, kind, generated_at: bolt.clock().now }).pipe(
 				Effect.flatMap(({ documents, salary_reports }) => {
 					if (kind === 'SALARY') return downloadSalaryReport(salary_reports);
 					return Effect.sync(() => {
@@ -43,6 +43,17 @@
 		);
 	}
 </script>
+
+<!-- a run's warnings are one per line: the list shows how many, the run lists them -->
+{#snippet warningsCell({
+	value
+}: {
+	value: Row<'payroll_run'>['warnings'] | undefined;
+})}{@const count = (value ?? '')
+		.split('\n')
+		.filter((line) => line.trim() !== '').length}{#if count > 0}<Badge variant="warning"
+			>{bolt.t('component.workbook_warnings', { count })}</Badge
+		>{/if}{/snippet}
 
 <AppShell
 	icon="lucide:receipt"
@@ -90,7 +101,7 @@
 					'pay_due_date',
 					'attendance_from',
 					'attendance_to',
-					'warnings'
+					{ field: 'warnings', cell: warningsCell }
 				]}
 			/>
 		</Stack>

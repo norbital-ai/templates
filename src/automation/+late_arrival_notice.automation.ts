@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 import { addDays } from '@norbital-ai/std/date';
 import { Effect, Result, Schema } from 'effect';
-import { lateArrivalNotices, shiftVariantFrom } from '../lib/payroll_engine/late_arrival.js';
+import { lateArrivalNotices } from '../lib/payroll_engine/late_arrival.js';
 import { movementFromRow } from '../lib/payroll_engine/leave.js';
 import { fieldValue } from '../lib/payroll_engine/foundation.js';
 import { zoneOn } from '../lib/payroll_engine/payslip/context.js';
@@ -15,171 +15,172 @@ const isString = Schema.is(Schema.String);
  * Every five minutes, one in-app reminder per person-day to the production manager when a rostered WORK
  * shift has no clock-in after the entity’s late-arrival grace. Days covered by committed TIME_OFF are skipped.
  */
-const late_arrival_notice = automation({
+export default automation('late_arrival_notice', {
 	description:
 		'Every five minutes, one in-app reminder per person-day to the production manager when a rostered WORK shift has no clock-in after the entity’s late-arrival grace. Days covered by committed TIME_OFF are skipped.',
 	on: { cron: '*/5 * * * *' },
 	output: { kind: 'object', fields: { checked: { kind: 'int' }, reminded: { kind: 'int' } } },
 	runAs: ['late_arrival_notice_automation'],
-	concurrency: { max: 1 }
-});
-export default late_arrival_notice;
-late_arrival_notice.run(function* (_, ctx) {
-	const since = addDays(ctx.today, -2);
-	// One read through the relations: each entity with its shifts and the contracts that have a recent roster day —
-	// each with its person's name, its recent roster days and the time off reaching the window.
-	const recent = { work_date: { gte: since } } as const;
-	const { rows: entities } = yield* ctx.read('entity', {
-		select: {
-			late_arrival_grace_minutes: true,
-			late_arrival_team: true,
-			settings_code: true,
-			time_zone: true,
-			shift_definition: { select: { code: true, variant: true }, all: true },
-			employment_contract: {
-				select: {
-					employee_number: true,
-					employee_id: { select: { name: true } },
-					roster_entry: {
-						select: {
-							employment_id: true,
-							work_date: true,
-							worked_intervals: true,
-							shift_definition_id: true
+	concurrency: { max: 1 },
+	run: function* (_, ctx) {
+		const since = addDays(ctx.today, -2);
+		// One read through the relations: each entity with its shifts and the contracts that have a recent roster day —
+		// each with its person's name, its recent roster days and the time off reaching the window.
+		const recent = { work_date: { gte: since } } as const;
+		const { rows: entities } = yield* ctx.query('entity', {
+			select: {
+				late_arrival_grace_minutes: true,
+				late_arrival_team: true,
+				settings_code: true,
+				time_zone: true,
+				shift_definition: { select: { code: true, variant: true }, all: true },
+				employment_contract: {
+					select: {
+						employee_number: true,
+						employee_id: { select: { name: true } },
+						roster_entry: {
+							select: {
+								employment_id: true,
+								work_date: true,
+								worked_intervals: true,
+								shift_definition_id: true
+							},
+							where: recent,
+							all: true
 						},
-						where: recent,
-						all: true
+						leave_catalog_entry: {
+							select: {
+								catalog_id: true,
+								employment_id: true,
+								activity: true,
+								occurred_on: true,
+								days: true,
+								from: true,
+								to: true
+							},
+							where: {
+								activity: { eq: 'TIME_OFF' },
+								or: [{ to: { gte: since } }, { occurred_on: { gte: since } }]
+							},
+							all: true
+						}
 					},
-					leave_catalog_entry: {
+					where: { roster_entry: { some: recent } },
+					all: true
+				}
+			},
+			all: true
+		});
+		// An entity without a zone counts its shifts in its version's `payroll.timezone`: one read of those lineages.
+		const codes = [
+			...new Set(
+				entities.filter((entity) => !isString(entity.time_zone)).map((e) => e.settings_code)
+			)
+		];
+		const versions =
+			codes.length === 0
+				? []
+				: (yield* ctx.query('jurisdiction_settings', {
 						select: {
-							catalog_id: true,
-							employment_id: true,
-							activity: true,
-							occurred_on: true,
-							days: true,
-							from: true,
-							to: true
+							code: true,
+							sealed_at: true,
+							voided_at: true,
+							effective_range: true,
+							payroll: true
 						},
 						where: {
-							activity: { eq: 'TIME_OFF' },
-							or: [{ to: { gte: since } }, { occurred_on: { gte: since } }]
+							code: { in: codes },
+							sealed_at: { isNull: false },
+							voided_at: { isNull: true }
 						},
 						all: true
-					}
-				},
-				where: { roster_entry: { some: recent } },
-				all: true
-			}
-		},
-		all: true
-	});
-	// An entity without a zone counts its shifts in its version's `payroll.timezone`: one read of those lineages.
-	const codes = [
-		...new Set(entities.filter((entity) => !isString(entity.time_zone)).map((e) => e.settings_code))
-	];
-	const versions =
-		codes.length === 0
-			? []
-			: (yield* ctx.read('jurisdiction_settings', {
-					select: {
-						code: true,
-						sealed_at: true,
-						voided_at: true,
-						effective_range: true,
-						payroll: true
-					},
-					where: {
-						code: { in: codes },
-						sealed_at: { isNull: false },
-						voided_at: { isNull: true }
-					},
-					all: true
-				})).rows;
-	const leave = {
-		rows: entities.flatMap((entity) =>
-			entity.employment_contract.flatMap((contract) => contract.leave_catalog_entry)
-		)
-	};
-	const entries = entities.flatMap((entity) =>
-		entity.employment_contract.flatMap((contract) => contract.roster_entry)
-	);
-	// an entity names the team its reminders go to; one naming none sends none
-	const notified = entities.flatMap((entity) =>
-		entity.late_arrival_team == null || !isTeam(entity.late_arrival_team)
-			? []
-			: [{ ...entity, team: entity.late_arrival_team }]
-	);
-	const teamOf = new Map(
-		notified.flatMap((entity) =>
-			entity.employment_contract.flatMap((contract) =>
-				contract.roster_entry.map((row) => [row.id, entity.team] as const)
+					})).rows;
+		const leave = {
+			rows: entities.flatMap((entity) =>
+				entity.employment_contract.flatMap((contract) => contract.leave_catalog_entry)
 			)
-		)
-	);
-	const candidates = (yield* Effect.fromResult(
-		Result.all(
-			notified.map((entity) =>
-				Result.gen(function* () {
-					const byShift = new Map(entity.shift_definition.map((row) => [row.id, row]));
-					const grace = yield* fieldValue(
-						entity.late_arrival_grace_minutes,
-						'entity.late_arrival_grace_minutes'
-					);
-					const zone = yield* zoneOn(entity, versions, String(ctx.today));
-					return yield* Result.all(
-						entity.employment_contract.flatMap((contract) =>
-							contract.roster_entry.map((row) =>
-								Result.gen(function* () {
-									const shift_id = yield* fieldValue(
-										row.shift_definition_id,
-										'roster_entry.shift_definition_id'
-									);
-									const shift = shift_id == null ? undefined : byShift.get(shift_id);
-									return {
-										roster_entry_id: row.id,
-										employment_id: row.employment_id,
-										work_date: String(row.work_date).slice(0, 10),
-										worked_intervals: row.worked_intervals,
-										shift: shiftVariantFrom(shift?.variant),
-										grace_minutes: grace,
-										time_zone: zone,
-										employee_name: contract.employee_id?.name ?? '',
-										employee_number: contract.employee_number ?? '',
-										shift_code: shift?.code ?? ''
-									};
-								})
-							)
-						)
-					);
-				})
-			)
-		)
-	)).flat();
-	const notices = lateArrivalNotices({
-		now_ms: Date.parse(String(ctx.now)),
-		lookback_ms: 6 * 3600000,
-		candidates,
-		leave: leave.rows.map(movementFromRow)
-	});
-	if (notices.length > 0)
-		yield* ctx.notify(
-			notices.flatMap((notice) => {
-				const team = teamOf.get(notice.roster_entry_id);
-				return team === undefined
-					? []
-					: [
-							{
-								to: { team },
-								once: notice.once,
-								link: {
-									collection: 'roster_entry' as const,
-									id: notice.roster_entry_id
-								},
-								title: notice.title,
-								body: notice.body
-							}
-						];
-			})
+		};
+		const entries = entities.flatMap((entity) =>
+			entity.employment_contract.flatMap((contract) => contract.roster_entry)
 		);
-	return { checked: entries.length, reminded: notices.length };
+		// an entity names the team its reminders go to; one naming none sends none
+		const notified = entities.flatMap((entity) =>
+			entity.late_arrival_team == null || !isTeam(entity.late_arrival_team)
+				? []
+				: [{ ...entity, team: entity.late_arrival_team }]
+		);
+		const teamOf = new Map(
+			notified.flatMap((entity) =>
+				entity.employment_contract.flatMap((contract) =>
+					contract.roster_entry.map((row) => [row.id, entity.team] as const)
+				)
+			)
+		);
+		const candidates = (yield* Effect.fromResult(
+			Result.all(
+				notified.map((entity) =>
+					Result.gen(function* () {
+						const byShift = new Map(entity.shift_definition.map((row) => [row.id, row]));
+						const grace = yield* fieldValue(
+							entity.late_arrival_grace_minutes,
+							'entity.late_arrival_grace_minutes'
+						);
+						const zone = yield* zoneOn(entity, versions, String(ctx.today));
+						return yield* Result.all(
+							entity.employment_contract.flatMap((contract) =>
+								contract.roster_entry.map((row) =>
+									Result.gen(function* () {
+										const shift_id = yield* fieldValue(
+											row.shift_definition_id,
+											'roster_entry.shift_definition_id'
+										);
+										const shift = shift_id == null ? undefined : byShift.get(shift_id);
+										return {
+											roster_entry_id: row.id,
+											employment_id: row.employment_id,
+											work_date: String(row.work_date).slice(0, 10),
+											worked_intervals: row.worked_intervals,
+											shift: shift?.variant ?? null,
+											grace_minutes: grace,
+											time_zone: zone,
+											employee_name: contract.employee_id?.name ?? '',
+											employee_number: contract.employee_number ?? '',
+											shift_code: shift?.code ?? ''
+										};
+									})
+								)
+							)
+						);
+					})
+				)
+			)
+		)).flat();
+		const notices = lateArrivalNotices({
+			now_ms: Date.parse(String(ctx.now)),
+			lookback_ms: 6 * 3600000,
+			candidates,
+			leave: leave.rows.map(movementFromRow)
+		});
+		if (notices.length > 0)
+			yield* ctx.notify(
+				notices.flatMap((notice) => {
+					const team = teamOf.get(notice.roster_entry_id);
+					return team === undefined
+						? []
+						: [
+								{
+									title: notice.title,
+									description: notice.body,
+									to: [{ team }],
+									once: notice.once,
+									link: {
+										collection: 'roster_entry' as const,
+										id: notice.roster_entry_id
+									}
+								}
+							];
+				})
+			);
+		return { checked: entries.length, reminded: notices.length };
+	}
 });

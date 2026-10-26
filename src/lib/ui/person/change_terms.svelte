@@ -10,11 +10,12 @@
 	import {
 		Button,
 		Combobox,
-		JsonSchemaForm,
+		StructuredData,
 		TimeInput,
 		Input,
 		Label,
 		Sheet,
+		notifyOutcome,
 		toast
 	} from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
@@ -34,9 +35,7 @@
 	import { formValue, fromForm, missingRequired, schemaAt, TERM_KEYS } from './input_schema.js';
 	import { formSchema } from './form_schema.js';
 	import ContractAllowances from './contract_allowances.svelte';
-	import { t } from '../i18n/t.js';
 	import { todayKey } from '../format/calendar.js';
-	import { liveRows } from '../state/live.svelte.js';
 	let {
 		id,
 		companyId,
@@ -68,11 +67,11 @@
 		() => (sheetOpen ? companyId : null),
 		() => start
 	);
-	const termSchema = $derived(schemaAt(version.current?.employee_input_schema, 'contract_terms'));
+	const termSchema = $derived(schemaAt(version.schema, 'contract_terms'));
 	const termForm = $derived(formSchema(termSchema, TERM_KEYS));
-	const patterns = liveRows(() =>
+	const patterns = $derived.by(() =>
 		sheetOpen
-			? bolt.read('shift_pattern', {
+			? bolt.query('shift_pattern', {
 					where: { company_id: { eq: companyId } },
 					select: { id: true, code: true, name: true },
 					all: true
@@ -82,7 +81,7 @@
 	function open(): void {
 		const from = current;
 		if (from == null) {
-			toast.error(t('offboarding.no_terms_in_force'));
+			toast.error(bolt.t('offboarding.no_terms_in_force'));
 			return;
 		}
 		const { effective_range: _range, ...held } = from;
@@ -101,7 +100,7 @@
 		if (saving || start == null || start === '') return;
 		const salaryAmount = parseAmount(salary);
 		if (salaryAmount == null) {
-			toast.error(t('offboarding.need_valid_salary'));
+			toast.error(bolt.t('offboarding.need_valid_salary'));
 			return;
 		}
 		const allowanceLines: AllowanceDraft[] = [];
@@ -109,7 +108,7 @@
 			if (line.code.trim() === '' && line.amount.trim() === '') continue;
 			const amount = parseAmount(line.amount);
 			if (amount == null) {
-				toast.error(t('offboarding.need_valid_salary'));
+				toast.error(bolt.t('offboarding.need_valid_salary'));
 				return;
 			}
 			allowanceLines.push({
@@ -134,7 +133,7 @@
 		};
 		const missing = missingRequired(termSchema, term);
 		if (missing.length > 0) {
-			toast.error(t('component.required_missing', { fields: missing.join(', ') }));
+			toast.error(bolt.t('component.required_missing', { fields: missing.join(', ') }));
 			return;
 		}
 		const set = changeTermsSet(terms, { start, values: term, allowances: allowanceLines });
@@ -147,18 +146,19 @@
 			Effect.gen(function* () {
 				const payload: ActInput<'employment_contract.update'> = { target: id, set };
 				const outcome = yield* bolt.act('employment_contract.update', payload);
-				{
+				// past the person-wait the write runs on: its run reports the outcome
+				if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
+				else
 					toast.success(
 						outcome.kind === 'pendingApproval'
-							? t('offboarding.terms_pending')
-							: t('offboarding.terms_submitted')
+							? bolt.t('offboarding.terms_pending')
+							: bolt.t('offboarding.terms_submitted')
 					);
-					sheetOpen = false;
-				}
+				sheetOpen = false;
 			}).pipe(
 				Effect.catch((failure) =>
 					Effect.sync(() => {
-						toast.error(failure instanceof Error ? failure.message : t('component.error'));
+						toast.error(failure instanceof Error ? failure.message : bolt.t('component.error'));
 					})
 				),
 				Effect.ensuring(
@@ -173,14 +173,14 @@
 
 {#if !ended && current}
 	<Button size="sm" variant="outline" disabled={saving} onclick={open}
-		>{t('offboarding.change_terms')}</Button
+		>{bolt.t('offboarding.change_terms')}</Button
 	>
 
-	<Sheet bind:open={sheetOpen} title={t('offboarding.change_terms_title')}>
+	<Sheet bind:open={sheetOpen} title={bolt.t('offboarding.change_terms_title')}>
 		<Stack gap="md">
-			<p class="text-sm text-muted-foreground">{t('offboarding.change_terms_description')}</p>
+			<p class="text-sm text-muted-foreground">{bolt.t('offboarding.change_terms_description')}</p>
 			<Stack gap="xs">
-				<Label for="terms-start">{t('offboarding.new_start')}</Label>
+				<Label for="terms-start">{bolt.t('offboarding.new_start')}</Label>
 				<TimeInput
 					id="terms-start"
 					of="date"
@@ -190,7 +190,7 @@
 				/>
 			</Stack>
 			<Stack gap="xs">
-				<Label for="terms-salary">{t('component.base_salary')}</Label>
+				<Label for="terms-salary">{bolt.t('component.base_salary')}</Label>
 				<Input
 					id="terms-salary"
 					type="number"
@@ -201,10 +201,11 @@
 				/>
 			</Stack>
 			{#if start != null && start !== '' && version.current == null && !version.loading}
-				<p class="text-sm text-destructive">{t('component.no_governing_version')}</p>
+				<p class="text-sm text-destructive">{bolt.t('component.no_governing_version')}</p>
 			{/if}
 			{#if termForm != null}
-				<JsonSchemaForm
+				<StructuredData
+					mode="edit"
 					schema={termForm}
 					value={formValue(values, TERM_KEYS)}
 					onChange={(next) => (values = fromForm(values, TERM_KEYS, next))}
@@ -213,13 +214,13 @@
 					disabled={saving}
 				/>
 			{/if}
-			{#if (patterns.current ?? []).length > 0}
+			{#if (patterns?.current?.rows ?? []).length > 0}
 				<Stack gap="xs">
-					<Label for="terms-pattern">{t('component.shift_pattern')}</Label>
+					<Label for="terms-pattern">{bolt.t('component.shift_pattern')}</Label>
 					<Combobox
 						id="terms-pattern"
 						class="w-full"
-						options={(patterns.current ?? []).map((row) => ({
+						options={(patterns?.current?.rows ?? []).map((row) => ({
 							value: row.id,
 							label: row.name ?? row.code ?? row.id
 						}))}
@@ -232,7 +233,7 @@
 			<ContractAllowances bind:lines={allowances} disabled={saving} />
 			<Cluster gap="sm" justify="end">
 				<Button variant="outline" disabled={saving} onclick={() => (sheetOpen = false)}>
-					{t('component.cancel')}
+					{bolt.t('component.cancel')}
 				</Button>
 				<Button
 					disabled={saving ||
@@ -242,7 +243,7 @@
 						version.current == null}
 					onclick={() => void submit()}
 				>
-					{t('offboarding.save_terms')}
+					{bolt.t('offboarding.save_terms')}
 				</Button>
 			</Cluster>
 		</Stack>

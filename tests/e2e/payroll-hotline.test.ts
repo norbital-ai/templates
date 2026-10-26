@@ -86,7 +86,7 @@ const seed = {
 			name: 'Singapore',
 			effective_range: OPEN,
 			payroll: {},
-			sources: []
+			sources: { entries: [] }
 		}
 	],
 	entity: [
@@ -166,7 +166,7 @@ const scripted = Effect.gen(function* () {
 				if (last.role === 'tool') return { content: 'Done.', toolCalls: [], finish: 'stop', usage };
 				const said = text(last.content);
 				if (/^(?:\[[^\]\n]*\] )?slips$/m.test(said))
-					return call('read', {
+					return call('query', {
 						collection: 'payslip',
 						select: { net: true, salary_from: true, status: true }
 					});
@@ -287,9 +287,9 @@ describe('payroll hotline', () => {
 				expect(nets(yield* lastResult)).toEqual(['3000.00']);
 				yield* say(HOTLINE_A, '6591234567', `hold ${SLIP_ADA_A}`);
 				expect(yield* lastResult).toEqual({ error: "No tool 'act'." });
-				expect((yield* t.as(t.admin).get('payslip', nativeId('payslip', SLIP_ADA_A)))?.status).toBe(
-					'DRAFT'
-				);
+				expect(
+					(yield* t.as(t.admin).query('payslip', { id: nativeId('payslip', SLIP_ADA_A) }))?.status
+				).toBe('DRAFT');
 			})
 	);
 

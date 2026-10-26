@@ -147,7 +147,9 @@ export const LEAVE_CLASS = {
 	can_encash: true,
 	is_npl: true,
 	consumes_code: true,
-	entitlement: true
+	entitlement: true,
+	unit: true,
+	unplanned_days: true
 } as const satisfies StoredSelect<'leave_catalog'>;
 
 export const ROSTER = {
@@ -168,6 +170,7 @@ export const ROSTER = {
 
 export const HOLIDAY = {
 	id: true,
+	company_id: true,
 	date: true,
 	name: true,
 	kind: true,

@@ -20,20 +20,13 @@ export default policy({
 		roster_entry: {
 			read: true,
 			create: {
-				where: { worked_intervals: { isNull: true } },
-				fields: ROSTER_ENTRY_ATTENDANCE_FIELDS
+				fields: ROSTER_ENTRY_ATTENDANCE_FIELDS,
+				approval: ROSTER_ENTRY_CREATE_APPROVAL
 			},
 			update: {
 				where: { payslip_id: { isNull: true } },
-				fields: ['worksite']
-			},
-			approval: {
-				create: { ...ROSTER_ENTRY_CREATE_APPROVAL, fields: ROSTER_ENTRY_ATTENDANCE_FIELDS },
-				update: {
-					...ROSTER_ENTRY_UPDATE_APPROVAL,
-					where: { payslip_id: { isNull: true } },
-					fields: ['worked_intervals', 'worksite']
-				}
+				fields: ['worked_intervals', 'worksite'],
+				approval: ROSTER_ENTRY_UPDATE_APPROVAL
 			}
 		}
 	},

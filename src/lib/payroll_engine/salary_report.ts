@@ -1,6 +1,19 @@
+import type { Masked, Row } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { Schema } from 'effect';
-import { numberOf } from './foundation.js';
+import { Result, Schema } from 'effect';
+import { fieldValue, numberOf } from './foundation.js';
+
+type LineField = 'base' | 'adjustments' | 'company_payments' | 'statutory';
+/** One stored payslip line of a line column. */
+type Line<F extends LineField> = NonNullable<Exclude<Row<'payslip'>[F], Masked>>[number];
+/** A line column as read: the lines the report reads of each (a line's `source_id`, which it does not read, may be
+ * absent), masked to a caller its grants leave it out of. */
+type Lines<F extends LineField, K extends keyof Line<F>> =
+	| readonly (Pick<Line<F>, Exclude<K, 'source_id'>> &
+			Partial<Pick<Line<F>, Extract<K, 'source_id'>>>)[]
+	| Masked
+	| null
+	| undefined;
 
 export type SalaryColumn = {
 	readonly group: string;
@@ -37,10 +50,16 @@ export type SalaryEmployee = {
 	readonly employee_number: string;
 	readonly name: string;
 	readonly status: string;
-	readonly base: unknown;
-	readonly adjustments: unknown;
-	readonly company_payments?: unknown;
-	readonly statutory: unknown;
+	readonly base: Lines<'base', 'component_code' | 'label' | 'amount'>;
+	readonly adjustments: Lines<
+		'adjustments',
+		'family' | 'source_id' | 'component_code' | 'label' | 'amount' | 'destination'
+	>;
+	readonly company_payments?: Lines<
+		'company_payments',
+		'family' | 'source_id' | 'component_code' | 'label' | 'amount'
+	>;
+	readonly statutory: Lines<'statutory', 'scheme_code' | 'employee_amount' | 'employer_amount'>;
 	readonly gross: unknown;
 	readonly total_deductions: unknown;
 	readonly net: unknown;
@@ -68,28 +87,9 @@ export const SalaryReportConfiguration = Schema.Struct({
 	)
 });
 
-const PayLine = Schema.Struct({
-	component_code: Schema.String,
-	label: Schema.optional(Schema.String),
-	amount: Schema.Number,
-	family: Schema.optional(Schema.String),
-	destination: Schema.optional(Schema.String)
-});
-const StatutoryLine = Schema.Struct({
-	scheme_code: Schema.String,
-	employee_amount: Schema.Number,
-	employer_amount: Schema.Number
-});
-const CompanyPayment = Schema.Struct({
-	family: Schema.String,
-	source_id: Schema.String,
-	component_code: Schema.String,
-	amount: Schema.Number,
-	label: Schema.optional(Schema.String)
-});
-const payLines = (value: unknown) => Schema.decodeUnknownSync(Schema.Array(PayLine))(value ?? []);
-const charges = (value: unknown) =>
-	Schema.decodeUnknownSync(Schema.Array(StatutoryLine))(value ?? []);
+/** A line column's lines; a masked column refuses rather than reading as none. */
+const linesOf = <T>(value: readonly T[] | Masked | null | undefined, field: LineField) =>
+	Result.getOrThrow(fieldValue(value ?? [], `payslip.${field}`));
 const money = (value: unknown): number => Schema.decodeUnknownSync(Schema.Number)(numberOf(value));
 const bankCharge = (value: unknown): number | null =>
 	Schema.decodeUnknownSync(Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))))(
@@ -164,9 +164,7 @@ export function salaryReport(input: {
 		);
 	const rows = input.employees.map((employee) => {
 		const amounts = new Map<string, number>();
-		const companyPayments = Schema.decodeUnknownSync(Schema.Array(CompanyPayment))(
-			employee.company_payments ?? []
-		);
+		const companyPayments = linesOf(employee.company_payments, 'company_payments');
 		let needsConfirmation = !profilePresent;
 		const bankCharges = bankCharge(employee.bank_charges);
 		if (bankCharges === null) {
@@ -209,7 +207,15 @@ export function salaryReport(input: {
 			if (!columns.has(id)) columns.set(id, column);
 			amounts.set(id, total([amounts.get(id) ?? 0, amount]));
 		};
-		const line = (row: typeof PayLine.Type, family: string) => {
+		const line = (
+			row: {
+				readonly component_code: string;
+				readonly label?: string | null;
+				readonly amount: number;
+				readonly destination?: string;
+			},
+			family: string
+		) => {
 			const definition = catalog.get(key(family, row.component_code));
 			const classification = classifications.get(key(family, row.component_code));
 			const destination = row.destination ?? definition?.destination;
@@ -267,12 +273,12 @@ export function salaryReport(input: {
 				deduction ? -row.amount : row.amount
 			);
 		};
-		for (const row of payLines(employee.base))
+		for (const row of linesOf(employee.base, 'base'))
 			line(row, catalog.has(key('ALLOWANCE', row.component_code)) ? 'ALLOWANCE' : 'WORK');
-		for (const row of payLines(employee.adjustments)) line(row, row.family ?? 'ADHOC');
+		for (const row of linesOf(employee.adjustments, 'adjustments')) line(row, row.family);
 		for (const row of companyPayments) line({ ...row, destination: 'EMPLOYER' }, row.family);
 		let government = 0;
-		for (const row of charges(employee.statutory)) {
+		for (const row of linesOf(employee.statutory, 'statutory')) {
 			for (const [family, group, amount] of [
 				['EMPLOYEE_STATUTORY', 'Employee statutory', row.employee_amount],
 				['EMPLOYER_STATUTORY', 'Employer statutory', row.employer_amount]

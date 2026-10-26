@@ -1810,7 +1810,7 @@
 			}
 		],
 		"rules": {
-			"description": "Delete or destroy a former employee's personal data once the statutory retention ends (anonymise the profile: employment_profile.anonymise), unless an agreement provides otherwise. Raised on the exit; due on the record_retention date (10 years after the exit year ends).",
+			"description": "Delete or destroy a former employee's personal data once the statutory retention ends (anonymise the profile: employment_profile_anonymise), unless an agreement provides otherwise. Raised on the exit; due on the record_retention date (10 years after the exit year ends).",
 			"trigger": {
 				"collection": "employment_contract",
 				"events": ["updated"],

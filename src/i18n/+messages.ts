@@ -31,7 +31,7 @@ export default messages({
 	'app.hr_employee.pay_run': 'Pay run',
 	'app.hr_employee.report_punch_preview_worked': '{hours} worked',
 	'app.hr_employee.switch_employment': 'Switch employment',
-	'app.hr_employee.tab_events': 'My events',
+	'app.hr_employee.tab_requests': 'My requests',
 	'app.hr_employee.tab_home': 'Home',
 	'app.hr_employee.tab_payslips': 'My payslips',
 	'app.hr_employee.working_as': 'Working as',
@@ -191,8 +191,7 @@ export default messages({
 	'component.person': 'Person',
 	'component.search_person': 'Search employee number or name',
 	'section.identity': 'Identity',
-	'section.personal': 'Personal',
-	'section.family': 'Family',
+	'section.personal_and_family': 'Personal and family',
 	'section.contact': 'Contact',
 	'section.face': 'Face enrolment',
 	'section.statutory_facts': 'Statutory facts',
@@ -240,20 +239,21 @@ export default messages({
 	'shift_pattern.remove_day': 'Remove the last day of the cycle',
 	'shift_pattern.cycle_hint':
 		"Day 1 is the day this pattern's effective range opens, and the cycle repeats from there. Name a shift definition on each working day; leave a day empty for off or rest. To rotate shifts or batches, give the other pattern a new effective range rather than lengthening this cycle.",
-	'shift_definition.variant': 'Variant',
-	'schema_matrix.property': 'Property',
-	'schema_matrix.type': 'Type',
-	'schema_matrix.required': 'Required',
-	'schema_matrix.enum': 'Enum values',
-	'schema_matrix.help': 'Help',
-	'schema_matrix.label': 'Label',
-	'schema_matrix.path_help':
-		"Dotted path; [] steps into a list's items, e.g. contract_terms[].grade",
-	'schema_matrix.enum_help': 'Allowed values, comma-separated: a, b, c',
+	'shift_definition.hours': 'Hours',
+	'shift_definition.day_type': 'Day type',
+	'shift_definition.start_time': 'Start time',
+	'shift_definition.end_time': 'End time',
+	'shift_definition.break_minutes': 'Break (minutes)',
 	'section.identity_and_period': 'Identity and effective period',
 	'section.change_summary': 'Change summary',
 	'section.behaviour_rules': 'Rules',
 	'section.rule_sets': 'Rule sets',
+	'sources.agent.catalog': 'Catalogues',
+	'sources.agent.contribution': 'Statutory contributions',
+	'sources.agent.rules': 'Rules and limits',
+	'sources.agent.behaviour': 'Pay behaviour',
+	'sources.agent.obligations': 'Filing and payment deadlines',
+	'sources.agent.settings': 'General settings',
 	'section.sources_and_reference': 'Sources and reference data',
 	'statutory.configuration.rules': 'Rules',
 	'models.work_catalog.label': 'Work catalogue',
@@ -269,7 +269,14 @@ export default messages({
 	'behaviours.untitled_rule': 'Untitled rule',
 	'behaviours.remove_rule': 'Remove rule',
 	'behaviours.add_rule': 'Add rule',
-	'section.lifecycle': 'Lifecycle',
+	'contract.employment_period': 'Employment period',
+	'contract.pay_and_bank': 'Pay and bank',
+	'contract.terms_history': 'Terms history',
+	'contract.first_terms': 'First terms',
+	'contract.no_terms': 'No terms recorded yet. Use Change terms to add them.',
+	'contract.classification': 'Classification',
+	'contract.departure': 'Departure',
+	'contract.notes': 'Notes',
 	'section.input_schemas': 'Input schemas',
 	'section.behaviours': 'Behaviours',
 	'section.reference_data': 'Reference data',
@@ -655,7 +662,8 @@ export default messages({
 	'models.claim_catalog.fields.direction.SUBTRACT': 'Subtract',
 	'models.entity.label': 'Legal entities',
 	'models.entity.singular': 'Legal entity',
-	'models.entity.fields.settings_code': 'Settings lineage',
+	'models.entity.fields.settings_code': 'Country payroll rules',
+	'models.entity.fields.risk_class': 'Industry risk class',
 	'models.entity.fields.registration_number': 'Registration number',
 	'models.entity.fields.pay_cutoff_day': 'Pay cutoff day',
 	'models.entity.fields.late_arrival_grace_minutes': 'Late-arrival grace (minutes)',
@@ -759,6 +767,28 @@ export default messages({
 	'compliance.dismiss_title': 'Close without doing it',
 	'compliance.reason': 'Reason',
 	'compliance.confirm': 'Confirm',
+	'compliance.duty': 'Remittance',
+	'person.no_statutory_facts':
+		'The payroll rules in force declare no statutory facts for this person.',
+	'person.contract_actions': 'Actions',
+	'entity.disbursement_account': 'Salary payment account',
+	'entity.statutory_registrations': 'Statutory registrations',
+	'entity.no_registrations':
+		'The country payroll rules declare no statutory registrations for this entity.',
+	'entity.risk_class_help':
+		"The industry's workplace-injury risk class, as the country's payroll rules name it. It can set the employer's insurance rate.",
+	'entity.severity_rule': 'Rule',
+	'entity.severity_message': 'Message',
+	'entity.severity_choice': 'Severity',
+	'models.leave_catalog_entry.fields.activity.TIME_OFF': 'Time off',
+	'models.leave_catalog_entry.fields.activity.ENCASHMENT': 'Encashment',
+	'models.leave_catalog_entry.fields.activity.CARRY_FORWARD': 'Carry forward',
+	'models.leave_catalog_entry.fields.activity.ADJUSTMENT': 'Adjustment',
+	'models.leave_catalog_entry.fields.activity.REVERSAL': 'Reversal',
+	'models.claim_catalog_entry.fields.activity.AWARD': 'Award',
+	'models.claim_catalog_entry.fields.activity.REVERSAL': 'Reversal',
+	'models.adhoc_catalog_entry.fields.activity.AWARD': 'Award',
+	'models.adhoc_catalog_entry.fields.activity.REVERSAL': 'Reversal',
 	'section.subject': 'Subject',
 	'section.state': 'State',
 	'models.obligation.label': 'Obligations',
@@ -856,5 +886,249 @@ export default messages({
 	'entitlement.hours_per_day': 'Units per pool day expression',
 	'entitlement.bands': 'Service bands',
 	'entitlement.unit': 'Entitlement unit label',
-	'entitlement.pool': 'Pool conversion and unit'
+	'entitlement.pool': 'Pool conversion and unit',
+	'section.currency_and_calendar': 'Currency and calendar',
+	'section.pay_periods': 'Pay periods',
+	'section.attendance_and_overtime': 'Attendance and overtime',
+	'section.leavers': 'Leavers',
+	'section.advanced_rules': 'Advanced rules',
+	'section.information_collected': 'Information collected',
+	'section.automatic_rules': 'Automatic rules',
+	'section.research_sources': 'Research sources',
+	'section.reference_tables': 'Reference tables',
+	'section.basics': 'Basics',
+	'section.technical': 'Technical',
+	'section.assessment': 'Assessment',
+	'section.who_it_applies_to': 'Who it applies to',
+	'section.guards': 'Checks and warnings',
+	'section.rates': 'Rates',
+	'section.annual_reconciliation': 'Annual reconciliation',
+	'component.value': 'Value',
+	'component.diff_field': 'Field',
+	'component.diff_before': 'Before',
+	'component.diff_after': 'After',
+	'component.diff_yes': 'Yes',
+	'component.diff_no': 'No',
+	'app.settings.paid_as': 'Paid as',
+	'app.settings.adds_or_deducts': 'Adds or deducts',
+	'app.settings.work_catalog': 'Work lines',
+	'behaviours.runs_on': 'Runs on {events}',
+	'behaviours.runs_on_target': '{target} · runs on {events}',
+	'behaviours.advanced': 'Advanced',
+	'behaviours.read_collection': 'Reads from',
+	'behaviours.read_where': 'Filter',
+	'behaviours.read_select': 'Columns',
+	'references.title': 'Instrument',
+	'references.locator': 'Article or section',
+	'references.url': 'Link to the official text',
+	'references.quote': 'Quoted wording',
+	'references.effective_from': 'In force from',
+	'references.details': 'Reference details',
+	'references.open_official_text': 'Open the official text',
+	'models.jurisdiction_settings.fields.entity_input_schema': 'Company information',
+	'models.jurisdiction_settings.fields.employee_input_schema': 'Employee information',
+	'models.jurisdiction_settings.fields.payroll.currency': 'Currency',
+	'models.jurisdiction_settings.fields.payroll.minor_units': 'Decimal places',
+	'models.jurisdiction_settings.fields.payroll.minor_units.help':
+		'Digits after the decimal point amounts are paid in. Blank uses the currency’s own.',
+	'models.jurisdiction_settings.fields.payroll.timezone': 'Time zone',
+	'models.jurisdiction_settings.fields.payroll.tax_year_start_month': 'Tax year starts in month',
+	'models.jurisdiction_settings.fields.payroll.tax_year_start_month.help': '1 is January.',
+	'models.jurisdiction_settings.fields.payroll.week_start': 'Week starts on',
+	'models.jurisdiction_settings.fields.payroll.week_start.help': '0 is Sunday, 6 is Saturday.',
+	'models.jurisdiction_settings.fields.payroll.semi_monthly_split':
+		'Last day of the first half-month',
+	'models.jurisdiction_settings.fields.payroll.semi_monthly_split.help':
+		'For pay twice a month: the day the first pay period ends (usually 15).',
+	'models.jurisdiction_settings.fields.payroll.ten_day_splits':
+		'Last days of the first two ten-day periods',
+	'models.jurisdiction_settings.fields.payroll.ten_day_splits.help':
+		'For pay every ten days: the days the first and second periods end (for example 10 and 20).',
+	'models.jurisdiction_settings.fields.payroll.history_months':
+		'Months of pay history used for averages',
+	'models.jurisdiction_settings.fields.payroll.base_salary_required':
+		'Salaried contracts need a base salary',
+	'models.jurisdiction_settings.fields.payroll.base_salary_required.help':
+		'Stop a payslip when a salaried contract carries no base salary.',
+	'models.jurisdiction_settings.fields.payroll.off_cycle_families': 'Paid in off-cycle runs',
+	'models.jurisdiction_settings.fields.payroll.off_cycle_families.help':
+		'The kinds of entries an off-cycle run may pay (for example ADHOC and CLAIM).',
+	'models.jurisdiction_settings.fields.payroll.attendance': 'Attendance',
+	'models.jurisdiction_settings.fields.payroll.attendance.step_hours': 'Round hours to steps of',
+	'models.jurisdiction_settings.fields.payroll.attendance.step_hours.help':
+		'Recorded hours are rounded to multiples of this (0.5 is half an hour).',
+	'models.jurisdiction_settings.fields.payroll.attendance.rounding': 'Rounding',
+	'models.jurisdiction_settings.fields.payroll.attendance.overtime_window': 'Overtime counted',
+	'models.jurisdiction_settings.fields.payroll.attendance.overtime_window.help':
+		'After the shift: time past the planned shift. Explicit: only the approved overtime windows.',
+	'models.jurisdiction_settings.fields.payroll.attendance.untimed_credit_day_types':
+		'Day types paid on recorded hours',
+	'models.jurisdiction_settings.fields.payroll.attendance.untimed_credit_day_types.help':
+		'Days without a planned shift time (rest or off days, say) whose recorded hours count as overtime.',
+	'models.jurisdiction_settings.fields.payroll.roster_week': 'Roster week',
+	'models.jurisdiction_settings.fields.payroll.roster_week.help':
+		'Rolling: the seven days ending on the day. Calendar: the week from the week start day.',
+	'models.jurisdiction_settings.fields.payroll.rolling_hours_months': 'Months of hours averaged',
+	'models.jurisdiction_settings.fields.payroll.exit_raise_when': 'Exit pay is paid when',
+	'models.jurisdiction_settings.fields.payroll.exit_raise_when.help':
+		'The condition, on a payslip, for paying a leaver’s exit pay on it.',
+	'models.jurisdiction_settings.fields.payroll.exit_overpayment': 'Overpayment on exit',
+	'models.jurisdiction_settings.fields.payroll.exit_overpayment.help':
+		'Note: record it only. Deduct: recover it on the final payslip.',
+	'models.jurisdiction_settings.fields.payroll.negative_net': 'Negative net pay',
+	'models.jurisdiction_settings.fields.payroll.negative_net.help':
+		'Refuse: stop a payslip whose net pay is below zero. Allow: let it through.',
+	'models.jurisdiction_settings.fields.payroll.pay_date': 'Pay date',
+	'models.jurisdiction_settings.fields.payroll.pay_date.help':
+		'The expression giving a period’s pay day, for example the period end.',
+	'models.jurisdiction_settings.fields.payroll.monthly_wage': 'Monthly wage',
+	'models.jurisdiction_settings.fields.payroll.monthly_wage.help':
+		'The expression defining an employee’s monthly wage from their contract terms.',
+	'models.jurisdiction_settings.fields.payroll.permanent_when': 'Permanent employee when',
+	'models.jurisdiction_settings.fields.payroll.permanent_when.help':
+		'The condition, on the contract terms, for counting an employee as permanent.',
+	'models.jurisdiction_settings.fields.behaviours.rules.id': 'Name',
+	'models.jurisdiction_settings.fields.behaviours.rules.catalog': 'Catalogue family',
+	'models.jurisdiction_settings.fields.behaviours.rules.target_collection': 'Applies to records of',
+	'models.jurisdiction_settings.fields.behaviours.rules.events': 'Runs on events',
+	'models.jurisdiction_settings.fields.behaviours.rules.when': 'Runs when',
+	'models.jurisdiction_settings.fields.behaviours.rules.fields': 'Watched fields',
+	'models.jurisdiction_settings.fields.behaviours.rules.reads': 'Reads',
+	'models.jurisdiction_settings.fields.behaviours.rules.effect': 'What it does',
+	'models.jurisdiction_settings.fields.behaviours.rules.references': 'References',
+	'models.suspension_kind.fields.code': 'Code',
+	'models.suspension_kind.fields.name': 'Name',
+	'models.suspension_kind.fields.references': 'References',
+	'models.suspension_kind.fields.counts_as_attended': 'Counts as attended',
+	'models.suspension_kind.fields.counts_as_attended.help':
+		'Whether a suspended scheduled day counts as attended. Blank: no.',
+	'models.suspension_kind.fields.scheduled': 'Stays a scheduled day',
+	'models.suspension_kind.fields.scheduled.help':
+		'Whether a suspended day still counts as a scheduled working day. Blank: yes.',
+	'models.suspension_kind.fields.pay': 'Pay for the day',
+	'models.suspension_kind.fields.pay.help': 'What a suspended day pays. Blank: nothing.',
+	'models.statutory_contribution_catalog.fields.label': 'Short name on payslips',
+	'models.statutory_contribution_catalog.fields.display_order': 'Display order',
+	'models.statutory_contribution_catalog.fields.configuration.limitation': 'Legal summary',
+	'models.statutory_contribution_catalog.fields.configuration.assessment': 'Wage assessed',
+	'models.statutory_contribution_catalog.fields.configuration.assessment.help':
+		'The expression for the wage this scheme is charged on.',
+	'models.statutory_contribution_catalog.fields.configuration.assessable': 'Assessable wage parts',
+	'models.statutory_contribution_catalog.fields.configuration.assessable.help':
+		'For each part of the wage, how much of it counts this month (a ceiling, for example). A part not listed counts as paid.',
+	'models.statutory_contribution_catalog.fields.configuration.assess_without_wage':
+		'Assess even without wages',
+	'models.statutory_contribution_catalog.fields.configuration.assess_without_wage.help':
+		'Assess the scheme on a payslip that pays no wage.',
+	'models.statutory_contribution_catalog.fields.configuration.carry_uncovered':
+		'Shortfall carried forward',
+	'models.statutory_contribution_catalog.fields.configuration.carry_uncovered.help':
+		'When net pay cannot cover the employee share: how much is advanced now and how much is recovered from later payslips.',
+	'models.statutory_contribution_catalog.fields.configuration.carry_uncovered.advance':
+		'Advanced now',
+	'models.statutory_contribution_catalog.fields.configuration.carry_uncovered.recover':
+		'Recovered later',
+	'models.statutory_contribution_catalog.fields.configuration.governed_by':
+		'Rates follow the version in force on',
+	'models.statutory_contribution_catalog.fields.configuration.governed_by.help':
+		'Blank: the pay period. pay_date: the version in force on the pay day.',
+	'models.statutory_contribution_catalog.fields.configuration.order': 'Calculation order',
+	'models.statutory_contribution_catalog.fields.configuration.order.help':
+		'Schemes with a lower number are calculated first.',
+	'models.statutory_contribution_catalog.fields.configuration.as_of': 'Assessed as of',
+	'models.statutory_contribution_catalog.fields.configuration.person': 'Employee facts',
+	'models.statutory_contribution_catalog.fields.configuration.person.help':
+		'Facts about the employee this scheme reads (age, for example), each worked out by an expression.',
+	'models.statutory_contribution_catalog.fields.configuration.refuse_when': 'Stop the payslip when',
+	'models.statutory_contribution_catalog.fields.configuration.refuse_when.help':
+		'Checked before the rates: the first condition that holds stops the payslip with its message.',
+	'models.statutory_contribution_catalog.fields.configuration.refuse_when.when': 'Condition',
+	'models.statutory_contribution_catalog.fields.configuration.refuse_when.message': 'Message',
+	'models.statutory_contribution_catalog.fields.configuration.warn_when': 'Warn when',
+	'models.statutory_contribution_catalog.fields.configuration.warn_when.help':
+		'Each condition that holds adds its message as a warning.',
+	'models.statutory_contribution_catalog.fields.configuration.warn_when.when': 'Condition',
+	'models.statutory_contribution_catalog.fields.configuration.warn_when.message': 'Message',
+	'models.statutory_contribution_catalog.fields.configuration.rules': 'Rates',
+	'models.statutory_contribution_catalog.fields.configuration.rules.help':
+		'Each row: when it applies, and the employee and employer amounts.',
+	'models.statutory_contribution_catalog.fields.configuration.rules.when': 'Applies when',
+	'models.statutory_contribution_catalog.fields.configuration.rules.employee': 'Employee share',
+	'models.statutory_contribution_catalog.fields.configuration.rules.employer': 'Employer share',
+	'models.statutory_contribution_catalog.fields.configuration.rules.contribution':
+		'Total contribution',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation':
+		'Annual reconciliation',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.when':
+		'Reconcile when',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.part':
+		'Wage part',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.ceiling':
+		'Annual ceiling',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.through':
+		'Covers up to',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.on_underpaid':
+		'If earlier months paid too little',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.on_overpaid':
+		'If earlier months paid too much',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.on_current_excess':
+		'If this month already paid more',
+	'models.statutory_contribution_catalog.fields.configuration.annual_reconciliation.on_original_error':
+		'If an earlier month was assessed wrongly',
+	'catalog.help.eligibility': 'The condition an employee must meet for this to apply to them.',
+	'catalog.help.qualifies_when': 'The condition an entry must meet to be paid.',
+	'catalog.help.amount_required':
+		'Each entry must state an amount. Turn off for items priced by their bands alone (piece rates).',
+	'catalog.help.raise_on_exit':
+		'When the employee leaves and the eligibility holds, the final payslip adds this item by itself (severance or notice pay, for example). An entry HR makes instead wins.',
+	'catalog.help.payable_after_exit':
+		'Entries may fall after employment ends (instalments of a separation payment, for example) and are paid on a payslip of their own period.',
+	'catalog.help.can_encash': 'Untaken days of this leave may be paid out.',
+	'catalog.help.pay_fraction':
+		'The share of normal pay for a day of this leave (1 is full pay, 0 is unpaid).',
+	'catalog.help.share_by': 'How leave spanning two pay periods is split between them.',
+	'catalog.help.component_code': 'The payslip line this work is paid on.',
+	'catalog.help.prorated': 'Pay the contract amount scaled to the days employed in the period.',
+	'catalog.help.denominator':
+		'The number of days a prorated amount is divided by. Required when prorated.',
+	'catalog.help.quantity': 'How many units are paid, worked out from the payslip.',
+	'catalog.help.rate': 'The amount paid for each unit.',
+	'catalog.help.amount':
+		'The amount paid, worked out from the payslip; the contract’s monthly allowance figure is available to it.',
+	'catalog.help.counts_toward':
+		'The totals this line adds to (a contribution’s wage base, for example).',
+	'models.adhoc_catalog.fields.destination': 'Paid as',
+	'models.adhoc_catalog.fields.direction': 'Adds or deducts',
+	'models.allowance_catalog.fields.destination': 'Paid as',
+	'models.allowance_catalog.fields.direction': 'Adds or deducts',
+	'models.claim_catalog.fields.destination': 'Paid as',
+	'models.claim_catalog.fields.direction': 'Adds or deducts',
+	'models.loan_catalog.fields.destination': 'Paid as',
+	'models.loan_catalog.fields.direction': 'Adds or deducts',
+	'models.work_catalog.fields.destination': 'Paid as',
+	'models.work_catalog.fields.direction': 'Adds or deducts',
+	'models.claim_catalog.fields.qualifies_when': 'Qualifying condition',
+	'models.adhoc_catalog.fields.qualifies_when': 'Qualifying condition',
+	'models.claim_catalog.fields.amount_required': 'Amount must be entered',
+	'models.adhoc_catalog.fields.amount_required': 'Amount must be entered',
+	'models.loan_catalog.fields.amount_required': 'Amount must be entered',
+	'models.adhoc_catalog.fields.raise_on_exit': 'Add automatically on exit',
+	'models.adhoc_catalog.fields.payable_after_exit': 'Can be paid after employment ends',
+	'models.leave_catalog.fields.can_encash': 'Can be paid out',
+	'models.leave_catalog.fields.encash_on_exit': 'Pay out untaken days on exit',
+	'models.leave_catalog.fields.encash_at_window_end':
+		'Pay out untaken days at the end of each year',
+	'models.leave_catalog.fields.pay_fraction': 'Share of pay while on leave',
+	'models.leave_catalog.fields.share_by': 'Split across pay periods by',
+	'models.work_catalog.fields.component_code': 'Payslip line code',
+	'models.work_catalog.fields.denominator': 'Proration divisor',
+	'models.work_catalog.fields.prorated': 'Prorate by days employed',
+	'models.work_catalog.fields.destination.PAY': 'Pay',
+	'models.work_catalog.fields.destination.NET': 'Net pay',
+	'models.work_catalog.fields.destination.EMPLOYER': 'Employer',
+	'models.work_catalog.fields.direction.ADD': 'Add',
+	'models.work_catalog.fields.direction.SUBTRACT': 'Subtract',
+	'catalog.help.rules': 'The rule set’s data: the values and expressions payroll reads from it.',
+	'catalog.help.source_identity':
+		'Where this rule set was drawn from, kept to trace it back to its source.'
 });

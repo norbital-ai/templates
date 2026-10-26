@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { Schema } from 'effect';
@@ -9,11 +10,30 @@ import { overtimeRule } from './overtime_policies.js';
 type Json = Schema.Json;
 type SeedRows = Awaited<ReturnType<SeedSource['rows']>>;
 type Row = { [field: string]: Json };
-const isRecord = Schema.is(Schema.Record(Schema.String, Schema.Json));
+const Row = Schema.Record(Schema.String, Schema.Json);
+const decodeRows = Schema.decodeUnknownSync(Schema.Array(Row));
+const isRecord = Schema.is(Row);
+
+/** The private bank keeps stable source-era affiliations; its projection names the current source teams. */
+const TEAM_HANDLES: Readonly<Record<string, string>> = {
+	'019f8a10-0000-7000-8000-000000000001': 'employee',
+	'019f8a10-0000-7000-8000-000000000002': 'supervisor',
+	'019f8a10-0000-7000-8000-000000000003': 'manager',
+	'019f8a10-0000-7000-8000-000000000004': 'senior_management',
+	'019f8a10-0000-7000-8000-000000000005': 'hr_controller',
+	'019f8a10-0000-7000-8000-000000000006': 'hr_manager',
+	'019f8a10-0000-7000-8000-000000000007': 'manager_hr_controller',
+	'bb45fcf0-ee4c-5fc8-830f-73a002eff170': 'production_manager',
+	'3d52a68b-017f-57d9-8fd2-fa7db4ca5965': 'attendance_kiosk'
+};
 
 /** A bank row in the collection's current shape: a roster day's overtime and incentive derive from its clock past the
  * planned shift, so the hours the bank typed are not read. */
 export const bankRow = (collection: string, row: Row): Row => {
+	const field =
+		collection === 'sys_user' ? 'team' : collection === 'entity' ? 'late_arrival_team' : null;
+	if (field !== null && typeof row[field] === 'string')
+		return { ...row, [field]: TEAM_HANDLES[row[field]] ?? row[field] };
 	if (collection !== 'roster_entry') return row;
 	const { approved_overtime_hours: _approved, incentive_hours: _incentive, ...day } = row;
 	return day;
@@ -146,13 +166,11 @@ export default {
 			if (collection === undefined || (collection.startsWith('sys_') && collection !== 'sys_user'))
 				continue;
 			(rows[collection] ??= []).push(
-				...bank
-					.json<Row[]>(file)
-					.map((row) =>
-						collection === 'entity'
-							? { validation_severity: { default: 'warn', rules: {} }, ...row }
-							: bankRow(collection, row)
-					)
+				...decodeRows(bank.json(file)).map((row) =>
+					collection === 'entity'
+						? { validation_severity: { default: 'warn', rules: {} }, ...bankRow(collection, row) }
+						: bankRow(collection, row)
+				)
 			);
 		}
 		// Each sample entity observes the holidays its bank rows chose for the years they cover; later years come from
@@ -168,11 +186,18 @@ export default {
 					row['code'] === 'public_holidays'
 			)?.['rules'];
 			const listed = isRecord(calendar) ? calendar['holidays'] : undefined;
-			if (!isString(lineage) || !Array.isArray(listed) || settings['voided_at'] != null) continue;
+			if (
+				!isString(lineage) ||
+				!EffectArray.isArray<typeof listed>(listed) ||
+				settings['voided_at'] != null
+			)
+				continue;
 			// versions in order: a later version's row for a day wins below
 			lawHolidays.set(lineage, [
 				...(lawHolidays.get(lineage) ?? []),
-				...listed.filter((holiday) => isRecord(holiday) && isString(holiday['date']))
+				...listed.filter(
+					(holiday): holiday is Row => isRecord(holiday) && isString(holiday['date'])
+				)
 			]);
 		}
 		for (const entity of rows['entity'] ?? []) {
@@ -188,7 +213,7 @@ export default {
 			for (const holiday of lawHolidays.get(lineage) ?? []) {
 				const date = String(holiday['date']);
 				const regions = holiday['regions'];
-				if (Array.isArray(regions) && !regions.includes(entity['region'] ?? '')) continue;
+				if (EffectArray.isArray(regions) && !regions.includes(entity['region'] ?? '')) continue;
 				if (date.slice(0, 4) > covered) observed.set(date, holiday);
 			}
 			for (const [date, holiday] of observed) {
@@ -216,7 +241,7 @@ export default {
 			if (isString(from) && !settingsIds.has(from)) delete row['cloned_from_id'];
 		}
 		return Object.fromEntries(
-			Object.entries(rows).map(([collection, entries]) => [
+			Object.entries(rows).map(([collection, entries]): [string, readonly Row[]] => [
 				collection,
 				entries.map((row) => formatSeedRow(collection, row))
 			])

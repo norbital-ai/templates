@@ -30,7 +30,7 @@ export const punchWork = Effect.fnUntraced(function* (
 	kind: 'FACE' | 'MANUAL'
 ) {
 	const day = todayKey(new Date(yield* Clock.currentTimeMillis));
-	const answer = yield* bolt.read('roster_entry', {
+	const answer = yield* bolt.query('roster_entry', {
 		where: { employment_id: { eq: employment_id }, work_date: { eq: day } },
 		select: { id: true, worked_intervals: true },
 		limit: 1

@@ -7,9 +7,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { PlainDate } from '@norbital-ai/std/date';
-import { assertFailure, world } from './jurisdiction_kit.ts';
+import { assertFailure, PAYROLL, world } from './jurisdiction_kit.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { SEEDED_PAYROLL } from './duties.ts';
 import ExcelJS from 'exceljs';
 import { Effect } from 'effect';
 import { Refusal } from '../src/lib/payroll_engine/foundation.ts';
@@ -82,8 +81,8 @@ const fixture = (
 					voided_at: null,
 					payroll: {
 						...(overrides.versionZone === true ? { timezone: ZONE } : {}),
-						attendance: SEEDED_PAYROLL.attendance,
-						monthly_wage: SEEDED_PAYROLL.monthly_wage
+						attendance: PAYROLL.attendance,
+						monthly_wage: PAYROLL.monthly_wage
 					}
 				}
 			]
@@ -634,7 +633,10 @@ describe('work-day sheet import', () => {
 		"OT consent is the day's own: marked or dated sets it, a restatement keeps it, blank clears it, a settled day keeps it",
 		Effect.fnUntraced(function* () {
 			// 2026-03-04 holds consent given 2026-03-02 17:00 local; 2026-03-05 holds none
-			const consent = Effect.fnUntraced(function* (cell: string | number, date = '2026-03-04') {
+			const consent = Effect.fnUntraced(function* (
+				cell: string | number,
+				date: string = '2026-03-04'
+			) {
 				const result = yield* plan(
 					yield* xlsx(
 						FILLED.map((row) => (row[1] === date ? ['E1', date, 'D', '08:00', '20:00', cell] : row))

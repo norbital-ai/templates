@@ -8,7 +8,6 @@
 	 * (`roster_entry`); the manual tab keys a punch by name. The engine, anti-spoof, voice and silhouette are
 	 * this page's own modules.
 	 */
-	import { t } from '../../lib/ui/i18n/t.js';
 	import Icon from '@iconify/svelte';
 	import type Human from '@vladmandic/human';
 	import { bolt } from '$bolt';
@@ -25,7 +24,6 @@
 		Scroll,
 		Stack
 	} from '@norbital-ai/ui/layout';
-	import { liveRows } from '../../lib/ui/state/live.svelte.js';
 	import ManualTab from './manual.svelte';
 	import { punchWork, type PunchResult as PunchCommandResult } from './punch.js';
 	import {
@@ -181,8 +179,8 @@
 			'border-warning/40 bg-warning/10 text-warning-foreground dark:border-warning/30 dark:text-warning',
 		error: 'border-destructive/30 bg-destructive/10 text-destructive'
 	};
-	const companies = liveRows(() =>
-		bolt.read('entity', {
+	const companies = $derived.by(() =>
+		bolt.query('entity', {
 			where: {},
 			select: { name: true },
 			orderBy: { name: 'asc' },
@@ -190,18 +188,18 @@
 		})
 	);
 	const companyById = $derived(
-		new Map((companies.current ?? []).map((company) => [company.id, company.name]))
+		new Map((companies?.current?.rows ?? []).map((company) => [company.id, company.name]))
 	);
 	const companyId = $derived(
 		selectedCompanyId != null && companyById.has(selectedCompanyId) ? selectedCompanyId : null
 	);
 	const candidateCompany = $derived(
 		candidate === null
-			? t('kiosk.entity_unknown')
-			: (companyById.get(candidate.companyId) ?? t('kiosk.entity_unknown'))
+			? bolt.t('kiosk.entity_unknown')
+			: (companyById.get(candidate.companyId) ?? bolt.t('kiosk.entity_unknown'))
 	);
 	const organizationDisplayName = $derived(
-		organizationName.trim() || t('kiosk.organization_fallback')
+		organizationName.trim() || bolt.t('kiosk.organization_fallback')
 	);
 	const organizationInitials = $derived(
 		organizationDisplayName
@@ -229,8 +227,8 @@
 			return {
 				tone: 'warning',
 				icon: 'lucide:clock',
-				title: t('offboarding.pending'),
-				detail: t('kiosk.pending_approval_detail')
+				title: bolt.t('offboarding.pending'),
+				detail: bolt.t('kiosk.pending_approval_detail')
 			};
 		// Not rostered today is not a failure and must not be dressed as one: the person did nothing
 		// wrong, and the only useful thing the screen can do is name the day's plan.
@@ -238,30 +236,30 @@
 			return {
 				tone: 'warning',
 				icon: 'lucide:calendar-off',
-				title: t('kiosk.not_scheduled'),
-				detail: t('kiosk.not_scheduled_detail')
+				title: bolt.t('kiosk.not_scheduled'),
+				detail: bolt.t('kiosk.not_scheduled_detail')
 			};
 		if (punch?.reason === 'not-a-work-day')
 			return {
 				tone: 'warning',
 				icon: 'lucide:calendar-off',
-				title: t('kiosk.not_a_work_day'),
-				detail: t('kiosk.not_a_work_day_detail', { code: punch.plannedCode ?? '—' })
+				title: bolt.t('kiosk.not_a_work_day'),
+				detail: bolt.t('kiosk.not_a_work_day_detail', { code: punch.plannedCode ?? '—' })
 			};
 		if (punch?.reason === 'cooldown')
 			return {
 				tone: 'warning',
 				icon: 'lucide:timer-reset',
-				title: t('kiosk.too_soon'),
-				detail: t('kiosk.too_soon_detail', {
+				title: bolt.t('kiosk.too_soon'),
+				detail: bolt.t('kiosk.too_soon_detail', {
 					seconds: Math.ceil((punch.retryAfterMs ?? 0) / 1000)
 				})
 			};
 		return {
 			tone: 'warning',
 			icon: 'lucide:circle-alert',
-			title: t('kiosk.unchanged'),
-			detail: t('kiosk.unchanged_detail')
+			title: bolt.t('kiosk.unchanged'),
+			detail: bolt.t('kiosk.unchanged_detail')
 		};
 	};
 	const hintStatus = (kind: Hint): KioskStatus =>
@@ -269,21 +267,21 @@
 			? {
 					tone: 'warning',
 					icon: 'lucide:shield-alert',
-					title: t('kiosk.live_face_required'),
-					detail: t('kiosk.live_face_required_detail')
+					title: bolt.t('kiosk.live_face_required'),
+					detail: bolt.t('kiosk.live_face_required_detail')
 				}
 			: kind === 'move_closer'
 				? {
 						tone: 'warning',
 						icon: 'lucide:scan-face',
-						title: t('kiosk.move_closer'),
-						detail: t('kiosk.move_closer_detail')
+						title: bolt.t('kiosk.move_closer'),
+						detail: bolt.t('kiosk.move_closer_detail')
 					}
 				: {
 						tone: 'warning',
 						icon: 'lucide:user-round-search',
-						title: t('kiosk.no_face'),
-						detail: t('kiosk.no_face_detail')
+						title: bolt.t('kiosk.no_face'),
+						detail: bolt.t('kiosk.no_face_detail')
 					};
 	const status = $derived.by((): KioskStatus => {
 		if (notice !== null) return notice;
@@ -291,56 +289,57 @@
 			return {
 				tone: 'neutral',
 				icon: 'lucide:building-2',
-				title: t('component.choose_legal_entity'),
-				detail: companies.error ?? t('kiosk.choose_entity_before_punch')
+				title: bolt.t('component.choose_legal_entity'),
+				detail: companies?.error?.message ?? bolt.t('kiosk.choose_entity_before_punch')
 			};
 		if (tab === 'manual')
 			return {
 				tone: 'neutral',
 				icon: 'lucide:keyboard',
-				title: t('kiosk.manual_entry'),
-				detail: t('kiosk.manual_status')
+				title: bolt.t('kiosk.manual_entry'),
+				detail: bolt.t('kiosk.manual_status')
 			};
 		return Match.value(phase).pipe(
 			Match.tagsExhaustive({
 				boot: (): KioskStatus => ({
 					tone: 'neutral',
 					icon: 'lucide:loader-circle',
-					title: t('kiosk.preparing'),
-					detail: t('kiosk.preparing_detail')
+					title: bolt.t('kiosk.preparing'),
+					detail: bolt.t('kiosk.preparing_detail')
 				}),
 				error: ({ message }): KioskStatus => ({
 					tone: 'error',
 					icon: 'lucide:camera-off',
-					title: t('kiosk.camera_unavailable'),
-					detail: message || t('kiosk.camera_help')
+					title: bolt.t('kiosk.camera_unavailable'),
+					detail: message || bolt.t('kiosk.camera_help')
 				}),
 				unavailable: ({ models }): KioskStatus => ({
 					tone: 'error',
 					icon: 'lucide:cpu',
-					title: t('kiosk.engine_unavailable'),
-					detail: t('kiosk.engine_unavailable_detail', { models: models.join(', ') })
+					title: bolt.t('kiosk.engine_unavailable'),
+					detail: bolt.t('kiosk.engine_unavailable_detail', { models: models.join(', ') })
 				}),
 				challenge: ({ candidate, hold }): KioskStatus => ({
 					tone: 'neutral',
 					icon: 'lucide:scan-face',
 					title:
 						candidate === null
-							? t('kiosk.reading_face')
-							: t('kiosk.identity_confirmed', { name: candidate.employeeName }),
-					detail: t('kiosk.countdown_detail', { seconds: kioskSecondsLeft(hold) })
+							? bolt.t('kiosk.reading_face')
+							: bolt.t('kiosk.identity_confirmed', { name: candidate.employeeName }),
+					detail: bolt.t('kiosk.countdown_detail', { seconds: kioskSecondsLeft(hold) })
 				}),
 				working: (): KioskStatus => ({
 					tone: 'neutral',
 					icon: 'lucide:loader-circle',
-					title: t('kiosk.recording'),
-					detail: t('kiosk.recording_detail')
+					title: bolt.t('kiosk.recording'),
+					detail: bolt.t('kiosk.recording_detail')
 				}),
 				done: ({ candidate, punch }): KioskStatus => ({
 					tone: 'success',
 					icon: 'lucide:circle-check',
-					title: punch.status === 'out' ? t('kiosk.recorded_out') : t('kiosk.recorded_in'),
-					detail: t('kiosk.recorded_detail', {
+					title:
+						punch.status === 'out' ? bolt.t('kiosk.recorded_out') : bolt.t('kiosk.recorded_in'),
+					detail: bolt.t('kiosk.recorded_detail', {
 						name: candidate.employeeName,
 						time: clockTime(punch.time)
 					})
@@ -349,8 +348,8 @@
 				unknown: (): KioskStatus => ({
 					tone: 'warning',
 					icon: 'lucide:user-round-question',
-					title: t('kiosk.unknown_person'),
-					detail: t('kiosk.unknown_hint')
+					title: bolt.t('kiosk.unknown_person'),
+					detail: bolt.t('kiosk.unknown_hint')
 				}),
 				rejected: ({ notice }) => notice,
 				scan: ({ hint }): KioskStatus =>
@@ -358,8 +357,8 @@
 						? {
 								tone: 'neutral',
 								icon: 'lucide:scan-face',
-								title: t('kiosk.ready'),
-								detail: t('kiosk.waiting_for_face_hint')
+								title: bolt.t('kiosk.ready'),
+								detail: bolt.t('kiosk.waiting_for_face_hint')
 							}
 						: hintStatus(hint)
 			})
@@ -504,7 +503,7 @@
 			{
 				tone: 'error',
 				icon: 'lucide:triangle-alert',
-				title: t('kiosk.record_failed'),
+				title: bolt.t('kiosk.record_failed'),
 				detail: getErrorMessage(error)
 			},
 			'try_again',
@@ -534,7 +533,7 @@
 					tone: 'warning',
 					icon: 'lucide:badge-alert',
 					title: matched.employee.name,
-					detail: t('kiosk.no_active_contract_in_entity')
+					detail: bolt.t('kiosk.no_active_contract_in_entity')
 				},
 				'no_active_employment'
 			);
@@ -583,7 +582,7 @@
 		probe: readonly number[],
 		threshold: number
 	) {
-		const holders = yield* bolt.read('employment_profile', {
+		const holders = yield* bolt.query('employment_profile', {
 			where: { face_enrollment_status: { eq: 'APPROVED' } },
 			select: { name: true, face_embedding: true },
 			all: true
@@ -604,7 +603,7 @@
 		}
 		if (best == null || bestDistance > threshold)
 			return { status: 'unknown' } satisfies MatchResult;
-		const contracts = yield* bolt.read('employment_contract', {
+		const contracts = yield* bolt.query('employment_contract', {
 			where: {
 				employee_id: { eq: best.id },
 				company_id: { eq: requestedCompanyId }
@@ -764,7 +763,7 @@
 									{
 										tone: 'error',
 										icon: 'lucide:triangle-alert',
-										title: t('kiosk.read_failed'),
+										title: bolt.t('kiosk.read_failed'),
 										detail: getErrorMessage(error)
 									},
 									'try_again'
@@ -813,7 +812,7 @@
 						{
 							tone: 'error',
 							icon: 'lucide:triangle-alert',
-							title: t('kiosk.read_failed'),
+							title: bolt.t('kiosk.read_failed'),
 							detail: getErrorMessage(error)
 						},
 						'try_again'
@@ -890,7 +889,7 @@
 				{#if organizationLogoUrl !== null}
 					<img
 						src={organizationLogoUrl}
-						alt={t('kiosk.organization_logo', { name: organizationDisplayName })}
+						alt={bolt.t('kiosk.organization_logo', { name: organizationDisplayName })}
 						class="size-full object-contain p-1"
 					/>
 				{:else}
@@ -899,7 +898,7 @@
 			</Inline>
 			<div class="min-w-0">
 				<p class="truncate text-heading">{organizationDisplayName}</p>
-				<p class="text-meta">{t('kiosk.title')}</p>
+				<p class="text-meta">{bolt.t('kiosk.title')}</p>
 			</div>
 		</Inline>
 
@@ -911,7 +910,7 @@
 				orderBy="name"
 				value={companyId}
 				onChange={selectCompany}
-				disabled={phase._tag === 'working' || manualWorking || companies.loading}
+				disabled={phase._tag === 'working' || manualWorking || companies?.loading}
 			/>
 		</div>
 
@@ -921,30 +920,30 @@
 			<p class="text-meta">{currentDate}</p>
 		</div>
 
-		<Inline gap="xs" shrink={false} aria-label={t('kiosk.tools')}>
+		<Inline gap="xs" shrink={false} aria-label={bolt.t('kiosk.tools')}>
 			<Button
 				variant={tab === 'scan' ? 'secondary' : 'ghost'}
 				onclick={toScan}
-				aria-label={t('kiosk.clock')}
+				aria-label={bolt.t('kiosk.clock')}
 				aria-pressed={tab === 'scan'}
 			>
 				<Icon icon="lucide:scan-face" class="size-4" />
-				<span class="hidden md:inline">{t('kiosk.clock')}</span>
+				<span class="hidden md:inline">{bolt.t('kiosk.clock')}</span>
 			</Button>
 			<Button
 				variant={tab === 'manual' ? 'secondary' : 'ghost'}
 				onclick={() => openTab('manual')}
-				aria-label={t('kiosk.manual_entry')}
+				aria-label={bolt.t('kiosk.manual_entry')}
 				aria-pressed={tab === 'manual'}
 			>
 				<Icon icon="lucide:keyboard" class="size-4" />
-				<span class="hidden md:inline">{t('kiosk.manual_entry')}</span>
+				<span class="hidden md:inline">{bolt.t('kiosk.manual_entry')}</span>
 			</Button>
 			<Button
 				variant="ghost"
 				size="icon"
 				aria-pressed={voiceEnabled}
-				aria-label={voiceEnabled ? t('kiosk.voice_off') : t('kiosk.voice_on')}
+				aria-label={voiceEnabled ? bolt.t('kiosk.voice_off') : bolt.t('kiosk.voice_on')}
 				onclick={toggleVoice}
 			>
 				<Icon icon={voiceEnabled ? 'lucide:volume-2' : 'lucide:volume-x'} class="size-4" />
@@ -998,8 +997,8 @@
 			>
 				{#if tab === 'scan' && phase._tag === 'boot'}
 					<Stack align="center" justify="center" fill gap="md">
-						<Spinner class="size-8" label={t('kiosk.preparing')} />
-						<p class="text-sm text-muted-foreground">{t('kiosk.preparing_detail')}</p>
+						<Spinner class="size-8" label={bolt.t('kiosk.preparing')} />
+						<p class="text-sm text-muted-foreground">{bolt.t('kiosk.preparing_detail')}</p>
 					</Stack>
 				{:else if tab === 'scan' && phase._tag === 'error'}
 					<Stack align="center" justify="center" fill gap="md" class="px-6 text-center">
@@ -1007,14 +1006,14 @@
 							<Icon icon="lucide:camera-off" class="size-7" />
 						</Frame>
 						<Stack gap="xs" align="center">
-							<h1 class="text-section">{t('kiosk.camera_unavailable')}</h1>
+							<h1 class="text-section">{bolt.t('kiosk.camera_unavailable')}</h1>
 							<p class="max-w-xl text-sm text-muted-foreground">
-								{fatal ?? t('kiosk.camera_help')}
+								{fatal ?? bolt.t('kiosk.camera_help')}
 							</p>
 						</Stack>
 						<Button onclick={() => void boot()}>
 							<Icon icon="lucide:refresh-cw" class="size-4" />
-							{t('kiosk.retry')}
+							{bolt.t('kiosk.retry')}
 						</Button>
 					</Stack>
 				{:else if tab === 'scan'}
@@ -1036,7 +1035,7 @@
 								clip
 								class="relative"
 								style="width: {frame.width}px; height: {frame.height}px;"
-								aria-label={t('kiosk.camera')}
+								aria-label={bolt.t('kiosk.camera')}
 							>
 								<Imposter placement="fill">
 									<video
@@ -1102,10 +1101,10 @@
 									>
 										{#if phase._tag === 'unavailable'}
 											<span class="size-2 rounded-full bg-destructive"></span>
-											{t('kiosk.engine_unavailable')}
+											{bolt.t('kiosk.engine_unavailable')}
 										{:else}
 											<span class="size-2 rounded-full bg-success"></span>
-											{t('kiosk.camera_ready')}
+											{bolt.t('kiosk.camera_ready')}
 										{/if}
 									</Inline>
 								</Imposter>
@@ -1130,15 +1129,19 @@
 							</Bound>
 						</Stack>
 
-						<Scroll as="aside" name={t('kiosk.identity')} class="bg-card px-5 py-6 sm:px-8 sm:py-8">
+						<Scroll
+							as="aside"
+							name={bolt.t('kiosk.identity')}
+							class="bg-card px-5 py-6 sm:px-8 sm:py-8"
+						>
 							<Center measure="narrow" layout="stack" gap="xl">
 								<!--
 							No action cards. The kiosk does not ask which way to punch — the day already
 							knows — so the aside is the person, and the one line above it says what to do.
 						-->
 								<Stack as="section" gap="sm" class="max-lg:hidden">
-									<h1 class="text-section">{t('kiosk.how_it_works')}</h1>
-									<p class="text-sm text-muted-foreground">{t('kiosk.how_it_works_hint')}</p>
+									<h1 class="text-section">{bolt.t('kiosk.how_it_works')}</h1>
+									<p class="text-sm text-muted-foreground">{bolt.t('kiosk.how_it_works_hint')}</p>
 								</Stack>
 
 								<Stack
@@ -1147,7 +1150,7 @@
 									class="lg:border-t lg:pt-7"
 									aria-labelledby="identity-heading"
 								>
-									<h2 id="identity-heading" class="text-heading">{t('kiosk.identity')}</h2>
+									<h2 id="identity-heading" class="text-heading">{bolt.t('kiosk.identity')}</h2>
 									{#if candidate !== null}
 										<Inline align="start" gap="md">
 											<Frame
@@ -1164,11 +1167,11 @@
 												<p class="truncate text-subhead">{candidate.employeeName}</p>
 												<Stack as="dl" gap="sm" class="text-sm">
 													<Inline justify="between" gap="md" class="border-b pb-2">
-														<dt class="text-muted-foreground">{t('kiosk.entity')}</dt>
+														<dt class="text-muted-foreground">{bolt.t('kiosk.entity')}</dt>
 														<dd class="truncate font-medium">{candidateCompany}</dd>
 													</Inline>
 													<Inline justify="between" gap="md">
-														<dt class="text-muted-foreground">{t('kiosk.employee_number')}</dt>
+														<dt class="text-muted-foreground">{bolt.t('kiosk.employee_number')}</dt>
 														<dd class="font-mono text-sm">{candidate.employeeNumber}</dd>
 													</Inline>
 												</Stack>
@@ -1187,8 +1190,10 @@
 												/>
 											</Frame>
 											<div>
-												<p class="text-base font-medium">{t('kiosk.unknown_person')}</p>
-												<p class="mt-1 text-sm text-muted-foreground">{t('kiosk.unknown_hint')}</p>
+												<p class="text-base font-medium">{bolt.t('kiosk.unknown_person')}</p>
+												<p class="mt-1 text-sm text-muted-foreground">
+													{bolt.t('kiosk.unknown_hint')}
+												</p>
 											</div>
 										</Inline>
 									{:else if phase._tag === 'rejected' && notice !== null}
@@ -1216,16 +1221,16 @@
 											</Frame>
 											<Stack gap="md" align="start">
 												<Stack gap="xs">
-													<p class="text-base font-medium">{t('kiosk.engine_unavailable')}</p>
+													<p class="text-base font-medium">{bolt.t('kiosk.engine_unavailable')}</p>
 													<p class="text-sm text-muted-foreground">
-														{t('kiosk.engine_unavailable_detail', {
+														{bolt.t('kiosk.engine_unavailable_detail', {
 															models: engineMissing.join(', ')
 														})}
 													</p>
 												</Stack>
 												<Button variant="secondary" onclick={() => openTab('manual')}>
 													<Icon icon="lucide:keyboard" class="size-4" />
-													{t('kiosk.manual_entry')}
+													{bolt.t('kiosk.manual_entry')}
 												</Button>
 											</Stack>
 										</Inline>
@@ -1237,17 +1242,17 @@
 											<div>
 												<p class="text-base font-medium">
 													{companyId == null
-														? t('component.choose_legal_entity')
+														? bolt.t('component.choose_legal_entity')
 														: hint !== null
 															? hintStatus(hint).title
-															: t('kiosk.waiting_for_face')}
+															: bolt.t('kiosk.waiting_for_face')}
 												</p>
 												<p class="mt-1 text-sm text-muted-foreground">
 													{companyId == null
-														? t('kiosk.choose_entity_before_punch')
+														? bolt.t('kiosk.choose_entity_before_punch')
 														: hint !== null
 															? hintStatus(hint).detail
-															: t('kiosk.waiting_for_face_hint')}
+															: bolt.t('kiosk.waiting_for_face_hint')}
 												</p>
 											</div>
 										</Inline>
@@ -1257,7 +1262,7 @@
 						</Scroll>
 					</div>
 				{:else}
-					<Scroll name={t('kiosk.manual_entry')} inset class="bg-muted/40">
+					<Scroll name={bolt.t('kiosk.manual_entry')} inset class="bg-muted/40">
 						{#key companyId}
 							<ManualTab
 								{companyId}

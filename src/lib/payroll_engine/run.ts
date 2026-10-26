@@ -1,19 +1,14 @@
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Result } from 'effect';
 import { loanRuleFacts } from '../loan_values.js';
+import type { Id } from '@norbital-ai/bolt';
+import type { Read } from './foundation.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { type SuspensionKind } from './suspension_kinds.js';
-import { addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
-import {
-	fieldValue,
-	isDynObject,
-	payrollSetting,
-	Reads,
-	readAll,
-	Refusal,
-	stableJson
-} from './foundation.js';
+import { addMonths, monthOf } from '@norbital-ai/std/date';
+import { fieldValue, payrollSetting, Reads, Refusal, stableJson } from './foundation.js';
 import { eventIdOf, chainStarts } from './leave.js';
 import {
+	inForce,
 	currencyScale,
 	roundTo,
 	payrollMonths,
@@ -30,8 +25,6 @@ import {
 	type ShiftPatternRow,
 	type LeaveEventRow,
 	FAMILIES,
-	loadGoverned,
-	governedFrom,
 	type EntryCollection,
 	evaluate,
 	versionOn,
@@ -40,11 +33,161 @@ import {
 } from './payslip/context.js';
 import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
 import { CYCLES, payrollWindow } from './frequency.js';
-import { admitPayrollRun, inForce, validationsOf, reservedPinsFrom } from './admit.js';
+import { admitPayrollRun, payrollRulesOf, validationsOf, reservedPinsFrom } from './admit.js';
 import { buildPayslip } from './payslip/lines.js';
+/** All runtime dependencies for a payroll write batch, fetched once after admission. */
+export const loadPayrollBuild = (read: Read, companyIds: readonly Id<'entity'>[]) =>
+	read({
+		// Every committed ledger reserves its source before the asynchronous backlink is attached.
+		settlements: {
+			from: 'payroll_run',
+			where: {
+				company_id: { in: companyIds }
+			},
+			select: { company_id: true, pins: true },
+			all: true
+		},
+		contracts: {
+			from: 'employment_contract',
+			where: { company_id: { in: companyIds } },
+			select: CONTRACT,
+			all: true
+		},
+		people: {
+			from: 'employment_profile',
+			where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
+			select: PROFILE,
+			all: true
+		},
+		history: {
+			from: 'payslip',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: HISTORY,
+			all: true
+		},
+		adhoc: {
+			from: 'adhoc_catalog_entry',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: ENTRY.adhoc_catalog_entry,
+			all: true
+		},
+		adhoc_codes: {
+			from: 'adhoc_catalog',
+			where: { id: { in: { member: 'adhoc', field: 'catalog_id' } } },
+			select: { code: true },
+			all: true
+		},
+		claim: {
+			from: 'claim_catalog_entry',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: ENTRY.claim_catalog_entry,
+			all: true
+		},
+		claim_codes: {
+			from: 'claim_catalog',
+			where: { id: { in: { member: 'claim', field: 'catalog_id' } } },
+			select: { code: true },
+			all: true
+		},
+		leave: {
+			from: 'leave_catalog_entry',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: ENTRY.leave_catalog_entry,
+			all: true
+		},
+		leave_codes: {
+			from: 'leave_catalog',
+			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
+			select: { code: true },
+			all: true
+		},
+		loan: {
+			from: 'loan_repayment_entry',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: ENTRY.loan_repayment_entry,
+			all: true
+		},
+		loan_principals: {
+			from: 'loan_catalog_entry',
+			where: { id: { in: { member: 'loan', field: 'loan_id' } } },
+			select: LOAN,
+			all: true
+		},
+		loan_codes: {
+			from: 'loan_catalog',
+			where: { id: { in: { member: 'loan', field: 'catalog_id' } } },
+			select: { code: true },
+			all: true
+		},
+		holidays: {
+			from: 'holiday',
+			where: {
+				company_id: { in: companyIds },
+
+				published_at: { isNull: false }
+			},
+			select: HOLIDAY,
+			all: true
+		},
+		definitions: {
+			from: 'shift_definition',
+			where: { company_id: { in: companyIds } },
+			select: { company_id: true, code: true, variant: true },
+			all: true
+		},
+		patterns: {
+			from: 'shift_pattern',
+			where: { company_id: { in: companyIds } },
+			select: { company_id: true, pattern: true, effective_range: true },
+			all: true
+		},
+		suspensions: {
+			from: 'work_suspension',
+			where: {
+				company_id: { in: companyIds }
+			},
+			select: {
+				company_id: true,
+				kind: true,
+				starts_on: true,
+				ends_on: true,
+				worksite: true,
+				employment_ids: true,
+				facts: true
+			},
+			all: true
+		},
+		entities: {
+			from: 'entity',
+			where: { id: { in: companyIds } },
+			select: { settings_code: true },
+			all: true
+		},
+		lineage_versions: {
+			from: 'jurisdiction_settings',
+			where: { code: { in: { member: 'entities', field: 'settings_code' } } },
+			select: { id: true },
+			all: true
+		},
+		pay_rows: {
+			from: 'statutory_contribution_catalog',
+			where: { settings_id: { in: { member: 'lineage_versions', field: 'id' } } },
+			select: STATUTORY,
+			all: true
+		},
+		captured_allowances: { from: 'allowance_catalog', select: { code: true }, all: true },
+		roster: {
+			from: 'roster_entry',
+			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
+			select: ROSTER,
+			all: true
+		}
+	});
+type PayrollBuildRead = Effect.Success<ReturnType<typeof loadPayrollBuild>>;
 export const buildPayrollRun = (
 	request: PayrollRunRequest,
-	admitted?: Effect.Success<ReturnType<typeof admitPayrollRun>>
+	admitted?: Effect.Success<ReturnType<typeof admitPayrollRun>>,
+	prefetched?: PayrollBuildRead
 ): Effect.Effect<PayrollPlan, Refusal | ReadFailed, Reads> =>
 	Effect.gen(function* () {
 		const {
@@ -70,18 +213,15 @@ export const buildPayrollRun = (
 		);
 		const currency = payroll?.currency;
 		if (currency == null || currency === '')
-			return yield* Effect.fail(
-				new Refusal({ message: `${version.code} names no payroll currency.` })
-			);
+			return yield* new Refusal({ message: `${version.code} names no payroll currency.` });
 		const money = roundTo(payroll?.minor_units ?? currencyScale(currency));
-		// The version with every catalogue row the build prices from: read with the admission (the month's versions),
-		// else here, once.
+		// Admission already loaded every catalogue row the build prices from.
 		const { read: hostRead } = yield* Reads;
-		const governed =
-			(governedRows ?? []).find((held) => held.id === version.id) ??
-			(yield* loadGoverned(hostRead, [version.id]).pipe(
-				Effect.map((got) => governedFrom(got, version.id, got.rules.rows))
-			));
+		const governed = (governedRows ?? []).find((held) => held.id === version.id);
+		if (governed === undefined)
+			return yield* new Refusal({
+				message: 'The payroll version requires its actual governed catalogues.'
+			});
 		const catalogue = (
 			name:
 				| 'work_catalog'
@@ -92,8 +232,8 @@ export const buildPayrollRun = (
 				| 'loan_catalog'
 		): readonly CatalogRow[] => governed?.[name] ?? [];
 		const ruleRows = governed?.rule_set ?? [];
-		const rules = Object.fromEntries(
-			ruleRows.filter((row) => row.family === 'PAYROLL').map((row) => [row.code, row.rules ?? {}])
+		const rules = yield* Effect.fromResult(
+			payrollRulesOf(ruleRows.filter((row) => row.family === 'PAYROLL'))
 		);
 		const validations = yield* validationsOf(
 			ruleRows.filter((row) => row.family === 'VALIDATIONS'),
@@ -116,7 +256,7 @@ export const buildPayrollRun = (
 						company: {
 							region: entity.region ?? '',
 							pay_frequency: entity.pay_frequency ?? '',
-							facts: isDynObject(entity.facts) ? entity.facts : {}
+							facts: yield* Effect.fromResult(fieldValue(entity.facts, 'entity.facts'))
 						}
 					},
 					`${version.code} payroll.pay_date`
@@ -176,146 +316,14 @@ export const buildPayrollRun = (
 			JSON.stringify([governingRows, periodRows, validations, rules]).includes('suspended');
 		// One read: the entity's calendar and every contract in force with its person and entries. Each
 		// entry carries its class's code (`catalog`), whatever version holds that class.
-		const got = yield* hostRead({
-			// A committed run's ledger reserves its rows before the behaviour attaches their backlinks: the recent
-			// runs' pins ride this read instead of a lookup per thousand candidates.
-			// ponytail: runs older than two months are assumed backlinked; widen the window if that behaviour lags.
-			settlements: {
-				collection: 'payroll_run',
-				where: {
-					company_id: { eq: request.company_id },
-					salary_to: {
-						gte: PlainDate(String(addMonths(String(monthOf(window.salary_from).from), -2)))
-					}
-				},
-				select: { pins: true },
-				all: true
-			},
-			contracts: {
-				collection: 'employment_contract',
-				where: { company_id: { eq: request.company_id } },
-				select: CONTRACT,
-				all: true
-			},
-			people: {
-				collection: 'employment_profile',
-				where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
-				select: PROFILE,
-				all: true
-			},
-			history: {
-				collection: 'payslip',
-				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: HISTORY,
-				all: true
-			},
-			adhoc: {
-				collection: 'adhoc_catalog_entry',
-				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: ENTRY.adhoc_catalog_entry,
-				all: true
-			},
-			adhoc_codes: {
-				collection: 'adhoc_catalog',
-				where: { id: { in: { member: 'adhoc', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			claim: {
-				collection: 'claim_catalog_entry',
-				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: ENTRY.claim_catalog_entry,
-				all: true
-			},
-			claim_codes: {
-				collection: 'claim_catalog',
-				where: { id: { in: { member: 'claim', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			leave: {
-				collection: 'leave_catalog_entry',
-				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: ENTRY.leave_catalog_entry,
-				all: true
-			},
-			leave_codes: {
-				collection: 'leave_catalog',
-				where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			loan: {
-				collection: 'loan_repayment_entry',
-				where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-				select: ENTRY.loan_repayment_entry,
-				all: true
-			},
-			loan_principals: {
-				collection: 'loan_catalog_entry',
-				where: { id: { in: { member: 'loan', field: 'loan_id' } } },
-				select: LOAN,
-				all: true
-			},
-			loan_codes: {
-				collection: 'loan_catalog',
-				where: { id: { in: { member: 'loan', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			holidays: {
-				collection: 'holiday',
-				where: {
-					company_id: { eq: request.company_id },
-					date: { gte: PlainDate(span.gte), lte: PlainDate(span.lte) },
-					published_at: { isNull: false }
-				},
-				select: HOLIDAY,
-				all: true
-			},
-			definitions: {
-				collection: 'shift_definition',
-				where: { company_id: { eq: request.company_id } },
-				select: { code: true, variant: true },
-				all: true
-			},
-			patterns: {
-				collection: 'shift_pattern',
-				where: { company_id: { eq: request.company_id } },
-				select: { pattern: true, effective_range: true },
-				all: true
-			},
-			suspensions: {
-				collection: 'work_suspension',
-				where: {
-					company_id: { eq: request.company_id },
-					starts_on: { lte: PlainDate(span.lte) },
-					ends_on: { gte: PlainDate(span.gte) }
-				},
-				select: {
-					kind: true,
-					starts_on: true,
-					ends_on: true,
-					worksite: true,
-					employment_ids: true,
-					facts: true
-				},
-				all: true
-			},
-			pay_rows: {
-				collection: 'statutory_contribution_catalog',
-				where: { settings_id: { in: payVersionId === undefined ? [] : [payVersionId] } },
-				select: STATUTORY,
-				all: true
-			}
-		});
-		const payRows = got.pay_rows.rows;
+		const got = prefetched ?? (yield* loadPayrollBuild(hostRead, [request.company_id]));
+		const payRows = got.pay_rows.rows.filter((row) => row.settings_id === payVersionId);
 		const statutoryRows = periodRows.map((row) =>
 			row.configuration?.governed_by === 'pay_date'
 				? (payRows.find((other) => other.code === row.code) ?? row)
 				: row
 		);
-		const contracts = got.contracts.rows;
+		const contracts = got.contracts.rows.filter((row) => row.company_id === request.company_id);
 		const repayments: EntryRow[] = [];
 		for (const row of got.loan.rows) {
 			const parent = got.loan_principals.rows.find((loan) => loan.id === row.loan_id);
@@ -324,9 +332,9 @@ export const buildPayrollRun = (
 				parent.company_id !== row.company_id ||
 				parent.employment_id !== row.employment_id
 			)
-				return yield* Effect.fail(
-					new Refusal({ message: 'A repayment must belong to its employee’s actual loan.' })
-				);
+				return yield* new Refusal({
+					message: 'A repayment must belong to its employee’s actual loan.'
+				});
 			const principal = yield* Effect.fromResult(
 				fieldValue(parent.principal_amount, 'loan_catalog_entry.principal_amount')
 			);
@@ -387,22 +395,12 @@ export const buildPayrollRun = (
 			(id) => !lineageAllowances.some((row) => row.id === id)
 		);
 		const capturedAllowanceCodes = new Map(lineageAllowances.map((row) => [row.id, row.code]));
-		if (outside.length > 0) {
-			const outsideCatalogues = yield* hostRead('allowance_catalog', {
-				mode: 'declared',
-				where: { id: { in: outside } },
-				select: ['id', 'code'],
-				all: true
-			});
-			for (const row of outsideCatalogues.rows) {
-				const code = yield* Effect.fromResult(fieldValue(row['code'], 'allowance_catalog.code'));
-				const decoded = Schema.decodeUnknownResult(Schema.String)(code);
-				if (Result.isFailure(decoded))
-					return yield* Effect.fail(
-						new Refusal({ message: 'A captured allowance catalogue requires its actual code.' })
-					);
-				capturedAllowanceCodes.set(row.id, decoded.success);
-			}
+		for (const row of got.captured_allowances.rows) {
+			if (!outside.includes(row.id)) continue;
+			capturedAllowanceCodes.set(
+				row.id,
+				yield* Effect.fromResult(fieldValue(row.code, 'allowance_catalog.code'))
+			);
 		}
 		// Entries name their class by the row of the version they were captured under; the governing version prices it by code.
 		const entries = new Map<string, readonly EntryRow[]>();
@@ -440,18 +438,19 @@ export const buildPayrollRun = (
 				if (priced != null) classes.set(row.catalog_id, priced);
 			}
 		}
-		const rosterRead = yield* readAll(
-			'roster_entry',
-			{
-				employment_id: { in: contractIds },
-				work_date: { gte: PlainDate(span.gte), lte: PlainDate(span.lte) }
-			},
-			1000,
-			ROSTER
+		const ownContracts = new Set(contractIds);
+		const rosterRead = got.roster.rows.filter(
+			(row) =>
+				ownContracts.has(row.employment_id) &&
+				row.work_date >= span.gte &&
+				row.work_date <= span.lte
 		);
 		if (salaryRun) {
 			for (const key of yield* Effect.fromResult(
-				reservedPinsFrom(got.settlements.rows, request.run_id)
+				reservedPinsFrom(
+					got.settlements.rows.filter((row) => row.company_id === request.company_id),
+					request.run_id
+				)
 			))
 				reservedPins.add(key);
 			for (const family of FAMILIES)
@@ -471,7 +470,9 @@ export const buildPayrollRun = (
 						attended(row.work_date)
 				);
 		const hoursRoster = rosterRead.filter((row) => row.work_date <= monthEnd);
-		const holidayRead = got.holidays.rows;
+		const holidayRead = got.holidays.rows.filter(
+			(row) => row.company_id === request.company_id && row.date >= span.gte && row.date <= span.lte
+		);
 		const holidays = !salaryRun ? [] : holidayRead.filter((holiday) => attended(holiday.date));
 		const hoursHolidays = new Map(holidayRead.map((holiday) => [holiday.date, holiday]));
 		const history = got.history.rows;
@@ -491,7 +492,14 @@ export const buildPayrollRun = (
 				to: String(row.to ?? row.from ?? row.occurred_on ?? '')
 			}))
 		);
-		const suspensions = readsSuspended ? got.suspensions.rows : [];
+		const suspensions = readsSuspended
+			? got.suspensions.rows.filter(
+					(row) =>
+						row.company_id === request.company_id &&
+						row.starts_on <= span.lte &&
+						row.ends_on >= span.gte
+				)
+			: [];
 		const suspension_kinds =
 			suspensions.length === 0
 				? []

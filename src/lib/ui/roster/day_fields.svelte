@@ -18,7 +18,7 @@
 		type FormState
 	} from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { t } from '../i18n/t.js';
+	import { bolt } from '$bolt';
 	import { formatDurationHours } from '../format/display_formatters.js';
 	import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
 	import type { AttendancePolicy } from '../../payroll_engine/payslip/context.js';
@@ -64,7 +64,7 @@
 
 	onMount(() => {
 		const rule = form.addValidation(() =>
-			'problem' in draft ? [{ field: 'worked_intervals', message: t(draft.problem) }] : []
+			'problem' in draft ? [{ field: 'worked_intervals', message: bolt.t(draft.problem) }] : []
 		);
 		const reset = form.onReset(() => (clocks = stored()));
 		return () => {
@@ -114,7 +114,7 @@
 			shiftId == null ? (day.pattern?.code ?? null) : null,
 			day.leave == null
 				? null
-				: `${day.leave.name}${day.leave.half ? ` (${t('roster.half_day')})` : ''}`,
+				: `${day.leave.name}${day.leave.half ? ` (${bolt.t('roster.half_day')})` : ''}`,
 			day.holiday
 		]
 			.filter((label) => label != null)
@@ -123,21 +123,21 @@
 </script>
 
 <Stack gap="md">
-	<Section first name="projected" title={t('roster.plan_projected')}>
+	<Section first name="projected" title={bolt.t('roster.plan_projected')}>
 		<Grid as="dl" gap="sm" minimum="compact" class="text-sm">
 			<Stack gap="none">
-				<dt class="text-meta">{t('roster.day_sheet_calendar')}</dt>
+				<dt class="text-meta">{bolt.t('roster.day_sheet_calendar')}</dt>
 				<dd class="font-medium">{projected}</dd>
 			</Stack>
 			<Stack gap="none">
-				<dt class="text-meta">{t('roster.day_sheet_employment')}</dt>
-				<dd class="font-medium">{day.employed ? '—' : t('roster.before_employment')}</dd>
+				<dt class="text-meta">{bolt.t('roster.day_sheet_employment')}</dt>
+				<dd class="font-medium">{day.employed ? '—' : bolt.t('roster.before_employment')}</dd>
 			</Stack>
 		</Grid>
 	</Section>
-	<Section name="planned" title={t('roster.plan_recorded')}>
+	<Section name="planned" title={bolt.t('roster.plan_recorded')}>
 		<Grid gap="sm" minimum="compact">
-			<Field name="shift_definition_id" label={t('component.shift')}>
+			<Field name="shift_definition_id" label={bolt.t('component.shift')}>
 				{#snippet editor(field)}
 					<Picker
 						of="shift_definition"
@@ -149,26 +149,26 @@
 					/>
 				{/snippet}
 			</Field>
-			<Field name="planned_overtime_hours" label={t('roster.planned_overtime')} />
+			<Field name="planned_overtime_hours" label={bolt.t('roster.planned_overtime')} />
 		</Grid>
 		{#if day.approvedOvertimeIntervals != null && day.approvedOvertimeIntervals.length > 0}
 			<Stack gap="xs">
-				<span class="text-meta">{t('roster.approved_overtime_times')}</span>
+				<span class="text-meta">{bolt.t('roster.approved_overtime_times')}</span>
 				{#each day.approvedOvertimeIntervals as interval}
 					<p class="text-sm tabular-nums">{approvedWindowText(interval, timeZone)}</p>
 				{/each}
 			</Stack>
 		{/if}
 	</Section>
-	<Section name="actual" title={t('component.work_day_actual')}>
+	<Section name="actual" title={bolt.t('component.work_day_actual')}>
 		<Stack gap="sm">
 			{#if editable}
-				<p class="text-meta">{t('roster.clock_zone', { zone: timeZone })}</p>
+				<p class="text-meta">{bolt.t('roster.clock_zone', { zone: timeZone })}</p>
 				{#each clocks as clock, index (index)}
 					<Stack gap="xs">
 						<Grid gap="sm" minimum="compact">
 							<Stack gap="xs">
-								<Label for={`work-clock-in-${index}`}>{t('roster.clock_in')}</Label>
+								<Label for={`work-clock-in-${index}`}>{bolt.t('roster.clock_in')}</Label>
 								<Input
 									id={`work-clock-in-${index}`}
 									type="datetime-local"
@@ -180,7 +180,7 @@
 								/>
 							</Stack>
 							<Stack gap="xs">
-								<Label for={`work-clock-out-${index}`}>{t('roster.clock_out')}</Label>
+								<Label for={`work-clock-out-${index}`}>{bolt.t('roster.clock_out')}</Label>
 								<Input
 									id={`work-clock-out-${index}`}
 									type="datetime-local"
@@ -198,7 +198,7 @@
 								variant="ghost"
 								{disabled}
 								onclick={() => edit(clocks.filter((_, at) => at !== index))}
-								>{t('roster.remove_clock_pair')}</Button
+								>{bolt.t('roster.remove_clock_pair')}</Button
 							>
 						</Cluster>
 					</Stack>
@@ -209,45 +209,45 @@
 						variant="outline"
 						{disabled}
 						onclick={() => (clocks = [...clocks, { start: null, end: null }])}
-						>{t('roster.add_clock_pair')}</Button
+						>{bolt.t('roster.add_clock_pair')}</Button
 					>
 					<Button size="sm" variant="outline" {disabled} onclick={markAbsent}
-						>{t('roster.day_sheet_mark_absent')}</Button
+						>{bolt.t('roster.day_sheet_mark_absent')}</Button
 					>
 				</Cluster>
 				{#if 'problem' in draft}
-					<p class="text-sm text-destructive">{t(draft.problem)}</p>
+					<p class="text-sm text-destructive">{bolt.t(draft.problem)}</p>
 				{:else if minutes != null && minutes > 0}
 					<p class="text-meta">
-						{t('app.hr_employee.report_punch_preview_worked', {
-							hours: formatDurationHours(minutes, t)
+						{bolt.t('app.hr_employee.report_punch_preview_worked', {
+							hours: formatDurationHours(minutes, bolt.t)
 						})}
 					</p>
 				{/if}
 			{:else if worked != null && worked.length > 0}
 				<Stack gap="xs">
-					<span class="text-meta">{t('roster.recorded_clocks')}</span>
+					<span class="text-meta">{bolt.t('roster.recorded_clocks')}</span>
 					{#each worked as interval}
 						<p class="text-sm tabular-nums">
 							<time datetime={interval.start}>{clockStampOf(interval.start, timeZone)}</time>
 							– {#if interval.end != null}<time datetime={interval.end}
 									>{clockStampOf(interval.end, timeZone)}</time
-								>{:else}{t('roster.progress_open')}{/if}
+								>{:else}{bolt.t('roster.progress_open')}{/if}
 						</p>
 					{/each}
 				</Stack>
 			{:else if worked == null}
-				<p class="text-meta">{t('roster.day_sheet_unrecorded_attendance')}</p>
+				<p class="text-meta">{bolt.t('roster.day_sheet_unrecorded_attendance')}</p>
 			{/if}
-			{#if day.locked}<p class="text-meta">{t('roster.lock_rung_consumed')}</p>{/if}
+			{#if day.locked}<p class="text-meta">{bolt.t('roster.lock_rung_consumed')}</p>{/if}
 			<p class="text-meta">
-				{t('roster.actual_overtime')}: {overtime == null
+				{bolt.t('roster.actual_overtime')}: {overtime == null
 					? '—'
-					: formatDurationHours(overtime * 60, t)}
+					: formatDurationHours(overtime * 60, bolt.t)}
 			</p>
 			{#if completion?.percent != null}
 				<p class="text-meta">
-					{t(shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')}: {t(
+					{bolt.t(shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')}: {bolt.t(
 						'roster.completion_details',
 						{
 							percent: Math.floor(completion.percent),

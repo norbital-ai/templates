@@ -36,7 +36,7 @@ and shipped alongside the model and MiniVision license.
 
 The live threshold is 0.8. This is a starting operating point, not a measured
 camera-specific false-accept rate. The upstream real and spoof samples are
-regressions for integration, not proof against all phones, replays, or cameras.
+inputs for integration edge case tests, not proof against all phones, replays, or cameras.
 
 ## Shipped files (0.0.1)
 

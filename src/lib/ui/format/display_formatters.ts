@@ -5,7 +5,7 @@
  * Every formatter parses defensively: a table cell must never throw on a row whose variant was
  * written by an older definition. There is no writing here — presentation only.
  */
-import type { MessageKey } from '../i18n/t.js';
+import type { MessageKey } from '@norbital-ai/bolt';
 import { governed } from '../scopes/settings_scope.js';
 import { dateKey, numberOf } from '../../payroll_engine/foundation.js';
 import * as Predicate from 'effect/Predicate';

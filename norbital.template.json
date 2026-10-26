@@ -6,9 +6,9 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 29,
+		"models": 29,
 		"apps": 6,
-		"automations": 5
+		"automations": 6
 	},
 	"tags": ["HR", "Finance", "Approvals"],
 	"seed": {

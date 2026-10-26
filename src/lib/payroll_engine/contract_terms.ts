@@ -1,8 +1,10 @@
 /**
  * L-TPL-hr-payroll-032/033/036: effective-dated terms live on `employment_contract.facts.contract_terms`.
- * A successor closes the predecessor the day before; overlapping ranges are refused. A term is opaque JSON shaped by
- * the governing version's `employee_input_schema.properties.contract_terms.items`: every key it holds is kept.
+ * A successor closes the predecessor the day before; overlapping ranges are refused. A stored term is the model's
+ * declared term; an edited one is JSON shaped by the governing version's
+ * `employee_input_schema.properties.contract_terms.items`: every key it holds is kept.
  */
+import { isMasked, type Masked } from '@norbital-ai/bolt';
 import {
 	addDays,
 	contains,
@@ -14,11 +16,19 @@ import {
 } from '@norbital-ai/std/date';
 import { Option, Schema } from 'effect';
 import { isJsonObject, numberOf, stableJson, type JsonObject } from './foundation.js';
+import type { ContractTerm } from './payslip/context.js';
+
+export type { ContractTerm };
 
 const isString = Schema.is(Schema.String);
 
-/** A stored term as written, with its range read. */
-export type ContractTerm = JsonObject & { readonly effective_range: DatePeriod };
+/** A term as an edit writes it: the edited keys, its range and its allowance lines. A stored term is one too. */
+export type TermDraft = JsonObject & { readonly effective_range: DatePeriod };
+
+type Dated = { readonly effective_range: DatePeriod };
+/** A contract's `facts` as stored or written: masked or absent facts hold no terms. */
+type TermsFacts<T extends Dated> =
+	{ readonly contract_terms?: readonly T[] | null } | Masked | null | undefined;
 
 /** A term's keys as edited, without its range. */
 type TermValues = { readonly [key: string]: Schema.Json };
@@ -36,71 +46,38 @@ export function parseAmount(text: string): number | null {
 	return parsed.value;
 }
 
-const TermRange = Schema.Struct({
-	from: Schema.String,
-	to: Schema.optionalKey(Schema.NullOr(Schema.String))
-});
-
 /** The base salary of a term, or null when it states none. */
 export function salaryOf(
-	term: JsonObject
+	term: ContractTerm
 ): { readonly value: number; readonly currency: string } | null {
-	const value = numberOf(isJsonObject(term.base_salary) ? term.base_salary.value : undefined);
-	if (value == null) return null;
-	const held = isJsonObject(term.base_salary) ? term.base_salary.currency : undefined;
-	return { value, currency: isString(held) ? held : '' };
+	return term.base_salary == null
+		? null
+		: { value: term.base_salary.value, currency: term.base_salary.currency };
 }
 
 /** A term's allowance lines as stored. */
-export function allowancesOf(term: JsonObject): readonly AllowanceDraft[] {
-	const held = term.allowances;
-	if (!Array.isArray(held)) return [];
-	return held.flatMap((line) =>
-		isJsonObject(line)
-			? [
-					{
-						code: isString(line.code) ? line.code : '',
-						amount: numberOf(isJsonObject(line.amount) ? line.amount.value : undefined) ?? 0,
-						source: line
-					}
-				]
-			: []
-	);
+export function allowancesOf(term: ContractTerm): readonly AllowanceDraft[] {
+	return (term.allowances ?? []).map((line) => ({
+		code: line.code ?? '',
+		amount: line.amount.value,
+		source: line
+	}));
 }
 
-/** Every stored term that states a range; nothing else of it is read or dropped. */
-export function termsFromFacts(facts: unknown): readonly ContractTerm[] {
-	if (!isJsonObject(facts) || !Array.isArray(facts.contract_terms)) return [];
-	return facts.contract_terms.flatMap((row) => {
-		if (!isJsonObject(row)) return [];
-		const range = Schema.decodeUnknownOption(TermRange)(row.effective_range);
-		if (Option.isNone(range) || range.value.from === '') return [];
-		const effective_range = {
-			from: PlainDate(range.value.from),
-			to: range.value.to == null || range.value.to === '' ? null : PlainDate(range.value.to)
-		};
-		return [{ ...row, effective_range }];
-	});
-}
+/** The terms a contract's facts hold. */
+export const termsFromFacts = <T extends Dated = ContractTerm>(
+	facts: TermsFacts<T>
+): readonly T[] => (facts == null || isMasked(facts) ? [] : (facts.contract_terms ?? []));
 
-export function termInForceOn(
-	terms: readonly ContractTerm[],
-	day: string
-): ContractTerm | undefined {
+export function termInForceOn<T extends Dated>(terms: readonly T[], day: string): T | undefined {
 	return terms
 		.filter((term) => contains(term.effective_range, day))
 		.toSorted((left, right) => left.effective_range.from.localeCompare(right.effective_range.from))
 		.at(-1);
 }
 
-export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | null {
-	for (const term of terms) {
-		for (const line of allowancesOf(term)) {
-			if (!identifiesAllowance(line)) return 'Each allowance needs a catalogue code or item.';
-			if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
-		}
-	}
-	const ordered = [...terms].toSorted((left, right) =>
+const overlapping = (terms: readonly Dated[]): string | null => {
+	const ordered = terms.toSorted((left, right) =>
 		left.effective_range.from.localeCompare(right.effective_range.from)
 	);
 	for (const [i, current] of ordered.entries())
@@ -108,6 +85,15 @@ export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | nul
 			if (overlaps(current.effective_range, other.effective_range))
 				return 'Employment terms cannot overlap.';
 	return null;
+};
+
+export function refuseTermsOverlap(terms: readonly ContractTerm[]): string | null {
+	for (const term of terms)
+		for (const line of allowancesOf(term)) {
+			if (!identifiesAllowance(line)) return 'Each allowance needs a catalogue code or item.';
+			if (!(line.amount > 0)) return 'Each allowance needs a monthly amount.';
+		}
+	return overlapping(terms);
 }
 
 const identifiesAllowance = (line: AllowanceDraft): boolean =>
@@ -121,11 +107,12 @@ function termFromDraft(
 	start: string,
 	values: TermValues,
 	allowances: readonly AllowanceDraft[]
-): ContractTerm | string {
+): TermDraft | string {
 	if (start === '') return 'Choose the first day these terms govern.';
-	const salary = salaryOf(values);
-	if (salary == null || !(salary.value >= 0)) return 'Enter a valid base salary.';
-	if (salary.currency === '') return 'Choose the salary currency.';
+	const salary = isJsonObject(values.base_salary) ? values.base_salary : {};
+	const value = numberOf(salary.value);
+	if (value == null || !(value >= 0)) return 'Enter a valid base salary.';
+	if (!isString(salary.currency) || salary.currency === '') return 'Choose the salary currency.';
 	const lines: Schema.Json[] = [];
 	for (const line of allowances) {
 		const code = line.code.trim();
@@ -171,15 +158,13 @@ export function hireContractSet(input: {
 			company_id: string;
 			employee_number: string;
 			effective_range: DatePeriod;
-			facts: { contract_terms: readonly ContractTerm[] };
+			facts: { contract_terms: readonly TermDraft[] };
 	  }
 	| string {
 	if (input.employee_number.trim() === '') return 'Enter an employee number.';
 	if (input.company_id === '') return 'Choose the legal entity.';
 	const term = termFromDraft(input.start, input.values, input.allowances);
 	if (isString(term)) return term;
-	const overlap = refuseTermsOverlap([term]);
-	if (overlap != null) return overlap;
 	return {
 		employee_id: input.employee_id,
 		company_id: input.company_id,
@@ -194,13 +179,13 @@ export function hireContractSet(input: {
  * stored, and the successor is the edited values under a new id.
  */
 export function changeTermsSet(
-	terms: readonly ContractTerm[],
+	terms: readonly TermDraft[],
 	change: {
 		readonly start: string;
 		readonly values: TermValues;
 		readonly allowances: readonly AllowanceDraft[];
 	}
-): { facts: { contract_terms: readonly ContractTerm[] } } | string {
+): { facts: { contract_terms: readonly TermDraft[] } } | string {
 	if (change.start === '') return 'Choose the first day these terms govern.';
 	const current = termInForceOn(terms, addDays(change.start, -1));
 	if (current == null) return 'No terms are in force today, so there is nothing to change.';
@@ -209,7 +194,7 @@ export function changeTermsSet(
 	if (isString(term)) return term;
 	if (term.effective_range.from <= current.effective_range.from)
 		return 'New terms must start after the terms they replace.';
-	const closed: ContractTerm = {
+	const closed: TermDraft = {
 		...current,
 		effective_range: {
 			from: current.effective_range.from,
@@ -221,13 +206,13 @@ export function changeTermsSet(
 		closed,
 		{ ...term, id: crypto.randomUUID() }
 	];
-	const overlap = refuseTermsOverlap(next);
+	const overlap = overlapping(next);
 	if (overlap != null) return overlap;
 	return { facts: { contract_terms: next } };
 }
 
 /** A term as it governs a day: every key but the range it is stored with. */
-const termOnDay = (terms: readonly ContractTerm[], day: string): string => {
+const termOnDay = <T extends Dated>(terms: readonly T[], day: string): string => {
 	const term = termInForceOn(terms, day);
 	if (term == null) return '';
 	const { effective_range: _range, ...rest } = term;
@@ -239,8 +224,8 @@ const termOnDay = (terms: readonly ContractTerm[], day: string): string => {
  * only take effect after the last paid day. Deleting the run releases its period.
  */
 export function refusePaidTermsChange(
-	before: unknown,
-	after: unknown,
+	before: TermsFacts<Dated>,
+	after: TermsFacts<Dated>,
 	paid: readonly { readonly from: string; readonly to: string }[]
 ): string | null {
 	const old = termsFromFacts(before);
