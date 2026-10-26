@@ -10536,7 +10536,7 @@
 			}
 		],
 		"rules": {
-			"description": "End the processing of a former employee's personal data and destroy it once its retention period ends (anonymise the profile: employment_profile.anonymise), and tell the employee of the deletion. Raised on the exit; due on the record_retention date (10 years after the exit's tax year ends).",
+			"description": "End the processing of a former employee's personal data and destroy it once its retention period ends (anonymise the profile: employment_profile_anonymise), and tell the employee of the deletion. Raised on the exit; due on the record_retention date (10 years after the exit's tax year ends).",
 			"trigger": {
 				"collection": "employment_contract",
 				"events": ["updated"],

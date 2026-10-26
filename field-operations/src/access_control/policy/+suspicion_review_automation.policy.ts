@@ -30,6 +30,7 @@ export default policy({
 					'sha256',
 					'inspection_failed_at',
 					'inspection_failure_reason',
+					'inspection_claimed_at',
 					'perceptual_embedding',
 					'scene_embedding',
 					'flags',

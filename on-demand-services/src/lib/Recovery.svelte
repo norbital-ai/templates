@@ -1,12 +1,19 @@
 <script lang="ts">
 	import { fork, bolt } from '$bolt';
-	import { useKinds, Button, Combobox, TimeInput, Label, notifyOutcome } from '@norbital-ai/ui';
+	import {
+		useKinds,
+		Button,
+		Combobox,
+		TimeInput,
+		Label,
+		RunStatus,
+		notifyOutcome
+	} from '@norbital-ai/ui';
 	import { Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
 	import type { ActFailure } from '@norbital-ai/bolt/errors';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { live } from './live.svelte.js';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -17,8 +24,8 @@
 	} = $props();
 	const t = bolt.t;
 	const getErrorMessage = (e: unknown) => String(e instanceof Error ? e.message : e);
-	const stored = live(() =>
-		bolt.read('visits', {
+	const stored = $derived(
+		bolt.query('visits', {
 			where: { id: { eq: visit } },
 			select: {
 				number: true,
@@ -42,36 +49,31 @@
 	let chosen = $state<Id<'helpers'> | null>(null);
 	let from = $state(new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date()));
 	const start = $derived(newTime ? picked : (v?.slot.start ?? null));
-	const candidates = live(
-		() =>
-			v === undefined || start === null
-				? null
-				: bolt.query('visits.candidates', { visit, ...(newTime ? { start: Instant(start) } : {}) }),
-		['visits', 'helpers', 'helper_time_off', 'drive_times']
+	const candidates = $derived(
+		v === undefined || start === null
+			? null
+			: bolt.query('visits.candidates', { visit, ...(newTime ? { start: Instant(start) } : {}) })
 	);
 	const best = $derived(
-		candidates.current?.find((c) => c.helper === chosen) ??
-			(!newTime ? candidates.current?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
-			candidates.current?.[0]
+		candidates?.current?.find((c) => c.helper === chosen) ??
+			(!newTime ? candidates?.current?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
+			candidates?.current?.[0]
 	);
-	const days = live(
-		() =>
-			newTime
-				? bolt.query('visits.rebooking_slots', {
-						visit,
-						from: PlainDate(from),
-						days: 14
-					})
-				: null,
-		['visits', 'helpers', 'helper_time_off', 'drive_times']
+	const days = $derived(
+		newTime
+			? bolt.query('visits.rebooking_slots', {
+					visit,
+					from: PlainDate(from),
+					days: 14
+				})
+			: null
 	);
 	let busy = $state(false);
 	let medical = $state<'yes' | 'no'>('no');
-	let approved = $state(false);
+	let started = $state<{ id: string; automation: string } | null>(null);
 	let message = $state<string | null>(null);
-	function feedback(outcome: Outcome<unknown>, saved: string | null = null) {
-		message =
-			outcome.kind === 'committed' ? saved : outcome.kind === 'refused' ? outcome.message : null;
+	function feedback(outcome: Outcome<unknown>) {
+		message = outcome.kind === 'refused' ? outcome.message : null;
 		if (outcome.kind !== 'committed' && outcome.kind !== 'refused') notifyOutcome(bolt, outcome);
 	}
 	function perform(work: Effect.Effect<void, ActFailure>): void {
@@ -100,37 +102,44 @@
 		if (at === null || replacement === undefined) return;
 		perform(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('visits.rebook', {
-					target: visit,
-					input: { start: Instant(at), helper: replacement.helper }
+				const call = bolt.start('visits_rebook', {
+					targets: [visit],
+					start: Instant(at),
+					helper: replacement.helper
 				});
-				feedback(outcome, t('app.recovery.approved'));
-				approved = outcome.kind === 'committed';
+				const outcome = yield* call;
+				feedback(outcome);
+				if (outcome.kind === 'committed') started = { id: call.id, automation: call.automation };
 			})
 		);
 	}
 	function refresh() {
 		perform(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('visits.recommend', { target: visit, input: {} });
+				const call = bolt.start('visits_recommend', { targets: [visit] });
+				const outcome = yield* call;
 				feedback(outcome);
-				if (outcome.kind === 'committed') chosen = null;
+				if (outcome.kind === 'committed') {
+					started = { id: call.id, automation: call.automation };
+					chosen = null;
+				}
 			})
 		);
 	}
 	function report() {
 		perform(
 			Effect.gen(function* () {
-				feedback(
-					yield* bolt.act('visits.report_unavailable', {
-						target: visit,
-						input: { mc: medical === 'yes' }
-					}),
-					t('app.recovery.prepared')
-				);
+				const call = bolt.start('visits_report_unavailable', {
+					targets: [visit],
+					mc: medical === 'yes'
+				});
+				const outcome = yield* call;
+				feedback(outcome);
+				if (outcome.kind === 'committed') started = { id: call.id, automation: call.automation };
 			})
 		);
 	}
+
 	const when = (at: string) =>
 		new Intl.DateTimeFormat(bolt.locale, {
 			timeZone: zone,
@@ -143,7 +152,7 @@
 </script>
 
 <Stack gap="lg">
-	{#if stored.error}<p role="alert">{stored.error}</p>
+	{#if stored.error}<p role="alert">{stored.error.message}</p>
 	{:else if v === undefined}<p>{t('component.loading')}</p>
 	{:else}
 		<Stack gap="xs">
@@ -154,7 +163,7 @@
 					{t('app.recovery.absent', { name: v.unavailable_helper.name })}
 				</p>{/if}
 		</Stack>
-		{#if v.status === 'scheduled' && !approved}
+		{#if v.status === 'scheduled'}
 			{#if newTime}
 				<Stack gap="sm">
 					<Label for="rebook-from">{t('app.recovery.from')}</Label>
@@ -167,8 +176,8 @@
 							chosen = null;
 						}}
 					/>
-					{#if days.error}<p role="alert">{days.error}</p>
-					{:else if days.current === undefined}<p>{t('component.loading')}</p>
+					{#if days?.error}<p role="alert">{days.error.message}</p>
+					{:else if days?.current === undefined}<p>{t('component.loading')}</p>
 					{:else}<SlotPicker
 							days={days.current}
 							minutes={(Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000}
@@ -183,15 +192,15 @@
 					<p class="text-sm text-muted-foreground">{t('app.recovery.date_change')}</p>
 				</Stack>
 			{/if}
-			{#if candidates.error}<p role="alert">{candidates.error}</p>
-			{:else if candidates.current === undefined && start !== null}<p>{t('component.loading')}</p>
+			{#if candidates?.error}<p role="alert">{candidates.error.message}</p>
+			{:else if candidates?.current === undefined && start !== null}<p>{t('component.loading')}</p>
 			{:else if best !== undefined}
 				<Stack gap="sm">
 					<Label for="replacement">{t('app.recovery.recommended')}</Label>
 					<Combobox
 						id="replacement"
 						value={chosen ?? best.helper}
-						options={(candidates.current ?? []).map((c) => ({
+						options={(candidates?.current ?? []).map((c) => ({
 							value: c.helper,
 							label: c.name
 						}))}
@@ -249,5 +258,6 @@
 			<p class="text-caption">{t('app.recovery.scope')}</p>
 		{/if}
 		{#if message}<p role="status" class="text-sm">{message}</p>{/if}
+		{#if started}<RunStatus automation={started.automation} run={started.id} />{/if}
 	{/if}
 </Stack>

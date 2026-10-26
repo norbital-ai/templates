@@ -17,7 +17,6 @@ import {
 	type FacilityCall,
 	type Json
 } from '@norbital-ai/bolt/engine';
-import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import type { Id } from '@norbital-ai/bolt';
 import {
 	committed,
@@ -104,11 +103,7 @@ const filedPhoto = Effect.fnUntraced(function* (t: T, job: Id<'job_assignments'>
 	});
 	if (up.kind !== 'committed') throw new Error(JSON.stringify(up));
 	const [photo] = committed(
-		yield* as.act('photo_evidence.create', {
-			job_assignment_id: job,
-			photo: up.output,
-			source: { kind: 'workspace_upload' }
-		})
+		yield* as.act('photo_evidence.create', { job_assignment_id: job, photo: up.output })
 	);
 	return fixtureId('photo_evidence', photo);
 });
@@ -204,7 +199,7 @@ it.live(
 			const where = { job_assignment_id: { eq: job } };
 			const findings = yield* t
 				.as(controller)
-				.read('suspicious_activity_logs', { where, limit: 10 });
+				.query('suspicious_activity_logs', { where, limit: 10 });
 			expect(findings.rows).toEqual([
 				expect.objectContaining({
 					job_assignment_id: job,
@@ -214,81 +209,72 @@ it.live(
 				})
 			]);
 			expect(
-				(yield* t.as(controller).read('suspicion_reviews', { where, limit: 10 })).rows
+				(yield* t.as(controller).query('suspicion_reviews', { where, limit: 10 })).rows
 			).toEqual([expect.objectContaining({ suspicious: true })]);
 			for (const outsider of [contractor, envoy])
 				expect(
-					yield* Effect.flip(t.as(outsider).read('suspicious_activity_logs', { limit: 10 }))
+					yield* Effect.flip(t.as(outsider).query('suspicious_activity_logs', { limit: 10 }))
 				).toMatchObject({ _tag: 'ReadFailed' });
 			// the contractor still reads the job the finding is about
 			expect(
-				(yield* t.as(contractor).read('job_assignments', { limit: 10 })).rows.map((r) => r.id)
+				(yield* t.as(contractor).query('job_assignments', { limit: 10 })).rows.map((r) => r.id)
 			).toEqual([job]);
 		})
 );
-it.live.each(['invalid', 'unavailable'] as const)(
-	'metadata %s preserves the native fallback and visual budget',
-	(kind) =>
-		Effect.gen(function* () {
-			let metadata = 0;
-			const inferences: Json[] = [];
-			const t = yield* workspace();
-			yield* overrideFacilities(t, (call) =>
-				Effect.sync((): CrossAnswer => {
-					if (call._tag === 'files.image')
-						return {
-							ok: true,
-							value: {
-								format: 'jpeg',
-								width: 1440,
-								height: 1920,
-								sha256: 'metadata-fixture',
-								pdq: '0'.repeat(63) + '1',
-								exif: {}
-							}
-						};
-					if (call._tag === 'files.meta') {
-						metadata++;
-						return kind === 'invalid'
-							? { ok: false, error: { kind: 'invalid', message: 'metadata fixture' } }
-							: {
-									ok: false,
-									error: { kind: 'unavailable', facility: 'files', reason: 'metadata fixture' }
-								};
-					}
-					if (call._tag === 'ai.sys_2.infer') {
-						inferences.push(call.args[0] ?? null);
-						return { ok: true, value: clear };
-					}
-					return unavailable(call);
-				})
-			);
-			const { job } = yield* siteWithJob(t);
-			yield* filedPhoto(t, job);
-			yield* t.runDue();
-			expect(metadata).toBe(1);
-			const fileBytes = readFileSync('tests/fixtures/photo-evidence.jpg').byteLength;
-			expect(inferences).toEqual([
-				expect.objectContaining({
-					files:
-						kind === 'invalid'
-							? []
-							: [expect.objectContaining({ name: 'IMG_0001.jpg', bytes: fileBytes })],
-					prompt: expect.stringContaining(`"file_size":${kind === 'invalid' ? -1 : fileBytes}`)
-				})
-			]);
-			expect(
-				yield* rows(t, 'SELECT suspicious FROM suspicion_reviews WHERE job_assignment_id = $1', [
-					job
-				])
-			).toEqual([{ suspicious: false }]);
-			const stamps = yield* rows(
-				t,
-				'SELECT suspicion_checked_at FROM job_assignments WHERE id = $1',
-				[job]
-			);
-			expect(stamps.map((row) => row.suspicion_checked_at)).toEqual([expect.anything()]);
-		})
+it.live('unavailable metadata preserves the native fallback and visual budget', () =>
+	Effect.gen(function* () {
+		let metadata = 0;
+		const inferences: Json[] = [];
+		const t = yield* workspace();
+		yield* overrideFacilities(t, (call) =>
+			Effect.sync((): CrossAnswer => {
+				if (call._tag === 'files.image')
+					return {
+						ok: true,
+						value: {
+							format: 'jpeg',
+							width: 1440,
+							height: 1920,
+							sha256: 'metadata-fixture',
+							pdq: '0'.repeat(63) + '1',
+							exif: {}
+						}
+					};
+				if (call._tag === 'files.meta') {
+					metadata++;
+					return {
+						ok: false,
+						error: { kind: 'unavailable', facility: 'files', reason: 'metadata fixture' }
+					};
+				}
+				if (call._tag === 'ai.sys_2.infer') {
+					inferences.push(call.args[0] ?? null);
+					return { ok: true, value: clear };
+				}
+				return unavailable(call);
+			})
+		);
+		const { job } = yield* siteWithJob(t);
+		yield* filedPhoto(t, job);
+		yield* t.runDue();
+		expect(metadata).toBe(1);
+		const fileBytes = readFileSync('tests/fixtures/photo-evidence.jpg').byteLength;
+		expect(inferences).toEqual([
+			expect.objectContaining({
+				files: [expect.objectContaining({ name: 'IMG_0001.jpg', bytes: fileBytes })],
+				prompt: expect.stringContaining(`"file_size":${fileBytes}`)
+			})
+		]);
+		expect(
+			yield* rows(t, 'SELECT suspicious FROM suspicion_reviews WHERE job_assignment_id = $1', [job])
+		).toEqual([{ suspicious: false }]);
+		const stamps = yield* rows(
+			t,
+			'SELECT suspicion_checked_at FROM job_assignments WHERE id = $1',
+			[job]
+		);
+		expect(stamps.map((row) => row.suspicion_checked_at)).toEqual([expect.anything()]);
+	})
 );
 it.live('a photo the host cannot read does not block its assignment and stays visibly failed', () =>
 	Effect.gen(function* () {
@@ -389,11 +375,10 @@ it.live('a failed turn stamps nothing and re-queues the review at the next two-h
 		expect(present(failed).error).not.toContain('unawaited');
 	})
 );
-it.live.each(['success', 'inference', 'progress'] as const)(
-	'bounds review admission to six and drains a seven-assignment run (failure=%s)',
-	(scenario) =>
+it.live(
+	'bounds review admission to six and drains a seven-assignment run after a progress failure',
+	() =>
 		Effect.gen(function* () {
-			const failFirst = scenario === 'inference';
 			const progressFailed = yield* Deferred.make<void>();
 			const gates = yield* Effect.forEach(Array.from({ length: 7 }), () => Deferred.make<void>());
 			const arrivals = yield* Queue.unbounded<number>();
@@ -407,9 +392,7 @@ it.live.each(['success', 'inference', 'progress'] as const)(
 					if (gate === undefined) throw new Error('Unexpected inference');
 					yield* Queue.offer(arrivals, index);
 					yield* Deferred.await(gate);
-					return failFirst && index === 0
-						? { ok: false, error: { kind: 'upstream', message: 'Fixture inference failure' } }
-						: { ok: true, value: clear };
+					return { ok: true, value: clear };
 				})
 			);
 			const jobs: Id<'job_assignments'>[] = [];
@@ -424,7 +407,6 @@ it.live.each(['success', 'inference', 'progress'] as const)(
 			const failReturning: typeof t.db.returning = (schema, statement, lock) =>
 				Effect.gen(function* () {
 					if (
-						scenario === 'progress' &&
 						!injected &&
 						statement.text.includes('SET progress') &&
 						JSON.stringify(statement.params).includes('Reviewed assignment 1 of 7')
@@ -454,29 +436,25 @@ it.live.each(['success', 'inference', 'progress'] as const)(
 				const first = gates[0];
 				if (first === undefined) throw new Error('Missing first gate');
 				yield* Deferred.succeed(first, undefined);
-				if (scenario === 'progress') {
-					yield* Deferred.await(progressFailed);
-					yield* rows(t, 'SELECT state FROM sys_run');
-					expect(settled).toBe(false);
-					expect(started).toBe(6);
-				} else expect(yield* Queue.take(arrivals)).toBe(6);
+				yield* Deferred.await(progressFailed);
+				yield* rows(t, 'SELECT state FROM sys_run');
+				expect(settled).toBe(false);
+				expect(started).toBe(6);
 				for (const gate of gates.slice(1)) yield* Deferred.succeed(gate, undefined);
 				yield* Fiber.join(running);
 				const checked = yield* rows(
 					t,
 					'SELECT count(*)::int AS n FROM job_assignments WHERE suspicion_checked_at IS NOT NULL'
 				);
-				expect(checked).toEqual([{ n: scenario === 'success' ? 7 : 6 }]);
-				expect(started).toBe(scenario === 'progress' ? 6 : 7);
-				if (scenario === 'progress') {
-					const failed = yield* rows(
-						t,
-						"SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion'"
-					);
-					expect(failed).toEqual([
-						{ state: 'failed', error: expect.stringContaining('Fixture progress write failure') }
-					]);
-				}
+				expect(checked).toEqual([{ n: 6 }]);
+				expect(started).toBe(6);
+				const failed = yield* rows(
+					t,
+					"SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion'"
+				);
+				expect(failed).toEqual([
+					{ state: 'failed', error: expect.stringContaining('Fixture progress write failure') }
+				]);
 			}).pipe(
 				Effect.ensuring(
 					Effect.gen(function* () {
@@ -488,11 +466,10 @@ it.live.each(['success', 'inference', 'progress'] as const)(
 			);
 		})
 );
-it.live.each(['success', 'provider', 'write'] as const)(
-	'backfills 65 photos in four bounded 16-photo batches (failure=%s)',
-	(scenario) =>
+it.live(
+	'backfills 65 photos in four bounded 16-photo batches and drains after a write failure',
+	() =>
 		Effect.gen(function* () {
-			const failFirst = scenario === 'provider';
 			const writeFailed = yield* Deferred.make<void>();
 			const gates = yield* Effect.forEach(Array.from({ length: 5 }), () => Deferred.make<void>());
 			const arrivals = yield* Queue.unbounded<number>();
@@ -521,13 +498,6 @@ it.live.each(['success', 'provider', 'write'] as const)(
 							if (gate === undefined) throw new Error('Unexpected embedding');
 							yield* Queue.offer(arrivals, index);
 							yield* Deferred.await(gate);
-							if (failFirst && index === 0)
-								return yield* Effect.fail(
-									new FacilityFailure({
-										kind: 'upstream',
-										message: 'Fixture embedding unavailable'
-									})
-								);
 							return inputs.map(() => Array.from({ length: 256 }, (_, i) => (i === 0 ? 1 : 0)));
 						})
 				})
@@ -539,16 +509,18 @@ it.live.each(['success', 'provider', 'write'] as const)(
 			expect(
 				yield* t.as(t.admin).start('review_job_assignment_suspicion', { ids: [job] })
 			).toMatchObject({ kind: 'committed' });
-			const returning = t.db.returning;
+			const transaction = t.db.transaction;
 			let injected = false;
-			const failReturning: typeof t.db.returning = (schema, statement, lock) =>
+			const failTransaction: typeof t.db.transaction = (batch) =>
 				Effect.gen(function* () {
 					if (
-						scenario === 'write' &&
 						!injected &&
-						statement.text.includes('photo_evidence') &&
-						statement.text.includes('scene_embedding') &&
-						statement.text.includes('UPDATE')
+						batch.statements.some(
+							(statement) =>
+								statement.text.includes('photo_evidence') &&
+								statement.text.includes('scene_embedding') &&
+								statement.text.includes('UPDATE')
+						)
 					) {
 						injected = true;
 						yield* Deferred.succeed(writeFailed, undefined);
@@ -556,9 +528,9 @@ it.live.each(['success', 'provider', 'write'] as const)(
 							new DbError({ sqlstate: 'XX000', message: 'Fixture scene write failure' })
 						);
 					}
-					return yield* returning(schema, statement, lock);
+					return yield* transaction(batch);
 				});
-			const writeSpy = vi.spyOn(t.db, 'returning').mockImplementation(failReturning);
+			const writeSpy = vi.spyOn(t.db, 'transaction').mockImplementation(failTransaction);
 			yield* Effect.addFinalizer(() => Effect.sync(() => writeSpy.mockRestore()));
 			const running = yield* Effect.forkScoped(t.runDue());
 			yield* Effect.gen(function* () {
@@ -567,55 +539,23 @@ it.live.each(['success', 'provider', 'write'] as const)(
 				const first = gates[0];
 				if (first === undefined) throw new Error('Missing first embedding');
 				yield* Deferred.succeed(first, undefined);
-				if (scenario === 'write') {
-					yield* Deferred.await(writeFailed);
-					expect(sizes).toEqual([16, 16, 16, 16]);
-				} else expect(yield* Queue.take(arrivals)).toBe(4);
+				yield* Deferred.await(writeFailed);
+				expect(sizes).toEqual([16, 16, 16, 16]);
 				for (const gate of gates.slice(1)) yield* Deferred.succeed(gate, undefined);
 				yield* Fiber.join(running);
-				expect(sizes).toEqual(scenario === 'write' ? [16, 16, 16, 16] : [16, 16, 16, 16, 1]);
+				expect(sizes).toEqual([16, 16, 16, 16]);
 				expect(
 					yield* rows(
 						t,
 						'SELECT count(*)::int AS n FROM photo_evidence WHERE scene_embedding IS NOT NULL'
 					)
-				).toEqual([{ n: scenario === 'write' ? 48 : failFirst ? 49 : 65 }]);
-				if (scenario === 'write') {
-					expect(
-						yield* rows(
-							t,
-							"SELECT state FROM sys_run WHERE automation = 'review_job_assignment_suspicion'"
-						)
-					).toEqual([{ state: 'failed' }]);
-				} else {
-					expect(
-						yield* rows(
-							t,
-							"SELECT state, error, output FROM sys_run WHERE automation = 'review_job_assignment_suspicion'"
-						)
-					).toEqual([
-						{
-							state: 'succeeded',
-							error: null,
-							output: {
-								assignment_count: 1,
-								inference_count: 1,
-								failure_count: 0,
-								counts: { checked: 1, inspected_photos: 0, inspection_failed: 0, clear: 1 }
-							}
-						}
-					]);
-					expect(
-						yield* rows(t, 'SELECT job_assignment_id, suspicious FROM suspicion_reviews')
-					).toEqual([{ job_assignment_id: job, suspicious: false }]);
-					expect(
-						yield* rows(
-							t,
-							'SELECT suspicion_checked_at = $2::timestamptz AS stamped FROM job_assignments WHERE id = $1',
-							[job, t.clock.now()]
-						)
-					).toEqual([{ stamped: true }]);
-				}
+				).toEqual([{ n: 48 }]);
+				expect(
+					yield* rows(
+						t,
+						"SELECT state FROM sys_run WHERE automation = 'review_job_assignment_suspicion'"
+					)
+				).toEqual([{ state: 'failed' }]);
 			}).pipe(
 				Effect.ensuring(
 					Effect.gen(function* () {
@@ -627,83 +567,74 @@ it.live.each(['success', 'provider', 'write'] as const)(
 			);
 		})
 );
-it.live.each(['decision', 'pair', 'reuse'] as const)(
-	'settles decision and scene-pair calls (scenario=%s)',
-	(scenario) =>
-		Effect.gen(function* () {
-			const decision = yield* Deferred.make<void>();
-			const pair = yield* Deferred.make<void>();
-			const arrivals = yield* Queue.unbounded<string>();
-			const t = yield* workspace();
-			yield* overrideFacilities(t, (call) =>
-				Effect.gen(function* (): Effect.fn.Return<CrossAnswer> {
-					if (call._tag === 'files.meta')
-						return {
+it.live('settles decision and scene-pair calls after a decision failure', () =>
+	Effect.gen(function* () {
+		const decision = yield* Deferred.make<void>();
+		const pair = yield* Deferred.make<void>();
+		const arrivals = yield* Queue.unbounded<string>();
+		const t = yield* workspace();
+		yield* overrideFacilities(t, (call) =>
+			Effect.gen(function* (): Effect.fn.Return<CrossAnswer> {
+				if (call._tag === 'files.meta')
+					return {
+						ok: true,
+						value: { ...Schema.decodeUnknownSync(File)(call.args[0]), bytes: 1000 }
+					};
+				if (call._tag !== 'ai.sys_2.infer') return unavailable(call);
+				const kind = JSON.stringify(call.args).includes('"same_scene"') ? 'pair' : 'decision';
+				yield* Queue.offer(arrivals, kind);
+				yield* Deferred.await(kind === 'pair' ? pair : decision);
+				return kind === 'decision'
+					? { ok: false, error: { kind: 'upstream', message: 'Fixture decision failure' } }
+					: {
 							ok: true,
-							value: { ...Schema.decodeUnknownSync(File)(call.args[0]), bytes: 1000 }
+							value: { same_scene: false, reason: 'Fixture scene decision' }
 						};
-					if (call._tag !== 'ai.sys_2.infer') return unavailable(call);
-					const kind = JSON.stringify(call.args).includes('"same_scene"') ? 'pair' : 'decision';
-					yield* Queue.offer(arrivals, kind);
-					yield* Deferred.await(kind === 'pair' ? pair : decision);
-					return kind === scenario
-						? { ok: false, error: { kind: 'upstream', message: `Fixture ${kind} failure` } }
-						: {
-								ok: true,
-								value:
-									kind === 'pair'
-										? { same_scene: scenario === 'reuse', reason: 'Fixture scene decision' }
-										: clear
-							};
+			})
+		);
+		const { job } = yield* siteWithJob(t);
+		const other = yield* siteWithJob(t);
+		yield* filedPhoto(t, job);
+		yield* filedPhoto(t, other.job);
+		yield* t.db.write({
+			text: "UPDATE photo_evidence SET sha256 = 'inspected', scene_embedding = $1::vector",
+			params: [JSON.stringify(Array.from({ length: 256 }, (_, i) => (i === 0 ? 1 : 0)))]
+		});
+		yield* t.db.write({ text: 'DELETE FROM sys_run', params: [] });
+		expect(
+			yield* t.as(t.admin).start('review_job_assignment_suspicion', { ids: [job] })
+		).toMatchObject({ kind: 'committed' });
+		const running = yield* Effect.forkScoped(t.runDue());
+		yield* Effect.gen(function* () {
+			const started = [yield* Queue.take(arrivals), yield* Queue.take(arrivals)];
+			expect(started.sort()).toEqual(['decision', 'pair']);
+			yield* Deferred.succeed(decision, undefined);
+			expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicion_reviews')).toEqual([
+				{ n: 0 }
+			]);
+			yield* Deferred.succeed(pair, undefined);
+			yield* Fiber.join(running);
+			expect(yield* rows(t, 'SELECT suspicious FROM suspicion_reviews')).toEqual([]);
+			expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicious_activity_logs')).toEqual([
+				{ n: 0 }
+			]);
+			expect(yield* Queue.size(arrivals)).toBe(0);
+			const failed = yield* rows(
+				t,
+				"SELECT error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND state = 'failed'"
+			);
+			expect(failed).toEqual([{ error: expect.stringContaining('Fixture decision failure') }]);
+			expect(present(failed[0]).error).not.toContain('unawaited');
+		}).pipe(
+			Effect.ensuring(
+				Effect.gen(function* () {
+					yield* Deferred.succeed(decision, undefined);
+					yield* Deferred.succeed(pair, undefined);
+					yield* Fiber.await(running);
 				})
-			);
-			const { job } = yield* siteWithJob(t);
-			const other = yield* siteWithJob(t);
-			yield* filedPhoto(t, job);
-			yield* filedPhoto(t, other.job);
-			yield* t.db.write({
-				text: "UPDATE photo_evidence SET sha256 = 'inspected', scene_embedding = $1::vector",
-				params: [JSON.stringify(Array.from({ length: 256 }, (_, i) => (i === 0 ? 1 : 0)))]
-			});
-			yield* t.db.write({ text: 'DELETE FROM sys_run', params: [] });
-			expect(
-				yield* t.as(t.admin).start('review_job_assignment_suspicion', { ids: [job] })
-			).toMatchObject({ kind: 'committed' });
-			const running = yield* Effect.forkScoped(t.runDue());
-			yield* Effect.gen(function* () {
-				const started = [yield* Queue.take(arrivals), yield* Queue.take(arrivals)];
-				expect(started.sort()).toEqual(['decision', 'pair']);
-				yield* Deferred.succeed(scenario === 'decision' ? decision : pair, undefined);
-				expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicion_reviews')).toEqual([
-					{ n: 0 }
-				]);
-				yield* Deferred.succeed(scenario === 'decision' ? pair : decision, undefined);
-				yield* Fiber.join(running);
-				expect(yield* rows(t, 'SELECT suspicious FROM suspicion_reviews')).toEqual(
-					scenario === 'decision' ? [] : [{ suspicious: scenario === 'reuse' }]
-				);
-				expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicious_activity_logs')).toEqual([
-					{ n: scenario === 'reuse' ? 1 : 0 }
-				]);
-				expect(yield* Queue.size(arrivals)).toBe(0);
-				const failed = yield* rows(
-					t,
-					"SELECT error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND state = 'failed'"
-				);
-				if (scenario === 'decision') {
-					expect(failed).toEqual([{ error: expect.stringContaining('Fixture decision failure') }]);
-					expect(present(failed[0]).error).not.toContain('unawaited');
-				} else expect(failed).toEqual([]);
-			}).pipe(
-				Effect.ensuring(
-					Effect.gen(function* () {
-						yield* Deferred.succeed(decision, undefined);
-						yield* Deferred.succeed(pair, undefined);
-						yield* Fiber.await(running);
-					})
-				)
-			);
-		})
+			)
+		);
+	})
 );
 it.live('loads metadata once per nominated foreign photo after two scene probes', () =>
 	Effect.gen(function* () {

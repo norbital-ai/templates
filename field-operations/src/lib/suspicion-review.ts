@@ -1,4 +1,12 @@
-import type { AutomationCtx, FileRef, Id, Instant, Point, Row } from '@norbital-ai/bolt';
+import type {
+	AutomationCtx,
+	FileRef,
+	Id,
+	IndexSearch,
+	Instant,
+	Point,
+	Row
+} from '@norbital-ai/bolt';
 import { Instant as instantOf } from '@norbital-ai/std/date';
 import type { Pair } from './suspicion-review-verdict.js';
 import {
@@ -14,7 +22,7 @@ import {
 	type PhotoFlag
 } from './photo-integrity.js';
 import * as Effect from 'effect/Effect';
-import * as Iterable from 'effect/Iterable';
+import * as Arr from 'effect/Array';
 import * as Predicate from 'effect/Predicate';
 import * as Result from 'effect/Result';
 /**
@@ -28,7 +36,7 @@ type Ctx = AutomationCtx;
 /** A thrown facility error is its typed value (`{ kind, message | reason }`), not an `Error`. */
 export const messageOf = (error: unknown): string => {
 	if (error instanceof Error) return error.message;
-	if (!Predicate.isObjectOrArray(error) || Array.isArray(error)) return String(error);
+	if (!Predicate.isObjectOrArray(error) || Arr.isArray(error)) return String(error);
 	const message = error['message'] ?? error['reason'];
 	return message != null ? String(message) : JSON.stringify(error);
 };
@@ -39,9 +47,9 @@ const HIT = {
 	job_assignment_id: true,
 	variation_request_id: true
 } as const;
-/** The photos nearest `vector` by the named similarity (`pdq`: L2 over the PDQ bits; `scene`: cosine). */
-const nearest = (ctx: Ctx, search: 'pdq' | 'scene', vector: readonly number[], limit: number) =>
-	ctx.similar('photo_evidence', search, { vector: [...vector] }, { select: HIT, limit });
+/** The photos nearest a probe on one of photo_evidence's indexes (`pdq`: L2 over the PDQ bits; `scene`: cosine). */
+const nearest = (ctx: Ctx, search: IndexSearch<'photo_evidence'>, limit: number) =>
+	ctx.query('photo_evidence', { search, select: HIT, limit }).pipe(Effect.map((page) => page.rows));
 /** The `sys_2` model class the review asks (every one is multimodal, P39). */
 const SUSPICION_REVIEW_MODEL = 'default';
 const MAX_INFERENCE_IMAGES = 3;
@@ -58,6 +66,7 @@ const MAX_CANDIDATE_IMAGE_BYTES = 1024 * 1024;
 const INSPECTIONS_PER_RUN = 50;
 /** A host refusal reason is audit copy, not a transcript. */
 const MAX_INSPECTION_FAILURE_REASON_CHARS = 500;
+const INSPECTION_CLAIM_LEASE_MS = 10 * 60_000;
 const SCENE_BACKFILL_PER_RUN = 1000;
 const SCENE_BATCH = 16;
 const SCENE_BATCHES_AT_ONCE = 4;
@@ -91,7 +100,7 @@ export type ReviewPhoto = {
 	/** Byte size, for the attachment budget; `-1` when unknown (then it takes no visual slot). */
 	readonly bytes: number;
 	readonly sha256: string;
-	readonly flags: readonly string[];
+	readonly flags: Row<'photo_evidence'>['flags'];
 	readonly matched_evidence_ids: readonly string[];
 	readonly created_at: string | null;
 	readonly scene_embedding?: readonly number[] | null;
@@ -117,12 +126,7 @@ type ReviewFacts = {
 		readonly summary: string | null;
 		readonly location: Point | null;
 	};
-	readonly site: {
-		readonly id: Id<'sites'>;
-		readonly name: string;
-		readonly location: Point | null;
-		readonly house_type: string | null;
-	} | null;
+	readonly site: Pick<Row<'sites'>, 'id' | 'name' | 'location' | 'house_type'> | null;
 	readonly photos: readonly ReviewPhoto[];
 	readonly candidates: readonly ReviewCandidate[];
 	readonly communications: readonly {
@@ -294,7 +298,7 @@ function inferenceContext(
 			attached_representatives: representatives.length,
 			omitted_from_visual_turn: facts.photos.length - representatives.length,
 			flag_counts: Object.fromEntries(
-				PHOTO_FLAGS.map((flag) => [
+				PHOTO_FLAGS.map((flag): [PhotoFlag, number] => [
 					flag,
 					facts.photos.filter((photo) => photo.flags.includes(flag)).length
 				]).filter(([, count]) => count !== 0)
@@ -456,7 +460,7 @@ const assignmentsOf = Effect.fnUntraced(function* (
 		p.job_assignment_id == null && p.variation_request_id != null ? [p.variation_request_id] : []
 	);
 	const variations = variationIds.length
-		? yield* ctx.read('variation_requests', {
+		? yield* ctx.query('variation_requests', {
 				where: { id: { in: variationIds } },
 				select: { job_assignment_id: true },
 				all: true
@@ -476,20 +480,40 @@ const assignmentsOf = Effect.fnUntraced(function* (
  * point against the site of the photo's work, and near-duplicates under other assignments (an identical file is `exact_duplicate`, a
  * perceptual near-match `visual_duplicate`). A photo the host cannot read is durably marked failed with a bounded
  * reason and named in `failures`; it stops blocking its assignment and stops consuming later runs' inspection slots.
+ * Each photo is inspected once however many runs read it pending: a run first claims it at the revision it read, and
+ * a run that loses the claim (or finds it held) leaves the photo to the holder. `settled` names the assignments of the
+ * photos this run inspected or failed; `held` those with a photo another run is inspecting.
  */
 export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
-	const pending = yield* ctx.read('photo_evidence', {
+	// ponytail: a claim held past this lease is taken as abandoned (its run died mid-inspection); an inspection that
+	// genuinely runs longer is repeated by the next run
+	const abandoned = instantOf(
+		new Date(Date.parse(ctx.now) - INSPECTION_CLAIM_LEASE_MS).toISOString()
+	);
+	const pending = yield* ctx.query('photo_evidence', {
 		where: { sha256: { eq: '' }, inspection_failed_at: { isNull: true } },
-		select: { photo: true, job_assignment_id: true, variation_request_id: true },
+		select: {
+			revision: true,
+			photo: true,
+			job_assignment_id: true,
+			variation_request_id: true,
+			inspection_claimed_at: true
+		},
 		limit: INSPECTIONS_PER_RUN
 	});
 	const failures: {
 		photo_id: Id<'photo_evidence'>;
 		reason: string;
 	}[] = [];
-	if (pending.rows.length === 0) return { inspected: 0, failures };
+	const settled = new Set<Id<'job_assignments'>>();
+	const held = new Set<Id<'job_assignments'>>();
+	if (pending.rows.length === 0) return { inspected: 0, failures, settled: [], held: [] };
 	const rows = pending.rows.map((p) => ({
 		id: p.id,
+		revision: p.revision,
+		claimed:
+			p.inspection_claimed_at != null &&
+			Date.parse(p.inspection_claimed_at) > Date.parse(abandoned),
 		photo: p.photo,
 		job_assignment_id: p.job_assignment_id,
 		variation_request_id: p.variation_request_id
@@ -497,7 +521,7 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	const owner = yield* assignmentsOf(ctx, rows);
 	const jobIds = [...new Set([...owner.values()].flatMap((id) => (id == null ? [] : [id])))];
 	const jobs = jobIds.length
-		? yield* ctx.read('job_assignments', {
+		? yield* ctx.query('job_assignments', {
 				where: { id: { in: jobIds } },
 				select: { site_id: { select: { location: true } } },
 				all: true
@@ -506,6 +530,24 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	const siteOf = new Map(jobs.rows.map((job) => [job.id, job.site_id?.location ?? null]));
 	let inspected = 0;
 	for (const photo of rows) {
+		const own = owner.get(photo.id) ?? null;
+		const claimed =
+			!photo.claimed &&
+			(yield* ctx
+				.act(
+					'photo_evidence.update',
+					{ target: photo.id, set: { inspection_claimed_at: ctx.now } },
+					{ observed: { [photo.id]: photo.revision } }
+				)
+				.pipe(
+					Effect.as(true),
+					Effect.catchTag('ActConflict', () => Effect.succeed(false))
+				));
+		if (!claimed) {
+			if (own != null) held.add(own);
+			continue;
+		}
+		if (own != null) settled.add(own);
 		const inspectedPhoto = yield* Effect.result(ctx.files.image(photo.photo));
 		if (Result.isFailure(inspectedPhoto)) {
 			const reason = clipText(inspectedPhoto.failure.message, MAX_INSPECTION_FAILURE_REASON_CHARS);
@@ -517,12 +559,11 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 			continue;
 		}
 		const facts = inspectedPhoto.success;
-		const own = owner.get(photo.id) ?? null;
 		const flags = new Set(
 			imageFlags(facts, photo.photo.mime, ctx.now, own == null ? null : (siteOf.get(own) ?? null))
 		);
 		const embedding = hexToBinaryEmbedding(facts.pdq);
-		const near = yield* nearest(ctx, 'pdq', embedding, 50);
+		const near = yield* nearest(ctx, { pdq: { vector: embedding } }, 50);
 		const hits = near
 			.filter(
 				(hit) =>
@@ -560,7 +601,7 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 		});
 		inspected += 1;
 	}
-	return { inspected, failures };
+	return { inspected, failures, settled: [...settled], held: [...held] };
 });
 /**
  * Give a scene to hashed photos that have none: a seeded or bank-loaded photo arrives with its hash and pixel embedding but
@@ -569,7 +610,7 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
  * ponytail: a photo the model always refuses is asked again each run (bounded by the cap); flag it if that shows up in cost.
  */
 export const backfillScenes = Effect.fnUntraced(function* (ctx: Ctx) {
-	const { rows } = yield* ctx.read('photo_evidence', {
+	const { rows } = yield* ctx.query('photo_evidence', {
 		where: { sha256: { ne: '' }, scene_embedding: { isNull: true } },
 		select: { photo: true },
 		limit: SCENE_BACKFILL_PER_RUN
@@ -598,7 +639,7 @@ export const backfillScenes = Effect.fnUntraced(function* (ctx: Ctx) {
 	});
 	// SCENE_BATCHES_AT_ONCE embedding requests in flight: each is seconds of provider time, not of this run's
 	yield* Effect.forEach(
-		Iterable.chunksOf(rows, SCENE_BATCH),
+		Arr.chunksOf(rows, SCENE_BATCH),
 		(batch) => place(batch).pipe(Effect.uninterruptible),
 		{ concurrency: SCENE_BATCHES_AT_ONCE, discard: true }
 	);
@@ -609,7 +650,7 @@ export const uncheckedAssignments = Effect.fnUntraced(function* (
 	ctx: Ctx,
 	only?: readonly Id<'job_assignments'>[]
 ) {
-	const { rows } = yield* ctx.read('job_assignments', {
+	const { rows } = yield* ctx.query('job_assignments', {
 		where: {
 			suspicion_checked_at: { isNull: true },
 			...(only === undefined ? {} : { id: { in: only } })
@@ -642,15 +683,16 @@ const loadFacts = Effect.fnUntraced(function* (ctx: Ctx, assignment: ReviewFacts
 	const job = assignment.id;
 	const [site, variations, messages] = yield* Effect.all(
 		[
-			ctx.get('sites', assignment.site_id, {
+			ctx.query('sites', {
+				id: assignment.site_id,
 				select: { name: true, location: true, house_type: true }
 			}),
-			ctx.read('variation_requests', {
+			ctx.query('variation_requests', {
 				where: { job_assignment_id: { eq: job } },
 				select: {},
 				all: true
 			}),
-			ctx.read('communication_logs', {
+			ctx.query('communication_logs', {
 				where: { job_assignment_id: { eq: job } },
 				select: { source_message_id: true, sender: true, sent_at: true, message: true },
 				all: true
@@ -659,7 +701,7 @@ const loadFacts = Effect.fnUntraced(function* (ctx: Ctx, assignment: ReviewFacts
 		{ concurrency: 'unbounded' }
 	);
 	const variationIds = variations.rows.map((v) => v.id);
-	const photos = yield* ctx.read('photo_evidence', {
+	const photos = yield* ctx.query('photo_evidence', {
 		where: variationIds.length
 			? {
 					or: [{ job_assignment_id: { eq: job } }, { variation_request_id: { in: variationIds } }]
@@ -683,7 +725,7 @@ const loadFacts = Effect.fnUntraced(function* (ctx: Ctx, assignment: ReviewFacts
 		const { AwaitingInspection } = yield* Effect.promise(
 			() => import('./suspicion-review-failures.js')
 		);
-		return yield* Effect.fail(new AwaitingInspection({ photoId: waiting.id }));
+		return yield* new AwaitingInspection({ photoId: waiting.id });
 	}
 	const loadPhotoFacts = () =>
 		Effect.forEach(
@@ -735,11 +777,15 @@ const sceneCandidates = Effect.fnUntraced(function* (ctx: Ctx, facts: ReviewFact
 					{ length: MAX_PROBES },
 					(_, i) => chronological[Math.round((i * (chronological.length - 1)) / (MAX_PROBES - 1))]!
 				);
-	const hits = [];
+	const hits: {
+		readonly probe: Id<'photo_evidence'>;
+		readonly distance: number;
+		readonly candidate: Pick<Row<'photo_evidence'>, 'id' | 'photo' | 'sha256' | 'flags'>;
+	}[] = [];
 	for (const probe of probes) {
 		const embedding = probe.scene_embedding;
 		if (embedding == null || embedding.length === 0) continue;
-		const near = yield* nearest(ctx, 'scene', embedding, 12);
+		const near = yield* nearest(ctx, { scene: { vector: embedding } }, 12);
 		const rows = near
 			.filter((hit) => hit.$distance <= SCENE_MAX_COSINE && hit.id !== probe.id)
 			.map((hit) => ({
@@ -874,7 +920,7 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 	const created = Result.isSuccess(written) && written.success.kind === 'committed';
 	const {
 		rows: [review]
-	} = yield* ctx.read('suspicion_reviews', {
+	} = yield* ctx.query('suspicion_reviews', {
 		where: { job_assignment_id: { eq: job }, basis_hash: { eq: basisHash } },
 		select: { basis: true, suspicious: true, reason: true, evidence_id: true },
 		limit: 1
@@ -883,21 +929,21 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 		const { ReviewPersistenceFailed } = yield* Effect.promise(
 			() => import('./suspicion-review-failures.js')
 		);
-		return yield* Effect.fail(
-			new ReviewPersistenceFailed({ message: 'The suspicion review was not persisted.' })
-		);
+		return yield* new ReviewPersistenceFailed({
+			message: 'The suspicion review was not persisted.'
+		});
 	}
 	let status: ReviewStatus = created ? 'clear' : 'clear_existing';
 	if (review.suspicious) {
 		// inference is external I/O: re-read the durable findings so a retry never writes a second log
 		const [fromReview, open] = yield* Effect.all(
 			[
-				ctx.read('suspicious_activity_logs', {
+				ctx.query('suspicious_activity_logs', {
 					where: { review_id: { eq: review.id } },
 					select: {},
 					limit: 1
 				}),
-				ctx.read('suspicious_activity_logs', {
+				ctx.query('suspicious_activity_logs', {
 					where: { job_assignment_id: { eq: job }, resolved_at: { isNull: true } },
 					select: {},
 					limit: 1

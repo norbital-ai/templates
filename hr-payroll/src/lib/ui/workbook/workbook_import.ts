@@ -1,13 +1,19 @@
 import { Effect, Schema } from 'effect';
-import type { ActInput, ActOutput, Callable, Committed, PendingApproval } from '@norbital-ai/bolt';
+import type {
+	ActInput,
+	ActOutput,
+	Callable,
+	Committed,
+	PendingApproval,
+	Running
+} from '@norbital-ai/bolt';
 import type { ActFailure } from '@norbital-ai/bolt/errors';
 import type { CellValue } from 'exceljs';
 import type { Cell } from '@norbital-ai/std/sheet';
 import { csvRows } from '@norbital-ai/std/csv';
 import { bolt } from '$bolt';
-import { t } from '../i18n/t.js';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { toast } from '@norbital-ai/ui';
+import { notifyOutcome, toast } from '@norbital-ai/ui';
 import { getErrorMessage, formatNamedList } from '../../payroll_engine/foundation.js';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
@@ -66,8 +72,8 @@ const pickWorkbookFile = () =>
 const readWorkbookGrids = Effect.fnUntraced(function* (file: File) {
 	const invalidWorkbook = (cause: unknown) =>
 		new WorkbookImportError({
-			message: t('component.workbook_not_spreadsheet', { file: file.name }),
-			detail: [t('component.workbook_save_as'), getErrorMessage(cause)]
+			message: bolt.t('component.workbook_not_spreadsheet', { file: file.name }),
+			detail: [bolt.t('component.workbook_save_as'), getErrorMessage(cause)]
 		});
 	if (file.name.toLowerCase().endsWith('.csv')) {
 		const text = yield* Effect.tryPromise({ try: () => file.text(), catch: invalidWorkbook });
@@ -93,7 +99,7 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 	if (file === null) return;
 	const importing = Effect.gen<
 		Effect.Effect<
-			WorkbookGrids | ActInput<A> | Committed<ActOutput<A>, A> | PendingApproval<A>,
+			WorkbookGrids | ActInput<A> | Committed<ActOutput<A>, A> | PendingApproval<A> | Running,
 			WorkbookImportError | ActFailure
 		>,
 		void
@@ -111,12 +117,16 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 		});
 		const outcome = yield* bolt.act<A>(options.action, payload);
 		if (outcome.kind === 'pendingApproval') {
-			toast.info(t('offboarding.pending'));
+			toast.info(bolt.t('offboarding.pending'));
+			return;
+		}
+		if (outcome.kind === 'running') {
+			notifyOutcome(bolt, outcome);
 			return;
 		}
 		const overwritten = options.overwritten?.(outcome.output) ?? [];
 		toast.success(
-			t('component.workbook_imported', {
+			bolt.t('component.workbook_imported', {
 				count: options.importedCount?.(payload, outcome.output) ?? outcome.records.length,
 				label: options.recordLabel,
 				file: file.name
@@ -124,13 +134,13 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 			overwritten.length === 0
 				? {}
 				: {
-						description: `${t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`,
+						description: `${bolt.t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`,
 						duration: FAILURE_TOAST_MS
 					}
 		);
 		const warnings = options.warnings?.(outcome.output) ?? [];
 		if (warnings.length > 0)
-			toast.warning(t('component.workbook_warnings', { count: warnings.length }), {
+			toast.warning(bolt.t('component.workbook_warnings', { count: warnings.length }), {
 				description: warnings.join('\n'),
 				duration: FAILURE_TOAST_MS
 			});
@@ -143,10 +153,13 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 				const [headline = '', ...lines] = message.split('\n');
 				const detail = error instanceof WorkbookImportError ? [...lines, ...error.detail] : lines;
 				const description = detail.join('\n').trim();
-				toast.error(headline.trim() || t('component.workbook_import_failed', { file: file.name }), {
-					...(description === '' ? {} : { description }),
-					duration: FAILURE_TOAST_MS
-				});
+				toast.error(
+					headline.trim() || bolt.t('component.workbook_import_failed', { file: file.name }),
+					{
+						...(description === '' ? {} : { description }),
+						duration: FAILURE_TOAST_MS
+					}
+				);
 			})
 		)
 	);

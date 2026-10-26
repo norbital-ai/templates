@@ -60,14 +60,16 @@ so you install and run inside the template directory:
 
 ```bash
 pnpm --dir trade-operations install
-pnpm --dir trade-operations check
 pnpm --dir trade-operations build
 pnpm --dir trade-operations test
 ```
 
-`check` validates the authored manifest, schema, permissions and types; `build` emits the
-artifact, initial schema SQL and seed packs. Commit authored source and lockfiles, never generated
-`.norbital/` output. There is no maintained incremental migration chain.
+`build` validates the authored manifest, schema and permissions and emits the artifact and seed
+packs. When the schema changes, it generates the next editable SQL migration under `migrations/`
+and verifies the complete history against the declaration. Run `pnpm exec bolt check <template>`
+for a template's generated names, types and authoring checks. This repository's `pnpm check` runs the shared `bolt templates`
+checks, lock verification and template gates. Commit authored source, lockfiles and the migration
+SQL, `snapshot.json` and `migrations.lock.json`, never generated `.norbital/` output.
 
 Because `@norbital-ai/*` come from GitHub Packages, an install needs a `NODE_AUTH_TOKEN` with
 `read:packages`, or the equivalent entry in your `~/.npmrc`.
@@ -93,7 +95,7 @@ not a catalogue:
 	"industry": "Operations",
 	"description": "What it is for.",
 	"visibility": "public",
-	"counts": { "collections": 0, "apps": 0, "automations": 0 },
+	"counts": { "models": 0, "apps": 0, "automations": 0 },
 	"tags": ["Operations"]
 }
 ```
@@ -107,8 +109,8 @@ in-product picker, and it is independent of which repository the template lives 
 
 Publishing advances the fast-forward-only `refs/heads/templates/<slug>` branch to a commit produced
 by `git subtree split` of the template directory, so the projected tree contains the standalone
-template and nothing above it. Before that ref moves, the release workflow installs, checks, builds and
-lints the exact standalone projection. There is no prebuilt template package: Preview compiles the
+template and nothing above it. Before that ref moves, the release workflow installs, checks and builds
+the exact standalone projection. There is no prebuilt template package: Preview compiles the
 exact selected commit only when someone asks to see it.
 
 A remote Colony host enumerates `refs/heads/templates/*` on each configured template origin, fetches
@@ -132,8 +134,8 @@ no template and rebuilds no tenant.
 ```bash
 pnpm templates:lock          # resolve and write each template's lockfile
 pnpm templates:lock:check    # fail on drift
-pnpm check                  # the one gate, local and CI: declarations, format, every lock, then each changed
-                             # template installed offline from its lock, built and tested (NORBITAL_TEMPLATES_SINCE=all: every one)
+pnpm check                  # the one gate, local and CI: declarations, format, every lock, the audit, then each changed
+                             # template installed offline from its lock, type-checked, built and tested (NORBITAL_TEMPLATES_SINCE=all: every one)
 ```
 
 No template archive or package tarball is committed here. Template source is distributed through

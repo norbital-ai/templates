@@ -4,8 +4,8 @@ import { PlainDate } from '@norbital-ai/std/date';
  * Readings of an instant in the workspace zone, which a page takes from the kit (`useKinds().zone`), never a zone of
  * its own. A stored value on screen is the kit's (`Show`, `format`, a record sheet's field-list `subtitle`).
  */
-/** The calendar day of an instant in `zone`, `YYYY-MM-DD`; now by default. */
-export const dayIn = (zone: string | undefined, at: Date | string = new Date()): PlainDate =>
+/** The calendar day of an instant in `zone`, `YYYY-MM-DD`. */
+export const dayIn = (zone: string | undefined, at: Date | string): PlainDate =>
 	PlainDate(
 		new Intl.DateTimeFormat('en-CA', {
 			timeZone: zone,

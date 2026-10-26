@@ -1,5 +1,5 @@
 import { expect, it } from '@effect/vitest';
-import { columns, SourceRowInvalid } from '../src/integration/kingdee/cdc.js';
+import { columns, SourceRowInvalid } from '../src/integration/kingdee/polling.js';
 
 it('names the invalid source column with SourceRowInvalid', () => {
 	try {

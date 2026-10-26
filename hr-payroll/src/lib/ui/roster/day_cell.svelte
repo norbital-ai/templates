@@ -6,7 +6,7 @@
 	reviewed day with nothing worked. The board's button title carries every detail in words.
 -->
 <script lang="ts">
-	import { t } from '../i18n/t.js';
+	import { bolt } from '$bolt';
 	import { cn, Icon } from '@norbital-ai/ui';
 	import { Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { hoursLabel, isAbsent, workedMinutes, type Day } from './month_board.js';
@@ -17,18 +17,20 @@
 	const absent = $derived(isAbsent(day));
 	const open = $derived(day.intervals != null && day.intervals.length > 0 && minutes == null);
 	const leaveLabel = $derived(
-		day.leave == null ? '' : `${day.leave.code || t('roster.leave')}${day.leave.half ? ' ½' : ''}`
+		day.leave == null
+			? ''
+			: `${day.leave.code || bolt.t('roster.leave')}${day.leave.half ? ' ½' : ''}`
 	);
 	const projected = $derived(
 		day.projectedShift ??
-			(leaveLabel || (day.holiday != null ? t('roster.public_holiday_mark') : ''))
+			(leaveLabel || (day.holiday != null ? bolt.t('roster.public_holiday_mark') : ''))
 	);
 	const tag = $derived(
 		day.shift == null && day.projectedShift == null
 			? day.leave != null && day.holiday != null
-				? t('roster.public_holiday_mark')
+				? bolt.t('roster.public_holiday_mark')
 				: ''
-			: [leaveLabel, day.holiday == null ? '' : t('roster.public_holiday_mark')]
+			: [leaveLabel, day.holiday == null ? '' : bolt.t('roster.public_holiday_mark')]
 					.filter(Boolean)
 					.join(' · ')
 	);
@@ -41,12 +43,12 @@
 		day.completion?.percent == null ? null : Math.floor(day.completion.percent)
 	);
 	const progressName = $derived(
-		t(day.shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')
+		bolt.t(day.shiftId == null ? 'roster.projected_progress' : 'roster.actual_progress')
 	);
 	const progressText = $derived(
 		day.completion?.percent == null
 			? ''
-			: `${progressName}: ${t('roster.completion_details', {
+			: `${progressName}: ${bolt.t('roster.completion_details', {
 					percent: percent ?? 0,
 					credited: hoursLabel(day.completion.credited_hours * 60),
 					target: hoursLabel(day.completion.target_hours * 60)
@@ -144,7 +146,7 @@
 			<span
 				data-work-layer="actual"
 				class="text-micro leading-3 text-warning"
-				aria-label={t('roster.open_punch')}>{t('roster.progress_open')}</span
+				aria-label={bolt.t('roster.open_punch')}>{bolt.t('roster.progress_open')}</span
 			>
 		{/if}
 		{#if day.locked}

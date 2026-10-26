@@ -28,7 +28,7 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 					name: 'Example draft bank'
 				});
 				assert.equal(created.kind, 'committed');
-				const [draft] = (yield* admin.read('bank', {
+				const [draft] = (yield* admin.query('bank', {
 					where: { code: { eq: 'EXAMPLE_DRAFT' } },
 					select: { id: true, enabled: true, bank_codes: true, currencies: true, template: true },
 					all: true
@@ -42,13 +42,13 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 					admin.act('bank.update', { target: draft.id, set: { enabled: true } })
 				);
 				assert.equal(incomplete._tag, 'ActRefused');
-				assert.equal((yield* admin.get('bank', draft.id))?.enabled, false);
+				assert.equal((yield* admin.query('bank', { id: draft.id }))?.enabled, false);
 				const completed = yield* admin.act('bank.update', {
 					target: draft.id,
 					set: { bank_codes: ['EXAMPLEBANK'], currencies: ['SGD'], template, enabled: true }
 				});
 				assert.equal(completed.kind, 'committed');
-				const saved = yield* admin.get('bank', draft.id);
+				const saved = yield* admin.query('bank', { id: draft.id });
 				assert.ok(saved);
 				assert.equal(saved.enabled, true);
 				assert.equal(saved.template.file, '"example-payments.txt"');
@@ -68,7 +68,7 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 					currencies: ['SGD'],
 					template
 				});
-				const [draft] = (yield* admin.read('bank', {
+				const [draft] = (yield* admin.query('bank', {
 					where: { code: { eq: 'EXAMPLE_VALIDATION' } },
 					all: true
 				})).rows;
@@ -92,7 +92,7 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 						})
 					);
 					assert.equal(refused._tag, 'ActRefused');
-					const saved: Row<'bank'> | null = yield* admin.get('bank', draft.id);
+					const saved: Row<'bank'> | null = yield* admin.query('bank', { id: draft.id });
 					assert.ok(saved);
 					assert.equal(saved.enabled, false);
 					assert.equal(saved.template.file, template.file);
@@ -122,7 +122,7 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 				template,
 				enabled: true
 			});
-			const [bank] = (yield* admin.read('bank', {
+			const [bank] = (yield* admin.query('bank', {
 				where: { code: { eq: 'EXAMPLE_ENABLED' } },
 				all: true
 			})).rows;
@@ -131,12 +131,12 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 				admin.act('bank.update', { target: bank.id, set: { template: {} } })
 			);
 			assert.equal(refused._tag, 'ActRefused');
-			assert.equal((yield* admin.get('bank', bank.id))?.enabled, true);
+			assert.equal((yield* admin.query('bank', { id: bank.id }))?.enabled, true);
 			yield* admin.act('bank.update', {
 				target: bank.id,
 				set: { enabled: false, template: {} }
 			});
-			const draft = yield* admin.get('bank', bank.id);
+			const draft = yield* admin.query('bank', { id: bank.id });
 			assert.ok(draft);
 			assert.equal(draft.enabled, false);
 			assert.deepEqual(draft.template, {});

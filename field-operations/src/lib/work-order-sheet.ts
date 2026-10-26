@@ -1,10 +1,9 @@
 import { Effect, Schema } from 'effect';
 import { columns, decode } from '@norbital-ai/std/sheet';
 import { IdValue } from '@norbital-ai/std/kind';
-import type { Id, InputOf } from '@norbital-ai/bolt';
-import type { WORK_ORDER_ROW } from '../data/collection/job_assignments/+collection.js';
+import type { StartInput, Id } from '@norbital-ai/bolt';
 
-type Row = InputOf<typeof WORK_ORDER_ROW.fields>;
+type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
 const WORK_ORDER_COLUMNS = columns({
 	site: 'text',
 	postal_code: { optional: 'text' },
@@ -43,20 +42,18 @@ export const decodeWorkOrders = Effect.fnUntraced(function* (
 	];
 	const decoded = decode(cells, WORK_ORDER_COLUMNS);
 	if (decoded.errors.length > 0)
-		return yield* Effect.fail(
-			new SheetInvalid({
-				message: decoded.errors
-					.map((error) => {
-						const where = error.row === 1 ? 'Header' : `Row ${error.row - 1}`;
-						const detail =
-							error.column === 'scheduled_for'
-								? `${error.message}; expected a calendar day (YYYY-MM-DD or an xlsx date serial).`
-								: error.message;
-						return `${where}: ${error.column}: ${detail}`;
-					})
-					.join('\n')
-			})
-		);
+		return yield* new SheetInvalid({
+			message: decoded.errors
+				.map((error) => {
+					const where = error.row === 1 ? 'Header' : `Row ${error.row - 1}`;
+					const detail =
+						error.column === 'scheduled_for'
+							? `${error.message}; expected a calendar day (YYYY-MM-DD or an xlsx date serial).`
+							: error.message;
+					return `${where}: ${error.column}: ${detail}`;
+				})
+				.join('\n')
+		});
 	const identities = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.NullOr(UserId)))(
 		decoded.rows.map((row) => row.assignee_user_id)
 	).pipe(Effect.mapError((error) => new SheetInvalid({ message: String(error) })));

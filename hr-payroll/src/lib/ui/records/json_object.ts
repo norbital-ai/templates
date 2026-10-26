@@ -6,11 +6,13 @@ import type { Json } from '@norbital-ai/ui';
 export const asObject = (entry: unknown): Record<string, Json> | null =>
 	!isMasked(entry) && Schema.is(Schema.Record(Schema.String, Schema.Json))(entry) ? entry : null;
 
-/** A string member, else empty for the input. */
-export const textOf = (entry: Record<string, Json>, key: string): string => {
-	const held = entry[key];
-	return Schema.is(Schema.String)(held) ? held : '';
-};
+/** A JSON list (`Array.isArray` narrows no readonly list). */
+export const isJsonList = (value: Json | undefined): value is readonly Json[] =>
+	Array.isArray(value);
+
+/** A JSON object: neither a scalar nor a list. */
+export const isJsonRecord: (value: Json | undefined) => value is { readonly [key: string]: Json } =
+	Schema.is(Schema.Record(Schema.String, Schema.Json));
 
 /** A finite number member, else null for the input. */
 export const numberOf = (entry: Record<string, Json>, key: string): number | null => {

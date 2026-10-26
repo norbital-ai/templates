@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Id } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Schema } from 'effect';
-import settings from '../src/data/model/+jurisdiction_settings.model.js';
+import settings from '../src/data/model/jurisdiction_settings/+model.js';
 import { SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.js';
 
 const uuid = inputSchema({ kind: 'id', of: 'entity' });
@@ -29,10 +29,11 @@ export function nativeId<C extends string>(collection: C, value: unknown): Id<C>
 export function fixtureRows(table: string, rows: readonly Record<string, unknown>[]) {
 	const fields =
 		table === 'jurisdiction_settings'
-			? settings.fields
+			? settings.spec.fields
 			: Object.entries(SNAPSHOT_MODELS).find(([name]) => name === table)?.[1].fields;
+	const declared: Readonly<Record<string, object>> = fields ?? {};
 	const defaults = Object.fromEntries(
-		Object.entries(fields ?? {}).flatMap(([name, field]) =>
+		Object.entries(declared).flatMap(([name, field]): [string, unknown][] =>
 			'default' in field ? [[name, field.default]] : []
 		)
 	);

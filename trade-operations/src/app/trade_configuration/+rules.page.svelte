@@ -7,30 +7,21 @@
 <AppShell
 	icon="lucide:settings"
 	title={bolt.t('models.commission_rules.label')}
-	description={bolt.t('app.trade_configuration.description')}
+	description={bolt.t('component.commission_rules_hint')}
 	variant="full"
-	><p>{bolt.t('component.commission_rules_hint')}</p>
-	<CreateTable
+	><CreateTable
 		of="commission_rules"
 		createFields={[
-			'code',
 			'currency',
 			'effective_on',
 			'basis_unit',
-			'eligibility_expression',
-			'amount_expression',
-			'parameters',
 			'fixed_rate',
 			'spread_pct',
-			'active'
-		]}
-		columns={[
-			'effective_on',
-			'currency',
-			'basis_unit',
+			'active',
 			'eligibility_expression',
 			'amount_expression',
-			'active'
+			'parameters'
 		]}
+		columns={['effective_on', 'currency', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']}
 	/></AppShell
 >

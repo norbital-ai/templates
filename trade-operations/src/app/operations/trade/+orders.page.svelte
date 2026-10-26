@@ -1,14 +1,6 @@
 <script lang="ts">
 	import OrderCreateFields from '../../../lib/ui/order-create-fields.svelte';
-	import {
-		type FormState,
-		Dialog,
-		useKinds,
-		useBolt,
-		Combobox,
-		Button,
-		RunStatus
-	} from '@norbital-ai/ui';
+	import { type FormState, Dialog, useKinds, useBolt, Combobox, Button } from '@norbital-ai/ui';
 	import CreateTable from '../../../lib/ui/create-table.svelte';
 	import { bolt, fork, run } from '$bolt';
 	import { Effect } from 'effect';
@@ -19,7 +11,8 @@
 	let selectedOrder = $state<Id<'orders'> | null>(null);
 	let selectedVersion = $state<number | null>(null);
 	let exporting = $state(false);
-	let exportRun = $state<string | null>(null);
+	let converting = $state(false);
+	let exported = $state<{ url: string; name: string } | null>(null);
 	let feedback = $state('');
 	let versions = $state<ReturnType<typeof contractVersions> | null>(null);
 	function contractVersions(order: Id<'orders'>) {
@@ -39,28 +32,35 @@
 		selectedOrder = order;
 		selectedVersion = null;
 		exporting = download;
-		exportRun = null;
+		exported = null;
 		feedback = '';
 		versions = contractVersions(order);
 		preview = previewOrder(order);
 		previewOpen = true;
 	}
-	function exportPdf() {
-		if (!selectedOrder || exportRun) return;
-		const started = bolt.start('export_order', {
-			order: selectedOrder,
-			locale: bolt.locale.startsWith('zh') ? 'zh' : 'en',
-			...(selectedVersion == null ? {} : { version: selectedVersion })
-		});
-		exportRun = started.id;
+	/** The PDF of exactly the document the viewer previews: converted on the host, a short-lived file they own. */
+	function exportPdf(document: { html: string; reference: string }) {
+		if (converting || exported) return;
+		const name = `${document.reference}.pdf`;
+		converting = true;
 		fork(
-			started.pipe(
-				Effect.tap((result) =>
+			bolt.convert({ html: document.html }, { to: 'pdf', page: 'A4', name }).pipe(
+				Effect.tap((file) =>
 					Effect.sync(() => {
-						if (result.kind === 'refused' && exportRun === started.id) {
-							feedback = translate(result.message);
-							exportRun = null;
-						}
+						exported = { url: bolt.fileUrl(file), name };
+					})
+				),
+				Effect.catch((failure) =>
+					Effect.sync(() => {
+						feedback =
+							failure._tag === 'ActRefused'
+								? translate(failure.message)
+								: bolt.t('component.document_unavailable');
+					})
+				),
+				Effect.ensuring(
+					Effect.sync(() => {
+						converting = false;
 					})
 				)
 			)
@@ -71,7 +71,7 @@
 
 {#snippet orderFields(form: FormState)}<OrderCreateFields {form} />{/snippet}
 <AppShell
-	description=""
+	description={bolt.t('app.trade.description')}
 	icon="lucide:clipboard-list"
 	title={bolt.t('component.orders')}
 	variant="full"
@@ -139,7 +139,7 @@
 							if (v && selectedOrder) {
 								selectedVersion =
 									options.find((option) => String(option.version) === v)?.version ?? null;
-								exportRun = null;
+								exported = null;
 								feedback = '';
 								preview = previewOrder(selectedOrder, selectedVersion);
 							}
@@ -157,14 +157,11 @@
 							class="h-full w-full bg-white"
 						></iframe></Bound
 					>
-					{#if exporting}<Button disabled={exportRun !== null} onclick={exportPdf}
-							>{bolt.t('component.export_pdf')}</Button
+					{#if exporting}<Button
+							disabled={converting || exported !== null}
+							onclick={() => exportPdf(document)}>{bolt.t('component.export_pdf')}</Button
 						>{/if}
-					{#if exportRun}<RunStatus
-							automation="export_order"
-							run={exportRun}
-							title={bolt.t('component.export_pdf')}
-						/>{/if}
+					{#if exported}<a href={exported.url} download={exported.name}>{exported.name}</a>{/if}
 					{#if feedback}<p role="alert">{feedback}</p>{/if}
 				</Stack>
 			{:catch}<p role="alert">{bolt.t('component.document_unavailable')}</p>{/await}{/if}

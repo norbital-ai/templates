@@ -2,13 +2,12 @@
 	import { Effect, Clock, Queue, Schedule } from 'effect';
 	import { bolt, attach } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
-	import { live } from '../../lib/live.svelte.js';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
 	const EVERY_MS = 120000;
 	const actor = bolt.actor;
-	const me = live(() =>
+	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.read('helpers', {
+			? bolt.query('helpers', {
 					where: { user: { eq: actor.id } },
 					select: { name: true },
 					limit: 1
@@ -16,7 +15,7 @@
 			: null
 	);
 	// keyed by the id: the helper's own row changes with every position it reports
-	const helperId = $derived(me.current?.rows[0]?.id);
+	const helperId = $derived(me?.current?.rows[0]?.id);
 	// The host may supply native GPS (background delivery); the same page keeps working in a browser.
 	const geo = bolt.device?.geolocation?.api ?? navigator.geolocation;
 	function tracking(id: Id<'helpers'>) {

@@ -1,13 +1,4 @@
 import type { Id, Row } from '@norbital-ai/bolt';
-import { IdValue } from '@norbital-ai/std/kind';
-import { Schema } from 'effect';
-const photoKind = Schema.toType(IdValue);
-const photoId = Schema.decodeUnknownSync(
-	Schema.declare<Id<'photo_evidence'>>(
-		(input): input is Id<'photo_evidence'> =>
-			Schema.is(Schema.String)(input) && Schema.is(photoKind)(input)
-	)
-);
 type ReviewCandidateEvidence = {
 	readonly id: Id<'photo_evidence'>;
 	readonly distance: number;
@@ -17,14 +8,14 @@ type ReviewCandidateEvidence = {
 export function reviewCandidatesFrom(
 	bases: readonly Row<'suspicion_reviews'>['basis'][]
 ): ReviewCandidateEvidence[] {
-	const found = new Map<string, ReviewCandidateEvidence>();
+	const found = new Map<Id<'photo_evidence'>, ReviewCandidateEvidence>();
 	for (const basis of bases)
 		for (const candidate of basis.candidates)
 			if (!found.has(candidate.id))
 				found.set(candidate.id, {
-					id: photoId(candidate.id),
+					id: candidate.id,
 					distance: candidate.distance,
-					matchedPhotoIds: candidate.matched_photo_ids.map((id) => photoId(id))
+					matchedPhotoIds: candidate.matched_photo_ids
 				});
 	return [...found.values()];
 }

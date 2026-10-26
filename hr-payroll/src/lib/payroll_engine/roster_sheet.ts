@@ -1,4 +1,4 @@
-/** The work-day sheet's shape: the `roster_entry` pipeline's columns and the values its hooks pass each other. */
+/** The work-day sheet's shape: the `roster_entry` file sync's columns and its resolved native values. */
 import type { Id, Instant, PlainDate, Row } from '@norbital-ai/bolt';
 import type { SheetScopeRead } from './roster_import.js';
 
@@ -62,7 +62,7 @@ export type ApprovedInterval = NonNullable<
 	Row<'roster_entry'>['approved_overtime_intervals']
 >[number];
 
-/** The sheet's resolved keys and native values shared by the pipeline hooks. */
+/** The sheet's resolved keys and native values shared by the file sync's mapping and validation. */
 export type SheetKnown = {
 	/** Why nothing could be resolved (no such entity), or null. */
 	readonly failure: string | null;
@@ -99,7 +99,7 @@ export type SheetKnown = {
 	};
 };
 
-/** A problem with a sheet row (`row` null: a stored day the sheet does not show), as the pipeline reports it. */
+/** A problem with a sheet row (`row` null: a stored day the sheet does not show), as the file sync reports it. */
 export type SheetFinding = {
 	readonly row: number | null;
 	readonly column: string;

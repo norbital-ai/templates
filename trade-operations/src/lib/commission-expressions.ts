@@ -1,9 +1,10 @@
+import { Decimal } from '@norbital-ai/std/decimal';
 import { compile, context, evaluate, formula } from '@norbital-ai/std/formula';
-import { d, Decimal } from './commercial.js';
+
 export const DEFAULT_COMMISSION_EXPRESSION =
 	'basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)';
 export const COMMISSION_ENGINE = 'cel-decimal-v1';
-const decimal = (value: unknown) => (value instanceof Decimal ? value : d(String(value)));
+const decimal = (value: unknown) => (value instanceof Decimal ? value : Decimal.of(String(value)));
 const numeric = { kind: 'decimal' } as const;
 const optionalNumeric = { kind: 'decimal', optional: true } as const;
 const text = { kind: 'text' } as const;
@@ -51,17 +52,17 @@ type CommissionFacts = {
 	}[];
 };
 export function commissionContext(values: CommissionFacts) {
-	const quantity = d(values.quantity),
-		factor = values.factor ? d(values.factor) : null;
-	const floor = values.floor_net === null ? null : d(values.floor_net);
+	const quantity = Decimal.of(values.quantity),
+		factor = values.factor ? Decimal.of(values.factor) : null;
+	const floor = values.floor_net === null ? null : Decimal.of(values.floor_net);
 	return {
 		quantity,
-		net: d(values.net),
+		net: Decimal.of(values.net),
 		floor_net: floor,
 		basis_quantity: factor && factor.gt(0) ? quantity.times(factor) : null,
 		spread:
 			floor && factor && factor.gt(0) && quantity.gt(0)
-				? d(values.net).div(quantity, 18).minus(floor).div(factor, 18)
+				? Decimal.of(values.net).div(quantity, 18).minus(floor).div(factor, 18)
 				: null,
 		product: { code: values.product_code, name: values.product_name, unit: values.unit },
 		order: {
@@ -69,8 +70,10 @@ export function commissionContext(values: CommissionFacts) {
 			ordered_on: values.ordered_on,
 			party_code: values.party_code
 		},
-		rule: { fixed_rate: d(values.fixed_rate), spread_pct: d(values.spread_pct) },
-		params: Object.fromEntries(values.parameters.map((p) => [p.name, d(p.value)]))
+		rule: { fixed_rate: Decimal.of(values.fixed_rate), spread_pct: Decimal.of(values.spread_pct) },
+		params: Object.fromEntries(
+			values.parameters.map((p): [string, Decimal] => [p.name, Decimal.of(p.value)])
+		)
 	};
 }
 type CommissionValues = ReturnType<typeof commissionContext>;
@@ -81,7 +84,7 @@ export const commissionFault = (source: string, result: 'bool' | 'money') =>
 export function evaluateCommission(eligibility: string, amount: string, values: CommissionValues) {
 	const eligible = compile(commission, eligibility, 'bool');
 	if ('error' in eligible) throw new Error(eligible.error);
-	if (!evaluate(eligible, values)) return { eligible: false, amount: d(0) };
+	if (!evaluate(eligible, values)) return { eligible: false, amount: Decimal.of(0) };
 	const result = compile(commission, amount, 'money');
 	if ('error' in result) throw new Error(result.error);
 	return { eligible: true, amount: evaluate(result, values) };

@@ -6,9 +6,9 @@
 	"description": "Order-centered B2B trading, distribution and manufacturing commerce with sealed pricing and contracts, purchasing, fulfillment and ERP collection integrations.",
 	"visibility": "public",
 	"counts": {
-		"collections": 19,
+		"models": 19,
 		"apps": 5,
-		"automations": 2
+		"automations": 4
 	},
 	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],
 	"name_zh": "贸易运营",

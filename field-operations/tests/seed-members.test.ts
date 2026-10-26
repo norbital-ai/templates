@@ -2,7 +2,7 @@ import type { BankReader } from '@norbital-ai/bolt';
 import { expect, it } from '@effect/vitest';
 import source from '../seed/seed.js';
 
-it('preserves seeded mobile numbers and explicit inactive membership without adding public people', async () => {
+it('maps synthetic bank members to mobile numbers, active state and team handles', async () => {
 	const users = [
 		{
 			id: '019f8a40-0000-7000-8000-000000000101',
@@ -36,15 +36,30 @@ it('preserves seeded mobile numbers and explicit inactive membership without add
 	const bank: BankReader = {
 		tree: 'synthetic',
 		has: (path) => files.has(path),
-		json: (path) => JSON.parse(contents(path)),
+		json: (path): unknown => {
+			const value: unknown = JSON.parse(contents(path));
+			return value;
+		},
 		bytes: (path) => new TextEncoder().encode(contents(path)),
 		files: () => [...files.keys()]
 	};
 	const rows = await source.rows(bank);
 	expect(rows['sys_user']).toMatchObject([
-		{ id: users[0]!.id, phone: '+6581234567', active: true, admin: true },
-		{ id: users[1]!.id, phone: '+6587654321', active: false, admin: false },
-		{ id: users[2]!.id, phone: null, active: true, admin: false }
+		{
+			id: users[0]!.id,
+			phone: '+6581234567',
+			active: true,
+			admin: true,
+			team: 'field_ops_controllers'
+		},
+		{ id: users[1]!.id, phone: '+6587654321', active: false, admin: false, team: 'contractors' },
+		{ id: users[2]!.id, phone: null, active: true, admin: false, team: null }
 	]);
 	expect(await source.rows({ ...bank, has: () => false })).toMatchObject({ sys_user: [] });
+	// a bank team no handle maps is a build failure, never a member silently left without a team
+	files.set(
+		'user.json',
+		JSON.stringify([{ ...users[2], team_id: '019f8a40-0000-7000-8000-000000000004' }])
+	);
+	expect(() => source.rows(bank)).toThrow(/no team handle maps/);
 });

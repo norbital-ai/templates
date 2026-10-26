@@ -1,4 +1,4 @@
-import type { BankReader, FieldKind, SeedSource } from '@norbital-ai/bolt';
+import type { BankReader, FieldKind, RefField, SeedSource } from '@norbital-ai/bolt';
 import { Predicate, Schema } from 'effect';
 
 /**
@@ -21,16 +21,22 @@ const User = Schema.Struct({
 });
 const Range = Schema.Struct({ start: Schema.String, end: Schema.NullOr(Schema.String) });
 const Money = Schema.Struct({ value: Schema.Number, currency: Schema.String });
-const models = import.meta.glob<{ default: { fields: { [name: string]: FieldKind } } }>(
-	'../src/data/model/+*.model.ts',
-	{ eager: true }
-);
+const models = import.meta.glob<{
+	default: { spec: { fields: { [name: string]: FieldKind | RefField } } };
+}>('../src/data/model/*/+model.ts', { eager: true });
 const FIELDS = new Map(
 	Object.entries(models).map(([path, m]) => [
-		path.slice(path.lastIndexOf('/') + 2, -'.model.ts'.length),
-		m.default.fields
+		path.slice('../src/data/model/'.length, -'/+model.ts'.length),
+		m.default.spec.fields
 	])
 );
+/** The bank's team ids → this template's team handles (`src/access_control/team/+team.ts`). */
+const TEAMS: { readonly [bank: string]: string } = {
+	'019f8a30-0000-7000-8000-000000000001': 'project_delivery',
+	'019f8a30-0000-7000-8000-000000000002': 'reference_matrix_administrators',
+	'019f8a30-0000-7000-8000-000000000003': 'workforce_administrators',
+	'019f8a30-0000-7000-8000-000000000004': 'construction_administrators'
+};
 
 const MIDNIGHT = /^(\d{4}-\d{2}-\d{2})T00:00:00(?:\.000)?Z$/;
 const zoneDay = new Intl.DateTimeFormat('en-CA', {
@@ -78,7 +84,7 @@ function convert(collection: string, row: Row): Row {
 	return out;
 }
 
-/** A join row's `name` is its two sides' labels, as its collection's transform derives it: a seed runs no transform. */
+/** A join row's `name` is its two sides' labels, as its model's write callbacks derive it: a seed runs none. */
 const JOINS = {
 	jobs_certification_types: [
 		['job_id', 'jobs', 'job_title'],
@@ -98,7 +104,7 @@ const JOINS = {
 	]
 } as const;
 
-/** The public base pack: this directory's `<collection>.json` fixtures. */
+/** The public base pack: this directory's `<model>.json` fixtures. */
 const PUBLIC = import.meta.glob<unknown>('./*.json', { eager: true, import: 'default' });
 
 export default {
@@ -123,7 +129,7 @@ export default {
 						email: r['email'] ?? null,
 						kind: 'staff',
 						admin: r['status'] === 'admin',
-						team: r['team_id'] ?? null
+						team: r['team_id'] == null ? null : (TEAMS[r['team_id']] ?? null)
 					}));
 			else out[name] = values.map((row) => convert(name, row));
 		}

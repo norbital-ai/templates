@@ -1,5 +1,9 @@
 # PH jurisdiction audit: HR & Payroll template
 
+> **Historical audit (2026-10-21).** The `tests/jurisdiction_*.test.ts` suites cited below were removed under the
+> owner's mechanism-only test policy; their counts, names and pass lines are historical evidence, not current
+> coverage. The jurisdiction seed catalogues this audit reviewed remain the workspace's runtime data.
+
 Audit date: 2026-10-21. Audit only; no repository files were edited.
 Repository: `templates/hr-payroll`. Seed: `seed/jurisdiction/PH/version_{1,2}`.
 

@@ -17,6 +17,12 @@ export const open = Effect.fnUntraced(function* (
 	// The real browser issues writes at its wall clock; the native host validates their age.
 	t.clock.set(new Date().toISOString());
 	localStorage.setItem('bolt.locale', locale);
+	// the journey's modules load first, so its waits time the render, not a first compile under a parallel run
+	yield* Effect.promise(() =>
+		Promise.all(
+			[...Object.values(pages ?? {}), ...Object.values(representations ?? {})].map((load) => load())
+		)
+	);
 	const scope = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
 	const traffic: string[] = [];

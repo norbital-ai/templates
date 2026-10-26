@@ -10,7 +10,6 @@
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import { Table, toast } from '@norbital-ai/ui';
-	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import {
 		parseEntityHolidaySheets,
 		skipHeldHolidays
@@ -21,18 +20,18 @@
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
 
-	const entities = liveRows(() =>
-		bolt.read('entity', { select: { id: true, name: true }, all: true })
+	const entities = $derived.by(() =>
+		bolt.query('entity', { select: { id: true, name: true }, all: true })
 	);
-	const holidays = liveRows(() =>
-		bolt.read('holiday', { select: { company_id: true, date: true }, all: true })
+	const holidays = $derived.by(() =>
+		bolt.query('holiday', { select: { company_id: true, date: true }, all: true })
 	);
 
 	function holidayRows(grids: WorkbookGrids): ActInput<'holiday.create'> {
-		const parsed = parseEntityHolidaySheets(grids, entities.current ?? []);
+		const parsed = parseEntityHolidaySheets(grids, entities?.current?.rows ?? []);
 		if ('error' in parsed)
 			throw new WorkbookImportError({ message: parsed.error, detail: parsed.detail ?? [] });
-		const { insert } = skipHeldHolidays(parsed.rows, holidays.current ?? []);
+		const { insert } = skipHeldHolidays(parsed.rows, holidays?.current?.rows ?? []);
 		if (insert.length === 0)
 			throw new WorkbookImportError({
 				message: 'This file has no holidays to import.',

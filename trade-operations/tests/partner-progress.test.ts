@@ -1,3 +1,4 @@
+import { localOf } from '@norbital-ai/std/zone';
 import { fixtureId, decimalText, firstRow } from './test-runtime.js';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
@@ -8,7 +9,7 @@ import { partnerProgress } from '../src/lib/partner-progress.js';
 import { agreements } from '../src/lib/agreements.js';
 import { sourceOrder, sourceTransaction } from './synced-kit.js';
 test.live(
-	'partner quota uses the latest approved contract, counts delivery once beside its invoice, and reports expired shortfall',
+	'partner quota retains sealed SO quantities, counts delivery once beside its invoice, and reports expired shortfall',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
@@ -25,7 +26,12 @@ test.live(
 			const parent = yield* sourceOrder(t, own.order);
 			yield* sourceTransaction(t, own, parent, 'delivery', '4');
 			yield* sourceTransaction(t, own, parent, 'invoice', '4');
-			expect(yield* as.query('parties.progress', { party: CUSTOMER })).toMatchObject([
+			expect(
+				yield* as.query('parties.progress', {
+					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
+					party: CUSTOMER
+				})
+			).toMatchObject([
 				{
 					quota: decimalText('10'),
 					delivered: decimalText('4'),
@@ -35,25 +41,36 @@ test.live(
 					state: 'overdue'
 				}
 			]);
-			committed('orders', yield* as.act('orders.revise', { target: own.order, input: {} }));
-			committed(
-				'order_lines',
-				yield* as.act('order_lines.update', {
-					target: own.line,
-					set: { quantity: Decimal.of('20') }
+			const sealed = yield* as.query('orders', { id: own.order });
+			expect(
+				yield* Effect.flip(
+					as.act('orders.update', {
+						target: own.order,
+						set: { status: 'draft' }
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(
+				yield* Effect.flip(
+					as.act('order_lines.update', {
+						target: own.line,
+						set: { quantity: Decimal.of('20') }
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(yield* as.query('orders', { id: own.order })).toEqual(sealed);
+			expect(
+				yield* as.query('parties.progress', {
+					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
+					party: CUSTOMER
 				})
-			);
-			expect(yield* as.query('parties.progress', { party: CUSTOMER })).toMatchObject([
-				{ quota: decimalText('10'), delivered: decimalText('4') }
-			]);
-			yield* confirm(t, own.order);
-			expect(yield* as.query('parties.progress', { party: CUSTOMER })).toMatchObject([
-				{ quota: decimalText('20'), delivered: decimalText('4'), fulfillment: decimalText('20.00') }
+			).toMatchObject([
+				{ quota: decimalText('10'), delivered: decimalText('4'), fulfillment: decimalText('40.00') }
 			]);
 		})
 );
 test.live(
-	'an older delivery remains attached to its original SKU when a later contract replaces that SKU',
+	'historical delivery facts remain attached to the SKU in their original imported seal',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
@@ -62,9 +79,9 @@ test.live(
 			yield* confirm(t, own.order);
 			const parent = yield* sourceOrder(t, own.order);
 			yield* sourceTransaction(t, own, parent, 'delivery', '4');
-			const original = yield* as.get('orders', own.order);
+			const original = yield* as.query('orders', { id: own.order });
 			if (!original) throw new Error('Order missing');
-			// Model-shaped fixtures preserve the original sealed version while replacing its SKU.
+			// Historical imported versions are projection fixtures; this does not reopen the native sealed SO.
 			const order: Parameters<typeof partnerProgress>[0][number] = original;
 			const versions = agreements(order);
 			const previous = versions[0];
@@ -83,7 +100,7 @@ test.live(
 				}
 			};
 			const revised = { ...order, contract_versions: [previous, replacement] };
-			const documents = (yield* as.read('transactions', {
+			const documents = (yield* as.query('transactions', {
 				all: true,
 				select: {
 					order: true,
@@ -123,6 +140,7 @@ test.live(
 			});
 			expect(
 				yield* as.query('parties.progress', {
+					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
 					party: fixtureId('parties', '00000000-0000-4000-8000-000000000102')
 				})
 			).toMatchObject([

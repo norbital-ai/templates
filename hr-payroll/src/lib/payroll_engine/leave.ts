@@ -10,8 +10,8 @@ import {
 	completedMonths,
 	type DynObject,
 	type HostRow,
-	isDynObject,
 	isJsonObject,
+	type JsonObject,
 	numberOf,
 	Refusal
 } from './foundation.js';
@@ -83,7 +83,7 @@ export type LeaveMovement = {
 	/** The absence event the movement belongs to (`facts.event_id`): one birth, one illness, one bereavement. */
 	readonly event_id?: string | null;
 	/** The movement's open facts, which a class's `window_key` reads. */
-	readonly facts?: { readonly [key: string]: unknown };
+	readonly facts?: JsonObject;
 };
 
 /** One employed day as the entitlement's `attendance` root counts it: a WORK day of the plan, whether attendance was
@@ -116,8 +116,10 @@ type LeaveWindowInput = {
 };
 
 /** The absence event key of an entry: its `facts.event_id`, or null. */
-export const eventIdOf = (facts: unknown): string | null =>
-	isJsonObject(facts) && isString(facts.event_id) && facts.event_id !== '' ? facts.event_id : null;
+export const eventIdOf = (facts: JsonObject | null | undefined): string | null => {
+	const id = facts?.['event_id'];
+	return isString(id) && id !== '' ? id : null;
+};
 
 type LeaveBalance = {
 	readonly catalog_id: Id<'leave_catalog'>;
@@ -152,7 +154,7 @@ export function dayKey(value: unknown): string | null {
 }
 
 export function daysOf(movement: Pick<LeaveMovement, 'days'>): number {
-	return numberOf(movement.days) ?? 0;
+	return movement.days ?? 0;
 }
 
 export function serviceMonthsAt(from: string | null, asOf: string, prior: unknown): number {
@@ -193,7 +195,7 @@ function serviceYear(start: string, asOf: string): { from: string; to: string } 
 
 /** A movement as the CEL `entry` a class reads: its open facts, then its columns. */
 const movementEntry = (movement: LeaveMovement): DynObject => {
-	const facts = isDynObject(movement.facts) ? movement.facts : {};
+	const facts = movement.facts ?? {};
 	return {
 		...facts,
 		facts,
@@ -925,7 +927,7 @@ type LeaveMovementInput =
 			readonly to?: unknown;
 			readonly half_day_start?: boolean | null;
 			readonly half_day_end?: boolean | null;
-			readonly facts?: unknown;
+			readonly facts?: JsonObject | null;
 	  };
 
 export function movementFromRow(row: LeaveMovementInput): LeaveMovement {
@@ -949,6 +951,6 @@ export function movementFromRow(row: LeaveMovementInput): LeaveMovement {
 		half_day_start: row.half_day_start === true,
 		half_day_end: row.half_day_end === true,
 		event_id: eventIdOf(row.facts),
-		...(isJsonObject(row.facts) ? { facts: row.facts } : {})
+		...(row.facts == null ? {} : { facts: row.facts })
 	};
 }

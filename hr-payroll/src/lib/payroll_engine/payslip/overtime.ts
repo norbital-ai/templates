@@ -1,5 +1,6 @@
+import { isPlainDate } from '@norbital-ai/std/date';
 import { Effect, Result, Schema } from 'effect';
-import { isCalendarDate, Refusal, type DynObject, type JsonObject } from '../foundation.js';
+import { Refusal, type DynObject, type JsonObject } from '../foundation.js';
 import { evaluate, evaluateBoolean, evaluateNumber, num, roundTo } from './context.js';
 
 const Policy = Schema.Struct({
@@ -41,10 +42,10 @@ export const classifyOvertime = (input: {
 		const classified = new Map<string, OvertimeClassification>();
 		for (const day of days) {
 			const date = String(day['date']);
-			if (!isCalendarDate(date) || dates.has(date))
-				return yield* Effect.fail(
-					new Refusal({ message: 'Overtime classification requires distinct calendar days.' })
-				);
+			if (!isPlainDate(date) || dates.has(date))
+				return yield* new Refusal({
+					message: 'Overtime classification requires distinct calendar days.'
+				});
 			classified.set(date, { incentive_hours: 0, payable_incentive_hours: 0 });
 			dates.add(date);
 		}
@@ -56,23 +57,19 @@ export const classifyOvertime = (input: {
 			for (const day of days) {
 				const context = contexts.get(String(day['date']));
 				if (context === undefined)
-					return yield* Effect.fail(
-						new Refusal({ message: 'The planned overtime day is absent.' })
-					);
+					return yield* new Refusal({ message: 'The planned overtime day is absent.' });
 				const hours = yield* evaluateNumber(limit.hours, context, `${limit.code} counted hours`);
 				if (hours < 0 || hours > num(day['approved_overtime_hours']) + 1e-9)
-					return yield* Effect.fail(
-						new Refusal({ message: `${limit.code} must count only planned approved overtime.` })
-					);
+					return yield* new Refusal({
+						message: `${limit.code} must count only planned approved overtime.`
+					});
 				prefix.push(quantity((prefix.at(-1) ?? 0) + hours));
 			}
 			for (const [index, day] of days.entries()) {
 				const date = String(day['date']);
 				const context = contexts.get(date);
 				if (context === undefined)
-					return yield* Effect.fail(
-						new Refusal({ message: 'The planned overtime day is absent.' })
-					);
+					return yield* new Refusal({ message: 'The planned overtime day is absent.' });
 				if (!(yield* evaluateBoolean(limit.applies, context, `${limit.code} applicability`)))
 					continue;
 				const rawFrom = yield* evaluate(limit.from, context, `${limit.code} window`);
@@ -82,10 +79,10 @@ export const classifyOvertime = (input: {
 					)
 				);
 				const cap = yield* evaluateNumber(limit.limit, context, `${limit.code} limit`);
-				if (!isCalendarDate(from) || from > date || cap < 0)
-					return yield* Effect.fail(
-						new Refusal({ message: `${limit.code} requires a valid window and nonnegative limit.` })
-					);
+				if (!isPlainDate(from) || from > date || cap < 0)
+					return yield* new Refusal({
+						message: `${limit.code} requires a valid window and nonnegative limit.`
+					});
 				let low = 0;
 				let high = index;
 				while (low < high) {

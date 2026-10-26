@@ -1,10 +1,9 @@
 import { bolt } from '$bolt';
-import { Result, Schema } from 'effect';
-import type { Id } from '@norbital-ai/bolt';
+import { Array as EffectArray, Result, Schema } from 'effect';
+import type { Id, MessageKey } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
-import { t, type MessageKey } from '../i18n/t.js';
 import type { PlannedShift } from '../../payroll_engine/shift_pattern.js';
 import { creditAttendance, type AttendancePolicy } from '../../payroll_engine/payslip/context.js';
 import { consumedLeaveCovers } from '../../payroll_engine/leave.js';
@@ -85,7 +84,7 @@ export const isWeekend = (date: string): boolean => {
 /* ── reads: one per source, shared by the board and the calendar ── */
 
 export const entryRead = (ids: readonly Id<'employment_contract'>[], from: string, to: string) =>
-	bolt.read('roster_entry', {
+	bolt.query('roster_entry', {
 		where: {
 			employment_id: { in: [...ids] },
 			work_date: { gte: PlainDate(from), lte: PlainDate(to) }
@@ -103,7 +102,7 @@ export const entryRead = (ids: readonly Id<'employment_contract'>[], from: strin
 	});
 
 export const holidayRead = (companyId: Id<'entity'>, from: string, to: string) =>
-	bolt.read('holiday', {
+	bolt.query('holiday', {
 		where: {
 			company_id: { eq: companyId },
 			published_at: { isNull: false },
@@ -114,7 +113,7 @@ export const holidayRead = (companyId: Id<'entity'>, from: string, to: string) =
 	});
 
 export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: string, to: string) =>
-	bolt.read('leave_catalog_entry', {
+	bolt.query('leave_catalog_entry', {
 		where: {
 			employment_id: { in: [...ids] },
 			activity: { eq: 'TIME_OFF' },
@@ -143,14 +142,14 @@ export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: strin
 	});
 
 export const shiftRead = (companyId: Id<'entity'>) =>
-	bolt.read('shift_definition', {
+	bolt.query('shift_definition', {
 		where: { company_id: { eq: companyId } },
 		select: { code: true, variant: true },
 		all: true
 	});
 
 export const patternRead = (companyId: Id<'entity'>) =>
-	bolt.read('shift_pattern', {
+	bolt.query('shift_pattern', {
 		where: { company_id: { eq: companyId } },
 		select: { pattern: true, effective_range: true },
 		all: true
@@ -197,7 +196,7 @@ export const numberOrNull = (value: unknown): number | null => {
 
 /** The stored intervals, or null when none were recorded (or the value is not a list of intervals). */
 export function intervalsOf(value: unknown): Interval[] | null {
-	if (!Array.isArray(value)) return null;
+	if (!EffectArray.isArray(value)) return null;
 	const intervals: Interval[] = [];
 	for (const item of value) {
 		if (!Schema.is(Schema.Record(Schema.String, Schema.Unknown))(item) || !('start' in item))
@@ -339,35 +338,9 @@ export const clockStampOf = (instant: string, timeZone: string): string =>
 export const approvedWindowText = (interval: ApprovedOvertimeInterval, timeZone: string): string =>
 	`${clockStampOf(interval.start, timeZone)}–${clockStampOf(interval.end, timeZone)}${
 		interval.break_minutes != null && interval.break_minutes > 0
-			? ` · ${t('roster.approved_break', { minutes: interval.break_minutes })}`
+			? ` · ${bolt.t('roster.approved_break', { minutes: interval.break_minutes })}`
 			: ''
 	}`;
-
-/**
- * The day's overtime as payroll counts it: the recorded hours net of the shift's break past its ordinary hours, in
- * completed half-hours; null before a closed attendance.
- */
-export function overtimeOf(
-	intervals: readonly Interval[] | null,
-	planned: PlannedShift | null,
-	date: string,
-	timeZone: string,
-	policy: AttendancePolicy | null,
-	plannedOvertime?: number | null,
-	approvedOvertimeIntervals?: readonly ApprovedOvertimeInterval[] | null
-): number | null {
-	return (
-		completionOf(
-			intervals,
-			planned,
-			date,
-			timeZone,
-			policy,
-			plannedOvertime,
-			approvedOvertimeIntervals
-		)?.overtime_hours ?? null
-	);
-}
 
 /** The same clipped, rounded credit as payroll; unknown or open clocks remain unknown. */
 export function completionOf(
@@ -407,48 +380,48 @@ export const hoursLabel = (minutes: number): string => `${Math.round((minutes / 
 
 /** Everything the cell shows, in words: its accessible name and hover text. */
 export function describeDay(day: Day, subject: string, timeZone: string): string {
-	if (!day.employed) return `${subject} · ${t('roster.before_employment')}`;
+	if (!day.employed) return `${subject} · ${bolt.t('roster.before_employment')}`;
 	const parts = [subject];
-	if (day.holiday != null) parts.push(`${t('roster.public_holiday')}: ${day.holiday}`);
+	if (day.holiday != null) parts.push(`${bolt.t('roster.public_holiday')}: ${day.holiday}`);
 	if (day.leave != null)
 		parts.push(
-			`${day.leave.name || t('roster.leave')}${day.leave.half ? ` (${t('roster.half_day')})` : ''}`
+			`${day.leave.name || bolt.t('roster.leave')}${day.leave.half ? ` (${bolt.t('roster.half_day')})` : ''}`
 		);
 	if (day.projectedShift != null)
-		parts.push(`${t('roster.plan_projected')}: ${day.projectedShift}`);
-	parts.push(`${t('roster.plan_recorded')}: ${day.shift ?? '—'}`);
+		parts.push(`${bolt.t('roster.plan_projected')}: ${day.projectedShift}`);
+	parts.push(`${bolt.t('roster.plan_recorded')}: ${day.shift ?? '—'}`);
 	if (day.plannedOvertime != null)
-		parts.push(`${t('roster.planned_overtime')}: ${hoursLabel(day.plannedOvertime * 60)}`);
+		parts.push(`${bolt.t('roster.planned_overtime')}: ${hoursLabel(day.plannedOvertime * 60)}`);
 	if (day.approvedOvertimeIntervals != null && day.approvedOvertimeIntervals.length > 0)
 		parts.push(
-			`${t('roster.approved_overtime_times')}: ${day.approvedOvertimeIntervals.map((interval) => approvedWindowText(interval, timeZone)).join('; ')}`
+			`${bolt.t('roster.approved_overtime_times')}: ${day.approvedOvertimeIntervals.map((interval) => approvedWindowText(interval, timeZone)).join('; ')}`
 		);
 	const minutes = day.intervals == null ? null : workedMinutes(day.intervals);
 	const first = day.intervals?.[0];
-	if (day.intervals == null) parts.push(t('roster.layer_none'));
+	if (day.intervals == null) parts.push(bolt.t('roster.layer_none'));
 	else if (first == null) {
-		if (isAbsent(day)) parts.push(t('roster.layer_awol'));
+		if (isAbsent(day)) parts.push(bolt.t('roster.layer_awol'));
 	} else
 		parts.push(
 			minutes == null
-				? t('roster.layer_clocked_open', { first: clockStampOf(first.start, timeZone) })
-				: t('roster.layer_clocked_window', {
+				? bolt.t('roster.layer_clocked_open', { first: clockStampOf(first.start, timeZone) })
+				: bolt.t('roster.layer_clocked_window', {
 						first: clockStampOf(first.start, timeZone),
 						last: clockStampOf(day.intervals.at(-1)?.end ?? first.start, timeZone),
 						hours: Math.round((minutes / 60) * 100) / 100
 					})
 		);
 	if (day.overtime != null && day.overtime > 0)
-		parts.push(t('roster.planned_overtime_hours', { hours: hoursLabel(day.overtime * 60) }));
+		parts.push(bolt.t('roster.planned_overtime_hours', { hours: hoursLabel(day.overtime * 60) }));
 	if (day.completion?.percent != null)
 		parts.push(
-			t('roster.completion_details', {
+			bolt.t('roster.completion_details', {
 				percent: Math.floor(day.completion.percent),
 				credited: hoursLabel(day.completion.credited_hours * 60),
 				target: hoursLabel(day.completion.target_hours * 60)
 			})
 		);
-	if (day.locked) parts.push(t('roster.lock_rung_consumed'));
+	if (day.locked) parts.push(bolt.t('roster.lock_rung_consumed'));
 	return parts.join(' · ');
 }
 

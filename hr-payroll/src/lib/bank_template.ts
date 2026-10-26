@@ -104,15 +104,15 @@ export const BANK_TEMPLATE_SHAPE = {
 
 type BankConfiguration = {
 	readonly enabled?: boolean;
-	readonly bank_codes?: unknown;
-	readonly currencies?: unknown;
+	readonly bank_codes?: readonly string[];
+	readonly currencies?: readonly string[];
+	/** A draft (`BANK_TEMPLATE_SHAPE`): enabling requires the complete `ExportRules`. */
 	readonly template?: unknown;
 };
 type ConfigurationRefusal = {
 	readonly field: 'bank_codes' | 'currencies' | 'template';
 	readonly message: string;
 };
-const TextList = Schema.Array(Schema.String);
 
 /** Every writer passes this gate before a draft becomes an available bank format. */
 export function bankConfigurationRefusal(
@@ -120,18 +120,17 @@ export function bankConfigurationRefusal(
 ): ConfigurationRefusal | undefined {
 	if (configuration.enabled !== true) return;
 	for (const field of ['bank_codes', 'currencies'] as const) {
-		const values = Schema.decodeUnknownResult(TextList)(configuration[field]);
+		const values = configuration[field] ?? [];
 		if (
-			Result.isFailure(values) ||
-			values.success.length === 0 ||
-			values.success.some((value) => value.trim() === '' || value !== value.trim()) ||
-			new Set(values.success).size !== values.success.length
+			values.length === 0 ||
+			values.some((value) => value.trim() === '' || value !== value.trim()) ||
+			new Set(values).size !== values.length
 		)
 			return {
 				field,
 				message: 'Enter at least one distinct, nonblank value before enabling this bank.'
 			};
-		if (field === 'currencies' && values.success.some((value) => !/^[A-Z]{3}$/.test(value)))
+		if (field === 'currencies' && values.some((value) => !/^[A-Z]{3}$/.test(value)))
 			return {
 				field,
 				message: 'Use three-letter uppercase currency codes before enabling this bank.'

@@ -4,7 +4,9 @@
 	 * the catalogue of the employment's lineage version governing the entry day, not every lineage's identical "Bonus".
 	 * Opened from no scoped page (self-service), the person is not narrowed; the class still follows the employment. A
 	 * leave class is narrowed further to those the employee is eligible for (the balances the server lists). An entry a
-	 * payslip consumed shows its lock and opens that payslip; its `Form` is readonly.
+	 * payslip consumed shows its lock and opens that payslip; its `Form` is readonly. The entry's `facts` are asked for
+	 * as the version's `employee_input_schema` declares them (`<family>_facts`; a loan class's own version's
+	 * `loan_facts`); a version declaring none leaves them a plain field (a leave event's `event_id`).
 	 */
 	import * as Predicate from 'effect/Predicate';
 	import { Schema } from 'effect';
@@ -14,7 +16,7 @@
 		Button,
 		Field,
 		Icon,
-		JsonSchemaForm,
+		StructuredData,
 		Picker,
 		openRecord,
 		type FormState
@@ -23,9 +25,8 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { pageEntity } from '../scopes/company_scope.svelte.js';
-	import { live, liveRows } from '../state/live.svelte.js';
 	import { todayKey } from '../format/calendar.js';
-	import { schemaAt } from '../person/input_schema.js';
+	import { jsonSchemaOf, schemaAt } from '../person/input_schema.js';
 	import { formSchema } from '../person/form_schema.js';
 
 	let {
@@ -43,40 +44,48 @@
 	const loanCatalogId = inputSchema({ kind: 'id', of: 'loan_catalog' });
 	const isLoanCatalogId = (value: unknown): value is Id<'loan_catalog'> =>
 		Schema.is(loanCatalogId)(value);
+	const employmentContractId = inputSchema({ kind: 'id', of: 'employment_contract' });
+	const isEmploymentId = (value: unknown): value is Id<'employment_contract'> =>
+		Schema.is(employmentContractId)(value);
 	const employmentId = $derived.by(() => {
+		// the form's `get` is untyped: the picked id is decoded as a row id of `employment_contract`
 		const held = form.get('employment_id');
-		// the form holds the picked id as text; it is a row id of `employment_contract`
-		return Predicate.isString(held) && held !== '' ? (held as Id<'employment_contract'>) : null;
+		return isEmploymentId(held) && held !== '' ? held : null;
 	});
-	const employment = liveRows(() => {
+	const employment = $derived.by(() => {
 		const id = employmentId;
 		return id == null
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: { id: { eq: id } },
 					select: { company_id: { select: { settings_code: true } } },
 					limit: 1
 				});
 	});
 	const lineage = $derived(
-		employment.current?.[0]?.company_id?.settings_code ?? page?.company?.settings_code ?? null
+		employment?.current?.rows?.[0]?.company_id?.settings_code ??
+			page?.company?.settings_code ??
+			null
 	);
-	const loan = liveRows(() => {
+	const loan = $derived.by(() => {
 		const id = form.get('catalog_id');
 		return catalog !== 'loan_catalog' || !isLoanCatalogId(id)
 			? null
-			: bolt.read('loan_catalog', {
+			: bolt.query('loan_catalog', {
 					where: { id: { eq: id } },
 					select: { eligibility: true, settings_id: { select: { employee_input_schema: true } } },
 					limit: 1
 				});
 	});
 	/** The loan class's own rule names the agreement facts it reads; only those are asked for. */
-	const loanReads = $derived(loan.current?.[0]?.eligibility ?? '');
-	/** The loan inputs the class's own version declares (`employee_input_schema.properties.loan_facts`): its `facts`. */
-	const loanFacts = $derived(
-		formSchema(schemaAt(loan.current?.[0]?.settings_id?.employee_input_schema, 'loan_facts'))
-	);
+	const loanReads = $derived(loan?.current?.rows?.[0]?.eligibility ?? '');
+	/** The `employee_input_schema` property declaring each family's entry `facts`. */
+	const FACTS = {
+		adhoc_catalog: 'adhoc_facts',
+		claim_catalog: 'claim_facts',
+		leave_catalog: 'leave_facts',
+		loan_catalog: 'loan_facts'
+	} as const;
 	const day = $derived.by(() => {
 		if (catalog === 'loan_catalog') {
 			const period = form.get('repayment_period');
@@ -89,20 +98,18 @@
 		return Predicate.isString(held) && held !== '' ? held : todayKey();
 	});
 	/** The leave classes the employee may take on the day: the server's listing, eligibility applied. */
-	const balances = live(
-		() =>
-			catalog !== 'leave_catalog' || employmentId == null
-				? null
-				: bolt.query('leave_catalog_entry.leave_balances', {
-						employment_id: employmentId,
-						as_of: PlainDate(day)
-					}),
-		['employment_contract', 'leave_catalog_entry']
+	const balances = $derived.by(() =>
+		catalog !== 'leave_catalog' || employmentId == null
+			? null
+			: bolt.query('leave_catalog_entry.leave_balances', {
+					employment_id: employmentId,
+					as_of: PlainDate(day)
+				})
 	);
 	const eligible = $derived(
-		balances.current == null
+		balances?.current == null
 			? {}
-			: { id: { in: [...new Set(balances.current.balances.map((row) => row.catalog_id))] } }
+			: { id: { in: [...new Set(balances?.current.balances.map((row) => row.catalog_id))] } }
 	);
 	const governs = $derived({
 		sealed_at: { isNull: false },
@@ -110,6 +117,29 @@
 		effective_range: { contains: PlainDate(day) },
 		...(lineage == null ? {} : { code: { eq: lineage } })
 	} as const);
+	/** The version of the employment's lineage governing the entry day. */
+	const version = $derived.by(() =>
+		catalog === 'loan_catalog' || lineage == null
+			? null
+			: bolt.query('jurisdiction_settings', {
+					where: governs,
+					select: { employee_input_schema: true },
+					limit: 1
+				})
+	);
+	/** The entry inputs the governing version declares (a loan: its class's own version): its `facts`. */
+	const factsSchema = $derived(
+		formSchema(
+			schemaAt(
+				jsonSchemaOf(
+					catalog === 'loan_catalog'
+						? loan?.current?.rows?.[0]?.settings_id?.employee_input_schema
+						: version?.current?.rows?.[0]?.employee_input_schema
+				),
+				FACTS[catalog]
+			)
+		)
+	);
 </script>
 
 {#if Predicate.isString(payslip)}
@@ -178,26 +208,36 @@
 			{/if}
 		{/snippet}
 	</Field>
-	{#each fields as name (name)}
+	{#each fields.filter((name) => name !== 'facts' || factsSchema == null) as name (name)}
 		<Field {name} />
 	{/each}
-	{#if catalog === 'loan_catalog'}
-		{#if loanReads.includes('advance_made_on')}
-			<Field name="advance_made_on" />
-		{/if}
-		{#if loanFacts != null}
-			<Field name="facts">
-				{#snippet editor(field)}
-					<JsonSchemaForm
-						schema={loanFacts}
-						value={field.value}
-						onChange={field.onChange}
-						name={field.name}
-						id={field.id}
-						disabled={field.disabled}
-					/>
-				{/snippet}
-			</Field>
-		{/if}
+	{#if catalog === 'loan_catalog' && loanReads.includes('advance_made_on')}
+		<Field name="advance_made_on" />
+	{/if}
+	{#if factsSchema != null && (catalog === 'loan_catalog' || fields.includes('facts'))}
+		<Field name="facts">
+			{#snippet editor(field)}
+				<StructuredData
+					mode="edit"
+					schema={factsSchema}
+					value={field.value}
+					onChange={field.onChange}
+					name={field.name}
+					id={field.id}
+					disabled={field.disabled}
+				/>
+			{/snippet}
+			{#snippet view(field)}
+				<StructuredData
+					mode="view"
+					schema={factsSchema}
+					value={field.value}
+					onChange={() => {}}
+					name={field.name}
+					id={field.id}
+					readonly
+				/>
+			{/snippet}
+		</Field>
 	{/if}
 </Grid>

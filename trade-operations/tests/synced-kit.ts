@@ -1,4 +1,4 @@
-import { Context, Effect } from 'effect';
+import { Array, Context, Effect, Schema } from 'effect';
 import {
 	Identity,
 	Writes,
@@ -14,7 +14,7 @@ import type { Id } from '@norbital-ai/bolt';
 export function writtenId<C extends string>(collection: C, outcome: Outcome) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	const record = outcome.records.find((record) => record.collection === collection);
-	if (record === undefined) throw new Error(`The feed committed no ${collection} record`);
+	if (record === undefined) throw new Error(`The sync committed no ${collection} record`);
 	return fixtureId(collection, record.id);
 }
 /** Invalid and forbidden wire requests cannot be expressed by the typed caller catalogue. */
@@ -39,31 +39,68 @@ export const direct = Effect.fnUntraced(function* (
 		}
 	})).outcome;
 });
-export const sync = Effect.fnUntraced(function* <
-	C extends 'ext_sales_orders' | 'ext_purchase_orders' | 'transactions' | 'source_payments'
->(
+/** The remote identity of each model these helpers write as the `kingdee` sync. */
+const remote = {
+	parties: 'external_code',
+	products: 'external_code',
+	warehouses: 'external_code',
+	stock_snapshots: 'external_code',
+	credit_snapshots: 'external_code',
+	source_sales_lines: 'external_code',
+	ext_sales_orders: 'external_id',
+	ext_purchase_orders: 'external_id',
+	transactions: 'erp_id',
+	source_payments: 'external_code'
+} as const;
+/** The records each workspace's sync pages wrote, by model and remote identity: the engine's id map, as a page sees it. */
+const written = new WeakMap<T, Map<string, string>>();
+/**
+ * Writes rows as one `kingdee` sync read page would (one act in Sync mode on the instance `kingdee`), without the read
+ * body: the model's write callbacks judge them. `upsert` reuses the record an earlier page wrote for the same remote
+ * identity; `create` always names a new record.
+ */
+export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 	t: T,
 	collection: C,
 	row: Record<string, Json> | Record<string, Json>[],
 	verb: 'create' | 'upsert' = 'create'
 ) {
 	const key = randomUUID();
+	const name = `${collection}.sync.kingdee`;
+	const ids = written.get(t) ?? new Map<string, string>();
+	written.set(t, ids);
+	const existing =
+		verb === 'upsert'
+			? yield* t.db.rows(Schema.Struct({ id: Schema.String, remote: Schema.String }), {
+					text: `SELECT id, "${remote[collection]}" AS remote FROM "${collection}" WHERE source = $1`,
+					params: ['kingdee']
+				})
+			: [];
+	const rows = (Array.isArray(row) ? row : [row]).map((value) => {
+		const identity = `${collection}:${String(value[remote[collection]])}`;
+		return {
+			identity,
+			value: {
+				...value,
+				id:
+					(verb === 'upsert'
+						? (ids.get(identity) ??
+							existing.find((row) => row.remote === String(value[remote[collection]]))?.id)
+						: undefined) ?? randomUUID(),
+				source: 'kingdee'
+			}
+		};
+	});
 	const authority = yield* Context.get(t.services, Identity).authority({
-		actor: {
-			kind: 'system',
-			run: key,
-			by: { integration: 'kingdee', instance: 'kingdee', feed: collection }
-		},
+		actor: { kind: 'system', run: key, by: { sync: name, instance: 'kingdee' } },
 		policies: [],
 		admin: false
 	});
-	return (yield* Context.get(t.services, Writes).act({
+	const outcome = (yield* Context.get(t.services, Writes).act({
 		collection,
-		verb,
-		input: (Array.isArray(row) ? row : [row]).map((value: Record<string, Json>) => ({
-			...value,
-			source: 'kingdee'
-		})),
+		verb: 'upsert',
+		onConflict: 'update',
+		input: rows.map(({ value }) => value),
 		key,
 		authority,
 		issuedAt: '2026-10-10T00:00:00Z',
@@ -74,17 +111,23 @@ export const sync = Effect.fnUntraced(function* <
 			params: {}
 		},
 		invocationId: key,
-		...(verb === 'upsert' ? { onConflict: 'update' as const } : {}),
 		mode: {
-			_tag: 'Feed',
-			fields: [...Object.keys((Array.isArray(row) ? row[0] : row) ?? {}), 'source'],
-			removals: [],
+			_tag: 'Sync',
+			sync: name,
+			instance: 'kingdee',
+			fields: [...new Set(rows.flatMap(({ value }) => Object.keys(value)))].filter(
+				(field) => field !== 'id'
+			),
+			deletes: [],
 			pieces: () => {}
 		}
 	})).outcome;
+	if (outcome.kind === 'committed')
+		for (const { identity, value } of rows) if (!ids.has(identity)) ids.set(identity, value.id);
+	return outcome;
 });
 export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const agreement = yield* t.as(t.admin).get('orders', order);
+	const agreement = yield* t.as(t.admin).query('orders', { id: order });
 	if (typeof agreement?.seal_hash !== 'string' || typeof agreement.currency !== 'string')
 		throw new Error('Sealed agreement required');
 	const collection: 'ext_sales_orders' | 'ext_purchase_orders' =
@@ -113,7 +156,7 @@ export const sourceTransaction = Effect.fnUntraced(function* (
 	},
 	parent: Effect.Success<ReturnType<typeof sourceOrder>>,
 	kind: 'invoice' | 'delivery' = 'invoice',
-	quantity = '4',
+	quantity: string = '4',
 	overrides: Record<string, Json> = {}
 ) {
 	const input = {
@@ -148,7 +191,7 @@ export const sourcePayment = Effect.fnUntraced(function* (
 	parent: Effect.Success<ReturnType<typeof sourceOrder>>,
 	invoice: Id<'transactions'> | null,
 	amount: string,
-	reference = randomUUID(),
+	reference: string = randomUUID(),
 	overrides: Record<string, Json> = {}
 ) {
 	const input = {

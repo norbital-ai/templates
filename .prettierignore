@@ -5,10 +5,9 @@
 **/.generated/
 **/.norbital/
 
-# Generated migration history. Not merely regenerated output — `migrationFingerprint` hashes the
-# RAW BYTES of every file under this directory into `historySha256`, so reformatting one rewrites
-# the fingerprint and the build reads that as a changed migration history.
-**/.norbital/migrations/
+# Store serializes and verifies these migration proofs; retain the generator's bytes.
+**/migrations/snapshot.json
+**/migrations/physical.json
 
 # Tooling / CI
 .turbo/

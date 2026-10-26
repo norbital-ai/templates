@@ -17,7 +17,7 @@
 		columns={['number', 'customer', 'service', 'preference', 'repeat', 'status', 'visit_count']}
 		actions={[
 			{
-				action: 'bookings.cancel',
+				run: (row) => bolt.start('bookings_cancel', { targets: [row.id] }),
 				label: t('app.schedule.cancel_booking'),
 				confirm: t('app.schedule.cancel_booking_confirm')
 			}

@@ -6,6 +6,7 @@ import type { ActInput, Id, Insert } from '@norbital-ai/bolt';
 import { onlyShortens, sealWrites, voidOnce, type Lineage } from '@norbital-ai/std/versioned';
 import { Instant, PlainDate, type DatePeriod } from '@norbital-ai/std/date';
 import { stableJson } from './foundation.js';
+import { Struct } from 'effect';
 
 /** The columns `sealWrites` / `voidOnce` read, named as this model stores them. */
 export type SettingsLineage = {
@@ -135,16 +136,12 @@ export function cloneSettingsFields(
 	};
 }
 
-/** A row narrowed to the columns a nested create declares. Dynamic pick cannot construct `Pick` without an assertion. */
+/** A row narrowed to the columns a nested create declares. */
 export function stripRow<T extends object, const K extends readonly (string & keyof T)[]>(
 	row: T,
 	columns: K
 ): Pick<T, K[number]> {
-	const out = {} as Pick<T, K[number]>;
-	for (const column of columns) {
-		if (row[column] !== undefined) out[column] = row[column];
-	}
-	return out;
+	return Struct.pick(row, columns);
 }
 
 function same(left: unknown, right: unknown): boolean {

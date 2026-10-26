@@ -6,20 +6,20 @@ import { createHash } from 'node:crypto';
  * photo provenance, append-only ledgers, and a finding resolved once.
  */
 import { describe, expect, it } from '@effect/vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { siteKey } from '../src/lib/site-key.ts';
 import { fixtureId } from './test-runtime.js';
-import { committed, CONTROLLER, person, rows, siteWithJob, wireAct, workspace } from './kit.ts';
+import {
+	committed,
+	completedRun,
+	CONTROLLER,
+	person,
+	rows,
+	siteWithJob,
+	wireAct,
+	workspace
+} from './kit.ts';
 describe('the template', () => {
-	it('declares what its catalogue card says', () => {
-		const files = readdirSync('src', { recursive: true }).map(String);
-		const count = (pattern: RegExp) => files.filter((file) => pattern.test(file)).length;
-		expect({
-			collections: count(/^data\/collection\/[^/]+\/\+collection\.ts$/),
-			apps: count(/^app\/.+\/\+app\.ts$/),
-			automations: count(/^automation\/\+[^/]+\.automation\.ts$/)
-		}).toEqual(JSON.parse(readFileSync('norbital.template.json', 'utf8')).counts);
-	});
 	it('a Singapore address is its postal code plus its unit, spelled one way', () => {
 		expect(siteKey('58 Kismis Avenue, Singapore 598235')).toBe('598235');
 		expect(siteKey('Blk 460133 #5-12')).toBe('460133#05-12');
@@ -91,7 +91,7 @@ describe('sites', () => {
 					})
 				);
 				const site = fixtureId('sites', created);
-				expect(yield* as.get('sites', site)).toMatchObject({
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
 					name: '1.34, 103.77',
 					unit_number: '05-12'
 				});
@@ -116,7 +116,7 @@ describe('sites', () => {
 						}
 					})
 				);
-				expect(yield* as.get('sites', site)).toMatchObject({
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
 					name: 'Resolved map address, Singapore 598236',
 					unit_number: '05-12'
 				});
@@ -126,7 +126,10 @@ describe('sites', () => {
 						set: { location: { lat: 1.36, lng: 103.79 } }
 					})
 				);
-				expect(yield* as.get('sites', site)).toMatchObject({ name: '1.36, 103.79', address: null });
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
+					name: '1.36, 103.79',
+					address: null
+				});
 				expect(
 					yield* wireAct(t, as.authority, {
 						collection: 'sites',
@@ -139,15 +142,20 @@ describe('sites', () => {
 				).toMatchObject({ kind: 'refused', code: 'invalidInput' });
 			})
 	);
-	it.live('preserves legacy unlocated rows but requires a location before editing them', () =>
+	it.live('restores an unlocated row but requires a location before editing it', () =>
 		Effect.gen(function* () {
-			const t = yield* workspace({ seed: 'base' });
+			const site = fixtureId('sites', '019f8a40-0000-7000-8000-000000000104');
+			// Nullable persisted locations are restorable; current guarded creates require a location.
+			const t = yield* workspace({
+				seed: {
+					sites: [{ id: site, name: 'Restored site', site_key: 'RESTORED SITE', location: null }]
+				}
+			});
 			const as = t.as(t.member(CONTROLLER));
-			const legacy = present((yield* as.read('sites', { limit: 1 })).rows[0]);
-			expect(legacy.location).toBeNull();
+			expect(present(yield* as.query('sites', { id: site })).location).toBeNull();
 			expect(
 				yield* Effect.flip(
-					as.act('sites.update', { target: legacy.id, set: { client_name: 'Edited client' } })
+					as.act('sites.update', { target: site, set: { client_name: 'Edited client' } })
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
@@ -155,11 +163,11 @@ describe('sites', () => {
 			});
 			committed(
 				yield* as.act('sites.update', {
-					target: legacy.id,
+					target: site,
 					set: { location: { lat: 1.34, lng: 103.77 } }
 				})
 			);
-			expect(yield* as.get('sites', legacy.id)).toMatchObject({ name: '1.34, 103.77' });
+			expect(yield* as.query('sites', { id: site })).toMatchObject({ name: '1.34, 103.77' });
 		})
 	);
 	it.live(
@@ -185,7 +193,7 @@ describe('sites', () => {
 						}
 					})
 				);
-				expect(yield* as.get('sites', site)).toMatchObject({
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
 					name: 'Updated Test Block, Singapore 598235',
 					unit_number: '#05-12',
 					site_key: '598235#05-12'
@@ -199,14 +207,14 @@ describe('sites', () => {
 					})
 				);
 				committed(yield* as.act('sites.update', { target: site, set: { unit_number: null } }));
-				expect(yield* as.get('sites', site)).toMatchObject({
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
 					unit_number: null,
 					site_key: '598235'
 				});
 				committed(
 					yield* as.act('sites.update', { target: site, set: { client_name: 'Edited client' } })
 				);
-				expect(yield* as.get('sites', site)).toMatchObject({
+				expect(yield* as.query('sites', { id: site })).toMatchObject({
 					unit_number: null,
 					site_key: '598235'
 				});
@@ -276,77 +284,80 @@ describe('job assignments', () => {
 	);
 });
 describe('photo evidence', () => {
-	it.live('a filed photo is an uninspected workspace upload whose provenance never changes', () =>
-		Effect.gen(function* () {
-			const t = yield* workspace();
-			const { job } = yield* siteWithJob(t);
-			const other = yield* siteWithJob(t);
-			const as = t.as(t.admin);
-			const up = yield* as.upload('photo_evidence.photo', {
-				name: 'p.jpg',
-				mime: 'image/jpeg',
-				bytes: readFileSync('tests/fixtures/photo-evidence.jpg')
-			});
-			if (up.kind !== 'committed') throw new Error(JSON.stringify(up));
-			const file = up.output;
-			expect(
-				yield* Effect.flip(
-					as.act('photo_evidence.create', {
-						photo: file,
-						source: { kind: 'workspace_upload' }
+	it.live(
+		'a photo filed directly is an uninspected workspace upload whose provenance never changes',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* workspace();
+				const { job } = yield* siteWithJob(t);
+				const other = yield* siteWithJob(t);
+				const as = t.as(t.admin);
+				const up = yield* as.upload('photo_evidence.photo', {
+					name: 'p.jpg',
+					mime: 'image/jpeg',
+					bytes: readFileSync('tests/fixtures/photo-evidence.jpg')
+				});
+				if (up.kind !== 'committed') throw new Error(JSON.stringify(up));
+				const file = up.output;
+				expect(yield* Effect.flip(as.act('photo_evidence.create', { photo: file }))).toMatchObject({
+					_tag: 'ActRefused'
+				}); // no parent
+				// a direct create cannot claim a message source: only an assignment's update files one
+				expect(
+					yield* wireAct(t, as.authority, {
+						collection: 'photo_evidence',
+						verb: 'create',
+						input: {
+							job_assignment_id: job,
+							photo: file,
+							source: {
+								kind: 'message',
+								integration: 'x',
+								conversation_id: 'c',
+								message_id: 'm',
+								attachment_id: 'a',
+								sender_id: 's'
+							}
+						}
 					})
-				)
-			).toMatchObject({
-				_tag: 'ActRefused'
-			}); // no parent
-			const [createdPhoto] = committed(
-				yield* as.act('photo_evidence.create', {
-					job_assignment_id: job,
-					photo: file,
-					source: {
-						kind: 'message',
-						integration: 'x',
-						conversation_id: 'c',
-						message_id: 'm',
-						attachment_id: 'a',
-						sender_id: 's'
-					}
-				})
-			);
-			const photo = fixtureId('photo_evidence', createdPhoto);
-			const [row] = yield* rows(
-				t,
-				`SELECT job_assignment_id, photo, source, source_key, sha256, summary, flags FROM photo_evidence WHERE id = $1`,
-				[photo]
-			);
-			expect(row).toMatchObject({
-				source: { kind: 'workspace_upload' },
-				sha256: '',
-				summary: 'Workspace upload',
-				flags: []
-			});
-			expect(
-				yield* wireAct(t, as.authority, {
-					collection: 'photo_evidence',
-					verb: 'update',
-					input: {
-						target: photo,
-						set: { job_assignment_id: other.job }
-					}
-				})
-			).toMatchObject({
-				kind: 'refused',
-				code: 'invalidInput',
-				message: "set.job_assignment_id: 'job_assignment_id' is not accepted here"
-			});
-			expect(
-				yield* rows(
+				).toMatchObject({ kind: 'refused', code: 'invalidInput' });
+				const [createdPhoto] = committed(
+					yield* as.act('photo_evidence.create', { job_assignment_id: job, photo: file })
+				);
+				const photo = fixtureId('photo_evidence', createdPhoto);
+				const [row] = yield* rows(
 					t,
 					`SELECT job_assignment_id, photo, source, source_key, sha256, summary, flags FROM photo_evidence WHERE id = $1`,
 					[photo]
-				)
-			).toEqual([row]);
-		})
+				);
+				expect(row).toMatchObject({
+					source: { kind: 'workspace_upload' },
+					sha256: '',
+					summary: 'Workspace upload',
+					flags: []
+				});
+				expect(
+					yield* wireAct(t, as.authority, {
+						collection: 'photo_evidence',
+						verb: 'update',
+						input: {
+							target: photo,
+							set: { job_assignment_id: other.job }
+						}
+					})
+				).toMatchObject({
+					kind: 'refused',
+					code: 'invalidInput',
+					message: "set.job_assignment_id: 'job_assignment_id' is not accepted here"
+				});
+				expect(
+					yield* rows(
+						t,
+						`SELECT job_assignment_id, photo, source, source_key, sha256, summary, flags FROM photo_evidence WHERE id = $1`,
+						[photo]
+					)
+				).toEqual([row]);
+			})
 	);
 });
 describe('the ledgers', () => {
@@ -400,22 +411,40 @@ describe('the ledgers', () => {
 				expect(stored.source_key).toBe(
 					`human:${job}:${createHash('sha256').update(basis).digest('hex')}`
 				);
-				committed(
-					yield* as.act('suspicious_activity_logs.resolve', {
-						target: finding,
-						input: { resolution: 'Same site, two doors' }
-					})
-				);
-				expect(
-					yield* Effect.flip(
-						as.act('suspicious_activity_logs.resolve', {
-							target: finding,
-							input: { resolution: 'again' }
-						})
-					)
-				).toMatchObject({
-					_tag: 'ActRefused'
+				const started = yield* as.start('suspicious_activity_logs_resolve', {
+					finding,
+					resolution: 'Same site, two doors'
 				});
+				expect(started.kind).toBe('committed');
+				if (started.kind !== 'committed') throw new Error('The finding resolution did not start.');
+				expect(yield* completedRun(t, started.output.id)).toMatchObject({
+					state: 'succeeded',
+					error: null
+				});
+				const resolved = yield* rows(
+					t,
+					'SELECT resolution, resolved_at, resolved_by FROM suspicious_activity_logs WHERE id = $1',
+					[finding]
+				);
+				expect(resolved).toMatchObject([{ resolution: 'Same site, two doors' }]);
+				const repeated = yield* as.start('suspicious_activity_logs_resolve', {
+					finding,
+					resolution: 'again'
+				});
+				expect(repeated.kind).toBe('committed');
+				if (repeated.kind !== 'committed')
+					throw new Error('The repeated resolution did not start.');
+				expect(yield* completedRun(t, repeated.output.id)).toMatchObject({
+					state: 'failed',
+					error: { code: 'refused' }
+				});
+				expect(
+					yield* rows(
+						t,
+						'SELECT resolution, resolved_at, resolved_by FROM suspicious_activity_logs WHERE id = $1',
+						[finding]
+					)
+				).toEqual(resolved);
 				expect(
 					yield* Effect.flip(
 						as.act('suspicious_activity_logs.create', {

@@ -5,7 +5,6 @@
 	 * the `roster_entry` work-day sheet (import and template), scoped to this entity and period.
 	 */
 	import { bolt } from '$bolt';
-	import { t } from '../../../lib/ui/i18n/t.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { CustomView, EmptyState } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
@@ -15,7 +14,6 @@
 	import { createPayPeriodScope } from '../../../lib/ui/scopes/pay_period_scope.svelte.js';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
-	import { liveRows } from '../../../lib/ui/state/live.svelte.js';
 	import MonthBoard from '../../../lib/ui/roster/month_board.svelte';
 
 	const scope = companyScope();
@@ -28,10 +26,10 @@
 	const timeZone = $derived(entityTimeZone(scope.company, version.current));
 	const policy = $derived(version.current?.payroll?.attendance ?? null);
 
-	const contracts = liveRows(() =>
+	const contracts = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: { company_id: { eq: scope.id } },
 					select: {
 						employee_number: true,
@@ -46,7 +44,7 @@
 	const people = $derived(
 		pay.window == null
 			? []
-			: (contracts.current ?? [])
+			: (contracts?.current?.rows ?? [])
 					.filter(
 						(row) =>
 							row.effective_range.from <= pay.window!.end &&
@@ -67,7 +65,7 @@
 		month={pay.period}
 		halves={pay.halves}
 		weeks={pay.weeks}
-		ariaLabel={t('app.events.pay_period')}
+		ariaLabel={bolt.t('app.events.pay_period')}
 		onMonthChange={(next) => pay.select(next)}
 	/>
 {/snippet}
@@ -78,14 +76,14 @@
 
 <AppShell
 	icon="lucide:calendar-clock"
-	title={t('app.work.title')}
-	description={t('app.work.description')}
+	title={bolt.t('app.work.title')}
+	description={bolt.t('app.work.description')}
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}
 	{#if scope.unknown}
-		<p class="text-meta">{t('component.loading')}</p>
+		<p class="text-meta">{bolt.t('component.loading')}</p>
 	{:else if scope.id == null}
-		<EmptyState title={t('app.scheduling.empty_board')} />
+		<EmptyState title={bolt.t('app.scheduling.empty_board')} />
 	{:else if pay.window != null}
 		{@const companyId = scope.id}
 		{@const window = pay.window}
@@ -95,11 +93,11 @@
 				of={people}
 				key="work"
 				fields={[
-					{ field: 'number', label: t('component.employee_number') },
-					{ field: 'name', label: t('component.name') }
+					{ field: 'number', label: bolt.t('component.employee_number') },
+					{ field: 'name', label: bolt.t('component.name') }
 				]}
 				toolbar={{
-					title: t('app.scheduling.board_title'),
+					title: bolt.t('app.scheduling.board_title'),
 					controls: workTools,
 					new: false,
 					context: { company_id: companyId, from: window.start, to: window.end }

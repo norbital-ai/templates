@@ -66,7 +66,7 @@ export type KioskPhraseKey = keyof typeof KIOSK_PHRASES;
 export const kioskVoiceLanguage = (locale: string): KioskVoiceLanguage =>
 	locale.toLowerCase().replace('_', '-').split('-')[0] === 'zh' ? 'zh' : 'en';
 
-/** Narration of actual native capture refusals, shared by the camera consumer and regression tests. */
+/** Narration of actual native capture refusals, shared by the camera consumer and edge case tests. */
 export function kioskCaptureRefusalPhrase(reason: unknown): KioskPhraseKey {
 	return reason === 'not-scheduled' || reason === 'not-a-work-day'
 		? 'no_shift_today'

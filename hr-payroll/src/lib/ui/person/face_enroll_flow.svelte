@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { attach, fork } from '@norbital-ai/ui/effect';
-	import { t } from '../i18n/t.js';
 	import { Clock, Duration, Effect, Schedule, Schema } from 'effect';
 	import type Human from '@vladmandic/human';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
@@ -146,16 +145,16 @@
 		fatal !== null
 			? fatal
 			: engineMissing.length > 0
-				? t('face.engine_unavailable', { models: engineMissing.join(', ') })
+				? bolt.t('face.engine_unavailable', { models: engineMissing.join(', ') })
 				: warming
-					? t('face.preparing')
+					? bolt.t('face.preparing')
 					: target === null
-						? t('face.captured', { count: capturedCount, total: GUIDED_POSES.length })
+						? bolt.t('face.captured', { count: capturedCount, total: GUIDED_POSES.length })
 						: !guided.facePresent
-							? t('face.guide_no_face')
-							: t(GUIDE_KEYS[target])
+							? bolt.t('face.guide_no_face')
+							: bolt.t(GUIDE_KEYS[target])
 	);
-	const poseLabel = (pose: GuidedPose): string => t(POSE_KEYS[pose]);
+	const poseLabel = (pose: GuidedPose): string => bolt.t(POSE_KEYS[pose]);
 	const stopCamera = () => {
 		closeCamera(handles.stream);
 		handles.stream = null;
@@ -343,7 +342,7 @@
 			});
 			const upload = kinds.upload;
 			if (upload === undefined)
-				return yield* Effect.fail(enrollmentFailed(t('face.upload_unavailable')));
+				return yield* Effect.fail(enrollmentFailed(bolt.t('face.upload_unavailable')));
 			const file = yield* canvasToFile(photo.canvas);
 			const facePhoto = yield* upload(file, 'employment_profile.face_photo');
 			const now = Instant(new Date(yield* Clock.currentTimeMillis));
@@ -383,14 +382,14 @@
 </script>
 
 <Stack gap="md" data-face-enroll-step={step}>
-	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={t('face.progress')}>
+	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={bolt.t('face.progress')}>
 		{#each STEPS as name, index (name)}
 			<li
 				class="border-t-2 pt-2 text-meta {index <= STEPS.indexOf(step)
 					? 'border-primary text-foreground'
 					: 'border-border'}"
 			>
-				{t(`face.step_${name}`)}
+				{bolt.t(`face.step_${name}`)}
 			</li>
 		{/each}
 	</Columns>
@@ -402,7 +401,7 @@
 			{#if warming}
 				<Imposter placement="fill" class="bg-black/40">
 					<Inline justify="center" fill>
-						<Spinner class="size-8 text-white" label={t('face.preparing')} />
+						<Spinner class="size-8 text-white" label={bolt.t('face.preparing')} />
 					</Inline>
 				</Imposter>
 			{/if}
@@ -417,7 +416,7 @@
 				</p>
 			</Imposter>
 		</Frame>
-		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.poses')}>
+		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={bolt.t('face.poses')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const progress = poseProgress(guided, pose, now)}
 				{@const done = guided.captured.includes(pose)}
@@ -470,13 +469,13 @@
 		</Grid>
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 		<Inline justify="end" class="border-t pt-4">
-			<Button variant="ghost" onclick={onclose}>{t('face.cancel')}</Button>
+			<Button variant="ghost" onclick={onclose}>{bolt.t('face.cancel')}</Button>
 		</Inline>
 	</Stack>
 
 	<Stack hidden={step !== 'review'} gap="md">
-		<p class="text-sm text-muted-foreground">{t('face.review_description')}</p>
-		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={t('face.captures')}>
+		<p class="text-sm text-muted-foreground">{bolt.t('face.review_description')}</p>
+		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={bolt.t('face.captures')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const sample = samples[pose]}
 				<li class="rounded-lg border bg-background">
@@ -492,21 +491,21 @@
 		<label class="rounded-lg border bg-background p-4 text-sm font-medium">
 			<Inline as="span" gap="sm">
 				<input class="size-4" type="checkbox" bind:checked={consent} />
-				{t('face.consent')}
+				{bolt.t('face.consent')}
 			</Inline>
 		</label>
 		{#if blocked}
 			<p role="note" class="text-sm text-warning-foreground">
 				{record.face_enrollment_status === 'PENDING'
-					? t('face.status_pending')
-					: t('face.status_suspended')}
+					? bolt.t('face.status_pending')
+					: bolt.t('face.status_suspended')}
 			</p>
 		{/if}
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 		<Cluster justify="between" gap="sm" class="border-t pt-4">
 			<Button variant="ghost" onclick={restartCapture} disabled={submitting}>
 				<Icon name="lucide:rotate-ccw" class="size-4" />
-				{t('face.recapture')}
+				{bolt.t('face.recapture')}
 			</Button>
 			<Button
 				type="button"
@@ -516,7 +515,7 @@
 				{#if submitting}
 					<Icon name="lucide:loader-circle" class="size-4 animate-spin" />
 				{/if}
-				{submitting ? t('face.enrolling') : t('face.enroll')}
+				{submitting ? bolt.t('face.enrolling') : bolt.t('face.enroll')}
 			</Button>
 		</Cluster>
 	</Stack>
@@ -534,10 +533,12 @@
 				name={pendingApproval ? 'lucide:clock' : 'lucide:circle-check'}
 				class="mt-0.5 size-5 shrink-0"
 			/>
-			<p class="text-sm font-medium">{t(pendingApproval ? 'offboarding.pending' : 'face.saved')}</p>
+			<p class="text-sm font-medium">
+				{bolt.t(pendingApproval ? 'offboarding.pending' : 'face.saved')}
+			</p>
 		</Inline>
 		<Inline justify="end" class="border-t pt-4">
-			<Button onclick={onclose}>{t('face.close')}</Button>
+			<Button onclick={onclose}>{bolt.t('face.close')}</Button>
 		</Inline>
 	</Stack>
 </Stack>

@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { addMonths, datePeriod, days } from '@norbital-ai/std/date';
 import { statutoryFactsFromFacts } from '../employment_facts.js';
-import { type DynObject, type Json, isDynObject, Refusal } from '../foundation.js';
+import { type DynObject, type Json, Refusal } from '../foundation.js';
 import {
 	taxYearStart,
 	num,
@@ -13,6 +13,7 @@ import {
 	evaluateNumber,
 	evaluateBoolean,
 	type SchemeParts,
+	type Subject,
 	slipPeriod
 } from './context.js';
 import { severityOf, type Severity } from '../admit.js';
@@ -50,9 +51,9 @@ const partSums = (
 
 export const assessStatutory = (input: {
 	readonly who: string;
-	readonly subject: DynObject;
+	readonly subject: Subject;
 	/** The subject read on another day, for a scheme whose `configuration.as_of` names one. */
-	readonly subjectOn: (asOf: string) => DynObject;
+	readonly subjectOn: (asOf: string) => Subject;
 	readonly rules: DynObject;
 	readonly statutoryRows: readonly StatutoryRow[];
 	readonly schemeCodes: ReadonlyMap<string, string>;
@@ -222,7 +223,7 @@ export const assessStatutory = (input: {
 			let context: DynObject = {
 				...held,
 				...input.roots,
-				headcount: isDynObject(subject.company) ? (subject.company.headcount ?? 0) : 0,
+				headcount: subject.company.headcount,
 				wage,
 				month: monthToDate,
 				year: partSums(lines(before, row.code), parts),
@@ -247,14 +248,14 @@ export const assessStatutory = (input: {
 			for (const [fact, expression] of Object.entries(configuration.person ?? {})) {
 				const value = yield* evaluate(expression, context, `${where} person.${fact}`);
 				if (!Schema.is(Schema.Json)(value))
-					return yield* Effect.fail(
-						new Refusal({ message: `${where}: person.${fact} must return a JSON value.` })
-					);
+					return yield* new Refusal({
+						message: `${where}: person.${fact} must return a JSON value.`
+					});
 				personFacts[fact] = value;
 			}
 			context = {
 				...context,
-				person: { ...(isDynObject(held.person) ? held.person : {}), ...personFacts }
+				person: { ...held.person, ...personFacts }
 			};
 			// Each part's month-to-date assessable amount: the scheme's expression, or the part as paid; never below zero.
 			const monthAssessed: { [part: string]: number } = {};
@@ -273,8 +274,7 @@ export const assessStatutory = (input: {
 			const refuses = severityOf(input.severity, row.code, 'refuse') === 'refuse';
 			for (const guard of configuration.refuse_when ?? [])
 				if (yield* evaluateBoolean(guard.when, context, where)) {
-					if (refuses)
-						return yield* Effect.fail(new Refusal({ message: `${input.who}: ${guard.message}` }));
+					if (refuses) return yield* new Refusal({ message: `${input.who}: ${guard.message}` });
 					warnings.push(`${input.who}: ${guard.message}`);
 				}
 			for (const guard of configuration.warn_when ?? [])
@@ -296,11 +296,9 @@ export const assessStatutory = (input: {
 				if (rule.contribution != null) {
 					const value = yield* evaluate(rule.contribution, ruleContext, where);
 					if (!Schema.is(ContributionAmounts)(value))
-						return yield* Effect.fail(
-							new Refusal({
-								message: `${where}: a contribution must return its employee and employer amounts.`
-							})
-						);
+						return yield* new Refusal({
+							message: `${where}: a contribution must return its employee and employer amounts.`
+						});
 					charge = value;
 				} else
 					charge = {
@@ -317,16 +315,14 @@ export const assessStatutory = (input: {
 			if (reconciliation != null && (yield* evaluateBoolean(reconciliation.when, context, where))) {
 				const original = configuration.rules.filter((rule) => rule.when === appliedWhen);
 				if (charge == null || original.length !== 1)
-					return yield* Effect.fail(
-						new Refusal({
-							message: `${input.who}: ${row.code} reconciliation needs an unambiguous current contribution rule.`
-						})
-					);
+					return yield* new Refusal({
+						message: `${input.who}: ${row.code} reconciliation needs an unambiguous current contribution rule.`
+					});
 				const through = yield* evaluate(reconciliation.through, context, where);
 				if (!Schema.is(Schema.String)(through))
-					return yield* Effect.fail(
-						new Refusal({ message: `${where}: the reconciliation cutoff must be a date.` })
-					);
+					return yield* new Refusal({
+						message: `${where}: the reconciliation cutoff must be a date.`
+					});
 				const reconciled = yield* reconcileAdditionalWages({
 					who: input.who,
 					code: row.code,

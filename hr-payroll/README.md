@@ -46,31 +46,38 @@ expressions on those rows; behaviours are event rules on the settings version. T
 `src/lib/payroll_engine/` evaluates them and holds no jurisdiction-specific logic. A change of law is a new version,
 made without touching source. Jurisdiction versions also own their suspension kinds (a validated custom field).
 
+The 29 record models live in `src/data/model/<name>/+model.ts`. Each model declares its fields, relationships,
+per-verb write callbacks and queries inline; its companion `+representation.svelte` renders the record.
+Business operations are ordinary automations under `src/automation/`.
+
 What each jurisdiction configures is tracked in the [jurisdiction trackers](docs/inventory/README.md); the latest
-statutory audit is in [docs/audit](docs/audit/) (see [Compliance audit](#compliance-audit-2026-10-21)).
+research notes are in [docs/audit](docs/audit/). These dated notes record their research baseline, not current
+automated jurisdiction coverage.
 
 ## Automations
 
-| Automation            | Trigger                                                                 | Result                                                                                                                        |
-| --------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `behaviour_taps`      | Row events on runs, payslips, contracts, profiles, entities and entries | Applies the version's behaviour rules: each reads its declared rows and returns the writes.                                   |
-| `statutory_drift`     | Every Saturday 03:00 UTC; also **Run now**                              | Researches every sealed in-force lineage (or the one `code` given) concurrently; a verified change becomes an unsealed draft. |
-| `late_arrival_notice` | Every five minutes                                                      | One reminder per person-day when a rostered shift has no clock-in after the entity's grace.                                   |
-| `calendar_tick`       | Daily                                                                   | Runs the behaviour rules for every employment in force, so date-driven duties raise tasks.                                    |
-| `invitation_profile`  | Staff invited; staff user created or contact changed                    | Creates employment profiles for invited staff and links their identities after acceptance.                                    |
+| Automation            | Trigger                                                                 | Result                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `behaviour_taps`      | Row events on runs, payslips, contracts, profiles, entities and entries | Applies the version's behaviour rules: each reads its declared rows and returns the writes.                                             |
+| `statutory_drift`     | Every Saturday 03:00 UTC; also **Run now**                              | Researches every sealed in-force lineage (or the one `code` given), one lineage at a time; a verified change becomes an unsealed draft. |
+| `late_arrival_notice` | Every five minutes                                                      | One reminder per person-day when a rostered shift has no clock-in after the entity's grace.                                             |
+| `calendar_tick`       | Daily                                                                   | Runs the behaviour rules for every employment in force, so date-driven duties raise tasks.                                              |
+| `invitation_profile`  | Staff invited; staff user created or contact changed                    | Creates employment profiles for invited staff and links their identities after acceptance.                                              |
 
 Any automation that needs no input can be started by hand from **Settings → Automations → Run now**.
 
 ### Statutory research
 
-One `statutory_drift` run maps every in-force lineage onto its own multi-step `ctx.ai.sys_2.infer` call with
-`Effect.forEach(..., { concurrency: 'unbounded' })`: the nine lineages research at the same time inside one run, and a
-lineage that fails is reported in the output's `failed` list without stopping the others. It never seals.
+One `statutory_drift` run prepares and researches one in-force lineage at a time, keeping one full snapshot in its
+128 MiB cell. Each lineage's six agents run their multi-step `ctx.ai.sys_2.infer` calls side by side. A lineage that
+fails is reported in the output's `failed` list without stopping the others. It never seals.
 
 - **Tools:** `web_search` and the confined browser (`browser_navigate`, `browser_snapshot`, `browser_act`; a PDF
   linked from a source page opens as its extracted text, page by page), granted by the `statutory_drift_automation` policy;
   `steps: 1000`, then one tool-less turn to submit.
-- **Draft:** the complete snapshot is the model's draft. Every list is keyed by `code`, so the draft tools (`read`,
+- **Draft:** each agent's draft contains only its own snapshot sections; the other lists are empty, and only the
+  settings agent carries settings. The automation merges the agents' owned rows into the complete snapshot.
+  Every list is keyed by `code`, so the draft tools (`read`,
   `find`, `edit`, `diff`, `submit`) address rows as `/snapshot/<section>/<code>/<field>`, never by position. The
   research registry (`settings.sources`) is not in the draft: its entries reach the model as entry points and remain
   the browsing and citation allowlist. Sources are live official pages, never document links; each agent may
@@ -89,10 +96,9 @@ lineage that fails is reported in the output's `failed` list without stopping th
 
 Every tool step is recorded on the run as an `infer.tool` event in the workspace's runtime log.
 
-Every workspace automation — started, scheduled, cron-driven or row-event, `behaviour_taps` included — runs in one
-lane per workspace; only Bolt's own housekeeping runs beside it. While a sweep runs, behaviours (exit encashment,
-payslip holds, settled-entry pins, obligations), `calendar_tick` and `late_arrival_notice` queue behind it and run
-when it ends.
+Bolt admits workspace automations through four lanes. Each automation's declared concurrency governs its own
+runs; the default is one. A statutory sweep does not occupy every lane, so other admitted automations can progress
+alongside it.
 
 ### Behaviours
 
@@ -155,133 +161,13 @@ Events → Work → ⚡:
   **Accept and import**. The import is a set over each person's days in the file: rows are created or updated, unsettled
   days the file leaves out or blanks are deleted, and a settled day may only be restated unchanged.
 
-## Verification (2026-10-22)
-
-Run locally against the private sample pack on local Colony. Names, employee numbers and entity names in
-the screenshots are masked; amounts are real.
-
-| Area                             | Proof                                                                                                                                                                                                   | Status |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Area                             | Proof                                                                                                                                                                                                   | Status |
-| ---------------------------      | -----                                                                                                                                                                                                   | ------ |
-| Gates                            | `bolt check` ok; `bolt test` e2e 41/41; `vitest.node.config.ts` 1,154/1,154                                                                                                                             | ✅     |
-| Payroll calculation (MY)         | Jan 2026 slip, RM5,944 citizen: EPF 660/720, SOCSO 29.75/104.15, EIS 11.90/11.90, HRDF 59.44, PCB 164.70 — each recomputed by hand from the schedules and the MTD formula                               | ✅     |
-| Off-cycle, statutory on the spot | RM3,000 bonus paid off-cycle in Feb: the slip has no salary lines and withholds EPF 330/360 **and PCB 329.70** itself                                                                                   | ✅     |
-| Salary unchanged                 | The later Feb regular slip still pays BASIC 5,644 + allowance 300 and charges EPF on 8,944 month to date (660): Feb EPF 990/1,080 = 11%/12% of the RM9,000 band, PCB 164.70 + 329.70 = one combined run | ✅     |
-| Export                           | Salary listing: one sheet per run and currency, values equal the payslips                                                                                                                               | ✅     |
-| Import                           | March template downloaded, two days edited, re-imported: exactly those two days created; the same import into the paid February period is refused row by row                                            | ✅     |
-| Exit encashment                  | Resignation → `ENCASHMENT` of annual leave plus final-wages and data-disposal tasks (e2e `exit-encashment`)                                                                                             | ✅     |
-| Statutory research               | One run started from **Run now**; see [Statutory research run](#statutory-research-run)                                                                                                                 | ⚠️ 8/9 |
-
-### Payroll run and payslip
-
-![New run](docs/screenshots/40-run-new-form.png)
-![January run](docs/screenshots/42-run-jan-summary.png)
-
-### Off-cycle run
-
-People and Components are comboboxes (Components multi-select); only the ticked entry is paid. The off-cycle slip
-withholds EPF and PCB on the bonus; the regular slip that follows keeps the contractual salary and settles the month to
-date.
-
-![Off-cycle selection](docs/screenshots/52-offcycle-form.png)
-![Off-cycle run](docs/screenshots/53-offcycle-run.png)
-![Off-cycle payslip](docs/screenshots/54-offcycle-payslip.png)
-![February regular payslip](docs/screenshots/55-feb-regular-payslip.png)
-
-### Exports
-
-![Export menu](docs/screenshots/70-export-menu.png)
-
-### Work import
-
-![March roster before import](docs/screenshots/81-roster-mar-before.png)
-![Import result](docs/screenshots/84-import-result.png)
-![Import into a paid period refused](docs/screenshots/85-import-refused-settled.png)
-
-### Exit encashment
-
-The resignation's annual-leave encashment, raised by the `encash-leave-on-exit` behaviour; the Activity column shows
-the entry's activity and days.
-
-![Encashment entry](docs/screenshots/91-exit-encashment-leave.png)
-
-### Statutory research run
-
-![Run now](docs/screenshots/60-automations-run-now.png)
-![Research running](docs/screenshots/61-drift-started.png)
-
-Run `01a16136` (local Colony, 2026-10-22, attempt 2: attempt 1 was interrupted at 21 min by a dev-server reload and
-retried) researched all nine lineages in one run:
-
-| Measure    | Value                                                                                    |
-| ---------- | ---------------------------------------------------------------------------------------- |
-| Duration   | 01:46:27 → 02:12:42 UTC (26 min); tools stopped at 02:10:32, the 80% answer deadline     |
-| Tool calls | 487: `web_read` 334, `web_search` 146, `browser_navigate` 6, interleaved across lineages |
-| Lineages   | CN, SG, MY, TW, TH, PH, VN, JP, ID                                                       |
-| Drafted    | none                                                                                     |
-| Failed     | CN: the final answering turn's model call returned nothing within the 20 s model wall    |
-
-Eight lineages answered without a verified change, so nothing was drafted. The draft starts as `changed: false`, so a
-lineage that ran out of tool time before patching also reads as "no change": the run cannot yet tell a verified
-no-change from an unfinished review. CN's snapshot is the largest; its final turn, carrying 24 minutes of findings,
-did not start streaming within Bolt's 20 s per-call wall.
-
-### Earlier staging walkthrough (2026-10-21)
-
-Loan repayment locks and consumed entries, captured on staging:
-
-![Locked repayment](docs/screenshots/10-loan-view-locked-repayment.png)
-![Locked repayment in edit](docs/screenshots/11-loan-edit-locked-row.png)
-![Server refusal replay](docs/screenshots/14-loan-server-refusal-replay.png)
-![Legacy loan edit refused](docs/screenshots/13-legacy-loan-edit-refused-period.png)
-![Consumed days](docs/screenshots/20-roster-jan-padlocks.png)
-![Linked claims](docs/screenshots/21-claims-jan-linked.png)
-![Consumed claim save refused](docs/screenshots/24-claim-consumed-save-refused.png)
-![Consumed leave](docs/screenshots/25-leave-consumed-jan21-feb20.png)
-![Consumed ad hoc](docs/screenshots/26-adhoc-consumed-record.png)
-![Bank file refused](docs/screenshots/33-bank-file-refused.png)
-
-## Compliance audit (2026-10-21)
-
-One researcher per jurisdiction read the official sources on the web and compared them with the in-force seed. Each
-report in [docs/audit](docs/audit/) lists the sources table (reachability, relevance, overlap), uncovered areas, the
-findings with citations, and the log of every URL fetched.
-
-| Code | In force  | Compliant | Wrong | Missing | Most severe                                                                                          |
-| ---- | --------- | --------- | ----- | ------- | ---------------------------------------------------------------------------------------------------- |
-| SG   | version_5 | 41        | 1     | 2       | Carried-forward annual leave not paid on exit (EA s.88A); needs an engine change                     |
-| MY   | version_9 | 31        | 0     | 1       | Sabah and Sarawak worksites refused (could be data); substitute holidays only warn                   |
-| PH   | version_2 | 23        | 1     | 0       | 2027 additional special non-working days (Proc. 1427: 6 Feb, 27 Mar, 2 Nov, 24 Dec) wrongly left out |
-| ID   | version_4 | 44        | 0     | 3       | 2027 national holidays not seeded (SKB signed 15 Sep 2026)                                           |
-| VN   | version_4 | 35        | 2     | 4       | Overtime, holiday and night pay priced on base salary only; law includes fixed allowances            |
-| TW   | version_4 | 38        | 2     | 2       | Lineage ends 2026-12-31; §32(4) emergency overtime not doubled; wage-arrears levy rounded per worker |
-| CN   | version_4 | 34        | 1     | 2       | Shanghai minimum-wage test counts excluded allowances; year-end unused leave not paid at 200% extra  |
-| JP   | version_6 | 22        | 1     | 3       | Customer-harassment duty mandatory since 2026-10-01 but only raised for new entities                 |
-| TH   | version_4 | 18        | 2     | 2       | Maternity leave counted in working days, law counts calendar days; no holidays after 2026            |
-
-**Resolution (2026-10-22).** Every finding above was fixed in the seed, each in place (a wrong transcription) or as a
-new sealed version (a change of law): sources now state the area each covers with no overlap, missing authorities were
-added, and every source origin answers an automated reader (unreachable sites were replaced by reachable official
-mirrors, for example lawphil.net for PH). The second pass also fixed PH maternity double pay, the TW NHI §34 bonus
-base, the VN insurance base, TH child-care leave, CN menstrual leave and the JP year-end double count, and added TW
-version_5 (2027). Sample entities observe their jurisdiction's gazetted holidays for the years after the bank's own.
-Each report's Resolution section lists the change per finding.
-
 ## Known gaps
 
-- **Lane.** On the pinned Bolt, one workspace automation runs at a time: a Saturday sweep holds behaviours (exit
-  encashment, holds, pins) until it ends (see [Statutory research](#statutory-research)). Bolt now runs four lanes per
-  workspace (one automation's own runs still one at a time); it reaches this template with the next Bolt release.
-- **Research outcome.** A lineage that runs out of tool time reads as "no change", and a final turn over a large
-  snapshot can exceed the 20 s model wall (CN in the 2026-10-22 run).
 - **TW §34 bonus premium** is netted per run, not per month.
 - **SG part-time** hourly encashment and leave qualifying service, and the **CN** per-employee year-end payout skip,
   need engine support.
 - **Anonymising** a former employee blanks the profile but keeps contract-term facts (now holding dependants, spouse
   status and similar inputs).
-- **Data still missing** from the sample entities is listed per employee in the HR data request
-  (`docs` package sent to the HR lead).
 
 ## Seed
 
@@ -310,9 +196,10 @@ messages are ignored. `envoys.receive` allows 10 messages a minute per sender an
 ## Checks
 
 ```bash
-pnpm install
-pnpm check      # bolt check
-pnpm test       # bolt build --bank=$SEED_BANK (default ../../seed_bank), bolt test, then test:node
-pnpm test:node  # vitest.node.config.ts: the node-side suites in tests/
-pnpm lint       # prettier --check .
+pnpm install --frozen-lockfile
+pnpm exec bolt check   # declarations, TypeScript and Svelte
+pnpm test              # standalone core mechanisms and edge cases; no Colony or private bank
 ```
+
+Tests use small synthetic fixtures for payroll mechanisms, guarded writes, state and failure paths. They do not
+certify seeded legal values, repeat jurisdiction/version matrices or assert UI layouts.

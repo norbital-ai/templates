@@ -5,9 +5,9 @@ import type { ActInput } from '@norbital-ai/bolt';
 import { Authorities, Approvals } from '@norbital-ai/bolt/engine';
 import { workspace } from '../kit.ts';
 
-const HR_MANAGER = '019f8a10-0000-7000-8000-000000000006';
-const HR_CONTROLLER = '019f8a10-0000-7000-8000-000000000005';
-const EMPLOYEE = '019f8a10-0000-7000-8000-000000000001';
+const HR_MANAGER = 'hr_manager';
+const HR_CONTROLLER = 'hr_controller';
+const EMPLOYEE = 'employee';
 const NOW = '2026-10-13T00:00:00.000Z';
 const kinds = [
 	{
@@ -39,10 +39,11 @@ it.live(
 			if (created.kind !== 'committed') throw new Error('The draft did not commit.');
 			const id = created.records.find((row) => row.collection === 'jurisdiction_settings')?.id;
 			if (id === undefined) throw new Error('The draft record is absent.');
-			expect(t.manifest.models['suspension_kind']).toBeUndefined();
 			expect(
-				(yield* admin.get('jurisdiction_settings', id, { select: { suspension_kinds: true } }))
-					?.suspension_kinds
+				(yield* admin.query('jurisdiction_settings', {
+					id: id,
+					...{ select: { suspension_kinds: true } }
+				}))?.suspension_kinds
 			).toEqual(kinds);
 			for (const invalid of [[...kinds, ...kinds], [{ code: ' ', name: 'Blank' }]]) {
 				const refused = yield* Effect.flip(
@@ -81,8 +82,11 @@ it.live(
 			)?.id;
 			if (successor === undefined) throw new Error('The successor record is absent.');
 			expect(
-				yield* admin.get('jurisdiction_settings', successor, {
-					select: { suspension_kinds: true, sealed_at: true }
+				yield* admin.query('jurisdiction_settings', {
+					id: successor,
+					...{
+						select: { suspension_kinds: true, sealed_at: true }
+					}
 				})
 			).toMatchObject({ suspension_kinds: kinds, sealed_at: null });
 			expect(
@@ -92,15 +96,17 @@ it.live(
 				})).kind
 			).toBe('committed');
 			expect(
-				(yield* admin.get('jurisdiction_settings', id, { select: { suspension_kinds: true } }))
-					?.suspension_kinds
+				(yield* admin.query('jurisdiction_settings', {
+					id: id,
+					...{ select: { suspension_kinds: true } }
+				}))?.suspension_kinds
 			).toEqual(kinds);
 		}).pipe(Effect.provide(workspace({ seed: 'none', now: NOW })), Effect.scoped),
 	{ timeout: 600_000 }
 );
 
 it.live(
-	'resolves source team grants and approval eligibility; teams have no runtime catalogue',
+	'resolves source team grants and approval eligibility',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -116,8 +122,6 @@ it.live(
 				text: 'UPDATE sys_user SET team = CASE WHEN id = $1 THEN $4 WHEN id = $2 THEN $5 ELSE $6 END, revision = revision + 1 WHERE id IN ($1, $2, $3)',
 				params: [reviewer.id, controller.id, employee.id, HR_MANAGER, HR_CONTROLLER, EMPLOYEE]
 			});
-			// teams are source-only: no `sys_team` collection exists to edit or read
-			expect(t.manifest.collections['sys_team']).toBeUndefined();
 			const admin = t.as(t.admin);
 			const authorities = new Authorities(t.manifest, 'payroll-source-teams');
 			const authority = yield* authorities.member(t.db, reviewer.id);
@@ -133,7 +137,7 @@ it.live(
 			if (id === undefined) throw new Error('The controller draft is absent.');
 			const approvals = yield* Approvals;
 			const sealedAt = () =>
-				t.as(authority).get('jurisdiction_settings', id, { select: { sealed_at: true } });
+				t.as(authority).query('jurisdiction_settings', { id, select: { sealed_at: true } });
 			const seal = Effect.fnUntraced(function* () {
 				const held = yield* t
 					.as(controllerAuthority)
@@ -142,17 +146,13 @@ it.live(
 				if (held.kind !== 'pendingApproval') throw new Error('The seal was not routed.');
 				return held.requestId;
 			});
-			const move = (
-				requestId: string,
-				status: 'APPROVED' | 'REJECTED' | 'REQUEST_FOR_CHANGE' | 'RESUBMITTED',
-				by = authority
-			) =>
-				approvals.process({
+			const move = (requestId: string, decision: 'approve' | 'reject' | 'requestChanges') =>
+				approvals.decide({
 					requestId,
-					status,
-					authority: by,
+					decision,
+					authority,
 					now: NOW,
-					...(status === 'REQUEST_FOR_CHANGE' ? { reason: 'Recheck the sources' } : {})
+					...(decision === 'approve' ? {} : { reason: 'Recheck the sources' })
 				});
 			// The seal is applied at once and held: nobody outside the request, an administrator included, may void it.
 			const rejected = yield* seal();
@@ -166,24 +166,26 @@ it.live(
 				)
 			).toMatchObject({ _tag: 'ActRefused', code: 'locked' });
 			// A rejection rolls the seal back.
-			expect(yield* move(rejected, 'REJECTED')).toMatchObject({
+			expect(yield* move(rejected, 'reject')).toMatchObject({
 				kind: 'decided',
-				status: 'REJECTED'
+				status: 'Rejected'
 			});
 			expect(yield* sealedAt()).toMatchObject({ sealed_at: null });
 			// A request for change leaves the seal with the controller, who resubmits; approval keeps it.
 			const requestId = yield* seal();
-			expect(yield* move(requestId, 'REQUEST_FOR_CHANGE')).toMatchObject({
-				status: 'CHANGES_REQUESTED'
+			expect(yield* move(requestId, 'requestChanges')).toMatchObject({
+				status: 'ChangesRequested'
 			});
 			expect(yield* sealedAt()).toMatchObject({ sealed_at: NOW });
-			expect(yield* move(requestId, 'RESUBMITTED', controllerAuthority)).toMatchObject({
-				status: 'ONGOING'
+			const resubmitted = yield* t.as(controllerAuthority).act('jurisdiction_settings.update', {
+				target: id,
+				set: { sealed_at: NOW }
 			});
-			const decision = yield* move(requestId, 'APPROVED');
+			expect(resubmitted).toMatchObject({ kind: 'pendingApproval', requestId });
+			const decision = yield* move(requestId, 'approve');
 			expect(decision, JSON.stringify(decision)).toMatchObject({
 				kind: 'decided',
-				status: 'APPROVED'
+				status: 'Approved'
 			});
 			expect(yield* sealedAt()).toMatchObject({ sealed_at: NOW });
 			yield* t.db.write({

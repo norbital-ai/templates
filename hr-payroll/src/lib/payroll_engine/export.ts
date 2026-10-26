@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 /**
  * L-TPL-hr-payroll-137: a bank payment CSV plus one payslip CSV per employee. Held slips and non-positive nets are
  * omitted from the bank file. A bank's own layout (a fixed-width bulk payment file) and every statutory return are
@@ -75,7 +76,7 @@ export function payable(status: string, net: unknown): boolean {
 export function payslipLines(
 	value: unknown
 ): { readonly component_code: string; readonly amount: string }[] {
-	if (!Array.isArray(value)) return [];
+	if (!EffectArray.isArray(value)) return [];
 	const out: { readonly component_code: string; readonly amount: string }[] = [];
 	for (const row of value) {
 		if (!isJsonObject(row)) continue;
@@ -193,7 +194,7 @@ type ExportRow = {
 
 /** The contract term (`contract.facts.contract_terms`) in force on `day`, else `{}`. */
 const termOn = (contract: JsonObject, day: string): JsonObject =>
-	(isJsonObject(contract.facts) && Array.isArray(contract.facts.contract_terms)
+	(isJsonObject(contract.facts) && EffectArray.isArray(contract.facts.contract_terms)
 		? contract.facts.contract_terms.filter(isJsonObject)
 		: []
 	)
@@ -319,7 +320,7 @@ export function recordDocuments(
 					? [{ fields: rules.columns, context }]
 					: rules.records.flatMap((type) => {
 							const each = evaluateConfigured(type.each, context);
-							return (Array.isArray(each) ? each : []).map((item: Json) => ({
+							return (EffectArray.isArray<typeof each>(each) ? each : []).map((item: Json) => ({
 								fields: type.fields,
 								context: { ...context, item }
 							}));
@@ -343,7 +344,10 @@ export function recordDocuments(
 				? contexts
 				: (() => {
 						const each = evaluateConfigured(summary.each, framing);
-						return (Array.isArray(each) ? each : []).map((item: Json) => ({ ...framing, item }));
+						return (EffectArray.isArray<typeof each>(each) ? each : []).map((item: Json) => ({
+							...framing,
+							item
+						}));
 					})();
 		const groups = new Map<string, JsonObject[]>();
 		if (summary != null)
@@ -406,7 +410,6 @@ type PinningSlip = {
 
 const codeOf = (entry: PinnedEntry): string =>
 	isString(entry.catalog?.code) ? entry.catalog.code : '';
-const plainFacts = (facts: unknown): JsonObject => plainRow(isJsonObject(facts) ? facts : {});
 const nullableNumber = (value: unknown): number | null =>
 	value == null ? null : Number(moneyText(value));
 
@@ -422,7 +425,7 @@ export function exportEntries(slips: readonly PinningSlip[]): JsonObject[] {
 				code: codeOf(entry),
 				amount: Number(moneyText(entry.amount)),
 				quantity: nullableNumber(entry.quantity),
-				facts: plainFacts(entry.facts),
+				facts: plainRow(entry.facts),
 				employment_id: isString(entry.employment_id) ? entry.employment_id : null
 			}))
 		)
@@ -450,7 +453,7 @@ export function exportSlip(
 				.toString()
 		);
 	const statutory: { [code: string]: JsonObject } = {};
-	for (const line of Array.isArray(slip.statutory) ? slip.statutory : []) {
+	for (const line of EffectArray.isArray(slip.statutory) ? slip.statutory : []) {
 		if (!isJsonObject(line) || !isString(line.scheme_code)) continue;
 		statutory[line.scheme_code] = {
 			employee: Number(moneyText(line.employee_amount)),
@@ -472,7 +475,7 @@ export function exportSlip(
 			days: Number(moneyText(row.days)),
 			from: isString(row.from) ? row.from : null,
 			to: isString(row.to) ? row.to : null,
-			facts: plainFacts(row.facts)
+			facts: plainRow(row.facts)
 		}))
 	};
 }

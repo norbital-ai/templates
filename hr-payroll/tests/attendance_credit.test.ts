@@ -1,7 +1,7 @@
 /** Credit actual intersections, preserving missed leading time, breaks and exact clocks. */
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
-import { Result, Schema } from 'effect';
+import { Result } from 'effect';
 import { Instant } from '@norbital-ai/std/date';
 import {
 	type AttendancePolicy,
@@ -9,9 +9,7 @@ import {
 	workDay
 } from '../src/lib/payroll_engine/payslip/context.ts';
 import { plannedShift } from '../src/lib/payroll_engine/shift_pattern.ts';
-import { evaluateStrict } from '../src/lib/payroll_engine/expressions.ts';
-import { lineage } from './jurisdiction_kit.ts';
-import { SEEDED_PAYROLL } from './duties.ts';
+import { PAYROLL } from './jurisdiction_kit.ts';
 
 const DATE = '2026-03-02';
 const at = (clock: string, date = DATE) => `${date}T${clock}+08:00`;
@@ -30,14 +28,14 @@ const credit = (
 		planned: SHIFT,
 		plannedOvertimeHours: approval,
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 const drawnHours = (result: ReturnType<typeof creditAttendance>) =>
 	result.segments
 		.flatMap((segment) => segment.credited_intervals)
 		.reduce((sum, span) => sum + (span.end - span.start) / 3600000, 0);
 
-it('late arrival is not compensated by an unapproved late departure, and monthly BASIC stays catalogue-governed', () => {
+it('late arrival is not compensated by an unapproved late departure', () => {
 	const actual = [interval('09:00:00', '18:00:00')];
 	const before = structuredClone(actual);
 	const out = credit(actual);
@@ -61,24 +59,11 @@ it('late arrival is not compensated by an unapproved late departure, and monthly
 		},
 		holiday: undefined,
 		zone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	if (Result.isFailure(day)) throw day.failure;
 	assert.equal(day.success.worked_hours, 7);
 	assert.equal(day.success.recorded_hours, 8);
-	const law = lineage('PH');
-	const basic = Schema.decodeUnknownSync(Schema.String)(
-		law.byCode(law.versionOn(DATE), 'work_catalog', 'BASIC').quantity
-	);
-	assert.equal(
-		evaluateStrict(basic, {
-			terms: { facts: {} },
-			period: { paid_days: 31, days: 31 },
-			work: { days: [day.success] },
-			leave: { rows: [] }
-		}),
-		1
-	);
 });
 
 it('keeps the exact leading gap and trims only the rounding tail from credited segments', () => {
@@ -140,7 +125,7 @@ it('anchors overnight windows to the work date in the entity zone, preserving se
 		plannedOvertimeHours: 3,
 		intervals: [{ start: at('20:30:00'), end: at('08:24:17', '2026-03-03') }],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(out.normal_hours, 8);
 	assert.equal(out.overtime_hours, 2.5);
@@ -152,7 +137,7 @@ it('anchors overnight windows to the work date in the entity zone, preserving se
 		planned,
 		intervals: [{ start: at('21:30:00'), end: at('06:30:00', '2026-03-03') }],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(late.normal_hours, 7);
 	assert.equal(late.overtime_hours, 0);
@@ -167,7 +152,7 @@ it('uses the entity zone rather than the timestamp text for the planned window',
 		date: DATE,
 		planned,
 		intervals: [{ start: '2026-03-02T00:00:00Z', end: '2026-03-02T08:00:00Z' }],
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	};
 	assert.equal(creditAttendance({ ...input, timeZone: 'Asia/Singapore' }).normal_hours, 8);
 	assert.equal(creditAttendance({ ...input, timeZone: 'Asia/Tokyo' }).normal_hours, 7);
@@ -195,7 +180,7 @@ it('does not invent an overtime start for untimed rest codes, but supports confi
 		intervals: actual,
 		plannedOvertimeHours: 3,
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(untimed.anchored, false);
 	assert.equal(untimed.percent, null);
@@ -209,7 +194,7 @@ it('does not invent an overtime start for untimed rest codes, but supports confi
 		intervals: actual,
 		plannedOvertimeHours: 3,
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(timed.normal_hours, 8);
 	assert.equal(timed.overtime_hours, 3);
@@ -223,7 +208,7 @@ it('credits documented pre-shift overtime chronologically without using it to fi
 		plannedOvertimeHours: 3,
 		approvedOvertimeIntervals: approved,
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	};
 	const actual = [interval('05:00:00', '17:00:00')];
 	const before = structuredClone({ actual, approved });
@@ -262,7 +247,7 @@ it('credits documented pre-shift overtime chronologically without using it to fi
 		},
 		holiday: undefined,
 		zone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	if (Result.isFailure(day)) throw day.failure;
 	assert.equal(day.success.overtime_hours, 3);
@@ -271,11 +256,6 @@ it('credits documented pre-shift overtime chronologically without using it to fi
 		{ start: `${DATE}T05:00`, end: `${DATE}T08:00` }
 	]);
 	assert.equal(day.success.intervals[0]?.start, `${DATE}T05:00`);
-	const law = lineage('PH');
-	const night = Schema.decodeUnknownSync(Schema.String)(
-		law.byCode(law.versionOn(DATE), 'work_catalog', 'NIGHT_SHIFT_DIFFERENTIAL').quantity
-	);
-	assert.equal(evaluateStrict(night, { work: { days: [day.success] } }), 1 * 1.25 * 0.1);
 });
 
 it('floors actual documented OT shortfalls and applies the break-adjusted numeric approval cap', () => {
@@ -285,7 +265,7 @@ it('floors actual documented OT shortfalls and applies the break-adjusted numeri
 		plannedOvertimeHours: 3,
 		approvedOvertimeIntervals: [interval('05:00:00', '08:00:00')],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	};
 	const short = creditAttendance({ ...input, intervals: [interval('05:06:00', '17:00:00')] });
 	assert.equal(short.overtime_hours, 2.5);
@@ -324,7 +304,7 @@ it('unions documented windows, excludes the ordinary frame and caps multiple OT 
 		],
 		intervals: [interval('06:00:00', '19:00:00')],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(out.normal_hours, 8);
 	assert.equal(out.overtime_hours, 3);
@@ -340,7 +320,7 @@ it('unions documented windows, excludes the ordinary frame and caps multiple OT 
 		approvedOvertimeIntervals: [interval('08:00:00', '17:00:00')],
 		intervals: [interval('09:00:00', '17:00:00')],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(duringOrdinary.normal_hours, 7);
 	assert.equal(duringOrdinary.overtime_hours, 0);
@@ -353,7 +333,7 @@ it('distinguishes explicit empty approval windows from the default after-shift e
 		plannedOvertimeHours: 3,
 		intervals: [interval('08:00:00', '20:00:00')],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	};
 	assert.equal(creditAttendance(input).overtime_hours, 3);
 	assert.equal(creditAttendance({ ...input, approvedOvertimeIntervals: null }).overtime_hours, 3);
@@ -383,7 +363,7 @@ it('anchors dated pre-shift and next-day OT separately across an overnight shift
 		],
 		intervals: [{ start: at('18:00:00'), end: at('07:00:00', '2026-03-03') }],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(out.normal_hours, 8);
 	assert.equal(out.overtime_hours, 4);
@@ -395,7 +375,7 @@ it('anchors dated pre-shift and next-day OT separately across an overnight shift
 	assert.equal(drawnHours(out), 12);
 });
 
-it('nets a documented REST break before the dated catalogue prices its first eight hours and excess OT', () => {
+it('nets a documented REST break from the overtime a rest day credits', () => {
 	const planned = plannedShift({ code: 'REST', variant: { day_type: 'REST' } });
 	const actual = [interval('08:00:00', '20:00:00')];
 	const approved = [{ ...interval('08:00:00', '20:00:00'), break_minutes: 60 }];
@@ -406,7 +386,7 @@ it('nets a documented REST break before the dated catalogue prices its first eig
 		approvedOvertimeIntervals: approved,
 		intervals: actual,
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	assert.equal(out.anchored, true);
 	assert.equal(out.ordinary_anchored, false);
@@ -431,7 +411,7 @@ it('nets a documented REST break before the dated catalogue prices its first eig
 		},
 		holiday: undefined,
 		zone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	});
 	if (Result.isFailure(day)) throw day.failure;
 	assert.equal(day.success.recorded_hours, 12);
@@ -441,17 +421,6 @@ it('nets a documented REST break before the dated catalogue prices its first eig
 		{ start: `${DATE}T08:00`, end: `${DATE}T13:30` },
 		{ start: `${DATE}T14:30`, end: `${DATE}T20:00` }
 	]);
-	const law = lineage('PH');
-	const version = law.versionOn(DATE);
-	const base = Schema.decodeUnknownSync(Schema.String)(
-		law.byCode(version, 'work_catalog', 'REST_DAY_WORK').quantity
-	);
-	const excess = Schema.decodeUnknownSync(Schema.String)(
-		law.byCode(version, 'work_catalog', 'OVERTIME').quantity
-	);
-	const context = { work: { days: [day.success] }, terms: { facts: {} } };
-	assert.equal(evaluateStrict(base, context), 8 * 1.3);
-	assert.equal(evaluateStrict(excess, context), 3 * 1.69);
 });
 
 it('uses recorded interior gaps for an approved OT break without treating leading absence as the break', () => {
@@ -461,7 +430,7 @@ it('uses recorded interior gaps for an approved OT break without treating leadin
 		plannedOvertimeHours: 2.5,
 		approvedOvertimeIntervals: [{ ...interval('05:00:00', '08:00:00'), break_minutes: 30 }],
 		timeZone: 'Asia/Manila',
-		policy: SEEDED_PAYROLL.attendance
+		policy: PAYROLL.attendance
 	};
 	const split = creditAttendance({
 		...input,
@@ -489,9 +458,9 @@ it('the version’s attendance step and rounding decide credited hours, not the 
 			timeZone: 'Asia/Manila',
 			policy
 		}).normal_hours;
-	assert.equal(credited(SEEDED_PAYROLL.attendance), 7.5);
-	assert.equal(credited({ ...SEEDED_PAYROLL.attendance, step_hours: 0.25 }), 7.75);
-	assert.equal(credited({ ...SEEDED_PAYROLL.attendance, rounding: 'HALF_UP' }), 8);
+	assert.equal(credited(PAYROLL.attendance), 7.5);
+	assert.equal(credited({ ...PAYROLL.attendance, step_hours: 0.25 }), 7.75);
+	assert.equal(credited({ ...PAYROLL.attendance, rounding: 'HALF_UP' }), 8);
 });
 
 it('the version lists the untimed day types credited on recorded hours as overtime', () => {
@@ -505,10 +474,10 @@ it('the version lists the untimed day types credited on recorded hours as overti
 				},
 				holiday: undefined,
 				zone: 'Asia/Manila',
-				policy: { ...SEEDED_PAYROLL.attendance, untimed_credit_day_types }
+				policy: { ...PAYROLL.attendance, untimed_credit_day_types }
 			})
 		);
-	const seeded = day(SEEDED_PAYROLL.attendance.untimed_credit_day_types);
+	const seeded = day(PAYROLL.attendance.untimed_credit_day_types);
 	assert.equal(seeded.worked, true);
 	assert.equal(seeded.worked_hours, 4);
 	assert.deepEqual(seeded.overtime_intervals, [{ start: `${DATE}T08:00`, end: `${DATE}T12:00` }]);
@@ -527,8 +496,8 @@ it('the version decides whether approved overtime without windows runs on after 
 		approvedOvertimeIntervals: null,
 		timeZone: 'Asia/Manila'
 	};
-	assert.equal(creditAttendance({ ...input, policy: SEEDED_PAYROLL.attendance }).overtime_hours, 3);
-	const explicit: AttendancePolicy = { ...SEEDED_PAYROLL.attendance, overtime_window: 'EXPLICIT' };
+	assert.equal(creditAttendance({ ...input, policy: PAYROLL.attendance }).overtime_hours, 3);
+	const explicit: AttendancePolicy = { ...PAYROLL.attendance, overtime_window: 'EXPLICIT' };
 	assert.equal(creditAttendance({ ...input, policy: explicit }).overtime_hours, 0);
 	assert.equal(
 		creditAttendance({

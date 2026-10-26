@@ -1,6 +1,6 @@
-import { d, sum } from './commercial.js';
-import { isMasked } from './access.js';
-import type { Row } from '@norbital-ai/bolt';
+import { Decimal, sum } from '@norbital-ai/std/decimal';
+
+import { isMasked, type Row } from '@norbital-ai/bolt';
 type Source = Pick<
 	Row<'stock_snapshots'>,
 	'product' | 'warehouse' | 'unit' | 'on_hand' | 'erp_committed' | 'as_of' | 'orders_as_of'
@@ -15,7 +15,7 @@ type Line = {
 	order: string;
 	product: string | null | undefined;
 	unit: string;
-	quantity: string | ReturnType<typeof d>;
+	quantity: string | ReturnType<typeof Decimal.of>;
 };
 type Receipt = Pick<
 	Row<'ext_sales_orders'>,
@@ -31,7 +31,7 @@ export function availability(
 		receipts: readonly Receipt[];
 		delivered: readonly {
 			order_line: string;
-			quantity: string | ReturnType<typeof d>;
+			quantity: string | ReturnType<typeof Decimal.of>;
 		}[];
 	}
 ) {
@@ -42,7 +42,7 @@ export function availability(
 	const sourceFresh = fresh(source.as_of) && fresh(source.orders_as_of);
 	const sellable =
 		sourceFresh && source.erp_committed !== null
-			? d(source.on_hand).minus(source.erp_committed).toString()
+			? Decimal.of(source.on_hand).minus(source.erp_committed).toString()
 			: null;
 	if (!commitments)
 		return {
@@ -128,7 +128,7 @@ export function availability(
 	// A delivery is not proof that the stock snapshot already includes its inventory movement.
 	if (
 		commitments.delivered.some(
-			(f) => lines.some((l) => l.id === f.order_line) && d(f.quantity).gt(0)
+			(f) => lines.some((l) => l.id === f.order_line) && Decimal.of(f.quantity).gt(0)
 		)
 	)
 		return {
@@ -141,7 +141,7 @@ export function availability(
 	return {
 		sellable,
 		local_committed: local.toString(),
-		projected: d(sellable).minus(local).toString(),
+		projected: Decimal.of(sellable).minus(local).toString(),
 		reason: 'available'
 	} as const;
 }

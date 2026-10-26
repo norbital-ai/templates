@@ -1,13 +1,8 @@
+import { isPlainDate } from '@norbital-ai/std/date';
 import { Result, Schema } from 'effect';
 import { BankValidationRules, bankConfigurationRefusal } from '../bank_template.js';
 import { evaluateConfigured } from './expressions.js';
-import {
-	getErrorMessage,
-	isCalendarDate,
-	isJsonObject,
-	Refusal,
-	type JsonObject
-} from './foundation.js';
+import { getErrorMessage, isJsonObject, Refusal, type JsonObject } from './foundation.js';
 import { bankAccountFrom, recordDocuments, type ExportDocument } from './export.js';
 
 type ExportRows = Parameters<typeof recordDocuments>[2];
@@ -93,13 +88,14 @@ export function bankExportDocuments(input: BankExportInput): {
 							}
 						}
 					];
-		const layouts = templates.filter(({ rules }) => {
+		// Each layout's rules decoded once: an object, or the whole configuration is refused.
+		const layouts = templates.flatMap(({ code, rules }) => {
 			if (!isJsonObject(rules))
 				throw new Refusal({ message: 'The bank-file layout configuration is invalid.' });
-			return (
-				rules.applies_when == null ||
+			return rules.applies_when == null ||
 				(isText(rules.applies_when) && evaluateConfigured(rules.applies_when, context) === true)
-			);
+				? [{ code, rules }]
+				: [];
 		});
 		if (layouts.length === 0)
 			throw new Refusal({
@@ -112,14 +108,13 @@ export function bankExportDocuments(input: BankExportInput): {
 					'More than one bank-file layout matches. Select one upload format before exporting.'
 			});
 		for (const layout of layouts)
-			if (!isJsonObject(layout.rules) || layout.rules.bank_file_verified !== true)
+			if (layout.rules.bank_file_verified !== true)
 				throw new Refusal({
 					message:
 						'This bank-file layout has not been verified against the bank’s upload specification. Provide the bank specification before exporting.'
 				});
 		for (const layout of layouts)
 			if (
-				!isJsonObject(layout.rules) ||
 				!isTextList(layout.rules.bank_file_currencies) ||
 				!layout.rules.bank_file_currencies.includes(input.currency)
 			)
@@ -130,7 +125,7 @@ export function bankExportDocuments(input: BankExportInput): {
 		requiredText(payer?.bank_account_number, 'Company bank account number');
 		requiredText(payer?.bank_account_name, 'Company bank account holder');
 		for (const run of input.runs)
-			if (!isText(run.pay_date) || !isCalendarDate(run.pay_date))
+			if (!isText(run.pay_date) || !isPlainDate(run.pay_date))
 				throw new Refusal({
 					message: 'A valid payroll payment date is required for the bank file.'
 				});
@@ -147,7 +142,7 @@ export function bankExportDocuments(input: BankExportInput): {
 			);
 		}
 		for (const layout of layouts) {
-			if (!isJsonObject(layout.rules) || !isText(layout.rules.file))
+			if (!isText(layout.rules.file))
 				throw new Refusal({ message: 'The bank-file name configuration is invalid.' });
 			const name = evaluateConfigured(layout.rules.file, context);
 			if (
@@ -164,7 +159,7 @@ export function bankExportDocuments(input: BankExportInput): {
 					message:
 						'The bank template must produce a nonempty file name without folders, reserved characters or control characters.'
 				});
-			if (!isJsonObject(layout.rules) || layout.rules.bank_file_validation == null) continue;
+			if (layout.rules.bank_file_validation == null) continue;
 			const checks = Schema.decodeUnknownSync(BankValidationRules)(
 				layout.rules.bank_file_validation
 			);

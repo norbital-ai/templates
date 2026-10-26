@@ -10,7 +10,7 @@ test.live(
 			const t = yield* workspace();
 			const as = t.as(t.admin);
 			const own = yield* draft(t);
-			const before = yield* as.get('orders', own.order);
+			const before = yield* as.query('orders', { id: own.order });
 			expect(before?.status).toBe('draft');
 			committed(
 				'orders',
@@ -36,7 +36,7 @@ test.live(
 			expect(quoted.contract).toContain('2026-08-01 – 2026-12-31');
 			expect(quoted).not.toHaveProperty('seal_hash');
 			yield* confirm(t, own.order);
-			const after = yield* as.get('orders', own.order);
+			const after = yield* as.query('orders', { id: own.order });
 			expect(after?.sealed_contract).toBe(quoted.contract);
 			expect(after?.id).toBe(before?.id);
 			expect(after?.number).toBe(before?.number);
@@ -51,7 +51,7 @@ test.live(
 					as.act('order_lines.update', { target: own.line, set: { unit_price: Decimal.of('4') } })
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			expect((yield* as.get('orders', own.order))?.seal_hash).toBe(after?.seal_hash);
+			expect((yield* as.query('orders', { id: own.order }))?.seal_hash).toBe(after?.seal_hash);
 		})
 );
 test.live('contract validity rejects reversed dates including a partial edit', () =>

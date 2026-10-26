@@ -8,6 +8,7 @@
 		Label,
 		Sheet,
 		Textarea,
+		RunStatus,
 		notifyOutcome
 	} from '@norbital-ai/ui';
 	/**
@@ -17,27 +18,26 @@
 	 */
 	import { bolt, fork } from '$bolt';
 	import { Effect } from 'effect';
-	import type { Id } from '@norbital-ai/bolt';
-	import type { PageAct } from '@norbital-ai/bolt/page';
+	import type { Id, Outcome } from '@norbital-ai/bolt';
+	import type { ActFailure } from '@norbital-ai/bolt/errors';
 	import { addDays, Instant, PlainDate } from '@norbital-ai/std/date';
 	import { utcOf } from '@norbital-ai/std/zone';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
-	import { live } from '../../lib/live.svelte.js';
 	import { driveMinutes, type Point } from '../../lib/matching.js';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
 	const actor = bolt.actor;
-	const me = live(() =>
+	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.read('helpers', {
+			? bolt.query('helpers', {
 					where: { user: { eq: actor.id } },
 					select: { name: true },
 					limit: 1
 				})
 			: null
 	);
-	const helper = $derived(me.current?.rows[0]);
+	const helper = $derived(me?.current?.rows[0]);
 	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
 	let selectedDay = $state(today);
 	const span = $derived({
@@ -60,10 +60,10 @@
 			}
 		}
 	} as const;
-	const open = live(() =>
+	const open = $derived(
 		helper === undefined
 			? null
-			: bolt.read('visits', {
+			: bolt.query('visits', {
 					where: {
 						helper: { eq: helper.id },
 						status: { in: ['scheduled', 'in_progress'] },
@@ -73,10 +73,10 @@
 					all: true
 				})
 	);
-	const done = live(() =>
+	const done = $derived(
 		helper === undefined
 			? null
-			: bolt.read('visits', {
+			: bolt.query('visits', {
 					where: {
 						helper: { eq: helper.id },
 						status: { eq: 'done' },
@@ -87,10 +87,10 @@
 				})
 	);
 	/** Leave on the chosen day: after a decline, a missed shift check, or booked time off. */
-	const off = live(() =>
+	const off = $derived(
 		helper === undefined
 			? null
-			: bolt.read('helper_time_off', {
+			: bolt.query('helper_time_off', {
 					where: {
 						helper: { eq: helper.id },
 						period: { overlaps: { from: PlainDate(selectedDay), to: PlainDate(selectedDay) } }
@@ -98,15 +98,15 @@
 					limit: 1
 				})
 	);
-	const away = $derived(off.current?.rows.length === 1);
+	const away = $derived(off?.current?.rows.length === 1);
 	const visits = $derived(
-		[...(open.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
+		[...(open?.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
 	);
 	const current = $derived(visits.find((v) => v.status === 'in_progress'));
 	const upcoming = $derived(visits.filter((v) => v.status === 'scheduled'));
 	const asked = $derived(upcoming.find((v) => v.shift_check === 'asked') ?? upcoming[0]);
 	const route = $derived(
-		[...(done.current?.rows ?? []), ...visits].sort((a, b) =>
+		[...(done?.current?.rows ?? []), ...visits].sort((a, b) =>
 			a.slot.start.localeCompare(b.slot.start)
 		)
 	);
@@ -128,9 +128,24 @@
 	// ── acting ──
 	let problem = $state<string | null>(null);
 	let busy = $state(false);
+	let shiftRun = $state<{ id: string; automation: string } | null>(null);
 	let completing = $state<(typeof visits)[number] | null>(null);
 	let notes = $state('');
-	function perform<O, N extends string>(outcome: () => PageAct<O, N>) {
+	function answerShift(id: Id<'visits'>, mc?: boolean) {
+		const call =
+			mc === undefined
+				? bolt.start('visits_confirm_shift', { targets: [id] })
+				: bolt.start('visits_decline_shift', { targets: [id], mc });
+		return perform(() => call).pipe(
+			Effect.tap((queued) =>
+				Effect.sync(() => {
+					if (queued) shiftRun = { id: call.id, automation: call.automation };
+				})
+			)
+		);
+	}
+
+	function perform(outcome: () => Effect.Effect<Outcome<unknown>, ActFailure>) {
 		return Effect.gen(function* () {
 			const ready = yield* Effect.sync(() => {
 				if (!locationReady || busy) return false;
@@ -288,7 +303,7 @@
 					/>
 				</Stack>
 
-				{#if actor?.kind === 'member' && me.current !== undefined && helper === undefined}<EmptyState
+				{#if actor?.kind === 'member' && me?.current !== undefined && helper === undefined}<EmptyState
 						title={t('app.helper.not_a_helper')}
 					/>{/if}
 				{#if helper !== undefined}
@@ -314,12 +329,8 @@
 								</p>
 								<Button
 									disabled={busy || !locationReady}
-									onclick={() =>
-										fork(
-											perform(() =>
-												bolt.act('visits.confirm_shift', { target: asked.id, input: {} })
-											)
-										)}>{t('app.helper.confirm_shift')}</Button
+									onclick={() => fork(answerShift(asked.id))}
+									>{t('app.helper.confirm_shift')}</Button
 								>
 							{/if}
 							<details>
@@ -330,28 +341,14 @@
 									<Button
 										variant="outline"
 										disabled={busy || !locationReady}
-										onclick={() =>
-											fork(
-												perform(() =>
-													bolt.act('visits.decline_shift', {
-														target: asked.id,
-														input: { mc: true }
-													})
-												)
-											)}>{t('app.helper.decline_with_mc')}</Button
+										onclick={() => fork(answerShift(asked.id, true))}
+										>{t('app.helper.decline_with_mc')}</Button
 									>
 									<Button
 										variant="outline"
 										disabled={busy || !locationReady}
-										onclick={() =>
-											fork(
-												perform(() =>
-													bolt.act('visits.decline_shift', {
-														target: asked.id,
-														input: { mc: false }
-													})
-												)
-											)}>{t('app.helper.decline_without_mc')}</Button
+										onclick={() => fork(answerShift(asked.id, false))}
+										>{t('app.helper.decline_without_mc')}</Button
 									>
 								</Stack>
 							</details>
@@ -369,7 +366,7 @@
 								>{/if}
 						</Cluster>
 						<p class="text-sm text-muted-foreground">{t('app.helper.route_description')}</p>
-						{#if open.current === undefined}<p>{t('component.loading')}</p>
+						{#if open?.current === undefined}<p>{t('component.loading')}</p>
 						{:else if route.length === 0}<p>{t('app.helper.route_empty')}</p>
 						{:else}
 							<ol class="route">

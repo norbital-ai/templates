@@ -16,7 +16,7 @@
 {/snippet}
 <AppShell
 	title={bolt.t('models.document_templates.label')}
-	description=""
+	description={bolt.t('app.trade_configuration.description')}
 	icon="lucide:file-text"
 	variant="full"
 >

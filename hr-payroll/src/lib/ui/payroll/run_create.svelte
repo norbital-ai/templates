@@ -8,35 +8,35 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, Checkbox, Combobox, Field, Form, Sheet } from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import { live, liveRows } from '../state/live.svelte.js';
 	import { todayKey } from '../format/calendar.js';
 	import { versionCalendar, versionMoney } from '../format/version_money.svelte.js';
-	import { moneyNumber } from '../../payroll_engine/foundation.js';
 	import { periodOptions } from './pay_periods.js';
-	import * as Predicate from 'effect/Predicate';
 
 	let { companyId, open = $bindable(false) }: { companyId: Id<'entity'>; open?: boolean } =
 		$props();
 
-	const entity = live(() =>
-		bolt.get('entity', companyId, {
-			pay_frequency: true,
-			pay_frequency_changes: true,
-			settings_code: true
+	const entity = $derived.by(() =>
+		bolt.query('entity', {
+			id: companyId,
+			select: {
+				pay_frequency: true,
+				pay_frequency_changes: true,
+				settings_code: true
+			}
 		})
 	);
 	const money = versionMoney(() => {
-		const lineage = entity.current?.settings_code;
+		const lineage = entity?.current?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
 	const calendar = versionCalendar(() => {
-		const lineage = entity.current?.settings_code;
+		const lineage = entity?.current?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
 	/** The periods the entity's schedule offers, twelve months back from now (a daily entity: its days), each paid at
 	 * the frequency in force on its days (`periodsIn`): a month that switches offers both frequencies' own. */
 	const periods = $derived.by(() =>
-		periodOptions(entity.current ?? {}, calendar() ?? {}, todayKey()).map((period) => {
+		periodOptions(entity?.current ?? {}, calendar() ?? {}, todayKey()).map((period) => {
 			const label = new Date(`${period.from}T00:00:00Z`).toLocaleDateString(undefined, {
 				month: 'long',
 				year: 'numeric',
@@ -66,9 +66,13 @@
 			orderBy: { occurred_on: 'desc' },
 			all: true
 		}) as const;
-	const adhoc = liveRows(() => (open ? bolt.read('adhoc_catalog_entry', openEntryRead()) : null));
-	const claims = liveRows(() => (open ? bolt.read('claim_catalog_entry', openEntryRead()) : null));
-	const entries = $derived([...(adhoc.current ?? []), ...(claims.current ?? [])]);
+	const adhoc = $derived.by(() =>
+		open ? bolt.query('adhoc_catalog_entry', openEntryRead()) : null
+	);
+	const claims = $derived.by(() =>
+		open ? bolt.query('claim_catalog_entry', openEntryRead()) : null
+	);
+	const entries = $derived([...(adhoc?.current?.rows ?? []), ...(claims?.current?.rows ?? [])]);
 
 	type Picked = {
 		readonly id: string;
@@ -77,17 +81,12 @@
 		readonly item: string;
 	};
 	type EntryRow =
-		NonNullable<typeof adhoc.current>[number] | NonNullable<typeof claims.current>[number];
-	const nestedString = (value: unknown, key: string): string | null => {
-		if (!Predicate.isObjectOrArray(value) || Array.isArray(value)) return null;
-		const raw = value[key];
-		return Predicate.isString(raw) && raw !== '' ? raw : null;
-	};
+		| NonNullable<NonNullable<typeof adhoc>['current']>['rows'][number]
+		| NonNullable<NonNullable<typeof claims>['current']>['rows'][number];
 	const picked = (row: EntryRow): Picked => {
-		const amount = moneyNumber(row.amount);
-		const person = nestedString(row.employment_id, 'employee_number') ?? '—';
-		const itemName =
-			nestedString(row.catalog_id, 'name') ?? nestedString(row.catalog_id, 'code') ?? '—';
+		const amount = row.amount?.toNumber() ?? null;
+		const person = row.employment_id?.employee_number || '—';
+		const itemName = row.catalog_id.name || row.catalog_id.code || '—';
 		return {
 			id: row.id,
 			person,

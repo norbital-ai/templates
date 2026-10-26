@@ -1,8 +1,8 @@
-import type { Row } from '@norbital-ai/bolt';
+import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { agreements, type AgreementOrder } from './agreements.js';
-import { d, sum } from './commercial.js';
+
 import { PlainDate } from '@norbital-ai/std/date';
-import { isMasked } from './access.js';
+import { isMasked, type Row } from '@norbital-ai/bolt';
 /** Latest approved quota per order; documents and sales facts retain their own approved SKU identity. */
 export function partnerProgress(
 	orders: readonly (AgreementOrder & Pick<Row<'orders'>, 'id' | 'number' | 'currency'>)[],
@@ -62,7 +62,7 @@ export function partnerProgress(
 						)
 					: issued.length || matching.length
 						? null
-						: d(0);
+						: Decimal.of(0);
 			const until = current.snapshot.valid_until;
 			const complete = quantity !== null && quantity.gte(line.quantity);
 			const events =
@@ -93,7 +93,7 @@ export function partnerProgress(
 					: matching
 							.filter((fact) => fact.kind !== 'invoice_only')
 							.map((fact) => ({ on: fact.business_on, quantity: fact.quantity }));
-			let running = d(0),
+			let running = Decimal.of(0),
 				fulfilled: string | null = null;
 			for (const event of events
 				.filter((event) => event.on !== null)
@@ -135,17 +135,17 @@ export function partnerProgress(
 						: sum(invoiceItems.map((item) => item.net_amount!))
 					: issued.length
 						? null
-						: d(0);
+						: Decimal.of(0);
 			return {
 				order: order.id,
 				number: order.number,
 				sku: line.product_name,
 				unit: line.unit,
 				currency: order.currency,
-				quota: d(line.quantity),
+				quota: Decimal.of(line.quantity),
 				delivered: quantity,
 				fulfillment: quantity?.times(100).div(line.quantity, 2) ?? null,
-				forecast: d(line.net),
+				forecast: Decimal.of(line.net),
 				actual: value,
 				valid_until: until ? PlainDate(until) : null,
 				state

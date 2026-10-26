@@ -1,3 +1,4 @@
+import { Instant } from '@norbital-ai/std/date';
 import { fixtureId } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Context, Schema, Effect, Option } from 'effect';
@@ -15,12 +16,14 @@ test.live(
 			const mine = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
 			const other = yield* draft(t);
 			const buy = yield* draft(t, 'purchasing');
-			expect((yield* as.read('orders', { all: true })).rows.map((r) => r.id)).toEqual([mine.order]);
-			expect((yield* as.read('order_lines', { all: true })).rows.map((r) => r.id)).toEqual([
+			expect((yield* as.query('orders', { all: true })).rows.map((r) => r.id)).toEqual([
+				mine.order
+			]);
+			expect((yield* as.query('order_lines', { all: true })).rows.map((r) => r.id)).toEqual([
 				mine.line
 			]);
 			for (const x of [other, buy]) {
-				expect(yield* as.get('orders', x.order)).toBeNull();
+				expect(yield* as.query('orders', { id: x.order })).toBeNull();
 				expect(
 					yield* Effect.flip(
 						as.act('order_lines.update', { target: x.line, set: { unit_price: Decimal.of('1') } })
@@ -29,7 +32,12 @@ test.live(
 				yield* Effect.tryPromise({
 					try: () =>
 						expect(
-							Effect.runPromise(as.query('orders.confirmation_check', { order: x.order }))
+							Effect.runPromise(
+								as.query('orders.confirmation_check', {
+									as_of: Instant(t.clock.now()),
+									order: x.order
+								})
+							)
 						).rejects.toThrow(),
 					catch: (cause) => new TestIoFailed({ message: String(cause) })
 				});
@@ -54,7 +62,7 @@ test.live(
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
-						Effect.runPromise(t.as(t.member(['configuration'])).read('orders', { all: true }))
+						Effect.runPromise(t.as(t.member(['configuration'])).query('orders', { all: true }))
 					).rejects.toThrow(),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
@@ -78,12 +86,14 @@ test.live(
 			const { order, line } = yield* draft(t);
 			yield* confirm(t, order);
 			const as = t.as(t.member(['logistics']));
-			const shown = yield* as.get('orders', order);
+			const shown = yield* as.query('orders', { id: order });
 			expect(shown).toMatchObject({
 				sealed_snapshot: { $masked: true },
 				sealed_contract: { $masked: true }
 			});
-			expect(yield* as.get('order_lines', line)).toMatchObject({ unit_price: { $masked: true } });
+			expect(yield* as.query('order_lines', { id: line })).toMatchObject({
+				unit_price: { $masked: true }
+			});
 			expect(
 				yield* direct(t, as.authority, {
 					collection: 'transactions',
@@ -103,9 +113,9 @@ test.live(
 test.live('native sealing approval requires no credit-approval configuration', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const sales = t.member(['sales'], { teams: ['Sales'], teamPath: ['Sales'] });
+		const sales = t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] });
 		const manager = t.as(
-			t.member(['manager'], { teams: ['Commercial Managers'], teamPath: ['Commercial Managers'] })
+			t.member(['manager'], { teams: ['commercial_managers'], teamPath: ['commercial_managers'] })
 		);
 		const as = t.as(sales);
 		const approvals = Context.get(t.services, Approvals);
@@ -117,7 +127,10 @@ test.live('native sealing approval requires no credit-approval configuration', (
 				.pipe(Effect.map(Option.getOrThrow));
 		const propose = Effect.fnUntraced(function* () {
 			const { order } = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
-			const check = yield* as.query('orders.confirmation_check', { order });
+			const check = yield* as.query('orders.confirmation_check', {
+				as_of: Instant(t.clock.now()),
+				order
+			});
 			const outcome = yield* as.act('orders.update', {
 				target: order,
 				set: { status: 'confirmed', check_hash: check.check_hash }
@@ -128,12 +141,14 @@ test.live('native sealing approval requires no credit-approval configuration', (
 
 		// The confirmation is applied at once and the request holds the sealed order.
 		const approved = yield* propose();
-		expect(yield* as.get('orders', approved.order)).toMatchObject({
+		expect(yield* as.query('orders', { id: approved.order })).toMatchObject({
 			status: 'confirmed',
 			seal_hash: expect.any(String)
 		});
 		expect(yield* request(approved.requestId, approved.order)).toMatchObject({
-			status: 'ONGOING',
+			status: 'Pending',
+			step: 0,
+			steps: [{ name: 'Commercial review', teams: ['commercial_managers'], users: [] }],
 			mine: true,
 			records: expect.arrayContaining([
 				expect.objectContaining({ collection: 'orders', id: approved.order })
@@ -147,31 +162,35 @@ test.live('native sealing approval requires no credit-approval configuration', (
 					set: { status: 'cancelled', reason: 'Around the approval' }
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', code: 'locked' });
+		).toMatchObject({ _tag: 'ActRefused', message: 'errors.remote_close_required' });
 		expect(
-			yield* approvals.process({
+			yield* approvals.decide({
 				requestId: approved.requestId,
-				status: 'APPROVED',
+				decision: 'approve',
 				authority: manager.authority,
 				now: t.clock.now()
 			})
-		).toMatchObject({ kind: 'decided', status: 'APPROVED' });
-		expect(yield* as.get('orders', approved.order)).toMatchObject({ status: 'confirmed' });
+		).toMatchObject({ kind: 'decided', status: 'Approved' });
+		expect(yield* as.query('orders', { id: approved.order })).toMatchObject({
+			status: 'confirmed'
+		});
 
 		// Request-for-change leaves the sealed order with its requester; a rejection then rolls it back.
 		const returned = yield* propose();
-		const move = (status: 'REQUEST_FOR_CHANGE' | 'REJECTED') =>
-			approvals.process({
+		const move = (decision: 'requestChanges' | 'reject') =>
+			approvals.decide({
 				requestId: returned.requestId,
-				status,
+				decision,
 				authority: manager.authority,
 				now: t.clock.now(),
 				reason: 'Check the credit terms'
 			});
-		expect(yield* move('REQUEST_FOR_CHANGE')).toMatchObject({ status: 'CHANGES_REQUESTED' });
-		expect(yield* as.get('orders', returned.order)).toMatchObject({ status: 'confirmed' });
-		expect(yield* move('REJECTED')).toMatchObject({ status: 'REJECTED' });
-		expect(yield* as.get('orders', returned.order)).toMatchObject({
+		expect(yield* move('requestChanges')).toMatchObject({ status: 'ChangesRequested' });
+		expect(yield* as.query('orders', { id: returned.order })).toMatchObject({
+			status: 'confirmed'
+		});
+		expect(yield* move('reject')).toMatchObject({ status: 'Rejected' });
+		expect(yield* as.query('orders', { id: returned.order })).toMatchObject({
 			status: 'draft',
 			seal_hash: null
 		});

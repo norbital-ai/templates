@@ -2,24 +2,49 @@
 	/**
 	 * A catalogue row's form sections (inside its `Form`): two columns, short values side by side and expressions, prose
 	 * and structured values across the row. Every CEL field, top-level or inside a json shape, declares `format: 'cel'`,
-	 * which the platform edits as a code editor.
+	 * which the platform edits as a code editor. A field's help is the catalog's `catalog.help.<field>` when it has one
+	 * (plain words over the declaration's technical note); `views` render a field read-only.
 	 */
 	import * as Predicate from 'effect/Predicate';
 	import type { Snippet } from 'svelte';
-	import { Field, Section, Textarea, type FieldEditor, type RecordSection } from '@norbital-ai/ui';
+	import {
+		Field,
+		Section,
+		Textarea,
+		useBolt,
+		type FieldEditor,
+		type RecordSection
+	} from '@norbital-ai/ui';
 	import { Column, Columns } from '@norbital-ai/ui/layout';
 	import { CEL_KEYS } from '../format/code_text.js';
 
+	type FieldView = Pick<FieldEditor, 'value' | 'kind' | 'name' | 'id'>;
 	let {
 		sections,
-		editors = {}
+		editors = {},
+		views = {}
 	}: {
 		sections: readonly RecordSection[];
 		editors?: Readonly<Record<string, Snippet<[FieldEditor]>>>;
+		views?: Readonly<Record<string, Snippet<[FieldView]>>>;
 	} = $props();
+	const uiBolt = useBolt();
 
 	const PROSE = new Set(['description']);
-	const CODE = new Set([...CEL_KEYS, 'entitlement', 'bands', 'references']);
+	const WIDE = new Set([
+		...CEL_KEYS,
+		'entitlement',
+		'bands',
+		'references',
+		'counts_toward',
+		'rules',
+		'source_identity'
+	]);
+	const helpOf = (name: string) => {
+		const key = `catalog.help.${name}`;
+		const help = uiBolt.t(key);
+		return help === key ? {} : { help };
+	};
 </script>
 
 {#snippet prose(field: FieldEditor)}
@@ -44,14 +69,16 @@
 	>
 		<Columns count={2} gap="md">
 			{#each section.fields as name (name)}
+				{@const view = views[name]}
+				{@const own = { ...label, ...helpOf(name), ...(view ? { view } : {}) }}
 				{#if editors[name]}
-					<Column span="all"><Field {name} {...label} editor={editors[name]} /></Column>
-				{:else if CODE.has(name)}
-					<Column span="all"><Field {name} {...label} /></Column>
+					<Column span="all"><Field {name} {...own} editor={editors[name]} /></Column>
+				{:else if WIDE.has(name)}
+					<Column span="all"><Field {name} {...own} /></Column>
 				{:else if PROSE.has(name)}
-					<Column span="all"><Field {name} {...label} editor={prose} /></Column>
+					<Column span="all"><Field {name} {...own} editor={prose} /></Column>
 				{:else}
-					<Field {name} {...label} />
+					<Field {name} {...own} />
 				{/if}
 			{/each}
 		</Columns>

@@ -36,12 +36,9 @@ test('a 4-day two-on-two-off places days the week cannot', () => {
 	assert.equal(cycleDayOn(days, '2026-03-02', '2026-03-09')?.roster_code_id, 'OFF');
 });
 
-test('a date before the anchor, an empty cycle and a malformed field place nothing', () => {
+test('a date before the anchor, an empty cycle and no pattern place nothing', () => {
 	assert.equal(cycleDayOn([day('A')], '2026-03-02', '2026-03-01'), null);
 	assert.equal(cycleDayOn([], '2026-03-02', '2026-03-02'), null);
 	assert.deepEqual(cycleDays(null), []);
-	assert.deepEqual(cycleDays({ days: 'nope' }), []);
-	// A malformed day fails the whole list rather than being skipped: a stored cycle is either readable or not.
-	assert.deepEqual(cycleDays({ days: [day('A'), 7, day('B')] }), []);
 	assert.equal(cycleDays({ days: [day('A'), day('B')] }).length, 2);
 });

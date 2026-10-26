@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 import { Effect } from 'effect';
 /**
  * L-TPL-hr-payroll-037: statutory standing lives on `employment_profile.facts.employment_statutory_facts`. One
@@ -6,6 +7,8 @@ import { Effect } from 'effect';
  */
 import { overlaps, PlainDate, type DatePeriod } from '@norbital-ai/std/date';
 import { Schema } from 'effect';
+import { IdValue } from '@norbital-ai/std/kind';
+import type { Id, StoredRow } from '@norbital-ai/bolt';
 import { type HostRead, isJsonObject, Refusal } from './foundation.js';
 const isString = Schema.is(Schema.String);
 type StatutoryFact = {
@@ -25,7 +28,7 @@ function periodFromUnknown(value: unknown): DatePeriod | null {
 	return { from: PlainDate(value.from), to: to == null || to === '' ? null : PlainDate(to) };
 }
 export function statutoryFactsFromFacts(facts: unknown): readonly StatutoryFact[] {
-	if (!isJsonObject(facts) || !Array.isArray(facts.employment_statutory_facts)) return [];
+	if (!isJsonObject(facts) || !EffectArray.isArray(facts.employment_statutory_facts)) return [];
 	const out: StatutoryFact[] = [];
 	for (const row of facts.employment_statutory_facts) {
 		if (
@@ -89,40 +92,44 @@ function refuseStatutoryFacts(
 				return 'A person can have only one standing per scheme at a time.';
 	return null;
 }
-/** Refuse a profile's statutory facts against the input schemas of the versions their schemes belong to. */
-export const refuseEmploymentFacts = Effect.fnUntraced(function* (facts: unknown, read: HostRead) {
-	const standing = statutoryFactsFromFacts(facts);
-	const ids = [...new Set(standing.map((fact) => fact.statutory_contribution_id))];
-	if (ids.length === 0) return null;
-	const schemes = yield* read('statutory_contribution_catalog', {
-		mode: 'declared',
-		where: { id: { in: ids } },
-		select: ['settings_id'],
-		all: true
-	});
-	const settingsIds = [
-		...new Set(
-			(yield* Schema.decodeUnknownEffect(Schema.Array(Schema.NullOr(Schema.String)))(
-				schemes.rows.map((row) => row['settings_id'])
-			).pipe(
-				Effect.mapError(
-					() =>
-						new Refusal({ message: 'A statutory scheme needs its actual jurisdiction version.' })
-				)
-			)).filter((id) => id !== null)
-		)
+const SchemeId = Schema.declare<Id<'statutory_contribution_catalog'>>(
+	(value): value is Id<'statutory_contribution_catalog'> => Schema.is(IdValue)(value)
+);
+/** All profiles in one write share one schema lookup, independent of the batch size. */
+export const refuseEmploymentFactsBatch = Effect.fnUntraced(function* (
+	facts: readonly (StoredRow<'employment_profile'>['facts'] | undefined)[],
+	read: HostRead
+) {
+	const standing = facts.map(statutoryFactsFromFacts);
+	const candidates = [
+		...new Set(standing.flatMap((rows) => rows.map((row) => row.statutory_contribution_id)))
 	];
-	const versions =
-		settingsIds.length === 0
-			? { rows: [] }
-			: yield* read('jurisdiction_settings', {
-					mode: 'declared',
-					where: { id: { in: settingsIds } },
-					select: ['employee_input_schema'],
-					all: true
-				});
-	return refuseStatutoryFacts(
-		standing,
-		versions.rows.flatMap((row) => electionKeysOf(row['employee_input_schema']))
+	if (candidates.length === 0) return facts.map(() => null);
+	const ids = yield* Schema.decodeUnknownEffect(Schema.Array(SchemeId))(candidates).pipe(
+		Effect.mapError(() => new Refusal({ message: 'A statutory standing needs its actual scheme.' }))
 	);
+	const { schemes, versions } = yield* read({
+		schemes: {
+			from: 'statutory_contribution_catalog',
+			where: { id: { in: ids } },
+			select: { settings_id: true },
+			all: true
+		},
+		versions: {
+			from: 'jurisdiction_settings',
+			where: { id: { in: { member: 'schemes', field: 'settings_id' } } },
+			select: { employee_input_schema: true },
+			all: true
+		}
+	});
+	return standing.map((rows) => {
+		const ownSchemes = new Set(rows.map((row) => row.statutory_contribution_id));
+		const ownVersions = new Set(
+			schemes.rows.filter((row) => ownSchemes.has(row.id)).map((row) => row.settings_id)
+		);
+		const keys = versions.rows
+			.filter((row) => ownVersions.has(row.id))
+			.flatMap((row) => electionKeysOf(row.employee_input_schema));
+		return refuseStatutoryFacts(rows, keys);
+	});
 });

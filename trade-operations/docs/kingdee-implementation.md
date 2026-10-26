@@ -1,101 +1,125 @@
-# Kingdee custom integration
+# Kingdee SQL integration
 
-Trading Operations owns `src/integration/kingdee/+integration.ts`, its CDC polling, projections,
-SQL bootstrap and verified order submissions. Bolt's SQL Server driver executes bounded
-parameterized requests through an integration instance. It contains no accounting or CDC rules.
+All integration code belongs to this template. `+integration.ts` declares the existing SQL Server
+driver, sealed credentials, account-set configuration and connection test. The template issues
+fixed SQL through the driver's existing `call` operation and SQL Server's built-in
+`sys.sp_executesql`; business data is bound as parameters. Settings never accept SQL text.
+No Store, Bolt, Colony host or OVH server configuration change is required by the code.
 
-## Source and runtime configuration
+```text
+China LAN                                    Alibaba private connection                 Singapore
++----------------------+      +------------------------------------------------+     +-------------------+
+| Kingdee SQL Server   | <-->  | Shanghai IPsec -> CEN -> Singapore TCP relay    | <-> | Colony on OVH     |
+| 2019                 |      | Restricted SQL endpoint; no on-prem script      |     | trade template    |
+| dbo tables          |      +------------------------------------------------+     | keys + sync state |
++----------------------+                                                            +-------------------+
+      SELECT rowversions/current rows  ---------------------------------------------> local model updates
+      unapproved SEOrder + SEOrderEntry <--------------------------------------------- sealed order outbox
+```
 
-`+workspace.ts` names the `kingdee` connection; more ledgers are added as further `kingdee`
-instances in Settings → Integrations. Each instance pairs with its SQL Server connection string,
-which the host seals and never exposes to source execution. Its runtime configuration sets
-`maxLagMinutes`, `retentionMinutes` and `minRetentionMinutes`; the definition holds their
-defaults, which every instance starts with. Commercial Settings holds only business controls.
-Pausing an instance (`active`) stops its feeds and keeps its approved order commands queued;
-resuming it sends each immutable command once without changing the sealed order or its history.
+The network and TCP relay must already provide a reachable SQL endpoint. Existing TLS validation
+and outbound network restrictions still apply. A local SQL probe does not establish that the
+SQL Server's TLS stack/certificate is compatible with the deployed driver.
 
-Each inbound feed declares its collection, remote key, schedule and removal behavior, and runs
-for every active instance. A feed page commits its rows, cursor and row markers together. Every
-fed model's key is its ledger (`source`) and the remote identity, and every reference a feed or
-transform resolves is looked up inside that ledger. An order takes its party's ledger
-(`ledger`); its warehouse and products must come from the same one, and its submission goes to
-that ledger only. Products expose only commission settings for local updates; the feed alone
-writes source fields. `projections.ts` and `sql-rows.ts` hold the SQL, `cdc.ts` reads a projection
-into a feed page, `+integration.ts` turns each SQL row into its record, and `submission.ts` and
-`order-batch.ts` create the approved order in the ledger.
+## Credentials and repeat deployment
 
-## CDC and submission invariants
+Pair each Kingdee integration instance with its own SQL connection string in the native credential
+fields. The endpoint is the Singapore relay, and the database/login identify the China account set.
+Credentials remain sealed host-side; they never enter template source, seeds, bookmarks or browser
+responses. Use a dedicated SQL login with SELECT access to the mapped source tables and, when
+writes are enabled, only the required INSERT permissions on SEOrder/SEOrderEntry and UPDATE on
+ICMaxNum. Do not use `sa` for synchronization.
 
-- Capture IDs, object creation dates, database identity and recovery fork identify the source.
-  Snapshot pages retain a fixed baseline. Delta pages retain a fixed upper LSN and resume the
-  inclusive `(LSN, sequence, operation, event key)` tuple in binary order.
-- Decimal and money columns are selected as text. Rows and parameters are bounded. A missing
-  capture, unavailable source clock or invalid position fails before acknowledging progress.
-- A source replacement or cleanup gap requires a fresh snapshot and reconciliation; a poll
-  never jumps past missing deltas. Partial snapshot recovery is also an acceptance requirement.
-- Native feed writes and their cursor commit together. A row the feed cannot read or a
-  transform refuses, or a rolled-back transaction, does not acknowledge the source event. Replay
-  preserves model revisions.
-- Removed master data, payments and sales facts become inactive. Removed issued orders and
-  transactions become void. Stock rows may be deleted. Retention reconciliation preserves these
-  same business semantics and local product configuration fields.
-- A source submission serializes its immutable key, verifies any existing hash, writes a complete
-  header and its items, invokes the source's approval routine and verifies the matching receipt
-  in one transaction. Retrying a lost acknowledgement finds the same source order.
-- Native outbound receipts update the command timeline without editing a sealed order or adding
-  domain history. There is no two-way order identity adoption.
-- A submission receipt is separate from business confirmation. Only a matching issued external
-  order with the original agreement seal enables its linked delivery/invoice records.
+Each instance has its own credentials, configuration, model scope, bookmark and outbox. A new China
+counterpart uses the same template deployment and another configured instance/relay route.
+The template adds no objects, CDC jobs, progress tables or scripts to Kingdee.
 
-Local orders remain editable agreements. Issued external orders and transactions are read-only
-source evidence. Synchronize external parents before transactions, payments and sales facts;
-reject cross-agreement relationships. There is no separate inbox, mirror or ingestion pipeline.
+Read settings:
 
-## Local acceptance
+- `baseCurrency`: verified account-set base currency; the default is CNY for the reference ledger.
+- `branchNo`: source branch; the reference value is `0`.
+- `fullSnapshotMinutes`: master full-reconciliation interval, default 1440.
+- `maxWindowMinutes`: unfinished-window age alert, default 15.
 
-`tests/fixtures/kingdee-simulation.sql` describes normalized mock tables, not actual Kingdee
-physical names. The accepted fallback target is SQL Server 2017 Developer, version 14.0.3550.4,
-inside the local `colima-trade-sql` Docker context on loopback port 14340. The separate browser
-simulation uses SQL Server 2022 on loopback port 14339. Test helpers reject connections outside
-a dedicated local `TradeSimulation_*` database.
+Writes additionally require `billerId`, `salespersonBindings` (owner ID to employee/department IDs),
+`currencyBindings` (ISO currency to source ID and base flag) and `settlementRules` (source settlement
+number to credit days/month-end rule). `packagingId` is optional. IDs and business rules must be
+verified for each account set; there are no guessed exchange, employee or payment-term mappings.
+`fromMonthEnd: true` selects the reference EPG rule: zero days means current month-end, and any
+positive term means next month-end (including both 30 and 60). It does not add days to month-end.
+A counterpart using a different rule needs its own verified rule binding.
 
-Use a fresh dedicated fixture database and a privately supplied
-`BOLT_TRADE_SQL_SIMULATION_DSN`. Run `bolt test -- tests/sql-simulation.test.ts` and
-`bolt test -- tests/sql-stock-posting.test.ts`. The first covers snapshot/delta, complete sales
-and purchase orders, amendments, lost remote/local acknowledgements, replay, payments and
-stock deletes. The second covers real source FIFO posting, delivery/invoice deduplication,
-supplier receipts, actual quantities above forecast and commissions tied to the original seal.
-`tests/custom-cdc.test.ts` independently probes bounded pages, fixed LSN ranges, source restore,
-cleanup gaps, precise amounts, tombstones and transactional submission.
+## Reads without CDC
 
-Capture, lag and retention health is recorded on the integration instance, and the
-`source_health` automation notifies configuration holders when it needs attention. A failed
-source request keeps the cursor unchanged. Template probes cover source algorithms and real
-database behavior. The rendered integration-sync test checks retry recovery after a successful
-receipt, followed by Confirmed only when matching issued source evidence arrives. Sync metadata changes preserve the sealed order's revision and
-history. Local UI probes remain a separate acceptance gate.
+Parties, products and warehouses use the native `FModifyTime` markers on their actual master and
+joined detail rows. The effective marker is the greatest dependency marker. SQL's type metadata
+must confirm each declared marker is a native eight-byte rowversion, including a marker exposed
+through a view. `FNumber` is a display number; stable master identities use `FItemID`.
 
-## Business and live-source checks
+Each window captures `U = MIN_ACTIVE_ROWVERSION()` before fetching data and selects
+`bookmark <= effective_marker < U`. The ceiling remains fixed across keyset pages. The engine
+commits each page and its continuation together; only completion advances the saved bookmark to U.
+An in-flight transaction cannot be skipped by advancing past its uncommitted marker. Failed reads,
+invalid rows or failed model writes leave the last committed page position unchanged.
 
-Forecast quantity does not cap source actuals. Physical invoices issued without a delivery count
-once; paired delivery/invoice documents do not post stock or commissions twice. Transaction
-items retain captured supplier net values. Commissions use source business dates, actual net and
-quantity, the original sealed rule and floor. The default is converted quantity rate plus positive
-above-floor spread; lot-cost profit remains a separate reporting measure. Returns reverse
-commission; saved statements stay immutable.
+This copies current state. It does not retain every intermediate edit as a transaction log would.
+Periodic complete master listings repair missed dependency changes. After a successful complete
+listing, bounded checks of existing local identities deactivate rows that have disappeared; no
+partial scan triggers absence reconciliation. Master records and local product settings remain.
 
-Teams, policies and approval fallback are source declarations. Sales and procurement submit
-through native approval when direct sealing permission is absent. A manager with direct
-permission seals normally. Read-only source credit does not gate local sealing; source credit
-rules remain authoritative.
+Stock is an aggregate complete read of ICInventory by item, warehouse and batch. Unknown cost,
+commitments and source position remain null. Unknown product prices, tax and units are not
+invented; order entry requires the missing commercial values before sealing.
 
-Live activation requires verified SQL Server version/edition, selected and supporting captures,
-cleanup retention, source keys, private connectivity and privileges. The historical Sales Bridge
-reference targets `SEOrder`/`SEOrderEntry`, omits checker fields and documented a missing sales
-style that prevented downstream deliveries. Those reference findings are not a live-source
-measurement. Verify actual sales/purchase approval, amendment and downstream document
-semantics instead of copying its allocation/report pipeline.
+Owned orders are identified by an existing `SEOrder.FUUID` derived from the local order and sealed
+agreement. Lines are fetched by captured `FInterID`, and complete owned-order reads also observe
+changes that do not bump the header. Delivery and invoice lineage follows the physical source
+order/entry references. Missing owned orders/documents become void; they are retained locally.
+No document links or PDFs are fabricated from SQL rows. Unapproved new DOs/invoices wait for
+approval; unauditing already retained evidence fails visibly instead of silently withdrawing it.
+An invoice may merge multiple deliveries of the same sealed line/lot; its local items aggregate
+quantity and net amount while financial facts retain exact upstream lineage.
 
-Manual acceptance must cover each affected view, EN/ZH, role scope, external read-only records,
-partial/over-forecast fulfillment, document download, approval fallback and configuration.
-Local mock success does not establish live Kingdee behavior. Staging remains untouched.
+Financial reads use verified invoice-to-receipt settlement links and preserve missing facts as
+inactive. Ambiguous allocations, unsupported reversals and unverified currency interpretations
+fail visibly. A remaining balance of zero is never treated as proof of payment.
+
+## Writes
+
+Quotations remain local and can be edited or exported before confirmation. Confirmation converts
+the quotation into an immutable SO: header and lines cannot reopen while delivery is queued or
+after the Kingdee counterpart appears. Read-only source evidence can change its own status without
+changing the sealed agreement. Cancellation and closure preserve that seal.
+
+An initial sealed sales agreement creates an **unapproved** SEOrder and its SEOrderEntry rows.
+One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
+FInterID through ICMaxNum, and writes the complete header/line set. Existing FUUID provenance
+makes retry identity independent of the nonunique bill number. A retry verifies the immutable
+source header, line cardinality and financial values before acknowledging the existing order.
+A lost response therefore retries the same order rather than creating a duplicate.
+
+A failed delivery preserves the sealed local SO and its lines, including mapping errors and
+source conflicts. The native queue retries, then retains an actionable dead letter after eight
+failed attempts. Correct the connection, mappings or source conflict and use **Replay dead letters**
+in the integration settings; replay uses the same frozen submission and the current configuration.
+
+If a document poll runs before the SO approval mirror catches up, it reports `parentPending`
+and preserves the cursor and existing evidence. The next poll resumes after that counterpart is
+issued; it does not attempt an invalid document upsert or reconcile rows as absent while waiting.
+
+The reader observes subsequent Kingdee approval; the template does not call a fictional approval
+procedure. Purchase-order creation, amendment writes, red-document reversals and a verified credit
+hold/limit mapping remain unavailable and fail explicitly. They must not fall back to normalized
+simulation tables or fabricate empty successful results.
+
+## Local validation boundary
+
+Focused template probes cover the SQL calls, mappings, fixed rowversion windows, continuation
+validation, immutable submissions, source lineage and financial ambiguity guards. The optional
+`kingdee-local-probe.test.ts` uses only a disposable loopback SQL database, synthetic Kingdee-shaped
+tables and restricted SQL logins, with CDC disabled and compatibility level 150.
+
+The standalone manual probe uses Microsoft SQL Server 2019 with synthetic Kingdee-shaped tables
+and the normal application credential-pairing UI. Its loopback-only SQL adapter is a local test
+transport, not a production policy change. SQL credentials remain sealed and masked. No real
+installation, Alibaba provisioning, Realm reset or deployment is part of this validation.

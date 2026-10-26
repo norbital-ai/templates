@@ -6,14 +6,12 @@
 	 */
 	import { Effect, FiberSet, type Fiber } from 'effect';
 	import { attach } from '@norbital-ai/ui/effect';
-	import { t } from '../../lib/ui/i18n/t.js';
 	import Icon from '@iconify/svelte';
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import { Button, Input } from '@norbital-ai/ui';
 	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { todayKey } from '../../lib/ui/format/calendar.js';
-	import { liveRows } from '../../lib/ui/state/live.svelte.js';
 	import { punchWork, type PunchResult } from './punch.js';
 	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
 
@@ -36,22 +34,22 @@
 	let result = $state<string | null>(null);
 	let resultTone = $state<'success' | 'warning'>('success');
 	let error = $state<string | null>(null);
-	const peopleQuery = liveRows(() =>
+	const peopleQuery = $derived.by(() =>
 		companyId == null || term.trim().length < 2
 			? null
-			: bolt.read('employment_profile', {
+			: bolt.query('employment_profile', {
 					search: term.trim(),
 					select: { name: true, email: true },
 					limit: 20
 				})
 	);
-	const people = $derived(peopleQuery.current ?? []);
+	const people = $derived(peopleQuery?.current?.rows ?? []);
 	const chosen = $derived(people.find((person) => person.id === chosenId) ?? null);
 
-	const employmentsQuery = liveRows(() =>
+	const employmentsQuery = $derived.by(() =>
 		chosen === null || companyId == null
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: {
 						employee_id: { eq: chosen.id },
 						company_id: { eq: companyId }
@@ -61,32 +59,33 @@
 				})
 	);
 	const employments = $derived(
-		(employmentsQuery.current ?? []).filter(
+		(employmentsQuery?.current?.rows ?? []).filter(
 			(row) => row.company_id === companyId && coversToday(row.effective_range)
 		)
 	);
 	const employmentsSettled = $derived(
-		chosen !== null && companyId != null && !employmentsQuery.loading
+		chosen !== null && companyId != null && !employmentsQuery?.loading
 	);
-	const companies = liveRows(() => bolt.read('entity', { select: { name: true }, limit: 200 }));
+	const companies = $derived.by(() => bolt.query('entity', { select: { name: true }, limit: 200 }));
 	const companyById = $derived(
-		new Map((companies.current ?? []).map((company) => [company.id, company.name]))
+		new Map((companies?.current?.rows ?? []).map((company) => [company.id, company.name]))
 	);
 
 	const acceptPunch = (outcome: PunchResult) => {
 		resultTone = outcome.status === 'blocked' ? 'warning' : 'success';
 		result =
 			outcome.status === 'blocked'
-				? t('kiosk.manual_refused', {
+				? bolt.t('kiosk.manual_refused', {
 						reason:
 							outcome.reason === 'cooldown'
-								? t('kiosk.too_soon_detail', {
+								? bolt.t('kiosk.too_soon_detail', {
 										seconds: Math.ceil((outcome.retryAfterMs ?? 0) / 1000)
 									})
-								: t('kiosk.unchanged_detail')
+								: bolt.t('kiosk.unchanged_detail')
 					})
-				: t('kiosk.manual_recorded', {
-						action: outcome.status === 'in' ? t('kiosk.recorded_in') : t('kiosk.recorded_out'),
+				: bolt.t('kiosk.manual_recorded', {
+						action:
+							outcome.status === 'in' ? bolt.t('kiosk.recorded_in') : bolt.t('kiosk.recorded_out'),
 						time: new Date(outcome.time ?? '').toLocaleTimeString(bolt.locale, {
 							hour: '2-digit',
 							minute: '2-digit'
@@ -139,35 +138,37 @@
 					<Icon icon="lucide:keyboard" class="size-5" />
 				</Frame>
 				<div>
-					<h1 class="text-section">{t('kiosk.manual_entry')}</h1>
+					<h1 class="text-section">{bolt.t('kiosk.manual_entry')}</h1>
 					<p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-						{t('kiosk.manual_description')}
+						{bolt.t('kiosk.manual_description')}
 					</p>
 				</div>
 			</Inline>
 
 			<Stack gap="md">
 				<Stack gap="sm">
-					<label for="kiosk-person-search" class="text-label">{t('kiosk.search_employee')}</label>
+					<label for="kiosk-person-search" class="text-label"
+						>{bolt.t('kiosk.search_employee')}</label
+					>
 					<Input
 						id="kiosk-person-search"
 						type="search"
 						disabled={companyId == null}
-						placeholder={t('kiosk.search_employee_placeholder')}
+						placeholder={bolt.t('kiosk.search_employee_placeholder')}
 						bind:value={term}
 					/>
 				</Stack>
 				{#if companyId == null}<p class="text-sm text-muted-foreground">
-						{t('kiosk.choose_entity_before_punch')}
+						{bolt.t('kiosk.choose_entity_before_punch')}
 					</p>{/if}
 				{#if error !== null}
 					<p role="alert" class="text-sm text-destructive">{error}</p>
 				{/if}
-				{#if peopleQuery.error}
-					<p role="alert" class="text-sm text-destructive">{peopleQuery.error}</p>
+				{#if peopleQuery?.error?.message}
+					<p role="alert" class="text-sm text-destructive">{peopleQuery?.error?.message}</p>
 				{/if}
-				{#if term.trim().length >= 2 && !peopleQuery.loading && people.length === 0}
-					<p class="text-sm text-muted-foreground">{t('kiosk.no_people_match')}</p>
+				{#if term.trim().length >= 2 && !peopleQuery?.loading && people.length === 0}
+					<p class="text-sm text-muted-foreground">{bolt.t('kiosk.no_people_match')}</p>
 				{/if}
 				{#if people.length > 0}
 					<Stack as="ul" gap="none" divided class="overflow-clip rounded-lg border">
@@ -213,31 +214,33 @@
 				{/if}
 			</Stack>
 
-			{#if employmentsQuery.error}
-				<p role="alert" class="text-sm text-destructive">{employmentsQuery.error}</p>
+			{#if employmentsQuery?.error?.message}
+				<p role="alert" class="text-sm text-destructive">{employmentsQuery?.error?.message}</p>
 			{/if}
-			{#if employmentsSettled && employments.length === 0 && employmentsQuery.error == null}
+			{#if employmentsSettled && employments.length === 0 && employmentsQuery?.error?.message == null}
 				<p class="rounded-lg bg-warning/10 p-4 text-sm text-warning-foreground">
-					{t('kiosk.no_active_contract_in_entity')}
+					{bolt.t('kiosk.no_active_contract_in_entity')}
 				</p>
 			{/if}
-			{#if employments.length > 1 || (employmentsQuery.current?.length ?? 0) >= 1_000}
-				<p role="alert" class="text-sm text-destructive">{t('kiosk.contract_scope_conflict')}</p>
+			{#if employments.length > 1 || (employmentsQuery?.current?.rows?.length ?? 0) >= 1_000}
+				<p role="alert" class="text-sm text-destructive">
+					{bolt.t('kiosk.contract_scope_conflict')}
+				</p>
 			{:else if employments.length === 1}
 				<Stack gap="md" class="border-t pt-6">
-					<h2 class="text-heading">{t('kiosk.active_employment')}</h2>
+					<h2 class="text-heading">{bolt.t('kiosk.active_employment')}</h2>
 					<Stack gap="none" divided class="overflow-clip rounded-lg border">
 						{#each employments as employment (employment.id)}
 							<Cluster gap="md" class="p-4">
 								<div class="min-w-0 grow basis-48">
 									<p class="truncate text-sm font-medium">
-										{companyById.get(employment.company_id) ?? t('kiosk.entity_unknown')}
+										{companyById.get(employment.company_id) ?? bolt.t('kiosk.entity_unknown')}
 									</p>
 									<p class="mt-1 font-mono text-meta">{employment.employee_number}</p>
 								</div>
 								<Button disabled={working} onclick={() => recordPunch(employment.id)}>
 									<Icon icon="lucide:clock" class="size-4" />
-									{t('kiosk.record_punch')}
+									{bolt.t('kiosk.record_punch')}
 								</Button>
 							</Cluster>
 						{/each}
@@ -265,7 +268,7 @@
 			<Inline as="footer" justify="end" class="border-t pt-5">
 				<Button variant="ghost" onclick={ondone}>
 					<Icon icon="lucide:arrow-left" class="size-4" />
-					{t('kiosk.back_to_clock')}
+					{bolt.t('kiosk.back_to_clock')}
 				</Button>
 			</Inline>
 		</Stack>

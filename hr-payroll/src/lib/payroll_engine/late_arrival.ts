@@ -1,29 +1,22 @@
+import { Array as EffectArray } from 'effect';
 /**
  * L-TPL-hr-payroll-058: a rostered WORK shift with no clock-in after the entity's grace is late;
  * committed TIME_OFF and any recorded worked_intervals (including an empty AWOL list) skip the notice.
  */
 import { parseDateTime, toZoned } from '@internationalized/date';
 import type { Id } from '@norbital-ai/bolt';
-import { Result, Schema } from 'effect';
+import { Result } from 'effect';
 import { coversDay, type LeaveMovement } from './leave.js';
-import { isJsonObject } from './foundation.js';
+import type { ShiftVariant } from './shift_pattern.js';
 
-const isString = Schema.is(Schema.String);
 const TIME = /^\d{2}:\d{2}$/;
-
-type ShiftVariant = {
-	readonly day_type?: string;
-	readonly start_time?: string;
-	readonly end_time?: string;
-	readonly break_minutes?: number;
-};
 
 type LateArrivalCandidate = {
 	readonly roster_entry_id: Id<'roster_entry'>;
 	readonly employment_id: string;
 	readonly work_date: string;
 	readonly worked_intervals: unknown;
-	readonly shift: ShiftVariant | null;
+	readonly shift: ShiftVariant;
 	readonly grace_minutes: number;
 	readonly time_zone: string;
 	readonly employee_name: string;
@@ -37,15 +30,6 @@ type LateArrivalNotice = {
 	readonly title: string;
 	readonly body: string;
 };
-
-export function shiftVariantFrom(value: unknown): ShiftVariant | null {
-	if (!isJsonObject(value)) return null;
-	return {
-		...(isString(value.day_type) ? { day_type: value.day_type } : {}),
-		...(isString(value.start_time) ? { start_time: value.start_time } : {}),
-		...(isString(value.end_time) ? { end_time: value.end_time } : {})
-	};
-}
 
 export function shiftStartMs(
 	work_date: string,
@@ -73,7 +57,7 @@ export function lateArrivalNotices(input: {
 	for (const row of input.candidates) {
 		const start_time = row.shift?.start_time;
 		if (row.shift?.day_type !== 'WORK' || start_time == null || !TIME.test(start_time)) continue;
-		if (Array.isArray(row.worked_intervals)) continue;
+		if (EffectArray.isArray(row.worked_intervals)) continue;
 		if (
 			input.leave.some(
 				(leave) => leave.employment_id === row.employment_id && coversDay(leave, row.work_date)

@@ -41,7 +41,7 @@ link to or embed in your own site. Anyone may open them.
 sent to them.
 
 The portal requests private `availability_requests` after the verified customer supplies their
-destination, preference and recurrence. The separate `openings` collection is a public service-level
+destination, preference and recurrence. The separate `openings` model is a public service-level
 summary; it names no helper or customer and does not reserve capacity. Closing sign-up in
 **Settings → People** stops new numbers from joining.
 
@@ -57,7 +57,7 @@ To embed the portal, frame it:
 Only the portal's pages may be framed; every other page refuses. Inside the frame, the customer's
 sign-in is kept apart from the host site's cookies, and writes started by another site are refused.
 
-Teams `team-operations` and `team-helpers`, their policies and any opt-in approval routes are
+Teams `operations` and `helpers`, their policies and any opt-in approval flows are
 authored under `src/access_control/`. Membership selects these source roles through People;
 teams, policies and approval definitions have no runtime editor. Dispatch thresholds, services
 and helper availability remain runtime configuration.
@@ -100,7 +100,7 @@ cached Google route times where available. Real push and WhatsApp delivery requi
 
 ## Data model
 
-| Collection              | Purpose                                                                           |
+| Model                   | Purpose                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------- |
 | `services`              | What is offered, with its skill and duration                                      |
 | `helpers`               | Helpers: skills, working days and hours, home area, last reported GPS position    |
@@ -219,11 +219,11 @@ All run as `dispatch_automation`.
 `src/+workspace.ts` names three connections, each an integration instance an administrator pairs
 under **Settings → Integrations** with the business's own account:
 
-| Connection      | Integration              | Used for                                                    |
-| --------------- | ------------------------ | ----------------------------------------------------------- |
-| `whatsapp`      | built-in `whatsapp`      | Customer and helper messages                                |
-| `customer_mail` | `customer_mail_delivery` | Customer notices from your own mailbox, with their delivery |
-| `google_routes` | `google_routes` (http)   | Drive times; its API key is entered when it is paired       |
+| Connection      | Integration            | Used for                                                                                         |
+| --------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `whatsapp`      | built-in `whatsapp`    | Customer and helper messages                                                                     |
+| `customer_mail` | built-in `email`       | Customer notices from your own mailbox (the `customer_notices` `mail` sync), with their delivery |
+| `google_routes` | `google_routes` (http) | Drive times; its API key is entered when it is paired                                            |
 
 No envoy answers on these instances. Until an instance is paired nothing is delivered through it:
 its messages stay queued, retrying or failed.
@@ -251,17 +251,24 @@ most 25 calls; a backlog drains over later runs. Volume depends on itinerary cha
 ```text
 src/
 ├── access_control/         source team declarations and policies
-├── data/model/…            services, helpers, helper_time_off, customers, bookings,
+├── data/model/<name>/      one folder per model: services, helpers, helper_time_off, customers, bookings,
 │                           booking_helpers, visits, helper_warnings, customer_notices,
-│                           booking_requests, availability_requests, openings, dispatch_settings, drive_times
-├── data/collection/…       bookings.book, visits.{reassign,reschedule,cancel,…},
-│                           helpers.{open_slots,offboard}, and the visit guard
+│                           booking_requests, availability_requests, openings, dispatch_settings, drive_times;
+│                           with native write guards, matching queries and the notices' `mail` sync
 ├── automation/             shift_watch, eta_watch, check_drives, warning_letter,
-│                           portal_intake, prepare_availability, publish_openings, deliver_notices, helper_alerts
-├── integration/            google_routes (http), customer_mail_delivery (email, outbound `notices`)
+│                           portal_intake, prepare_availability, publish_openings, deliver_notices, helper_alerts;
+│                           bookings_book, bookings_cancel, helpers_offboard and visits_* recovery/shift operations
+├── integration/            google_routes (http)
 ├── lib/matching.ts         the matching rules, pure and unit-tested
-└── lib/dispatch.ts         loading the pool (with cached drive times), Google calls, reassigning
+├── lib/dispatch.ts         loading the pool (with cached drive times), Google calls, reassignment plans
+├── lib/booking.ts          one atomic booking, its children and its confirmation notice
+└── lib/visit-recovery.ts   recovery plans shared by manual starts and proposal acceptance
 ```
+
+Manual operations use native automation starts and keep the starter's authority. Record operations
+take `targets: [id]` (or several ids in one planned batch), with operation fields beside it. A start
+queues the work; the native run status shows its result or refusal. The booking's nested visits and
+preferred helpers, and each operation's customer notices, commit in the same guarded native batch.
 
 ## Seed
 
@@ -277,11 +284,12 @@ Requires Node 26 or newer and pnpm. Run inside this directory:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm check   # bolt check
+pnpm exec bolt check   # types, Svelte warnings, layout and declarations
 pnpm test    # bolt build, then bolt test (including tests/e2e)
-pnpm lint    # prettier --check .
 ```
 
-`bolt build` generates the initial schema and seed packs under `.norbital/`; generated output is not
-committed and no incremental migration chain is maintained. The [local run sheet](docs/DEMO.md)
-covers booking and recovery acceptance in a running workspace.
+`bolt build` generates the artifact and seed packs under `.norbital/`; that output is not committed.
+Schema changes generate an editable SQL migration under `migrations/` and verify the complete
+history against the declaration. Commit the SQL, `snapshot.json` and `migrations.lock.json`
+together. The [local run sheet](docs/DEMO.md) covers booking and recovery acceptance in a running
+workspace.

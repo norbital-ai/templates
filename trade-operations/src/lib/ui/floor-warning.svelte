@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { bolt, query } from '$bolt';
+	import { bolt } from '$bolt';
 	import { type FormState, useKinds } from '@norbital-ai/ui';
-	import { currency as currencyCode } from '@norbital-ai/std/decimal';
+	import { currency as currencyCode, Decimal } from '@norbital-ai/std/decimal';
 	import { Result } from 'effect';
-	import { d } from '../commercial.js';
+
 	let {
 		form
 	}: {
@@ -28,20 +28,19 @@
 				product,
 				unit,
 				currency: currencyCode(currency),
-				price: d(price),
+				price: Decimal.of(price),
 				tax_inclusive: form.row.tax_inclusive === true,
-				tax_rate: d(String(form.row.tax_rate ?? '0'))
+				tax_rate: Decimal.of(String(form.row.tax_rate ?? '0'))
 			}))
 		);
 	});
-	const result = query(() => {
-		const selected = basis;
-		return selected === null ? null : bolt.query('pricing_floors.inventory_cost', selected);
-	});
+	const result = $derived(
+		basis === null ? null : bolt.query('pricing_floors.inventory_cost', basis)
+	);
 </script>
 
-{#if result.error}<p role="status" class="text-sm text-muted-foreground">
+{#if result?.error}<p role="status" class="text-sm text-muted-foreground">
 		{bolt.t('component.inventory_cost_unavailable')}
-	</p>{:else if result.current?.below}<p role="status" class="text-sm text-foreground">
+	</p>{:else if result?.current?.below}<p role="status" class="text-sm text-foreground">
 		{bolt.t('component.below_inventory_cost')}
 	</p>{/if}

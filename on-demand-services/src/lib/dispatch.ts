@@ -1,9 +1,16 @@
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 /**
- * The reads and writes around the matching rules, shared by the collection actions and the shift watch: loading the
+ * The reads and writes around the matching rules, shared by the booking and recovery automations and the dispatch runs: loading the
  * pool a match runs over, and handing visits to another helper.
  */
-import type { ActionCtx, AutomationCtx, Id, QueryCtx } from '@norbital-ai/bolt';
+import type {
+	ActInput,
+	AutomationCtx,
+	CollectionName,
+	CreateRow,
+	Id,
+	QueryCtx
+} from '@norbital-ai/bolt';
 import { addDays, Instant } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
 import {
@@ -17,37 +24,13 @@ import {
 	type Settings,
 	type Slot
 } from './matching.js';
-type Reads = Pick<QueryCtx, 'read' | 'tz' | 'now'>;
-type Writes = Reads & Pick<ActionCtx<'visits'>, 'act' | 'notify'>;
+type Reads = Pick<QueryCtx, 'query' | 'tz' | 'now'>;
+type Writes = Reads & Pick<AutomationCtx, 'act' | 'notify'>;
 const iso = (t: number) => Instant(new Date(t).toISOString());
-class DispatchSettingsInvalid extends Schema.TaggedError<DispatchSettingsInvalid>()(
-	'DispatchSettingsInvalid',
-	{ message: Schema.String }
-) {}
 /** The dispatch thresholds: the workspace's row, else the defaults. */
-export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<QueryCtx, 'read'>) {
-	const { rows } = yield* ctx.read('dispatch_settings', { limit: 1 });
-	return yield* Schema.decodeUnknownEffect(
-		Schema.Struct({
-			eta_limit_minutes: Schema.Number.pipe(
-				Schema.withDecodingDefault(Effect.succeed(DEFAULTS.eta_limit_minutes))
-			),
-			eta_check_lead_minutes: Schema.Number.pipe(
-				Schema.withDecodingDefault(Effect.succeed(DEFAULTS.eta_check_lead_minutes))
-			),
-			shift_check_lead_minutes: Schema.Number.pipe(
-				Schema.withDecodingDefault(Effect.succeed(DEFAULTS.shift_check_lead_minutes))
-			),
-			shift_reply_minutes: Schema.Number.pipe(
-				Schema.withDecodingDefault(Effect.succeed(DEFAULTS.shift_reply_minutes))
-			),
-			free_change_hours: Schema.Number.pipe(
-				Schema.withDecodingDefault(Effect.succeed(DEFAULTS.free_change_hours))
-			)
-		})
-	)(rows[0] ?? {}).pipe(
-		Effect.mapError((cause) => new DispatchSettingsInvalid({ message: String(cause) }))
-	);
+export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<QueryCtx, 'query'>) {
+	const { rows } = yield* ctx.query('dispatch_settings', { limit: 1 });
+	return rows[0] ?? DEFAULTS;
 });
 /** The local day of an instant as a UTC span. */
 export function dayOf(instant: string, zone: string): Slot {
@@ -72,9 +55,9 @@ export const loadPool = Effect.fnUntraced(function* (
 	const nextMonday = addDays(last, 7 - weekday(last));
 	const start = iso(utcOf(addDays(monday, -1), 0, ctx.tz)),
 		end = iso(utcOf(addDays(nextMonday, 1), 0, ctx.tz));
-	const { helpers, visits, proposed, off } = yield* ctx.read({
+	const { helpers, visits, proposed, off } = yield* ctx.query({
 		helpers: {
-			collection: 'helpers',
+			from: 'helpers',
 			where: { status: { eq: 'active' } },
 			select: {
 				name: true,
@@ -89,7 +72,7 @@ export const loadPool = Effect.fnUntraced(function* (
 			all: true
 		},
 		visits: {
-			collection: 'visits',
+			from: 'visits',
 			where: {
 				helper: { isNull: false },
 				status: { ne: 'cancelled' },
@@ -100,7 +83,7 @@ export const loadPool = Effect.fnUntraced(function* (
 		},
 		// a replacement awaiting approval holds its cleaner, so one cleaner is not proposed twice for one time
 		proposed: {
-			collection: 'visits',
+			from: 'visits',
 			where: {
 				attention: { eq: 'awaiting_approval' },
 				proposed_helper: { isNull: false },
@@ -110,7 +93,7 @@ export const loadPool = Effect.fnUntraced(function* (
 			all: true
 		},
 		off: {
-			collection: 'helper_time_off',
+			from: 'helper_time_off',
 			where: {
 				period: {
 					overlaps: { from: addDays(monday, -1), to: addDays(nextMonday, 1) }
@@ -154,7 +137,7 @@ export const loadPool = Effect.fnUntraced(function* (
 	const known =
 		legs.length === 0
 			? []
-			: (yield* ctx.read('drive_times', {
+			: (yield* ctx.query('drive_times', {
 					where: { leg: { in: legs } },
 					select: { leg: true, minutes: true },
 					all: true
@@ -231,8 +214,9 @@ export const learnLegs = Effect.fnUntraced(function* (
 		}
 	return [...learned].map(([leg, minutes]) => ({ leg, minutes }));
 });
-/** What a reassignment reads of each visit. */
+/** What a reassignment reads of each visit; its write is guarded by the revision read. */
 export const VISIT = {
+	revision: true,
 	number: true,
 	slot: true,
 	location: true,
@@ -242,6 +226,7 @@ export const VISIT = {
 } as const;
 type Visit = {
 	readonly id: Id<'visits'>;
+	readonly revision: number;
 	readonly number: string;
 	readonly slot: {
 		readonly start: Instant;
@@ -259,6 +244,12 @@ type Visit = {
 		readonly customer: Id<'customers'>;
 	};
 };
+/** A shift its cleaner still holds: a declined or lapsed day is `shift_watch`'s to recover, never moved by dispatch. */
+export const HELD_SHIFT = { in: ['not_due', 'asked', 'confirmed'] } as const;
+/** The revisions a write read its records at: a newer write to any of them is a conflict, not overwritten. */
+export const observedOf = <C extends CollectionName>(
+	rows: readonly { readonly id: Id<C>; readonly revision: number }[]
+) => Object.fromEntries(rows.map((row): [Id<C>, number] => [row.id, row.revision]));
 /** The WhatsApp address of a phone number. */
 export const whatsapp = (phone: string) => `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
 export const when = (instant: string, zone: string) =>
@@ -269,14 +260,14 @@ export const when = (instant: string, zone: string) =>
 	}).format(new Date(instant));
 /**
  * Hands each visit to the best helper free for it other than `away`, whose shift is then checked afresh. A customer who asked for particular helpers is told
- * who comes instead; one who did not is not. A visit nobody can take is left unassigned for dispatch.
+ * who comes instead; one who did not is not. A visit nobody can take is left unassigned for dispatch. A visit written
+ * since it was read fails the write with `ActConflict`, and nobody is told.
  */
-export const reassign = Effect.fnUntraced(function* (
-	ctx: Writes,
+export const planReassignment = Effect.fnUntraced(function* (
+	ctx: Reads,
 	visits: readonly Visit[],
 	away: Id<'helpers'>
 ) {
-	if (visits.length === 0) return { assigned: 0, unassigned: 0 };
 	const starts = visits.map((v) => v.slot.start).sort();
 	const pool = yield* loadPool(
 		ctx,
@@ -287,8 +278,8 @@ export const reassign = Effect.fnUntraced(function* (
 	const helpers = pool.helpers.filter((h) => h.id !== away);
 	const busy = [...pool.busy];
 	const names = new Map(pool.helpers.map((h) => [h.id, h.name]));
-	const updates = [];
-	const notices = [];
+	const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
+	const notices: CreateRow<'customer_notices'>[] = [];
 	let unassigned = 0;
 	for (const v of visits) {
 		const slot = { start: v.slot.start, end: v.slot.end! };
@@ -315,21 +306,39 @@ export const reassign = Effect.fnUntraced(function* (
 				body: `Your usual helper cannot make visit ${v.number} on ${when(v.slot.start, ctx.tz)}. ${names.get(best.helper)} will come instead at the same time. Reply to this email if that does not suit you.`
 			});
 	}
-	yield* ctx.act('visits.update', updates);
-	if (notices.length > 0) yield* ctx.act('customer_notices.create', notices);
-	if (unassigned > 0)
-		yield* ctx.notify({
-			to: { team: 'team-operations' },
-			title: `${unassigned} visit${unassigned === 1 ? '' : 's'} need a helper`,
-			body: visits.map((v) => v.number).join(', ')
-		});
-	return { assigned: visits.length - unassigned, unassigned };
+	return { updates, notices, assigned: visits.length - unassigned, unassigned };
 });
-/** Plan recovery in appointment order, reserving each recommendation only in this provisional plan. */
-export const recommend = Effect.fnUntraced(function* (
+export const reassign = Effect.fnUntraced(function* (
 	ctx: Writes,
 	visits: readonly Visit[],
 	away: Id<'helpers'>
+) {
+	if (visits.length === 0) return { assigned: 0, unassigned: 0 };
+	const { updates, notices, assigned, unassigned } = yield* planReassignment(ctx, visits, away);
+	yield* ctx.act.many([
+		{ callable: 'visits.update', input: updates, observed: observedOf(visits) },
+		...(notices.length > 0
+			? [{ callable: 'customer_notices.create' as const, input: notices }]
+			: [])
+	]);
+	if (unassigned > 0)
+		yield* ctx.notify({
+			title: `${unassigned} visit${unassigned === 1 ? '' : 's'} need a helper`,
+			description: visits.map((v) => v.number).join(', '),
+			to: [{ team: 'operations' }]
+		});
+	return { assigned, unassigned };
+});
+/**
+ * Plan recovery in appointment order, reserving each recommendation only in this provisional plan; a `lapsed` day (no
+ * answer in time) is marked `no_response` in the same write. A visit written since it was read fails the plan with
+ * `ActConflict`.
+ */
+export const recommend = Effect.fnUntraced(function* (
+	ctx: Writes,
+	visits: readonly Visit[],
+	away: Id<'helpers'>,
+	lapsed: boolean
 ) {
 	if (visits.length === 0) return;
 	const ordered = [...visits].sort((a, b) => a.slot.start.localeCompare(b.slot.start));
@@ -353,6 +362,7 @@ export const recommend = Effect.fnUntraced(function* (
 		return {
 			target: v.id,
 			set: {
+				...(lapsed ? { shift_check: 'no_response' as const } : {}),
 				helper: null,
 				unavailable_helper: away,
 				proposed_helper: best?.helper ?? null,
@@ -363,11 +373,11 @@ export const recommend = Effect.fnUntraced(function* (
 			}
 		};
 	});
-	yield* ctx.act('visits.update', updates);
+	yield* ctx.act('visits.update', updates, { observed: observedOf(visits) });
 	yield* ctx.notify({
-		to: { team: 'team-operations' },
 		title: 'Approve replacement cleaners',
-		body: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
+		description: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
+		to: [{ team: 'operations' }],
 		link: { collection: 'visits', id: ordered[0]!.id }
 	});
 });
@@ -375,21 +385,24 @@ export const recommend = Effect.fnUntraced(function* (
  * Keeps the committed schedule at a local optimum: every visit of the next two weeks that may still move (outside the
  * free-change window, its customer named no cleaner, nothing pending on it) is relocated between cleaners while a single
  * move lowers the matching objective (load balance, then added drive) by more than the continuity bonus. Hard
- * requirements hold for every move. The desk is told what changed; each cleaner is told by `helper_alerts`.
+ * requirements hold for every move, on visits whose shift is still held (`HELD_SHIFT`). The desk is told what changed; each cleaner is told by `helper_alerts`. A moved visit written since it was read fails
+ * the moves with `ActConflict`.
  */
 export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	const HOUR = 3600000;
 	const { free_change_hours } = yield* settingsOf(ctx);
 	const from = iso(Date.parse(ctx.now) + free_change_hours * HOUR);
 	const to = iso(Date.parse(ctx.now) + 14 * 24 * HOUR);
-	const { rows } = yield* ctx.read('visits', {
+	const { rows } = yield* ctx.query('visits', {
 		where: {
 			status: { eq: 'scheduled' },
 			helper: { isNull: false },
 			attention: { eq: 'none' },
+			shift_check: HELD_SHIFT,
 			slot: { overlaps: { start: from, end: to } }
 		},
 		select: {
+			revision: true,
 			slot: true,
 			location: true,
 			area: true,
@@ -416,14 +429,16 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	);
 	const result = improve(pool, movable, ctx.tz);
 	if (result.moves.length === 0) return;
+	const moved = new Set(result.moves.map((m) => m.visit));
 	yield* ctx.act(
 		'visits.update',
-		result.moves.map((m) => ({ target: m.visit as Id<'visits'>, set: { helper: m.to } }))
+		result.moves.map((m) => ({ target: m.visit, set: { helper: m.to } })),
+		{ observed: observedOf(rows.filter((v) => moved.has(v.id))) }
 	);
 	yield* ctx.notify({
-		to: { team: 'team-operations' },
 		title: `Schedule optimised: ${result.moves.length} reassignment${result.moves.length === 1 ? '' : 's'}`,
-		body: `Planned driving over the next two weeks is ${result.after} minutes, down from ${result.before}. Workload is spread more evenly; every move kept skills, hours, leave and travel buffers.`,
+		to: [{ team: 'operations' }],
+		description: `Planned driving over the next two weeks is ${result.after} minutes, down from ${result.before}. Workload is spread more evenly; every move kept skills, hours, leave and travel buffers.`,
 		once: `optimise-${ctx.now}`
 	});
 });

@@ -19,67 +19,75 @@ type RequestDays = {
 	/** The range's days that charge nothing: planned rest or off days and published holidays. */
 	readonly off: readonly string[];
 };
+export type RequestDaysInput = {
+	readonly employment_id: Id<'employment_contract'>;
+	readonly catalog_id: Id<'leave_catalog'>;
+	readonly from: unknown;
+	readonly to?: unknown;
+	readonly half_day_start?: boolean | null;
+	readonly half_day_end?: boolean | null;
+};
+const requestDayMembers = (input: RequestDaysInput, from: string, to: string) =>
+	({
+		employment: {
+			from: 'employment_contract',
+			where: { id: { eq: input.employment_id } },
+			select: { company_id: true, facts: true },
+			all: true
+		},
+		classes: {
+			from: 'leave_catalog',
+			where: { id: { eq: input.catalog_id } },
+			select: { code: true, unit: true, unplanned_days: true },
+			limit: 1
+		},
+		roster: {
+			from: 'roster_entry',
+			where: {
+				employment_id: { in: { member: 'employment', field: 'id' } },
+				work_date: { gte: PlainDate(from), lte: PlainDate(to) }
+			},
+			select: { work_date: true, shift_definition_id: true },
+			all: true
+		},
+		definitions: {
+			from: 'shift_definition',
+			where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
+			select: { code: true, variant: true },
+			all: true
+		},
+		patterns: {
+			from: 'shift_pattern',
+			where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
+			select: { pattern: true, effective_range: true },
+			all: true
+		},
+		holidays: {
+			from: 'holiday',
+			where: {
+				company_id: { in: { member: 'employment', field: 'company_id' } },
+				date: { gte: PlainDate(from), lte: PlainDate(to) },
+				published_at: { isNull: false }
+			},
+			select: { date: true },
+			all: true
+		}
+	}) as const;
+const readRequestDays = (read: Read, ...args: Parameters<typeof requestDayMembers>) =>
+	read(requestDayMembers(...args));
+export type RequestDaysRead = Effect.Success<ReturnType<typeof readRequestDays>>;
+
 export function requestDays(
-	input: {
-		readonly employment_id: Id<'employment_contract'>;
-		readonly catalog_id: Id<'leave_catalog'>;
-		readonly from: unknown;
-		readonly to?: unknown;
-		readonly half_day_start?: boolean | null;
-		readonly half_day_end?: boolean | null;
-	},
-	read: Read
+	input: RequestDaysInput,
+	read: Read,
+	prefetched?: RequestDaysRead
 ): Effect.Effect<RequestDays | string, ReadError> {
 	const run = Effect.fnUntraced(function* () {
 		const from = dayKey(input.from);
 		const to = dayKey(input.to) ?? from;
 		if (from == null || to == null || to < from)
 			return 'Choose the first and last day of the leave.';
-		const got = yield* read({
-			employment: {
-				collection: 'employment_contract',
-				where: { id: { eq: input.employment_id } },
-				select: { company_id: true, facts: true },
-				all: true
-			},
-			classes: {
-				collection: 'leave_catalog',
-				where: { id: { eq: input.catalog_id } },
-				select: { code: true, unit: true, unplanned_days: true },
-				limit: 1
-			},
-			roster: {
-				collection: 'roster_entry',
-				where: {
-					employment_id: { in: { member: 'employment', field: 'id' } },
-					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
-				},
-				select: { work_date: true, shift_definition_id: true },
-				all: true
-			},
-			definitions: {
-				collection: 'shift_definition',
-				where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
-				select: { code: true, variant: true },
-				all: true
-			},
-			patterns: {
-				collection: 'shift_pattern',
-				where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
-				select: { pattern: true, effective_range: true },
-				all: true
-			},
-			holidays: {
-				collection: 'holiday',
-				where: {
-					company_id: { in: { member: 'employment', field: 'company_id' } },
-					date: { gte: PlainDate(from), lte: PlainDate(to) },
-					published_at: { isNull: false }
-				},
-				select: { date: true },
-				all: true
-			}
-		});
+		const got = prefetched ?? (yield* readRequestDays(read, input, from, to));
 		const [contract] = got.employment.rows;
 		if (contract?.company_id == null) return 'This entry needs an actual employment.';
 		const [cls] = got.classes.rows;

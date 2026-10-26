@@ -11,7 +11,7 @@ import {
 export default policy({
 	description: 'Every HR and payroll authority; the final approver on every review route.',
 	capabilities: { apps: [...HR_APPS] },
-	automations: ['statutory_drift'],
+	automations: ['statutory_drift', 'employment_profile_anonymise'],
 	grants: { ...HR_ADMIN, ...HR_ENTRIES_DIRECT, ...PAYROLL_AUTHORITY },
 	limits: MEMBER_LIMITS
 });

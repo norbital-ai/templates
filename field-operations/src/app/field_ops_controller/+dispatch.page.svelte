@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { run, bolt } from '$bolt';
-	import { Effect, Schema } from 'effect';
+	import { Effect, Option, Schema } from 'effect';
+	import { observe } from '@norbital-ai/ui/effect';
 	import { watch } from 'runed';
 	import type { ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
-	import { Board, Button, TimeInput, EmptyState, Map, useKinds } from '@norbital-ai/ui';
+	import {
+		Board,
+		Button,
+		TimeInput,
+		EmptyState,
+		Map,
+		RunStatus,
+		notifyOutcome
+	} from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
-	import { live } from '../../lib/live.svelte.js';
-	import { dayIn, dayOf, getErrorMessage } from '../../lib/format.js';
+	import { dayOf, getErrorMessage } from '../../lib/format.js';
 	import { xlsxRecords } from '../../lib/xlsx.js';
 	import { decodeWorkOrders } from '../../lib/work-order-sheet.js';
 	class SheetFileUnavailable extends Schema.TaggedError<SheetFileUnavailable>()(
@@ -16,23 +24,25 @@
 		{ message: Schema.String }
 	) {}
 	const t = bolt.t;
-	const today = dayIn(useKinds().zone);
+	/** Today in the workspace zone, rolling over at midnight. */
+	const clock = bolt.clock('day');
 	/** The day is in the URL, so opening a record (which re-renders the page) keeps it. */
-	let day = $state<string>(new URL(location.href).searchParams.get('day') ?? today);
+	let day = $state<string>(new URL(location.href).searchParams.get('day') ?? clock.today);
 	/** The day as a date; an unreadable one reads as today. */
-	const date = $derived(dayOf(day) ?? today);
+	const date = $derived(dayOf(day) ?? clock.today);
 	watch(
 		() => day,
 		() => {
 			const url = new URL(location.href);
 			if (url.searchParams.get('day') === day) return;
 			url.searchParams.set('day', day);
-			history.replaceState(history.state, '', url);
+			const state: unknown = history.state;
+			history.replaceState(state, '', url);
 		},
 		{ lazy: false }
 	);
-	const jobs = live(() =>
-		bolt.read('job_assignments', {
+	const jobs = $derived(
+		bolt.query('job_assignments', {
 			where: { scheduled_for: { eq: date } },
 			select: { site_id: true },
 			limit: 1000
@@ -40,26 +50,26 @@
 	);
 	const dayJobs = $derived(jobs.current?.rows ?? []);
 	const siteIds = $derived([...new Set(dayJobs.map((job) => job.site_id))]);
-	const sites = live(() =>
+	const sites = $derived(
 		siteIds.length === 0
 			? null
-			: bolt.read('sites', {
+			: bolt.query('sites', {
 					where: { id: { in: siteIds } },
 					select: { name: true, location: true },
 					limit: 1000
 				})
 	);
 	const siteName = $derived(
-		new globalThis.Map((sites.current?.rows ?? []).map((site) => [site.id, site.name]))
+		new globalThis.Map((sites?.current?.rows ?? []).map((site) => [site.id, site.name]))
 	);
 	const mappedSites = $derived(
-		(sites.current?.rows ?? []).filter((site) => site.location != null).map((site) => site.id)
+		(sites?.current?.rows ?? []).filter((site) => site.location != null).map((site) => site.id)
 	);
 	/** Read once for the board: which of the day's jobs carry a finding nobody has answered. */
-	const open = live(() =>
+	const open = $derived(
 		dayJobs.length === 0
 			? null
-			: bolt.read('suspicious_activity_logs', {
+			: bolt.query('suspicious_activity_logs', {
 					where: {
 						resolved_at: { isNull: true },
 						job_assignment_id: { in: dayJobs.map((job) => job.id) }
@@ -69,13 +79,49 @@
 				})
 	);
 	const suspicious = $derived(
-		new Set((open.current?.rows ?? []).map((log) => log.job_assignment_id))
+		new Set((open?.current?.rows ?? []).map((log) => log.job_assignment_id))
 	);
 	const statusLabel = (status: 'unassigned' | 'assigned' | 'completed') =>
 		t(`component.status_${status}`);
 	let message = $state<string | null>(null);
 	let importing = $state(false);
 	let picker = $state<HTMLInputElement>();
+	let importRun = $state<{ id: string; file: string } | null>(null);
+	const importRuns = observe(() =>
+		importRun === null
+			? null
+			: bolt.runs('job_assignments_import_work_orders', {
+					where: { id: { eq: importRun.id } },
+					limit: 1
+				})
+	);
+	const recordedImport = $derived(importRuns.current?.rows[0]);
+	const importPending = $derived(
+		importRun !== null &&
+			importRuns.error === undefined &&
+			(recordedImport === undefined ||
+				recordedImport.status === 'queued' ||
+				recordedImport.status === 'running')
+	);
+	const ImportOutput = Schema.Struct({
+		created: Schema.Natural,
+		sites: Schema.Natural,
+		skipped: Schema.Natural
+	});
+	const importMessage = $derived.by(() => {
+		if (importRun === null) return message;
+		if (importRuns.error !== undefined) return getErrorMessage(importRuns.error);
+		if (recordedImport?.status === 'failed' || recordedImport?.status === 'stopped')
+			return recordedImport.error?.message ?? t('app.field_ops_controller.import_failed');
+		if (recordedImport?.status !== 'succeeded') return message;
+		const output = Schema.decodeUnknownOption(ImportOutput)(recordedImport.result);
+		return Option.isSome(output)
+			? t('app.field_ops_controller.import_done', {
+					count: output.value.created,
+					file: importRun.file
+				})
+			: t('app.field_ops_controller.import_failed');
+	});
 	const runImport = Effect.fn('Dispatch.importSheet')(function* (file: File) {
 		const rows = /\.xlsx$/i.test(file.name)
 			? yield* xlsxRecords(
@@ -94,20 +140,22 @@
 			message = t('app.field_ops_controller.import_empty', { file: file.name });
 			return;
 		}
-		const outcome = yield* bolt.act('job_assignments.import_work_orders', {
+		const started = bolt.start('job_assignments_import_work_orders', {
 			rows: yield* decodeWorkOrders(rows)
 		});
-		message =
-			outcome.kind === 'committed'
-				? t('app.field_ops_controller.import_done', {
-						count: outcome.output.created,
-						file: file.name
-					})
-				: t('app.field_ops_controller.import_failed');
+		const outcome = yield* started;
+		if (outcome.kind !== 'committed') {
+			message =
+				outcome.kind === 'refused' ? outcome.message : t('app.field_ops_controller.import_failed');
+			notifyOutcome(bolt, outcome);
+			return;
+		}
+		importRun = { id: outcome.output.id, file: file.name };
 	});
 	function importSheet(file: File): Promise<void> {
 		importing = true;
 		message = null;
+		importRun = null;
 		return run(
 			runImport(file).pipe(
 				Effect.catch((error) =>
@@ -134,10 +182,10 @@
 			<TimeInput
 				id="dispatch-day"
 				value={day}
-				onChange={(next: string | null) => (day = next ?? today)}
+				onChange={(next: string | null) => (day = next ?? clock.today)}
 			/>
 		</div>
-		<Button variant="ghost" onclick={() => (day = today)}
+		<Button variant="ghost" onclick={() => (day = clock.today)}
 			>{t('app.field_ops_controller.today')}</Button
 		>
 	</Cluster>
@@ -177,12 +225,18 @@
 				if (file) void importSheet(file);
 			}}
 		/>
-		{#if open.error}<p class="text-sm text-destructive" role="alert">
+		{#if open?.error}<p class="text-sm text-destructive" role="alert">
 				{t('app.field_ops_controller.review_status_failed')}
 			</p>{/if}
-		{#if message}<p role="status" class="text-sm whitespace-pre-line text-muted-foreground">
-				{message}
+		{#if importMessage}<p role="status" class="text-sm whitespace-pre-line text-muted-foreground">
+				{importMessage}
 			</p>{/if}
+		{#if importRun}
+			<RunStatus
+				automation="job_assignments_import_work_orders"
+				run={recordedImport ?? importRun.id}
+			/>
+		{/if}
 		<Split
 			ratio="wide"
 			collapse="switch"
@@ -211,7 +265,8 @@
 								icon: 'lucide:upload',
 								name: t('app.field_ops_controller.import_assignments'),
 								run: () => picker?.click(),
-								disabled: () => (importing ? t('app.field_ops_controller.importing') : null)
+								disabled: () =>
+									importing || importPending ? t('app.field_ops_controller.importing') : null
 							}
 						]
 					}}

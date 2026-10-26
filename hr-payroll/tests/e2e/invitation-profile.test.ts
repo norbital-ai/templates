@@ -16,7 +16,7 @@ it.live(
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
-			yield* admin.read('sys_user', { all: true });
+			yield* admin.query('sys_user', { all: true });
 			const actor = admin.authority.actor;
 			if (actor.kind !== 'member') throw new Error('The invitation administrator is not a member');
 			const cookie = yield* t.session(actor.id);
@@ -54,7 +54,7 @@ it.live(
 			);
 			expect(external.ok).toBe(true);
 			yield* t.runDue();
-			const profiles = yield* admin.read('employment_profile', { all: true });
+			const profiles = yield* admin.query('employment_profile', { all: true });
 			expect(profiles.rows.filter((row) => emails.includes(String(row.email)))).toHaveLength(1001);
 			expect(profiles.rows.some((row) => row.email === 'external@example.com')).toBe(false);
 			expect(
@@ -74,7 +74,7 @@ it.live(
 			expect(repeated.ok).toBe(true);
 			yield* t.runDue();
 			expect(
-				(yield* admin.read('employment_profile', {
+				(yield* admin.query('employment_profile', {
 					where: { email: { eq: firstEmail } },
 					all: true
 				})).rows
@@ -97,7 +97,7 @@ it.live(
 				{ address: '203.0.113.9' }
 			);
 			const answer = yield* Effect.tryPromise({
-				try: () => accepted.json(),
+				try: async (): Promise<unknown> => accepted.json(),
 				catch: (cause) => new InvitationResponseFailed({ cause })
 			});
 			expect(
@@ -108,7 +108,7 @@ it.live(
 				Schema.Struct({ value: Schema.Struct({ user: Schema.String }) })
 			)(answer);
 			yield* t.runDue();
-			const after = yield* admin.read('employment_profile', {
+			const after = yield* admin.query('employment_profile', {
 				where: { email: { eq: firstEmail } },
 				all: true
 			});

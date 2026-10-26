@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { fork, bolt } from '$bolt';
 	import { Effect } from 'effect';
-	import { untrack } from 'svelte';
 	import {
 		useKinds,
 		Button,
@@ -9,6 +8,7 @@
 		Icon,
 		Input,
 		Label,
+		notifyOutcome,
 		Section,
 		PhoneVerify,
 		PointInput,
@@ -20,7 +20,6 @@
 	import { Instant } from '@norbital-ai/std/date';
 	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
-	import { live } from '../../lib/live.svelte.js';
 	import type Data from './book.page.data.js';
 	import { bookReads } from './book.page.data.js';
 	let { data }: { data: typeof Data.Type } = $props();
@@ -33,13 +32,11 @@
 		if (next !== address) location = null;
 		address = next ?? '';
 	}
+	// read once verified: until then the page is the number alone; the server's answer until the live one arrives
+	const reads = me === null ? null : bolt.query(bookReads);
+	const answer = $derived(reads?.current ?? data);
 	// a returning customer starts with their details; typing replaces them
-	const mine = live(
-		() => (me === null ? null : bolt.read('customers', bookReads.mine)),
-		undefined,
-		untrack(() => data.mine ?? undefined)
-	);
-	const known = $derived(mine.current?.rows[0]);
+	const known = $derived(answer.mine?.rows[0]);
 	let service = $state<Id<'services'> | null>(null);
 	let name = $derived(known?.name ?? '');
 	let address = $derived(known?.address ?? '');
@@ -54,57 +51,44 @@
 	let request = $state<Id<'booking_requests'> | null>(null);
 	let busy = $state(false);
 	let error = $state<string | null>(null);
-	// read once verified: until then the page is the number alone
-	const services = live(
-		() => (me === null ? null : bolt.read('services', bookReads.services)),
-		undefined,
-		untrack(() => data.services ?? undefined)
-	);
-	const helpers = live(
-		() => (me === null ? null : bolt.read('helpers', bookReads.helpers)),
-		undefined,
-		untrack(() => data.helpers ?? undefined)
-	);
-	const quote = live(() =>
-		availability === null ? null : bolt.get('availability_requests', availability)
+	const quote = $derived(
+		availability === null ? null : bolt.query('availability_requests', { id: availability })
 	);
 	const days = $derived.by(() => {
 		const by = new Map<string, string[]>();
-		for (const start of quote.current?.starts ?? []) {
+		for (const start of quote?.current?.starts ?? []) {
 			const day = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date(start));
 			by.set(day, [...(by.get(day) ?? []), start]);
 		}
 		return [...by].map(([day, starts]) => ({ day, starts }));
 	});
-	const settled = live(() =>
+	const settled = $derived(
 		request === null
 			? null
-			: bolt.get('booking_requests', request, {
-					status: true,
-					number: true,
-					start: true,
-					booking: true
+			: bolt.query('booking_requests', {
+					id: request,
+					select: { status: true, number: true, start: true, booking: true }
 				})
 	);
-	const chosen = $derived(services.current?.rows.find((s) => s.id === service));
+	const chosen = $derived(answer.services?.rows.find((s) => s.id === service));
 	const mismatch = $derived(
 		preference === 'preferred' &&
 			helper !== null &&
 			chosen !== undefined &&
-			!helpers.current?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
+			!answer.helpers?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
 	);
 	/** The booking's first visit, once it is booked: who comes, and exactly when. */
-	const first = live(() => {
-		const booking = settled.current?.booking;
+	const first = $derived.by(() => {
+		const booking = settled?.current?.booking;
 		return booking == null
 			? null
-			: bolt.read('visits', {
+			: bolt.query('visits', {
 					where: { booking: { eq: booking } },
 					select: { slot: true, helper: { select: { name: true } } },
 					orderBy: { number: 'asc' },
 					limit: 1
 				});
-	}, ['visits', 'helpers']);
+	});
 	const visitSpan = (
 		slot: {
 			start: string;
@@ -120,9 +104,9 @@
 	};
 	/** What the confirmation lists: the visit, where, who comes (once matched) and the reference. */
 	const summary = $derived.by(() => {
-		const r = settled.current;
+		const r = settled?.current;
 		if (r == null) return [];
-		const visit = first.current?.rows[0];
+		const visit = first?.current?.rows[0];
 		return [
 			{ icon: 'lucide:sparkles', label: t('app.portal.row_service'), value: chosen?.name ?? '' },
 			{
@@ -150,7 +134,7 @@
 	});
 	/** The visit as a calendar file the customer's phone opens in its own calendar. */
 	function addToCalendar(reference: string) {
-		const slot = first.current?.rows[0]?.slot;
+		const slot = first?.current?.rows[0]?.slot;
 		if (slot == null) return;
 		const stamp = (i: string) => i.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 		const end =
@@ -218,6 +202,8 @@
 					repeat,
 					...(preference === 'preferred' && helper !== null ? { helper } : {})
 				});
+				// past the person-wait the request runs on: its run reports the outcome
+				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
 				const record =
 					outcome.kind === 'committed'
 						? outcome.records.find((record) => record.collection === 'availability_requests')
@@ -250,7 +236,7 @@
 			selectedService === null ||
 			selectedStart === null ||
 			selectedAvailability === null ||
-			quote.current?.status !== 'ready'
+			quote?.current?.status !== 'ready'
 		)
 			return;
 		busy = true;
@@ -267,6 +253,8 @@
 					repeat,
 					...(notes.trim() === '' ? {} : { notes: notes.trim() })
 				});
+				// past the person-wait the request runs on: its run reports the outcome
+				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
 				const record =
 					outcome.kind === 'committed'
 						? outcome.records.find((record) => record.collection === 'booking_requests')
@@ -330,7 +318,7 @@
 									value={service}
 									clearable
 									placeholder={t('app.booking.select_service')}
-									options={(services.current?.rows ?? []).map((s) => ({
+									options={(answer.services?.rows ?? []).map((s) => ({
 										value: s.id,
 										label: s.name
 									}))}
@@ -387,7 +375,7 @@
 									value={helper}
 									clearable
 									placeholder={t('app.booking.no_preference')}
-									options={(helpers.current?.rows ?? []).map((h) => ({
+									options={(answer.helpers?.rows ?? []).map((h) => ({
 										value: h.id,
 										label: h.name
 									}))}
@@ -423,10 +411,10 @@
 			{:else if step === 'time'}
 				<Stack gap="lg">
 					<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
-					{#if quote.current == null || quote.current.status === 'pending'}
+					{#if quote?.current == null || quote?.current.status === 'pending'}
 						<Spinner class="h-4 w-4" />
-					{:else if quote.current.status === 'failed'}
-						<p role="alert" class="text-sm text-destructive">{quote.current.problem}</p>
+					{:else if quote?.current.status === 'failed'}
+						<p role="alert" class="text-sm text-destructive">{quote?.current.problem}</p>
 					{:else if days.length === 0}
 						<p class="text-sm">{t('app.portal.no_times')}</p>
 					{:else}
@@ -439,7 +427,7 @@
 							{t}
 						/>
 					{/if}
-					{#if quote.current?.estimated}<p class="text-caption">
+					{#if quote?.current?.estimated}<p class="text-caption">
 							{t('app.booking.travel_estimated')}
 						</p>{/if}
 					{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
@@ -447,7 +435,7 @@
 						<Button
 							size="lg"
 							class="w-full"
-							disabled={start === null || busy || quote.current?.status !== 'ready'}
+							disabled={start === null || busy || quote?.current?.status !== 'ready'}
 							onclick={confirm}
 						>
 							{#if busy}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
@@ -464,7 +452,7 @@
 					</Stack>
 				</Stack>
 			{:else}
-				{@const r = settled.current}
+				{@const r = settled?.current}
 				{#if r == null || r.status === 'received'}
 					<Stack gap="md" align="center" class="py-12 text-center">
 						<Spinner class="h-6 w-6" />

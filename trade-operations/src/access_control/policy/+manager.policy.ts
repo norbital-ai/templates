@@ -4,6 +4,7 @@ export default policy({
 	capabilities: {
 		apps: ['operations']
 	},
+	automations: ['orders_cancel', 'orders_close'],
 	grants: {
 		ext_sales_orders: { read: true, history: true },
 		ext_purchase_orders: { read: true, history: true },
@@ -49,7 +50,6 @@ export default policy({
 			create: true,
 			update: true,
 			moves: 'all',
-			actions: ['cancel', 'close', 'revise'],
 			queries: [
 				'document_preview',
 				'document_versions',
@@ -90,6 +90,5 @@ export default policy({
 			history: true,
 			read: true
 		}
-	},
-	automations: ['export_order']
+	}
 });

@@ -1,48 +1,48 @@
 import { team } from '@norbital-ai/bolt';
 
-/** Source handles retain existing staff affiliations; labels carry no authority. */
+/** Readable source handles; the sample bank projection preserves existing staff affiliations. */
 export default team({
-	'019f8a10-0000-7000-8000-000000000001': {
+	employee: {
 		name: 'Employee',
 		parent: null,
 		policies: ['employee']
 	},
-	'019f8a10-0000-7000-8000-000000000002': {
+	supervisor: {
 		name: 'Supervisor',
 		parent: null,
 		policies: ['supervisor']
 	},
-	'019f8a10-0000-7000-8000-000000000003': {
+	manager: {
 		name: 'L1 Manager',
 		parent: null,
 		policies: ['manager']
 	},
-	'019f8a10-0000-7000-8000-000000000004': {
+	senior_management: {
 		name: 'Senior Management',
 		parent: null,
 		policies: ['senior_management']
 	},
-	'019f8a10-0000-7000-8000-000000000005': {
+	hr_controller: {
 		name: 'HQ Payroll HR',
 		parent: null,
 		policies: ['hr_controller']
 	},
-	'019f8a10-0000-7000-8000-000000000006': {
+	hr_manager: {
 		name: 'HR Manager',
 		parent: null,
 		policies: ['hr_manager']
 	},
-	'019f8a10-0000-7000-8000-000000000007': {
+	manager_hr_controller: {
 		name: 'Manager (HR Controller)',
 		parent: null,
 		policies: ['hr_controller']
 	},
-	'bb45fcf0-ee4c-5fc8-830f-73a002eff170': {
+	production_manager: {
 		name: 'Production Manager',
 		parent: null,
 		policies: ['supervisor']
 	},
-	'3d52a68b-017f-57d9-8fd2-fa7db4ca5965': {
+	attendance_kiosk: {
 		name: 'Attendance Kiosk',
 		parent: null,
 		policies: ['kiosk']

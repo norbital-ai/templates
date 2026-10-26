@@ -7,7 +7,7 @@ session rather than this template.
 
 ## Preparation
 
-From the template directory, run `pnpm check`, `pnpm build` and `pnpm dev`. When testing
+From the template directory, run `pnpm exec bolt check`, `pnpm build` and `pnpm dev`. When testing
 unpublished Norbital packages, apply the realm overlay first. Sign in as the local founder and
 use **Settings → People** to assign the declared Operations and Helpers teams. Link a helper’s
 sign-in account through their profile. Use separate browser profiles for controller, helper and

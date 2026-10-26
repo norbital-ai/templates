@@ -5,7 +5,7 @@ import { Schema } from 'effect';
 
 export const visitsReads = {
 	visits: {
-		collection: 'visits',
+		from: 'visits',
 		where: { status: { in: ['scheduled', 'in_progress', 'done'] } },
 		select: {
 			number: true,
@@ -19,7 +19,7 @@ export const visitsReads = {
 		limit: 100
 	},
 	notices: {
-		collection: 'customer_notices',
+		from: 'customer_notices',
 		select: { subject: true, body: true },
 		orderBy: { created_at: 'desc' },
 		limit: 10

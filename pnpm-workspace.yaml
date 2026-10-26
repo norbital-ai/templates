@@ -3,8 +3,9 @@ allowBuilds:
   isolated-vm: true
   msgpackr-extract: false
 
-# The root installs `@norbital-ai/bolt` for `bolt templates`. Like every template's own policy, only
-# these exact, reviewed first-party releases bypass the minimum-release-age gate.
+# The root installs `@norbital-ai/bolt` for `bolt templates` (no template carries
+# it; `bolt check` type-checks with each template's own Bolt). Like every template's
+# own policy, only these exact, reviewed first-party releases bypass the minimum-release-age gate.
 minimumReleaseAgeExclude:
   - '@norbital-ai/bolt@0.0.1'
   - '@norbital-ai/doctor@0.0.1'

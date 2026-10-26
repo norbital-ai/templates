@@ -11,8 +11,7 @@ import { Effect, Layer, Schema } from 'effect';
 
 const root = `${process.cwd()}/`;
 const Artifact = Schema.Struct({
-	transforms: Schema.Array(Schema.String),
-	projections: Schema.optionalKey(Schema.Array(Schema.String))
+	transforms: Schema.Array(Schema.String)
 });
 const built = (file: string) =>
 	Effect.try({
@@ -30,18 +29,17 @@ const json = (file: string) =>
 			})
 		)
 	);
+/** The template alone: its source and public base pack, or rows a test writes; never a private sample pack. */
 export type WorkspaceOptions<P extends TestPorts = never> = Omit<
 	Extract<TestOptions<P>, { artifact?: never }>,
-	'root' | 'manifest' | 'guest' | 'transforms' | 'projections'
+	'root' | 'manifest' | 'guest' | 'transforms' | 'seed'
 > & {
-	readonly sample?: true | undefined;
+	readonly seed?: Exclude<NonNullable<TestOptions<P>['seed']>, 'sample'>;
 };
 
 /** One scoped real workspace; source in node, prebuilt source and rows for the DOM sweep. */
 export function workspace<P extends TestPorts = never>(options: WorkspaceOptions<P> = {}) {
-	const { sample, ...rest } = options;
-	if (typeof window === 'undefined')
-		return TestWorkspace.layer({ root, ...(sample ? { seed: 'sample' } : {}), ...rest });
+	if (typeof window === 'undefined') return TestWorkspace.layer({ root, ...options });
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const manifest = yield* Effect.fromResult(decodeManifest(yield* json('manifest.json'))).pipe(
@@ -51,12 +49,10 @@ export function workspace<P extends TestPorts = never>(options: WorkspaceOptions
 				yield* json('artifact.json')
 			).pipe(Effect.mapError((cause) => new KitInvalid({ message: String(cause) })));
 			const source = yield* built('guest.mjs');
-			const supplied = rest.seed === 'none' || typeof rest.seed === 'object';
+			const supplied = options.seed === 'none' || typeof options.seed === 'object';
 			const pack = supplied
 				? undefined
-				: yield* readPack(
-						`${root}.norbital/seed/${sample || rest.seed === 'sample' ? 'sample' : 'base'}`
-					).pipe(
+				: yield* readPack(`${root}.norbital/seed/base`).pipe(
 						Effect.provide(NodeFileSystem.layer),
 						Effect.mapError(
 							(cause) =>
@@ -64,11 +60,10 @@ export function workspace<P extends TestPorts = never>(options: WorkspaceOptions
 						)
 					);
 			return TestWorkspace.layer({
-				...rest,
+				...options,
 				manifest,
 				guest: { source },
 				transforms: artifact.transforms,
-				projections: artifact.projections ?? [],
 				...(pack === undefined ? {} : { pack, seed: 'none' })
 			});
 		})

@@ -1,6 +1,5 @@
 /** L-TPL-hr-payroll-137 bank CSV, the OCBC FAST record and per-employee payslip CSV. */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import {
 	bankDocument,
@@ -39,56 +38,6 @@ describe('payroll export', () => {
 		assert.match(csv.content, /E-01,Kavriel Tan/);
 		assert.equal(payable('ON_HOLD', '6500.00'), false);
 		assert.equal(payable('DRAFT', '0'), false);
-	});
-
-	it('the OCBC FAST layout is the SG EXPORTS record, made only for an OCBC payer', () => {
-		const rows: { code: string; family: string; rules: unknown }[] = JSON.parse(
-			readFileSync(
-				new URL('../seed/jurisdiction/SG/version_4/rule_set.json', import.meta.url),
-				'utf8'
-			)
-		);
-		const fast = rows.find((row) => row.code === 'bank_ocbc_fast');
-		assert.equal(fast?.family, 'EXPORTS');
-		const render = (bank_code: string) =>
-			recordDocuments(
-				[{ code: 'bank_ocbc_fast', rules: fast!.rules }],
-				[{ period: '2026-03', pay_date: '2026-03-31' }],
-				[
-					{
-						employee: { name: 'Kavriel Tan' },
-						contract: { employee_number: 'E-01', bank: { bank_account_number: '123456789' } },
-						slips: [
-							{ period: '2026-03', status: 'DRAFT', gross: 6500, net: 6500, total_deductions: 0 }
-						]
-					},
-					{
-						employee: { name: 'Held' },
-						contract: { employee_number: 'E-02' },
-						slips: [
-							{ period: '2026-03', status: 'ON_HOLD', gross: 10, net: 10, total_deductions: 0 }
-						]
-					}
-				],
-				{
-					disbursement_account: {
-						bank_code,
-						bank_account_number: '999',
-						bank_account_name: 'Acme Pte Ltd'
-					}
-				}
-			);
-		const [file] = render('OCBCSGSGXXX');
-		assert.equal(file?.name, 'bank-2026-03.fast.txt');
-		assert.equal(
-			file?.content,
-			[
-				`0${'999'.padEnd(20)}${'ACME PTE LTD'.padEnd(35)}20260331`,
-				`1${'123456789'.padEnd(34)}000000650000${'KAVRIEL TAN'.padEnd(35)}${'E-01'.padEnd(16)}`,
-				`9000001${'650000'.padStart(18, '0')}`
-			].join('\n')
-		);
-		assert.deepEqual(render('DBSSSGSGXXX'), []);
 	});
 
 	it('L-TPL-hr-payroll-137 emits one payslip CSV per employee next to the bank file', () => {

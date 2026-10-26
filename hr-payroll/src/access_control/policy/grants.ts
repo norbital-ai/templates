@@ -1,3 +1,4 @@
+import type { ApprovalWrite, Flow } from '@norbital-ai/bolt';
 /**
  * The literals the policies share: self-service scopes, approval routes and the grant fragments several ranks repeat.
  *
@@ -130,71 +131,40 @@ const ROSTER_ENTRY_FULL_FIELDS = [
 	'facts'
 ] as const;
 
-const REVIEWERS = [
-	'019f8a10-0000-7000-8000-000000000006',
-	'019f8a10-0000-7000-8000-000000000004'
-] as const;
+const REVIEWERS = ['hr_manager', 'senior_management'] as const;
+const ATTENDANCE_REVIEWERS = ['manager', ...REVIEWERS] as const;
+const attendanceReview = (flow: Flow) =>
+	flow.step('Attendance review', { teams: ATTENDANCE_REVIEWERS }).supersededBy(REVIEWERS);
 
-/** A new day is reviewed when it arrives carrying attendance (`[]` is a claim too; null is a plan only). */
-export const ROSTER_ENTRY_CREATE_APPROVAL = {
-	match: { record: { worked_intervals: { isNull: false } } },
-	steps: [
-		[
-			'019f8a10-0000-7000-8000-000000000003',
-			'019f8a10-0000-7000-8000-000000000006',
-			'019f8a10-0000-7000-8000-000000000004'
-		]
-	],
-	superseded_by: REVIEWERS
-} as const;
-/** An edit is reviewed when it touches the clock, not when it only moves the plan. */
-export const ROSTER_ENTRY_UPDATE_APPROVAL = {
-	match: { changed: ['worked_intervals'] },
-	steps: [
-		[
-			'019f8a10-0000-7000-8000-000000000003',
-			'019f8a10-0000-7000-8000-000000000006',
-			'019f8a10-0000-7000-8000-000000000004'
-		]
-	],
-	superseded_by: REVIEWERS
-} as const;
+/** Attendance claims require review; a plan-only row is saved directly. */
+export const ROSTER_ENTRY_CREATE_APPROVAL = (
+	write: ApprovalWrite<'roster_entry', 'create'>,
+	flow: Flow
+) => (write.record.worked_intervals == null ? flow.allow() : attendanceReview(flow));
+/** Moving a plan needs no review; editing its clock does. */
+export const ROSTER_ENTRY_UPDATE_APPROVAL = (
+	write: ApprovalWrite<'roster_entry', 'update'>,
+	flow: Flow
+) => (write.changed.includes('worked_intervals') ? attendanceReview(flow) : flow.allow());
 
-/** A person's time off: the direct manager, or HR. */
-const LEAVE_APPROVAL = {
-	steps: [
-		[
-			'019f8a10-0000-7000-8000-000000000003',
-			'019f8a10-0000-7000-8000-000000000006',
-			'019f8a10-0000-7000-8000-000000000004'
-		]
-	],
-	superseded_by: REVIEWERS
-} as const;
-/** A claim a person raises about themselves. */
-const CLAIM_APPROVAL = {
-	steps: [
-		[
-			'019f8a10-0000-7000-8000-000000000005',
-			'019f8a10-0000-7000-8000-000000000006',
-			'019f8a10-0000-7000-8000-000000000004'
-		]
-	],
-	superseded_by: REVIEWERS
-} as const;
-/** Pay an HR controller proposes (ad hoc pay, loan terms) commits after the HR Manager approves. */
-const PAY_APPROVAL = {
-	steps: [['019f8a10-0000-7000-8000-000000000006', '019f8a10-0000-7000-8000-000000000004']],
-	superseded_by: ['019f8a10-0000-7000-8000-000000000004']
-} as const;
-/** A payroll run an HR controller proposes commits after the HR Manager approves. */
+/** A person's time off is reviewed by the manager or HR. */
+const LEAVE_APPROVAL = (_write: object, flow: Flow) =>
+	flow.step('Leave review', { teams: ATTENDANCE_REVIEWERS }).supersededBy(REVIEWERS);
+/** A claim is reviewed by payroll or HR. */
+const CLAIM_APPROVAL = (_write: object, flow: Flow) =>
+	flow.step('Claim review', { teams: ['hr_controller', ...REVIEWERS] }).supersededBy(REVIEWERS);
+/** Pay proposed by a controller needs HR Manager review. */
+const PAY_APPROVAL = (_write: object, flow: Flow) =>
+	flow.step('HR Manager review', { teams: REVIEWERS }).supersededBy(['senior_management']);
 const CONTROLLER_RUN_APPROVAL = PAY_APPROVAL;
-/** Seal or void of a settings version: HR Manager reviews; Senior Management writes through. */
-const SETTINGS_LIFECYCLE_APPROVAL = {
-	match: { changed: ['sealed_at', 'voided_at'] },
-	steps: [['019f8a10-0000-7000-8000-000000000006', '019f8a10-0000-7000-8000-000000000004']],
-	superseded_by: ['019f8a10-0000-7000-8000-000000000004']
-} as const;
+/** Draft edits execute directly; sealing or voiding needs a review. */
+const SETTINGS_LIFECYCLE_APPROVAL = (
+	write: ApprovalWrite<'jurisdiction_settings', 'update'>,
+	flow: Flow
+) =>
+	write.changed.some((field) => field === 'sealed_at' || field === 'voided_at')
+		? PAY_APPROVAL(write, flow)
+		: flow.allow();
 
 /** The jurisdiction records every rank reads: the version, its rules and its catalogues. */
 export const JURISDICTION_READ = {
@@ -232,13 +202,13 @@ const JURISDICTION_EDIT = {
 				'change_summary',
 				'effective_range',
 				'sources',
-				'cloned_from_id'
-			]
+				'cloned_from_id',
+				'sealed_at',
+				'voided_at'
+			],
+			approval: SETTINGS_LIFECYCLE_APPROVAL
 		},
-		delete: DRAFT_VERSION,
-		approval: {
-			update: { ...SETTINGS_LIFECYCLE_APPROVAL, previous: { voided_at: { isNull: true } } }
-		}
+		delete: DRAFT_VERSION
 	},
 	rule_set: DRAFT_ROW,
 	statutory_contribution_catalog: DRAFT_ROW,
@@ -287,22 +257,18 @@ export const SELF = {
 	employment_contract: { read: OWN_EMPLOYMENT },
 	claim_catalog_entry: {
 		read: OWN,
-		approval: {
-			create: { ...CLAIM_APPROVAL, where: OWN, fields: CLAIM_ENTRY_FIELDS },
-			update: { ...CLAIM_APPROVAL, where: { ...OWN, ...UNPINNED }, fields: CLAIM_ENTRY_EDIT }
-		},
+		create: { where: OWN, fields: CLAIM_ENTRY_FIELDS, approval: CLAIM_APPROVAL },
+		update: { where: { ...OWN, ...UNPINNED }, fields: CLAIM_ENTRY_EDIT, approval: CLAIM_APPROVAL },
 		delete: { ...OWN, ...UNPINNED }
 	},
 	leave_catalog_entry: {
 		read: OWN,
-		approval: {
-			create: {
-				...LEAVE_APPROVAL,
-				where: { ...OWN, activity: { eq: 'TIME_OFF' } },
-				fields: LEAVE_ENTRY_FIELDS
-			},
-			update: { ...LEAVE_APPROVAL, where: { ...OWN, ...UNPINNED }, fields: LEAVE_ENTRY_EDIT }
+		create: {
+			where: { ...OWN, activity: { eq: 'TIME_OFF' } },
+			fields: LEAVE_ENTRY_FIELDS,
+			approval: LEAVE_APPROVAL
 		},
+		update: { where: { ...OWN, ...UNPINNED }, fields: LEAVE_ENTRY_EDIT, approval: LEAVE_APPROVAL },
 		delete: { ...OWN, ...UNPINNED },
 		queries: LEAVE_ENTRY_QUERIES
 	},
@@ -369,7 +335,7 @@ export const STAFF_READ = {
 const hrEntries = <
 	F extends readonly string[],
 	E extends readonly string[],
-	A extends object | undefined
+	A extends ((_write: object, flow: Flow) => Flow) | undefined
 >(
 	fields: F,
 	edit: E,
@@ -377,9 +343,7 @@ const hrEntries = <
 ) =>
 	({
 		read: true,
-		...(approval === undefined
-			? { create: { fields } }
-			: { approval: { create: { ...approval, fields } } }),
+		create: { fields, ...(approval === undefined ? {} : { approval }) },
 		update: {
 			previous: UNPINNED,
 			where: { or: [UNPINNED, PINNED] },
@@ -389,12 +353,10 @@ const hrEntries = <
 	}) as const;
 
 /** Loan terms own their repayment schedule; the transform preserves settled rows and validates the balance. */
-const hrLoans = <A extends object | undefined>(approval: A) =>
+const hrLoans = <A extends ((_write: object, flow: Flow) => Flow) | undefined>(approval: A) =>
 	({
 		read: true,
-		...(approval === undefined
-			? { create: { fields: LOAN_ENTRY_FIELDS } }
-			: { approval: { create: { ...approval, fields: LOAN_ENTRY_FIELDS } } }),
+		create: { fields: LOAN_ENTRY_FIELDS, ...(approval === undefined ? {} : { approval }) },
 		update: { fields: LOAN_ENTRY_FIELDS },
 		delete: true
 	}) as const;
@@ -416,29 +378,17 @@ export const HR_ADMIN = {
 	holiday: { read: true, create: true, update: true },
 	shift_pattern: { read: true, create: true, update: true },
 	shift_definition: { read: true, create: true, update: true },
-	employment_profile: { read: true, create: true, update: true, actions: ['anonymise'] },
+	employment_profile: { read: true, create: true, update: true },
 	employment_contract: { read: true, create: true, update: true },
 	roster: { read: true, create: true, update: true },
 	roster_entry: {
 		read: true,
-		create: { where: { worked_intervals: { isNull: true } }, fields: ROSTER_ENTRY_FULL_FIELDS },
+		create: { fields: ROSTER_ENTRY_FULL_FIELDS, approval: ROSTER_ENTRY_CREATE_APPROVAL },
 		update: {
-			// Unchanged settled uploads reach the hook; it refuses every actual edit to a settled day.
 			previous: { or: [UNPINNED, PINNED] },
 			where: { or: [UNPINNED, PINNED] },
-			fields: [
-				...ROSTER_ENTRY_FULL_FIELDS.filter((field) => field !== 'worked_intervals'),
-				'payslip_id'
-			]
-		},
-		approval: {
-			create: { ...ROSTER_ENTRY_CREATE_APPROVAL, fields: ROSTER_ENTRY_FULL_FIELDS },
-			update: {
-				...ROSTER_ENTRY_UPDATE_APPROVAL,
-				previous: { or: [UNPINNED, PINNED] },
-				where: { or: [UNPINNED, PINNED] },
-				fields: [...ROSTER_ENTRY_FULL_FIELDS, 'payslip_id']
-			}
+			fields: [...ROSTER_ENTRY_FULL_FIELDS, 'payslip_id'],
+			approval: ROSTER_ENTRY_UPDATE_APPROVAL
 		},
 		delete: UNPINNED
 	},
@@ -538,7 +488,7 @@ export const PAYROLL_CONTROLLER = {
 	loan_repayment_entry: PAYROLL_LOAN_REPAYMENTS,
 	payroll_run: {
 		read: true,
-		approval: { create: { ...CONTROLLER_RUN_APPROVAL, fields: RUN_FIELDS } },
+		create: { fields: RUN_FIELDS, approval: CONTROLLER_RUN_APPROVAL },
 		update: { fields: ['configuration_hash', 'warnings'] },
 		queries: PAYROLL_EXPORT_QUERIES
 	},

@@ -7,12 +7,13 @@
 	import {
 		Button,
 		Combobox,
-		JsonSchemaForm,
+		StructuredData,
 		TimeInput,
 		Input,
 		Label,
 		openRecord,
 		Sheet,
+		notifyOutcome,
 		toast
 	} from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
@@ -27,9 +28,7 @@
 	import { formValue, fromForm, missingRequired, schemaAt, TERM_KEYS } from './input_schema.js';
 	import { formSchema } from './form_schema.js';
 	import ContractAllowances from './contract_allowances.svelte';
-	import { t } from '../i18n/t.js';
 	import { todayKey } from '../format/calendar.js';
-	import { liveRows } from '../state/live.svelte.js';
 	let {
 		employeeId,
 		name
@@ -64,20 +63,20 @@
 		bank_account_number: '',
 		bank_account_name: ''
 	});
-	const entities = liveRows(() =>
-		sheetOpen ? bolt.read('entity', { select: { id: true, name: true }, all: true }) : null
+	const entities = $derived.by(() =>
+		sheetOpen ? bolt.query('entity', { select: { id: true, name: true }, all: true }) : null
 	);
 	/** The version governing the start day: its term schema is the form, its payroll currency the salary's. */
 	const version = governingVersion(
 		() => (sheetOpen ? companyId : null),
 		() => start
 	);
-	const termSchema = $derived(schemaAt(version.current?.employee_input_schema, 'contract_terms'));
+	const termSchema = $derived(schemaAt(version.schema, 'contract_terms'));
 	const termForm = $derived(formSchema(termSchema, TERM_KEYS));
 	const currency = $derived(version.current?.payroll?.currency ?? '');
-	const patterns = liveRows(() =>
+	const patterns = $derived.by(() =>
 		sheetOpen && companyId != null
-			? bolt.read('shift_pattern', {
+			? bolt.query('shift_pattern', {
 					where: { company_id: { eq: companyId } },
 					select: { id: true, code: true, name: true },
 					all: true
@@ -99,7 +98,7 @@
 		if (saving || companyId == null || start == null || start === '') return;
 		const salaryAmount = parseAmount(salary);
 		if (salaryAmount == null) {
-			toast.error(t('offboarding.need_valid_salary'));
+			toast.error(bolt.t('offboarding.need_valid_salary'));
 			return;
 		}
 		const allowanceLines: AllowanceDraft[] = [];
@@ -107,7 +106,7 @@
 			if (line.code.trim() === '' && line.amount.trim() === '') continue;
 			const amount = parseAmount(line.amount);
 			if (amount == null) {
-				toast.error(t('offboarding.need_valid_salary'));
+				toast.error(bolt.t('offboarding.need_valid_salary'));
 				return;
 			}
 			allowanceLines.push({ code: line.code, amount });
@@ -120,7 +119,7 @@
 		};
 		const missing = missingRequired(termSchema, term);
 		if (missing.length > 0) {
-			toast.error(t('component.required_missing', { fields: missing.join(', ') }));
+			toast.error(bolt.t('component.required_missing', { fields: missing.join(', ') }));
 			return;
 		}
 		const set = hireContractSet({
@@ -159,9 +158,14 @@
 				};
 				const outcome = yield* bolt.act('employment_contract.create', payload);
 				{
-					toast.success(
-						outcome.kind === 'pendingApproval' ? t('offboarding.pending') : t('component.hire')
-					);
+					// past the person-wait the write runs on: its run reports the outcome
+					if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
+					else
+						toast.success(
+							outcome.kind === 'pendingApproval'
+								? bolt.t('offboarding.pending')
+								: bolt.t('component.hire')
+						);
 					const created =
 						outcome.kind === 'committed'
 							? outcome.records.find((row) => row.collection === 'employment_contract')
@@ -172,7 +176,7 @@
 			}).pipe(
 				Effect.catch((failure) =>
 					Effect.sync(() => {
-						toast.error(failure instanceof Error ? failure.message : t('component.error'));
+						toast.error(failure instanceof Error ? failure.message : bolt.t('component.error'));
 					})
 				),
 				Effect.ensuring(
@@ -185,13 +189,15 @@
 	}
 </script>
 
-<Button size="sm" variant="outline" disabled={saving} onclick={open}>{t('component.hire')}</Button>
+<Button size="sm" variant="outline" disabled={saving} onclick={open}
+	>{bolt.t('component.hire')}</Button
+>
 
-<Sheet bind:open={sheetOpen} title={t('component.hire_title', { name })}>
+<Sheet bind:open={sheetOpen} title={bolt.t('component.hire_title', { name })}>
 	<Stack gap="md">
-		<p class="text-sm text-muted-foreground">{t('component.hire_description')}</p>
+		<p class="text-sm text-muted-foreground">{bolt.t('component.hire_description')}</p>
 		<Stack gap="xs">
-			<Label for="hire-number">{t('component.employee_number')}</Label>
+			<Label for="hire-number">{bolt.t('component.employee_number')}</Label>
 			<Input
 				id="hire-number"
 				value={employeeNumber}
@@ -201,11 +207,11 @@
 			/>
 		</Stack>
 		<Stack gap="xs">
-			<Label for="hire-company">{t('component.legal_entity')}</Label>
+			<Label for="hire-company">{bolt.t('component.legal_entity')}</Label>
 			<Combobox
 				id="hire-company"
 				class="w-full"
-				options={(entities.current ?? []).map((row) => ({
+				options={(entities?.current?.rows ?? []).map((row) => ({
 					value: row.id,
 					label: row.name ?? row.id
 				}))}
@@ -219,7 +225,7 @@
 			/>
 		</Stack>
 		<Stack gap="xs">
-			<Label for="hire-start">{t('offboarding.new_start')}</Label>
+			<Label for="hire-start">{bolt.t('offboarding.new_start')}</Label>
 			<TimeInput
 				id="hire-start"
 				of="date"
@@ -229,7 +235,7 @@
 			/>
 		</Stack>
 		<Stack gap="xs">
-			<Label for="hire-salary">{t('component.base_salary')}</Label>
+			<Label for="hire-salary">{bolt.t('component.base_salary')}</Label>
 			<Input
 				id="hire-salary"
 				type="number"
@@ -240,10 +246,11 @@
 			/>
 		</Stack>
 		{#if companyId != null && start != null && version.current == null && !version.loading}
-			<p class="text-sm text-destructive">{t('component.no_governing_version')}</p>
+			<p class="text-sm text-destructive">{bolt.t('component.no_governing_version')}</p>
 		{/if}
 		{#if termForm != null}
-			<JsonSchemaForm
+			<StructuredData
+				mode="edit"
 				schema={termForm}
 				value={formValue(values, TERM_KEYS)}
 				onChange={(next) => (values = fromForm(values, TERM_KEYS, next))}
@@ -252,13 +259,13 @@
 				disabled={saving}
 			/>
 		{/if}
-		{#if (patterns.current ?? []).length > 0}
+		{#if (patterns?.current?.rows ?? []).length > 0}
 			<Stack gap="xs">
-				<Label for="hire-pattern">{t('component.shift_pattern')}</Label>
+				<Label for="hire-pattern">{bolt.t('component.shift_pattern')}</Label>
 				<Combobox
 					id="hire-pattern"
 					class="w-full"
-					options={(patterns.current ?? []).map((row) => ({
+					options={(patterns?.current?.rows ?? []).map((row) => ({
 						value: row.id,
 						label: row.name ?? row.code ?? row.id
 					}))}
@@ -271,7 +278,7 @@
 		<ContractAllowances bind:lines={allowances} disabled={saving} />
 		{#each BANK_FIELDS as field (field)}
 			<Stack gap="xs">
-				<Label for={`hire-${field}`}>{t(`component.${field}`)}</Label>
+				<Label for={`hire-${field}`}>{bolt.t(`component.${field}`)}</Label>
 				<Input
 					id={`hire-${field}`}
 					value={bank[field]}
@@ -283,7 +290,7 @@
 		{/each}
 		<Cluster gap="sm" justify="end">
 			<Button variant="outline" disabled={saving} onclick={() => (sheetOpen = false)}>
-				{t('component.cancel')}
+				{bolt.t('component.cancel')}
 			</Button>
 			<Button
 				disabled={saving ||
@@ -294,7 +301,7 @@
 					version.current == null}
 				onclick={() => void submit()}
 			>
-				{t('component.hire')}
+				{bolt.t('component.hire')}
 			</Button>
 		</Cluster>
 	</Stack>

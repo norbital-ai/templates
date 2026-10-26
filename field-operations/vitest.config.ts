@@ -1,13 +1,10 @@
 import { defineConfig } from 'vitest/config';
 
-// `bolt test` brings svelte, the kit's resolution, `$bolt` and the DOM conditions.
+// `bolt test` brings svelte, the kit's resolution, `$bolt`, the DOM conditions and the timeouts.
 export default defineConfig({
 	test: {
-		// `pnpm test:e2e` runs the surface sweep alone
-		include: process.env['E2E'] ? ['tests/e2e/**/*.test.ts'] : ['tests/*.test.ts'],
-		testTimeout: 180_000,
-		hookTimeout: 60_000,
-		fileParallelism: false,
+		include: ['tests/**/*.test.ts'],
+		// Node's own `localStorage` (undefined without a file) shadows the DOM environment's in the sweep
 		execArgv: ['--no-experimental-webstorage']
 	}
 });

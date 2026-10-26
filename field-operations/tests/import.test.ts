@@ -12,7 +12,7 @@ import { zipSync } from 'fflate';
 import { csvRecords } from '../src/lib/csv.ts';
 import { xlsxRecords } from '../src/lib/xlsx.ts';
 import { decodeWorkOrders } from '../src/lib/work-order-sheet.ts';
-import { CONTROLLER, rows, workspace } from './kit.ts';
+import { completedRun, CONTRACTOR, CONTROLLER, person, rows, workspace } from './kit.ts';
 it.live('imports the sample xlsx once, filing a site for every address the workspace lacks', () =>
 	Effect.gen(function* () {
 		const bytes = readFileSync('tests/fixtures/job-import.xlsx');
@@ -38,14 +38,21 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		const count = Effect.fnUntraced(function* (c: string) {
 			return Number(present((yield* rows(t, `SELECT count(*)::int AS n FROM ${c}`))[0]).n);
 		});
-		expect(yield* as.act('job_assignments.import_work_orders', { rows: decoded })).toMatchObject({
-			kind: 'committed',
+		const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+		expect(started.kind).toBe('committed');
+		if (started.kind !== 'committed') throw new Error('The sheet import did not start.');
+		expect(yield* rows(t, 'SELECT state FROM sys_run WHERE id = $1', [started.output.id])).toEqual([
+			{ state: 'queued' }
+		]);
+		expect(yield* completedRun(t, started.output.id)).toMatchObject({
+			state: 'succeeded',
+			error: null,
 			output: { created: 5, sites: 4, skipped: 0 }
 		});
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 5]);
 		expect(
 			present(
-				(yield* as.read('sites', { where: { site_key: { eq: '520412#07-221' } }, all: true }))
+				(yield* as.query('sites', { where: { site_key: { eq: '520412#07-221' } }, all: true }))
 					.rows[0]
 			)
 		).toMatchObject({
@@ -59,17 +66,27 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		);
 		expect(survey).toMatchObject({ day: '2026-10-12', status: 'unassigned' });
 		expect(present(install).site_id).toBe(present(survey).site_id);
-		t.count.reset();
-		expect(yield* as.act('job_assignments.import_work_orders', { rows: decoded })).toMatchObject({
+		const repeated = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+		expect(repeated.kind).toBe('committed');
+		if (repeated.kind !== 'committed') throw new Error('The repeated sheet import did not start.');
+		expect(yield* completedRun(t, repeated.output.id)).toMatchObject({
+			state: 'succeeded',
+			error: null,
 			output: { created: 0, skipped: 5 }
 		});
-		expect(t.count.reads).toBe(1);
-		yield* as.act('job_assignments.import_work_orders', {
+		const additional = yield* as.start('job_assignments_import_work_orders', {
 			rows: yield* decodeWorkOrders(
 				csvRecords(
 					'site,postal_code,scheduled_for,title\nBlk 412 Tampines St 41 #07-221,520412,2026-10-26,Defect rectification'
 				)
 			)
+		});
+		expect(additional.kind).toBe('committed');
+		if (additional.kind !== 'committed')
+			throw new Error('The additional sheet import did not start.');
+		expect(yield* completedRun(t, additional.output.id)).toMatchObject({
+			state: 'succeeded',
+			error: null
 		});
 		expect(yield* count('sites')).toBe(4);
 		const [linked] = yield* rows(
@@ -90,24 +107,19 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			])
 		);
 		expect(badUser.message).toMatch(/id|sys_user/);
-		const raw = yield* Context.get(t.services, Callables).action({
-			collection: 'job_assignments',
-			action: 'import_work_orders',
-			input: { rows: invalidRows },
-			key: 'invalid-sheet',
-			invocationId: 'invalid-sheet',
-			issuedAt: t.clock.now(),
+		const raw = yield* Context.get(t.services, Callables).start({
+			automation: 'job_assignments_import_work_orders',
+			runs: [{ id: crypto.randomUUID(), input: { rows: invalidRows } }],
 			authority: as.authority,
-			from: 'Client',
 			bindings: { now: t.clock.now(), today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
 		});
-		expect(raw.outcome).toMatchObject({ kind: 'refused' });
-		if (raw.outcome.kind !== 'refused') throw new Error('Invalid raw sheet committed');
-		expect(raw.outcome.message).toBe(
+		expect(raw).toMatchObject({ kind: 'refused' });
+		if (raw.kind !== 'refused') throw new Error('Invalid raw sheet queued');
+		expect(raw.message).toBe(
 			'rows.0.scheduled_for: expected a date (YYYY-MM-DD); rows.1.assignee_user_id: expected an id'
 		);
-		expect(raw.outcome.message).toContain('rows.0.scheduled_for');
-		expect(raw.outcome.message).toContain('rows.1.assignee_user_id');
+		expect(raw.message).toContain('rows.0.scheduled_for');
+		expect(raw.message).toContain('rows.1.assignee_user_id');
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 6]);
 	})
 );
@@ -124,17 +136,21 @@ it.live('refuses every unresolved site without valid coordinates before writing 
 					'40 Fourth Road,2026-10-01,Incomplete location,1.3,'
 			)
 		);
-		const refused = yield* Effect.flip(
-			as.act('job_assignments.import_work_orders', { rows: decoded })
-		);
+		const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+		expect(started.kind).toBe('committed');
+		if (started.kind !== 'committed') throw new Error('The invalid-location sheet did not start.');
+		const refused = yield* completedRun(t, started.output.id);
 		expect(refused).toMatchObject({
-			_tag: 'ActRefused',
-			message: expect.stringContaining('Row 2: Missing location at 20 Second Road')
+			state: 'failed',
+			error: {
+				code: 'refused',
+				message: expect.stringContaining('Row 2: Missing location at 20 Second Road')
+			}
 		});
-		expect(refused).toMatchObject({
+		expect(refused.error).toMatchObject({
 			message: expect.stringContaining('Row 3: Out of range at 30 Third Road')
 		});
-		expect(refused).toMatchObject({
+		expect(refused.error).toMatchObject({
 			message: expect.stringContaining('Row 4: Incomplete location at 40 Fourth Road')
 		});
 		expect(yield* rows(t, 'SELECT count(*)::int AS n FROM sites')).toEqual([{ n: 0 }]);
@@ -152,6 +168,53 @@ it.live('refuses every unresolved site without valid coordinates before writing 
 		);
 		expect(badCoordinate.message).toContain('Row 1: latitude:');
 	})
+);
+it.live(
+	'rolls back fresh nested work and existing-site work when an admitted assignee disappears',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const as = t.as(yield* person(t, CONTROLLER));
+			const assignee = yield* person(t, CONTRACTOR);
+			const existing = yield* as.act('sites.create', {
+				address: '10 Existing Road, Singapore 500001',
+				location: { lat: 1.3, lng: 103.8 }
+			});
+			expect(existing.kind).toBe('committed');
+			const baseline = yield* rows(t, 'SELECT * FROM sites ORDER BY id');
+			expect(baseline).toHaveLength(1);
+			const decoded = yield* decodeWorkOrders([
+				{
+					site: '20 New Road',
+					postal_code: '500002',
+					scheduled_for: '2026-10-01',
+					title: 'Fresh nested work',
+					latitude: '1.31',
+					longitude: '103.81'
+				},
+				{
+					site: '10 Existing Road',
+					postal_code: '500001',
+					scheduled_for: '2026-10-01',
+					title: 'Existing-site work',
+					assignee_user_id: assignee.id
+				}
+			]);
+			const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+			expect(started.kind).toBe('committed');
+			if (started.kind !== 'committed') throw new Error('The mixed sheet import did not start.');
+			expect(
+				yield* rows(t, 'SELECT state FROM sys_run WHERE id = $1', [started.output.id])
+			).toEqual([{ state: 'queued' }]);
+			// The input reference was valid at admission; the native batch must reject its disappearance.
+			yield* t.db.write({ text: 'DELETE FROM sys_user WHERE id = $1', params: [assignee.id] });
+			expect(yield* completedRun(t, started.output.id)).toMatchObject({
+				state: 'failed',
+				error: { code: 'notFound', message: 'No readable sys_user has this id.' }
+			});
+			expect(yield* rows(t, 'SELECT * FROM sites ORDER BY id')).toEqual(baseline);
+			expect(yield* rows(t, 'SELECT count(*)::int AS n FROM job_assignments')).toEqual([{ n: 0 }]);
+		})
 );
 it.live('keeps the public workbook refusal messages for invalid ZIP and no worksheet', () =>
 	Effect.gen(function* () {

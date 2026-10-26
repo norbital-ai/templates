@@ -9,10 +9,9 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { Button, Combobox, TimeInput, Label, toast } from '@norbital-ai/ui';
+	import { Button, Combobox, TimeInput, Label, notifyOutcome, toast } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import type { FrequencyChange } from '../../payroll_engine/foundation.js';
-	import { t } from '../i18n/t.js';
 	let {
 		id,
 		frequency,
@@ -51,7 +50,9 @@
 					}
 				});
 				{
-					if (outcome.kind === 'pendingApproval') toast.info(t('offboarding.pending'));
+					// past the person-wait the write runs on: its run reports the outcome
+					if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
+					else if (outcome.kind === 'pendingApproval') toast.info(bolt.t('offboarding.pending'));
 					else toast.success(done);
 					from = null;
 					next = null;
@@ -59,7 +60,7 @@
 			}).pipe(
 				Effect.catch((failure) =>
 					Effect.sync(() => {
-						toast.error(failure instanceof Error ? failure.message : t('component.error'));
+						toast.error(failure instanceof Error ? failure.message : bolt.t('component.error'));
 					})
 				),
 				Effect.ensuring(
@@ -74,12 +75,12 @@
 
 <Stack gap="sm">
 	<p class="text-sm">
-		{t('pay_schedule.from_start', { frequency: label(frequency) })}
+		{bolt.t('pay_schedule.from_start', { frequency: label(frequency) })}
 	</p>
 	{#each ordered as change (change.from)}
 		<Cluster gap="sm" align="center">
 			<span class="text-sm tabular-nums">
-				{t('pay_schedule.switch', { day: change.from, frequency: label(change.frequency) })}
+				{bolt.t('pay_schedule.switch', { day: change.from, frequency: label(change.frequency) })}
 			</span>
 			<Button
 				size="sm"
@@ -88,14 +89,14 @@
 				onclick={() =>
 					void write(
 						ordered.filter((held) => held.from !== change.from),
-						t('pay_schedule.withdrawn')
-					)}>{t('pay_schedule.withdraw')}</Button
+						bolt.t('pay_schedule.withdrawn')
+					)}>{bolt.t('pay_schedule.withdraw')}</Button
 			>
 		</Cluster>
 	{/each}
 	<Cluster gap="sm" align="end">
 		<Stack gap="xs">
-			<Label for="pay-switch-from">{t('pay_schedule.effective')}</Label>
+			<Label for="pay-switch-from">{bolt.t('pay_schedule.effective')}</Label>
 			<TimeInput
 				id="pay-switch-from"
 				of="date"
@@ -105,7 +106,7 @@
 			/>
 		</Stack>
 		<Stack gap="xs">
-			<Label for="pay-switch-frequency">{t('pay_schedule.frequency')}</Label>
+			<Label for="pay-switch-frequency">{bolt.t('pay_schedule.frequency')}</Label>
 			<Combobox
 				id="pay-switch-frequency"
 				options={FREQUENCIES.map((code) => ({ value: code, label: label(code) }))}
@@ -119,8 +120,8 @@
 			onclick={() =>
 				void write(
 					[...ordered, { from: String(from), frequency: String(next) }],
-					t('pay_schedule.added')
-				)}>{t('pay_schedule.add')}</Button
+					bolt.t('pay_schedule.added')
+				)}>{bolt.t('pay_schedule.add')}</Button
 		>
 	</Cluster>
 </Stack>

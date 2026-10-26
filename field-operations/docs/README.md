@@ -4,12 +4,12 @@ The [template README](../README.md#operating-walkthrough) contains the complete 
 walkthrough: member setup, mapped sites, dispatch, Contractor completion, imports, variations,
 evidence, review, resolution, handover and WhatsApp Envoy setup.
 
-Teams, policy links and approval routes are authored in source. People selects existing roles;
+Teams, policy links and approval flows are authored in source. People selects existing roles;
 it does not edit those definitions. Connected services use Settings → Integrations and native
 pairing/status controls. Credentials remain sealed; available providers determine the setup flow.
 
 A submitted approval proposal is awaiting a decision, not a completed business write. Record
-sheets retain the surrounding collection context; their tabs and accordion sections disclose details.
+sheets retain the surrounding record context; their tabs and accordion sections disclose details.
 
 ## Snapshot index
 

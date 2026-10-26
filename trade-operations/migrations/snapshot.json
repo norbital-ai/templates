@@ -1,0 +1,3170 @@
+{
+	"currency": "SGD",
+	"tables": {
+		"activities": {
+			"audit": true,
+			"fields": {
+				"done": {
+					"default": false,
+					"kind": "bool"
+				},
+				"due_on": {
+					"default": {
+						"today": ""
+					},
+					"kind": "date"
+				},
+				"kind": {
+					"default": "task",
+					"kind": "enum",
+					"values": [
+						"task",
+						"call",
+						"meeting",
+						"note"
+					]
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"order": {
+					"inverse": "activities",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"owner": {
+					"default": {
+						"actor": "id"
+					},
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"nativeRules": 2
+		},
+		"approval_request": {
+			"fields": {
+				"action": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"approver_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"approver_users": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"closed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"closed_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"collection_name": {
+					"kind": "text"
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"record_id": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"ONGOING",
+						"CHANGES_REQUESTED",
+						"APPROVED",
+						"REJECTED",
+						"SUPERSEDED"
+					]
+				},
+				"step": {
+					"kind": "int"
+				},
+				"step_names": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"steps": {
+					"kind": "int"
+				},
+				"superseder_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				}
+			},
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"collection_name",
+						"record_id"
+					],
+					"where": {
+						"status": {
+							"eq": "ONGOING"
+						}
+					}
+				}
+			]
+		},
+		"commercial_settings": {
+			"audit": true,
+			"fields": {
+				"code": {
+					"default": "default",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"default"
+					]
+				},
+				"credit_fresh_minutes": {
+					"default": 60,
+					"kind": "int",
+					"min": 1
+				},
+				"freight_treatment": {
+					"default": "deduct",
+					"kind": "enum",
+					"values": [
+						"deduct",
+						"include"
+					]
+				},
+				"require_floor": {
+					"default": false,
+					"kind": "bool"
+				},
+				"stock_fresh_minutes": {
+					"default": 30,
+					"kind": "int",
+					"min": 1
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"code"
+			]
+		},
+		"commission_rules": {
+			"audit": true,
+			"check": {
+				"fixed_rate_nonnegative": {
+					"fixed_rate": {
+						"gte": "0"
+					}
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"amount_expression": {
+					"default": "basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)",
+					"format": "cel",
+					"kind": "text"
+				},
+				"basis_unit": {
+					"kind": "text",
+					"optional": true
+				},
+				"code": {
+					"default": "default",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"default"
+					]
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"effective_on": {
+					"kind": "date"
+				},
+				"eligibility_expression": {
+					"default": "true",
+					"format": "cel",
+					"kind": "text"
+				},
+				"fixed_rate": {
+					"currency": "currency",
+					"default": "0",
+					"kind": "money",
+					"scale": 4
+				},
+				"parameters": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"name": {
+									"kind": "text"
+								},
+								"value": {
+									"kind": "text"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"spread_pct": {
+					"default": "0",
+					"kind": "decimal",
+					"max": 100,
+					"min": 0,
+					"scale": 2
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"code",
+				"currency",
+				"effective_on"
+			]
+		},
+		"commission_statements": {
+			"audit": true,
+			"fields": {
+				"acknowledged_at": {
+					"kind": "instant"
+				},
+				"acknowledged_by": {
+					"default": {
+						"actor": "id"
+					},
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"amount": {
+					"currency": "currency",
+					"kind": "money"
+				},
+				"calculation_hash": {
+					"kind": "text"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "CS-{yyyy}-{0000}"
+				},
+				"order_count": {
+					"kind": "int"
+				},
+				"owner": {
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"period": {
+					"kind": "date"
+				},
+				"snapshot": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"amount": {
+									"kind": "text",
+									"optional": true
+								},
+								"awaiting_approval": {
+									"kind": "bool"
+								},
+								"calculation_hash": {
+									"kind": "text"
+								},
+								"number": {
+									"kind": "text"
+								},
+								"order": {
+									"kind": "text"
+								},
+								"seal_hash": {
+									"kind": "text"
+								},
+								"unresolved_lines": {
+									"kind": "int"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				}
+			},
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"owner",
+						"period",
+						"currency",
+						"calculation_hash"
+					],
+					"name": "one_monthly_commission_statement"
+				}
+			]
+		},
+		"contacts": {
+			"audit": true,
+			"fields": {
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"job_title": {
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"party": {
+					"inverse": "contacts",
+					"kind": "ref",
+					"to": "parties"
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"nativeRules": 2
+		},
+		"credit_snapshots": {
+			"audit": true,
+			"fields": {
+				"as_of": {
+					"kind": "instant"
+				},
+				"credit_hold": {
+					"default": false,
+					"kind": "bool"
+				},
+				"credit_limit": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"credit_used": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"party": {
+					"kind": "ref",
+					"to": "parties"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			]
+		},
+		"document_templates": {
+			"audit": true,
+			"fields": {
+				"body": {
+					"kind": "text"
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"quotation",
+						"contract"
+					]
+				},
+				"locale": {
+					"kind": "enum",
+					"values": [
+						"en",
+						"zh"
+					]
+				},
+				"published_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"draft": {
+							"to": [
+								"published"
+							]
+						},
+						"published": {
+							"edit": "none"
+						}
+					}
+				},
+				"title": {
+					"kind": "text"
+				},
+				"version": {
+					"kind": "text"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"kind",
+				"locale",
+				"version"
+			]
+		},
+		"ext_purchase_orders": {
+			"audit": true,
+			"fields": {
+				"agreement_hash": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_id": {
+					"kind": "text"
+				},
+				"order": {
+					"inverse": "ext_purchase_orders",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"draft",
+						"issued",
+						"void"
+					]
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_id"
+			]
+		},
+		"ext_sales_orders": {
+			"audit": true,
+			"fields": {
+				"agreement_hash": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_id": {
+					"kind": "text"
+				},
+				"order": {
+					"inverse": "ext_sales_orders",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"draft",
+						"issued",
+						"void"
+					]
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_id"
+			]
+		},
+		"order_lines": {
+			"audit": true,
+			"check": {
+				"unit_price_nonnegative": {
+					"unit_price": {
+						"gte": "0"
+					}
+				}
+			},
+			"fields": {
+				"commission_basis_unit": {
+					"kind": "text",
+					"optional": true
+				},
+				"commission_factor": {
+					"kind": "decimal",
+					"min": 0,
+					"optional": true,
+					"scale": 6
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"discount_pct": {
+					"default": 0,
+					"kind": "decimal",
+					"max": 100,
+					"min": 0,
+					"scale": 2
+				},
+				"floor_net": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true,
+					"scale": 8
+				},
+				"floor_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"net": {
+					"currency": "currency",
+					"kind": "money"
+				},
+				"order": {
+					"inverse": "lines",
+					"kind": "ref",
+					"owned": true,
+					"to": "orders"
+				},
+				"product": {
+					"kind": "ref",
+					"to": "products"
+				},
+				"product_code": {
+					"kind": "text"
+				},
+				"product_name": {
+					"kind": "text"
+				},
+				"quantity": {
+					"kind": "decimal",
+					"min": 0,
+					"scale": 3
+				},
+				"tax": {
+					"currency": "currency",
+					"kind": "money"
+				},
+				"tax_rate": {
+					"kind": "decimal",
+					"max": 100,
+					"min": 0,
+					"scale": 2
+				},
+				"total": {
+					"currency": "currency",
+					"kind": "money"
+				},
+				"unit": {
+					"kind": "text"
+				},
+				"unit_price": {
+					"currency": "currency",
+					"kind": "money",
+					"scale": 4
+				}
+			},
+			"nativeRules": 2
+		},
+		"orders": {
+			"audit": true,
+			"fields": {
+				"check_hash": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"closure_snapshot": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"fulfilled": {
+									"kind": "text"
+								},
+								"order_line": {
+									"kind": "text"
+								},
+								"ordered": {
+									"kind": "text"
+								},
+								"product_name": {
+									"kind": "text"
+								},
+								"released": {
+									"kind": "text"
+								},
+								"unit": {
+									"kind": "text"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"contract_version": {
+					"default": 1,
+					"kind": "int",
+					"min": 1
+				},
+				"contract_versions": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"approved_at": {
+									"kind": "instant"
+								},
+								"approved_by": {
+									"kind": "text"
+								},
+								"commission": {
+									"fields": {
+										"amount_expression": {
+											"kind": "text",
+											"optional": true
+										},
+										"basis_unit": {
+											"kind": "text"
+										},
+										"currency": {
+											"kind": "text"
+										},
+										"effective_on": {
+											"kind": "text"
+										},
+										"eligibility_expression": {
+											"kind": "text",
+											"optional": true
+										},
+										"engine_version": {
+											"kind": "text",
+											"optional": true
+										},
+										"fixed_rate": {
+											"kind": "text"
+										},
+										"parameters": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"name": {
+														"kind": "text"
+													},
+													"value": {
+														"kind": "text"
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										},
+										"rule_id": {
+											"kind": "text"
+										},
+										"spread_pct": {
+											"kind": "text"
+										}
+									},
+									"kind": "object",
+									"optional": true
+								},
+								"contract": {
+									"kind": "text"
+								},
+								"freight_treatment": {
+									"kind": "enum",
+									"values": [
+										"deduct",
+										"include"
+									]
+								},
+								"ordered_on": {
+									"kind": "date"
+								},
+								"seal_hash": {
+									"kind": "text"
+								},
+								"snapshot": {
+									"fields": {
+										"contract_version": {
+											"kind": "text"
+										},
+										"currency": {
+											"kind": "text"
+										},
+										"delivery_terms": {
+											"kind": "text"
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"sales",
+												"purchasing"
+											]
+										},
+										"document_title": {
+											"kind": "text",
+											"optional": true
+										},
+										"lines": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"commission_basis_unit": {
+														"kind": "text"
+													},
+													"commission_factor": {
+														"kind": "text"
+													},
+													"discount_pct": {
+														"kind": "text"
+													},
+													"floor_net": {
+														"kind": "text"
+													},
+													"id": {
+														"kind": "text"
+													},
+													"net": {
+														"kind": "text"
+													},
+													"product": {
+														"kind": "text",
+														"optional": true
+													},
+													"product_code": {
+														"kind": "text"
+													},
+													"product_name": {
+														"kind": "text"
+													},
+													"quantity": {
+														"kind": "text"
+													},
+													"tax": {
+														"kind": "text"
+													},
+													"tax_rate": {
+														"kind": "text"
+													},
+													"total": {
+														"kind": "text"
+													},
+													"unit": {
+														"kind": "text"
+													},
+													"unit_price": {
+														"kind": "text"
+													}
+												},
+												"kind": "object"
+											}
+										},
+										"net": {
+											"kind": "text"
+										},
+										"order_id": {
+											"kind": "text"
+										},
+										"party_code": {
+											"kind": "text"
+										},
+										"party_name": {
+											"kind": "text"
+										},
+										"payment_terms": {
+											"kind": "text"
+										},
+										"tax": {
+											"kind": "text"
+										},
+										"tax_inclusive": {
+											"kind": "bool"
+										},
+										"title": {
+											"kind": "text",
+											"optional": true
+										},
+										"total": {
+											"kind": "text"
+										},
+										"valid_from": {
+											"kind": "text",
+											"optional": true
+										},
+										"valid_until": {
+											"kind": "text",
+											"optional": true
+										},
+										"warehouse": {
+											"kind": "text",
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"version": {
+									"kind": "int"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"delivery_terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"direction": {
+					"kind": "enum",
+					"values": [
+						"sales",
+						"purchasing"
+					]
+				},
+				"freight_treatment": {
+					"default": "deduct",
+					"kind": "enum",
+					"values": [
+						"deduct",
+						"include"
+					]
+				},
+				"ledger": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"line_count": {
+					"kind": "count",
+					"of": "lines"
+				},
+				"net": {
+					"kind": "sum",
+					"of": "lines.net"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "TR-{yyyy}-{0000}"
+				},
+				"operational_contracts": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"lines": {
+									"kind": "list",
+									"of": {
+										"fields": {
+											"id": {
+												"kind": "text"
+											},
+											"product": {
+												"kind": "text",
+												"optional": true
+											},
+											"quantity": {
+												"kind": "text"
+											},
+											"unit": {
+												"kind": "text"
+											}
+										},
+										"kind": "object"
+									}
+								},
+								"seal_hash": {
+									"kind": "text"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"ordered_on": {
+					"default": {
+						"today": ""
+					},
+					"kind": "date"
+				},
+				"owner": {
+					"default": {
+						"actor": "id"
+					},
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"party": {
+					"inverse": "orders",
+					"kind": "ref",
+					"to": "parties"
+				},
+				"party_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"payment_terms": {
+					"kind": "text"
+				},
+				"reason": {
+					"kind": "text",
+					"optional": true
+				},
+				"seal_hash": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"sealed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"sealed_by": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"sealed_commission": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"amount_expression": {
+								"kind": "text",
+								"optional": true
+							},
+							"basis_unit": {
+								"kind": "text"
+							},
+							"currency": {
+								"kind": "text"
+							},
+							"effective_on": {
+								"kind": "text"
+							},
+							"eligibility_expression": {
+								"kind": "text",
+								"optional": true
+							},
+							"engine_version": {
+								"kind": "text",
+								"optional": true
+							},
+							"fixed_rate": {
+								"kind": "text"
+							},
+							"parameters": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"name": {
+											"kind": "text"
+										},
+										"value": {
+											"kind": "text"
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"rule_id": {
+								"kind": "text"
+							},
+							"spread_pct": {
+								"kind": "text"
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"sealed_contract": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"sealed_contract_version": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"sealed_snapshot": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"contract_version": {
+								"kind": "text"
+							},
+							"currency": {
+								"kind": "text"
+							},
+							"delivery_terms": {
+								"kind": "text"
+							},
+							"direction": {
+								"kind": "enum",
+								"values": [
+									"sales",
+									"purchasing"
+								]
+							},
+							"document_title": {
+								"kind": "text",
+								"optional": true
+							},
+							"lines": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"commission_basis_unit": {
+											"kind": "text"
+										},
+										"commission_factor": {
+											"kind": "text"
+										},
+										"discount_pct": {
+											"kind": "text"
+										},
+										"floor_net": {
+											"kind": "text"
+										},
+										"id": {
+											"kind": "text"
+										},
+										"net": {
+											"kind": "text"
+										},
+										"product": {
+											"kind": "text",
+											"optional": true
+										},
+										"product_code": {
+											"kind": "text"
+										},
+										"product_name": {
+											"kind": "text"
+										},
+										"quantity": {
+											"kind": "text"
+										},
+										"tax": {
+											"kind": "text"
+										},
+										"tax_rate": {
+											"kind": "text"
+										},
+										"total": {
+											"kind": "text"
+										},
+										"unit": {
+											"kind": "text"
+										},
+										"unit_price": {
+											"kind": "text"
+										}
+									},
+									"kind": "object"
+								}
+							},
+							"net": {
+								"kind": "text"
+							},
+							"order_id": {
+								"kind": "text"
+							},
+							"party_code": {
+								"kind": "text"
+							},
+							"party_name": {
+								"kind": "text"
+							},
+							"payment_terms": {
+								"kind": "text"
+							},
+							"tax": {
+								"kind": "text"
+							},
+							"tax_inclusive": {
+								"kind": "bool"
+							},
+							"title": {
+								"kind": "text",
+								"optional": true
+							},
+							"total": {
+								"kind": "text"
+							},
+							"valid_from": {
+								"kind": "text",
+								"optional": true
+							},
+							"valid_until": {
+								"kind": "text",
+								"optional": true
+							},
+							"warehouse": {
+								"kind": "text",
+								"optional": true
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"cancelled": {
+							"edit": "none"
+						},
+						"closed": {
+							"edit": "none"
+						},
+						"confirmed": {
+							"edit": [
+								"reason",
+								"closure_snapshot",
+								"contract_versions",
+								"operational_contracts",
+								"check_hash"
+							],
+							"to": [
+								"closed",
+								"cancelled"
+							]
+						},
+						"draft": {
+							"to": [
+								"confirmed",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"supporting_documents": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png",
+						"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+						"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+					],
+					"kind": "file",
+					"max": "20MiB",
+					"multiple": true,
+					"optional": true
+				},
+				"tax": {
+					"kind": "sum",
+					"of": "lines.tax"
+				},
+				"tax_inclusive": {
+					"default": false,
+					"kind": "bool"
+				},
+				"title": {
+					"kind": "text"
+				},
+				"total": {
+					"kind": "sum",
+					"of": "lines.total"
+				},
+				"valid_from": {
+					"kind": "date",
+					"optional": true
+				},
+				"valid_until": {
+					"kind": "date",
+					"optional": true
+				},
+				"warehouse": {
+					"kind": "ref",
+					"optional": true,
+					"to": "warehouses"
+				}
+			},
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"number",
+					"title",
+					"party_name"
+				]
+			}
+		},
+		"parties": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"address": {
+					"kind": "text",
+					"optional": true
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"customer",
+						"supplier",
+						"both"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text",
+					"optional": true
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			],
+			"search": {
+				"text": [
+					"name",
+					"external_code"
+				]
+			}
+		},
+		"pricing_floors": {
+			"audit": true,
+			"check": {
+				"floor_price_nonnegative": {
+					"floor_price": {
+						"gte": "0"
+					}
+				}
+			},
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"effective_on": {
+					"kind": "date"
+				},
+				"floor_price": {
+					"currency": "currency",
+					"kind": "money",
+					"scale": 4
+				},
+				"group_code": {
+					"kind": "text"
+				},
+				"minimum_quantity": {
+					"default": 0,
+					"kind": "decimal",
+					"min": 0,
+					"scale": 3
+				},
+				"product": {
+					"kind": "ref",
+					"to": "products"
+				},
+				"tax_inclusive": {
+					"kind": "bool"
+				},
+				"tax_rate": {
+					"default": 0,
+					"kind": "decimal",
+					"max": 100,
+					"min": 0,
+					"scale": 2
+				},
+				"unit": {
+					"kind": "text"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"product",
+				"group_code",
+				"currency",
+				"effective_on",
+				"minimum_quantity"
+			]
+		},
+		"products": {
+			"audit": true,
+			"check": {
+				"unit_price_nonnegative": {
+					"or": [
+						{
+							"unit_price": {
+								"isNull": true
+							}
+						},
+						{
+							"unit_price": {
+								"gte": "0"
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"commission_basis_unit": {
+					"kind": "text",
+					"optional": true
+				},
+				"commission_factor": {
+					"kind": "decimal",
+					"min": 0,
+					"optional": true,
+					"scale": 6
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				},
+				"spec": {
+					"kind": "text",
+					"optional": true
+				},
+				"tax_rate": {
+					"kind": "decimal",
+					"max": 100,
+					"min": 0,
+					"optional": true,
+					"scale": 2
+				},
+				"unit": {
+					"kind": "text",
+					"optional": true
+				},
+				"unit_price": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true,
+					"scale": 4
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			],
+			"search": {
+				"text": [
+					"name",
+					"external_code"
+				]
+			}
+		},
+		"requestor": {
+			"fields": {
+				"approval_request_id": {
+					"kind": "ref",
+					"to": "approval_request"
+				},
+				"user_id": {
+					"kind": "text"
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"source_payments": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"amount": {
+					"currency": "currency",
+					"kind": "money"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"invoice": {
+					"kind": "ref",
+					"optional": true,
+					"to": "transactions"
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"receipt",
+						"refund"
+					]
+				},
+				"order": {
+					"inverse": "source_payments",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"seal_hash": {
+					"kind": "text"
+				},
+				"settled_on": {
+					"kind": "date"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			],
+			"unique": [
+				{
+					"fields": [
+						"order",
+						"reference"
+					],
+					"name": "one_source_receipt_per_order"
+				}
+			]
+		},
+		"source_sales_lines": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"business_on": {
+					"kind": "date"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"freight": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"shipment",
+						"return",
+						"invoice_only"
+					]
+				},
+				"lot_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"net_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"order": {
+					"inverse": "source_sales_lines",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"order_line": {
+					"kind": "text"
+				},
+				"quantity": {
+					"kind": "decimal",
+					"scale": 3
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"seal_hash": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				},
+				"tax_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"unit": {
+					"kind": "text"
+				},
+				"unit_cost": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			]
+		},
+		"stock_snapshots": {
+			"audit": true,
+			"fields": {
+				"as_of": {
+					"kind": "instant"
+				},
+				"currency": {
+					"kind": "currency",
+					"optional": true
+				},
+				"erp_committed": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 3
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"lot_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"on_hand": {
+					"kind": "decimal",
+					"scale": 3
+				},
+				"orders_as_of": {
+					"kind": "instant",
+					"optional": true
+				},
+				"product": {
+					"kind": "ref",
+					"to": "products"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"unit": {
+					"kind": "text",
+					"optional": true
+				},
+				"unit_cost": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"warehouse": {
+					"kind": "ref",
+					"to": "warehouses"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			]
+		},
+		"sys_api_key": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"hash": {
+					"kind": "text"
+				},
+				"last_used_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"prefix": {
+					"kind": "text",
+					"unique": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_challenge": {
+			"fields": {
+				"address_mac": {
+					"kind": "text"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"code_mac": {
+					"kind": "text"
+				},
+				"expires_at": {
+					"kind": "instant"
+				}
+			},
+			"key": [
+				"address_mac"
+			],
+			"nativeRules": 2
+		},
+		"sys_config": {
+			"fields": {
+				"key": {
+					"kind": "text"
+				},
+				"value": {
+					"kind": "text"
+				}
+			},
+			"key": [
+				"key"
+			],
+			"nativeRules": 2
+		},
+		"sys_conversation": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"goals": {
+					"kind": "json",
+					"optional": true
+				},
+				"inputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"integration": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"kind": {
+					"kind": "text",
+					"optional": true
+				},
+				"lease_until": {
+					"kind": "instant",
+					"optional": true
+				},
+				"model": {
+					"default": "default",
+					"kind": "text"
+				},
+				"outputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"owner": {
+					"kind": "text",
+					"optional": true
+				},
+				"parent": {
+					"kind": "text",
+					"optional": true
+				},
+				"participants": {
+					"kind": "json",
+					"optional": true
+				},
+				"plan": {
+					"kind": "json",
+					"optional": true
+				},
+				"read": {
+					"default": {},
+					"kind": "json"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"run": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"default": "idle",
+					"kind": "text"
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_file": {
+			"fields": {
+				"created_at": {
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"field": {
+					"kind": "text"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"mime": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"sha256": {
+					"kind": "text"
+				},
+				"size": {
+					"kind": "int"
+				},
+				"updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"updated_by": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_inbox": {
+			"fields": {
+				"body": {
+					"kind": "json",
+					"optional": true
+				},
+				"consumed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery": {
+					"kind": "text"
+				},
+				"headers": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"received_at": {
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"received_at"
+					],
+					"where": {
+						"consumed_at": {
+							"isNull": true
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"delivery"
+					]
+				}
+			]
+		},
+		"sys_integration": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"configuration": {
+					"default": {},
+					"kind": "json"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"import_start": {
+					"kind": "json",
+					"optional": true
+				},
+				"integration": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"named": {
+					"default": false,
+					"kind": "bool"
+				},
+				"owner": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"owner",
+						"integration"
+					],
+					"name": "one_per_member",
+					"where": {
+						"owner": {
+							"isNull": false
+						}
+					}
+				}
+			]
+		},
+		"sys_invitation": {
+			"check": {
+				"addressed": {
+					"or": [
+						{
+							"email": {
+								"isNull": false
+							}
+						},
+						{
+							"phone": {
+								"isNull": false
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"accepted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "text",
+					"optional": true
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"external": {
+					"default": false,
+					"kind": "bool"
+				},
+				"invited_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					]
+				},
+				{
+					"on": [
+						"phone"
+					]
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_message": {
+			"fields": {
+				"about": {
+					"kind": "json",
+					"optional": true
+				},
+				"addressed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"as": {
+					"kind": "json",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"author": {
+					"kind": "text",
+					"optional": true
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"content": {
+					"kind": "json",
+					"optional": true
+				},
+				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"deleted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivered_turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"delivery": {
+					"default": [],
+					"kind": "json"
+				},
+				"direction": {
+					"kind": "text",
+					"optional": true
+				},
+				"edited_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "json",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "text",
+					"optional": true
+				},
+				"integration": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"invocation": {
+					"kind": "text",
+					"optional": true
+				},
+				"message": {
+					"kind": "json",
+					"optional": true
+				},
+				"meta": {
+					"kind": "json",
+					"optional": true
+				},
+				"mode": {
+					"kind": "text",
+					"optional": true
+				},
+				"next_attempt_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"origin": {
+					"kind": "text",
+					"optional": true
+				},
+				"presume_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"preview": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"refused": {
+					"kind": "text",
+					"optional": true
+				},
+				"reply_to": {
+					"kind": "text",
+					"optional": true
+				},
+				"role": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"sent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"source_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"state": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"kind": "text",
+					"optional": true
+				},
+				"supersedes": {
+					"kind": "text",
+					"optional": true
+				},
+				"text": {
+					"kind": "text",
+					"optional": true
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"version": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"identity": "seq",
+			"index": [
+				[
+					"conversation",
+					"seq"
+				],
+				[
+					"integration",
+					"provider_id"
+				]
+			],
+			"indexes": [
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "pending"
+						}
+					}
+				},
+				{
+					"on": [
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_notification": {
+			"fields": {
+				"at": {
+					"kind": "instant"
+				},
+				"attachments": {
+					"default": [],
+					"kind": "json"
+				},
+				"body": {
+					"kind": "text",
+					"optional": true
+				},
+				"link": {
+					"kind": "json",
+					"optional": true
+				},
+				"member": {
+					"kind": "text",
+					"optional": true
+				},
+				"once": {
+					"kind": "text",
+					"optional": true,
+					"unique": true
+				},
+				"read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"recipient": {
+					"kind": "json"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"member",
+						"at"
+					],
+					"where": {
+						"member": {
+							"isNull": false
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_outbox": {
+			"fields": {
+				"acked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"at": {
+					"kind": "instant"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"changed": {
+					"default": [],
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"image": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"key": {
+					"kind": "text",
+					"unique": true
+				},
+				"model": {
+					"kind": "text"
+				},
+				"next_attempt_at": {
+					"kind": "instant"
+				},
+				"op": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"record": {
+					"kind": "text"
+				},
+				"record_revision": {
+					"kind": "int"
+				},
+				"result": {
+					"kind": "json",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"status": {
+					"default": "queued",
+					"kind": "enum",
+					"values": [
+						"queued",
+						"sending",
+						"acked",
+						"failed",
+						"dead",
+						"skipped"
+					]
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"writer": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "sys_user"
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"next_attempt_at"
+					],
+					"where": {
+						"status": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"record",
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				},
+				{
+					"on": [
+						"sync"
+					],
+					"where": {
+						"status": {
+							"eq": "dead"
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "coalesce",
+					"where": {
+						"attempts": {
+							"eq": 0
+						},
+						"status": {
+							"eq": "queued"
+						}
+					}
+				}
+			]
+		},
+		"sys_run": {
+			"fields": {
+				"actor": {
+					"kind": "text",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"automation": {
+					"kind": "text"
+				},
+				"cause": {
+					"kind": "text"
+				},
+				"depth": {
+					"kind": "int"
+				},
+				"due_at": {
+					"kind": "instant"
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"finished_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"input": {
+					"kind": "json"
+				},
+				"key": {
+					"kind": "text",
+					"optional": true,
+					"unique": true
+				},
+				"leases": {
+					"default": 0,
+					"kind": "int"
+				},
+				"output": {
+					"kind": "json",
+					"optional": true
+				},
+				"progress": {
+					"kind": "json",
+					"optional": true
+				},
+				"results": {
+					"default": [],
+					"kind": "json"
+				},
+				"run_key": {
+					"kind": "text",
+					"optional": true
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"starter": {
+					"kind": "json",
+					"optional": true
+				},
+				"state": {
+					"default": "queued",
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_session": {
+			"fields": {
+				"agent": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"impersonated_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"refreshed_at": {
+					"kind": "instant"
+				},
+				"token_hash": {
+					"kind": "text",
+					"unique": true
+				},
+				"user": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_user"
+				},
+				"via": {
+					"kind": "enum",
+					"values": [
+						"code",
+						"invitation",
+						"signup",
+						"host"
+					]
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_sync": {
+			"fields": {
+				"cursor": {
+					"kind": "json",
+					"optional": true
+				},
+				"cycle": {
+					"default": 0,
+					"kind": "int"
+				},
+				"digest": {
+					"kind": "text"
+				},
+				"health": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"last_change_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_hint_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"phase": {
+					"default": "read",
+					"kind": "enum",
+					"values": [
+						"read",
+						"reconcile"
+					]
+				},
+				"started_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"version": {
+					"default": 0,
+					"kind": "int"
+				}
+			},
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"partition"
+					]
+				}
+			]
+		},
+		"sys_sync_row": {
+			"fields": {
+				"acked_revision": {
+					"kind": "int",
+					"optional": true
+				},
+				"cycle": {
+					"kind": "int"
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"remote_id": {
+					"kind": "text"
+				},
+				"remote_version": {
+					"kind": "text",
+					"optional": true
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"index": [
+				[
+					"sync",
+					"instance",
+					"partition",
+					"cycle"
+				]
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"remote_id"
+					]
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					]
+				}
+			]
+		},
+		"sys_user": {
+			"check": {
+				"admin_staff": {
+					"or": [
+						{
+							"admin": {
+								"eq": false
+							}
+						},
+						{
+							"kind": {
+								"eq": "staff"
+							}
+						}
+					]
+				}
+			},
+			"computed": {
+				"party_id": {
+					"expr": {
+						"jsonText": [
+							{
+								"field": "party"
+							},
+							"id"
+						]
+					},
+					"kind": "text"
+				},
+				"phone_key": {
+					"expr": {
+						"regexReplace": [
+							{
+								"field": "phone"
+							},
+							"\\D",
+							""
+						]
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"admin": {
+					"default": false,
+					"kind": "bool"
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"kind": {
+					"default": "staff",
+					"kind": "enum",
+					"values": [
+						"staff",
+						"external"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"signup": {
+					"default": false,
+					"kind": "bool"
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				},
+				"telegram": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					],
+					"unique": true
+				},
+				{
+					"on": [
+						"phone_key"
+					],
+					"unique": true
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"transactions": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"documents": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"name": {
+									"kind": "text"
+								},
+								"sha256": {
+									"kind": "text"
+								},
+								"url": {
+									"kind": "text"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"due_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"erp_id": {
+					"kind": "text"
+				},
+				"ext_purchase_order": {
+					"inverse": "transactions",
+					"kind": "ref",
+					"optional": true,
+					"to": "ext_purchase_orders"
+				},
+				"ext_sales_order": {
+					"inverse": "transactions",
+					"kind": "ref",
+					"optional": true,
+					"to": "ext_sales_orders"
+				},
+				"issued_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"items": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"lot_number": {
+									"kind": "text",
+									"optional": true
+								},
+								"net_amount": {
+									"kind": "decimal",
+									"optional": true,
+									"scale": 8
+								},
+								"order_line_id": {
+									"kind": "text"
+								},
+								"product_name": {
+									"kind": "text"
+								},
+								"quantity": {
+									"kind": "decimal",
+									"scale": 3
+								},
+								"unit": {
+									"kind": "text"
+								},
+								"unit_cost": {
+									"kind": "decimal",
+									"optional": true,
+									"scale": 8
+								},
+								"unit_price": {
+									"kind": "decimal",
+									"optional": true,
+									"scale": 4
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"invoice",
+						"delivery"
+					]
+				},
+				"order": {
+					"inverse": "transactions",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"seal_hash": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"default": "issued",
+					"kind": "enum",
+					"values": [
+						"issued",
+						"void"
+					]
+				},
+				"total": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"erp_id"
+			]
+		},
+		"warehouses": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"group_code": {
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source",
+				"external_code"
+			]
+		}
+	},
+	"tz": "Asia/Singapore"
+}

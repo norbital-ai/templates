@@ -26,21 +26,24 @@ export default policy({
 	description:
 		'Controller access to dispatch records, private review records, and immutable communication or AI audit ledgers.',
 	capabilities: { apps: ['field_ops_controller', 'field_ops_contractor'] },
-	automations: ['review_job_assignment_suspicion', 'site_handover'],
+	automations: [
+		'review_job_assignment_suspicion',
+		'site_handover',
+		'job_assignments_import_work_orders',
+		'suspicious_activity_logs_resolve'
+	],
 	grants: {
 		sites: { read: true, create: true, update: true, delete: true },
 		job_assignments: {
 			read: true,
 			create: true,
 			update: { fields: JOB_FIELDS },
-			delete: true,
-			actions: ['import_work_orders']
+			delete: true
 		},
 		suspicious_activity_logs: {
 			read: true,
 			create: true,
-			update: true,
-			actions: ['resolve']
+			update: true
 		},
 		variation_requests: { read: true, create: true, update: true, delete: true },
 		photo_evidence: { read: true, create: true, update: true, delete: true },

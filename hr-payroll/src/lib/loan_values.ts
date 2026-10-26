@@ -2,7 +2,6 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Schema } from 'effect';
 import type { Masked, Row } from '@norbital-ai/bolt';
-import { isDynObject } from './payroll_engine/foundation.js';
 import { currencyScale } from './payroll_engine/payslip/context.js';
 
 const amount = inputSchema({ kind: 'decimal', scale: 2 });
@@ -21,7 +20,7 @@ export const loanRuleFacts = (loan: {
 	readonly advance_made_on?: string | null;
 	readonly facts?: Exclude<Row<'loan_catalog_entry'>['facts'], Masked>;
 }) => ({
-	...(isDynObject(loan.facts) ? loan.facts : {}),
+	...(loan.facts ?? {}),
 	...(loan.principal_amount == null ? {} : { principal: loan.principal_amount.toNumber() }),
 	...(loan.advance_made_on == null ? {} : { advance_made_on: loan.advance_made_on })
 });

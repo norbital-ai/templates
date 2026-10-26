@@ -12,10 +12,11 @@
 	import {
 		Button,
 		Combobox,
-		JsonSchemaForm,
+		StructuredData,
 		TimeInput,
 		Label,
 		Sheet,
+		notifyOutcome,
 		toast
 	} from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
@@ -30,8 +31,6 @@
 	import { governingVersion } from './governing_version.svelte.js';
 	import { fromForm, missingRequired, schemaAt } from './input_schema.js';
 	import { formSchema } from './form_schema.js';
-	import { liveRows } from '../state/live.svelte.js';
-	import { t } from '../i18n/t.js';
 	import { todayKey } from '../format/calendar.js';
 	let {
 		id,
@@ -63,12 +62,12 @@
 		() => (sheetOpen ? companyId : null),
 		() => lastDay
 	);
-	const factsSchema = $derived(schemaAt(version.current?.employee_input_schema, 'exit_facts'));
+	const factsSchema = $derived(schemaAt(version.schema, 'exit_facts'));
 	const factsForm = $derived(formSchema(factsSchema));
-	const grounds = liveRows(() =>
+	const grounds = $derived.by(() =>
 		version.current == null
 			? null
-			: bolt.read('rule_set', {
+			: bolt.query('rule_set', {
 					where: {
 						settings_id: { eq: version.current.id },
 						family: { eq: 'PAYROLL' },
@@ -79,7 +78,7 @@
 				})
 	);
 	const options = $derived(
-		(grounds.current ?? []).flatMap((row) =>
+		(grounds?.current?.rows ?? []).flatMap((row) =>
 			kindsOf(row.rules).map((kind) => ({
 				value: kind.code,
 				label: kind.name,
@@ -99,12 +98,14 @@
 		saving = true;
 		return bolt.act('employment_contract.update', { target: id, set }).pipe(
 			Effect.map((outcome) => {
-				if (outcome.kind === 'pendingApproval') toast.info(t('offboarding.pending'));
+				if (outcome.kind === 'pendingApproval') toast.info(bolt.t('offboarding.pending'));
+				// past the person-wait the write runs on: its run reports the outcome
+				else if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
 				return outcome.kind;
 			}),
 			Effect.catch((failure) =>
 				Effect.sync(() => {
-					toast.error(failure instanceof Error ? failure.message : t('component.error'));
+					toast.error(failure instanceof Error ? failure.message : bolt.t('component.error'));
 					return null;
 				})
 			),
@@ -121,7 +122,7 @@
 			act(undoExitWrites({ from: hireFrom, plannedEnd })).pipe(
 				Effect.tap((kind) =>
 					Effect.sync(() => {
-						if (kind === 'committed') toast.success(t('offboarding.undone'));
+						if (kind === 'committed') toast.success(bolt.t('offboarding.undone'));
 					})
 				)
 			)
@@ -137,7 +138,7 @@
 		const written = $state.snapshot(facts);
 		const missing = missingRequired(factsSchema, written);
 		if (missing.length > 0) {
-			toast.error(t('component.required_missing', { fields: missing.join(', ') }));
+			toast.error(bolt.t('component.required_missing', { fields: missing.join(', ') }));
 			return;
 		}
 		// a fixed-term contract's planned end is kept, so undoing the exit reopens to it
@@ -158,7 +159,7 @@
 					Effect.sync(() => {
 						if (result !== null) {
 							if (result === 'committed')
-								toast.success(t(exited ? 'offboarding.moved' : 'offboarding.submitted'));
+								toast.success(bolt.t(exited ? 'offboarding.moved' : 'offboarding.submitted'));
 							sheetOpen = false;
 						}
 					})
@@ -170,22 +171,25 @@
 
 <Cluster gap="sm">
 	<Button size="sm" variant="outline" disabled={saving} onclick={open}
-		>{t(exited ? 'offboarding.move' : 'offboarding.open')}</Button
+		>{bolt.t(exited ? 'offboarding.move' : 'offboarding.open')}</Button
 	>
 	{#if exited}
 		<Button size="sm" variant="outline" disabled={saving} onclick={() => void undo()}
-			>{t('offboarding.undo')}</Button
+			>{bolt.t('offboarding.undo')}</Button
 		>
 	{/if}
 </Cluster>
 
-<Sheet bind:open={sheetOpen} title={t(exited ? 'offboarding.move_title' : 'offboarding.title')}>
+<Sheet
+	bind:open={sheetOpen}
+	title={bolt.t(exited ? 'offboarding.move_title' : 'offboarding.title')}
+>
 	<Stack gap="md">
-		<p class="text-sm text-muted-foreground">{t('offboarding.description')}</p>
-		<p class="text-sm text-muted-foreground">{t('offboarding.leave_hint')}</p>
+		<p class="text-sm text-muted-foreground">{bolt.t('offboarding.description')}</p>
+		<p class="text-sm text-muted-foreground">{bolt.t('offboarding.leave_hint')}</p>
 		<Stack gap="xs">
-			<Label for="offboarding-last-day">{t('offboarding.last_day')}</Label>
-			<p class="text-xs text-muted-foreground">{t('offboarding.last_day_hint')}</p>
+			<Label for="offboarding-last-day">{bolt.t('offboarding.last_day')}</Label>
+			<p class="text-xs text-muted-foreground">{bolt.t('offboarding.last_day_hint')}</p>
 			<TimeInput
 				id="offboarding-last-day"
 				of="date"
@@ -198,10 +202,10 @@
 			/>
 		</Stack>
 		{#if lastDay != null && lastDay !== '' && version.current == null && !version.loading}
-			<p class="text-sm text-destructive">{t('component.no_governing_version')}</p>
+			<p class="text-sm text-destructive">{bolt.t('component.no_governing_version')}</p>
 		{/if}
 		<Stack gap="xs">
-			<Label for="offboarding-ground">{t('offboarding.ground')} *</Label>
+			<Label for="offboarding-ground">{bolt.t('offboarding.ground')} *</Label>
 			<Combobox
 				id="offboarding-ground"
 				class="w-full"
@@ -212,7 +216,8 @@
 			/>
 		</Stack>
 		{#if factsForm != null}
-			<JsonSchemaForm
+			<StructuredData
+				mode="edit"
 				schema={factsForm}
 				value={facts}
 				onChange={(next) => (facts = fromForm(facts, [], next))}
@@ -223,13 +228,13 @@
 		{/if}
 		<Cluster gap="sm" justify="end">
 			<Button variant="outline" disabled={saving} onclick={() => (sheetOpen = false)}>
-				{t('component.cancel')}
+				{bolt.t('component.cancel')}
 			</Button>
 			<Button
 				disabled={saving || lastDay == null || lastDay === '' || ground == null}
 				onclick={() => void submit()}
 			>
-				{t(exited ? 'offboarding.move_submit' : 'offboarding.submit')}
+				{bolt.t(exited ? 'offboarding.move_submit' : 'offboarding.submit')}
 			</Button>
 		</Cluster>
 	</Stack>

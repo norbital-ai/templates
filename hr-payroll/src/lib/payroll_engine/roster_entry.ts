@@ -76,11 +76,6 @@ export function refuseApprovedOvertimeIntervals(value: unknown): string | null {
 	return null;
 }
 
-export function refusePinnedRoster(before: { readonly payslip_id?: string | null }): string | null {
-	if (before.payslip_id == null) return null;
-	return 'A settled day cannot be changed.';
-}
-
 /** A regular run's attendance window: the days its payslips settled for one employment. */
 export type SettledWindow = { readonly from: string; readonly to: string };
 
@@ -127,7 +122,8 @@ const same = (left: unknown, right: unknown, approved = false): boolean => {
 /** Whether a write restates the stored day: every column it names already holds its value. */
 export function restates(input: object, before: object): boolean {
 	const stored: { readonly [field: string]: unknown } = { ...before };
-	return Object.entries(input).every(
+	const supplied: Readonly<Record<string, unknown>> = { ...input };
+	return Object.entries(supplied).every(
 		([field, value]) =>
 			field === 'id' || same(value, stored[field], field === 'approved_overtime_intervals')
 	);

@@ -9,7 +9,6 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, useKinds } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { live } from './live.svelte.js';
 	import { dayIn, timeIn, weekdayIn } from './format.js';
 	type Photo = {
 		id: string;
@@ -29,8 +28,8 @@
 		onOpen: (photo: { name: string; url: string }) => void;
 	} = $props();
 	const t = bolt.t;
-	const logs = live(() =>
-		bolt.read('communication_logs', {
+	const logs = $derived(
+		bolt.query('communication_logs', {
 			where: { job_assignment_id: { eq: job } },
 			orderBy: 'sent_at',
 			limit: 250
@@ -40,9 +39,9 @@
 	const kinds = useKinds();
 	const locale = kinds.locale ?? bolt.locale;
 	const provenance = kinds.catalog?.['photo_evidence']?.fields['source'] !== undefined;
-	const traced = live(() =>
+	const traced = $derived(
 		provenance
-			? bolt.read('photo_evidence', {
+			? bolt.query('photo_evidence', {
 					where: { job_assignment_id: { eq: job } },
 					select: { photo: true, created_at: true, source: true, flags: true },
 					orderBy: 'created_at',
@@ -50,10 +49,10 @@
 				})
 			: null
 	);
-	const untraced = live(() =>
+	const untraced = $derived(
 		provenance
 			? null
-			: bolt.read('photo_evidence', {
+			: bolt.query('photo_evidence', {
 					where: { job_assignment_id: { eq: job } },
 					select: { photo: true, created_at: true },
 					orderBy: 'created_at',
@@ -61,7 +60,7 @@
 				})
 	);
 	const photos = $derived<Photo[]>(
-		[...(traced.current?.rows ?? []), ...(untraced.current?.rows ?? [])].flatMap((row) => {
+		[...(traced?.current?.rows ?? []), ...(untraced?.current?.rows ?? [])].flatMap((row) => {
 			const file = row.photo;
 			if (file == null) return [];
 			const source = 'source' in row ? row.source : null;
@@ -157,7 +156,7 @@
 	{#if logs.error}<p class="text-sm text-destructive" role="alert">
 			{t('component.communication_logs_failed')}
 		</p>{/if}
-	{#if traced.error ?? untraced.error}<p class="text-sm text-destructive" role="alert">
+	{#if traced?.error ?? untraced?.error}<p class="text-sm text-destructive" role="alert">
 			{t('component.evidence_load_failed')}
 		</p>{/if}
 	<Scroll

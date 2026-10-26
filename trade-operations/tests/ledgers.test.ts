@@ -1,23 +1,26 @@
-import { fixtureId, decimalText, firstRow } from './test-runtime.js';
+import { fixtureId, firstRow } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Schema, Effect } from 'effect';
-import { randomUUID } from 'node:crypto';
 import { expect, it as test } from '@effect/vitest';
-import { DatabaseRequest, type DatabaseResult, type Json } from '@norbital-ai/bolt/engine';
+import { DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import type { Id, Page } from '@norbital-ai/bolt';
-import { committed, confirm, draft, PRODUCT, workspace, type T } from './kit.js';
+import { committed, confirm, workspace, type Synced } from './kit.js';
 import { sourceFixture } from './source-fixture.js';
-const now = '2026-10-10T00:00:00Z';
-type Records = Record<string, Json[]>;
-type Source = ReturnType<typeof sourceFixture>;
-const ledgers = Effect.fnUntraced(function* (
-	answer?: (instance: string, op: DatabaseRequest) => void
-) {
-	const records: {
-		first: Records;
-		second: Records;
-	} = { first: {}, second: {} };
+import {
+	kingdeeCatalogue,
+	kingdeeDraft,
+	kingdeeFixture,
+	kingdeeSale,
+	stockKey
+} from './kingdee-fixture.js';
+
+const first = fixtureId('sys_integration', 'kingdee');
+const ledgers = Effect.fnUntraced(function* () {
+	const records = { first: kingdeeCatalogue('First'), second: kingdeeCatalogue('Second') };
+	const sources = {
+		first: kingdeeFixture(() => records.first),
+		second: kingdeeFixture(() => records.second)
+	};
 	const t = yield* workspace();
 	const second = committed(
 		'sys_integration',
@@ -25,500 +28,310 @@ const ledgers = Effect.fnUntraced(function* (
 			.as(t.admin)
 			.act('sys_integration.create', { integration: 'kingdee', name: 'Second ledger' })
 	);
-	const sources: Record<string, Source> = {
-		kingdee: sourceFixture(() => records.first),
-		[second]: sourceFixture(() => records.second)
-	};
-	t.fakes.links.answer = (instance, op) =>
-		Schema.decodeUnknownEffect(DatabaseRequest)(op).pipe(
+	t.fakes.links.answer = (instance, operation) =>
+		Schema.decodeUnknownEffect(DatabaseRequest)(operation).pipe(
 			Effect.mapError((cause) => new FacilityFailure({ kind: 'invalid', message: String(cause) })),
 			Effect.flatMap((request) =>
-				Effect.gen(function* () {
-					answer?.(instance, request);
-					if (request.statement.includes('sp_getapplock'))
-						return {
-							rows: [
-								{
-									remote: `${instance}:${request.parameters.key}`,
-									hash: request.parameters.hash ?? ''
-								}
-							]
-						};
-					const source = sources[instance];
-					if (source === undefined)
-						return yield* Effect.fail(
-							new FacilityFailure({
-								kind: 'invalid',
-								message: `Unknown fixture ledger ${instance}`
-							})
-						);
-					return yield* source(request);
-				})
+				instance === first
+					? sources.first.request(request)
+					: instance === second
+						? sources.second.request(request)
+						: Effect.fail(new FacilityFailure({ kind: 'invalid', message: 'Unknown ledger' }))
 			)
 		);
-	const pull = Effect.fnUntraced(function* (collection: string) {
-		yield* t.pull(collection, randomUUID(), 'kingdee');
-		yield* t.pull(collection, randomUUID(), second);
+	const pull = Effect.fnUntraced(function* (model: Synced) {
+		yield* t.pull(model, first);
+		yield* t.pull(model, second);
 	});
-	return { t, second, records, pull };
+	return { t, second, records, sources, pull };
 });
-const catalogue = (name: string) => ({
-	'/parties': [
-		{
-			external_code: 'SAME-C',
-			name,
-			kind: 'customer',
-			currency: 'SGD',
-			active: true,
-			source_updated_at: now
-		}
-	],
-	'/products': [
-		{
-			external_code: 'SAME-P',
-			name,
-			unit: 'kg',
-			currency: 'SGD',
-			unit_price: '2',
-			tax_rate: '9',
-			active: true,
-			source_updated_at: now
-		}
-	],
-	'/warehouses': [
-		{ external_code: 'WEST', name, group_code: 'WEST', active: true, source_updated_at: now }
-	]
-});
-const one = Effect.fnUntraced(function* <A, E>(read: Effect.Effect<Page<A>, E>) {
-	const { rows } = yield* read;
-	expect(rows).toHaveLength(1);
-	return firstRow(rows);
-});
-const ledgerOrder = Effect.fnUntraced(function* (t: T, ledger: Id<'sys_integration'>) {
-	const as = t.as(t.admin);
-	const party = yield* one(
-		t.as(t.admin).read('parties', {
-			where: { source: { eq: ledger }, external_code: { eq: 'SAME-C' } },
-			all: true
-		})
-	);
-	const product = yield* one(
-		t.as(t.admin).read('products', {
-			where: { source: { eq: ledger }, external_code: { eq: 'SAME-P' } },
-			all: true
-		})
-	);
-	const order = committed(
-		'orders',
-		yield* as.act('orders.create', {
-			title: 'Ledger order',
-			direction: 'sales',
-			party: party.id,
-			currency: 'SGD',
-			payment_terms: 'Net 30'
-		})
-	);
-	const line = committed(
-		'order_lines',
-		yield* as.act('order_lines.create', {
-			order,
-			product: product.id,
-			quantity: Decimal.of('10'),
-			unit_price: Decimal.of('2'),
-			discount_pct: Decimal.of('0'),
-			tax_rate: Decimal.of('9')
-		})
-	);
-	yield* confirm(t, order);
-	const sealed = yield* as.get('orders', order);
-	return { order, line, seal: String(sealed?.seal_hash) };
-});
-test.live('stock and credit resolve their references inside their own ledger', () =>
+
+test.live('identical Kingdee item IDs resolve stock references within their own ledger', () =>
 	Effect.gen(function* () {
 		const { t, second, records, pull } = yield* ledgers();
-		for (const [ledger, name, onHand, limit] of [
-			['first', 'First', '100', '1000'],
-			['second', 'Second', '7', '5']
+		const key = stockKey('301', '502', 'LOT-A');
+		for (const [ledger, amount] of [
+			['first', '100'],
+			['second', '7']
 		] as const)
-			records[ledger] = {
-				...catalogue(name),
-				'/stock_snapshots': [
-					{
-						external_code: 'SAME-P:WEST',
-						product_code: 'SAME-P',
-						warehouse_code: 'WEST',
-						unit: 'kg',
-						on_hand: onHand,
-						as_of: now
-					}
-				],
-				'/credit_snapshots': [
-					{
-						external_code: 'SAME-C:SGD',
-						party_code: 'SAME-C',
-						currency: 'SGD',
-						credit_limit: limit,
-						credit_used: '0',
-						as_of: now
-					}
-				]
-			};
-		for (const collection of [
-			'parties',
-			'products',
-			'warehouses',
-			'stock_snapshots',
-			'credit_snapshots'
-		])
-			yield* pull(collection);
-		for (const [ledger, onHand, limit] of [
-			[fixtureId('sys_integration', 'kingdee'), '100', '1000'],
-			[second, '7', '5']
+			records[ledger]['/stock_snapshots'] = [
+				{
+					__key: key,
+					item_id: '301',
+					warehouse_id: '502',
+					lot_number: 'LOT-A',
+					unit: 'kg',
+					on_hand: amount
+				}
+			];
+		for (const model of ['parties', 'products', 'warehouses', 'stock_snapshots'] as const)
+			yield* pull(model);
+		for (const [instance, amount, name] of [
+			[first, '100', 'First resin'],
+			[second, '7', 'Second resin']
 		] as const) {
-			const stock = yield* one(
-				t.as(t.admin).read('stock_snapshots', {
-					where: { source: { eq: ledger }, external_code: { eq: 'SAME-P:WEST' } },
-					all: true
-				})
-			);
-			expect(stock).toMatchObject({ on_hand: decimalText(onHand) });
-			expect(yield* t.as(t.admin).get('products', stock.product)).toMatchObject({
-				source: ledger
+			const stocks = yield* t
+				.as(t.admin)
+				.query('stock_snapshots', { where: { source: { eq: instance } }, all: true });
+			expect(stocks.rows).toHaveLength(1);
+			const stock = firstRow(stocks.rows);
+			expect(stock.on_hand.eq(amount)).toBe(true);
+			expect(stock.currency).toBeNull();
+			expect(stock.unit_cost).toBeNull();
+			expect(yield* t.as(t.admin).query('products', { id: stock.product })).toMatchObject({
+				source: instance,
+				external_code: '301',
+				name
 			});
-			expect(yield* t.as(t.admin).get('warehouses', stock.warehouse)).toMatchObject({
-				source: ledger
-			});
-			const credit = yield* one(
-				t.as(t.admin).read('credit_snapshots', {
-					where: { source: { eq: ledger }, external_code: { eq: 'SAME-C:SGD' } },
-					all: true
-				})
-			);
-			expect(credit).toMatchObject({ credit_limit: decimalText(limit) });
-			expect(yield* t.as(t.admin).get('parties', credit.party)).toMatchObject({
-				source: ledger
+			expect(yield* t.as(t.admin).query('warehouses', { id: stock.warehouse })).toMatchObject({
+				source: instance,
+				external_code: '502'
 			});
 		}
 	})
 );
+
 test.live(
-	'transactions and payments sharing remote ids stay with their own ledger and orders',
+	'a physical source edit updates only its ledger and preserves local product settings',
 	() =>
 		Effect.gen(function* () {
 			const { t, second, records, pull } = yield* ledgers();
-			records.first = catalogue('First');
-			records.second = catalogue('Second');
-			for (const collection of ['parties', 'products', 'warehouses']) yield* pull(collection);
-			const orders = {
-				first: yield* ledgerOrder(t, fixtureId('sys_integration', 'kingdee')),
-				second: yield* ledgerOrder(t, second)
-			};
-			for (const ledger of ['first', 'second'] as const) {
-				const { order, line, seal } = orders[ledger];
-				records[ledger] = {
-					'/ext_sales_orders': [
-						{
-							external_id: 'SO-SAME',
-							order_id: order,
-							reference: 'SO-SAME',
-							agreement_hash: seal,
-							currency: 'SGD',
-							status: 'issued',
-							source_updated_at: now
-						}
-					],
-					'/transactions': [
-						{
-							external_id: 'INV-SAME',
-							parent_id: 'SO-SAME',
-							order_id: order,
-							direction: 'sales',
-							kind: 'invoice',
-							reference: 'INV-SAME',
-							seal_hash: seal,
-							currency: 'SGD',
-							status: 'issued',
-							items: JSON.stringify([
-								{
-									order_line_id: line,
-									product_name: 'Resin',
-									unit: 'kg',
-									quantity: '4',
-									unit_price: '2'
-								}
-							]),
-							documents: JSON.stringify([
-								{
-									name: 'invoice.pdf',
-									url: 'https://example.test/invoice.pdf',
-									sha256: 'a'.repeat(64)
-								}
-							]),
-							issued_on: '2026-10-01',
-							due_on: '2026-10-31',
-							total: '8.72',
-							source_updated_at: now
-						}
-					],
-					'/source_payments': [
-						{
-							external_code: 'PAY-SAME',
-							order_id: order,
-							invoice_id: 'INV-SAME',
-							kind: 'receipt',
-							reference: 'RCPT-SAME',
-							settled_on: '2026-10-05',
-							source_updated_at: now,
-							seal_hash: seal,
-							currency: 'SGD',
-							amount: '3',
-							active: true
-						}
-					]
-				};
-			}
-			for (const collection of ['ext_sales_orders', 'transactions', 'source_payments'])
-				yield* pull(collection);
-			for (const [ledger, own] of [
-				[fixtureId('sys_integration', 'kingdee'), orders.first],
-				[second, orders.second]
-			] as const) {
-				const parent = yield* one(
-					t.as(t.admin).read('ext_sales_orders', {
-						where: { source: { eq: ledger }, external_id: { eq: 'SO-SAME' } },
-						all: true
-					})
-				);
-				const invoice = yield* one(
-					t.as(t.admin).read('transactions', {
-						where: { source: { eq: ledger }, erp_id: { eq: 'INV-SAME' } },
-						all: true
-					})
-				);
-				expect(invoice).toMatchObject({ order: own.order, ext_sales_order: parent.id });
-				expect(
-					yield* one(
-						t.as(t.admin).read('source_payments', {
-							where: { source: { eq: ledger }, external_code: { eq: 'PAY-SAME' } },
-							all: true
-						})
-					)
-				).toMatchObject({
-					order: own.order,
-					invoice: invoice.id
+			yield* pull('products');
+			const read = (instance: typeof first) =>
+				t.as(t.admin).query('products', {
+					where: { source: { eq: instance }, external_code: { eq: '301' } },
+					all: true
 				});
-			}
+			const original = firstRow((yield* read(first)).rows);
+			yield* t.as(t.admin).act('products.update', {
+				target: original.id,
+				set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
+			});
+			records.first['/products'] = (records.first['/products'] ?? []).map((row) => {
+				return {
+					...Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(row),
+					spec: 'Changed source grade'
+				};
+			});
+			yield* t.pull('products', first);
+			const updated = firstRow((yield* read(first)).rows);
+			expect(updated).toMatchObject({
+				id: original.id,
+				spec: 'Changed source grade',
+				commission_basis_unit: 'kg'
+			});
+			expect(updated.commission_factor?.eq('1.25')).toBe(true);
+			expect(firstRow((yield* read(second)).rows)).toMatchObject({
+				name: 'Second resin',
+				spec: 'A'
+			});
 		})
 );
-test.live('each confirmed order is submitted once, to its own ledger only', () =>
-	Effect.gen(function* () {
-		const submitted: {
-			instance: string;
-			order: Json | undefined;
-			key: Json | undefined;
-		}[] = [];
-		const { t, second, records, pull } = yield* ledgers((instance, op) => {
-			if (op.statement.includes('sp_getapplock'))
-				submitted.push({ instance, order: op.parameters.order_id, key: op.parameters.key });
-		});
-		records.second = catalogue('Second');
-		for (const collection of ['parties', 'products', 'warehouses']) yield* pull(collection);
-		const first = yield* draft(t);
-		yield* confirm(t, first.order);
-		const own = yield* ledgerOrder(t, second);
-		expect(yield* t.as(t.admin).get('orders', first.order)).toMatchObject({ ledger: 'kingdee' });
-		expect(yield* t.as(t.admin).get('orders', own.order)).toMatchObject({ ledger: second });
-		expect(yield* t.deliver()).toMatchObject({ sent: 2, failed: 0 });
-		expect(yield* t.deliver()).toMatchObject({ sent: 0 });
-		expect(submitted.map(({ instance, order }) => ({ instance, order }))).toEqual(
-			expect.arrayContaining([
-				{ instance: 'kingdee', order: first.order },
-				{ instance: second, order: own.order }
-			])
-		);
-		expect(submitted).toHaveLength(2);
-		// an order never mixes ledgers: its warehouse and products come from its party's ledger
-		const party = yield* one(
-			t.as(t.admin).read('parties', {
-				where: { source: { eq: second }, external_code: { eq: 'SAME-C' } },
-				all: true
-			})
-		);
-		expect(
-			yield* Effect.flip(
-				t.as(t.admin).act('orders.create', {
-					title: 'Mixed',
+
+test.live(
+	'a confirmed sale is submitted once to its own ledger and the same ERP integer IDs remain separate',
+	() =>
+		Effect.gen(function* () {
+			const { t, second, sources } = yield* ledgers();
+			const firstSale = yield* kingdeeSale(t, sources.first, first);
+			const secondSale = yield* kingdeeSale(t, sources.second, second);
+			expect(yield* t.deliver()).toMatchObject({ delivered: 2 });
+			expect(sources.first.submissions.size).toBe(1);
+			expect(sources.second.submissions.size).toBe(1);
+			expect(firstRow([...sources.first.submissions.values()]).remote).toBe('9002');
+			expect(firstRow([...sources.second.submissions.values()]).remote).toBe('9002');
+			expect(yield* t.deliver()).toMatchObject({ delivered: 0 });
+			for (const [instance, own] of [
+				[first, firstSale],
+				[second, secondSale]
+			] as const) {
+				yield* t.pull('ext_sales_orders', instance);
+				const parent = firstRow(
+					(yield* t
+						.as(t.admin)
+						.query('ext_sales_orders', { where: { source: { eq: instance } }, all: true })).rows
+				);
+				expect(parent).toMatchObject({
+					source: instance,
+					order: own.order,
+					agreement_hash: own.seal,
+					status: 'draft'
+				});
+				expect(parent.external_id).toBe(`sales:0:9002:${own.seal}`);
+			}
+			const mixedParty = firstRow(
+				(yield* t.as(t.admin).query('parties', {
+					where: { source: { eq: second }, external_code: { eq: '101' } },
+					all: true
+				})).rows
+			);
+			expect(
+				yield* Effect.flip(
+					t.as(t.admin).act('orders.create', {
+						title: 'Mixed warehouse',
+						direction: 'sales',
+						party: mixedParty.id,
+						warehouse: firstSale.warehouse,
+						currency: 'CNY',
+						payment_terms: 'PROBE-NET30'
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
+			const mixedOrder = committed(
+				'orders',
+				yield* t.as(t.admin).act('orders.create', {
+					title: 'Mixed product',
 					direction: 'sales',
-					party: party.id,
-					warehouse: fixtureId('warehouses', '00000000-0000-4000-8000-000000000301'),
-					currency: 'SGD',
-					payment_terms: 'Net 30'
+					party: mixedParty.id,
+					currency: 'CNY',
+					payment_terms: 'PROBE-NET30'
 				})
-			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
-		const mixed = committed(
-			'orders',
-			yield* t.as(t.admin).act('orders.create', {
-				title: 'Mixed lines',
-				direction: 'sales',
-				party: party.id,
-				currency: 'SGD',
-				payment_terms: 'Net 30'
-			})
-		);
-		expect(
-			yield* Effect.flip(
-				t.as(t.admin).act('order_lines.create', {
-					order: mixed,
-					product: PRODUCT,
-					quantity: Decimal.of('1'),
-					unit_price: Decimal.of('2'),
-					discount_pct: Decimal.of('0'),
-					tax_rate: Decimal.of('9')
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
-	})
+			);
+			expect(
+				yield* Effect.flip(
+					t.as(t.admin).act('order_lines.create', {
+						order: mixedOrder,
+						product: firstSale.product,
+						quantity: Decimal.of(1),
+						unit_price: Decimal.of(2),
+						discount_pct: Decimal.of(0),
+						tax_rate: Decimal.of(13)
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
+		})
 );
-test.live('a Kingdee outage and a lost acknowledgement still create the order exactly once', () =>
-	Effect.gen(function* () {
-		const remote = new Map<string, string>();
-		const keys = new Set<string>();
-		let unreachable = 2,
-			lose = true;
-		const t = yield* workspace({
-			source: (op) =>
-				Effect.try({
-					try: () => {
-						if (unreachable > 0) {
-							unreachable--;
-							throw new Error('Kingdee is unreachable');
-						}
-						const key = String(op.parameters.key);
-						keys.add(key);
-						const created = remote.get(key) ?? randomUUID();
-						remote.set(key, created);
-						if (lose) {
-							lose = false;
-							throw new Error('The acknowledgement was lost');
-						}
-						return { rows: [{ remote: created, hash: op.parameters.hash ?? '' }] };
-					},
-					catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
-				})
-		});
-		const own = yield* draft(t);
-		yield* confirm(t, own.order);
-		const state = Effect.fnUntraced(function* () {
-			return firstRow(
-				yield* t.db.read([
-					{ text: "SELECT status FROM sys_message WHERE class = 'command'", params: [] }
-				])
-			).rows;
-		});
-		for (let attempt = 0; attempt < 3; attempt++) {
-			expect(yield* t.deliver()).toMatchObject({ sent: 0, failed: 0 });
-			expect(yield* state()).toEqual([{ status: 'queued' }]);
+
+test.live(
+	'source outages and a committed write with a lost receipt converge to one acknowledged ERP order',
+	() =>
+		Effect.gen(function* () {
+			const fixture = kingdeeFixture();
+			const t = yield* workspace({ source: fixture.request });
+			const own = yield* kingdeeSale(t, fixture);
+			fixture.state.unreachable = 2;
+			fixture.state.loseNextReceipt = true;
+			const Outbox = Schema.Struct({
+				status: Schema.String,
+				attempts: Schema.Number,
+				key: Schema.String,
+				error: Schema.NullOr(Schema.Json),
+				next_attempt_at: Schema.String,
+				submitted: Schema.Boolean
+			});
+			const state = Effect.fnUntraced(function* () {
+				return firstRow(
+					yield* t.db.rows(Outbox, {
+						text: "SELECT status,attempts,key,error,next_attempt_at::text,result IS NOT NULL AS submitted FROM sys_outbox WHERE model='orders' AND sync='orders.sync.kingdee' AND record=$1 ORDER BY seq",
+						params: [own.order]
+					})
+				);
+			});
+			const originalKey = (yield* state()).key;
+			for (let attempt = 1; attempt <= 3; attempt++) {
+				expect(yield* t.deliver()).toMatchObject({ delivered: 1 });
+				const queued = yield* state();
+				expect(queued).toMatchObject({
+					status: 'queued',
+					attempts: attempt,
+					key: originalKey,
+					submitted: false
+				});
+				expect(queued.error).not.toBeNull();
+				expect(fixture.submissions.size).toBe(attempt < 3 ? 0 : 1);
+				t.clock.set(new Date(queued.next_attempt_at).toISOString());
+			}
+			expect(yield* t.deliver()).toMatchObject({ delivered: 1 });
+			expect(yield* state()).toMatchObject({
+				status: 'acked',
+				attempts: 4,
+				key: originalKey,
+				error: null,
+				submitted: true
+			});
+			expect(fixture.submissions.size).toBe(1);
+			expect(fixture.state.lostReceipts).toBe(1);
+			const identity = yield* t.db.rows(
+				Schema.Struct({ remote_id: Schema.String, remote_version: Schema.String }),
+				{
+					text: "SELECT remote_id,remote_version FROM sys_sync_row WHERE sync='orders.sync.kingdee' AND record=$1",
+					params: [own.order]
+				}
+			);
+			expect(identity).toEqual([
+				{ remote_id: `sales:0:9002:${own.seal}`, remote_version: own.seal }
+			]);
 			t.clock.advance('10min');
-		}
-		expect(yield* t.deliver()).toMatchObject({ sent: 1, failed: 0 });
-		t.clock.advance('10min');
-		expect(yield* t.deliver()).toMatchObject({ sent: 0 });
-		expect(yield* state()).toEqual([{ status: 'sent' }]);
-		expect(remote.size).toBe(1);
-		expect(keys.size).toBe(1);
-	})
+			expect(yield* t.deliver()).toMatchObject({ delivered: 0 });
+		})
 );
+
+test.live(
+	'draft quotations make no provider call and only the first confirmed sale is submitted',
+	() =>
+		Effect.gen(function* () {
+			const fixture = kingdeeFixture();
+			const t = yield* workspace({ source: fixture.request });
+			const own = yield* kingdeeDraft(t, fixture);
+			const calls = fixture.calls.length;
+			yield* t.deliver();
+			expect(fixture.calls).toHaveLength(calls);
+			expect(fixture.submissions.size).toBe(0);
+			expect(
+				(yield* t.as(t.admin).query('orders.quotation_export', { order: own.order })).contract
+					.length
+			).toBeGreaterThan(20);
+			yield* confirm(t, own.order);
+			yield* t.deliver();
+			expect(fixture.submissions.size).toBe(1);
+			yield* t.deliver();
+			expect(fixture.submissions.size).toBe(1);
+		})
+);
+
 test.live('a ledger needing attention notifies configuration holders once', () =>
 	Effect.gen(function* () {
 		const fixture = sourceFixture(() => ({ '/parties': [] }));
+		let clocks = 0;
 		const t = yield* workspace({
-			source: Effect.fnUntraced(function* (op: DatabaseRequest) {
-				const answer = yield* fixture(op);
-				// the capture clock reports a lag beyond the instance's 15 minute limit
-				return op.statement.includes('SELECT sys.fn_cdc_get_max_lsn()')
-					? { rows: answer.rows.map((row) => ({ ...row, lag: String(16 * 60000) })) }
+			source: Effect.fnUntraced(function* (operation: DatabaseRequest) {
+				const answer = yield* fixture(operation);
+				return operation.op === 'call' &&
+					typeof operation.arguments.stmt === 'string' &&
+					operation.arguments.stmt.includes('MIN_ACTIVE_ROWVERSION')
+					? {
+							rows: answer.rows.map((row) => ({
+								...row,
+								observed_at:
+									clocks++ === 0 ? '2026-10-10T00:00:00.000Z' : '2026-10-10T00:16:00.000Z'
+							}))
+						}
 					: answer;
 			})
 		});
 		const configurator = t.member(['configuration'], {
-			teams: ['Configurators'],
-			teamPath: ['Configurators']
+			teams: ['configurators'],
+			teamPath: ['configurators']
 		});
-		const sales = t.member(['sales'], { teams: ['Sales'], teamPath: ['Sales'] });
+		const sales = t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] });
 		yield* t.pull('parties');
-		expect(
-			yield* t.as(t.admin).get('sys_integration', fixtureId('sys_integration', 'kingdee'))
-		).toMatchObject({
-			status: { health: { state: 'attention', code: 'captureLag' } }
+		expect(yield* t.as(t.admin).query('sys_integration', { id: first })).toMatchObject({
+			status: { health: { state: 'attention', code: 'windowLag' } }
 		});
 		yield* t.runDue();
 		yield* t.pull('parties');
 		yield* t.runDue();
-		const inbox = Effect.fnUntraced(function* (member: string) {
-			return firstRow(
-				yield* t.db.read([
-					{ text: 'SELECT title, body FROM sys_notification WHERE member = $1', params: [member] }
-				])
-			).rows;
-		});
+		const inbox = (member: string) =>
+			t.db.rows(Schema.Struct({ title: Schema.String, body: Schema.String }), {
+				text: 'SELECT title,body FROM sys_notification WHERE member=$1',
+				params: [member]
+			});
 		expect(yield* inbox(configurator.id)).toEqual([
 			{
 				title: 'kingdee needs attention',
-				body: 'Change capture is behind the configured lag limit.'
+				body: 'An accounting source window is taking longer than the configured limit.'
 			}
 		]);
 		expect(yield* inbox(sales.id)).toEqual([]);
 	})
-);
-test.live(
-	'a draft queues no command; each re-confirmed agreement version is submitted under its own key',
-	() =>
-		Effect.gen(function* () {
-			const keys: string[] = [];
-			const t = yield* workspace({
-				source: (op) =>
-					Effect.try({
-						try: () => {
-							keys.push(String(op.parameters.key));
-							return { rows: [{ remote: `R-${keys.length}`, hash: op.parameters.hash ?? '' }] };
-						},
-						catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
-					})
-			});
-			const commands = Effect.fnUntraced(function* () {
-				return firstRow(
-					yield* t.db.read([
-						{
-							text: "SELECT status FROM sys_message WHERE class = 'command' ORDER BY seq",
-							params: []
-						}
-					])
-				).rows;
-			});
-			const own = yield* draft(t);
-			expect(yield* t.deliver()).toMatchObject({ sent: 0 });
-			expect(yield* commands()).toEqual([]);
-			yield* confirm(t, own.order);
-			expect(yield* t.deliver()).toMatchObject({ sent: 1 });
-			committed(
-				'orders',
-				yield* t
-					.as(t.admin)
-					.act('orders.revise', { target: own.order, input: { reason: 'Extended agreement' } })
-			);
-			committed(
-				'orders',
-				yield* t
-					.as(t.admin)
-					.act('orders.update', { target: own.order, set: { payment_terms: 'Net 60' } })
-			);
-			expect(yield* t.deliver()).toMatchObject({ sent: 0 });
-			yield* confirm(t, own.order);
-			t.clock.advance('1min');
-			expect(yield* t.deliver()).toMatchObject({ sent: 1 });
-			expect(yield* commands()).toEqual([{ status: 'sent' }, { status: 'sent' }]);
-			expect(keys).toHaveLength(2);
-			expect(new Set(keys).size).toBe(2);
-		})
 );

@@ -1,5 +1,9 @@
 # ID (Indonesia) — statutory compliance audit, 2026-10-21
 
+> **Historical audit (2026-10-21).** The `tests/jurisdiction_*.test.ts` suites cited below were removed under the
+> owner's mechanism-only test policy; their counts, names and pass lines are historical evidence, not current
+> coverage. The jurisdiction seed catalogues this audit reviewed remain the workspace's runtime data.
+
 Audit only; no repository file edited. Seed: `templates/hr-payroll/seed/jurisdiction/ID/version_*`.
 
 ## Summary verdict

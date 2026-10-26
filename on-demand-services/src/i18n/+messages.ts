@@ -16,7 +16,7 @@ export default messages({
 	'section.account_location': 'Sign-in and location',
 	'section.map': 'Map location',
 	'section.notes': 'Notes',
-	'section.checks': 'Dispatch checks',
+	'section.checks': 'Automatic checks',
 	'section.completion': 'Completion',
 	'section.delivery': 'Delivery',
 	'summary.no_notes': 'No notes',
@@ -322,7 +322,7 @@ export default messages({
 	'models.visits.singular': 'Visit',
 	'models.visits.fields.eta_minutes': 'ETA (minutes)',
 	'models.visits.fields.eta_checked_at': 'ETA checked',
-	'models.visits.fields.mc': 'MC',
+	'models.visits.fields.mc': 'Medical leave',
 	'models.visits.fields.shift_asked_at': 'Shift check asked',
 	'models.visits.fields.slot': 'Time',
 	'models.visits.fields.proposed_slot': 'Proposed time',
@@ -387,7 +387,8 @@ export default messages({
 	'models.helper_time_off.fields.reason.medical': 'Medical',
 	'models.helper_time_off.fields.reason.other': 'Other',
 	'models.helper_warnings.fields.reason.no_response': 'No response',
-	'models.helper_warnings.fields.reason.declined_without_mc': 'Declined without MC',
+	'models.helper_warnings.fields.reason.declined_without_mc':
+		'Declined without a medical certificate',
 	'models.helpers.fields.skills.home_cleaning': 'Home cleaning',
 	'models.helpers.fields.skills.deep_cleaning': 'Deep cleaning',
 	'models.helpers.fields.skills.move_in_out': 'Move-in / move-out',
@@ -430,5 +431,7 @@ export default messages({
 	'models.visits.fields.attention.none': 'OK',
 	'models.visits.fields.attention.unassigned': 'Needs a helper',
 	'models.visits.fields.attention.eta_risk': 'ETA risk',
-	'models.visits.fields.attention.helper_left': 'Helper left'
+	'models.visits.fields.attention.helper_left': 'Helper left',
+	'section.attention': 'Attention',
+	'section.where': 'Where'
 });

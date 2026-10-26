@@ -5,7 +5,7 @@
 </script>
 
 <AppShell
-	description=""
+	description={bolt.t('app.partners.description')}
 	icon="lucide:building-2"
 	title={bolt.t('component.partners')}
 	variant="full"

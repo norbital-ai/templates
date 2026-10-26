@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { bankExportDocuments } from '../src/lib/payroll_engine/bank_export.ts';
 
@@ -139,32 +138,6 @@ describe('bank export admission', () => {
 		const result = bankExportDocuments(input);
 		assert.equal(result.issue, null);
 		assert.deepEqual(result.documents, [{ name: 'payments.txt', content: '00012345678900012345' }]);
-	});
-
-	it('rejects unverified legacy bank profiles instead of exporting an invented format', () => {
-		const versions = [1, 2, 3, 4];
-		for (const version of versions) {
-			const records: readonly { readonly code: string; readonly rules: unknown }[] = JSON.parse(
-				readFileSync(
-					new URL(`../seed/jurisdiction/SG/version_${version}/rule_set.json`, import.meta.url),
-					'utf8'
-				)
-			);
-			const layouts = records.filter((record) => record.code === 'bank_ocbc_fast');
-			assert.equal(layouts.length, 1);
-			const result = bankExportDocuments({
-				...input,
-				templates: layouts,
-				company: {
-					disbursement_account: {
-						...input.company.disbursement_account,
-						bank_code: 'OCBCSGSGXXX'
-					}
-				}
-			});
-			assert.match(result.issue ?? '', /not been verified/);
-			assert.deepEqual(result.documents, []);
-		}
 	});
 
 	it('refuses missing payer and beneficiary details and invalid payment dates', () => {

@@ -22,10 +22,9 @@
 		columns={['name', 'phone', 'skills', 'work_days', 'day_start', 'day_end', 'status']}
 		actions={[
 			{
-				action: 'helpers.offboard',
+				run: (row) => bolt.start('helpers_offboard', { targets: [row.id], last_day: today }),
 				label: t('app.helpers.offboard'),
-				confirm: t('app.helpers.offboard_confirm'),
-				input: (row) => ({ target: row.id, input: { last_day: today } })
+				confirm: t('app.helpers.offboard_confirm')
 			}
 		]}
 	/>

@@ -4,7 +4,6 @@ export default policy({
 	capabilities: {
 		apps: ['operations']
 	},
-	automations: ['export_order'],
 	grants: {
 		ext_sales_orders: { read: true, history: true },
 		ext_purchase_orders: { read: true, history: true },

@@ -2,10 +2,10 @@
 	/**
 	 * The jurisdiction configuration app: one version of one settings lineage (MY, SG, …), chosen in the header, shared
 	 * by every entity bound to the lineage. Tabs: the version itself (its facts and work rules, the collection's record
-	 * view), statutory contributions and the five money catalogues. A sealed version is law that has frozen: no table
+	 * view), statutory contributions and the six catalogues. A sealed version is law that has frozen: no table
 	 * under it offers a create.
 	 */
-	import { t } from '../../../lib/ui/i18n/t.js';
+	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Combobox, EmptyState, RecordShell, Table, Tabs } from '@norbital-ai/ui';
@@ -20,10 +20,10 @@
 
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
-	const scope = $derived(resolveJurisdictionScope(all.current ?? [], chosen));
-	const options = $derived(jurisdictionOptions(all.current ?? []));
+	const scope = $derived(resolveJurisdictionScope(all.current?.rows ?? [], chosen));
+	const options = $derived(jurisdictionOptions(all.current?.rows ?? []));
 	const versions = $derived(
-		newest_first((all.current ?? []).filter((row) => row.code === scope?.code))
+		newest_first((all.current?.rows ?? []).filter((row) => row.code === scope?.code))
 	);
 	const version = $derived(
 		versions.find((row) => row.id === scope?.versionId) ?? versions[0] ?? null
@@ -34,7 +34,8 @@
 		['claim_catalog', 'lucide:receipt-text'],
 		['allowance_catalog', 'lucide:calendar-clock'],
 		['adhoc_catalog', 'lucide:hand-coins'],
-		['loan_catalog', 'lucide:landmark']
+		['loan_catalog', 'lucide:landmark'],
+		['work_catalog', 'lucide:clock']
 	] as const;
 	type Catalogue = (typeof CATALOGUES)[number][0];
 </script>
@@ -51,13 +52,13 @@
 			<Table
 				of="statutory_contribution_catalog"
 				key="contributions"
-				toolbar={{ title: t('component.statutory_contributions'), new: !sealed }}
+				toolbar={{ title: bolt.t('component.statutory_contributions'), new: !sealed }}
 				where={{ settings_id: { eq: version.id } }}
 				orderBy={{ code: 'asc' }}
 				columns={[
-					{ field: 'code', label: t('component.code') },
-					{ field: 'name', label: t('component.name') },
-					{ field: 'references', label: t('component.references') }
+					{ field: 'code', label: bolt.t('component.code') },
+					{ field: 'name', label: bolt.t('component.name') },
+					{ field: 'references', label: bolt.t('component.references') }
 				]}
 			/>
 		{/key}
@@ -68,7 +69,7 @@
 	{#if version}
 		{#key version.id}
 			{@const where = { settings_id: { eq: version.id } } as const}
-			{@const toolbar = { title: t(`app.settings.${collection}`), new: !sealed }}
+			{@const toolbar = { title: bolt.t(`app.settings.${collection}`), new: !sealed }}
 			{#if collection === 'leave_catalog'}
 				<Table
 					of={collection}
@@ -77,10 +78,9 @@
 					{where}
 					orderBy={{ code: 'asc' }}
 					columns={[
-						{ field: 'code', label: t('component.code') },
-						{ field: 'name', label: t('component.name') },
-						{ field: 'is_npl', label: t('component.is_npl') },
-						{ field: 'eligibility', label: t('component.who_may_take_it') }
+						{ field: 'code', label: bolt.t('component.code') },
+						{ field: 'name', label: bolt.t('component.name') },
+						{ field: 'is_npl', label: bolt.t('component.is_npl') }
 					]}
 				/>
 			{:else}
@@ -91,10 +91,10 @@
 					{where}
 					orderBy={{ code: 'asc' }}
 					columns={[
-						{ field: 'code', label: t('component.code') },
-						{ field: 'destination', label: t('component.economic_type') },
-						{ field: 'direction', label: t('component.settlement') },
-						{ field: 'eligibility', label: t('component.who_receives') }
+						{ field: 'code', label: bolt.t('component.code') },
+						{ field: 'name', label: bolt.t('component.name') },
+						{ field: 'destination', label: bolt.t('app.settings.paid_as') },
+						{ field: 'direction', label: bolt.t('app.settings.adds_or_deducts') }
 					]}
 				/>
 			{/if}
@@ -106,14 +106,15 @@
 	<Tabs
 		tabs={CATALOGUES.map(([collection, icon]) => ({
 			name: collection,
-			title: t(`app.settings.${collection}`),
+			title: bolt.t(`app.settings.${collection}`),
 			icon,
 			body: {
 				leave_catalog: leaveTab,
 				claim_catalog: claimTab,
 				allowance_catalog: allowanceTab,
 				adhoc_catalog: adhocTab,
-				loan_catalog: loanTab
+				loan_catalog: loanTab,
+				work_catalog: workTab
 			}[collection]
 		}))}
 	/>
@@ -123,6 +124,7 @@
 {#snippet allowanceTab()}{@render catalogue('allowance_catalog')}{/snippet}
 {#snippet adhocTab()}{@render catalogue('adhoc_catalog')}{/snippet}
 {#snippet loanTab()}{@render catalogue('loan_catalog')}{/snippet}
+{#snippet workTab()}{@render catalogue('work_catalog')}{/snippet}
 
 {#snippet changes()}
 	<SnapshotChanges {version} {versions} />
@@ -130,48 +132,48 @@
 
 <AppShell
 	icon="lucide:settings-2"
-	title={t('app.settings.header_title')}
-	description={t('app.settings.header_description')}
+	title={bolt.t('app.settings.header_title')}
+	description={bolt.t('app.settings.header_description')}
 	variant="full"
 >
 	{#snippet actions()}
 		<Combobox
 			class="w-64"
 			size="sm"
-			aria-label={t('app.settings.jurisdiction')}
+			aria-label={bolt.t('app.settings.jurisdiction')}
 			{options}
 			value={scope?.versionId ?? null}
 			onChange={(next) => (chosen = next)}
 		/>
 		<VersionLifecycle {version} {versions} onCreated={(id) => (chosen = id)} />
 	{/snippet}
-	{#if all.current !== undefined}
+	{#if all.current?.rows !== undefined}
 		{#if scope == null}
-			<EmptyState title={t('app.settings.choose_jurisdiction_empty')} />
+			<EmptyState title={bolt.t('app.settings.choose_jurisdiction_empty')} />
 		{:else}
 			<Tabs
 				tabs={[
 					{
 						name: 'general',
-						title: t('app.settings.general'),
+						title: bolt.t('app.settings.general'),
 						icon: 'lucide:scale',
 						body: general
 					},
 					{
 						name: 'contributions',
-						title: t('component.statutory_contributions'),
+						title: bolt.t('component.statutory_contributions'),
 						icon: 'lucide:landmark',
 						body: contributions
 					},
 					{
 						name: 'catalog',
-						title: t('app.settings.catalogues'),
+						title: bolt.t('app.settings.catalogues'),
 						icon: 'lucide:library',
 						body: catalogues
 					},
 					{
 						name: 'changes',
-						title: t('app.settings.changes'),
+						title: bolt.t('app.settings.changes'),
 						icon: 'lucide:git-compare',
 						body: changes
 					}

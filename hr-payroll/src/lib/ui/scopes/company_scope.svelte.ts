@@ -2,7 +2,6 @@ import type { Id } from '@norbital-ai/bolt';
 import { getContext, setContext } from 'svelte';
 import { bolt } from '$bolt';
 import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from './create_scope.js';
-import { liveRows } from '../state/live.svelte.js';
 
 /** The entity last chosen on any HR page: moving between Payroll runs, Compliance and the rest keeps it. */
 let chosen = $state<Id<'entity'> | null>(null);
@@ -12,8 +11,9 @@ let chosen = $state<Id<'entity'> | null>(null);
  * every page that calls this), or the first by name. Call during component initialisation.
  */
 export function companyScope() {
-	const entities = liveRows(() =>
-		bolt.read('entity', {
+	const clock = bolt.clock('day');
+	const entities = $derived.by(() =>
+		bolt.query('entity', {
 			select: {
 				name: true,
 				settings_code: true,
@@ -25,12 +25,12 @@ export function companyScope() {
 				time_zone: true,
 				effective_range: true
 			},
-			where: { effective_range: { contains: { today: '' } } },
+			where: { effective_range: { contains: clock.today } },
 			orderBy: { name: 'asc' },
 			all: true
 		})
 	);
-	const list = $derived(entities.current ?? []);
+	const list = $derived(entities?.current?.rows ?? []);
 	const company = $derived(list.find((row) => row.id === chosen) ?? list[0] ?? null);
 	return {
 		get entities() {
@@ -38,7 +38,7 @@ export function companyScope() {
 		},
 		/** The entities are still loading: no page says "choose an entity" before it knows there is none. */
 		get unknown() {
-			return entities.current === undefined;
+			return entities?.current?.rows === undefined;
 		},
 		get company() {
 			return company;
@@ -62,18 +62,20 @@ export const pageEntity = (): CompanyScope | undefined => getContext(PAGE_ENTITY
 
 /** "NAME (NUMBER)" of every employment of the scoped entity, live: what a table's person column prints. */
 export function employmentNames(companyId: () => Id<'entity'> | null) {
-	const rows = liveRows(() => {
+	const rows = $derived.by(() => {
 		const id = companyId();
 		return id == null
 			? null
-			: bolt.read('employment_contract', {
+			: bolt.query('employment_contract', {
 					where: { company_id: { eq: id } },
 					select: EMPLOYMENT_LABEL_SELECT,
 					all: true
 				});
 	});
 	const names = $derived(
-		new Map<string, string>((rows.current ?? []).map((row) => [row.id, employmentLabel(row)]))
+		new Map<string, string>(
+			(rows?.current?.rows ?? []).map((row) => [row.id, employmentLabel(row)])
+		)
 	);
 	return (id: unknown): string => names.get(String(id)) ?? '—';
 }

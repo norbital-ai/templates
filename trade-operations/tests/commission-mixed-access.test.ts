@@ -1,3 +1,4 @@
+import { Instant } from '@norbital-ai/std/date';
 import { fixtureId, decimalText } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Schema, Effect } from 'effect';
@@ -11,7 +12,7 @@ test.live(
 			const { t, as, own } = yield* configuredCommission();
 			const mixed = t.member(['sales', 'logistics']);
 			const actor = t.as(mixed);
-			expect(yield* actor.get('orders', own.order)).toMatchObject({
+			expect(yield* actor.query('orders', { id: own.order })).toMatchObject({
 				sealed_snapshot: { $masked: true }
 			});
 			expect(yield* actor.query('orders.commission', {})).toEqual([]);
@@ -25,7 +26,12 @@ test.live(
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
-						Effect.runPromise(actor.query('orders.confirmation_check', { order: own.order }))
+						Effect.runPromise(
+							actor.query('orders.confirmation_check', {
+								as_of: Instant(t.clock.now()),
+								order: own.order
+							})
+						)
 					).rejects.toThrow('errors.commercial_access'),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});

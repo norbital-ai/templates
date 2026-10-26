@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { live, bolt } from '$bolt';
+	import { bolt } from '$bolt';
 	import { marginSeries } from '../../../lib/financial-series.js';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate, addDays, addMonths } from '@norbital-ai/std/date';
 	import { localOf } from '@norbital-ai/std/zone';
-	import { liveState } from '../../../lib/ui/live-state.js';
 	import {
 		Dialog,
 		Table,
@@ -46,48 +45,30 @@
 	let salesTo = $state<string | null>(currentMonth);
 	const queries = $derived(kinds.catalog?.orders?.queries);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
-	const detailSource = live(() =>
+	// a cleared date means today, which rolls over at midnight
+	const day = bolt.clock('day');
+	const agingDay = $derived(asOf ? PlainDate(asOf) : day.today);
+	const detailRows = $derived(
 		queries?.sales_detail && !invalidSalesRange
-			? bolt.live(
-					bolt.query('orders.sales_detail', {
-						...(salesFrom ? { from: PlainDate(salesFrom) } : {}),
-						...(salesTo ? { to: PlainDate(monthEnd(salesTo)) } : {})
-					}),
-					{ on: ['orders', 'order_lines', 'source_sales_lines', 'products', 'parties', 'sys_user'] }
-				)
-			: null
-	);
-	const detailRows = liveState(detailSource);
-	const agingSource = live(() =>
-		queries?.ar_aging
-			? bolt.live(bolt.query('orders.ar_aging', asOf ? { as_of: PlainDate(asOf) } : {}), {
-					on: ['orders', 'transactions', 'source_payments'],
-					every: '1min'
+			? bolt.query('orders.sales_detail', {
+					...(salesFrom ? { from: PlainDate(salesFrom) } : {}),
+					...(salesTo ? { to: PlainDate(monthEnd(salesTo)) } : {})
 				})
 			: null
 	);
-	const agingRows = liveState(agingSource);
-	const paymentSource = live(() =>
+	const agingRows = $derived(
+		queries?.ar_aging ? bolt.query('orders.ar_aging', { as_of: agingDay }) : null
+	);
+	const paymentRows = $derived(
 		kinds.catalog?.source_payments?.queries?.ledger
-			? bolt.live(
-					bolt.query('source_payments.ledger', {
-						unapplied: true,
-						...(asOf ? { as_of: PlainDate(asOf) } : {})
-					}),
-					{ on: ['source_payments', 'transactions', 'orders'] }
-				)
+			? bolt.query('source_payments.ledger', { unapplied: true, as_of: agingDay })
 			: null
 	);
-	const paymentRows = liveState(paymentSource);
-	const monthlySource = live(() =>
+	const monthlyRows = $derived(
 		kinds.catalog?.commission_statements?.queries?.board && commissionPeriod
-			? bolt.live(
-					bolt.query('commission_statements.board', { period: PlainDate(commissionPeriod) }),
-					{ on: ['orders', 'commission_statements', 'sys_user', 'source_sales_lines'] }
-				)
+			? bolt.query('commission_statements.board', { period: PlainDate(commissionPeriod) })
 			: null
 	);
-	const monthlyRows = liveState(monthlySource);
 </script>
 
 {#snippet salesRange()}<div class="max-w-full">
@@ -156,13 +137,13 @@
 		>{:else}{row.invoice_number}{/if}{/snippet}
 {#snippet salesDetail()}<Stack gap="md">
 		{#if invalidSalesRange}<p role="alert">{bolt.t('errors.report_range')}</p>
-		{:else if $detailRows.value}
-			{@const rows = $detailRows.value.map((row) => ({
+		{:else if detailRows?.current}
+			{@const rows = detailRows.current.map((row) => ({
 				...row,
 				freight_treatment_label: bolt.t(`reports.freight.${row.freight_treatment}`),
 				kind_label: bolt.t(`reports.sales.kind.${row.kind}`)
 			}))}
-			{@const margins = marginSeries($detailRows.value)}
+			{@const margins = marginSeries(detailRows.current)}
 			{#each [...new Set(margins.map((r) => r.currency))] as currency}
 				<Chart
 					of={margins.filter((r) => r.currency === currency)}
@@ -209,15 +190,13 @@
 				toolbar={{ new: false, export: true, controls: salesRange }}
 			/>
 		{:else}<p role="status">
-				{$detailRows.error
-					? bolt.t($detailRows.error.message as import('@norbital-ai/bolt').MessageKey)
-					: bolt.t('component.reports_loading')}
+				{detailRows?.error ? detailRows.error.message : bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
 {#snippet aging()}<Stack gap="md">
-		{#if $agingRows.value && $paymentRows.value}
+		{#if agingRows?.current && paymentRows?.current}
 			{@const rows = [
-				...$agingRows.value.map((row) => ({
+				...agingRows.current.map((row) => ({
 					...row,
 					bucket_label: bolt.t(`reports.aging.${row.bucket}`),
 					not_due: row.bucket === 'not_due' ? row.balance : '0',
@@ -227,7 +206,7 @@
 					over_90: row.bucket === 'over_90' ? row.balance : '0',
 					no_due_date: row.bucket === 'no_due_date' ? row.balance : '0'
 				})),
-				...($paymentRows.value ?? []).map((p) => ({
+				...paymentRows.current.map((p) => ({
 					order: p.order,
 					order_number: p.order_number,
 					invoice: null,
@@ -287,12 +266,9 @@
 				toolbar={{ new: false, export: true, controls: agingDate }}
 			/>
 		{:else}<p role="status">
-				{($agingRows.error ?? $paymentRows.error)
-					? bolt.t(
-							($agingRows.error ?? $paymentRows.error)!
-								.message as import('@norbital-ai/bolt').MessageKey
-						)
-					: bolt.t('component.reports_loading')}
+				{agingRows?.error?.message ??
+					paymentRows?.error?.message ??
+					bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
 {#snippet monthActions({ row }: { row: MonthlyCommission })}
@@ -306,8 +282,8 @@
 		>{/if}
 {/snippet}
 {#snippet monthlyCommission()}<Stack gap="md">
-		{#if $monthlyRows.value}
-			{@const rows = $monthlyRows.value.map((row) => ({
+		{#if monthlyRows?.current}
+			{@const rows = monthlyRows.current.map((row) => ({
 				...row,
 				state_label: bolt.t(`reports.commission_ack.${row.state}`)
 			}))}
@@ -376,13 +352,11 @@
 				>
 			{/if}
 		{:else}<p role="status">
-				{$monthlyRows.error
-					? bolt.t($monthlyRows.error.message as import('@norbital-ai/bolt').MessageKey)
-					: bolt.t('component.reports_loading')}
+				{monthlyRows?.error ? monthlyRows.error.message : bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
 <AppShell
-	description=""
+	description={bolt.t('app.analysis.description')}
 	icon="lucide:chart-column"
 	title={bolt.t('component.reports')}
 	variant="full"

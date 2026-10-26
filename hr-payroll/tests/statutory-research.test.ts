@@ -1,7 +1,8 @@
-import { readSeedRows } from './seed_values.ts';
+/**
+ * The `statutory_drift` automation over a mock inference (not live research), on the synthetic `XX` lineage with its
+ * retention rule withheld: what each agent reads and owns, the evidence a change must cite, and the unsealed draft.
+ */
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { vi } from 'vitest';
 import { Context, Effect, Layer, Schema } from 'effect';
@@ -10,10 +11,11 @@ import { TestWorkspace } from '@norbital-ai/bolt/test';
 import type { DeclaredRow, Page } from '@norbital-ai/bolt';
 import { SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import { RESEARCH_AGENT_NAMES, RULE_FAMILIES } from '../src/lib/payroll_engine/research_agents.ts';
-import { nativeId } from './fixture_values.ts';
 import { workspace } from './kit.ts';
+import { law, seedPack, VERSION, type Row } from './jurisdiction_kit.ts';
+import { fixtureId, nativeId } from './fixture_values.ts';
 
-const root = path.resolve(import.meta.dirname, '../seed/jurisdiction');
+const CODE = 'XX';
 const tables = [
 	'adhoc_catalog',
 	'allowance_catalog',
@@ -55,63 +57,45 @@ const quote = 'Payroll records must be kept for the statutory retention period.'
 const summary = 'Restore the omitted statutory retention rule.';
 type ToolCalls = AiResponse['toolCalls'];
 
-/** The seeded lineage governing 2026-10-10, with its retention rule withheld for research to restore. */
-function lineage(code: string) {
-	let folder = '';
-	for (const name of fs.readdirSync(path.join(root, code))) {
-		if (!/^version_\d+$/.test(name)) continue;
-		const current = path.join(root, code, name);
-		const row = Schema.decodeUnknownSync(Settings)(
-			readSeedRows(current, 'jurisdiction_settings')[0]
-		);
-		if (
-			row.effective_range.from <= '2026-10-10' &&
-			(row.effective_range.to == null || row.effective_range.to >= '2026-10-10')
-		)
-			folder = current;
-	}
-	assert.ok(folder);
-	const settingsRows = readSeedRows(folder, 'jurisdiction_settings');
-	const version = Schema.decodeUnknownSync(Settings)(settingsRows[0]);
-	// A real successor keeps its authored predecessor chain in the same seeded lineage.
-	const lineageRows = fs
-		.readdirSync(path.join(root, code))
-		.filter((name) => /^version_\d+$/.test(name))
-		.flatMap((name) => readSeedRows(path.join(root, code, name), 'jurisdiction_settings'));
-	const seededSettings = [...settingsRows];
-	for (const current of seededSettings) {
-		const previous = Schema.decodeUnknownSync(Schema.NullOr(Schema.String))(
-			current['cloned_from_id'] ?? null
-		);
-		if (previous === null) continue;
-		const parentId = nativeId('jurisdiction_settings', previous);
-		if (seededSettings.some((row) => row['id'] === parentId)) continue;
-		const parent = lineageRows.find((row) => row['id'] === parentId);
-		assert.ok(parent, `${code}: the authored predecessor ${parentId} exists`);
-		seededSettings.push(parent);
-	}
-	seededSettings.reverse();
-	const rows = {
-		adhoc_catalog: readSeedRows(folder, 'adhoc_catalog'),
-		allowance_catalog: readSeedRows(folder, 'allowance_catalog'),
-		claim_catalog: readSeedRows(folder, 'claim_catalog'),
-		leave_catalog: readSeedRows(folder, 'leave_catalog'),
-		loan_catalog: readSeedRows(folder, 'loan_catalog'),
-		work_catalog: readSeedRows(folder, 'work_catalog'),
-		statutory_contribution_catalog: readSeedRows(folder, 'statutory_contribution_catalog'),
-		rule_set: readSeedRows(folder, 'rule_set')
+const KINDS = [
+	{ code: 'CLOSURE', name: 'Closure', counts_as_attended: 'true', scheduled: 'true', pay: '0.0' }
+];
+/** The `XX` version with an official source per agent and its retention rule withheld for research to restore. */
+function lineage() {
+	const rows = law();
+	const [settings] = rows.get('jurisdiction_settings') ?? [];
+	assert.ok(settings);
+	const sources = {
+		entries: RESEARCH_AGENT_NAMES.map((agent) => ({
+			agent,
+			url: `https://labour.example.gov/${agent}`,
+			instructions: `The ${agent} instruments.`
+		}))
 	};
-	const missing = rows.rule_set.find((row) => row['code'] === 'record_retention');
+	const version = { ...settings, sources, suspension_kinds: KINDS };
+	const of = (name: (typeof tables)[number]): Row[] => rows.get(name) ?? [];
+	const missing = of('rule_set').find((row) => row['code'] === 'record_retention');
 	assert.ok(missing);
-	rows['rule_set'] = rows['rule_set'].filter((row) => row !== missing);
-	const restored = Object.fromEntries(
-		Object.entries(missing).filter(([key]) => key in SNAPSHOT_MODELS.rule_set.fields)
+	const catalogues = {
+		adhoc_catalog: of('adhoc_catalog'),
+		allowance_catalog: of('allowance_catalog'),
+		claim_catalog: of('claim_catalog'),
+		leave_catalog: of('leave_catalog'),
+		loan_catalog: of('loan_catalog'),
+		work_catalog: of('work_catalog'),
+		statutory_contribution_catalog: of('statutory_contribution_catalog'),
+		rule_set: of('rule_set').filter((row) => row !== missing)
+	};
+	const restored = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(
+		Object.fromEntries(
+			Object.entries(missing).filter(([key]) => key in SNAPSHOT_MODELS.rule_set.fields)
+		)
 	);
 	// record_retention is a PAYROLL rule: the rules agent's own, read from its own sources
-	const source = version.sources.entries.find((entry) => entry.agent === 'rules');
+	const source = sources.entries.find((entry) => entry.agent === 'rules');
 	assert.ok(source);
 	const url = new URL('/probe-instrument', source.url).href;
-	return { folder, settingsRows, version, seededSettings, rows, missing, restored, source, url };
+	return { version, sources, rows: catalogues, missing, restored, source, url };
 }
 
 /** Resolve an agent's coverage through its keyed path. */
@@ -160,19 +144,19 @@ const restore = (
 const submit: ToolCalls[number] = { id: 'save', name: 'submit', input: {} };
 
 /**
- * One `statutory_drift` run for `code` over a cassette of model turns; `page` is the cited page's fetched text, `other`
- * what any other page reads as.
+ * One `statutory_drift` run over a cassette of model turns; `page` is the cited page's fetched text, `other` what any
+ * other page reads as.
  */
 const research = (
-	code: string,
 	turns: readonly ToolCalls[],
 	page = quote,
 	other: Readonly<
 		Record<string, { title: string | null; text: string; contentType?: string; pages?: number }>
-	> = {}
+	> = {},
+	codes: readonly [string, ...string[]] = [CODE]
 ) =>
 	Effect.gen(function* () {
-		const seeded = lineage(code);
+		const seeded = lineage();
 		const { url, rows } = seeded;
 		const browserRequests: { name: string; input: Schema.Json }[] = [];
 		const browserPages: string[] = [];
@@ -245,7 +229,22 @@ const research = (
 		const context = yield* Layer.build(
 			workspace({
 				now: '2026-10-10T00:00:00Z',
-				seed: { jurisdiction_settings: seeded.seededSettings, ...rows },
+				seed: seedPack(
+					new Map([
+						[
+							'jurisdiction_settings',
+							codes.map((code) => ({
+								...seeded.version,
+								id:
+									code === CODE
+										? VERSION
+										: nativeId('jurisdiction_settings', fixtureId(`research-${code}`)),
+								code
+							}))
+						],
+						...Object.entries(rows)
+					])
+				),
 				fakes: { ai: { cassette: { strong: responses } } },
 				host: { agent: { hostTools } },
 				ports: Layer.merge(
@@ -271,13 +270,16 @@ const research = (
 		const reads = Context.get(context, Reads);
 		const run = reads.run;
 		const observed = new Set<string>();
+		const snapshotStarts: number[] = [];
 		const spy = vi.spyOn(reads, 'run').mockImplementation((batch, reader, bindings) => {
 			if (reader.as === 'caller')
 				for (const member of batch) {
 					if (member.kind !== 'read') continue;
 					const selected = member.select.fields ?? [];
-					if (member.collection === 'jurisdiction_settings' && selected.includes('payroll'))
+					if (member.collection === 'jurisdiction_settings' && selected.includes('payroll')) {
+						snapshotStarts.push(t.fakes.ai?.requests.length ?? 0);
 						assert.ok(selected.includes('suspension_kinds'));
+					}
 					const spec = Object.entries(SNAPSHOT_MODELS).find(
 						([name]) => name === member.collection
 					)?.[1];
@@ -289,7 +291,9 @@ const research = (
 			return run(batch, reader, bindings);
 		});
 		const runId = yield* Effect.gen(function* () {
-			const started = yield* t.as(t.admin).start('statutory_drift', { code });
+			const started = yield* t
+				.as(t.admin)
+				.start('statutory_drift', codes.length === 1 ? { code: codes[0] } : {});
 			assert.equal(started.kind, 'committed');
 			if (started.kind !== 'committed') assert.fail('The administrator starts the research run.');
 			const output = Schema.decodeUnknownSync(
@@ -308,8 +312,8 @@ const research = (
 		);
 		assert.ok(completed);
 		assert.equal(completed.state, 'succeeded', JSON.stringify(completed.error));
-		const { rows: drafts } = yield* t.as(t.admin).read('jurisdiction_settings', {
-			where: { cloned_from_id: { eq: nativeId('jurisdiction_settings', seeded.version.id) } },
+		const { rows: drafts } = yield* t.as(t.admin).query('jurisdiction_settings', {
+			where: { cloned_from_id: { eq: VERSION } },
 			select: {
 				id: true,
 				sealed_at: true,
@@ -326,6 +330,7 @@ const research = (
 			output: Schema.decodeUnknownSync(RunOutput)(completed.output),
 			drafts,
 			observed,
+			snapshotStarts,
 			fetched,
 			browserRequests,
 			browserPages,
@@ -334,111 +339,150 @@ const research = (
 	});
 
 describe('statutory drift research transport (mock inference, not live research)', () => {
-	for (const code of fs.readdirSync(root))
-		it.effect(`${code}: one inference per coverage scope saves the complete corrected draft`, () =>
-			Effect.gen(function* () {
-				const { url, restored } = lineage(code);
-				const result = yield* research(
-					code,
-					passes([
-						{ id: 'navigate', name: 'browser_navigate', input: { url } },
-						{ id: 'snapshot', name: 'browser_snapshot', input: {} },
-						restore(restored, { url, quote }),
-						{ id: 'diff', name: 'diff', input: {} },
-						submit
-					])
+	it.effect('one inference per coverage scope saves the complete corrected draft', () =>
+		Effect.gen(function* () {
+			const { url, restored } = lineage();
+			const result = yield* research(
+				passes([
+					{ id: 'navigate', name: 'browser_navigate', input: { url } },
+					{ id: 'snapshot', name: 'browser_snapshot', input: {} },
+					restore(restored, { url, quote }),
+					{ id: 'diff', name: 'diff', input: {} },
+					submit
+				])
+			);
+			const { t, rows, missing, sources, source } = result;
+			assert.deepEqual(result.output, {
+				lineages: [CODE],
+				drafted: [CODE],
+				refused: [],
+				failed: []
+			});
+			const ai = t.fakes.ai;
+			assert.ok(ai);
+			assert.equal(ai.requests.length, RESEARCH_AGENT_NAMES.length);
+			assert.deepEqual(
+				result.browserRequests.map((request) => request.name),
+				['browser_navigate', 'browser_snapshot']
+			);
+			assert.equal(result.openedUrl, url);
+			assert.deepEqual(result.browserPages, [
+				`# Official instrument fixture\n${quote}`,
+				`# Official instrument fixture\n${quote}`
+			]);
+			assert.deepEqual(result.fetched, [url]);
+			const marker =
+				'## Index of the snapshot sections you own (read original values in memory)\n\n```json\n';
+			const request = ai.requests.find((item) =>
+				item.messages.some(
+					(message) =>
+						typeof message.content === 'string' &&
+						message.content.includes('You are the rules agent')
+				)
+			);
+			assert.ok(request);
+			assert.match(request.system ?? '', /Public holidays are out of scope/);
+			const prompt = request.messages.find(
+				(message) => typeof message.content === 'string' && message.content.includes(marker)
+			);
+			assert.ok(prompt);
+			const content = Schema.decodeUnknownSync(Schema.String)(prompt.content);
+			// The registry reaches the model as entry points only, never as an editable snapshot field; each agent sees
+			// only its own sources.
+			assert.ok(content.includes(source.url));
+			assert.ok(!content.includes('"agent":"catalog"'));
+			const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
+				content.slice(content.indexOf(marker) + marker.length).split('\n', 1)[0]
+			);
+			// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
+			assert.deepEqual(Object.keys(index.sections), ['rule_set']);
+			const ruleIndex = Schema.decodeUnknownSync(RuleIndex)(index.sections['rule_set']).rows;
+			const owned = rows.rule_set.filter((row) =>
+				RULE_FAMILIES.rules.includes(String(row['family']))
+			);
+			assert.equal(ruleIndex.length, owned.length);
+			assert.equal(
+				ruleIndex.some((row) => row.code === missing['code']),
+				false
+			);
+			for (const row of ruleIndex)
+				assert.equal(
+					row.path,
+					`/snapshot/rule_set/${row.code.replaceAll('~', '~0').replaceAll('/', '~1')}`
 				);
-				const { t, rows, missing, folder, version, settingsRows, source } = result;
-				assert.deepEqual(result.output, {
-					lineages: [code],
-					drafted: [code],
-					refused: [],
-					failed: []
+			const created = result.drafts[0];
+			assert.ok(created);
+			assert.equal(created.sealed_at, null);
+			assert.equal(created.cloned_from_id, VERSION);
+			assert.equal(created.change_summary, `rule_set: added record_retention\n\nrules: ${summary}`);
+			assert.deepEqual(created.sources, sources);
+			assert.deepEqual(created.suspension_kinds, KINDS);
+			assert.equal('suspension_kind' in created, false);
+			for (const name of tables) {
+				assert.ok(result.observed.has(name), `The native body read ${name}.`);
+				const children: Page<DeclaredRow<typeof name>> = yield* t.as(t.admin).query(name, {
+					mode: 'declared',
+					where: { settings_id: { eq: created.id } },
+					select: ['code'],
+					all: true
 				});
-				const ai = t.fakes.ai;
-				assert.ok(ai);
-				assert.equal(ai.requests.length, RESEARCH_AGENT_NAMES.length);
-				assert.deepEqual(
-					result.browserRequests.map((request) => request.name),
-					['browser_navigate', 'browser_snapshot']
-				);
-				assert.equal(result.openedUrl, url);
-				assert.deepEqual(result.browserPages, [
-					`# Official instrument fixture\n${quote}`,
-					`# Official instrument fixture\n${quote}`
-				]);
-				assert.deepEqual(result.fetched, [url]);
-				const marker =
-					'## Index of the snapshot sections you own (read original values in memory)\n\n```json\n';
-				const request = ai.requests.find((item) =>
-					item.messages.some(
-						(message) =>
-							typeof message.content === 'string' &&
-							message.content.includes('You are the rules agent')
-					)
-				);
-				assert.ok(request);
-				assert.match(request.system ?? '', /Public holidays are out of scope/);
-				const prompt = request.messages.find(
-					(message) => typeof message.content === 'string' && message.content.includes(marker)
-				);
-				assert.ok(prompt);
-				const content = Schema.decodeUnknownSync(Schema.String)(prompt.content);
-				// The registry reaches the model as entry points only, never as an editable snapshot field; each agent sees
-				// only its own sources.
-				assert.ok(content.includes(source.url));
-				assert.ok(!content.includes('"agent":"catalog"'));
-				const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
-					content.slice(content.indexOf(marker) + marker.length).split('\n', 1)[0]
-				);
-				// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
-				assert.deepEqual(Object.keys(index.sections), ['rule_set']);
-				const ruleIndex = Schema.decodeUnknownSync(RuleIndex)(index.sections['rule_set']).rows;
-				const owned = rows.rule_set.filter((row) =>
-					RULE_FAMILIES.rules.includes(String(row['family']))
-				);
-				assert.equal(ruleIndex.length, owned.length);
-				assert.equal(
-					ruleIndex.some((row) => row.code === missing['code']),
-					false
-				);
-				for (const row of ruleIndex)
-					assert.equal(
-						row.path,
-						`/snapshot/rule_set/${row.code.replaceAll('~', '~0').replaceAll('/', '~1')}`
-					);
-				const created = result.drafts[0];
-				assert.ok(created);
-				assert.equal(created.sealed_at, null);
-				assert.equal(created.cloned_from_id, version.id);
-				assert.equal(
-					created.change_summary,
-					`rule_set: added record_retention\n\nrules: ${summary}`
-				);
-				assert.deepEqual(created.sources, settingsRows[0]?.['sources']);
-				assert.deepEqual(created.suspension_kinds, readSeedRows(folder, 'suspension_kind'));
-				assert.equal('suspension_kind' in created, false);
-				for (const name of tables) {
-					assert.ok(result.observed.has(name), `The native body read ${name}.`);
-					const children: Page<DeclaredRow<typeof name>> = yield* t.as(t.admin).read(name, {
-						mode: 'declared',
-						where: { settings_id: { eq: created.id } },
-						select: ['code'],
-						all: true
-					});
-					assert.equal(children.rows.length, rows[name].length + (name === 'rule_set' ? 1 : 0));
-					for (const row of rows[name])
-						assert.ok(children.rows.some((child) => child['code'] === row['code']));
-				}
-			})
-		);
+				assert.equal(children.rows.length, rows[name].length + (name === 'rule_set' ? 1 : 0));
+				for (const row of rows[name])
+					assert.ok(children.rows.some((child) => child['code'] === row['code']));
+			}
+		})
+	);
 
 	it.effect('a verified no-change resolves coverage and drafts nothing', () =>
 		Effect.gen(function* () {
-			const result = yield* research('SG', [...RESEARCH_AGENT_NAMES.map(idle)]);
-			assert.deepEqual(result.output, { lineages: ['SG'], drafted: [], refused: [], failed: [] });
+			const result = yield* research([...RESEARCH_AGENT_NAMES.map(idle)]);
+			assert.deepEqual(result.output, { lineages: [CODE], drafted: [], refused: [], failed: [] });
 			assert.deepEqual(result.drafts, []);
 			assert.deepEqual(result.fetched, []);
+		})
+	);
+
+	it.effect('finishes a lineage before preparing the next snapshot', () =>
+		Effect.gen(function* () {
+			const codes = [CODE, 'YY'] as const;
+			const result = yield* research(
+				codes.flatMap(() => RESEARCH_AGENT_NAMES.map(idle)),
+				quote,
+				{},
+				codes
+			);
+			assert.deepEqual(result.snapshotStarts, [0, RESEARCH_AGENT_NAMES.length]);
+			assert.deepEqual([...result.output.lineages].sort(), [...codes]);
+			assert.deepEqual(result.output.drafted, []);
+			assert.deepEqual(result.output.refused, []);
+			assert.deepEqual(result.output.failed, []);
+			assert.deepEqual(result.drafts, []);
+		})
+	);
+
+	it.effect('an agent drafts from its own sections only: every other section is empty', () =>
+		Effect.gen(function* () {
+			const peek: ToolCalls = [
+				{ id: 'rules', name: 'read', input: { path: '/snapshot/rule_set' } },
+				{ id: 'settings', name: 'read', input: { path: '/snapshot/settings', fields: ['code'] } }
+			];
+			// the settings agent starts last, so its second turn is the cassette's last
+			const result = yield* research([
+				...RESEARCH_AGENT_NAMES.map((agent) => (agent === 'settings' ? peek : idle(agent))),
+				idle('settings')
+			]);
+			assert.deepEqual(result.output, { lineages: [CODE], drafted: [], refused: [], failed: [] });
+			const ai = result.t.fakes.ai;
+			assert.ok(ai);
+			const last = ai.requests.at(-1);
+			assert.ok(last);
+			assert.deepEqual(
+				last.messages.flatMap((message) => (message.role === 'tool' ? [message.content] : [])),
+				[
+					{ id: 'rules', name: 'read', result: { value: [] } },
+					{ id: 'settings', name: 'read', result: { value: { code: CODE } } }
+				]
+			);
 		})
 	);
 
@@ -446,15 +490,12 @@ describe('statutory drift research transport (mock inference, not live research)
 		'a no-change left with pending coverage is reported incomplete, naming the scopes not resolved',
 		() =>
 			Effect.gen(function* () {
-				const result = yield* research(
-					'SG',
-					RESEARCH_AGENT_NAMES.map(() => [submit])
-				);
+				const result = yield* research(RESEARCH_AGENT_NAMES.map(() => [submit]));
 				assert.deepEqual(result.output.drafted, []);
 				assert.equal(result.output.failed.length, 1);
 				const [failed] = result.output.failed;
 				assert.ok(failed);
-				assert.ok(failed.startsWith('SG: incomplete — not resolved: '), failed);
+				assert.ok(failed.startsWith(`${CODE}: incomplete — not resolved: `), failed);
 				for (const agent of RESEARCH_AGENT_NAMES) assert.ok(failed.includes(agent), failed);
 				assert.deepEqual(result.drafts, []);
 			})
@@ -464,13 +505,12 @@ describe('statutory drift research transport (mock inference, not live research)
 		"an agent whose inference fails keeps the other agents' verified rows and is named",
 		() =>
 			Effect.gen(function* () {
-				const { url, restored } = lineage('SG');
+				const { url, restored } = lineage();
 				// the last agent to start (settings) finds no model turn left: its inference fails
 				const result = yield* research(
-					'SG',
 					passes([restore(restored, { url, quote }), submit]).slice(0, -1)
 				);
-				assert.deepEqual(result.output.drafted, ['SG']);
+				assert.deepEqual(result.output.drafted, [CODE]);
 				const created = result.drafts[0];
 				assert.ok(created);
 				assert.ok(
@@ -483,22 +523,22 @@ describe('statutory drift research transport (mock inference, not live research)
 	);
 	it.effect("an agent's edit to a row another agent owns is never merged", () =>
 		Effect.gen(function* () {
-			const { url, restored } = lineage('SG');
+			const { url, restored } = lineage();
 			// the catalog agent restores a PAYROLL rule: the rules agent's row, so nothing of it is taken
 			const turns = RESEARCH_AGENT_NAMES.map((agent) =>
 				agent === 'catalog' ? [restore(restored, { url, quote }), submit] : idle(agent)
 			);
-			const result = yield* research('SG', turns);
+			const result = yield* research(turns);
 			assert.deepEqual(result.output.drafted, []);
 			// nothing of its own changed, and its turn resolved another agent's coverage: incomplete, never a draft
 			assert.deepEqual(result.output.refused, []);
-			assert.deepEqual(result.output.failed, ['SG: incomplete — not resolved: catalog']);
+			assert.deepEqual(result.output.failed, [`${CODE}: incomplete — not resolved: catalog`]);
 			assert.deepEqual(result.drafts, []);
 		})
 	);
 	it.effect('a row whose evidence fails is left out; the verified rows are still drafted', () =>
 		Effect.gen(function* () {
-			const { url, restored } = lineage('SG');
+			const { url, restored } = lineage();
 			const unlisted: ToolCalls[number] = {
 				id: 'extra',
 				name: 'edit',
@@ -524,9 +564,9 @@ describe('statutory drift research transport (mock inference, not live research)
 				}
 			};
 			const result = yield* Effect.scoped(
-				research('SG', passes([restore(restored, { url, quote }), unlisted, submit]))
+				research(passes([restore(restored, { url, quote }), unlisted, submit]))
 			);
-			assert.deepEqual(result.output.drafted, ['SG']);
+			assert.deepEqual(result.output.drafted, [CODE]);
 			assert.equal(result.output.refused.length, 1);
 			assert.ok(
 				result.output.refused[0]?.includes(
@@ -541,7 +581,7 @@ describe('statutory drift research transport (mock inference, not live research)
 	);
 	it.effect('an edit that cites nothing new is left out; the verified rows are still drafted', () =>
 		Effect.gen(function* () {
-			const { url, restored, rows } = lineage('SG');
+			const { url, restored, rows } = lineage();
 			// a rule the rules agent owns: an edit elsewhere would never be merged at all
 			const existing = rows.rule_set.find((row) =>
 				RULE_FAMILIES.rules.includes(String(row['family']))
@@ -559,11 +599,8 @@ describe('statutory drift research transport (mock inference, not live research)
 					]
 				}
 			};
-			const result = yield* research(
-				'SG',
-				passes([restore(restored, { url, quote }), uncited, submit])
-			);
-			assert.deepEqual(result.output.drafted, ['SG']);
+			const result = yield* research(passes([restore(restored, { url, quote }), uncited, submit]));
+			assert.deepEqual(result.output.drafted, [CODE]);
 			assert.ok(
 				result.output.refused[0]?.includes(
 					`rule_set/${String(existing['code'])} (cites no new url and quote)`
@@ -577,7 +614,7 @@ describe('statutory drift research transport (mock inference, not live research)
 	);
 	it.effect('an unsupported change drafts nothing', () =>
 		Effect.gen(function* () {
-			const { url, restored } = lineage('SG');
+			const { url, restored } = lineage();
 			const cases = [
 				{
 					name: 'no reference',
@@ -604,13 +641,13 @@ describe('statutory drift research transport (mock inference, not live research)
 			for (const item of cases) {
 				// Each run owns its workspace; only the gathered results leave the scope.
 				const result = yield* Effect.scoped(
-					research('SG', passes([restore(restored, item.reference), submit]), item.page)
+					research(passes([restore(restored, item.reference), submit]), item.page)
 				);
 				const { refused, ...rest } = result.output;
-				assert.deepEqual(rest, { lineages: ['SG'], drafted: [], failed: [] }, item.name);
+				assert.deepEqual(rest, { lineages: [CODE], drafted: [], failed: [] }, item.name);
 				assert.equal(refused.length, 1, item.name);
 				const [why] = refused;
-				assert.ok(why?.startsWith('SG: ') && why.includes(item.why), String(why));
+				assert.ok(why?.startsWith(`${CODE}: `) && why.includes(item.why), String(why));
 				assert.deepEqual(result.drafts, [], item.name);
 				assert.deepEqual(result.fetched, item.fetched, item.name);
 			}
@@ -620,7 +657,7 @@ describe('statutory drift research transport (mock inference, not live research)
 		'an agent replaces a source only with a live page on a registered official site; that alone is a draft',
 		() =>
 			Effect.gen(function* () {
-				const { source } = lineage('MY');
+				const { source } = lineage();
 				const live = new URL('/new-guide', source.url).href;
 				const pdf = new URL('/act.pdf', source.url).href;
 				const sources: ToolCalls[number] = {
@@ -639,7 +676,7 @@ describe('statutory drift research transport (mock inference, not live research)
 					}
 				};
 				const result = yield* Effect.scoped(
-					research('MY', passes([sources, submit]), quote, {
+					research(passes([sources, submit]), quote, {
 						[live]: { title: 'Guide', text: 'The guide.', contentType: 'text/html' },
 						[pdf]: {
 							title: null,
@@ -649,9 +686,9 @@ describe('statutory drift research transport (mock inference, not live research)
 						}
 					})
 				);
-				assert.deepEqual(result.output.drafted, ['MY']);
+				assert.deepEqual(result.output.drafted, [CODE]);
 				assert.deepEqual(result.output.refused, [
-					`MY: rules source ${pdf} (not a readable live page), rules source https://example.invalid/law (not on a registered official site)`
+					`${CODE}: rules source ${pdf} (not a readable live page), rules source https://example.invalid/law (not on a registered official site)`
 				]);
 				const created = result.drafts[0];
 				assert.ok(created);

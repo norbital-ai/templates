@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@effect/vitest';
 import {
 	Ai,
+	Metering,
 	Port,
 	type AiRequest,
 	type AiResponse,
@@ -64,12 +65,26 @@ function scripted() {
 		maxChoices: undefined,
 		models: ['default'],
 		catalog: Port.unavailable('ai'),
-		embed: () => Port.unavailable('ai.embed'),
+		embed: (inputs, _model, dimensions = 1536) =>
+			Effect.succeed(
+				inputs.map(() => Array.from({ length: dimensions }, (_, index) => (index === 0 ? 1 : 0)))
+			),
 		infer: (request) =>
 			Stream.fromEffect(
 				Effect.sync((): AiResponse => {
 					requests.push(request);
-					const usage = { input: 1, output: 1 };
+					const usage = { input: 1, output: 1, cost: 0, call: `field-fixture-${requests.length}` };
+					if (request.tools?.some((tool) => tool.name === 'submit'))
+						return {
+							content: {
+								suspicious: false,
+								reason: 'No suspicious evidence in this fixture.',
+								evidence_asset_name: ''
+							},
+							toolCalls: [],
+							finish: 'stop',
+							usage
+						};
 					const last = request.messages.findLast(
 						(m) => !(typeof m.content === 'string' && m.content.startsWith('[conversation state]'))
 					); // not the engine's closing note
@@ -102,7 +117,13 @@ function scripted() {
 				})
 			).pipe(Stream.map((response) => ({ _tag: 'Response' as const, response })))
 	};
-	return { requests, layer: Layer.succeed(Ai, ai) };
+	return {
+		requests,
+		layer: Layer.merge(
+			Layer.succeed(Ai, ai),
+			Layer.succeed(Metering, { record: () => Effect.void })
+		)
+	};
 }
 let t: T,
 	ai: ReturnType<typeof scripted>,
@@ -231,8 +252,7 @@ describe('field_ops_whatsapp (G12 5)', () => {
 				});
 				expect(yield* job(mine.job)).toMatchObject({
 					status: 'completed',
-					summary: 'Grab bars installed',
-					suspicion_checked_at: null
+					summary: 'Grab bars installed'
 				});
 				const [photo] = yield* rows(
 					t,

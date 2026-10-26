@@ -6,9 +6,9 @@
 	"description": "Generic construction field operations: site jobs, contractor dispatch, variations, and multimodal photo evidence review.",
 	"visibility": "public",
 	"counts": {
-		"collections": 7,
+		"models": 7,
 		"apps": 2,
-		"automations": 3
+		"automations": 5
 	},
 	"tags": ["Construction", "Field ops", "Compliance"],
 	"seed": {

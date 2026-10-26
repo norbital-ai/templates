@@ -8,7 +8,6 @@
 	import { bolt } from '$bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
-	import { live } from '../../../lib/live.svelte.js';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
 	const HOUR = 3600000;
@@ -18,30 +17,31 @@
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(i));
-	const ahead = live(
-		() =>
-			bolt.read('visits', {
-				where: {
-					helper: { isNull: false },
-					status: { in: ['scheduled', 'in_progress'] },
-					slot: {
-						overlaps: {
-							start: Instant(new Date(Date.now() - 6 * HOUR).toISOString()),
-							end: Instant(new Date(Date.now() + 8 * HOUR).toISOString())
-						}
+	const ahead = $derived(
+		bolt.query('visits', {
+			where: {
+				helper: { isNull: false },
+				status: { in: ['scheduled', 'in_progress'] },
+				slot: {
+					overlaps: {
+						start: Instant(new Date(Date.now() - 6 * HOUR).toISOString()),
+						end: Instant(new Date(Date.now() + 8 * HOUR).toISOString())
 					}
-				},
-				select: {
-					slot: true,
-					status: true,
-					location: true,
-					helper: { select: { name: true, last_location: true } },
-					booking: { select: { customer: { select: { name: true } } } }
-				},
-				all: true
-			}),
-		['visits', 'helpers']
+				}
+			},
+			select: {
+				slot: true,
+				status: true,
+				location: true,
+				helper: { select: { name: true, last_location: true } },
+				booking: { select: { customer: { select: { name: true } } } }
+			},
+			all: true
+		})
 	);
+	/** The under-way window moves with the clock, minute by minute. */
+	const clock = bolt.clock('minute');
+	const soon = $derived(Instant(new Date(Date.parse(clock.now) + 4 * HOUR).toISOString()));
 	/** Each helper's next stop: the visit under way, else the earliest still to start. */
 	const overlays = $derived.by(() => {
 		const next = new globalThis.Map<string, NonNullable<typeof ahead.current>['rows'][number]>();
@@ -80,7 +80,6 @@
 		empty={quiet}
 		of="visits"
 		key="live"
-		every="1min"
 		toolbar={{ title: t('app.schedule.under_way'), new: false }}
 		where={{
 			or: [
@@ -88,7 +87,7 @@
 				// under way, or starting within four hours — a window that moves with the clock
 				{
 					status: { eq: 'scheduled' },
-					slot: { overlaps: { start: { now: '' }, end: { now: '+4h' } } }
+					slot: { overlaps: { start: clock.now, end: soon } }
 				}
 			]
 		}}
@@ -103,10 +102,12 @@
 	description={t('app.schedule.live_description')}
 	variant="full"
 >
+	<!-- the visits under way are the work: they take the wide pane, the map rides beside them -->
 	<Split
 		fill
-		start={positions}
-		end={underWay}
-		switchLabels={[t('app.schedule.helper_positions'), t('app.schedule.under_way')]}
+		ratio="wide"
+		start={underWay}
+		end={positions}
+		switchLabels={[t('app.schedule.under_way'), t('app.schedule.helper_positions')]}
 	/>
 </AppShell>

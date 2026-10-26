@@ -18,6 +18,8 @@
 		/** In form order, each labelled from the catalog. */
 		fields: readonly string[];
 		readonlyFields?: readonly string[];
+		/** Long text (notes, an address, a template body) that takes the section's whole row. */
+		wide?: readonly string[];
 		/** A secondary section: closed until opened, showing this line ("No notes", "Not set"). */
 		closed?: string;
 		actions?: Snippet;
@@ -34,11 +36,13 @@
 			readonly [field: string]: Snippet<[FormState, FieldEditor]>;
 		};
 		actions?: Snippet;
+		trailing?: Snippet;
 		formActions?: Snippet<[FormState]>;
 		/** Tabs beside the form, on a stored record (a document's lines). */
 		tabs?: readonly RecordTab[];
 		mainTitle?: string;
 		readonly?: boolean;
+		readonlyReason?: string;
 		afterForm?: Snippet;
 		history?: RecordHistoryConfig;
 	};
@@ -59,8 +63,14 @@
 		openRecord,
 		RecordShell,
 		useEnumText,
-		useKinds
+		useKinds,
+		provideKinds,
+		useRecordController,
+		Tooltip,
+		Icon
 	} from '@norbital-ai/ui';
+	import { watch } from 'runed';
+	import { bolt } from '$bolt';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	let {
 		view,
@@ -68,20 +78,25 @@
 		sections,
 		editors = {},
 		actions,
+		trailing,
 		formActions,
 		tabs,
 		mainTitle,
 		readonly = false,
+		readonlyReason,
 		afterForm,
 		history
 	}: RecordFormProps = $props();
 	const kinds = useKinds();
+	const controller = useRecordController();
 	const words = useEnumText();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const cells: {
 		readonly [field: string]: unknown;
 	} | null = $derived(view.mode !== 'create' ? view.record : null);
-	const values = $derived(view.mode === 'create' ? view.values : {});
+	const values: Readonly<Record<string, unknown>> = $derived(
+		view.mode === 'create' ? view.values : {}
+	);
 	// a create its parent scopes (a document's add-line form, `values` given) stays open for the next one
 	const scoped = $derived(Object.keys(values).length > 0);
 	let added = $state(0);
@@ -93,18 +108,56 @@
 		const at = state[1].states[String(cells[state[0]])];
 		return at !== undefined && (at.to ?? []).length === 0 && at.edit === 'none';
 	});
+	const locked = $derived(readonly || final);
+	const lockReason = $derived(readonlyReason ?? bolt.t('component.readonly'));
+	const catalog = $derived.by(() => {
+		const source = kinds.catalog;
+		const collection = source?.[view.collection];
+		if (!locked || !source || !collection?.update) return source;
+		const { update: _update, ...readable } = collection;
+		return { ...source, [view.collection]: readable };
+	});
+	// Narrow this view's presentation only; backend permissions and other collections remain authoritative.
+	provideKinds({
+		...kinds,
+		get catalog() {
+			return catalog;
+		}
+	});
+	watch(
+		() => [locked, controller?.current, controller?.current?.mode] as const,
+		([locked, current, mode]) => {
+			if (
+				locked &&
+				mode === 'edit' &&
+				current?.spec.target.of === 'collection' &&
+				current.spec.target.collection === view.collection &&
+				current.spec.target.id === record?.id
+			)
+				current.view();
+		}
+	);
 </script>
 
-{#snippet field(name: string, form: FormState, readonlyField: boolean | undefined = undefined)}
+{#snippet field(
+	name: string,
+	form: FormState,
+	readonlyField: boolean | undefined = undefined,
+	wide = false
+)}
+	{@const props = {
+		...(readonlyField ? { readonly: true } : {}),
+		...(wide ? { class: 'col-span-full' } : {})
+	}}
 	{#if Object.entries(values).some(([field, value]) => field === name && value != null)}
 		<!-- the parent scoping this create: fixed, not asked -->
 	{:else if editors[name]}
-		<Field {name} {...readonlyField ? { readonly: true } : {}}>
+		<Field {name} {...props}>
 			{#snippet editor(field)}{@render editors[name]!(form, field)}{/snippet}
 		</Field>
 	{:else if name === 'status' && cells}
 		<!-- a state moves along its edges: the stored state and the moves out of it -->
-		<Field {name} {...readonlyField ? { readonly: true } : {}}>
+		<Field {name} {...props}>
 			{#snippet editor(field)}
 				{@const from = String(cells.status)}
 				<Combobox
@@ -120,7 +173,7 @@
 			{/snippet}
 		</Field>
 	{:else}
-		<Field {name} {...readonlyField ? { readonly: true } : {}} />
+		<Field {name} {...props} />
 	{/if}
 {/snippet}
 
@@ -128,8 +181,8 @@
 	<Stack gap="md">
 		{#key added}<Form
 				of={view.collection}
-				mode={view.mode}
-				readonly={readonly || final}
+				mode={locked && view.mode !== 'create' ? 'view' : view.mode}
+				readonly={locked}
 				{...formActions ? { actions: formActions } : {}}
 				{...record ? { id: record.id, record } : { values }}
 				onOutcome={(o) => {
@@ -157,7 +210,8 @@
 								{#each section.fields as name (name)}{@render field(
 										name,
 										form,
-										section.readonlyFields?.includes(name) ? true : undefined
+										section.readonlyFields?.includes(name) ? true : undefined,
+										section.wide?.includes(name)
 									)}{/each}
 							</Grid>
 							{#if section.body}{@render section.body()}{/if}
@@ -169,6 +223,25 @@
 		{#if afterForm}{@render afterForm()}{/if}
 	</Stack>
 {/snippet}
+{#snippet headerActions()}
+	{#if actions}{@render actions()}{/if}
+	{#if locked && record}
+		<Tooltip text={lockReason}>
+			{#snippet trigger({ props })}
+				<span
+					{...props}
+					role="img"
+					tabindex="0"
+					aria-label={lockReason}
+					class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+					data-record-lock
+				>
+					<Icon name="lucide:lock-keyhole" class="size-4" />
+				</span>
+			{/snippet}
+		</Tooltip>
+	{/if}
+{/snippet}
 <RecordShell
 	of={view.collection}
 	mode={view.mode}
@@ -179,7 +252,8 @@
 				...(!mainTitle && tabs ? { tabs } : {})
 			}
 		: { values }}
-	{...actions ? { actions } : {}}
+	actions={headerActions}
+	{...trailing ? { trailing } : {}}
 	{...history === undefined ? {} : { history }}
 >
 	{#if mainTitle && record}<Tabs

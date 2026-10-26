@@ -1,2 +1,0 @@
-# Borrow what this repository already declares is not source, rather than restating it.
-inherit: .gitignore .prettierignore

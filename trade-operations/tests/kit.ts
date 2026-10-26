@@ -1,17 +1,17 @@
-import type { Committed, PendingApproval, Id, Row, CollectionName } from '@norbital-ai/bolt';
+import type {
+	Committed,
+	PendingApproval,
+	Id,
+	Row,
+	CollectionName,
+	StartInput
+} from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
-import { randomUUID } from 'node:crypto';
+import { PlainDate, Instant } from '@norbital-ai/std/date';
 import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-import { Context, Effect, Schema } from 'effect';
-import {
-	DatabaseRequest,
-	Feeds,
-	Outbound,
-	type DatabaseResult,
-	type BoltError
-} from '@norbital-ai/bolt/engine';
+import { Effect, Schema } from 'effect';
+import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 export const CUSTOMER = fixtureId('parties', '00000000-0000-4000-8000-000000000101');
 export const SUPPLIER = fixtureId('parties', '00000000-0000-4000-8000-000000000102');
@@ -26,6 +26,18 @@ export function committed<C extends CollectionName, O, N extends string>(
 	if (record === undefined) throw new Error('The act committed no record');
 	return fixtureId(collection, record.id);
 }
+/** The models the `kingdee` sync reads. */
+export type Synced =
+	| 'parties'
+	| 'products'
+	| 'warehouses'
+	| 'stock_snapshots'
+	| 'credit_snapshots'
+	| 'ext_sales_orders'
+	| 'ext_purchase_orders'
+	| 'transactions'
+	| 'source_payments'
+	| 'source_sales_lines';
 export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(
 	over: Extract<TestOptions<P>, { artifact?: never }> & {
 		source?: (op: DatabaseRequest) => Effect.Effect<DatabaseResult, FacilityFailure | BoltError>;
@@ -54,19 +66,58 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 					)
 				)
 			);
-	const feeds = Context.get(t.services, Feeds),
-		outbound = Context.get(t.services, Outbound);
 	return {
 		...t,
-		pull: (collection: string, id: string = randomUUID(), instance = 'kingdee') => {
-			const handler = feeds.handlers[`kingdee.${collection}`];
-			if (handler === undefined) return Effect.die(new Error(`Missing feed kingdee.${collection}`));
-			return handler({ instance }, { id, starter: null }).pipe(Effect.provide(t.services));
-		},
-		deliver: () => outbound.deliver.pipe(Effect.provide(t.services))
+		/** One run of the model's `kingdee` sync read for an instance: every page while `more`, failures surfaced. */
+		pull: (model: Synced, instance: string = 'kingdee') =>
+			t.syncs.read(`${model}.sync.kingdee`, { instance }),
+		/** One pass over the due sync writes (the `orders` submissions). */
+		deliver: () => t.syncs.deliver()
 	};
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;
+type OrderAutomation = 'orders_cancel' | 'orders_close';
+type OrderStart = {
+	[A in OrderAutomation]: [name: A, input: StartInput<A>];
+}[OrderAutomation];
+const OrderRun = Schema.Struct({
+	id: Schema.String,
+	automation: Schema.String,
+	state: Schema.String,
+	output: Schema.Json,
+	error: Schema.NullOr(
+		Schema.Struct({
+			code: Schema.String,
+			message: Schema.optionalKey(Schema.String),
+			field: Schema.optionalKey(Schema.String),
+			records: Schema.optionalKey(
+				Schema.Array(
+					Schema.Struct({
+						collection: Schema.String,
+						id: Schema.String,
+						fields: Schema.Array(Schema.String)
+					})
+				)
+			)
+		})
+	)
+});
+/** Enqueue the business operation, drain the real queue, and inspect its recorded outcome. */
+export const orderRun = Effect.fnUntraced(function* (
+	t: T,
+	caller: ReturnType<T['as']>,
+	...[name, input]: OrderStart
+) {
+	const started = yield* caller.start(name, input);
+	if (started.kind !== 'committed') throw new Error(JSON.stringify(started));
+	yield* t.runDue();
+	const [run] = yield* t.db.rows(OrderRun, {
+		text: 'SELECT id, automation, state, output, error FROM sys_run WHERE id = $1',
+		params: [started.output.id]
+	});
+	if (run === undefined) throw new Error(`Run ${started.output.id} was not recorded`);
+	return run;
+});
 export const draft = Effect.fnUntraced(function* (
 	t: T,
 	direction: Row<'orders'>['direction'] = 'sales',
@@ -102,7 +153,9 @@ export const draft = Effect.fnUntraced(function* (
 	return { order, line };
 });
 export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const check = yield* t.as(t.admin).query('orders.confirmation_check', { order });
+	const check = yield* t
+		.as(t.admin)
+		.query('orders.confirmation_check', { as_of: Instant(t.clock.now()), order });
 	return committed(
 		'orders',
 		yield* t.as(t.admin).act('orders.update', {

@@ -1,6 +1,5 @@
 import type { Id } from '@norbital-ai/bolt';
 import { bolt } from '$bolt';
-import { liveRows } from '../state/live.svelte.js';
 import { formatNumeric } from './display_formatters.js';
 
 /** Which settings version prices the amounts on screen: by id, by a payroll run, or a lineage's version in force today. */
@@ -15,7 +14,8 @@ type Governing =
  */
 /** The governing version's `payroll`, live; undefined before it answers. Call during component init. */
 export function governingPayroll(governing: () => Governing | null) {
-	const rows = liveRows(() => {
+	const clock = bolt.clock('day');
+	const rows = $derived.by(() => {
 		const g = governing();
 		if (g == null) return null;
 		const where =
@@ -27,11 +27,11 @@ export function governingPayroll(governing: () => Governing | null) {
 							code: { eq: g.lineage },
 							sealed_at: { isNull: false },
 							voided_at: { isNull: true },
-							effective_range: { contains: { today: '' as const } }
+							effective_range: { contains: clock.today }
 						};
-		return bolt.read('jurisdiction_settings', { where, select: { payroll: true }, limit: 1 });
+		return bolt.query('jurisdiction_settings', { where, select: { payroll: true }, limit: 1 });
 	});
-	return () => rows.current?.[0]?.payroll;
+	return () => rows?.current?.rows?.[0]?.payroll;
 }
 
 export function versionMoney(governing: () => Governing | null) {

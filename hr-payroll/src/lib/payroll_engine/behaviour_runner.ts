@@ -1,3 +1,4 @@
+import { Array as EffectArray } from 'effect';
 import { Predicate } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
 import type { Act, DeclaredQuery, Id, MemberWhere, Page, Row as BoltRow } from '@norbital-ai/bolt';
@@ -22,7 +23,7 @@ import {
 	fieldValue,
 	isJsonObject,
 	type Json,
-	moneyNumber,
+	type JsonObject,
 	payrollSetting,
 	Reads,
 	readsFrom,
@@ -61,15 +62,15 @@ const CATALOGS = {
 } as const;
 const DESCRIBE_CATALOG = {
 	adhoc_catalog_entry: {
-		collection: 'adhoc_catalog',
+		from: 'adhoc_catalog',
 		select: { ...CATALOG.adhoc_catalog, references: true }
 	},
 	claim_catalog_entry: {
-		collection: 'claim_catalog',
+		from: 'claim_catalog',
 		select: { ...CATALOG.claim_catalog, references: true }
 	},
 	leave_catalog_entry: {
-		collection: 'leave_catalog',
+		from: 'leave_catalog',
 		select: {
 			...CATALOG.leave_catalog,
 			...LEAVE_CLASS,
@@ -81,7 +82,7 @@ const DESCRIBE_CATALOG = {
 		}
 	},
 	loan_catalog_entry: {
-		collection: 'loan_catalog',
+		from: 'loan_catalog',
 		select: { ...CATALOG.loan_catalog, references: true }
 	}
 } as const;
@@ -92,7 +93,7 @@ const leaveMember = (
 	since?: string
 ) =>
 	({
-		collection: 'leave_catalog_entry',
+		from: 'leave_catalog_entry',
 		where: {
 			...where,
 			activity: { eq: 'TIME_OFF' },
@@ -117,7 +118,7 @@ export const leaveMembers = (
 	({
 		describe_leave: leaveMember(where, since),
 		describe_leave_catalog: {
-			collection: 'leave_catalog',
+			from: 'leave_catalog',
 			where: { id: { in: { member: 'describe_leave', field: 'catalog_id' } } },
 			select: { id: true, code: true },
 			all: true
@@ -147,9 +148,9 @@ export const leaveFrom = Effect.fnUntraced(function* (
 	for (const row of rows) {
 		const code = codes.get(row.catalog_id);
 		if (code === undefined)
-			return yield* Effect.fail(
-				new Refusal({ message: 'A leave movement needs its actual approved catalogue.' })
-			);
+			return yield* new Refusal({
+				message: 'A leave movement needs its actual approved catalogue.'
+			});
 		coded.push({ row, code });
 	}
 	const chains = chainStarts(
@@ -174,34 +175,12 @@ export const leaveFrom = Effect.fnUntraced(function* (
 				from,
 				to: row.to ?? from,
 				chain_from: chains.get(row.id) ?? from,
-				days: moneyNumber(row.days) ?? 0,
+				days: row.days?.toNumber() ?? 0,
 				facts: row.facts
 			}
 		]);
 	}
 	return out;
-});
-/** One native keyed read supplies each approved movement and its catalogue code. */
-export const leaveTaken = Effect.fnUntraced(function* (
-	read: Read,
-	where: StoredWhere<'leave_catalog_entry'>,
-	since?: string
-) {
-	const got = yield* read(leaveMembers(where, since));
-	return yield* leaveFrom(read, got.describe_leave.rows, got.describe_leave_catalog.rows);
-});
-/** One employment's leave balances on a day (`services.leaveState`), each with its class's `attendance` when it reads
- * one; none when the state cannot be read. */
-export const leaveBalancesOn = Effect.fnUntraced(function* (
-	read: Read,
-	employment_id: Parameters<typeof leaveState>[0],
-	day: string
-) {
-	return yield* leaveState(employment_id, day).pipe(
-		Effect.provideService(Reads, readsFrom(read)),
-		Effect.map(leaveBalances),
-		Effect.catchTag('Refusal', () => Effect.succeed([]))
-	);
 });
 /**
  * Many employments' leave balances, each on its own day, from one read (`leaveStateMembers`); an employment whose state
@@ -245,7 +224,7 @@ export const leaveBalancesFor = Effect.fnUntraced(function* (
 const termsWritten = (row: Row): unknown[] => {
 	const terms = (facts: unknown) => {
 		const held = rowOf(facts)?.['contract_terms'];
-		return Array.isArray(held) ? held : [];
+		return EffectArray.isArray(held) ? held : [];
 	};
 	const before = rowOf(row['before']);
 	if (before == null || !('facts' in before)) return [];
@@ -269,30 +248,6 @@ type DescribeRows = {
 type DescribeInput = {
 	[C in keyof DescribeRows]: { readonly collection: C; readonly rows: readonly DescribeRows[C][] };
 }[keyof DescribeRows];
-type DescribeTriggerInput = {
-	[C in keyof DescribeRows]: { readonly collection: C; readonly row: DescribeRows[C] };
-}[keyof DescribeRows];
-export const describeTrigger = Effect.fnUntraced(function* (
-	input: DescribeTriggerInput,
-	read: Read
-) {
-	const rows =
-		input.collection === 'payslip'
-			? yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read)
-			: input.collection === 'employment_contract'
-				? yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read)
-				: input.collection === 'adhoc_catalog_entry'
-					? yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read)
-					: input.collection === 'claim_catalog_entry'
-						? yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read)
-						: input.collection === 'leave_catalog_entry'
-							? yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read)
-							: yield* describeTriggers({ collection: input.collection, rows: [input.row] }, read);
-	const [described] = rows;
-	if (described === undefined)
-		return yield* Effect.fail(new Refusal({ message: 'The trigger enrichment returned no row.' }));
-	return described;
-});
 /** Native members for trigger enrichment, using direct member field predicates. */
 export const describeMembers = (collection: string, member: string) => {
 	const ref = (field: string) => ({ in: { member, field } });
@@ -302,13 +257,13 @@ export const describeMembers = (collection: string, member: string) => {
 		: DESCRIBE_CATALOG.leave_catalog_entry;
 	return {
 		describe_lines: {
-			collection: 'payslip',
+			from: 'payslip',
 			where: { id: collection === 'payslip' ? ref('id') : none },
 			select: { id: true, base: true, adjustments: true, payroll_run_id: true },
 			all: true
 		},
 		describe_runs: {
-			collection: 'payroll_run',
+			from: 'payroll_run',
 			where: { id: { in: { member: 'describe_lines', field: 'payroll_run_id' } } },
 			select: { id: true, pay_date: true, pay_due_date: true },
 			all: true
@@ -338,13 +293,13 @@ const describeInHand = (input: DescribeInput) => {
 				: [];
 	const common = {
 		describe_lines: {
-			collection: 'payslip',
+			from: 'payslip',
 			where: { id: { in: input.collection === 'payslip' ? input.rows.map((row) => row.id) : [] } },
 			select: { id: true, base: true, adjustments: true, payroll_run_id: true },
 			all: true
 		},
 		describe_runs: {
-			collection: 'payroll_run',
+			from: 'payroll_run',
 			where: { id: { in: { member: 'describe_lines', field: 'payroll_run_id' } } },
 			select: { id: true, pay_date: true, pay_due_date: true },
 			all: true
@@ -463,30 +418,21 @@ export const describeFrom = Effect.fnUntraced(function* <
 		return described;
 	});
 });
-const describeTriggers = Effect.fnUntraced(function* (input: DescribeInput, read: Read) {
-	const got = yield* readDescribe(read, input);
-	return yield* describeFrom<DescribeRead['describe_catalog']['rows'][number]>(
-		input.collection,
-		input.rows,
-		got,
-		read
-	);
-});
 /** A `where` clause over an empty list: it matches nothing. */
 const emptyIn = (clause: unknown): boolean =>
-	isJsonObject(clause) && Array.isArray(clause['in']) && clause['in'].length === 0;
+	isJsonObject(clause) && EffectArray.isArray(clause['in']) && clause['in'].length === 0;
 /** Entities, their approved contracts, their lineage versions and those versions' rules in one native statement. */
 export const entityMembers = (where: StoredWhere<'entity'> | MemberWhere<'entity'>) =>
 	({
-		entities: { collection: 'entity', where, select: { id: true, settings_code: true }, all: true },
+		entities: { from: 'entity', where, select: { id: true, settings_code: true }, all: true },
 		contracts: {
-			collection: 'employment_contract',
+			from: 'employment_contract',
 			where: { company_id: { in: { member: 'entities', field: 'id' } } },
 			select: CONTRACT,
 			all: true
 		},
 		versions: {
-			collection: 'jurisdiction_settings',
+			from: 'jurisdiction_settings',
 			where: {
 				code: { in: { member: 'entities', field: 'settings_code' } },
 				voided_at: { isNull: true },
@@ -496,7 +442,7 @@ export const entityMembers = (where: StoredWhere<'entity'> | MemberWhere<'entity
 			all: true
 		},
 		rules: {
-			collection: 'rule_set',
+			from: 'rule_set',
 			where: {
 				settings_id: { in: { member: 'versions', field: 'id' } },
 				family: { eq: 'PAYROLL' }
@@ -657,7 +603,7 @@ export const runTotals = (slips: readonly Row[]) => {
 		net = net.plus(money(slip['net']));
 		employer_cost = employer_cost.plus(money(slip['employer_cost']));
 		const lines = slip['statutory'];
-		for (const line of Array.isArray(lines) ? lines : []) {
+		for (const line of EffectArray.isArray(lines) ? lines : []) {
 			const held = rowOf(line);
 			const code = text(held?.['scheme_code']);
 			if (held == null || code == null) continue;
@@ -687,14 +633,14 @@ export const runTotals = (slips: readonly Row[]) => {
 			net: units(net),
 			employer_cost: units(employer_cost),
 			schemes: Object.fromEntries(
-				Object.entries(schemes).map(([code, sum]) => [
+				Object.entries(schemes).map(([code, sum]): [string, JsonObject] => [
 					code,
 					{ employee: units(sum.employee), employer: units(sum.employer), base: units(sum.base) }
 				])
 			)
 		},
 		statutory: Object.fromEntries(
-			Object.entries(schemes).map(([code, sum]) => [
+			Object.entries(schemes).map(([code, sum]): [string, JsonObject] => [
 				code,
 				{
 					base: units(sum.base),
@@ -702,7 +648,7 @@ export const runTotals = (slips: readonly Row[]) => {
 					employee: units(sum.employee),
 					employer: units(sum.employer),
 					parts: Object.fromEntries(
-						Object.entries(sum.parts).map(([part, value]) => [part, units(value)])
+						Object.entries(sum.parts).map(([part, value]): [string, number] => [part, units(value)])
 					)
 				}
 			])
@@ -724,7 +670,7 @@ type Shared = {
 	readonly action: string;
 	readonly versionFor: VersionFor;
 	readonly read: Read;
-	readonly act: Pick<Act, 'many'>;
+	readonly act: Pick<Act, 'checked'>;
 	/** A shared `staffingLookup`, so a tick computes each entity and day's staffing once. */
 	readonly staffing?: (company_id: Id<'entity'>, day: string) => Effect.Effect<Staffing, ReadError>;
 };
@@ -744,7 +690,7 @@ const pinned = (clause: Json | undefined): readonly Json[] | undefined => {
 	if (op === undefined || more.length !== 0) return undefined;
 	const operand = clause[op];
 	if (op === 'eq' && operand !== undefined && !isJsonObject(operand)) return [operand];
-	if (op === 'in' && Array.isArray(operand)) return operand;
+	if (op === 'in' && EffectArray.isArray<typeof operand>(operand)) return operand;
 	return undefined;
 };
 type DeclaredRead = (
@@ -864,8 +810,10 @@ const same = (value: unknown, other: unknown) =>
 const OPERATORS = {
 	eq: (value, operand) => (operand == null ? value == null : same(value, operand)),
 	ne: (value, operand) => !same(value, operand),
-	in: (value, operand) => Array.isArray(operand) && operand.some((other) => same(value, other)),
-	nin: (value, operand) => !(Array.isArray(operand) && operand.some((other) => same(value, other))),
+	in: (value, operand) =>
+		EffectArray.isArray<typeof operand>(operand) && operand.some((other) => same(value, other)),
+	nin: (value, operand) =>
+		!(EffectArray.isArray<typeof operand>(operand) && operand.some((other) => same(value, other))),
 	isNull: (value, operand) => (operand === true ? value == null : value != null),
 	lt: (value, operand) => value != null && compare(value, operand) < 0,
 	lte: (value, operand) => value != null && compare(value, operand) <= 0,
@@ -968,9 +916,9 @@ const prepareStep = Effect.fnUntraced(function* (read: DeclaredRead, step: Behav
 			for (const [index, one] of step.subjects.entries()) {
 				const rows = loaded.rows[index];
 				if (rows === undefined)
-					return yield* Effect.fail(
-						new Refusal({ message: 'The behaviour read did not answer every planning subject.' })
-					);
+					return yield* new Refusal({
+						message: 'The behaviour read did not answer every planning subject.'
+					});
 				subjects.set(one, { one, rows, where: wheres[index] });
 			}
 			return { name, spec, subjects, companies: loaded.companies };
@@ -1124,9 +1072,9 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 			Effect.gen(function* () {
 				const request = queries.get(key);
 				if (request === undefined)
-					return yield* Effect.fail(
-						new Refusal({ message: 'The behaviour read needs its declared native query.' })
-					);
+					return yield* new Refusal({
+						message: 'The behaviour read needs its declared native query.'
+					});
 				if (request.collection === 'entity') {
 					const page = yield* input.read('entity', request.query);
 					return {
@@ -1184,9 +1132,9 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 			for (const { name, spec, subjects: readSubjects } of reads) {
 				const loaded = readSubjects.get(one);
 				if (loaded === undefined)
-					return yield* Effect.fail(
-						new Refusal({ message: 'The behaviour read did not answer its planning subject.' })
-					);
+					return yield* new Refusal({
+						message: 'The behaviour read did not answer its planning subject.'
+					});
 				const overlay = overlaid(rule, loaded.rows, spec.collection, loaded.where, writes);
 				if (Result.isFailure(overlay)) return yield* Effect.fail(overlay.failure);
 				contextReads[name] =

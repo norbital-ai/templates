@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '../i18n/t.js';
+	import { bolt } from '$bolt';
 	import { Inline } from '@norbital-ai/ui/layout';
 	import { TimeInput } from '@norbital-ai/ui';
 	import { weeklyInstalments } from '../../payroll_engine/foundation.js';
@@ -57,7 +57,7 @@
 {/snippet}
 
 <Inline gap="sm" data-month-picker>
-	<span class="sr-only">{ariaLabel ?? t('app.scheduling.month_picker')}</span>
+	<span class="sr-only">{ariaLabel ?? bolt.t('app.scheduling.month_picker')}</span>
 	<TimeInput
 		of="date"
 		precision="month"
@@ -80,13 +80,13 @@
 			gap="xs"
 			align="stretch"
 			role="group"
-			aria-label={t('app.scheduling.week_picker')}
+			aria-label={bolt.t('app.scheduling.week_picker')}
 			data-week-picker
 		>
 			{#each monthWeeks as week (week.sequence)}
 				{@render periodButton(
 					half === week.sequence,
-					t('app.scheduling.week_n', { n: week.sequence }),
+					bolt.t('app.scheduling.week_n', { n: week.sequence }),
 					() => onMonthChange(`${period_month(month)}-${week.sequence}`),
 					`${week.salary.start} – ${week.salary.end}`
 				)}
@@ -97,13 +97,13 @@
 			gap="xs"
 			align="stretch"
 			role="group"
-			aria-label={t('app.scheduling.half_picker')}
+			aria-label={bolt.t('app.scheduling.half_picker')}
 			data-half-picker
 		>
-			{@render periodButton(half === 1, t('app.scheduling.first_half'), () =>
+			{@render periodButton(half === 1, bolt.t('app.scheduling.first_half'), () =>
 				onMonthChange(`${period_month(month)}-1`)
 			)}
-			{@render periodButton(half === 2, t('app.scheduling.second_half'), () =>
+			{@render periodButton(half === 2, bolt.t('app.scheduling.second_half'), () =>
 				onMonthChange(`${period_month(month)}-2`)
 			)}
 		</Inline>

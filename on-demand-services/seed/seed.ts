@@ -27,7 +27,12 @@ const MINUTE = 60_000;
 const Row = Schema.Record(Schema.String, Schema.Json);
 type Row = Schema.Schema.Type<typeof Row>;
 const Point = Schema.Struct({ lat: Schema.Number, lng: Schema.Number });
-const User = Schema.StructWithRest(Schema.Struct({ team: Schema.Json }), [Row]);
+/** The bank's team ids, as this workspace's team handles. */
+const TEAMS = { 'team-operations': 'operations', 'team-helpers': 'helpers' } as const;
+const User = Schema.StructWithRest(
+	Schema.Struct({ team: Schema.Literals(['team-operations', 'team-helpers']) }),
+	[Row]
+);
 const Staff = Schema.StructWithRest(
 	Schema.Struct({
 		id: Schema.String,
@@ -281,7 +286,12 @@ function sample(bank: BankReader) {
 		return location == null ? h.home_location : Schema.decodeUnknownSync(Point)(location);
 	};
 	return {
-		sys_user: users.map(({ team, ...u }) => ({ ...u, kind: 'staff', admin: false, team })),
+		sys_user: users.map(({ team, ...u }) => ({
+			...u,
+			kind: 'staff',
+			admin: false,
+			team: TEAMS[team]
+		})),
 		services,
 		dispatch_settings,
 		helpers: staff.map(({ joined: _, ...h }) => ({
