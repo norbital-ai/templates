@@ -321,7 +321,7 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 		where: {
 			ledger: { eq: instance },
 			direction: { eq: 'purchasing' },
-			status: { in: ['confirmed', 'closed', 'cancelled'] }
+			seal_hash: { isNull: false }
 		},
 		select: { status: true },
 		limit: 1

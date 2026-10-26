@@ -3,6 +3,7 @@ import { Effect, Result, Schema } from 'effect';
 import {
 	agreement,
 	agreements,
+	executableAgreement,
 	agreementSelect,
 	withAgreement,
 	type AgreementOrder
@@ -190,15 +191,17 @@ function commissionLines(
 	seal?: string,
 	actual?: readonly CommissionFact[]
 ) {
-	const version = seal ? agreement(record, seal) : agreements(record).at(-1);
-	const order = version
-		? { ...withAgreement(record, version), ...(actual ? { status: 'confirmed' as const } : {}) }
-		: record;
+	const version = seal ? agreement(record, seal) : executableAgreement(record);
+	if (!version) return [];
+	const order = {
+		...withAgreement(record, version),
+		...(actual ? { status: 'confirmed' as const } : {})
+	};
 	if (
 		!order.sealed_snapshot ||
 		isMasked(order.sealed_snapshot) ||
 		order.direction !== 'sales' ||
-		!['confirmed', 'closed'].includes(order.status)
+		order.status !== 'confirmed'
 	)
 		return [];
 	const snapshot = order.sealed_snapshot;
@@ -296,11 +299,11 @@ export function commissionRows(orders: readonly ReportOrder[], selectedVersion?:
 	return orders.flatMap((record) => {
 		const version =
 			selectedVersion == null
-				? agreements(record).at(-1)
+				? executableAgreement(record)
 				: agreements(record).find((v) => v.version === selectedVersion);
 		if (selectedVersion != null && !version) return [];
 		const order = version ? withAgreement(record, version) : record;
-		return commissionLines(order).map(({ order_line, ...line }) => ({
+		return commissionLines(order, version?.seal_hash).map(({ order_line, ...line }) => ({
 			...line,
 			owner_name: '',
 			order: order.id,
@@ -320,7 +323,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 	seal?: string,
 	actual?: readonly CommissionFact[]
 ) {
-	const version = seal ? agreement(record, seal) : agreements(record).at(-1);
+	const version = seal ? agreement(record, seal) : executableAgreement(record);
 	if (seal && !version)
 		return yield* new AgreementUnavailable({ message: 'Approved contract version unavailable' });
 	const order = version ? withAgreement(record, version) : record;
@@ -333,7 +336,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 			);
 	const snapshot = {
 		seal_hash: order.seal_hash ?? '',
-		eligible: actual ? Boolean(version) : ['confirmed', 'closed'].includes(order.status),
+		eligible: actual ? Boolean(version) : Boolean(executableAgreement(record)),
 		lines: lines.map((line) => ({
 			order_line: line.order_line,
 			product: line.product,

@@ -35,6 +35,9 @@
 		editors?: {
 			readonly [field: string]: Snippet<[FormState, FieldEditor]>;
 		};
+		viewers?: {
+			readonly [field: string]: Snippet<[FormState]>;
+		};
 		actions?: Snippet;
 		trailing?: Snippet;
 		formActions?: Snippet<[FormState]>;
@@ -57,6 +60,7 @@
 	import {
 		Combobox,
 		Field,
+		Show,
 		Form,
 		Section,
 		Tabs,
@@ -64,6 +68,7 @@
 		RecordShell,
 		useEnumText,
 		useKinds,
+		useBolt,
 		provideKinds,
 		useRecordController,
 		Tooltip,
@@ -77,6 +82,7 @@
 		subtitle,
 		sections,
 		editors = {},
+		viewers = {},
 		actions,
 		trailing,
 		formActions,
@@ -88,6 +94,7 @@
 		history
 	}: RecordFormProps = $props();
 	const kinds = useKinds();
+	const translate = useBolt().t;
 	const controller = useRecordController();
 	const words = useEnumText();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
@@ -149,10 +156,27 @@
 		...(readonlyField ? { readonly: true } : {}),
 		...(wide ? { class: 'col-span-full' } : {})
 	}}
+	{#snippet readonlyValue()}{#if viewers[name]}{@render viewers[name]!(form)}{/if}{/snippet}
 	{#if Object.entries(values).some(([field, value]) => field === name && value != null)}
 		<!-- the parent scoping this create: fixed, not asked -->
+	{:else if readonlyField}
+		{@const stored = form.spec.fields.find((field) => field.name === name)}
+		{#if stored && form.readable(name) && !stored.kind.hidden}
+			<Stack gap="xs" class={wide ? 'col-span-full' : undefined} data-field={name}>
+				<span class="text-xs font-medium text-muted-foreground"
+					>{translate(`models.${view.collection}.fields.${name}`)}</span
+				>
+				{#if viewers[name]}{@render viewers[name]!(form)}{:else}<Show
+						readonly
+						kind={stored.kind}
+						value={form.get(name)}
+						row={form.row}
+						relation={stored.relation}
+					/>{/if}
+			</Stack>
+		{/if}
 	{:else if editors[name]}
-		<Field {name} {...props}>
+		<Field {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}}>
 			{#snippet editor(field)}{@render editors[name]!(form, field)}{/snippet}
 		</Field>
 	{:else if name === 'status' && cells}
@@ -173,7 +197,7 @@
 			{/snippet}
 		</Field>
 	{:else}
-		<Field {name} {...props} />
+		<Field {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}} />
 	{/if}
 {/snippet}
 

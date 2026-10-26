@@ -67,6 +67,10 @@ CREATE TABLE dbo.t_Department (
  FItemID int NOT NULL PRIMARY KEY,
  FDeleted bit NOT NULL DEFAULT 0
 );
+CREATE TABLE dbo.t_User (
+ FUserID int NOT NULL PRIMARY KEY,
+ FName nvarchar(255) NOT NULL
+);
 CREATE TABLE dbo.t_Settle (
  FItemID int NOT NULL PRIMARY KEY,
  FNumber nvarchar(100) NOT NULL,
@@ -128,6 +132,7 @@ CREATE TABLE dbo.SEOrder (
  FCheckerID int NULL,
  FCheckDate datetime NULL,
  FChangeDate datetime NULL,
+ FChangeUser int NULL,
  FClosed bit NOT NULL DEFAULT 0,
  FCancellation bit NOT NULL DEFAULT 0,
  FChangeMark bit NOT NULL DEFAULT 0,
@@ -171,9 +176,40 @@ CREATE TABLE dbo.SEOrderEntry (
  FPlanMode int NOT NULL DEFAULT 14036,
  FStockQty decimal(28,10) NOT NULL DEFAULT 0,
  FMRPClosed bit NOT NULL DEFAULT 0,
+ FMrpAutoClosed int NOT NULL DEFAULT 0,
  CONSTRAINT UQ_Probe_SEOrderEntry UNIQUE (FBrNO,FInterID,FEntryID),
  CONSTRAINT FK_Probe_SEOrderEntry FOREIGN KEY (FBrNO,FInterID)
   REFERENCES dbo.SEOrder(FBrNo,FInterID)
+);
+
+-- Formal SO amendments archive the old source rows and retain their field log.
+-- The header stores the user ID; ICOrderAlter stores the user's display name.
+CREATE TABLE dbo.ICOrderAlter (
+ FInterID int NOT NULL,
+ FBillType int NOT NULL,
+ FTableName nvarchar(100) NOT NULL,
+ FVersionNo nvarchar(30) NOT NULL,
+ FChangeDate datetime NOT NULL,
+ FChangeUser nvarchar(255) NOT NULL,
+ FChangeType nvarchar(100) NOT NULL,
+ FoldNo nvarchar(100) NOT NULL,
+ FNumbers nvarchar(100) NOT NULL,
+ FitemName nvarchar(255) NOT NULL,
+ Fmodel nvarchar(255) NOT NULL,
+ FChangeField nvarchar(255) NOT NULL,
+ FBChangeValue nvarchar(1000) NOT NULL,
+ FEChangeValue nvarchar(1000) NOT NULL,
+ FChangeCauses nvarchar(1000) NOT NULL,
+ FPage int NOT NULL
+);
+CREATE TABLE dbo.SEOutStockEntry (
+ FInterID int NOT NULL DEFAULT 0,
+ FEntryID int NOT NULL DEFAULT 0,
+ FSourceTranType int NOT NULL DEFAULT 81,
+ FSourceInterId int NOT NULL,
+ FSourceEntryID int NOT NULL DEFAULT 0,
+ FItemID int NOT NULL,
+ FQty decimal(28,10) NOT NULL
 );
 
 -- Issued delivery/invoice sources. Pending rows have no FCheckDate and are not
@@ -192,6 +228,7 @@ CREATE TABLE dbo.ICStockBillEntry (
  FEntryID int NOT NULL,
  FSourceTranType int NOT NULL DEFAULT 81,
  FSourceInterId int NOT NULL,
+ FOrderInterID int NULL,
  FSourceEntryID int NOT NULL,
  FItemID int NOT NULL,
  FUnitID int NOT NULL,
@@ -291,6 +328,7 @@ INSERT dbo.t_Emp(FItemID) VALUES(1);
 INSERT dbo.t_Emp(FItemID) VALUES(701);
 INSERT dbo.t_Department(FItemID) VALUES(13);
 INSERT dbo.t_Department(FItemID) VALUES(601);
+INSERT dbo.t_User(FUserID,FName) VALUES(1,N'Probe biller');
 INSERT dbo.t_Settle(FItemID,FNumber,FName)
  VALUES(1,N'PROBE-NET30',N'Net 30');
 INSERT dbo.ICInventory(FItemID,FStockID,FBatchNo,FQty)

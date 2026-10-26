@@ -46,7 +46,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 			group.orders.push(order);
 		groups.set(key, group);
 	}
-	// Keep prior beneficiaries visible when their last order was cancelled or moved out of this month.
+	// Keep prior beneficiaries visible when their source facts were withdrawn or moved out of this month.
 	for (const statement of statements) {
 		if (statement.period !== period) continue;
 		const key = `${statement.owner}:${statement.currency}`;

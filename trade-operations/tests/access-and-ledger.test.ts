@@ -154,15 +154,15 @@ test.live('native sealing approval requires no credit-approval configuration', (
 				expect.objectContaining({ collection: 'orders', id: approved.order })
 			])
 		});
-		// Nobody outside the request may change it: an administrator cannot cancel it around the approval.
+		// Nobody outside the request may change it: an administrator cannot archive it around the approval.
 		expect(
 			yield* Effect.flip(
 				t.as(t.admin).act('orders.update', {
 					target: approved.order,
-					set: { status: 'cancelled', reason: 'Around the approval' }
+					set: { archived: true }
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.remote_close_required' });
+		).toMatchObject({ _tag: 'ActRefused' });
 		expect(
 			yield* approvals.decide({
 				requestId: approved.requestId,

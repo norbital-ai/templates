@@ -4,7 +4,7 @@ export default policy({
 	capabilities: {
 		apps: ['operations']
 	},
-	automations: ['orders_cancel', 'orders_close'],
+	automations: ['orders_revise'],
 	grants: {
 		ext_sales_orders: {
 			read: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } },
@@ -110,7 +110,8 @@ export default policy({
 					}
 				},
 				approval: (write, flow) =>
-					write.record.status !== 'confirmed'
+					write.record.status !== 'confirmed' ||
+					write.changed.every((field) => ['title', 'notes', 'archived'].includes(field))
 						? flow.allow()
 						: write.changed.includes('status')
 							? flow.step('Commercial review', { teams: ['commercial_managers'] })

@@ -3,11 +3,13 @@ import { Schema, Effect, Layer } from 'effect';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { fileRef } from '@norbital-ai/bolt/page';
 import { expect, it as test } from '@effect/vitest';
-import { workspace, draft, confirm, committed, CUSTOMER, PRODUCT } from './kit.js';
+import { workspace, draft, confirm, revise, committed, CUSTOMER, PRODUCT } from './kit.js';
 import { Convert } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { renderOrderDocument, validateDocumentTemplate } from '../src/lib/order-document.js';
 import { sourceFixture } from './source-fixture.js';
+import { kingdeeDraft, kingdeeFixture, observeKingdeeOrder } from './kingdee-fixture.js';
+import { agreements } from '../src/lib/agreements.js';
 test('document templates keep agreement content and escape all substituted text', () => {
 	expect(() => validateDocumentTemplate('{title}')).toThrow();
 	expect(() => validateDocumentTemplate('{agreement} {unknown}')).toThrow();
@@ -203,10 +205,12 @@ test.live(
 			).toMatchObject({ kind: 'committed' });
 		})
 );
-test.live('sealed preview and PDF retain approved terms and cannot be reopened', () =>
+test.live('a replacement draft cannot alter an earlier sealed preview or PDF', () =>
 	Effect.gen(function* () {
 		const converted: string[] = [];
+		const fixture = kingdeeFixture();
 		const t = yield* workspace({
+			source: fixture.request,
 			ports: Layer.succeed(Convert, {
 				targets: ['pdf'],
 				convert: (source) =>
@@ -219,24 +223,34 @@ test.live('sealed preview and PDF retain approved terms and cannot be reopened',
 			})
 		});
 		const as = t.as(t.admin);
+		const { order } = yield* kingdeeDraft(t, fixture);
+		yield* confirm(t, order);
+		yield* observeKingdeeOrder(t, fixture, order);
 		yield* as.act('sys_integration.update', {
 			target: fixtureId('sys_integration', 'kingdee'),
 			set: { active: false }
 		});
-		const { order } = yield* draft(t);
-		yield* confirm(t, order);
 		const original = yield* as.query('orders.document_preview', {
 			order,
 			version: 1,
 			locale: 'en'
 		});
-		for (const set of [
-			{ status: 'draft' as const },
-			{ title: 'Changed title', payment_terms: 'Net 60' }
-		])
-			expect(yield* Effect.result(as.act('orders.update', { target: order, set }))).toMatchObject({
-				_tag: 'Failure'
-			});
+		expect(
+			yield* Effect.result(
+				as.act('orders.update', {
+					target: order,
+					set: { payment_terms: 'Overwrite sealed terms' }
+				})
+			)
+		).toMatchObject({ _tag: 'Failure' });
+		yield* revise(t, order);
+		committed(
+			'orders',
+			yield* as.act('orders.update', {
+				target: order,
+				set: { title: 'Replacement draft', payment_terms: 'Net 60' }
+			})
+		);
 		expect(yield* as.query('orders.document_versions', { order })).toMatchObject([{ version: 1 }]);
 		expect(yield* as.query('orders.document_preview', { order, version: 1 })).toEqual(original);
 		expect(
@@ -257,10 +271,12 @@ test.live('sealed preview and PDF retain approved terms and cannot be reopened',
 test.live('supporting documents belong to the sales order and stop changing once confirmed', () =>
 	Effect.scoped(
 		Effect.gen(function* () {
-			const t = yield* workspace();
+			const fixture = kingdeeFixture();
+			const t = yield* workspace({ source: fixture.request });
 			const sales = t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] });
 			const owner = t.as(sales);
-			const unrelated = t.as(t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] }));
+			const unrelatedMember = t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] });
+			const unrelated = t.as(unrelatedMember);
 			const admin = t.as(t.admin);
 			const bytes = new TextEncoder().encode('%PDF-1.4\n% Synthetic supporting document\n%%EOF\n');
 			const upload = Effect.fnUntraced(function* (who: typeof owner, name: string) {
@@ -277,15 +293,23 @@ test.live('supporting documents belong to the sales order and stop changing once
 				});
 			});
 			const first = yield* upload(owner, 'customer-brief.pdf');
-			const order = committed(
+			const { order } = yield* kingdeeDraft(t, fixture);
+			committed(
 				'orders',
-				yield* owner.act('orders.create', {
-					title: 'Order supporting documents',
-					direction: 'sales',
-					party: CUSTOMER,
-					currency: 'SGD',
-					payment_terms: 'Net 30',
-					supporting_documents: [first]
+				yield* admin.act('orders.update', {
+					target: order,
+					set: { owner: fixtureId('sys_user', sales.id) }
+				})
+			);
+			yield* admin.act('sys_integration.update', {
+				target: fixtureId('sys_integration', 'kingdee'),
+				set: { configuration: fixture.configuration(fixtureId('sys_user', sales.id)) }
+			});
+			committed(
+				'orders',
+				yield* owner.act('orders.update', {
+					target: order,
+					set: { supporting_documents: [first] }
 				})
 			);
 			expect(yield* owner.query('orders', { id: order })).toMatchObject({
@@ -341,15 +365,12 @@ test.live('supporting documents belong to the sales order and stop changing once
 					set: { supporting_documents: [first, replacement] }
 				})
 			);
-			committed(
-				'order_lines',
-				yield* owner.act('order_lines.create', {
-					order,
-					product: PRODUCT,
-					quantity: Decimal.of('10')
-				})
-			);
 			yield* confirm(t, order);
+			yield* observeKingdeeOrder(t, fixture, order);
+			yield* admin.act('sys_integration.update', {
+				target: fixtureId('sys_integration', 'kingdee'),
+				set: { active: false }
+			});
 			const confirmed = yield* owner.query('orders', { id: order });
 			expect(confirmed).toMatchObject({
 				status: 'confirmed',
@@ -363,6 +384,57 @@ test.live('supporting documents belong to the sales order and stop changing once
 					expect(refused).toMatchObject({ _tag: 'ActRefused' });
 					expect(yield* owner.query('orders', { id: order })).toEqual(confirmed);
 				}
+			}
+			yield* revise(t, order);
+			committed(
+				'orders',
+				yield* owner.act('orders.update', {
+					target: order,
+					set: { supporting_documents: [] }
+				})
+			);
+			const historical = yield* owner.query('orders', { id: order });
+			expect(historical?.contract_versions?.[0]?.supporting_documents).toEqual([
+				first,
+				replacement
+			]);
+			const archivedFile = yield* t.handle(
+				new Request(`http://localhost/__bolt/files/${first.id}`, { headers: { cookie } })
+			);
+			expect(archivedFile.status).toBe(200);
+			const next = yield* upload(owner, 'replacement-contract.pdf');
+			committed(
+				'orders',
+				yield* owner.act('orders.update', {
+					target: order,
+					set: { supporting_documents: [next] }
+				})
+			);
+			yield* confirm(t, order);
+			const sealedReplacement = yield* owner.query('orders', { id: order });
+			if (!sealedReplacement) throw new Error('Sealed replacement required');
+			const versions = agreements(sealedReplacement);
+			expect(versions.find((version) => version.version === 1)?.supporting_documents).toEqual([
+				first,
+				replacement
+			]);
+			expect(versions.find((version) => version.version === 2)?.supporting_documents).toEqual([
+				next
+			]);
+			for (const file of [first, replacement, next]) {
+				const allowed = yield* t.handle(
+					new Request(`http://localhost/__bolt/files/${file.id}`, { headers: { cookie } })
+				);
+				expect(allowed.status).toBe(200);
+			}
+			const unrelatedCookie = yield* t.session(unrelatedMember.id);
+			for (const file of [first, next]) {
+				const denied = yield* t.handle(
+					new Request(`http://localhost/__bolt/files/${file.id}`, {
+						headers: { cookie: unrelatedCookie }
+					})
+				);
+				expect([403, 404]).toContain(denied.status);
 			}
 		})
 	)

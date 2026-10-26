@@ -2,6 +2,9 @@ import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { averageLotCost } from '../../../lib/lot-cost.js';
 import {
 	agreements,
+	currentAgreement,
+	executableAgreement,
+	type ContractVersion,
 	agreementSelect,
 	confirmationBasis,
 	operationalLines
@@ -9,6 +12,12 @@ import {
 import { agreementText, publishedTemplate, orderDocument } from '../../../lib/order-document.js';
 import { COMMISSION_ENGINE } from '../../../lib/commission-expressions.js';
 import { submitOrder, type OrderPayload } from '../../../integration/kingdee/submission.js';
+import { readContractVersions } from '../../../integration/kingdee/contract-versions.js';
+import {
+	retainedContractDocuments,
+	selectedContractDocuments
+} from '../../../lib/contract-files.js';
+import { draftLineMatches, draftLineTarget } from '../../../lib/contract-draft.js';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import {
 	isMasked,
@@ -70,6 +79,7 @@ const snapshotShape = {
 						kind: 'text'
 					},
 					product: { kind: 'text', optional: true },
+					source_entry_id: { kind: 'text', optional: true },
 					product_code: {
 						kind: 'text'
 					},
@@ -157,6 +167,85 @@ const commissionShape = {
 		}
 	}
 } as const;
+const supportingDocuments = {
+	kind: 'file',
+	accept: [
+		'application/pdf',
+		'image/jpeg',
+		'image/png',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+	],
+	max: '20MiB',
+	multiple: true,
+	optional: true
+} as const;
+const contractVersionShape = {
+	kind: 'object',
+	fields: {
+		version: { kind: 'int' },
+		seal_hash: { kind: 'text' },
+		contract: { kind: 'text' },
+		approved_at: { kind: 'instant' },
+		approved_by: { kind: 'text' },
+		ordered_on: { kind: 'date' },
+		freight_treatment: { kind: 'enum', values: ['deduct', 'include'] },
+		snapshot: snapshotShape,
+		commission: { ...commissionShape, optional: true },
+		supporting_documents: supportingDocuments,
+		origin: { kind: 'enum', values: ['local', 'kingdee'], optional: true },
+		lifecycle: { kind: 'enum', values: ['pending', 'current', 'superseded'], optional: true },
+		kingdee: {
+			kind: 'object',
+			optional: true,
+			fields: {
+				branch: { kind: 'text' },
+				binding_id: { kind: 'text', optional: true },
+				source_id: { kind: 'text' },
+				live_source_id: { kind: 'text' },
+				source_version: { kind: 'text' },
+				source_uuid: { kind: 'text' },
+				source_changed_at: { kind: 'text', optional: true },
+				source_changed_by: { kind: 'text', optional: true },
+				observed_at: { kind: 'instant' },
+				content_hash: { kind: 'text' },
+				exchange_rate: { kind: 'text', optional: true },
+				archived: { kind: 'bool' },
+				status: { kind: 'enum', values: ['draft', 'issued', 'void'], optional: true },
+				closed: { kind: 'bool', optional: true },
+				entries: {
+					kind: 'list',
+					optional: true,
+					of: {
+						kind: 'object',
+						fields: {
+							local_line_id: { kind: 'text' },
+							entry_id: { kind: 'text' },
+							detail_id: { kind: 'text' }
+						}
+					}
+				}
+			}
+		},
+		events: {
+			kind: 'list',
+			optional: true,
+			of: {
+				kind: 'object',
+				fields: {
+					key: { kind: 'text' },
+					at: { kind: 'instant' },
+					kind: { kind: 'text' },
+					status: { kind: 'text' },
+					source_version: { kind: 'text' },
+					source_id: { kind: 'text' },
+					source_changed_at: { kind: 'text', optional: true },
+					source_changed_by: { kind: 'text', optional: true }
+				}
+			}
+		}
+	}
+} as const;
 const terms = [
 	'title',
 	'direction',
@@ -171,8 +260,21 @@ const terms = [
 	'payment_terms',
 	'delivery_terms',
 	'notes',
-	'supporting_documents'
+	'supporting_documents',
+	'draft_document_ids'
 ] as const;
+const contractProof = (version: ContractVersion) => ({
+	version: version.version,
+	seal_hash: version.seal_hash,
+	snapshot: version.snapshot,
+	contract: version.contract,
+	commission: version.commission ?? null,
+	approved_at: version.approved_at,
+	approved_by: version.approved_by,
+	ordered_on: version.ordered_on,
+	freight_treatment: version.freight_treatment,
+	supporting_documents: version.supporting_documents ?? []
+});
 /** The party and warehouse an order names must be active, match its direction, and share the party's ledger. */
 const admitParty = Effect.fnUntraced(function* (
 	ctx: WriteCtx<'orders'>,
@@ -190,32 +292,20 @@ const admitParty = Effect.fnUntraced(function* (
 });
 /** What the ledger receives for a confirmed order: its sealed agreement, or `null` when there is nothing to submit. */
 function orderPayload(row: Row<'orders'>): OrderPayload | null {
-	if (
-		row.status !== 'confirmed' ||
-		!row.seal_hash ||
-		!row.sealed_contract ||
-		isMasked(row.sealed_contract) ||
-		!row.sealed_snapshot ||
-		isMasked(row.sealed_snapshot)
-	)
+	const versions = agreements(row);
+	const pending = versions.find(
+		(version) => version.seal_hash === row.seal_hash && version.lifecycle === 'pending'
+	);
+	const contract = row.status === 'confirmed' && pending ? pending : currentAgreement(row);
+	if (!contract || contract.origin === 'kingdee' || contract.lifecycle === 'superseded')
 		return null;
-	const snapshot = row.sealed_snapshot;
-	const versions =
-		row.contract_versions && !isMasked(row.contract_versions) ? row.contract_versions : [];
-	const approved = versions.find((version) => version.seal_hash === row.seal_hash);
-	return {
-		order_id: String(row.id),
-		reference: row.number,
-		direction: snapshot.direction,
-		agreement_hash: row.seal_hash,
-		version: approved?.version ?? row.contract_version,
-		owner_id: String(row.owner),
-		ordered_on: approved?.ordered_on ?? row.ordered_on,
-		currency: snapshot.currency,
-		tax_inclusive: snapshot.tax_inclusive,
-		party_code: snapshot.party_code,
-		payment_terms: snapshot.payment_terms,
-		lines: snapshot.lines.map(
+	const snapshot = contract.snapshot;
+	const previous = versions
+		.filter((version) => version.version < contract.version && version.kingdee)
+		.sort((a, b) => b.version - a.version)[0];
+	const previousSource = previous?.kingdee;
+	const lines = (basis: ContractVersion) =>
+		basis.snapshot.lines.map(
 			({
 				id,
 				product_code,
@@ -226,7 +316,8 @@ function orderPayload(row: Row<'orders'>): OrderPayload | null {
 				tax_rate,
 				net,
 				tax,
-				total
+				total,
+				source_entry_id
 			}) => ({
 				id,
 				product_code,
@@ -237,11 +328,47 @@ function orderPayload(row: Row<'orders'>): OrderPayload | null {
 				tax_rate,
 				net,
 				tax,
-				total
+				total,
+				...(source_entry_id ? { source_entry_id } : {})
 			})
-		)
+		);
+	return {
+		order_id: String(row.id),
+		reference: row.number,
+		direction: snapshot.direction,
+		agreement_hash: contract.seal_hash,
+		version: contract.version,
+		owner_id: String(row.owner),
+		ordered_on: contract.ordered_on,
+		currency: snapshot.currency,
+		tax_inclusive: snapshot.tax_inclusive,
+		party_code: snapshot.party_code,
+		payment_terms: snapshot.payment_terms,
+		lines: lines(contract),
+		...(previous && previousSource?.binding_id
+			? {
+					previous: {
+						binding_id: previousSource.binding_id,
+						source_id: previousSource.live_source_id,
+						source_uuid: previousSource.source_uuid,
+						source_version: previousSource.source_version,
+						source_exchange_rate: previousSource.exchange_rate ?? '',
+						agreement_hash: previous.seal_hash,
+						tax_inclusive: previous.snapshot.tax_inclusive,
+						lines: lines(previous).map((line) => ({
+							...line,
+							source_entry_id:
+								line.source_entry_id ??
+								previousSource.entries?.find((entry) => entry.local_line_id === line.id)
+									?.entry_id ??
+								''
+						}))
+					}
+				}
+			: {})
 	};
 }
+
 export default model('orders', {
 	description: 'orders',
 	label: 'number',
@@ -262,28 +389,45 @@ export default model('orders', {
 		owner: { kind: 'ref', to: 'sys_user', default: { actor: 'id' } },
 		warehouse: { kind: 'ref', to: 'warehouses', optional: true },
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
+		source_order_key: { kind: 'text', optional: true, hidden: true },
+		draft_setup: { kind: 'text', optional: true, hidden: true },
+		archived: { kind: 'bool', default: false },
 		status: {
 			kind: 'state',
 			initial: 'draft',
 			states: {
-				draft: {
-					to: ['confirmed', 'cancelled']
-				},
+				draft: { to: ['confirmed'] },
 				confirmed: {
-					to: ['closed', 'cancelled'],
+					to: ['draft'],
 					edit: [
-						'reason',
-						'closure_snapshot',
+						'title',
+						'notes',
+						'archived',
 						'contract_versions',
+						'source_order_key',
+						'draft_setup',
 						'operational_contracts',
-						'check_hash'
+						'check_hash',
+						'contract_version',
+						'sealed_at',
+						'sealed_by',
+						'sealed_snapshot',
+						'sealed_commission',
+						'sealed_contract',
+						'sealed_contract_version',
+						'seal_hash',
+						'freight_treatment',
+						'warehouse',
+						'ordered_on',
+						'currency',
+						'tax_inclusive',
+						'valid_from',
+						'valid_until',
+						'payment_terms',
+						'delivery_terms',
+						'supporting_documents',
+						'draft_document_ids'
 					]
-				},
-				closed: {
-					edit: 'none'
-				},
-				cancelled: {
-					edit: 'none'
 				}
 			}
 		},
@@ -313,27 +457,12 @@ export default model('orders', {
 			kind: 'text',
 			optional: true
 		},
-		supporting_documents: {
-			kind: 'file',
-			accept: [
-				'application/pdf',
-				'image/jpeg',
-				'image/png',
-				'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-			],
-			max: '20MiB',
-			multiple: true,
-			optional: true
-		},
+		supporting_documents: supportingDocuments,
+		draft_document_ids: { kind: 'list', of: { kind: 'text' }, optional: true, hidden: true },
 		check_hash: {
 			kind: 'text',
 			optional: true,
 			hidden: true
-		},
-		reason: {
-			kind: 'text',
-			optional: true
 		},
 		// Price-free projection of the approved contracts for scoped stock reads.
 		operational_contracts: {
@@ -346,6 +475,7 @@ export default model('orders', {
 					kind: 'object',
 					fields: {
 						seal_hash: { kind: 'text' },
+						current: { kind: 'bool', optional: true },
 						lines: {
 							kind: 'list',
 							of: {
@@ -367,23 +497,7 @@ export default model('orders', {
 			hidden: true,
 			kind: 'json',
 			optional: true,
-			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						version: { kind: 'int' },
-						seal_hash: { kind: 'text' },
-						contract: { kind: 'text' },
-						approved_at: { kind: 'instant' },
-						approved_by: { kind: 'text' },
-						ordered_on: { kind: 'date' },
-						freight_treatment: { kind: 'enum', values: ['deduct', 'include'] },
-						snapshot: snapshotShape,
-						commission: { ...commissionShape, optional: true }
-					}
-				}
-			}
+			shape: { kind: 'list', of: contractVersionShape }
 		},
 		sealed_at: {
 			kind: 'instant',
@@ -410,6 +524,7 @@ export default model('orders', {
 			optional: true
 		},
 		closure_snapshot: {
+			hidden: true,
 			kind: 'json',
 			optional: true,
 			shape: {
@@ -462,6 +577,7 @@ export default model('orders', {
 	search: {
 		text: ['number', 'title', 'party_name']
 	},
+	key: ['ledger', 'source_order_key'],
 	read: 'all',
 	create: {
 		columns: terms,
@@ -482,6 +598,8 @@ export default model('orders', {
 			});
 			const out: CreateRow<'orders'>[] = [];
 			for (const row of rows) {
+				if (row.source_order_key !== undefined || row.draft_setup !== undefined)
+					return yield* ctx.refuse('errors.evidence_sealed');
 				if (row.closure_snapshot !== undefined) return yield* ctx.refuse('errors.order_sealed');
 				if (row.valid_from && row.valid_until && row.valid_until < row.valid_from)
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
@@ -491,13 +609,29 @@ export default model('orders', {
 					row.direction,
 					warehouses.rows.find((w) => w.id === row.warehouse)
 				);
-				out.push({ ...row, ledger: party.source, party_name: party.name });
+				const files = row.supporting_documents ?? [];
+				const selection = row.draft_document_ids ?? files.map((file) => file.id);
+				if (selection.some((id) => !files.some((file) => file.id === id)))
+					return yield* ctx.refuse('errors.evidence_sealed');
+				out.push({
+					...row,
+					source_order_key: crypto.randomUUID(),
+					draft_document_ids: selection,
+					ledger: party.source,
+					party_name: party.name
+				});
 			}
 			return out;
 		}
 	},
 	update: {
-		columns: [...terms, 'status', 'check_hash', 'reason'],
+		columns: [...terms, 'status', 'check_hash', 'archived', 'draft_setup'],
+		with: {
+			lines: {
+				upsert: { columns: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate'] },
+				delete: true
+			}
+		},
 		transform: function* (changes, ctx) {
 			const ids = changes.map((c) => c.before.id);
 			const {
@@ -506,10 +640,6 @@ export default model('orders', {
 				settings,
 				templates,
 				products,
-				transactions,
-				salesReceipts,
-				purchaseReceipts,
-				sourcePayments,
 				rules,
 				floors,
 				warehouses,
@@ -562,20 +692,14 @@ export default model('orders', {
 						}
 					},
 					all: true
-				},
-				transactions: { from: 'transactions', where: { order: { in: ids } }, all: true },
-				salesReceipts: { from: 'ext_sales_orders', where: { order: { in: ids } }, all: true },
-				purchaseReceipts: {
-					from: 'ext_purchase_orders',
-					where: { order: { in: ids } },
-					all: true
-				},
-				sourcePayments: { from: 'source_payments', where: { order: { in: ids } }, all: true }
+				}
 			});
 			const config = settings.rows[0];
 			const template = publishedTemplate(templates.rows, 'contract');
 			const transformed: UpdateSet<'orders'>[] = [];
 			for (const { before: old, set: input } of changes) {
+				if (input.source_order_key !== undefined && ctx.actor.kind !== 'system')
+					return yield* ctx.refuse('errors.evidence_sealed');
 				if (input.closure_snapshot !== undefined) return yield* ctx.refuse('errors.order_sealed');
 				if (input.direction !== undefined && input.direction !== old.direction)
 					return yield* ctx.refuse('errors.line_basis_locked', { field: 'direction' });
@@ -588,67 +712,190 @@ export default model('orders', {
 					(w) => w.id === (input.warehouse !== undefined ? input.warehouse : old.warehouse)
 				);
 				const next = input.status ?? old.status;
-				const counterparts = [...salesReceipts.rows, ...purchaseReceipts.rows].filter(
-					(row) => row.order === old.id
+				const storedVersions = agreements(old);
+				if (input.contract_versions !== undefined) {
+					if (ctx.actor.kind !== 'system' || !input.contract_versions)
+						return yield* ctx.refuse('errors.evidence_sealed');
+					const imported = input.contract_versions;
+					const sourceKey = old.source_order_key ?? storedVersions[0]?.seal_hash;
+					if (input.source_order_key !== undefined && input.source_order_key !== sourceKey)
+						return yield* ctx.refuse('errors.evidence_sealed');
+					const acceptedFields = [
+						'contract_versions',
+						'contract_version',
+						'sealed_at',
+						'sealed_by',
+						'sealed_snapshot',
+						'sealed_commission',
+						'sealed_contract',
+						'sealed_contract_version',
+						'seal_hash',
+						'freight_treatment',
+						'operational_contracts',
+						'status',
+						'check_hash',
+						'ledger',
+						'source_order_key'
+					];
+					if (
+						(input.ledger !== undefined && input.ledger !== old.ledger) ||
+						Object.keys(input).some((key) => !acceptedFields.includes(key))
+					)
+						return yield* ctx.refuse('errors.evidence_sealed');
+					if (
+						new Set(imported.map((version) => version.version)).size !== imported.length ||
+						new Set(imported.map((version) => version.seal_hash)).size !== imported.length ||
+						imported.filter((version) => version.lifecycle === 'current').length > 1
+					)
+						return yield* ctx.refuse('errors.evidence_sealed');
+					for (const existing of storedVersions) {
+						const retained = imported.find((version) => version.seal_hash === existing.seal_hash);
+						if (
+							!retained ||
+							(yield* hash(contractProof(existing))) !== (yield* hash(contractProof(retained)))
+						)
+							return yield* ctx.refuse('errors.evidence_sealed');
+						const events = existing.events ?? [];
+						if (
+							(yield* hash(events)) !==
+							(yield* hash((retained.events ?? []).slice(0, events.length)))
+						)
+							return yield* ctx.refuse('errors.evidence_sealed');
+						if (
+							existing.kingdee &&
+							(retained.kingdee?.source_version !== existing.kingdee.source_version ||
+								(existing.kingdee.binding_id &&
+									retained.kingdee?.binding_id !== existing.kingdee.binding_id))
+						)
+							return yield* ctx.refuse('errors.evidence_sealed');
+					}
+					const current = executableAgreement({ ...old, contract_versions: imported });
+					transformed.push({
+						...input,
+						...(old.status === 'draft'
+							? {
+									contract_version: Math.max(
+										old.contract_version,
+										...imported.map((version) => version.version + 1)
+									)
+								}
+							: {}),
+						operational_contracts: imported.map((version) => ({
+							seal_hash: version.seal_hash,
+							current: version.seal_hash === current?.seal_hash,
+							lines: operationalLines(version.snapshot, lines.rows)
+						}))
+					});
+					continue;
+				}
+				const metadata = Object.keys(input).every((key) =>
+					['title', 'notes', 'archived'].includes(key)
 				);
-				// Even an unapproved or void source counterpart keeps its original agreement immutable.
-				if (
-					counterparts.length &&
-					(next === 'draft' || (old.status === 'draft' && next === 'confirmed'))
-				)
-					return yield* ctx.refuse('errors.order_sealed');
-				const closeOrder = function* () {
-					if (next === old.status) return yield* ctx.refuse('errors.order_sealed');
-					if (!input.reason?.trim())
-						return yield* ctx.refuse('errors.reason_required', { field: 'reason' });
-					const closure_snapshot = lines.rows
-						.filter((l) => l.order === old.id)
-						.map((line) => {
-							const fulfilled = sum([
-								...transactions.rows
-									.filter(
-										(row) =>
-											row.order === old.id && row.kind === 'delivery' && row.status === 'issued'
-									)
-									.flatMap((row) =>
-										(row.items ?? [])
-											.filter((item) => item.order_line_id === line.id)
-											.map((item) => item.quantity)
-									)
-							]);
-							return {
-								order_line: line.id,
-								product_name: line.product_name,
-								unit: line.unit,
-								ordered: Decimal.of(line.quantity).toString(),
-								fulfilled: fulfilled.toString(),
-								released: Decimal.of(line.quantity).minus(fulfilled).toString()
-							};
-						})
-						.sort((a, b) => a.order_line.localeCompare(b.order_line));
-					const external = counterparts;
+				if (old.archived && Object.keys(input).some((key) => key !== 'archived'))
+					return yield* ctx.refuse('errors.order_archived');
+				if (input.archived === true && !metadata) return yield* ctx.refuse('errors.order_archived');
+				if (metadata) {
+					transformed.push(input);
+					continue;
+				}
+				if (old.archived) return yield* ctx.refuse('errors.order_archived');
+				const startContract = function* () {
+					const current = currentAgreement(old);
+					if (current?.kingdee?.status === 'void' || current?.kingdee?.closed)
+						return yield* ctx.refuse('errors.contract_source_closed');
+					if (!current || !storedVersions.length) return yield* ctx.refuse('errors.order_sealed');
+					if (!current.kingdee?.binding_id || current.kingdee.status !== 'issued')
+						return yield* ctx.refuse('errors.contract_pending');
 					if (
-						next === 'cancelled' &&
-						(transactions.rows.some((row) => row.order === old.id && row.status === 'issued') ||
-							sourcePayments.rows.some((row) => row.order === old.id && row.active))
+						storedVersions.some(
+							(version) => version.lifecycle === 'pending' && version.version > current.version
+						)
 					)
-						return yield* ctx.refuse('errors.cancel_obligations');
+						return yield* ctx.refuse('errors.contract_pending');
+					const basis = {
+						status: 'draft',
+						draft_setup: current.seal_hash,
+						currency: current.snapshot.currency,
+						tax_inclusive: current.snapshot.tax_inclusive,
+						ordered_on: current.ordered_on,
+						warehouse: current.snapshot.warehouse || null,
+						valid_from: current.snapshot.valid_from || null,
+						valid_until: current.snapshot.valid_until || null,
+						payment_terms: current.snapshot.payment_terms,
+						delivery_terms: current.snapshot.delivery_terms || null,
+						supporting_documents: current.supporting_documents ?? [],
+						draft_document_ids: (current.supporting_documents ?? []).map((file) => file.id)
+					};
 					if (
-						(next === 'cancelled' ||
-							closure_snapshot.some((line) => Decimal.of(line.released).gt(0))) &&
-						(external.length === 0 || external.some((row) => row.status !== 'void'))
+						Object.entries(input).some(
+							([key, value]) =>
+								!Object.entries(basis).some(
+									([field, expected]) =>
+										field === key && JSON.stringify(value) === JSON.stringify(expected)
+								)
+						)
 					)
-						return yield* ctx.refuse('errors.remote_close_required');
-					if (next === 'closed') return { ...input, closure_snapshot };
-					return next === 'cancelled' ? { ...input, closure_snapshot } : input;
-				};
-				const cancelOrder = function* () {
-					if (counterparts.length || old.seal_hash) return yield* closeOrder();
-					if (!input.reason?.trim())
-						return yield* ctx.refuse('errors.reason_required', { field: 'reason' });
-					return input;
+						return yield* ctx.refuse('errors.order_sealed');
+					return {
+						...input,
+						draft_setup: current.seal_hash,
+						contract_versions: storedVersions.map((version) =>
+							version.lifecycle === 'pending'
+								? { ...version, lifecycle: 'superseded' as const }
+								: version
+						),
+						supporting_documents: retainedContractDocuments(
+							storedVersions.map((version) => version.supporting_documents ?? []),
+							current.supporting_documents ?? []
+						),
+						draft_document_ids: (current.supporting_documents ?? []).map((file) => file.id),
+						contract_version: Math.max(
+							old.contract_version,
+							...storedVersions.map((version) => version.version + 1)
+						),
+						check_hash: null
+					};
 				};
 				const editOrder = function* () {
+					if (old.draft_setup) {
+						if (input.draft_setup !== null) {
+							if (input.draft_setup === currentAgreement(old)?.seal_hash)
+								return yield* startContract();
+							return yield* ctx.refuse('errors.contract_setup');
+						}
+						const current = currentAgreement(old);
+						const own = lines.rows.filter((line) => line.order === old.id);
+						if (
+							Object.keys(input).some((key) => key !== 'draft_setup') ||
+							!current ||
+							old.draft_setup !== current.seal_hash ||
+							current.kingdee?.status !== 'issued' ||
+							current.kingdee.closed ||
+							own.length !== current.snapshot.lines.length ||
+							own.some((line) => {
+								const target = draftLineTarget(current, line);
+								return !target || !draftLineMatches(current, target, line);
+							}) ||
+							new Set(own.map((line) => draftLineTarget(current, line)?.id)).size !== own.length ||
+							old.currency !== current.snapshot.currency ||
+							old.tax_inclusive !== current.snapshot.tax_inclusive ||
+							old.ordered_on !== current.ordered_on ||
+							(old.warehouse ?? '') !== (current.snapshot.warehouse ?? '') ||
+							(old.valid_from ?? '') !== (current.snapshot.valid_from ?? '') ||
+							(old.valid_until ?? '') !== (current.snapshot.valid_until ?? '') ||
+							old.payment_terms !== current.snapshot.payment_terms ||
+							(old.delivery_terms ?? '') !== current.snapshot.delivery_terms ||
+							JSON.stringify(
+								selectedContractDocuments(old.supporting_documents ?? [], old.draft_document_ids)
+									.map((file) => file.id)
+									.sort()
+							) !==
+								JSON.stringify((current.supporting_documents ?? []).map((file) => file.id).sort())
+						)
+							return yield* ctx.refuse('errors.contract_setup');
+						return { draft_setup: null, check_hash: null };
+					}
+					if (input.draft_setup !== undefined) return yield* ctx.refuse('errors.contract_setup');
 					const admitted = yield* admitParty(ctx, party, old.direction, warehouse);
 					const own = lines.rows.filter((l) => l.order === old.id);
 					if (
@@ -672,9 +919,33 @@ export default model('orders', {
 						).some((k) => input[k] !== undefined && input[k] !== old[k])
 					)
 						return yield* ctx.refuse('errors.line_basis_locked');
-					return { ...input, ledger: admitted.source, check_hash: null };
+					const files = input.supporting_documents ?? old.supporting_documents ?? [];
+					const selection =
+						input.draft_document_ids ??
+						(input.supporting_documents !== undefined
+							? files.map((file) => file.id)
+							: old.draft_document_ids);
+					const registry = retainedContractDocuments(
+						storedVersions.map((version) => version.supporting_documents ?? []),
+						files
+					);
+					if (selection?.some((id) => !registry.some((file) => file.id === id)))
+						return yield* ctx.refuse('errors.evidence_sealed');
+					return {
+						...input,
+						ledger: admitted.source,
+						check_hash: null,
+						...(input.supporting_documents !== undefined || input.draft_document_ids !== undefined
+							? {
+									supporting_documents: registry,
+									draft_document_ids: selection ?? files.map((file) => file.id)
+								}
+							: {})
+					};
 				};
 				const confirmOrder = function* () {
+					if (old.draft_setup || input.draft_setup !== undefined)
+						return yield* ctx.refuse('errors.contract_setup');
 					const admitted = yield* admitParty(ctx, party, old.direction, warehouse);
 					const own = lines.rows.filter((l) => l.order === old.id);
 					if (terms.some((k) => input[k] !== undefined && input[k] !== old[k]))
@@ -724,15 +995,38 @@ export default model('orders', {
 						: null;
 					const reference = references.rows.find((o) => o.id === old.id)?.number;
 					if (!reference) return yield* ctx.refuse('errors.order_reference_missing');
-					const contract_version = (old.contract_versions?.length ?? 0) + 1;
+					const contract_version = old.contract_version;
+					const documents = selectedContractDocuments(
+						old.supporting_documents ?? [],
+						old.draft_document_ids
+					);
 					const sealed_contract = agreementText(template, sealed, reference);
 					const seal_hash = yield* hash({
 						sealed,
 						contract: sealed_contract,
-						version: contract_version
+						version: contract_version,
+						documents
 					});
+					const contract: ContractVersion = {
+						version: contract_version,
+						seal_hash,
+						snapshot: sealed,
+						contract: sealed_contract,
+						commission: sealed_commission,
+						approved_at: ctx.now,
+						approved_by: ctx.actor.kind === 'member' ? ctx.actor.id : ctx.actor.kind,
+						ordered_on: old.ordered_on,
+						freight_treatment: config.freight_treatment,
+						supporting_documents: documents,
+						origin: 'local',
+						lifecycle: currentAgreement(old) ? 'pending' : 'current'
+					};
+					const versions = [...storedVersions, contract];
+					const current = executableAgreement({ ...old, contract_versions: versions });
 					return {
 						...input,
+						contract_versions: versions,
+						source_order_key: old.source_order_key ?? storedVersions[0]?.seal_hash ?? seal_hash,
 						party_name: admitted.name,
 						sealed_at: ctx.now,
 						sealed_by: ctx.actor.kind === 'member' ? ctx.actor.id : ctx.actor.kind,
@@ -743,48 +1037,21 @@ export default model('orders', {
 						sealed_contract,
 						sealed_contract_version: sealed.contract_version,
 						seal_hash,
-						operational_contracts: [
-							...agreements(old).map((v) => ({
-								seal_hash: v.seal_hash,
-								lines: operationalLines(v.snapshot, lines.rows)
-							})),
-							{
-								seal_hash,
-								lines: operationalLines(sealed, lines.rows)
-							}
-						]
+						operational_contracts: versions.map((version) => ({
+							seal_hash: version.seal_hash,
+							current: version.seal_hash === current?.seal_hash,
+							lines: operationalLines(version.snapshot, lines.rows)
+						}))
 					};
 				};
 				const sealed = function* () {
 					return yield* ctx.refuse('errors.order_sealed');
 				};
-				const invalid = function* () {
-					return yield* ctx.refuse('errors.transition');
-				};
-				type Status = Row<'orders'>['status'];
-				type Handler =
-					| typeof closeOrder
-					| typeof cancelOrder
-					| typeof editOrder
-					| typeof confirmOrder
-					| typeof sealed;
-				const TRANSITIONS: Record<`${Status}->${Status}`, Handler> = {
+				const TRANSITIONS = {
 					'draft->draft': editOrder,
 					'draft->confirmed': confirmOrder,
-					'draft->closed': invalid,
-					'draft->cancelled': cancelOrder,
-					'confirmed->draft': sealed,
-					'confirmed->confirmed': sealed,
-					'confirmed->closed': closeOrder,
-					'confirmed->cancelled': closeOrder,
-					'closed->draft': closeOrder,
-					'closed->confirmed': closeOrder,
-					'closed->closed': sealed,
-					'closed->cancelled': closeOrder,
-					'cancelled->draft': closeOrder,
-					'cancelled->confirmed': closeOrder,
-					'cancelled->closed': closeOrder,
-					'cancelled->cancelled': sealed
+					'confirmed->draft': startContract,
+					'confirmed->confirmed': sealed
 				};
 				transformed.push(yield* TRANSITIONS[`${old.status}->${next}`]());
 			}
@@ -922,7 +1189,7 @@ export default model('orders', {
 						where: {
 							...(input.order ? { id: { eq: input.order } } : {}),
 							direction: { eq: 'sales' },
-							status: { in: ['draft', 'confirmed', 'closed'] }
+							status: { in: ['draft', 'confirmed'] }
 						},
 						select: reportSelect,
 						all: true
@@ -986,6 +1253,7 @@ export default model('orders', {
 				const template = publishedTemplate(templates.rows, 'contract');
 				if (!doc || !party || !config || !template)
 					return yield* ctx.refuse('errors.configuration_missing');
+				if (doc.draft_setup) return yield* ctx.refuse('errors.contract_setup');
 				if (revision !== undefined && revision !== doc.revision)
 					yield* ctx.refuse('errors.check_changed');
 				const credit = credits.rows
@@ -1089,21 +1357,40 @@ export default model('orders', {
 			},
 			run: function* ({ order }, ctx) {
 				const doc = yield* ctx.query('orders', { id: order });
-				if (!doc?.sealed_contract || !doc.seal_hash)
-					return yield* ctx.refuse('errors.order_not_confirmed');
-				if (isMasked(doc.sealed_contract)) return yield* ctx.refuse('errors.agreement_access');
-				return { number: doc.number, contract: doc.sealed_contract, seal_hash: doc.seal_hash };
+				if (!doc) return yield* ctx.refuse('errors.order_not_confirmed');
+				if (
+					isMasked(doc.contract_versions) ||
+					isMasked(doc.sealed_contract) ||
+					isMasked(doc.sealed_snapshot)
+				)
+					return yield* ctx.refuse('errors.agreement_access');
+				const current = currentAgreement(doc);
+				if (!current) return yield* ctx.refuse('errors.order_not_confirmed');
+				return { number: doc.number, contract: current.contract, seal_hash: current.seal_hash };
 			}
 		}
 	},
 	syncs: {
-		// one way out: each confirmed contract version is created once in the order's own ledger
+		// Each contract keeps its source version observations; the outbox writes approved local replacements.
 		kingdee: {
 			with: 'kingdee',
+			every: '1min',
+			read: function* ({ cursor, instance }, ctx) {
+				return yield* readContractVersions(instance, cursor, ctx);
+			},
 			write: function* ({ op, row, $version }, ctx) {
 				const payload = op === 'delete' ? null : orderPayload(row);
-				// drafts, closures and edits of an already submitted version are local-only
+				// Metadata and imported source versions do not write back to Kingdee.
 				if (payload === null || $version === payload.agreement_hash) return null;
+				// Outbox rows are frozen; a proven newer source version retires an obsolete submission.
+				const latest = yield* ctx.db.query('orders', { id: row.id });
+				const accepted = latest ? currentAgreement(latest) : undefined;
+				if (
+					accepted?.kingdee?.binding_id &&
+					accepted.version > payload.version &&
+					accepted.seal_hash !== payload.agreement_hash
+				)
+					return { $id: accepted.kingdee.binding_id, $version: accepted.seal_hash };
 				// the immutable key: a retry after a lost acknowledgement finds the same ledger order
 				const key = `${payload.order_id}:${payload.agreement_hash}`;
 				// A rejected first delivery must not roll back and delete the approved local SO.

@@ -7,6 +7,7 @@ import {
 	readOwnedSales,
 	readNativeRows,
 	readSalesDocuments,
+	sourceContractLine,
 	snapshotPage,
 	type SealedSalesOwner
 } from '../src/integration/kingdee/order-source.js';
@@ -68,8 +69,36 @@ const line: SqlRow = {
 	unit: 'kg',
 	quantity: '900.0000000000',
 	unit_price: '2.0000000000',
-	unit_price_inclusive: '2.0000000000'
+	unit_price_inclusive: '2.0000000000',
+	tax_rate: '0',
+	net_amount: '1800',
+	tax_amount: '0',
+	gross_amount: '1800'
 };
+
+test.effect(
+	'pending native editor identities retain captured source entries and ordered new allocations',
+	() =>
+		Effect.gen(function* () {
+			const contract = {
+				version: 2,
+				lifecycle: 'pending',
+				snapshot: {
+					lines: [
+						{ id: 'native-recreated', source_entry_id: '3' },
+						{ id: 'native-added-first' },
+						{ id: 'native-added-second' }
+					]
+				}
+			};
+			expect(sourceContractLine(contract, ['9', '3', '8'], '3')?.id).toBe('native-recreated');
+			expect(sourceContractLine(contract, ['9', '3', '8'], '8')?.id).toBe('native-added-first');
+			expect(sourceContractLine(contract, ['9', '3', '8'], '9')?.id).toBe('native-added-second');
+			expect(
+				sourceContractLine({ ...contract, lifecycle: 'current' }, ['9', '3', '8'], '8')
+			).toBeUndefined();
+		})
+);
 
 /** Script the already-existing database call boundary; no fabricated normalized ERP tables. */
 function fixture(records: Readonly<Record<string, readonly SqlRow[]>>) {
@@ -135,6 +164,35 @@ test.effect(
 		})
 );
 test.effect(
+	'NULL approval columns mean unapproved without accepting malformed checker identities',
+	() =>
+		Effect.gen(function* () {
+			const unapproved = fixture({
+				SEOrder: [yield* header({ checker: null, checked_on: null })],
+				SEOrderEntry: [line]
+			});
+			expect((yield* readOwnedSales([local], unapproved)).orders[0]?.status).toBe('draft');
+			for (const checker of ['-1', '1.5', 'not-an-id']) {
+				const invalid = fixture({
+					SEOrder: [yield* header({ checker, checked_on: null })],
+					SEOrderEntry: [line]
+				});
+				expect(yield* Effect.flip(readOwnedSales([local], invalid))).toMatchObject({
+					_tag: 'SourceRowInvalid',
+					column: 'checker'
+				});
+			}
+			const inconsistent = fixture({
+				SEOrder: [yield* header({ checker: null, checked_on: '2026-10-01' })],
+				SEOrderEntry: [line]
+			});
+			expect(yield* Effect.flip(readOwnedSales([local], inconsistent))).toMatchObject({
+				_tag: 'SourceRowInvalid',
+				column: 'checker'
+			});
+		})
+);
+test.effect(
 	'source version or line changes cannot be accepted against a different sealed agreement',
 	() =>
 		Effect.gen(function* () {
@@ -161,16 +219,17 @@ test.effect(
 			});
 		})
 );
-test.effect(
-	'an amendment archive cancellation flag is not blindly interpreted as a void agreement',
-	() =>
-		Effect.gen(function* () {
-			const ctx = fixture({
-				SEOrder: [yield* header({ cancelled: true, archive: 1 })],
-				SEOrderEntry: [line]
-			});
-			expect((yield* readOwnedSales([local], ctx)).orders[0]?.status).toBe('issued');
-		})
+test.effect('an archive flag alone cannot prove either a live source order or a genuine void', () =>
+	Effect.gen(function* () {
+		const ctx = fixture({
+			SEOrder: [yield* header({ cancelled: true, archive: 1 })],
+			SEOrderEntry: [line]
+		});
+		expect(yield* Effect.flip(readOwnedSales([local], ctx))).toMatchObject({
+			_tag: 'SourceRowInvalid',
+			column: 'FChangeMark'
+		});
+	})
 );
 test.effect(
 	'unknown UUIDs, duplicate ordinal positions and numeric money fail before acknowledging data',
@@ -272,7 +331,7 @@ test.effect(
 			});
 			expect(yield* Effect.flip(readSalesDocuments(owned, ambiguous, 'delivery'))).toMatchObject({
 				_tag: 'SourceRowInvalid',
-				column: 'FSourceEntryID'
+				column: 'contractVersion'
 			});
 			const red = fixture({
 				ICStockBillEntry: [deliveryLine],

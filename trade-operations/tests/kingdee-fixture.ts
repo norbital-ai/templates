@@ -7,6 +7,7 @@ import { Effect } from 'effect';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { sourceOrderSql } from '../src/integration/kingdee/submission.js';
+import { sourceAmendmentSql } from '../src/integration/kingdee/amendment.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 import { sourceFixture } from './source-fixture.js';
 
@@ -148,6 +149,75 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		const statement = string(args.stmt, 'static SQL');
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
+				if (statement === sourceAmendmentSql) {
+					const correlation = string(args.correlation, 'owned UUID');
+					const existing = submissions.get(correlation);
+					const hash = string(args.fingerprint, 'fingerprint');
+					if (!existing) throw new Error('Owned source order is unavailable');
+					if (existing.hash === hash) return { rows: [{ remote: existing.remote, hash }] };
+					const source = tables.SEOrder?.find((row) => row.fid === existing.remote);
+					if (!source || source.version !== args.source_version)
+						throw new Error('The source version changed');
+					const document = string(args.document, 'target source document');
+					const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
+					const lines = [...document.matchAll(/<item\s+([^>]*)\/>/g)].map((match) =>
+						attributes(match[1] ?? '')
+					);
+					const archiveId = String(50000 + (tables.SEOrder?.length ?? 0));
+					tables.SEOrder?.push({
+						...source,
+						__key: padded(archiveId),
+						fid: archiveId,
+						uuid: crypto.randomUUID(),
+						cancelled: true,
+						archive: 1
+					});
+					const currentLines =
+						tables.SEOrderEntry?.filter((line) => line.fid === existing.remote) ?? [];
+					for (const [index, line] of currentLines.entries()) {
+						const detail = String(Number(archiveId) * 1000 + index + 1);
+						tables.SEOrderEntry?.push({
+							...line,
+							fid: archiveId,
+							__key: padded(detail),
+							detail_id: detail
+						});
+					}
+					tables.SEOrder = (tables.SEOrder ?? []).map((row) =>
+						row === source
+							? {
+									...row,
+									version: String(Number(source.version) + 1).padStart(3, '0'),
+									changed_at: '2026-10-10T00:00:00',
+									changed_by: '1'
+								}
+							: row
+					);
+					tables.SEOrderEntry = (tables.SEOrderEntry ?? []).filter(
+						(line) => line.fid !== existing.remote
+					);
+					for (const [index, line] of lines.entries()) {
+						const old = currentLines.find((old) => old.entry_id === line.FEntryID);
+						const detail = old?.detail_id ?? String(Number(existing.remote) * 1000 + index + 100);
+						tables.SEOrderEntry.push({
+							__key: padded(String(detail)),
+							fid: existing.remote,
+							detail_id: detail,
+							entry_id: line.FEntryID ?? '',
+							item_id: line.FItemID ?? '',
+							unit: 'kg',
+							quantity: line.FQty ?? '',
+							unit_price: line.Fauxprice ?? '',
+							unit_price_inclusive: line.FTaxPrice ?? '',
+							tax_rate: line.FCESS ?? '0',
+							net_amount: line.FAmount ?? '0',
+							tax_amount: line.FTaxAmt ?? '0',
+							gross_amount: line.FAllAmount ?? '0'
+						});
+					}
+					submissions.set(correlation, { ...existing, hash, header, lines });
+					return { rows: [{ remote: existing.remote, hash }] };
+				}
 				if (statement === sourceOrderSql) {
 					const correlation = string(args.correlation, 'FUUID');
 					const hash = string(args.fingerprint, 'fingerprint');
@@ -174,7 +244,16 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							cancelled: false,
 							archive: 0,
 							checker: '0',
-							checked_on: null
+							checked_on: null,
+							closed: 0,
+							customer_id: header.FCustID ?? '101',
+							customer_name: 'Kingdee customer',
+							ordered_on: (header.FDate ?? '2026-10-10').slice(0, 10),
+							exchange_rate: header.FExchangeRate ?? '1',
+							settlement: 'PROBE-NET30',
+							changed_at: null,
+							changed_by: null,
+							rowversion: '0x0000000000000001'
 						});
 						for (const [index, line] of lines.entries()) {
 							const detail = String(Number(remote) * 1000 + index + 1);
@@ -187,7 +266,11 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 								unit: 'kg',
 								quantity: line.FQty ?? '',
 								unit_price: line.Fauxprice ?? '',
-								unit_price_inclusive: line.FTaxPrice ?? ''
+								unit_price_inclusive: line.FTaxPrice ?? '',
+								tax_rate: line.FCESS ?? '0',
+								net_amount: line.FAmount ?? '0',
+								tax_amount: line.FTaxAmt ?? '0',
+								gross_amount: line.FAllAmount ?? '0'
 							});
 						}
 					}
@@ -261,8 +344,19 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						rows: tables[table]
 							.filter((row) => {
 								if (typeof row.__key !== 'string' || row.__key <= after) return false;
-								if (table === 'SEOrder')
+								if (table === 'SEOrder') {
+									if (statement.includes('kingdee-contract-versions')) {
+										const refs = new Set(
+											(tables.SEOrder ?? [])
+												.filter(
+													(anchor) => ids.has(String(anchor.uuid)) && anchor.branch === args.branch
+												)
+												.map((anchor) => anchor.reference)
+										);
+										return refs.has(row.reference) && row.branch === args.branch;
+									}
 									return ids.has(String(row.uuid)) && row.branch === args.branch;
+								}
 								return ids.has(String(args.discovery === 1 ? row.source_fid : row.fid));
 							})
 							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
@@ -343,4 +437,25 @@ export const kingdeeSale = Effect.fnUntraced(function* (
 	const sealed = yield* t.as(t.admin).query('orders', { id: created.order });
 	if (typeof sealed?.seal_hash !== 'string') throw new Error('A sealed sale is required');
 	return { ...created, seal: sealed.seal_hash };
+});
+
+/** Observe the real writer receipt and source approval before starting a replacement. */
+export const observeKingdeeOrder = Effect.fnUntraced(function* (
+	t: T,
+	fixture: ReturnType<typeof kingdeeFixture>,
+	order: Id<'orders'>
+) {
+	yield* t.deliver();
+	const local = yield* t.as(t.admin).query('orders', { id: order });
+	if (!local) throw new Error('The local SO is required');
+	const header = fixture.tables.SEOrder?.find(
+		(row) => row.reference === local.number && !row.archive
+	);
+	if (!header) throw new Error('The writer must create the owned Kingdee SO first');
+	fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
+		row === header ? { ...row, checker: '1', checked_on: '2026-10-10' } : row
+	);
+	yield* t.pull('orders');
+	yield* t.pull('ext_sales_orders');
+	return header;
 });

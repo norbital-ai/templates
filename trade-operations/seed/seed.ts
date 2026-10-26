@@ -23,6 +23,36 @@ const withHandle = (row: Record<string, Schema.Json>) => {
 	if (handle === undefined) throw new Error(`Unknown sample team ${String(row.team)}.`);
 	return { ...row, team: handle };
 };
+/** Seed restores bypass write callbacks, so legacy samples need the same order identity and filing shape. */
+const withOrderState = (row: Record<string, Schema.Json>, id: string) => {
+	const { reason, ...stored } = row;
+	const terminal = row.status === 'closed' || row.status === 'cancelled';
+	const versions =
+		row.contract_versions == null ? [] : Schema.decodeUnknownSync(Rows)(row.contract_versions);
+	const hasSeal =
+		(typeof row.seal_hash === 'string' && row.seal_hash.length > 0) ||
+		versions.some(
+			(version) => typeof version.seal_hash === 'string' && version.seal_hash.length > 0
+		);
+	const changeNote = reason == null ? '' : Schema.decodeUnknownSync(Schema.String)(reason).trim();
+	const notes = row.notes == null ? '' : Schema.decodeUnknownSync(Schema.String)(row.notes);
+	const files =
+		row.supporting_documents == null
+			? []
+			: Schema.decodeUnknownSync(Rows)(row.supporting_documents);
+	const ids = files.flatMap((file) => (typeof file.id === 'string' ? [file.id] : []));
+	return {
+		...stored,
+		status: terminal ? (hasSeal ? 'confirmed' : 'draft') : (row.status ?? 'draft'),
+		archived: terminal || (row.archived ?? false),
+		source_order_key: row.source_order_key ?? `seed:${id}`,
+		// Asset placeholders receive real IDs later; null keeps the legacy selection of all resolved files.
+		draft_document_ids: row.draft_document_ids ?? (ids.length !== files.length ? null : ids),
+		...(changeNote && changeNote !== notes.trim()
+			? { notes: [notes.trim(), changeNote].filter(Boolean).join('\n\n') }
+			: {})
+	};
+};
 const collections = [
 	'sys_user',
 	'parties',
@@ -52,7 +82,7 @@ const source = {
 				const id = Schema.decodeUnknownSync(Schema.String)(row.id);
 				if (ids.has(id)) throw new Error(`Duplicate sample identity in ${collection}.`);
 				ids.add(id);
-				merged.set(id, row);
+				merged.set(id, collection === 'orders' ? withOrderState(row, id) : row);
 			}
 			rows[collection] = [...merged.values()];
 		}

@@ -8,9 +8,11 @@ import {
 	sourceInteger,
 	sourceOrderBatch,
 	sourceOrderDocument,
+	sourceEntryIds,
 	type OrderPayload,
 	type SourceOrderBindings
 } from './order-batch.js';
+import { amendmentFingerprint, previousOrderDocument, sourceAmendmentSql } from './amendment.js';
 export type { OrderPayload } from './order-batch.js';
 
 const failure = (cause: unknown) =>
@@ -75,7 +77,7 @@ SELECT 'customer' AS kind,'' AS local,CONVERT(varchar(32),FItemID) AS id,'' AS u
 UNION ALL SELECT 'settlement','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Settle WHERE FNumber=@settlement AND FDeleted=0 AND FItemID<>0
 UNION ALL SELECT 'employee','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Emp WHERE FItemID=CAST(@employee AS int) AND FDeleted=0
 UNION ALL SELECT 'department','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Department WHERE FItemID=CAST(@department AS int) AND FDeleted=0
-UNION ALL SELECT 'currency','',CONVERT(varchar(32),FCurrencyID),'','',CONVERT(varchar(100),COALESCE((SELECT FExchangeRate FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier)),FExchangeRate)) FROM dbo.t_Currency WHERE FCurrencyID=CAST(@currency AS int) AND FDeleted=0
+UNION ALL SELECT 'currency','',CONVERT(varchar(32),FCurrencyID),'','',CONVERT(varchar(100),CAST(COALESCE((SELECT FExchangeRate FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier)),FExchangeRate) AS decimal(28,10))) FROM dbo.t_Currency WHERE FCurrencyID=CAST(@currency AS int) AND FDeleted=0
 UNION ALL SELECT 'item',line.value('(@id)[1]','nvarchar(100)'),CONVERT(varchar(32),item.FItemID),CONVERT(varchar(32),detail.FUnitID),unit.FName,''
 FROM @lines.nodes('/items/item') AS requested(line)
 JOIN dbo.t_Item item ON item.FItemID=line.value('(@item)[1]','int') AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0
@@ -185,11 +187,9 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: 'direction',
 			reason: 'Purchase-order write semantics have not been verified'
 		});
-	if (payload.version !== 1)
-		return yield* new SourceRowInvalid({
-			column: 'version',
-			reason: 'Kingdee amendment writes have not been verified'
-		});
+	yield* Effect.try({ try: () => sourceEntryIds(payload), catch: failure });
+	if (payload.previous && payload.previous.tax_inclusive !== payload.tax_inclusive)
+		return yield* new SourceRowInvalid({ column: 'tax_inclusive', reason: 'An amendment cannot change the approved tax basis' });
 	if (key !== `${payload.order_id}:${payload.agreement_hash}`)
 		return yield* new SourceRowInvalid({
 			column: '$key',
@@ -229,7 +229,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 		},
 		catch: failure
 	});
-	const correlation = yield* sourceOrderUuid(payload.order_id, payload.agreement_hash);
+	const correlation = payload.previous?.source_uuid ?? (yield* sourceOrderUuid(payload.order_id, payload.agreement_hash));
 	const lookup = yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
@@ -261,6 +261,8 @@ export const submitOrder = Effect.fnUntraced(function* (
 			const rate = Decimal.of(sourceCurrency.rate);
 			if (rate.lte(0) || (selected.denomination.base && !rate.eq(1)))
 				return invalid('currency', 'Source exchange rate is invalid for this currency binding');
+			if (payload.previous && !rate.eq(payload.previous.source_exchange_rate))
+				return invalid('currency', 'Source exchange rate changed since the previous contract observation');
 			if (
 				one('employee').id !== selected.person.employeeId ||
 				one('department').id !== selected.person.departmentId
@@ -299,23 +301,34 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: 'lines',
 			reason: 'Source order exceeds its payload bound'
 		});
-	const fingerprint = yield* sha256Hex(
-		JSON.stringify({ key, header: batch.header, items: batch.items })
-	);
+	const previousDocument = payload.previous ? yield* Effect.try({ try: () => previousOrderDocument(payload, bindings), catch: failure }) : null;
+	if (previousDocument !== null && previousDocument.length > 262144)
+		return yield* new SourceRowInvalid({ column: 'lines', reason: 'The previous source contract exceeds its payload bound' });
+	const fingerprint = yield* sha256Hex(payload.previous
+		? amendmentFingerprint(payload, batch)
+		: JSON.stringify({ key, header: batch.header, items: batch.items }));
 	const result = yield* decode(
 		Receipt,
 		yield* ctx.request({
 			op: 'call',
 			procedure: { schema: 'sys', name: 'sp_executesql' },
 			arguments: {
-				stmt: sourceOrderSql,
+				stmt: payload.previous ? sourceAmendmentSql : sourceOrderSql,
 				params:
-					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64)',
+					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64)' + (payload.previous ? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200)' : ''),
 				document,
 				branch: config.branchNo,
 				correlation,
 				resource: `norbital:trade:order:${correlation}`,
-				fingerprint
+				fingerprint,
+				...(payload.previous && previousDocument !== null ? {
+					previous_document: previousDocument,
+					source_id: payload.previous.source_id,
+					source_version: payload.previous.source_version,
+					source_exchange_rate: payload.previous.source_exchange_rate,
+					biller: config.billerId,
+					change_cause: `Colony contract ${payload.version} [${payload.agreement_hash}]`
+				} : {})
 			},
 			transaction: 'serializable',
 			maxRows: 1
@@ -327,5 +340,5 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: '$receipt',
 			reason: 'Source receipt does not match the sealed submission'
 		});
-	return `sales:${config.branchNo}:${receipt.remote}:${payload.agreement_hash}`;
+	return payload.previous?.binding_id ?? `sales:${config.branchNo}:${receipt.remote}:${payload.agreement_hash}`;
 });

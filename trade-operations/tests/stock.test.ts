@@ -60,6 +60,47 @@ test('fresh compatible stock retains negative projected balances and does not co
 		})
 	).toMatchObject({ local_committed: '80', projected: '-10' });
 });
+test('archiving retains commitments and a pending replacement does not replace the current quota', () => {
+	const current = { seal_hash: 'sealed', current: true, lines: [{ ...line, quantity: '80' }] };
+	const pending = {
+		seal_hash: 'pending',
+		current: false,
+		lines: [{ ...line, quantity: '150' }]
+	};
+	expect(
+		availability(source, now, 30, {
+			...commitments,
+			orders: [{ ...order, archived: true, operational_contracts: [current, pending] }]
+		})
+	).toMatchObject({ local_committed: '80', projected: '-10' });
+	expect(
+		availability(source, now, 30, {
+			...commitments,
+			orders: [
+				{
+					...order,
+					archived: true,
+					operational_contracts: [
+						{ ...current, current: false },
+						{ ...pending, current: true }
+					]
+				}
+			]
+		})
+	).toMatchObject({ local_committed: '150', projected: '-80' });
+	expect(
+		availability(source, now, 30, {
+			...commitments,
+			orders: [{ ...order, status: 'draft', archived: true, sealed_at: null, seal_hash: null }]
+		})
+	).toMatchObject({ local_committed: '0', projected: '70' });
+	expect(
+		availability(source, now, 30, {
+			...commitments,
+			orders: [{ ...order, operational_contracts: [{ ...current, current: false }] }]
+		})
+	).toMatchObject({ local_committed: '0', projected: '70' });
+});
 test('unknown, stale, mixed units and unreconciled delivery never fabricate availability', () => {
 	expect(
 		availability({ ...source, as_of: Instant('2026-10-09T00:00:00Z') }, now, 30, commitments)

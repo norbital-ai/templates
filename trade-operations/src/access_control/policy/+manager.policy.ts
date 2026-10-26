@@ -4,7 +4,7 @@ export default policy({
 	capabilities: {
 		apps: ['operations']
 	},
-	automations: ['orders_cancel', 'orders_close'],
+	automations: ['orders_revise'],
 	grants: {
 		ext_sales_orders: { read: true, history: true },
 		ext_purchase_orders: { read: true, history: true },
