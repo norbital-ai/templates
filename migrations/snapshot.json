@@ -1,0 +1,2274 @@
+{
+	"currency": "SGD",
+	"tables": {
+		"approval_request": {
+			"fields": {
+				"action": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"approver_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"approver_users": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"closed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"closed_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"collection_name": {
+					"kind": "text"
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"record_id": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"ONGOING",
+						"CHANGES_REQUESTED",
+						"APPROVED",
+						"REJECTED",
+						"SUPERSEDED"
+					]
+				},
+				"step": {
+					"kind": "int"
+				},
+				"step_names": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"steps": {
+					"kind": "int"
+				},
+				"superseder_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				}
+			},
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"collection_name",
+						"record_id"
+					],
+					"where": {
+						"status": {
+							"eq": "ONGOING"
+						}
+					}
+				}
+			]
+		},
+		"availability_requests": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text",
+					"max": 500
+				},
+				"area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"checked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"estimated": {
+					"default": true,
+					"kind": "bool"
+				},
+				"helper": {
+					"kind": "ref",
+					"optional": true,
+					"to": "helpers"
+				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text"
+				},
+				"preference": {
+					"default": "any",
+					"kind": "enum",
+					"values": [
+						"any",
+						"preferred"
+					]
+				},
+				"problem": {
+					"kind": "text",
+					"optional": true
+				},
+				"repeat": {
+					"default": "once",
+					"kind": "enum",
+					"values": [
+						"once",
+						"weekly",
+						"fortnightly",
+						"monthly"
+					]
+				},
+				"service": {
+					"kind": "ref",
+					"to": "services"
+				},
+				"starts": {
+					"default": [],
+					"kind": "text",
+					"many": true
+				},
+				"status": {
+					"initial": "pending",
+					"kind": "state",
+					"states": {
+						"failed": {
+							"edit": "none"
+						},
+						"pending": {
+							"to": [
+								"ready",
+								"failed"
+							]
+						},
+						"ready": {
+							"edit": "none"
+						}
+					}
+				}
+			},
+			"nativeRules": 2
+		},
+		"booking_helpers": {
+			"audit": true,
+			"fields": {
+				"booking": {
+					"inverse": "preferred_helpers",
+					"kind": "ref",
+					"owned": true,
+					"to": "bookings"
+				},
+				"helper": {
+					"inverse": "preferred_by",
+					"kind": "ref",
+					"to": "helpers"
+				},
+				"rank": {
+					"kind": "int",
+					"max": 5,
+					"min": 1
+				}
+			},
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"booking",
+						"helper"
+					]
+				}
+			]
+		},
+		"booking_requests": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text",
+					"max": 500
+				},
+				"area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"availability": {
+					"kind": "ref",
+					"optional": true,
+					"to": "availability_requests"
+				},
+				"booking": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "bookings"
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text",
+					"max": 200
+				},
+				"notes": {
+					"kind": "text",
+					"max": 2000,
+					"optional": true
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "RQ-{yyyy}-{0000}"
+				},
+				"outcome": {
+					"kind": "text",
+					"optional": true
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text"
+				},
+				"repeat": {
+					"default": "once",
+					"kind": "enum",
+					"values": [
+						"once",
+						"weekly",
+						"fortnightly",
+						"monthly"
+					]
+				},
+				"service": {
+					"kind": "ref",
+					"to": "services",
+					"where": {
+						"active": {
+							"eq": true
+						}
+					}
+				},
+				"start": {
+					"kind": "instant"
+				},
+				"status": {
+					"initial": "received",
+					"kind": "state",
+					"states": {
+						"booked": {
+							"edit": "none"
+						},
+						"closed": {
+							"edit": "none"
+						},
+						"follow_up": {
+							"to": [
+								"booked",
+								"closed"
+							]
+						},
+						"received": {
+							"to": [
+								"booked",
+								"follow_up"
+							]
+						}
+					}
+				}
+			},
+			"index": [
+				"status"
+			],
+			"nativeRules": 2
+		},
+		"bookings": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text"
+				},
+				"area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"customer": {
+					"inverse": "bookings",
+					"kind": "ref",
+					"to": "customers"
+				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "BK-{yyyy}-{0000}"
+				},
+				"preference": {
+					"kind": "enum",
+					"values": [
+						"any",
+						"preferred"
+					]
+				},
+				"repeat": {
+					"kind": "enum",
+					"values": [
+						"once",
+						"weekly",
+						"fortnightly",
+						"monthly"
+					]
+				},
+				"service": {
+					"inverse": "bookings",
+					"kind": "ref",
+					"to": "services"
+				},
+				"status": {
+					"initial": "active",
+					"kind": "state",
+					"states": {
+						"active": {
+							"to": [
+								"cancelled"
+							]
+						},
+						"cancelled": {
+							"edit": "none"
+						}
+					}
+				},
+				"visit_count": {
+					"kind": "count",
+					"of": "visits"
+				}
+			},
+			"index": [
+				"status"
+			],
+			"nativeRules": 2
+		},
+		"customer_notices": {
+			"audit": true,
+			"fields": {
+				"auto_replied_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"body": {
+					"kind": "text"
+				},
+				"customer": {
+					"inverse": "notices",
+					"kind": "ref",
+					"to": "customers"
+				},
+				"delivered_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"queued",
+						"sent",
+						"deferred",
+						"delivered",
+						"opened",
+						"replied",
+						"bounced",
+						"failed"
+					]
+				},
+				"delivery_presumed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"delivery_reason": {
+					"kind": "text",
+					"optional": true
+				},
+				"opened_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"replied_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"reply_excerpt": {
+					"kind": "text",
+					"optional": true
+				},
+				"sent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"subject": {
+					"kind": "text"
+				},
+				"to_address": {
+					"kind": "text",
+					"optional": true
+				},
+				"visit": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "visits"
+				},
+				"whatsapp": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"nativeRules": 2
+		},
+		"customers": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text"
+				},
+				"area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text",
+					"unique": true
+				}
+			},
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"name",
+					"phone",
+					"email",
+					"address"
+				]
+			}
+		},
+		"dispatch_settings": {
+			"audit": true,
+			"check": {
+				"reply_inside_lead": {
+					"shift_reply_minutes": {
+						"lt": {
+							"field": "shift_check_lead_minutes"
+						}
+					}
+				}
+			},
+			"fields": {
+				"eta_check_lead_minutes": {
+					"default": 60,
+					"kind": "int",
+					"max": 240,
+					"min": 15
+				},
+				"eta_limit_minutes": {
+					"default": 30,
+					"kind": "int",
+					"max": 240,
+					"min": 5
+				},
+				"free_change_hours": {
+					"default": 24,
+					"kind": "int",
+					"max": 168,
+					"min": 0
+				},
+				"name": {
+					"default": "Dispatch",
+					"kind": "text",
+					"unique": true
+				},
+				"shift_check_lead_minutes": {
+					"default": 120,
+					"kind": "int",
+					"max": 720,
+					"min": 30
+				},
+				"shift_reply_minutes": {
+					"default": 60,
+					"kind": "int",
+					"max": 240,
+					"min": 10
+				}
+			},
+			"nativeRules": 2
+		},
+		"drive_times": {
+			"audit": true,
+			"fields": {
+				"leg": {
+					"kind": "text",
+					"unique": true
+				},
+				"minutes": {
+					"kind": "int",
+					"min": 0
+				}
+			},
+			"nativeRules": 2
+		},
+		"helper_time_off": {
+			"audit": true,
+			"fields": {
+				"helper": {
+					"inverse": "time_off",
+					"kind": "ref",
+					"owned": true,
+					"to": "helpers"
+				},
+				"period": {
+					"kind": "period",
+					"of": "date"
+				},
+				"reason": {
+					"kind": "enum",
+					"values": [
+						"leave",
+						"medical",
+						"other"
+					]
+				}
+			},
+			"nativeRules": 2,
+			"noOverlap": [
+				{
+					"key": [
+						"helper"
+					],
+					"period": "period"
+				}
+			]
+		},
+		"helper_warnings": {
+			"audit": true,
+			"fields": {
+				"helper": {
+					"inverse": "warnings",
+					"kind": "ref",
+					"to": "helpers"
+				},
+				"issued_at": {
+					"kind": "instant"
+				},
+				"letter": {
+					"accept": [
+						"application/pdf"
+					],
+					"kind": "file",
+					"max": "2MiB",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"reason": {
+					"kind": "enum",
+					"values": [
+						"no_response",
+						"declined_without_mc"
+					]
+				},
+				"visit": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "visits"
+				}
+			},
+			"index": [
+				"issued_at"
+			],
+			"nativeRules": 2
+		},
+		"helpers": {
+			"audit": true,
+			"check": {
+				"hours": {
+					"day_end": {
+						"gt": {
+							"field": "day_start"
+						}
+					}
+				}
+			},
+			"fields": {
+				"day_end": {
+					"kind": "time"
+				},
+				"day_start": {
+					"kind": "time"
+				},
+				"home_area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"home_location": {
+					"kind": "point",
+					"optional": true
+				},
+				"last_location": {
+					"kind": "point",
+					"optional": true
+				},
+				"last_location_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"left_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text"
+				},
+				"skills": {
+					"kind": "enum",
+					"many": true,
+					"values": [
+						"home_cleaning",
+						"deep_cleaning",
+						"move_in_out",
+						"post_renovation",
+						"office_cleaning",
+						"laundry_ironing",
+						"handyman"
+					]
+				},
+				"status": {
+					"initial": "active",
+					"kind": "state",
+					"states": {
+						"active": {
+							"to": [
+								"left"
+							]
+						},
+						"left": {
+							"to": [
+								"active"
+							]
+						}
+					}
+				},
+				"user": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"warning_count": {
+					"kind": "count",
+					"of": "warnings"
+				},
+				"work_days": {
+					"kind": "enum",
+					"many": true,
+					"values": [
+						"sun",
+						"mon",
+						"tue",
+						"wed",
+						"thu",
+						"fri",
+						"sat"
+					]
+				}
+			},
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"name"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"user"
+					]
+				}
+			]
+		},
+		"openings": {
+			"audit": true,
+			"fields": {
+				"day": {
+					"kind": "date"
+				},
+				"service": {
+					"inverse": "openings",
+					"kind": "ref",
+					"owned": true,
+					"to": "services"
+				},
+				"starts": {
+					"kind": "text",
+					"many": true
+				}
+			},
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"service",
+						"day"
+					]
+				}
+			]
+		},
+		"requestor": {
+			"fields": {
+				"approval_request_id": {
+					"kind": "ref",
+					"to": "approval_request"
+				},
+				"user_id": {
+					"kind": "text"
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"services": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"description": {
+					"kind": "text",
+					"optional": true
+				},
+				"duration_minutes": {
+					"kind": "int",
+					"max": 720,
+					"min": 30
+				},
+				"name": {
+					"kind": "text",
+					"unique": true
+				},
+				"price": {
+					"kind": "money"
+				},
+				"skill": {
+					"kind": "enum",
+					"values": [
+						"home_cleaning",
+						"deep_cleaning",
+						"move_in_out",
+						"post_renovation",
+						"office_cleaning",
+						"laundry_ironing",
+						"handyman"
+					]
+				}
+			},
+			"nativeRules": 2
+		},
+		"sys_api_key": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"hash": {
+					"kind": "text"
+				},
+				"last_used_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"prefix": {
+					"kind": "text",
+					"unique": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_challenge": {
+			"fields": {
+				"address_mac": {
+					"kind": "text"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"code_mac": {
+					"kind": "text"
+				},
+				"expires_at": {
+					"kind": "instant"
+				}
+			},
+			"key": [
+				"address_mac"
+			],
+			"nativeRules": 2
+		},
+		"sys_config": {
+			"fields": {
+				"key": {
+					"kind": "text"
+				},
+				"value": {
+					"kind": "text"
+				}
+			},
+			"key": [
+				"key"
+			],
+			"nativeRules": 2
+		},
+		"sys_conversation": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"goals": {
+					"kind": "json",
+					"optional": true
+				},
+				"inputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"integration": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"kind": {
+					"kind": "text",
+					"optional": true
+				},
+				"lease_until": {
+					"kind": "instant",
+					"optional": true
+				},
+				"model": {
+					"default": "default",
+					"kind": "text"
+				},
+				"outputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"owner": {
+					"kind": "text",
+					"optional": true
+				},
+				"parent": {
+					"kind": "text",
+					"optional": true
+				},
+				"participants": {
+					"kind": "json",
+					"optional": true
+				},
+				"plan": {
+					"kind": "json",
+					"optional": true
+				},
+				"read": {
+					"default": {},
+					"kind": "json"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"run": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"default": "idle",
+					"kind": "text"
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_file": {
+			"fields": {
+				"created_at": {
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"field": {
+					"kind": "text"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"mime": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"sha256": {
+					"kind": "text"
+				},
+				"size": {
+					"kind": "int"
+				},
+				"updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"updated_by": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_inbox": {
+			"fields": {
+				"body": {
+					"kind": "json",
+					"optional": true
+				},
+				"consumed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery": {
+					"kind": "text"
+				},
+				"headers": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"received_at": {
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"received_at"
+					],
+					"where": {
+						"consumed_at": {
+							"isNull": true
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"delivery"
+					]
+				}
+			]
+		},
+		"sys_integration": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"configuration": {
+					"default": {},
+					"kind": "json"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"import_start": {
+					"kind": "json",
+					"optional": true
+				},
+				"integration": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"named": {
+					"default": false,
+					"kind": "bool"
+				},
+				"owner": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"owner",
+						"integration"
+					],
+					"name": "one_per_member",
+					"where": {
+						"owner": {
+							"isNull": false
+						}
+					}
+				}
+			]
+		},
+		"sys_invitation": {
+			"check": {
+				"addressed": {
+					"or": [
+						{
+							"email": {
+								"isNull": false
+							}
+						},
+						{
+							"phone": {
+								"isNull": false
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"accepted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "text",
+					"optional": true
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"external": {
+					"default": false,
+					"kind": "bool"
+				},
+				"invited_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					]
+				},
+				{
+					"on": [
+						"phone"
+					]
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_message": {
+			"fields": {
+				"about": {
+					"kind": "json",
+					"optional": true
+				},
+				"addressed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"as": {
+					"kind": "json",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"author": {
+					"kind": "text",
+					"optional": true
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"content": {
+					"kind": "json",
+					"optional": true
+				},
+				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"deleted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivered_turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"delivery": {
+					"default": [],
+					"kind": "json"
+				},
+				"direction": {
+					"kind": "text",
+					"optional": true
+				},
+				"edited_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "json",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "text",
+					"optional": true
+				},
+				"integration": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"invocation": {
+					"kind": "text",
+					"optional": true
+				},
+				"message": {
+					"kind": "json",
+					"optional": true
+				},
+				"meta": {
+					"kind": "json",
+					"optional": true
+				},
+				"mode": {
+					"kind": "text",
+					"optional": true
+				},
+				"next_attempt_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"origin": {
+					"kind": "text",
+					"optional": true
+				},
+				"presume_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"preview": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"refused": {
+					"kind": "text",
+					"optional": true
+				},
+				"reply_to": {
+					"kind": "text",
+					"optional": true
+				},
+				"role": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"sent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"source_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"state": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"kind": "text",
+					"optional": true
+				},
+				"supersedes": {
+					"kind": "text",
+					"optional": true
+				},
+				"text": {
+					"kind": "text",
+					"optional": true
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"version": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"identity": "seq",
+			"index": [
+				[
+					"conversation",
+					"seq"
+				],
+				[
+					"integration",
+					"provider_id"
+				]
+			],
+			"indexes": [
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "pending"
+						}
+					}
+				},
+				{
+					"on": [
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_notification": {
+			"fields": {
+				"at": {
+					"kind": "instant"
+				},
+				"attachments": {
+					"default": [],
+					"kind": "json"
+				},
+				"body": {
+					"kind": "text",
+					"optional": true
+				},
+				"link": {
+					"kind": "json",
+					"optional": true
+				},
+				"member": {
+					"kind": "text",
+					"optional": true
+				},
+				"once": {
+					"kind": "text",
+					"optional": true,
+					"unique": true
+				},
+				"read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"recipient": {
+					"kind": "json"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"member",
+						"at"
+					],
+					"where": {
+						"member": {
+							"isNull": false
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_outbox": {
+			"fields": {
+				"acked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"at": {
+					"kind": "instant"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"changed": {
+					"default": [],
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"image": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"key": {
+					"kind": "text",
+					"unique": true
+				},
+				"model": {
+					"kind": "text"
+				},
+				"next_attempt_at": {
+					"kind": "instant"
+				},
+				"op": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"record": {
+					"kind": "text"
+				},
+				"record_revision": {
+					"kind": "int"
+				},
+				"result": {
+					"kind": "json",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"status": {
+					"default": "queued",
+					"kind": "enum",
+					"values": [
+						"queued",
+						"sending",
+						"acked",
+						"failed",
+						"dead",
+						"skipped"
+					]
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"writer": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "sys_user"
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"next_attempt_at"
+					],
+					"where": {
+						"status": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"record",
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				},
+				{
+					"on": [
+						"sync"
+					],
+					"where": {
+						"status": {
+							"eq": "dead"
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "coalesce",
+					"where": {
+						"attempts": {
+							"eq": 0
+						},
+						"status": {
+							"eq": "queued"
+						}
+					}
+				}
+			]
+		},
+		"sys_run": {
+			"fields": {
+				"actor": {
+					"kind": "text",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"automation": {
+					"kind": "text"
+				},
+				"cause": {
+					"kind": "text"
+				},
+				"depth": {
+					"kind": "int"
+				},
+				"due_at": {
+					"kind": "instant"
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"finished_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"input": {
+					"kind": "json"
+				},
+				"key": {
+					"kind": "text",
+					"optional": true,
+					"unique": true
+				},
+				"leases": {
+					"default": 0,
+					"kind": "int"
+				},
+				"output": {
+					"kind": "json",
+					"optional": true
+				},
+				"progress": {
+					"kind": "json",
+					"optional": true
+				},
+				"results": {
+					"default": [],
+					"kind": "json"
+				},
+				"run_key": {
+					"kind": "text",
+					"optional": true
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"starter": {
+					"kind": "json",
+					"optional": true
+				},
+				"state": {
+					"default": "queued",
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_session": {
+			"fields": {
+				"agent": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"impersonated_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"refreshed_at": {
+					"kind": "instant"
+				},
+				"token_hash": {
+					"kind": "text",
+					"unique": true
+				},
+				"user": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_user"
+				},
+				"via": {
+					"kind": "enum",
+					"values": [
+						"code",
+						"invitation",
+						"signup",
+						"host"
+					]
+				}
+			},
+			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_sync": {
+			"fields": {
+				"cursor": {
+					"kind": "json",
+					"optional": true
+				},
+				"cycle": {
+					"default": 0,
+					"kind": "int"
+				},
+				"digest": {
+					"kind": "text"
+				},
+				"health": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"last_change_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_hint_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"phase": {
+					"default": "read",
+					"kind": "enum",
+					"values": [
+						"read",
+						"reconcile"
+					]
+				},
+				"started_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"version": {
+					"default": 0,
+					"kind": "int"
+				}
+			},
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"partition"
+					]
+				}
+			]
+		},
+		"sys_sync_row": {
+			"fields": {
+				"acked_revision": {
+					"kind": "int",
+					"optional": true
+				},
+				"cycle": {
+					"kind": "int"
+				},
+				"instance": {
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "sys_integration"
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"remote_id": {
+					"kind": "text"
+				},
+				"remote_version": {
+					"kind": "text",
+					"optional": true
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"index": [
+				[
+					"sync",
+					"instance",
+					"partition",
+					"cycle"
+				]
+			],
+			"key": "uuid",
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"remote_id"
+					]
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					]
+				}
+			]
+		},
+		"sys_user": {
+			"check": {
+				"admin_staff": {
+					"or": [
+						{
+							"admin": {
+								"eq": false
+							}
+						},
+						{
+							"kind": {
+								"eq": "staff"
+							}
+						}
+					]
+				}
+			},
+			"computed": {
+				"party_id": {
+					"expr": {
+						"jsonText": [
+							{
+								"field": "party"
+							},
+							"id"
+						]
+					},
+					"kind": "text"
+				},
+				"phone_key": {
+					"expr": {
+						"regexReplace": [
+							{
+								"field": "phone"
+							},
+							"\\D",
+							""
+						]
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"admin": {
+					"default": false,
+					"kind": "bool"
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"kind": {
+					"default": "staff",
+					"kind": "enum",
+					"values": [
+						"staff",
+						"external"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"signup": {
+					"default": false,
+					"kind": "bool"
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				},
+				"telegram": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					],
+					"unique": true
+				},
+				{
+					"on": [
+						"phone_key"
+					],
+					"unique": true
+				}
+			],
+			"key": "text",
+			"nativeRules": 2
+		},
+		"visits": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text"
+				},
+				"area": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"central",
+						"north",
+						"north_east",
+						"east",
+						"west"
+					]
+				},
+				"attention": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"unassigned",
+						"eta_risk",
+						"helper_left",
+						"awaiting_approval"
+					]
+				},
+				"booking": {
+					"inverse": "visits",
+					"kind": "ref",
+					"owned": true,
+					"to": "bookings"
+				},
+				"completed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"completion_notes": {
+					"kind": "text",
+					"max": 2000,
+					"optional": true
+				},
+				"eta_checked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"eta_minutes": {
+					"kind": "int",
+					"optional": true
+				},
+				"helper": {
+					"inverse": "visits",
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "helpers"
+				},
+				"late_cancellation": {
+					"default": false,
+					"kind": "bool"
+				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
+				"mc": {
+					"default": false,
+					"kind": "bool"
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "V-{yyyy}-{00000}"
+				},
+				"proposed_helper": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "helpers"
+				},
+				"proposed_slot": {
+					"kind": "period",
+					"of": "instant",
+					"optional": true
+				},
+				"shift_asked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"shift_check": {
+					"default": "not_due",
+					"kind": "enum",
+					"values": [
+						"not_due",
+						"asked",
+						"confirmed",
+						"no_response",
+						"declined"
+					]
+				},
+				"skill": {
+					"kind": "enum",
+					"values": [
+						"home_cleaning",
+						"deep_cleaning",
+						"move_in_out",
+						"post_renovation",
+						"office_cleaning",
+						"laundry_ironing",
+						"handyman"
+					]
+				},
+				"slot": {
+					"kind": "period",
+					"of": "instant"
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"initial": "scheduled",
+					"kind": "state",
+					"states": {
+						"cancelled": {
+							"edit": "none"
+						},
+						"done": {
+							"edit": "none"
+						},
+						"in_progress": {
+							"edit": [
+								"status",
+								"completion_notes",
+								"completed_at",
+								"attention"
+							],
+							"to": [
+								"done"
+							]
+						},
+						"scheduled": {
+							"to": [
+								"in_progress",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"unavailable_helper": {
+					"kind": "ref",
+					"onDelete": "setNull",
+					"optional": true,
+					"to": "helpers"
+				}
+			},
+			"index": [
+				"attention",
+				"shift_check"
+			],
+			"nativeRules": 2,
+			"noOverlap": [
+				{
+					"key": [
+						"helper"
+					],
+					"period": "slot",
+					"where": {
+						"helper": {
+							"isNull": false
+						},
+						"status": {
+							"ne": "cancelled"
+						}
+					}
+				}
+			]
+		}
+	},
+	"tz": "Asia/Singapore"
+}

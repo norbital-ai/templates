@@ -408,17 +408,17 @@ function travelMinutes(pool: Pool, zone: string): number {
  * bookings made poor. Hard requirements hold for every move, since only `rank`'s feasible helpers are considered.
  * ponytail: relocate only, no swaps; a two-visit exchange would escape a few more local minima.
  */
-export function improve(
+export function improve<V extends string>(
 	pool: Pool,
 	movable: readonly (Omit<Need, 'visit'> & {
-		readonly visit: string;
+		readonly visit: V;
 	})[],
 	zone: string,
 	sweeps = 20
 ) {
 	let busy = [...pool.busy];
 	const moves = new Map<
-		string,
+		V,
 		{
 			from: Id<'helpers'>;
 			to: Id<'helpers'>;

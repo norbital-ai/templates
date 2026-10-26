@@ -2,11 +2,12 @@ import { policy } from '@norbital-ai/bolt';
 /**
  * The dispatch runs: read the roster and the schedule, re-dispatch visits, file warnings and their letters, notify
  * customers, publish the portal's open times, cache Google drive times, and book portal requests (filing a new customer) through the same
- * `bookings.book` as the desk.
+ * `bookings_book` as the desk.
  */
 export default policy({
 	description:
 		'The dispatch runs: re-dispatch visits, file warnings and their letters, notify customers, and book portal requests.',
+	automations: ['bookings_book'],
 	grants: {
 		dispatch_settings: { read: true },
 		services: { read: true },
@@ -21,7 +22,7 @@ export default policy({
 			update: { fields: ['status', 'booking', 'outcome'] },
 			moves: { status: ['received->booked', 'received->follow_up'] }
 		},
-		bookings: { read: true, create: true, actions: ['book'] },
+		bookings: { read: true, create: true },
 		visits: {
 			read: true,
 			update: {

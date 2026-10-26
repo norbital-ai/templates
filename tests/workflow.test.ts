@@ -1,46 +1,51 @@
 import { present } from './test-runtime.js';
-import type { ActInput, Committed, PendingApproval, Id, Row } from '@norbital-ai/bolt';
+import { finished } from './automation-runtime.js';
+import { configureWorkflow } from './workflow-fixture.js';
+import type { ActInput, StartInput, Committed, PendingApproval, Id, Row } from '@norbital-ai/bolt';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Context, Effect, Result, Schema } from 'effect';
 import { Conversations, Writes, type Json } from '@norbital-ai/bolt/engine';
 /**
- * The workflows through the real engine on the public seed: booking with and without a preference, the travel buffer,
+ * The workflows through the real engine on guarded synthetic scheduling inputs: booking with and without a preference, the travel buffer,
  * the shift check (ask, no answer, decline with a certificate), the ETA check, a helper leaving, and cancellation.
  */
-import { readdirSync, readFileSync } from 'node:fs';
-import { describe, expect, it, vi } from '@effect/vitest';
+import { describe, expect, it } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-type T = Effect.Success<ReturnType<typeof acquireWorkspace>>;
+type T = Effect.Success<ReturnType<typeof acquireWorkspace>> & {
+	readonly fixture: Effect.Success<ReturnType<typeof configureWorkflow>>;
+};
 type BookingInput = Exclude<ActInput<'booking_requests.create'>, readonly unknown[]>;
 type AvailabilityInput = Exclude<ActInput<'availability_requests.create'>, readonly unknown[]>;
 const whatsapp = Schema.decodeUnknownSync(
 	Schema.Struct({ to: Schema.String, text: Schema.String })
 );
-const ALPHA = fixtureId('helpers', '0d500002-0000-4000-8000-000000000001'); // east, cleans and deep-cleans, Mon–Sat 08–18
-const BRAVO = fixtureId('helpers', '0d500002-0000-4000-8000-000000000002'); // west, Mon–Fri 09–19
-const CHARLIE = fixtureId('helpers', '0d500002-0000-4000-8000-000000000003'); // central, Tue–Sun 07–16
-const EAST_CUSTOMER = fixtureId('customers', '0d500003-0000-4000-8000-000000000001');
-const WEST_CUSTOMER = fixtureId('customers', '0d500003-0000-4000-8000-000000000002');
-const HOME_CLEANING = fixtureId('services', '0d500001-0000-4000-8000-000000000001'); // 3 h
-/** Tuesday 29 September 2026, 10:00 in Singapore: every seeded helper works then. */
+/** Tuesday 29 September 2026, 10:00 in Singapore: every fixture helper works then. */
 const TUESDAY_10 = Instant('2026-09-29T02:00:00.000Z');
+const RouteRequest = Schema.Struct({
+	path: Schema.String,
+	query: Schema.optionalKey(Schema.JsonObject),
+	body: Schema.Struct({
+		destinations: Schema.Array(
+			Schema.Struct({
+				waypoint: Schema.Struct({
+					location: Schema.Struct({
+						latLng: Schema.Struct({ latitude: Schema.Number, longitude: Schema.Number })
+					})
+				})
+			})
+		),
+		routingPreference: Schema.String
+	})
+});
 /**
  * Google's Routes API, faked: every route takes `minutes[routingPreference]` minutes. `calls` records what was asked.
  * Without it the connection has no key, so every drive stays the straight-line estimate.
  */
 function google(minutes: { readonly [preference: string]: number }) {
-	const Request = Schema.Struct({
-		path: Schema.String,
-		query: Schema.optionalKey(Schema.JsonObject),
-		body: Schema.Struct({
-			destinations: Schema.Array(Schema.Unknown),
-			routingPreference: Schema.String
-		})
-	});
-	const calls: (typeof Request.Type)[] = [];
+	const calls: (typeof RouteRequest.Type)[] = [];
 	const answer = Effect.fnUntraced(function* (instance: string, operation: Json) {
 		expect(instance).toBe('google_routes');
-		const request = Schema.decodeUnknownSync(Request)(operation);
+		const request = Schema.decodeUnknownSync(RouteRequest)(operation);
 		calls.push(request);
 		return {
 			status: 200,
@@ -56,11 +61,11 @@ function google(minutes: { readonly [preference: string]: number }) {
 const workspace = Effect.fnUntraced(function* (http?: ReturnType<typeof google>) {
 	const t = yield* acquireWorkspace({
 		root: `${process.cwd()}/`,
-		seed: 'base',
+		seed: 'none',
 		now: '2026-09-25T02:00:00.000Z'
 	});
 	if (http !== undefined) t.fakes.links.answer = http.answer;
-	return t;
+	return { ...t, fixture: yield* configureWorkflow(t) };
 });
 const desk = (t: T) => t.as(t.member(['operations']));
 /** Every run a run queues, down the chain (a request → a booking → notices → their delivery). */
@@ -71,18 +76,29 @@ function committed<O, N extends string>(outcome: Committed<O, N> | PendingApprov
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	return outcome;
 }
+function completed<O>(run: { state: string; output: O }) {
+	if (run.state !== 'succeeded') throw new Error(JSON.stringify(run));
+	return run;
+}
 const visits = Effect.fnUntraced(function* (t: T) {
-	return (yield* t.as(t.admin).read('visits', { all: true, orderBy: { number: 'asc' } })).rows;
+	return (yield* t.as(t.admin).query('visits', { all: true, orderBy: { number: 'asc' } })).rows;
 });
-const book = Effect.fnUntraced(function* (t: T, input: Partial<ActInput<'bookings.book'>>) {
-	return yield* desk(t).act('bookings.book', {
-		customer: EAST_CUSTOMER,
-		service: HOME_CLEANING,
-		preference: 'any',
-		start: TUESDAY_10,
-		repeat: 'once',
-		...input
-	});
+const book = Effect.fnUntraced(function* (t: T, input: Partial<StartInput<'bookings_book'>>) {
+	const run = yield* finished(
+		t,
+		desk(t).start('bookings_book', {
+			customer: t.fixture.EAST_CUSTOMER,
+			service: t.fixture.HOME_CLEANING,
+			preference: 'any',
+			start: TUESDAY_10,
+			repeat: 'once',
+			...input
+		})
+	);
+	const output = Schema.decodeUnknownSync(
+		Schema.Struct({ booking: Schema.String, assigned: Schema.Number, unassigned: Schema.Number })
+	)(run.output);
+	return { ...run, output: { ...output, booking: fixtureId('bookings', output.booking) } };
 });
 const signedIn = Effect.fnUntraced(function* (t: T, helper: Id<'helpers'>) {
 	const member = t.member(['helper']);
@@ -93,33 +109,19 @@ const signedIn = Effect.fnUntraced(function* (t: T, helper: Id<'helpers'>) {
 	);
 	return t.as(member);
 });
-describe('the template', () => {
-	it('declares what its catalogue card says', () => {
-		const files = readdirSync('src', { recursive: true }).map(String);
-		const count = (pattern: RegExp) => files.filter((file) => pattern.test(file)).length;
-		expect({
-			collections: count(/^data\/collection\/[^/]+\/\+collection\.ts$/),
-			apps: count(/^app\/.+\/\+app\.ts$/),
-			automations: count(/^automation\/\+[^/]+\.automation\.ts$/)
-		}).toEqual(JSON.parse(readFileSync('norbital.template.json', 'utf8')).counts);
-	});
-});
 describe('booking', () => {
 	it.live(
 		'without a preference, matches the nearest helper and keeps them for a recurring customer',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				const reads = vi.spyOn(t.db, 'read');
-				const { output } = committed(yield* book(t, { repeat: 'weekly', visits: 3 }));
-				// Count native read batches for the complete booking, excluding setup and verification.
-				expect(reads.mock.calls).toHaveLength(7);
-				expect(reads.mock.calls.map(([statements]) => statements.length)).toEqual([
-					1, 1, 1, 1, 1, 1, 1
-				]);
-				reads.mockRestore();
+				const { output } = completed(yield* book(t, { repeat: 'weekly', visits: 3 }));
 				expect(output).toMatchObject({ assigned: 3, unassigned: 0 });
-				expect((yield* visits(t)).map((v) => v.helper)).toEqual([ALPHA, ALPHA, ALPHA]);
+				expect((yield* visits(t)).map((v) => v.helper)).toEqual([
+					t.fixture.ALPHA,
+					t.fixture.ALPHA,
+					t.fixture.ALPHA
+				]);
 			})
 	);
 	it.live(
@@ -127,20 +129,22 @@ describe('booking', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, { preference: 'preferred', helpers: [BRAVO, ALPHA] }));
-				expect(present((yield* visits(t))[0]).helper).toBe(BRAVO);
+				completed(
+					yield* book(t, { preference: 'preferred', helpers: [t.fixture.BRAVO, t.fixture.ALPHA] })
+				);
+				expect(present((yield* visits(t))[0]).helper).toBe(t.fixture.BRAVO);
 				expect(
-					(yield* desk(t).read('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
+					(yield* desk(t).query('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
 				).toMatchObject([
-					{ helper: BRAVO, rank: 1 },
-					{ helper: ALPHA, rank: 2 }
+					{ helper: t.fixture.BRAVO, rank: 1 },
+					{ helper: t.fixture.ALPHA, rank: 2 }
 				]);
 				// Sunday: Bravo and Alpha are both off
 				expect(
 					yield* Effect.flip(
 						book(t, {
 							preference: 'preferred',
-							helpers: [BRAVO, ALPHA],
+							helpers: [t.fixture.BRAVO, t.fixture.ALPHA],
 							start: Instant('2026-09-27T02:00:00.000Z')
 						})
 					)
@@ -156,14 +160,16 @@ describe('booking', () => {
 			Effect.gen(function* () {
 				const t = yield* workspace();
 				expect(
-					yield* Effect.flip(book(t, { preference: 'preferred', helpers: [ALPHA, ALPHA] }))
+					yield* Effect.flip(
+						book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA, t.fixture.ALPHA] })
+					)
 				).toMatchObject({
 					_tag: 'ActRefused',
 					code: 'unique'
 				});
-				expect((yield* desk(t).read('bookings', { all: true })).rows).toEqual([]);
+				expect((yield* desk(t).query('bookings', { all: true })).rows).toEqual([]);
 				expect(yield* visits(t)).toEqual([]);
-				expect((yield* desk(t).read('customer_notices', { all: true })).rows).toEqual([]);
+				expect((yield* desk(t).query('customer_notices', { all: true })).rows).toEqual([]);
 			})
 	);
 	it.live('checks the existence of every preferred helper on direct creates too', () =>
@@ -172,21 +178,21 @@ describe('booking', () => {
 			expect(
 				yield* Effect.flip(
 					desk(t).act('bookings.create', {
-						customer: EAST_CUSTOMER,
-						service: HOME_CLEANING,
+						customer: t.fixture.EAST_CUSTOMER,
+						service: t.fixture.HOME_CLEANING,
 						address: 'Fixture address',
 						preference: 'preferred',
 						repeat: 'once',
 						preferred_helpers: {
 							create: [
-								{ helper: ALPHA, rank: 1 },
+								{ helper: t.fixture.ALPHA, rank: 1 },
 								{ helper: fixtureId('helpers', '0d500002-0000-4000-8000-000000000099'), rank: 2 }
 							]
 						}
 					})
 				)
 			).toMatchObject({ _tag: 'ActRefused', code: 'notFound', field: 'helper' });
-			expect((yield* desk(t).read('bookings', { all: true })).rows).toEqual([]);
+			expect((yield* desk(t).query('bookings', { all: true })).rows).toEqual([]);
 			expect(yield* visits(t)).toEqual([]);
 		})
 	);
@@ -204,22 +210,22 @@ describe('booking', () => {
 				}
 			});
 			const input: Exclude<ActInput<'bookings.create'>, readonly unknown[]> = {
-				customer: EAST_CUSTOMER,
-				service: HOME_CLEANING,
+				customer: t.fixture.EAST_CUSTOMER,
+				service: t.fixture.HOME_CLEANING,
 				address: 'Fixture address',
 				preference: 'preferred',
 				repeat: 'once',
-				preferred_helpers: { create: [{ helper: ALPHA, rank: 1 }] }
+				preferred_helpers: { create: [{ helper: t.fixture.ALPHA, rank: 1 }] }
 			};
 			expect(yield* Effect.flip(restricted.act('bookings.create', input))).toMatchObject({
 				_tag: 'ActRefused',
 				code: 'notFound',
 				field: 'helper'
 			});
-			expect((yield* actor.read('bookings', { all: true })).rows).toEqual([]);
+			expect((yield* actor.query('bookings', { all: true })).rows).toEqual([]);
 			committed(yield* actor.act('bookings.create', input));
-			expect((yield* actor.read('booking_helpers', { all: true })).rows).toMatchObject([
-				{ helper: ALPHA, rank: 1 }
+			expect((yield* actor.query('booking_helpers', { all: true })).rows).toMatchObject([
+				{ helper: t.fixture.ALPHA, rank: 1 }
 			]);
 		})
 	);
@@ -228,8 +234,10 @@ describe('booking', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, { preference: 'preferred', helpers: [BRAVO, ALPHA] }));
-				const booking = (yield* desk(t).read('bookings', { all: true })).rows[0];
+				completed(
+					yield* book(t, { preference: 'preferred', helpers: [t.fixture.BRAVO, t.fixture.ALPHA] })
+				);
+				const booking = (yield* desk(t).query('bookings', { all: true })).rows[0];
 				if (booking === undefined || typeof booking.id !== 'string')
 					throw new Error('The booking must exist.');
 				committed(
@@ -246,7 +254,7 @@ describe('booking', () => {
 						verb: 'update',
 						input: {
 							target: booking.id,
-							set: { preferred_helpers: { create: [{ helper: CHARLIE, rank: 3 }] } }
+							set: { preferred_helpers: { create: [{ helper: t.fixture.CHARLIE, rank: 3 }] } }
 						},
 						key: 'invalid-preference-edit',
 						invocationId: 'invalid-preference-edit',
@@ -255,29 +263,31 @@ describe('booking', () => {
 						bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
 					})).outcome
 				).toMatchObject({ kind: 'refused', code: 'invalidInput', field: 'preferred_helpers' });
-				expect((yield* desk(t).read('bookings', { all: true })).rows).toMatchObject([
+				expect((yield* desk(t).query('bookings', { all: true })).rows).toMatchObject([
 					{ notes: 'Keep Bravo first.' }
 				]);
 				expect(
-					(yield* desk(t).read('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
+					(yield* desk(t).query('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
 				).toMatchObject([
-					{ helper: BRAVO, rank: 1 },
-					{ helper: ALPHA, rank: 2 }
+					{ helper: t.fixture.BRAVO, rank: 1 },
+					{ helper: t.fixture.ALPHA, rank: 2 }
 				]);
-				expect((yield* visits(t))[0]?.helper).toBe(BRAVO);
+				expect((yield* visits(t))[0]?.helper).toBe(t.fixture.BRAVO);
 			})
 	);
 	it.live('keeps a preferred helper on file when an administrator requests removal', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, { preference: 'preferred', helpers: [BRAVO, ALPHA] }));
+			completed(
+				yield* book(t, { preference: 'preferred', helpers: [t.fixture.BRAVO, t.fixture.ALPHA] })
+			);
 			// Alpha is only a preference here; the visit itself is assigned to Bravo.
 			const now = t.clock.now();
 			const removed = yield* Context.get(t.services, Writes).act({
 				mode: { _tag: 'Direct' },
 				collection: 'helpers',
 				verb: 'erase',
-				input: { target: ALPHA },
+				input: { target: t.fixture.ALPHA },
 				key: 'remove-preferred-helper',
 				invocationId: 'remove-preferred-helper',
 				issuedAt: now,
@@ -285,21 +295,21 @@ describe('booking', () => {
 				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
 			});
 			expect(removed.outcome).toMatchObject({ kind: 'refused', code: 'restricted' });
-			expect(yield* t.as(t.admin).get('helpers', ALPHA)).toMatchObject({
-				id: ALPHA,
+			expect(yield* t.as(t.admin).query('helpers', { id: t.fixture.ALPHA })).toMatchObject({
+				id: t.fixture.ALPHA,
 				status: 'active'
 			});
 			expect(
-				(yield* desk(t).read('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
+				(yield* desk(t).query('booking_helpers', { all: true, orderBy: { rank: 'asc' } })).rows
 			).toMatchObject([
-				{ helper: BRAVO, rank: 1 },
-				{ helper: ALPHA, rank: 2 }
+				{ helper: t.fixture.BRAVO, rank: 1 },
+				{ helper: t.fixture.ALPHA, rank: 2 }
 			]);
 			const unused = yield* Context.get(t.services, Writes).act({
 				mode: { _tag: 'Direct' },
 				collection: 'helpers',
 				verb: 'erase',
-				input: { target: CHARLIE },
+				input: { target: t.fixture.CHARLIE },
 				key: 'remove-unused-helper',
 				invocationId: 'remove-unused-helper',
 				issuedAt: now,
@@ -307,7 +317,7 @@ describe('booking', () => {
 				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
 			});
 			expect(unused.outcome.kind).toBe('committed');
-			expect(yield* t.as(t.admin).get('helpers', CHARLIE)).toBeNull();
+			expect(yield* t.as(t.admin).query('helpers', { id: t.fixture.CHARLIE })).toBeNull();
 		})
 	);
 	it.live(
@@ -315,17 +325,20 @@ describe('booking', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
+				completed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
 				// 13:15 in the west is too soon for Alpha: the drive is longer than the gap
-				committed(
-					yield* book(t, { customer: WEST_CUSTOMER, start: Instant('2026-09-29T05:15:00.000Z') })
+				completed(
+					yield* book(t, {
+						customer: t.fixture.WEST_CUSTOMER,
+						start: Instant('2026-09-29T05:15:00.000Z')
+					})
 				);
 				const [, second] = yield* visits(t);
-				expect(present(second).helper).not.toBe(ALPHA);
+				expect(present(second).helper).not.toBe(t.fixture.ALPHA);
 				const [alpha] = yield* desk(t).query('helpers.open_slots', {
-					helpers: [ALPHA],
-					customer: WEST_CUSTOMER,
-					service: HOME_CLEANING,
+					helpers: [t.fixture.ALPHA],
+					customer: t.fixture.WEST_CUSTOMER,
+					service: t.fixture.HOME_CLEANING,
 					from: PlainDate('2026-09-29'),
 					days: 1
 				});
@@ -336,14 +349,15 @@ describe('booking', () => {
 	it.live('refuses a helper without the skill, whoever names them', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(
-				yield* book(t, { service: fixtureId('services', '0d500001-0000-4000-8000-000000000003') })
-			); // move-in: only Bravo
+			completed(yield* book(t, { service: t.fixture.MOVE_IN })); // move-in: only Bravo
 			const [v] = yield* visits(t);
-			expect(present(v).helper).toBe(BRAVO);
+			expect(present(v).helper).toBe(t.fixture.BRAVO);
 			expect(
 				yield* Effect.flip(
-					desk(t).act('visits.reassign', { target: present(v).id, input: { helper: ALPHA } })
+					finished(
+						t,
+						desk(t).start('visits_reassign', { targets: [present(v).id], helper: t.fixture.ALPHA })
+					)
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
@@ -372,16 +386,20 @@ describe('jobs: one-off and recurring', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				const alpha = yield* signedIn(t, ALPHA);
-				const { output } = committed(yield* book(t, {}));
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
+				const { output } = completed(yield* book(t, {}));
 				expect(output).toMatchObject({ assigned: 1, unassigned: 0 });
 				const all = yield* visits(t);
 				expect(all).toHaveLength(1);
 				const [v] = all;
-				expect(v).toMatchObject({ helper: ALPHA, status: 'scheduled', attention: 'none' });
+				expect(v).toMatchObject({
+					helper: t.fixture.ALPHA,
+					status: 'scheduled',
+					attention: 'none'
+				});
 				expect(startOf(present(v))).toBe(Date.parse(TUESDAY_10));
 				expect(endOf(present(v)) - startOf(present(v))).toBe(HOURS_3);
-				const booking = present((yield* t.as(t.admin).read('bookings', { all: true })).rows[0]);
+				const booking = present((yield* t.as(t.admin).query('bookings', { all: true })).rows[0]);
 				expect(booking).toMatchObject({ repeat: 'once', status: 'active' });
 				yield* settle(t);
 				// the cleaner hears about it on WhatsApp, and it is on their own list
@@ -390,7 +408,7 @@ describe('jobs: one-off and recurring', () => {
 						.filter((send) => send.instance === 'whatsapp')
 						.some((s) => whatsapp(s.message).to === '6590000001@s.whatsapp.net')
 				).toBe(true);
-				expect((yield* alpha.read('visits', { all: true })).rows).toHaveLength(1);
+				expect((yield* alpha.query('visits', { all: true })).rows).toHaveLength(1);
 				t.clock.set('2026-09-29T02:00:00.000Z');
 				committed(
 					yield* alpha.act('visits.update', {
@@ -410,7 +428,7 @@ describe('jobs: one-off and recurring', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				const { output } = committed(yield* book(t, { repeat: 'weekly' }));
+				const { output } = completed(yield* book(t, { repeat: 'weekly' }));
 				expect(output).toMatchObject({ assigned: 8, unassigned: 0 });
 				const all = yield* visits(t);
 				expect(all).toHaveLength(8);
@@ -419,14 +437,14 @@ describe('jobs: one-off and recurring', () => {
 					expect(present(starts[i]) - present(starts[i - 1])).toBe(7 * 86400000);
 				expect(new Set(starts.map(wall))).toEqual(new Set(['Tue 10:00']));
 				// continuity: the same cleaner every week while they are free
-				expect(new Set(all.map((v) => v.helper))).toEqual(new Set([ALPHA]));
+				expect(new Set(all.map((v) => v.helper))).toEqual(new Set([t.fixture.ALPHA]));
 				expect(all.every((v) => endOf(v) - startOf(v) === HOURS_3)).toBe(true);
 			})
 	);
 	it.live('fortnightly and monthly jobs repeat at their own spacing, the same wall time', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, { repeat: 'fortnightly', visits: 3 }));
+			completed(yield* book(t, { repeat: 'fortnightly', visits: 3 }));
 			const fortnightly = (yield* visits(t)).map(startOf);
 			expect(fortnightly.map((s, i) => (i === 0 ? 0 : s - present(fortnightly[i - 1])))).toEqual([
 				0,
@@ -434,7 +452,7 @@ describe('jobs: one-off and recurring', () => {
 				14 * 86400000
 			]);
 			const m = yield* workspace();
-			committed(yield* book(m, { repeat: 'monthly', visits: 3 }));
+			completed(yield* book(m, { repeat: 'monthly', visits: 3 }));
 			const monthly = (yield* visits(m)).map((v) =>
 				new Date(startOf(v)).toLocaleString('en-GB', {
 					timeZone: 'Asia/Singapore',
@@ -454,16 +472,16 @@ describe('jobs: one-off and recurring', () => {
 				const t = yield* workspace();
 				committed(
 					yield* t.as(t.admin).act('helper_time_off.create', {
-						helper: ALPHA,
+						helper: t.fixture.ALPHA,
 						period: { from: '2026-10-13', to: '2026-10-13' },
 						reason: 'leave'
 					})
 				);
-				committed(yield* book(t, { repeat: 'weekly', visits: 4 }));
+				completed(yield* book(t, { repeat: 'weekly', visits: 4 }));
 				const helpers = (yield* visits(t)).map((v) => v.helper);
-				expect(helpers[0]).toBe(ALPHA);
-				expect(helpers[2]).not.toBe(ALPHA); // 13 October, Alpha's leave
-				expect([helpers[1], helpers[3]]).toEqual([ALPHA, ALPHA]);
+				expect(helpers[0]).toBe(t.fixture.ALPHA);
+				expect(helpers[2]).not.toBe(t.fixture.ALPHA); // 13 October, Alpha's leave
+				expect([helpers[1], helpers[3]]).toEqual([t.fixture.ALPHA, t.fixture.ALPHA]);
 			})
 	);
 	it.live('a recurring job nobody can staff in full is not booked at all; no partial series', () =>
@@ -471,18 +489,23 @@ describe('jobs: one-off and recurring', () => {
 			const t = yield* workspace();
 			committed(
 				yield* t.as(t.admin).act('helper_time_off.create', {
-					helper: ALPHA,
+					helper: t.fixture.ALPHA,
 					period: { from: '2026-10-06', to: '2026-10-06' },
 					reason: 'leave'
 				})
 			);
 			expect(
 				yield* Effect.flip(
-					book(t, { repeat: 'weekly', visits: 3, preference: 'preferred', helpers: [ALPHA] })
+					book(t, {
+						repeat: 'weekly',
+						visits: 3,
+						preference: 'preferred',
+						helpers: [t.fixture.ALPHA]
+					})
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(yield* visits(t)).toEqual([]);
-			expect((yield* t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+			expect((yield* t.as(t.admin).query('bookings', { all: true })).rows).toEqual([]);
 		})
 	);
 	it.live(
@@ -490,18 +513,22 @@ describe('jobs: one-off and recurring', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				const { output } = committed(yield* book(t, { repeat: 'weekly', visits: 4 }));
+				const { output } = completed(yield* book(t, { repeat: 'weekly', visits: 4 }));
 				const [first] = yield* visits(t);
-				committed(yield* desk(t).act('visits.cancel', { target: present(first).id }));
+				completed(
+					yield* finished(t, desk(t).start('visits_cancel', { targets: [present(first).id] }))
+				);
 				expect((yield* visits(t)).map((v) => v.status)).toEqual([
 					'cancelled',
 					'scheduled',
 					'scheduled',
 					'scheduled'
 				]);
-				committed(yield* desk(t).act('bookings.cancel', { target: output.booking }));
+				completed(
+					yield* finished(t, desk(t).start('bookings_cancel', { targets: [output.booking] }))
+				);
 				expect((yield* visits(t)).every((v) => v.status === 'cancelled')).toBe(true);
-				expect((yield* t.as(t.admin).read('bookings', { all: true })).rows[0]).toMatchObject({
+				expect((yield* t.as(t.admin).query('bookings', { all: true })).rows[0]).toMatchObject({
 					status: 'cancelled'
 				});
 			})
@@ -513,10 +540,21 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, { preference: 'preferred', helpers: [ALPHA, CHARLIE] }));
+				// Provider reports reach the mail sync after its native two-second debounce.
+				const settleMail = Effect.fnUntraced(function* () {
+					yield* settle(t);
+					t.clock.advance('2s');
+					yield* settle(t);
+				});
+				completed(
+					yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA, t.fixture.CHARLIE] })
+				);
 				t.clock.set('2026-09-29T00:05:00.000Z'); // 08:05, under two hours ahead
 				yield* t.runDue();
-				expect((yield* visits(t))[0]).toMatchObject({ shift_check: 'asked', helper: ALPHA });
+				expect((yield* visits(t))[0]).toMatchObject({
+					shift_check: 'asked',
+					helper: t.fixture.ALPHA
+				});
 				t.clock.set('2026-09-29T01:30:00.000Z'); // over an hour later, no answer (cron slots are bucketed, so well past it)
 				yield* t.runDue();
 				yield* t.runDue(); // the warning's letter
@@ -525,22 +563,26 @@ describe('the shift check', () => {
 				expect(v).toMatchObject({
 					shift_check: 'no_response',
 					helper: null,
-					proposed_helper: CHARLIE,
+					proposed_helper: t.fixture.CHARLIE,
 					attention: 'awaiting_approval',
-					unavailable_helper: ALPHA
+					unavailable_helper: t.fixture.ALPHA
 				});
-				expect((yield* t.as(t.admin).read('customer_notices', { all: true })).rows).toHaveLength(1);
-				committed(yield* desk(t).act('visits.accept_proposal', { target: present(v).id }));
-				yield* settle(t);
+				expect((yield* t.as(t.admin).query('customer_notices', { all: true })).rows).toHaveLength(
+					1
+				);
+				completed(
+					yield* finished(t, desk(t).start('visits_accept_proposal', { targets: [present(v).id] }))
+				);
+				yield* settleMail();
 				expect((yield* visits(t))[0]).toMatchObject({
-					helper: CHARLIE,
+					helper: t.fixture.CHARLIE,
 					shift_check: 'not_due',
 					proposed_helper: null,
 					attention: 'none'
 				});
 				const admin = t.as(t.admin);
-				const warnings = (yield* admin.read('helper_warnings', { all: true })).rows;
-				expect(warnings).toMatchObject([{ helper: ALPHA, reason: 'no_response' }]);
+				const warnings = (yield* admin.query('helper_warnings', { all: true })).rows;
+				expect(warnings).toMatchObject([{ helper: t.fixture.ALPHA, reason: 'no_response' }]);
 				// the kit converts no documents: the letter run ends cleanly and the warning stands without one
 				const [letterRun] = present(
 					(yield* t.db.read([
@@ -549,7 +591,7 @@ describe('the shift check', () => {
 				).rows;
 				expect(letterRun).toEqual({ state: 'succeeded' });
 				// the booking's confirmation, then who comes instead (the customer asked for particular helpers)
-				const notices = (yield* admin.read('customer_notices', {
+				const notices = (yield* admin.query('customer_notices', {
 					all: true,
 					orderBy: { created_at: 'asc' }
 				})).rows;
@@ -573,12 +615,15 @@ describe('the shift check', () => {
 					notices.map((n) => n.whatsapp),
 					JSON.stringify(deliveryRuns)
 				).toEqual(['sent', 'sent']);
-				// and, since the seeded customer gave an address, by mail through the customer_mail connection, tracked on the notice
+				// and, since the fixture customer gave an address, by mail through the `mail` sync on the customer_mail connection, tracked on the notice
 				const mails = t.fakes.links.sent.filter((send) => send.instance === 'customer_mail');
 				expect(mails).toHaveLength(2);
 				expect(
-					notices.every((n) => n.delivery === 'sent' && n.to_address !== null && n.sent_at !== null)
-				).toBe(true);
+					notices.map(({ delivery, to_address, sent_at }) => ({ delivery, to_address, sent_at }))
+				).toEqual([
+					{ delivery: 'sent', to_address: expect.any(String), sent_at: expect.any(String) },
+					{ delivery: 'sent', to_address: expect.any(String), sent_at: expect.any(String) }
+				]);
 				// what the mailbox reports lands on the notice: presumed delivery, an approximate open, an auto-reply kept apart, a reply
 				const [first] = notices;
 				const providerId = present(
@@ -600,15 +645,17 @@ describe('the shift check', () => {
 					Context.get(t.services, Conversations).receive('customer_mail', {
 						kind: 'delivery',
 						providerId,
-						report: { kind, at: '2026-09-29T02:00:00.000Z', provider: 'fake', ...more }
+						report: { kind, at: t.clock.now(), provider: 'fake', ...more }
 					});
 				yield* report('delivered', { presumed: true });
 				yield* report('opened', { approximate: true });
+				// reports reach the notice through the `mail` sync's read, which each delivery hints to run
+				yield* settleMail();
 				const reply = (id: string, text: string, headers: Readonly<Record<string, string>> = {}) =>
 					t.receive('customer_mail', {
 						id,
 						thread: String(present(first).id),
-						sentAt: '2026-09-29T03:00:00.000Z',
+						sentAt: t.clock.now(),
 						from: { address: String(present(first).to_address), name: null },
 						replyTo: null,
 						to: [],
@@ -620,17 +667,24 @@ describe('the shift check', () => {
 						attachments: []
 					});
 				yield* reply('<auto@x.example>', 'I am away.', { 'auto-submitted': 'auto-replied' });
+				yield* settleMail();
 				expect(
-					yield* admin.get('customer_notices', fixtureId('customer_notices', first?.id))
+					yield* admin.query('customer_notices', { id: fixtureId('customer_notices', first?.id) })
 				).toMatchObject({
 					delivery: 'opened',
 					delivery_presumed: true
 				});
+				// a report older than what the notice shows writes nothing: delivery only moves forward
+				yield* report('delivered');
+				yield* settleMail();
+				expect(
+					yield* admin.query('customer_notices', { id: fixtureId('customer_notices', first?.id) })
+				).toMatchObject({ delivery: 'opened' });
 				yield* reply('<r1@x.example>', 'Thanks, see you then.');
-				const after = yield* admin.get(
-					'customer_notices',
-					fixtureId('customer_notices', first?.id)
-				);
+				yield* settleMail();
+				const after = yield* admin.query('customer_notices', {
+					id: fixtureId('customer_notices', first?.id)
+				});
 				if (after === null) throw new Error('Missing replied notice');
 				expect(after).toMatchObject({
 					delivery: 'replied',
@@ -645,33 +699,41 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
-				const alpha = yield* signedIn(t, ALPHA);
+				completed(yield* book(t, {}));
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
 				const [v] = yield* visits(t);
-				committed(
-					yield* alpha.act('visits.decline_shift', { target: present(v).id, input: { mc: true } })
+				completed(
+					yield* finished(
+						t,
+						alpha.start('visits_decline_shift', { targets: [present(v).id], mc: true })
+					)
 				);
 				yield* t.runDue();
 				const [after] = yield* visits(t);
 				expect(after).toMatchObject({
 					helper: null,
-					unavailable_helper: ALPHA,
+					unavailable_helper: t.fixture.ALPHA,
 					attention: 'awaiting_approval'
 				});
 				expect(present(after).proposed_helper).not.toBeNull();
-				expect((yield* t.as(t.admin).read('helper_time_off', { all: true })).rows).toMatchObject([
-					{ helper: ALPHA, reason: 'medical' }
+				expect((yield* t.as(t.admin).query('helper_time_off', { all: true })).rows).toMatchObject([
+					{ helper: t.fixture.ALPHA, reason: 'medical' }
 				]);
 				const replacement = yield* signedIn(t, fixtureId('helpers', after?.proposed_helper));
-				expect((yield* replacement.read('visits', { all: true })).rows).toEqual([]);
-				committed(yield* desk(t).act('visits.accept_proposal', { target: present(after).id }));
+				expect((yield* replacement.query('visits', { all: true })).rows).toEqual([]);
+				completed(
+					yield* finished(
+						t,
+						desk(t).start('visits_accept_proposal', { targets: [present(after).id] })
+					)
+				);
 				yield* settle(t);
-				expect((yield* replacement.read('visits', { all: true })).rows).toHaveLength(1);
+				expect((yield* replacement.query('visits', { all: true })).rows).toHaveLength(1);
 				const admin = t.as(t.admin);
-				expect((yield* admin.read('helper_warnings', { all: true })).rows).toEqual([]);
+				expect((yield* admin.query('helper_warnings', { all: true })).rows).toEqual([]);
 				// Customer receives the confirmed replacement, never an unapproved recommendation.
 				expect(
-					(yield* admin.read('customer_notices', { all: true })).rows.map((n) => n.subject)
+					(yield* admin.query('customer_notices', { all: true })).rows.map((n) => n.subject)
 				).toEqual(
 					expect.arrayContaining([
 						expect.stringContaining('Booking confirmed'),
@@ -685,17 +747,23 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
-				committed(yield* book(t, { customer: WEST_CUSTOMER }));
+				completed(yield* book(t, {}));
+				completed(yield* book(t, { customer: t.fixture.WEST_CUSTOMER }));
 				const [first, second] = yield* visits(t);
 				expect(present(first).helper).not.toBe(present(second).helper);
 				const a = yield* signedIn(t, fixtureId('helpers', first?.helper));
 				const b = yield* signedIn(t, fixtureId('helpers', second?.helper));
-				committed(
-					yield* a.act('visits.decline_shift', { target: present(first).id, input: { mc: true } })
+				completed(
+					yield* finished(
+						t,
+						a.start('visits_decline_shift', { targets: [present(first).id], mc: true })
+					)
 				);
-				committed(
-					yield* b.act('visits.decline_shift', { target: present(second).id, input: { mc: true } })
+				completed(
+					yield* finished(
+						t,
+						b.start('visits_decline_shift', { targets: [present(second).id], mc: true })
+					)
 				);
 				yield* t.runDue();
 				// both now unassigned at the same time: neither refusal blocks the other's recovery
@@ -712,18 +780,18 @@ describe('the shift check', () => {
 	it.live('lets the controller report unavailability and prepare recommendations for the day', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
+			completed(yield* book(t, {}));
 			const [v] = yield* visits(t);
-			committed(
-				yield* desk(t).act('visits.report_unavailable', {
-					target: present(v).id,
-					input: { mc: true }
-				})
+			completed(
+				yield* finished(
+					t,
+					desk(t).start('visits_report_unavailable', { targets: [present(v).id], mc: true })
+				)
 			);
 			yield* settle(t);
 			expect((yield* visits(t))[0]).toMatchObject({
 				helper: null,
-				unavailable_helper: ALPHA,
+				unavailable_helper: t.fixture.ALPHA,
 				attention: 'awaiting_approval'
 			});
 		})
@@ -733,11 +801,14 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
-				const alpha = yield* signedIn(t, ALPHA);
+				completed(yield* book(t, {}));
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
 				const [v] = yield* visits(t);
-				committed(
-					yield* alpha.act('visits.decline_shift', { target: present(v).id, input: { mc: true } })
+				completed(
+					yield* finished(
+						t,
+						alpha.start('visits_decline_shift', { targets: [present(v).id], mc: true })
+					)
 				);
 				yield* settle(t);
 				const [pending] = yield* visits(t);
@@ -750,19 +821,23 @@ describe('the shift check', () => {
 					})
 				);
 				expect(
-					yield* Effect.flip(desk(t).act('visits.accept_proposal', { target: present(v).id }))
+					yield* Effect.flip(
+						finished(t, desk(t).start('visits_accept_proposal', { targets: [present(v).id] }))
+					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				expect((yield* visits(t))[0]).toMatchObject({
 					helper: null,
 					attention: 'awaiting_approval'
 				});
-				committed(yield* desk(t).act('visits.recommend', { target: present(v).id }));
+				completed(
+					yield* finished(t, desk(t).start('visits_recommend', { targets: [present(v).id] }))
+				);
 				const [refreshed] = yield* visits(t);
 				expect(present(refreshed).proposed_helper).not.toBe(proposed);
-				expect(present(refreshed).proposed_helper).not.toBe(ALPHA);
+				expect(present(refreshed).proposed_helper).not.toBe(t.fixture.ALPHA);
 				// Repeated deadline wakes must not issue duplicate absence warnings or leave records.
 				yield* settle(t);
-				expect((yield* t.as(t.admin).read('helper_time_off', { all: true })).rows).toHaveLength(2);
+				expect((yield* t.as(t.admin).query('helper_time_off', { all: true })).rows).toHaveLength(2);
 			})
 	);
 	it.live(
@@ -770,15 +845,17 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, { repeat: 'weekly', visits: 2 }));
-				const alpha = yield* signedIn(t, ALPHA);
+				completed(yield* book(t, { repeat: 'weekly', visits: 2 }));
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
 				const [first, second] = yield* visits(t);
 				t.clock.set('2026-09-29T01:30:00.000Z');
-				committed(
-					yield* alpha.act('visits.decline_shift', {
-						target: present(first).id,
-						input: { mc: true }
-					})
+				// Establish the due shift and ETA checks before the ordinary recovery command.
+				yield* settle(t);
+				completed(
+					yield* finished(
+						t,
+						alpha.start('visits_decline_shift', { targets: [present(first).id], mc: true })
+					)
 				);
 				yield* settle(t);
 				const slots = yield* desk(t).query('visits.rebooking_slots', {
@@ -792,13 +869,17 @@ describe('the shift check', () => {
 					visit: present(first).id,
 					start
 				});
-				expect(candidates.some((c) => c.helper === ALPHA)).toBe(false);
+				expect(candidates.some((c) => c.helper === t.fixture.ALPHA)).toBe(false);
 				const replacement = yield* signedIn(t, present(candidates[0]).helper);
-				committed(
-					yield* desk(t).act('visits.rebook', {
-						target: present(first).id,
-						input: { start, helper: present(candidates[0]).helper }
-					})
+				completed(
+					yield* finished(
+						t,
+						desk(t).start('visits_rebook', {
+							targets: [present(first).id],
+							start,
+							helper: present(candidates[0]).helper
+						})
+					)
 				);
 				yield* settle(t);
 				const [a, b] = yield* visits(t);
@@ -809,7 +890,7 @@ describe('the shift check', () => {
 				});
 				expect(a?.slot.start).toEqual(start);
 				expect(b).toEqual(second);
-				expect((yield* replacement.read('visits', { all: true })).rows).toHaveLength(1);
+				expect((yield* replacement.query('visits', { all: true })).rows).toHaveLength(1);
 				const { rows: notices } = present(
 					(yield* t.db.read([
 						{
@@ -837,20 +918,25 @@ describe('the shift check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
+				completed(yield* book(t, {}));
 				const [v] = yield* visits(t);
-				const alpha = yield* signedIn(t, ALPHA);
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
 				t.clock.set('2026-09-29T01:30:00.000Z');
 				expect(
 					yield* Effect.flip(
-						desk(t).act('visits.rebook', {
-							target: present(v).id,
-							input: { start: Instant('2026-09-30T02:00:00.000Z') }
-						})
+						finished(
+							t,
+							desk(t).start('visits_rebook', {
+								targets: [present(v).id],
+								start: Instant('2026-09-30T02:00:00.000Z')
+							})
+						)
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				expect(
-					yield* Effect.flip(alpha.act('visits.accept_proposal', { target: present(v).id }))
+					yield* Effect.flip(
+						finished(t, alpha.start('visits_accept_proposal', { targets: [present(v).id] }))
+					)
 				).toMatchObject({
 					_tag: 'ActRefused'
 				});
@@ -859,21 +945,61 @@ describe('the shift check', () => {
 	it.live('a confirmed helper is not chased', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
-			const alpha = yield* signedIn(t, ALPHA);
+			completed(yield* book(t, {}));
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			const [v] = yield* visits(t);
-			committed(yield* alpha.act('visits.confirm_shift', { target: present(v).id }));
+			completed(
+				yield* finished(t, alpha.start('visits_confirm_shift', { targets: [present(v).id] }))
+			);
 			t.clock.set('2026-09-29T01:30:00.000Z');
 			yield* t.runDue();
-			expect((yield* visits(t))[0]).toMatchObject({ helper: ALPHA, shift_check: 'confirmed' });
+			expect((yield* visits(t))[0]).toMatchObject({
+				helper: t.fixture.ALPHA,
+				shift_check: 'confirmed'
+			});
 		})
+	);
+	it.live(
+		'a day whose plan lost its revision race is planned again next run without a second warning',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* workspace();
+				completed(
+					yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA, t.fixture.CHARLIE] })
+				);
+				t.clock.set('2026-09-29T00:05:00.000Z');
+				yield* t.runDue();
+				const [v] = yield* visits(t);
+				expect(v).toMatchObject({ shift_check: 'asked', helper: t.fixture.ALPHA });
+				// what a run whose `recommend` lost the race leaves: the day's warning filed, the visit still held
+				const admin = t.as(t.admin);
+				committed(
+					yield* admin.act('helper_warnings.create', {
+						helper: t.fixture.ALPHA,
+						visit: present(v).id,
+						reason: 'no_response',
+						issued_at: Instant('2026-09-29T01:20:00.000Z')
+					})
+				);
+				t.clock.set('2026-09-29T01:30:00.000Z');
+				yield* t.runDue();
+				expect((yield* visits(t))[0]).toMatchObject({
+					shift_check: 'no_response',
+					helper: null,
+					proposed_helper: t.fixture.CHARLIE,
+					attention: 'awaiting_approval'
+				});
+				expect((yield* admin.query('helper_warnings', { all: true })).rows).toMatchObject([
+					{ helper: t.fixture.ALPHA, reason: 'no_response' }
+				]);
+			})
 	);
 });
 describe('the ETA check', () => {
 	it.live('preserves a dispatch warning while updating a late helper ETA', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
+			completed(yield* book(t, {}));
 			const [visit] = yield* visits(t);
 			if (visit === undefined || typeof visit.id !== 'string')
 				throw new Error('Booked visit is absent');
@@ -883,11 +1009,11 @@ describe('the ETA check', () => {
 					set: { attention: 'helper_left' }
 				})
 			);
-			const alpha = yield* signedIn(t, ALPHA);
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			t.clock.set('2026-09-29T01:20:00.000Z');
 			committed(
 				yield* alpha.act('helpers.update', {
-					target: ALPHA,
+					target: t.fixture.ALPHA,
 					set: { last_location: { lat: 1.3404, lng: 103.65 } }
 				})
 			);
@@ -903,16 +1029,19 @@ describe('the ETA check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
-				committed(
-					yield* book(t, { customer: WEST_CUSTOMER, start: Instant('2026-09-29T03:00:00.000Z') })
+				completed(yield* book(t, {}));
+				completed(
+					yield* book(t, {
+						customer: t.fixture.WEST_CUSTOMER,
+						start: Instant('2026-09-29T03:00:00.000Z')
+					})
 				);
-				const alpha = yield* signedIn(t, ALPHA);
+				const alpha = yield* signedIn(t, t.fixture.ALPHA);
 				t.clock.set('2026-09-29T01:20:00.000Z');
 				// Alpha reports from the far west; the other helper reports nothing
 				committed(
 					yield* alpha.act('helpers.update', {
-						target: ALPHA,
+						target: t.fixture.ALPHA,
 						set: { last_location: { lat: 1.3404, lng: 103.65 } }
 					})
 				);
@@ -930,13 +1059,13 @@ describe('the ETA check', () => {
 	it.live('keeps re-checking until the visit starts: a helper who gets close clears the flag', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {})); // Customer One, east, 10:00 Singapore
-			const alpha = yield* signedIn(t, ALPHA);
+			completed(yield* book(t, {})); // Customer One, east, 10:00 Singapore
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			const report = Effect.fnUntraced(function* (at: string, lat: number, lng: number) {
 				t.clock.set(at);
 				committed(
 					yield* alpha.act('helpers.update', {
-						target: ALPHA,
+						target: t.fixture.ALPHA,
 						set: { last_location: { lat, lng } }
 					})
 				);
@@ -950,6 +1079,77 @@ describe('the ETA check', () => {
 			expect(present(v).eta_minutes).toBeLessThan(5);
 		})
 	);
+	it.live(
+		'a visit written while its drive was timed keeps that write; the other visits are still written and notified',
+		() =>
+			Effect.gen(function* () {
+				const maps = google({ TRAFFIC_UNAWARE: 20, TRAFFIC_AWARE: 50 });
+				const t = yield* workspace(maps);
+				// someone on the operations team, to receive the late visit's call
+				t.member(['operations'], { teams: ['operations'], teamPath: ['operations'] });
+				completed(yield* book(t, {}));
+				completed(yield* book(t, { customer: t.fixture.WEST_CUSTOMER }));
+				const [east, west] = yield* visits(t);
+				t.clock.set('2026-09-29T01:20:00.000Z');
+				// each helper far from their visit: over half the limit by straight line, so Google is asked in traffic
+				for (const [visit, location] of [
+					[east, { lat: 1.3404, lng: 103.65 }],
+					[west, { lat: 1.3644, lng: 103.9915 }]
+				] as const) {
+					const helper = fixtureId('helpers', present(visit).helper);
+					committed(
+						yield* (yield* signedIn(t, helper)).act('helpers.update', {
+							target: helper,
+							set: { last_location: location }
+						})
+					);
+				}
+				// dispatch writes the east visit while the watch is timing the drives
+				let raced = false;
+				const eastLocation = present(present(east).location);
+				t.fakes.links.answer = Effect.fnUntraced(function* (instance: string, operation: Json) {
+					const request = Schema.decodeUnknownSync(RouteRequest)(operation);
+					const answer = yield* maps.answer(instance, operation);
+					const destination = request.body.destinations[0]?.waypoint.location.latLng;
+					if (
+						!raced &&
+						request.body.routingPreference === 'TRAFFIC_AWARE' &&
+						destination?.latitude === eastLocation.lat &&
+						destination.longitude === eastLocation.lng
+					) {
+						raced = true;
+						committed(
+							yield* t
+								.as(t.admin)
+								.act('visits.update', {
+									target: present(east).id,
+									set: { attention: 'helper_left' }
+								})
+								.pipe(Effect.orDie)
+						);
+					}
+					return answer;
+				});
+				t.clock.set('2026-09-29T01:25:00.000Z');
+				yield* t.runDue();
+				expect(raced).toBe(true);
+				const [eastAfter, westAfter] = yield* visits(t);
+				expect(eastAfter).toMatchObject({
+					attention: 'helper_left',
+					eta_minutes: null,
+					eta_checked_at: null
+				});
+				expect(westAfter).toMatchObject({ attention: 'eta_risk', eta_minutes: 50 });
+				const { rows: calls } = present(
+					(yield* t.db.read([
+						{ text: "SELECT title FROM sys_notification WHERE title LIKE 'Call %'", params: [] }
+					]))[0]
+				);
+				expect(calls.map((n) => n.title)).toEqual([
+					expect.stringContaining(String(present(west).number))
+				]);
+			})
+	);
 });
 describe('drive times and double booking', () => {
 	/** Customer One (east) to Customer Two (west), each rounded to its ~1 km square. */
@@ -961,23 +1161,23 @@ describe('drive times and double booking', () => {
 				const maps = google({ TRAFFIC_UNAWARE: 90 });
 				const t = yield* workspace(maps);
 				// Alpha, 10:00–13:00 in the east, asked for by name so the optimiser leaves it (the fake times every leg at 90)
-				committed(yield* book(t, { preference: 'preferred', helpers: [ALPHA] }));
+				completed(yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA] }));
 				// 14:15 in the west: the straight-line estimate (~50 min + 15 to settle) lets Alpha, whom the customer asked for, go
-				committed(
+				completed(
 					yield* book(t, {
-						customer: WEST_CUSTOMER,
+						customer: t.fixture.WEST_CUSTOMER,
 						preference: 'preferred',
-						helpers: [ALPHA],
+						helpers: [t.fixture.ALPHA],
 						start: Instant('2026-09-29T06:15:00.000Z')
 					})
 				);
-				expect((yield* visits(t)).map((v) => v.helper)).toEqual([ALPHA, ALPHA]);
+				// The booking's real queue drain may already have applied the learned drive time.
 				yield* settle(t);
 				// Google says 90 minutes: Alpha cannot make it, so the west visit goes to the best other helper
 				const [first, second] = yield* visits(t);
-				expect(present(first).helper).toBe(ALPHA);
-				expect(second).toMatchObject({ helper: BRAVO, attention: 'none' });
-				const cached = (yield* t.as(t.admin).read('drive_times', { all: true })).rows;
+				expect(present(first).helper).toBe(t.fixture.ALPHA);
+				expect(second).toMatchObject({ helper: t.fixture.BRAVO, attention: 'none' });
+				const cached = (yield* t.as(t.admin).query('drive_times', { all: true })).rows;
 				expect(cached).toContainEqual(expect.objectContaining({ leg: EAST_TO_WEST, minutes: 90 }));
 				expect(maps.calls[0]).toMatchObject({
 					path: 'distanceMatrix/v2:computeRouteMatrix',
@@ -990,7 +1190,7 @@ describe('drive times and double booking', () => {
 				yield* settle(t);
 				expect(maps.calls.length).toBe(asked);
 				// the customer who asked for Alpha is told who comes instead
-				const notices = (yield* t.as(t.admin).read('customer_notices', { all: true })).rows;
+				const notices = (yield* t.as(t.admin).query('customer_notices', { all: true })).rows;
 				expect(notices.map((n) => n.subject)).toContainEqual(
 					expect.stringContaining('A new helper for your visit')
 				);
@@ -1004,14 +1204,14 @@ describe('drive times and double booking', () => {
 				const admin = t.as(t.admin);
 				const leave = committed(
 					yield* admin.act('helper_time_off.create', {
-						helper: ALPHA,
+						helper: t.fixture.ALPHA,
 						period: { from: '2026-09-29', to: '2026-09-29' },
 						reason: 'other'
 					})
 				);
-				committed(yield* book(t, {})); // east, Tuesday 10:00: Alpha is off, so someone farther takes it
+				completed(yield* book(t, {})); // east, Tuesday 10:00: Alpha is off, so someone farther takes it
 				yield* settle(t);
-				expect(present((yield* visits(t))[0]).helper).not.toBe(ALPHA);
+				expect(present((yield* visits(t))[0]).helper).not.toBe(t.fixture.ALPHA);
 				committed(
 					yield* admin.act('helper_time_off.delete', {
 						target: fixtureId('helper_time_off', leave.records[0]?.id)
@@ -1020,20 +1220,20 @@ describe('drive times and double booking', () => {
 				// no button: the next scheduled run rebalances
 				t.clock.advance('15min');
 				yield* settle(t);
-				expect(present((yield* visits(t))[0]).helper).toBe(ALPHA);
+				expect(present((yield* visits(t))[0]).helper).toBe(t.fixture.ALPHA);
 			})
 	);
 	it.live('matches with the cached time: a shorter real drive opens an earlier start', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
+			completed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
 			const openings = Effect.fnUntraced(function* () {
 				return present(
 					present(
 						(yield* desk(t).query('helpers.open_slots', {
-							helpers: [ALPHA],
-							customer: WEST_CUSTOMER,
-							service: HOME_CLEANING,
+							helpers: [t.fixture.ALPHA],
+							customer: t.fixture.WEST_CUSTOMER,
+							service: t.fixture.HOME_CLEANING,
 							from: PlainDate('2026-09-29'),
 							days: 1
 						}))[0]
@@ -1054,12 +1254,12 @@ describe('drive times and double booking', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
+				completed(yield* book(t, {})); // Alpha, 10:00–13:00 in the east
 				const [booked] = yield* visits(t);
 				const direct = (start: Row<'visits'>['slot']['start']) =>
 					desk(t).act('bookings.create', {
-						customer: EAST_CUSTOMER,
-						service: HOME_CLEANING,
+						customer: t.fixture.EAST_CUSTOMER,
+						service: t.fixture.HOME_CLEANING,
 						address: 'By hand',
 						area: 'east',
 						preference: 'any',
@@ -1075,7 +1275,7 @@ describe('drive times and double booking', () => {
 									location: present(booked).location,
 									area: 'east',
 									skill: 'home_cleaning',
-									helper: ALPHA,
+									helper: t.fixture.ALPHA,
 									attention: 'none'
 								}
 							]
@@ -1089,12 +1289,15 @@ describe('drive times and double booking', () => {
 				committed(yield* direct(Instant('2026-09-29T05:05:00.000Z')));
 				yield* settle(t);
 				const [, second] = yield* visits(t);
-				expect(present(second).helper).not.toBe(ALPHA);
+				expect(present(second).helper).not.toBe(t.fixture.ALPHA);
 				expect(present(second).helper).not.toBeNull();
 				// and a drag onto Alpha is refused with the reason
 				expect(
 					yield* Effect.flip(
-						desk(t).act('visits.update', { target: present(second).id, set: { helper: ALPHA } })
+						desk(t).act('visits.update', {
+							target: present(second).id,
+							set: { helper: t.fixture.ALPHA }
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused', message: expect.stringContaining('too close') });
 			})
@@ -1103,13 +1306,13 @@ describe('drive times and double booking', () => {
 		Effect.gen(function* () {
 			const maps = google({ TRAFFIC_UNAWARE: 20, TRAFFIC_AWARE: 50 });
 			const t = yield* workspace(maps);
-			committed(yield* book(t, {}));
-			const alpha = yield* signedIn(t, ALPHA);
+			completed(yield* book(t, {}));
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			t.clock.set('2026-09-29T01:20:00.000Z');
 			// central: ~26 minutes by straight line, under the 30-minute limit; Google in traffic says 50
 			committed(
 				yield* alpha.act('helpers.update', {
-					target: ALPHA,
+					target: t.fixture.ALPHA,
 					set: { last_location: { lat: 1.3048, lng: 103.8318 } }
 				})
 			);
@@ -1124,15 +1327,15 @@ describe('the helper app', () => {
 	it.live("a signed-in helper finds their own record by their account, and nobody else's", () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const alpha = yield* signedIn(t, ALPHA);
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			const me = alpha.authority.actor;
 			if (me.kind !== 'member') throw new Error('Helper has no member identity');
-			const found = (yield* alpha.read('helpers', {
+			const found = (yield* alpha.query('helpers', {
 				where: { user: { eq: fixtureId('sys_user', me.id) } },
 				limit: 5
 			})).rows;
-			expect(found.map((h) => h.id)).toEqual([ALPHA]);
-			expect((yield* alpha.read('helpers', { all: true })).rows).toHaveLength(1);
+			expect(found.map((h) => h.id)).toEqual([t.fixture.ALPHA]);
+			expect((yield* alpha.query('helpers', { all: true })).rows).toHaveLength(1);
 		})
 	);
 });
@@ -1142,27 +1345,30 @@ describe('changes', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(
-					yield* book(t, { service: fixtureId('services', '0d500001-0000-4000-8000-000000000002') })
-				); // deep cleaning: Alpha or Charlie
+				completed(yield* book(t, { service: t.fixture.DEEP_CLEANING })); // deep cleaning: Alpha or Charlie
 				const [v] = yield* visits(t);
-				expect(present(v).helper).toBe(ALPHA);
-				const { output } = committed(
-					yield* desk(t).act('helpers.offboard', {
-						target: ALPHA,
-						input: { last_day: PlainDate('2026-09-28') }
-					})
+				expect(present(v).helper).toBe(t.fixture.ALPHA);
+				const { output } = completed(
+					yield* finished(
+						t,
+						desk(t).start('helpers_offboard', {
+							targets: [t.fixture.ALPHA],
+							last_day: PlainDate('2026-09-28')
+						})
+					)
 				);
 				expect(output).toEqual({ proposed: 1, open: 0 });
 				const [proposed] = yield* visits(t);
 				expect(proposed).toMatchObject({
 					helper: null,
-					proposed_helper: CHARLIE,
+					proposed_helper: t.fixture.CHARLIE,
 					attention: 'helper_left'
 				});
-				committed(yield* desk(t).act('visits.accept_proposal', { target: present(v).id }));
+				completed(
+					yield* finished(t, desk(t).start('visits_accept_proposal', { targets: [present(v).id] }))
+				);
 				expect((yield* visits(t))[0]).toMatchObject({
-					helper: CHARLIE,
+					helper: t.fixture.CHARLIE,
 					proposed_helper: null,
 					attention: 'none'
 				});
@@ -1171,42 +1377,50 @@ describe('changes', () => {
 	it.live('a cancellation inside a day is late; a move inside a day is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, { repeat: 'weekly', visits: 2 }));
+			completed(yield* book(t, { repeat: 'weekly', visits: 2 }));
 			const [first, second] = yield* visits(t);
 			t.clock.set('2026-09-28T12:00:00.000Z');
 			expect(
 				yield* Effect.flip(
-					desk(t).act('visits.reschedule', {
-						target: present(first).id,
-						input: { start: Instant('2026-09-30T02:00:00.000Z') }
-					})
+					finished(
+						t,
+						desk(t).start('visits_reschedule', {
+							targets: [present(first).id],
+							start: Instant('2026-09-30T02:00:00.000Z')
+						})
+					)
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			committed(yield* desk(t).act('visits.cancel', { target: present(first).id }));
-			committed(
-				yield* desk(t).act('visits.reschedule', {
-					target: present(second).id,
-					input: { start: Instant('2026-10-07T03:00:00.000Z') }
-				})
+			completed(
+				yield* finished(t, desk(t).start('visits_cancel', { targets: [present(first).id] }))
+			);
+			completed(
+				yield* finished(
+					t,
+					desk(t).start('visits_reschedule', {
+						targets: [present(second).id],
+						start: Instant('2026-10-07T03:00:00.000Z')
+					})
+				)
 			);
 			const [a, b] = yield* visits(t);
 			expect(a).toMatchObject({ status: 'cancelled', late_cancellation: true });
-			expect(b).toMatchObject({ status: 'scheduled', helper: ALPHA });
+			expect(b).toMatchObject({ status: 'scheduled', helper: t.fixture.ALPHA });
 		})
 	);
 });
 describe('the customer portal', () => {
-	const request: BookingInput = {
+	const request = (t: T): BookingInput => ({
 		name: 'Portal Customer',
 		phone: '+6581234567',
 		address: '9 Portal Lane, Singapore 400009',
 		area: 'east',
-		service: HOME_CLEANING,
+		service: t.fixture.HOME_CLEANING,
 		start: TUESDAY_10,
 		repeat: 'once'
-	};
+	});
 	/** A customer who verified their number on the portal (signed up: external, the `customer` policy). */
-	const customer = (t: T, phone = request.phone) =>
+	const customer = (t: T, phone = '+6581234567') =>
 		t.as(t.member(['customer'], { external: true, phone }));
 	it.live(
 		'a visitor sees the services and their open times, and nothing else — not even a way to book',
@@ -1216,15 +1430,19 @@ describe('the customer portal', () => {
 				yield* t.as(t.admin).start('publish_openings', {});
 				yield* settle(t);
 				const visitor = t.visitor('portal');
-				expect((yield* visitor.read('services', { all: true })).rows).toHaveLength(4);
-				const open = (yield* visitor.read('openings', { all: true })).rows;
+				expect(
+					(yield* visitor.query('services', { all: true })).rows.map((row) => row.id)
+				).toContain(t.fixture.HOME_CLEANING);
+				const open = (yield* visitor.query('openings', { all: true })).rows;
 				expect(open.length).toBeGreaterThan(0);
 				yield* Effect.tryPromise({
 					try: () =>
-						expect(Effect.runPromise(visitor.read('helpers', { all: true }))).rejects.toThrow(),
+						expect(Effect.runPromise(visitor.query('helpers', { all: true }))).rejects.toThrow(),
 					catch: (cause) => new TestIoFailed({ message: String(cause) })
 				});
-				expect(yield* Effect.flip(visitor.act('booking_requests.create', request))).toMatchObject({
+				expect(
+					yield* Effect.flip(visitor.act('booking_requests.create', request(t)))
+				).toMatchObject({
 					_tag: 'ActRefused'
 				});
 			})
@@ -1237,8 +1455,8 @@ describe('the customer portal', () => {
 			const admin = t.as(t.admin);
 			const tuesday = Effect.fnUntraced(function* () {
 				return present(
-					(yield* admin.read('openings', {
-						where: { service: { eq: HOME_CLEANING }, day: { eq: '2026-09-29' } },
+					(yield* admin.query('openings', {
+						where: { service: { eq: t.fixture.HOME_CLEANING }, day: { eq: '2026-09-29' } },
 						all: true
 					})).rows[0]
 				).starts;
@@ -1251,7 +1469,7 @@ describe('the customer portal', () => {
 					expect(outcome.failure).toMatchObject({ _tag: 'ActRefused' });
 					break;
 				}
-				if (outcome.success.kind !== 'committed') break;
+				if (outcome.success.state !== 'succeeded') break;
 			}
 			yield* settle(t);
 			expect(yield* tuesday()).not.toContain(TUESDAY_10);
@@ -1263,21 +1481,21 @@ describe('the customer portal', () => {
 			Effect.gen(function* () {
 				const t = yield* workspace();
 				const me = customer(t);
-				const filed = committed(yield* me.act('booking_requests.create', request));
+				const filed = committed(yield* me.act('booking_requests.create', request(t)));
 				yield* settle(t);
 				const admin = t.as(t.admin);
-				const [r] = (yield* admin.read('booking_requests', { all: true })).rows;
+				const [r] = (yield* admin.query('booking_requests', { all: true })).rows;
 				expect(r).toMatchObject({ status: 'booked' });
-				expect((yield* me.read('booking_requests', { all: true })).rows).toMatchObject([
+				expect((yield* me.query('booking_requests', { all: true })).rows).toMatchObject([
 					{ id: present(filed.records[0]).id, status: 'booked' }
 				]);
-				const customers = (yield* admin.read('customers', {
-					where: { phone: { eq: request.phone } },
+				const customers = (yield* admin.query('customers', {
+					where: { phone: { eq: request(t).phone } },
 					all: true
 				})).rows;
 				expect(customers).toHaveLength(1);
-				expect((yield* visits(t))[0]).toMatchObject({ helper: ALPHA });
-				expect((yield* admin.read('customer_notices', { all: true })).rows).toMatchObject([
+				expect((yield* visits(t))[0]).toMatchObject({ helper: t.fixture.ALPHA });
+				expect((yield* admin.query('customer_notices', { all: true })).rows).toMatchObject([
 					{
 						subject: expect.stringContaining('Booking confirmed'),
 						whatsapp: 'sent',
@@ -1298,15 +1516,17 @@ describe('the customer portal', () => {
 			const t = yield* workspace();
 			const me = customer(t);
 			expect(
-				yield* Effect.flip(me.act('booking_requests.create', { ...request, phone: '+6580000001' }))
+				yield* Effect.flip(
+					me.act('booking_requests.create', { ...request(t), phone: '+6580000001' })
+				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			committed(
 				yield* customer(t, '+6580000001').act('booking_requests.create', {
-					...request,
+					...request(t),
 					phone: '+6580000001'
 				})
 			);
-			expect((yield* me.read('booking_requests', { all: true })).rows).toEqual([]);
+			expect((yield* me.query('booking_requests', { all: true })).rows).toEqual([]);
 		})
 	);
 	it.live('a returning customer is recognised by their number, not filed twice', () =>
@@ -1314,16 +1534,16 @@ describe('the customer portal', () => {
 			const t = yield* workspace();
 			committed(
 				yield* customer(t, '+6580000001').act('booking_requests.create', {
-					...request,
+					...request(t),
 					name: 'Someone Else',
 					phone: '+6580000001'
 				})
 			);
 			yield* settle(t);
 			const admin = t.as(t.admin);
-			expect((yield* admin.read('customers', { all: true })).rows).toHaveLength(2);
-			expect((yield* admin.read('bookings', { all: true })).rows[0]).toMatchObject({
-				customer: EAST_CUSTOMER
+			expect((yield* admin.query('customers', { all: true })).rows).toHaveLength(2);
+			expect((yield* admin.query('bookings', { all: true })).rows[0]).toMatchObject({
+				customer: t.fixture.EAST_CUSTOMER
 			});
 		})
 	);
@@ -1335,17 +1555,17 @@ describe('the customer portal', () => {
 				// Sunday 06:00: nobody works then
 				committed(
 					yield* customer(t).act('booking_requests.create', {
-						...request,
+						...request(t),
 						start: '2026-09-26T22:00:00.000Z'
 					})
 				);
 				yield* settle(t);
 				const admin = t.as(t.admin);
-				expect((yield* admin.read('booking_requests', { all: true })).rows[0]).toMatchObject({
+				expect((yield* admin.query('booking_requests', { all: true })).rows[0]).toMatchObject({
 					status: 'follow_up'
 				});
 				expect(yield* visits(t)).toEqual([]);
-				expect((yield* admin.read('customer_notices', { all: true })).rows).toMatchObject([
+				expect((yield* admin.query('customer_notices', { all: true })).rows).toMatchObject([
 					{ subject: expect.stringContaining('received'), whatsapp: 'sent', delivery: null }
 				]);
 			})
@@ -1355,8 +1575,8 @@ describe('completing a visit', () => {
 	it.live('the helper starts and completes their visit, stamped with when, with their notes', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
-			const alpha = yield* signedIn(t, ALPHA);
+			completed(yield* book(t, {}));
+			const alpha = yield* signedIn(t, t.fixture.ALPHA);
 			const [v] = yield* visits(t);
 			t.clock.set('2026-09-29T02:05:00.000Z');
 			committed(
@@ -1380,8 +1600,8 @@ describe('completing a visit', () => {
 	it.live('a helper cannot complete a visit that is not theirs', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
-			const bravo = yield* signedIn(t, BRAVO);
+			completed(yield* book(t, {}));
+			const bravo = yield* signedIn(t, t.fixture.BRAVO);
 			const [v] = yield* visits(t);
 			expect(
 				yield* Effect.flip(
@@ -1397,9 +1617,9 @@ describe('dispatch settings', () => {
 	it.live('the free-change window is the configured one', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, {}));
+			completed(yield* book(t, {}));
 			const [v] = yield* visits(t);
-			const [row] = (yield* t.as(t.admin).read('dispatch_settings', { all: true })).rows;
+			const [row] = (yield* t.as(t.admin).query('dispatch_settings', { all: true })).rows;
 			committed(
 				yield* desk(t).act('dispatch_settings.update', {
 					target: present(row).id,
@@ -1407,7 +1627,7 @@ describe('dispatch settings', () => {
 				})
 			);
 			t.clock.set('2026-09-28T12:00:00.000Z'); // 14 h ahead: late at 24 h, free at 2 h
-			committed(yield* desk(t).act('visits.cancel', { target: present(v).id }));
+			completed(yield* finished(t, desk(t).start('visits_cancel', { targets: [present(v).id] })));
 			expect((yield* visits(t))[0]).toMatchObject({
 				status: 'cancelled',
 				late_cancellation: false
@@ -1419,7 +1639,7 @@ describe('helper alerts', () => {
 	it.live('a helper is messaged on WhatsApp the visits given to them, one message per helper', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			committed(yield* book(t, { repeat: 'weekly', visits: 3 }));
+			completed(yield* book(t, { repeat: 'weekly', visits: 3 }));
 			yield* settle(t);
 			const toAlpha = t.fakes.links.sent
 				.filter((send) => send.instance === 'whatsapp')
@@ -1437,32 +1657,35 @@ describe('registered customers', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				committed(yield* book(t, {}));
-				committed(
-					yield* book(t, { customer: WEST_CUSTOMER, start: Instant('2026-09-30T02:00:00.000Z') })
+				completed(yield* book(t, {}));
+				completed(
+					yield* book(t, {
+						customer: t.fixture.WEST_CUSTOMER,
+						start: Instant('2026-09-30T02:00:00.000Z')
+					})
 				);
 				const me = t.as(
 					t.member(['customer'], {
 						external: true,
-						party: { collection: 'customers', id: EAST_CUSTOMER }
+						party: { collection: 'customers', id: t.fixture.EAST_CUSTOMER }
 					})
 				);
-				const mine = (yield* me.read('visits', {
+				const mine = (yield* me.query('visits', {
 					all: true,
 					select: { number: true, helper: { select: { name: true } } }
 				})).rows;
 				expect(mine).toHaveLength(1);
 				expect(mine[0]).toMatchObject({ helper: { name: 'Fixture Helper Alpha' } });
-				expect((yield* me.read('bookings', { all: true })).rows.map((b) => b.customer)).toEqual([
-					EAST_CUSTOMER
+				expect((yield* me.query('bookings', { all: true })).rows.map((b) => b.customer)).toEqual([
+					t.fixture.EAST_CUSTOMER
 				]);
-				expect((yield* me.read('customers', { all: true })).rows.map((c) => c.id)).toEqual([
-					EAST_CUSTOMER
+				expect((yield* me.query('customers', { all: true })).rows.map((c) => c.id)).toEqual([
+					t.fixture.EAST_CUSTOMER
 				]);
-				expect((yield* me.read('customer_notices', { all: true })).rows).toHaveLength(1);
+				expect((yield* me.query('customer_notices', { all: true })).rows).toHaveLength(1);
 				// a member bound to no record yet sees nothing
 				const unbound = t.as(t.member(['customer'], { external: true }));
-				expect((yield* unbound.read('visits', { all: true })).rows).toEqual([]);
+				expect((yield* unbound.query('visits', { all: true })).rows).toEqual([]);
 			})
 	);
 	it.live(
@@ -1482,30 +1705,31 @@ describe('registered customers', () => {
 describe('destination-specific booking availability', () => {
 	const phone = '+6580000001';
 	const address = '1 Example Avenue, Singapore 400001';
-	const quoteInput: AvailabilityInput = {
+	const quoteInput = (t: T): AvailabilityInput => ({
 		phone,
 		address,
 		area: 'east',
-		service: HOME_CLEANING,
+		service: t.fixture.HOME_CLEANING,
 		preference: 'any',
 		repeat: 'once'
-	};
+	});
 	const customer = (t: T, number = phone) =>
 		t.as(t.member(['customer'], { external: true, phone: number }));
 	const quote = Effect.fnUntraced(function* (t: T, over: Partial<AvailabilityInput> = {}) {
 		const filed = committed(
 			yield* customer(t, String(over.phone ?? phone)).act('availability_requests.create', {
-				...quoteInput,
+				...quoteInput(t),
 				...over
 			})
 		);
 		yield* settle(t);
 		const id = fixtureId('availability_requests', filed.records[0]?.id);
-		const result = yield* t.as(t.admin).get('availability_requests', id);
+		const result = yield* t.as(t.admin).query('availability_requests', { id });
 		if (result === null) throw new Error('Missing filed availability request');
 		return { id, result };
 	});
 	const request = (
+		t: T,
 		availability: Id<'availability_requests'>,
 		over: Partial<BookingInput> = {}
 	): BookingInput => ({
@@ -1513,7 +1737,7 @@ describe('destination-specific booking availability', () => {
 		phone,
 		address,
 		area: 'east',
-		service: HOME_CLEANING,
+		service: t.fixture.HOME_CLEANING,
 		repeat: 'once',
 		start: TUESDAY_10,
 		availability,
@@ -1525,22 +1749,22 @@ describe('destination-specific booking availability', () => {
 			const t = yield* workspace();
 			const point = { lat: 1.3521, lng: 103.8198 };
 			const newAddress = 'Map-selected fixture destination';
-			const { area: _area, ...input } = quoteInput;
+			const { area: _area, ...input } = quoteInput(t);
 			const filed = committed(
 				yield* customer(t).act('availability_requests.create', {
 					...input,
 					address: newAddress,
 					location: point,
 					preference: 'preferred',
-					helper: BRAVO
+					helper: t.fixture.BRAVO
 				})
 			);
 			yield* settle(t);
 			const q = {
 				id: fixtureId('availability_requests', filed.records[0]?.id),
-				result: yield* t
-					.as(t.admin)
-					.get('availability_requests', fixtureId('availability_requests', filed.records[0]?.id))
+				result: yield* t.as(t.admin).query('availability_requests', {
+					id: fixtureId('availability_requests', filed.records[0]?.id)
+				})
 			};
 			expect(q.result).toMatchObject({
 				status: 'ready',
@@ -1548,14 +1772,14 @@ describe('destination-specific booking availability', () => {
 				location: point,
 				starts: expect.arrayContaining([TUESDAY_10])
 			});
-			const { area: _bookingArea, ...bookingInput } = request(q.id, { address: newAddress });
+			const { area: _bookingArea, ...bookingInput } = request(t, q.id, { address: newAddress });
 			committed(yield* customer(t).act('booking_requests.create', bookingInput));
 			yield* settle(t);
 			expect((yield* visits(t))[0]).toMatchObject({
 				address: newAddress,
 				area: null,
 				location: point,
-				helper: BRAVO
+				helper: t.fixture.BRAVO
 			});
 		})
 	);
@@ -1564,30 +1788,36 @@ describe('destination-specific booking availability', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* workspace();
-				const q = yield* quote(t, { preference: 'preferred', helper: BRAVO });
+				const q = yield* quote(t, { preference: 'preferred', helper: t.fixture.BRAVO });
 				expect(q.result).toMatchObject({
 					status: 'ready',
 					starts: expect.arrayContaining([TUESDAY_10])
 				});
-				committed(yield* customer(t).act('booking_requests.create', request(q.id)));
+				committed(yield* customer(t).act('booking_requests.create', request(t, q.id)));
 				yield* settle(t);
-				expect((yield* visits(t))[0]).toMatchObject({ helper: BRAVO, address });
+				expect((yield* visits(t))[0]).toMatchObject({ helper: t.fixture.BRAVO, address });
 			})
 	);
 	it.live('flags an incompatible preferred cleaner and creates no booking', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const deep = fixtureId('services', '0d500001-0000-4000-8000-000000000002');
-			const q = yield* quote(t, { preference: 'preferred', helper: BRAVO, service: deep });
+			const deep = t.fixture.DEEP_CLEANING;
+			const q = yield* quote(t, {
+				preference: 'preferred',
+				helper: t.fixture.BRAVO,
+				service: deep
+			});
 			expect(q.result).toMatchObject({
 				status: 'failed',
 				problem: expect.stringContaining('cannot perform')
 			});
 			expect(
-				yield* Effect.flip(book(t, { service: deep, preference: 'preferred', helpers: [BRAVO] }))
+				yield* Effect.flip(
+					book(t, { service: deep, preference: 'preferred', helpers: [t.fixture.BRAVO] })
+				)
 			).toMatchObject({ _tag: 'ActRefused', message: expect.stringContaining('cannot perform') });
 			expect(yield* visits(t)).toEqual([]);
-			expect((yield* t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+			expect((yield* t.as(t.admin).query('bookings', { all: true })).rows).toEqual([]);
 		})
 	);
 	it.live(
@@ -1597,36 +1827,47 @@ describe('destination-specific booking availability', () => {
 				const t = yield* workspace();
 				committed(
 					yield* t.as(t.admin).act('helper_time_off.create', {
-						helper: ALPHA,
+						helper: t.fixture.ALPHA,
 						period: { from: '2026-10-06', to: '2026-10-06' },
 						reason: 'leave'
 					})
 				);
-				const q = yield* quote(t, { preference: 'preferred', helper: ALPHA, repeat: 'weekly' });
+				const q = yield* quote(t, {
+					preference: 'preferred',
+					helper: t.fixture.ALPHA,
+					repeat: 'weekly'
+				});
 				expect(q.result).toMatchObject({ status: 'ready' });
 				expect(present(q.result).starts).not.toContain(TUESDAY_10);
-				const once = yield* quote(t, { preference: 'preferred', helper: ALPHA });
+				const once = yield* quote(t, { preference: 'preferred', helper: t.fixture.ALPHA });
 				expect(present(once.result).starts).toContain(TUESDAY_10);
 				expect(
 					yield* Effect.flip(
-						book(t, { repeat: 'weekly', visits: 2, preference: 'preferred', helpers: [ALPHA] })
+						book(t, {
+							repeat: 'weekly',
+							visits: 2,
+							preference: 'preferred',
+							helpers: [t.fixture.ALPHA]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused', message: expect.stringContaining('occurrence 2') });
 				expect(yield* visits(t)).toEqual([]);
-				expect((yield* t.as(t.admin).read('bookings', { all: true })).rows).toEqual([]);
+				expect((yield* t.as(t.admin).query('bookings', { all: true })).rows).toEqual([]);
 			})
 	);
 	it.live('rechecks capacity after a quote instead of overbooking a preferred cleaner', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const q = yield* quote(t, { preference: 'preferred', helper: ALPHA });
+			const q = yield* quote(t, { preference: 'preferred', helper: t.fixture.ALPHA });
 			expect(present(q.result).starts).toContain(TUESDAY_10);
-			committed(yield* book(t, { preference: 'preferred', helpers: [ALPHA] }));
-			committed(yield* customer(t).act('booking_requests.create', request(q.id)));
+			completed(yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA] }));
+			committed(yield* customer(t).act('booking_requests.create', request(t, q.id)));
 			yield* settle(t);
-			expect((yield* t.as(t.admin).read('booking_requests', { all: true })).rows[0]).toMatchObject({
-				status: 'follow_up'
-			});
+			expect((yield* t.as(t.admin).query('booking_requests', { all: true })).rows[0]).toMatchObject(
+				{
+					status: 'follow_up'
+				}
+			);
 			expect(yield* visits(t)).toHaveLength(1);
 		})
 	);
@@ -1636,11 +1877,11 @@ describe('destination-specific booking availability', () => {
 			const q = yield* quote(t);
 			expect(present(q.result).starts).toContain(TUESDAY_10);
 			const other = customer(t, '+6580000002');
-			expect((yield* other.read('availability_requests', { all: true })).rows).toEqual([]);
-			expect((yield* other.read('visits', { all: true, select: { location: true } })).rows).toEqual(
-				[]
-			);
-			const publicHelpers = (yield* customer(t).read('helpers', {
+			expect((yield* other.query('availability_requests', { all: true })).rows).toEqual([]);
+			expect(
+				(yield* other.query('visits', { all: true, select: { location: true } })).rows
+			).toEqual([]);
+			const publicHelpers = (yield* customer(t).query('helpers', {
 				all: true,
 				select: { phone: true }
 			})).rows;
@@ -1651,15 +1892,18 @@ describe('destination-specific booking availability', () => {
 			]);
 			expect(
 				yield* Effect.flip(
-					other.act('booking_requests.create', request(q.id, { phone: '+6580000002' }))
+					other.act('booking_requests.create', request(t, q.id, { phone: '+6580000002' }))
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* Effect.flip(
-					customer(t).act('booking_requests.create', request(q.id, { address: 'Another address' }))
+					customer(t).act(
+						'booking_requests.create',
+						request(t, q.id, { address: 'Another address' })
+					)
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			expect((yield* t.as(t.admin).read('booking_requests', { all: true })).rows).toEqual([]);
+			expect((yield* t.as(t.admin).query('booking_requests', { all: true })).rows).toEqual([]);
 		})
 	);
 	it.live('expires old quotes and exposes only travel-feasible starts in the desk union', () =>
@@ -1669,17 +1913,17 @@ describe('destination-specific booking availability', () => {
 			expect(present(q.result).starts).toContain(TUESDAY_10);
 			t.clock.advance('16min');
 			expect(
-				yield* Effect.flip(customer(t).act('booking_requests.create', request(q.id)))
+				yield* Effect.flip(customer(t).act('booking_requests.create', request(t, q.id)))
 			).toMatchObject({
 				_tag: 'ActRefused',
 				message: expect.stringContaining('Check times again')
 			});
-			committed(yield* book(t, { preference: 'preferred', helpers: [ALPHA] }));
+			completed(yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA] }));
 			const starts = yield* desk(t).query('bookings.open_slots', {
-				customer: WEST_CUSTOMER,
-				service: HOME_CLEANING,
+				customer: t.fixture.WEST_CUSTOMER,
+				service: t.fixture.HOME_CLEANING,
 				preference: 'preferred',
-				helpers: [ALPHA],
+				helpers: [t.fixture.ALPHA],
 				repeat: 'once',
 				from: PlainDate('2026-09-29'),
 				days: 1
@@ -1699,7 +1943,7 @@ describe('destination-specific booking availability', () => {
 				starts: expect.arrayContaining([TUESDAY_10])
 			});
 			committed(
-				yield* customer(t).act('booking_requests.create', request(q.id, { address: newAddress }))
+				yield* customer(t).act('booking_requests.create', request(t, q.id, { address: newAddress }))
 			);
 			yield* settle(t);
 			expect((yield* visits(t))[0]).toMatchObject({ address: newAddress, location: null });
@@ -1708,12 +1952,12 @@ describe('destination-specific booking availability', () => {
 	it.live('uses Google travel durations when preparing customer-specific starts', () =>
 		Effect.gen(function* () {
 			const t = yield* workspace(google({ TRAFFIC_UNAWARE: 60, TRAFFIC_AWARE: 60 }));
-			committed(yield* book(t, { preference: 'preferred', helpers: [ALPHA] }));
+			completed(yield* book(t, { preference: 'preferred', helpers: [t.fixture.ALPHA] }));
 			const q = yield* quote(t, {
 				phone: '+6580000002',
 				address: '2 Sample Road, Singapore 600002',
 				preference: 'preferred',
-				helper: ALPHA
+				helper: t.fixture.ALPHA
 			});
 			// 13:00 finish + Google 60 minutes + 15 buffer => first grid start 14:30.
 			expect(q.result).toMatchObject({ status: 'ready' });

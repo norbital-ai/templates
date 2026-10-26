@@ -12,7 +12,8 @@ export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
 	connections: {
-		customer_mail: { integration: 'customer_mail_delivery' },
+		// the business mailbox customer notices are emailed from (`customer_notices.syncs.mail`)
+		customer_mail: { integration: 'email' },
 		whatsapp: { integration: 'whatsapp' },
 		google_routes: { integration: 'google_routes' }
 	},

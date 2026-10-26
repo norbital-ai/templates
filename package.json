@@ -4,15 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"check": "bolt check",
 		"build": "bolt build",
 		"dev": "bolt dev",
-		"test": "bolt build && bolt test",
-		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"test": "bolt test",
+		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"@iconify/svelte": "^5.2.2",
 		"@norbital-ai/bolt": "0.0.1",
 		"@norbital-ai/std": "0.0.1",
 		"@norbital-ai/ui": "0.0.1",
@@ -20,16 +17,12 @@
 		"svelte": "^5.57.1"
 	},
 	"devDependencies": {
-		"@effect/platform-node": "4.0.0-rc.112",
 		"@norbital-ai/bolt-server": "0.0.1",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.4.0",
-		"@typescript/native": "npm:typescript@7.0.2",
 		"happy-dom": "20.11.6",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
-		"svelte-check": "^4.7.6",
-		"typescript": "6.0.3",
 		"vite": "^8.2.2",
 		"vitest": "4.1.11",
 		"@effect/vitest": "4.0.0-rc.112"

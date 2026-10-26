@@ -4,6 +4,18 @@ export default policy({
 	description:
 		'Scheduler: settings, services, customers, bookings and portal requests, visits, helpers and their time off, warnings and customer notices.',
 	capabilities: { apps: ['scheduler', 'helper'] },
+	automations: [
+		'helpers_offboard',
+		'bookings_book',
+		'bookings_cancel',
+		'visits_reassign',
+		'visits_reschedule',
+		'visits_cancel',
+		'visits_accept_proposal',
+		'visits_recommend',
+		'visits_rebook',
+		'visits_report_unavailable'
+	],
 	grants: {
 		dispatch_settings: { read: true, create: true, update: true },
 		services: { read: true, create: true, update: true, delete: true },
@@ -15,8 +27,7 @@ export default policy({
 			create: true,
 			update: true,
 			moves: 'all',
-			queries: ['open_slots'],
-			actions: ['offboard']
+			queries: ['open_slots']
 		},
 		helper_time_off: { read: true, create: true, update: true, delete: true },
 		booking_requests: { read: true, update: true, moves: 'all' },
@@ -25,24 +36,14 @@ export default policy({
 			create: true,
 			update: true,
 			moves: 'all',
-			queries: ['open_slots'],
-			actions: ['book', 'cancel']
+			queries: ['open_slots']
 		},
 		booking_helpers: { read: true },
 		visits: {
 			read: true,
 			update: true,
 			moves: 'all',
-			queries: ['candidates', 'rebooking_slots'],
-			actions: [
-				'reassign',
-				'reschedule',
-				'cancel',
-				'accept_proposal',
-				'recommend',
-				'rebook',
-				'report_unavailable'
-			]
+			queries: ['candidates', 'rebooking_slots']
 		},
 		helper_warnings: { read: true, create: true },
 		customer_notices: { read: true, create: true },

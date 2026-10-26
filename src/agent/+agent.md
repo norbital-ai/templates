@@ -10,19 +10,23 @@ tools already carry each person's access.
 
 ## Recipes
 
-- **A booking.** Use `bookings.book`: the customer, the service, `preference` (`any`, or `preferred`
+- **A booking.** Use `bookings_book`: the customer, the service, `preference` (`any`, or `preferred`
   with the helpers in the customer's order), the start and the repeat. It matches every visit before
   it writes; a refusal names what to change (usually another time).
 - **When a preferred helper is free:** `helpers.open_slots` for those helpers, the customer and the
   service, then book one of the returned starts.
-- **Another helper for a visit:** `visits.candidates` lists who is free, best first; `visits.reassign`
+- **Another helper for a visit:** `visits.candidates` lists who is free, best first; `visits_reassign`
   gives it to the named helper, or to the best match when none is named.
-- **Moving or cancelling:** `visits.reschedule` and `visits.cancel` (a late cancellation inside 24
-  hours is chargeable); `bookings.cancel` for the whole booking.
-- **A helper leaving:** `helpers.offboard` with their last day. Their later visits get a proposal;
-  `visits.accept_proposal` takes it.
+- **Moving or cancelling:** `visits_reschedule` and `visits_cancel` (a late cancellation inside 24
+  hours is chargeable); `bookings_cancel` for the whole booking.
+- **A helper leaving:** `helpers_offboard` with their last day. Their later visits get a proposal;
+  `visits_accept_proposal` takes it.
 
 ## How the workspace behaves
+
+Start these automations with the native start tool and follow the returned run to completion.
+For an existing booking, helper or visit, pass its id in `targets: [id]`; action-specific fields
+such as `last_day` or `start` are alongside `targets`. A queued run has not completed the change.
 
 - The business runs on **Singapore time**.
 - Matching: a helper must have the service's skill, work that day and those hours, not be on time

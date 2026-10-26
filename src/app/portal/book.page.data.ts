@@ -6,18 +6,18 @@ import { SKILLS } from '../../lib/matching.js';
 
 export const bookReads = {
 	mine: {
-		collection: 'customers',
+		from: 'customers',
 		select: { name: true, address: true, location: true },
 		limit: 1
 	},
 	services: {
-		collection: 'services',
+		from: 'services',
 		select: { name: true, duration_minutes: true, description: true, skill: true },
 		orderBy: { name: 'asc' },
 		limit: 20
 	},
 	helpers: {
-		collection: 'helpers',
+		from: 'helpers',
 		select: { name: true, skills: true },
 		all: true
 	}

@@ -58,10 +58,16 @@
 			{ field: 'slot', label: t('models.visits.fields.slot'), cell: timerCell }
 		]}
 		actions={[
-			{ action: 'visits.recommend', label: t('app.schedule.auto_reassign') },
-			{ action: 'visits.accept_proposal', label: t('app.schedule.accept_proposal') },
 			{
-				action: 'visits.cancel',
+				run: (row) => bolt.start('visits_recommend', { targets: [row.id] }),
+				label: t('app.schedule.auto_reassign')
+			},
+			{
+				run: (row) => bolt.start('visits_accept_proposal', { targets: [row.id] }),
+				label: t('app.schedule.accept_proposal')
+			},
+			{
+				run: (row) => bolt.start('visits_cancel', { targets: [row.id] }),
 				label: t('app.schedule.cancel_visit'),
 				confirm: t('app.schedule.cancel_visit_confirm')
 			}

@@ -5,27 +5,18 @@
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
 	 */
 	import { bolt } from '$bolt';
-	import { untrack } from 'svelte';
 	import { Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { live } from '../../lib/live.svelte.js';
 	import type Data from './visits.page.data.js';
 	import { visitsReads } from './visits.page.data.js';
 	let { data }: { data: typeof Data.Type } = $props();
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
 	const me = bolt.actor?.kind === 'member';
-	const visits = live(
-		() => (!me ? null : bolt.read('visits', visitsReads.visits)),
-		['visits', 'helpers'],
-		untrack(() => data.visits ?? undefined)
-	);
-	const notices = live(
-		() => (!me ? null : bolt.read('customer_notices', visitsReads.notices)),
-		undefined,
-		untrack(() => data.notices ?? undefined)
-	);
+	const reads = me ? bolt.query(visitsReads) : null;
+	// the server's answer until the live one arrives
+	const answer = $derived(reads?.current ?? data);
 	const sorted = $derived(
-		[...(visits.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
+		[...(answer.visits?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
 	);
 	const upcoming = $derived(sorted.filter((v) => v.status !== 'done'));
 	const done = $derived(
@@ -61,7 +52,7 @@
 			{:else}
 				<Stack gap="sm">
 					<Label>{t('app.portal.visits_upcoming')}</Label>
-					{#if visits.current === undefined}
+					{#if answer.visits == null}
 						<p class="text-caption">{t('component.loading')}</p>
 					{:else if upcoming.length === 0}
 						<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
@@ -102,10 +93,10 @@
 						{/each}
 					</Stack>
 				{/if}
-				{#if (notices.current?.rows.length ?? 0) > 0}
+				{#if (answer.notices?.rows.length ?? 0) > 0}
 					<Stack gap="sm">
 						<Label>{t('app.portal.visits_messages')}</Label>
-						{#each notices.current?.rows ?? [] as n (n.id)}
+						{#each answer.notices?.rows ?? [] as n (n.id)}
 							<Stack gap="xs">
 								<p class="text-sm font-medium">{n.subject}</p>
 								<p class="text-sm text-muted-foreground">{n.body}</p>

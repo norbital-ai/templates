@@ -4,7 +4,7 @@ export default messages({
 	'section.account_location': '登录与位置',
 	'section.map': '地图位置',
 	'section.notes': '备注',
-	'section.checks': '调度检查',
+	'section.checks': '自动检查',
 	'section.completion': '完工',
 	'section.delivery': '投递',
 	'summary.no_notes': '无备注',
@@ -355,5 +355,7 @@ export default messages({
 	'models.visits.fields.attention.none': '正常',
 	'models.visits.fields.attention.unassigned': '需要帮手',
 	'models.visits.fields.attention.eta_risk': '到达风险',
-	'models.visits.fields.attention.helper_left': '帮手已离职'
+	'models.visits.fields.attention.helper_left': '帮手已离职',
+	'section.attention': '需处理',
+	'section.where': '地点'
 });

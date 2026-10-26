@@ -8,6 +8,7 @@ const OWN = { helper: { is: SELF } } as const;
 export default policy({
 	description: 'A helper’s own visits, shift check answers, completion and reported position.',
 	capabilities: { apps: ['helper'] },
+	automations: ['visits_confirm_shift', 'visits_decline_shift'],
 	grants: {
 		helpers: {
 			read: {
@@ -51,8 +52,7 @@ export default policy({
 				]
 			},
 			update: { where: OWN, fields: ['status', 'shift_check', 'mc', 'completion_notes'] },
-			moves: { status: ['scheduled->in_progress', 'in_progress->done'] },
-			actions: ['confirm_shift', 'decline_shift']
+			moves: { status: ['scheduled->in_progress', 'in_progress->done'] }
 		},
 		bookings: {
 			read: {

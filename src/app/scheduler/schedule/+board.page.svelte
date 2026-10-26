@@ -10,7 +10,6 @@
 	import { addDays, Instant } from '@norbital-ai/std/date';
 	import { utcOf } from '@norbital-ai/std/zone';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { live } from '../../../lib/live.svelte.js';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
 	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
@@ -20,8 +19,8 @@
 		start: Instant(new Date(utcOf(day, 0, zone)).toISOString()),
 		end: Instant(new Date(utcOf(addDays(day, 1), 0, zone)).toISOString())
 	});
-	const helpers = live(() =>
-		bolt.read('helpers', {
+	const helpers = $derived(
+		bolt.query('helpers', {
 			where: { status: { eq: 'active' } },
 			select: { name: true },
 			orderBy: { name: 'asc' },
@@ -42,8 +41,8 @@
 				}).format(new Date(i));
 	const where = $derived({ slot: { overlaps: span }, status: { ne: 'cancelled' as const } });
 	/** Who each of the day's visits is for, and what: one read beside the board's own, keyed by visit. */
-	const booked = live(() =>
-		bolt.read('visits', {
+	const booked = $derived(
+		bolt.query('visits', {
 			where,
 			select: {
 				booking: {
@@ -120,9 +119,12 @@
 		toolbar={{ title: t('app.schedule.list'), controls: dayPicker, new: false }}
 		columns={['number', 'slot', 'helper', 'address', 'status', 'shift_check', 'eta_minutes']}
 		actions={[
-			{ action: 'visits.recommend', label: t('app.schedule.auto_reassign') },
 			{
-				action: 'visits.cancel',
+				run: (row) => bolt.start('visits_recommend', { targets: [row.id] }),
+				label: t('app.schedule.auto_reassign')
+			},
+			{
+				run: (row) => bolt.start('visits_cancel', { targets: [row.id] }),
 				label: t('app.schedule.cancel_visit'),
 				confirm: t('app.schedule.cancel_visit_confirm')
 			}
