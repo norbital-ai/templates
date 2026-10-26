@@ -639,6 +639,11 @@
 					"min": 0,
 					"scale": 3
 				},
+				"source_entry_id": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
 				"tax": {
 					"currency": "currency",
 					"kind": "money"
@@ -667,12 +672,17 @@
 		"orders": {
 			"audit": true,
 			"fields": {
+				"archived": {
+					"default": false,
+					"kind": "bool"
+				},
 				"check_hash": {
 					"hidden": true,
 					"kind": "text",
 					"optional": true
 				},
 				"closure_snapshot": {
+					"hidden": true,
 					"kind": "json",
 					"optional": true,
 					"shape": {
@@ -775,6 +785,41 @@
 								"contract": {
 									"kind": "text"
 								},
+								"events": {
+									"kind": "list",
+									"of": {
+										"fields": {
+											"at": {
+												"kind": "instant"
+											},
+											"key": {
+												"kind": "text"
+											},
+											"kind": {
+												"kind": "text"
+											},
+											"source_changed_at": {
+												"kind": "text",
+												"optional": true
+											},
+											"source_changed_by": {
+												"kind": "text",
+												"optional": true
+											},
+											"source_id": {
+												"kind": "text"
+											},
+											"source_version": {
+												"kind": "text"
+											},
+											"status": {
+												"kind": "text"
+											}
+										},
+										"kind": "object"
+									},
+									"optional": true
+								},
 								"freight_treatment": {
 									"kind": "enum",
 									"values": [
@@ -782,8 +827,102 @@
 										"include"
 									]
 								},
+								"kingdee": {
+									"fields": {
+										"archived": {
+											"kind": "bool"
+										},
+										"binding_id": {
+											"kind": "text",
+											"optional": true
+										},
+										"branch": {
+											"kind": "text"
+										},
+										"closed": {
+											"kind": "bool",
+											"optional": true
+										},
+										"content_hash": {
+											"kind": "text"
+										},
+										"entries": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"detail_id": {
+														"kind": "text"
+													},
+													"entry_id": {
+														"kind": "text"
+													},
+													"local_line_id": {
+														"kind": "text"
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										},
+										"exchange_rate": {
+											"kind": "text",
+											"optional": true
+										},
+										"live_source_id": {
+											"kind": "text"
+										},
+										"observed_at": {
+											"kind": "instant"
+										},
+										"source_changed_at": {
+											"kind": "text",
+											"optional": true
+										},
+										"source_changed_by": {
+											"kind": "text",
+											"optional": true
+										},
+										"source_id": {
+											"kind": "text"
+										},
+										"source_uuid": {
+											"kind": "text"
+										},
+										"source_version": {
+											"kind": "text"
+										},
+										"status": {
+											"kind": "enum",
+											"optional": true,
+											"values": [
+												"draft",
+												"issued",
+												"void"
+											]
+										}
+									},
+									"kind": "object",
+									"optional": true
+								},
+								"lifecycle": {
+									"kind": "enum",
+									"optional": true,
+									"values": [
+										"pending",
+										"current",
+										"superseded"
+									]
+								},
 								"ordered_on": {
 									"kind": "date"
+								},
+								"origin": {
+									"kind": "enum",
+									"optional": true,
+									"values": [
+										"local",
+										"kingdee"
+									]
 								},
 								"seal_hash": {
 									"kind": "text"
@@ -844,6 +983,10 @@
 													},
 													"quantity": {
 														"kind": "text"
+													},
+													"source_entry_id": {
+														"kind": "text",
+														"optional": true
 													},
 													"tax": {
 														"kind": "text"
@@ -907,6 +1050,19 @@
 									},
 									"kind": "object"
 								},
+								"supporting_documents": {
+									"accept": [
+										"application/pdf",
+										"image/jpeg",
+										"image/png",
+										"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+										"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+									],
+									"kind": "file",
+									"max": "20MiB",
+									"multiple": true,
+									"optional": true
+								},
 								"version": {
 									"kind": "int"
 								}
@@ -928,6 +1084,19 @@
 						"sales",
 						"purchasing"
 					]
+				},
+				"draft_document_ids": {
+					"hidden": true,
+					"kind": "list",
+					"of": {
+						"kind": "text"
+					},
+					"optional": true
+				},
+				"draft_setup": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
 				},
 				"freight_treatment": {
 					"default": "deduct",
@@ -970,6 +1139,10 @@
 						"kind": "list",
 						"of": {
 							"fields": {
+								"current": {
+									"kind": "bool",
+									"optional": true
+								},
 								"lines": {
 									"kind": "list",
 									"of": {
@@ -1023,10 +1196,6 @@
 				},
 				"payment_terms": {
 					"kind": "text"
-				},
-				"reason": {
-					"kind": "text",
-					"optional": true
 				},
 				"seal_hash": {
 					"hidden": true,
@@ -1167,6 +1336,10 @@
 										"quantity": {
 											"kind": "text"
 										},
+										"source_entry_id": {
+											"kind": "text",
+											"optional": true
+										},
 										"tax": {
 											"kind": "text"
 										},
@@ -1230,33 +1403,52 @@
 						"kind": "object"
 					}
 				},
+				"source_order_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
 				"status": {
 					"initial": "draft",
 					"kind": "state",
 					"states": {
-						"cancelled": {
-							"edit": "none"
-						},
-						"closed": {
-							"edit": "none"
-						},
 						"confirmed": {
 							"edit": [
-								"reason",
-								"closure_snapshot",
+								"title",
+								"notes",
+								"archived",
 								"contract_versions",
+								"source_order_key",
+								"draft_setup",
 								"operational_contracts",
-								"check_hash"
+								"check_hash",
+								"contract_version",
+								"sealed_at",
+								"sealed_by",
+								"sealed_snapshot",
+								"sealed_commission",
+								"sealed_contract",
+								"sealed_contract_version",
+								"seal_hash",
+								"freight_treatment",
+								"warehouse",
+								"ordered_on",
+								"currency",
+								"tax_inclusive",
+								"valid_from",
+								"valid_until",
+								"payment_terms",
+								"delivery_terms",
+								"supporting_documents",
+								"draft_document_ids"
 							],
 							"to": [
-								"closed",
-								"cancelled"
+								"draft"
 							]
 						},
 						"draft": {
 							"to": [
-								"confirmed",
-								"cancelled"
+								"confirmed"
 							]
 						}
 					}
@@ -1304,6 +1496,10 @@
 				}
 			},
 			"nativeRules": 2,
+			"natural": [
+				"ledger",
+				"source_order_key"
+			],
 			"search": {
 				"text": [
 					"number",

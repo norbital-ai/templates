@@ -9,7 +9,7 @@ type Commitment = Pick<
 	Row<'orders'>,
 	'id' | 'warehouse' | 'direction' | 'status' | 'sealed_at' | 'seal_hash'
 > &
-	Partial<Pick<Row<'orders'>, 'operational_contracts'>>;
+	Partial<Pick<Row<'orders'>, 'operational_contracts' | 'archived'>>;
 type Line = {
 	id: string;
 	order: string;
@@ -74,10 +74,11 @@ export function availability(
 				order.operational_contracts && !isMasked(order.operational_contracts)
 					? order.operational_contracts
 					: [];
-			const version = versions.at(-1);
-			return { order, version, seal: version?.seal_hash ?? order.seal_hash };
+			const marked = versions.some((version) => version.current !== undefined);
+			const version = marked ? versions.find((version) => version.current) : versions.at(-1);
+			return { order, version, marked, seal: version?.seal_hash ?? order.seal_hash };
 		})
-		.filter(({ order, version }) => version || order.status === 'confirmed');
+		.filter(({ order, version, marked }) => version || (!marked && order.status === 'confirmed'));
 	if (approved.some(({ version }) => version?.lines.some((line) => !line.product)))
 		return {
 			sellable,

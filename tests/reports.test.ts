@@ -1,10 +1,12 @@
 import { fixtureId, decimalText } from './test-runtime.js';
-import { PlainDate } from '@norbital-ai/std/date';
+import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { sourceOrder, sourceTransaction, sourcePayment } from './synced-kit.js';
 import { expect, it as test } from '@effect/vitest';
 import { committed, workspace, draft, confirm, PRODUCT } from './kit.js';
+import { agreements } from '../src/lib/agreements.js';
+import { commissionCalculation, commissionRows, type CommissionFact } from '../src/lib/reports.js';
 test.live(
 	'AR separates applied payments, unapplied deposits, overdue buckets and overpayments',
 	() =>
@@ -21,6 +23,10 @@ test.live(
 				{ balance: decimalText('16.80'), bucket: '61_90', overpaid: decimalText('0') }
 			]);
 			yield* sourcePayment(t, parent, invoice.id, '20');
+			committed(
+				'orders',
+				yield* as.act('orders.update', { target: order, set: { archived: true } })
+			);
 			expect(yield* as.query('orders.ar_aging', { as_of: PlainDate('2026-10-10') })).toMatchObject([
 				{ balance: decimalText('0'), overpaid: decimalText('3.20') }
 			]);
@@ -80,6 +86,85 @@ test.live(
 			expect(before).toMatchObject([
 				{ reason: 'resolved', amount: decimalText('210.00'), spread: decimalText('1000.00000000') }
 			]);
+			const record = yield* as.query('orders', { id: order });
+			if (!record) throw new Error('Sealed order required');
+			const current = agreements(record)[0];
+			if (!current) throw new Error('Current contract required');
+			const pending = {
+				...current,
+				version: 2,
+				seal_hash: 'replacement-pending',
+				lifecycle: 'pending' as const,
+				snapshot: {
+					...current.snapshot,
+					lines: current.snapshot.lines.map((line) => ({
+						...line,
+						unit_price: '3',
+						net: '3000',
+						tax: '270',
+						total: '3270'
+					})),
+					net: '3000',
+					tax: '270',
+					total: '3270'
+				}
+			};
+			const replacement = {
+				...record,
+				contract_versions: [{ ...current, lifecycle: 'current' as const }, pending]
+			};
+			expect(commissionRows([replacement]).map((row) => row.amount?.toString())).toEqual([
+				'210.00'
+			]);
+			expect(commissionRows([replacement], 1).map((row) => row.amount?.toString())).toEqual([
+				'210.00'
+			]);
+			expect(
+				commissionRows([
+					{ ...record, contract_versions: [{ ...current, lifecycle: 'pending' as const }] }
+				])
+			).toEqual([]);
+			const voided = {
+				...record,
+				contract_versions: [
+					{
+						...current,
+						lifecycle: 'current' as const,
+						kingdee: {
+							branch: '0',
+							source_id: '34135',
+							live_source_id: '34135',
+							source_version: '000',
+							source_uuid: '00000000-0000-4000-8000-000000034135',
+							observed_at: Instant(t.clock.now()),
+							content_hash: 'retained-source-terms',
+							archived: false,
+							status: 'void' as const,
+							closed: false
+						}
+					}
+				]
+			};
+			expect(commissionRows([voided])).toEqual([]);
+			const sealedLine = current.snapshot.lines[0];
+			if (!sealedLine) throw new Error('Sealed commission line required');
+			const fact: CommissionFact = {
+				id: fixtureId('source_sales_lines', '00000000-0000-4000-8000-000000000999'),
+				order,
+				seal_hash: current.seal_hash,
+				order_line: sealedLine.id,
+				kind: 'shipment',
+				unit: 'kg',
+				quantity: Decimal.of('1000'),
+				currency: 'SGD',
+				net_amount: Decimal.of('2000'),
+				active: true,
+				business_on: PlainDate('2026-10-10')
+			};
+			expect(yield* commissionCalculation(voided, current.seal_hash, [fact])).toMatchObject({
+				amount: decimalText('210.00'),
+				snapshot: { eligible: true }
+			});
 			committed(
 				'commission_rules',
 				yield* as.act('commission_rules.update', {
@@ -93,6 +178,11 @@ test.live(
 					target: floor,
 					set: { floor_price: Decimal.of('100') }
 				})
+			);
+			expect(yield* as.query('orders.commission', {})).toEqual(before);
+			committed(
+				'orders',
+				yield* as.act('orders.update', { target: order, set: { archived: true } })
 			);
 			expect(yield* as.query('orders.commission', {})).toEqual(before);
 		})

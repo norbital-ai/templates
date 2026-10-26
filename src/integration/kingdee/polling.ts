@@ -12,7 +12,11 @@ import { bindings, normalizeSourceRow, type SourceBindingName } from './source-b
 export class SourceRowInvalid extends Schema.TaggedError<SourceRowInvalid>()('SourceRowInvalid', {
 	column: Schema.String,
 	reason: Schema.String
-}) {}
+}) {
+	override get message() {
+		return `${this.column}: ${this.reason}`;
+	}
+}
 export class SourceUnavailable extends Schema.TaggedError<SourceUnavailable>()(
 	'SourceUnavailable',
 	{

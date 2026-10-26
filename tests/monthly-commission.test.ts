@@ -4,10 +4,10 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Schema, Effect, Result } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { configuredCommission } from './commission-kit.js';
-import { direct, sourceOrder, sync } from './synced-kit.js';
+import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { committed, confirm, draft, orderRun, PRODUCT } from './kit.js';
+import { committed, confirm, draft, PRODUCT } from './kit.js';
 const configuredMonthly = Effect.fnUntraced(function* () {
 	let facts: Record<string, Json>[] = [];
 	const setup = yield* configuredCommission();
@@ -51,7 +51,7 @@ const configuredMonthly = Effect.fnUntraced(function* () {
 	return { ...setup, addFact, deactivate };
 });
 test.live(
-	'monthly statement freezes SO proofs, retains cancelled beneficiaries and refuses stale or duplicate sign-offs',
+	'monthly statement freezes contract proofs, retains archived beneficiaries and refuses stale or duplicate sign-offs',
 	() =>
 		Effect.gen(function* () {
 			const { t, as, sales, own, deactivate } = yield* configuredMonthly();
@@ -105,16 +105,10 @@ test.live(
 				latest_amount: decimalText('210.00')
 			});
 			const seal = yield* as.query('orders', { id: own.order });
-			const counterpart = yield* sourceOrder(t, own.order);
-			expect(
-				yield* sync(t, counterpart.collection, { ...counterpart.input, status: 'void' }, 'upsert')
-			).toMatchObject({ kind: 'committed' });
-			expect(
-				yield* orderRun(t, as, 'orders_cancel', {
-					target: own.order,
-					reason: 'Customer did not proceed'
-				})
-			).toMatchObject({ state: 'succeeded', output: null, error: null });
+			committed(
+				'orders',
+				yield* as.act('orders.update', { target: own.order, set: { archived: true } })
+			);
 			expect((yield* board())[0]).toMatchObject({
 				amount: decimalText('210.00'),
 				state: 'current'

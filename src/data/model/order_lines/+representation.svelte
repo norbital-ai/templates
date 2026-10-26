@@ -57,6 +57,15 @@
 {/snippet}
 <RecordForm
 	{view}
+	readonly={header?.current?.status !== 'draft' ||
+		Boolean(header?.current?.archived || header?.current?.draft_setup)}
+	readonlyReason={bolt.t(
+		header?.current?.archived
+			? 'component.order_archived'
+			: header?.current?.draft_setup
+				? 'errors.contract_setup'
+				: 'component.sealed'
+	)}
 	subtitle={['order']}
 	editors={{ product, unit_price: unitPrice }}
 	sections={[

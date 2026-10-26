@@ -1,6 +1,8 @@
 import { Decimal } from '@norbital-ai/std/decimal';
 import { model, type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
+import { currentAgreement } from '../../../lib/agreements.js';
+import { contractEntryId, draftLineMatches, draftLineTarget } from '../../../lib/contract-draft.js';
 import { price } from '../../../lib/commercial.js';
 const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
 type Cell = Decimal | number | `${number}`;
@@ -10,6 +12,7 @@ type Pricing = {
 	readonly product: Id<'products'>;
 	readonly cells: { readonly [K in (typeof cells)[number]]?: Cell | null };
 	readonly before: StoredRow<'order_lines'> | null;
+	readonly source_entry_id?: string | null;
 };
 /**
  * Prices every line against its draft order's currency, ledger and floor catalogue (two reads for the whole batch):
@@ -40,6 +43,7 @@ const priced = Effect.fnUntraced(function* (
 	const orders = yield* ctx.db.after('orders', { id: { in: lines.map((l) => l.order) } });
 	const out: Pick<
 		StoredRow<'order_lines'>,
+		| 'source_entry_id'
 		| 'quantity'
 		| 'unit_price'
 		| 'discount_pct'
@@ -56,13 +60,21 @@ const priced = Effect.fnUntraced(function* (
 		| 'commission_basis_unit'
 		| 'commission_factor'
 	>[] = [];
-	for (const { order: orderId, product: productId, cells: input, before: old } of lines) {
+	for (const {
+		order: orderId,
+		product: productId,
+		cells: input,
+		before: old,
+		source_entry_id: requestedEntry
+	} of lines) {
 		const order = orders.find((o) => o.id === orderId);
 		const product = products.rows.find((p) => p.id === productId);
 		if (
 			!order ||
+			order.archived ||
 			order.status !== 'draft' ||
-			[...salesOrders.rows, ...purchaseOrders.rows].some((row) => row.order === orderId)
+			([...salesOrders.rows, ...purchaseOrders.rows].some((row) => row.order === orderId) &&
+				!order.contract_versions?.length)
 		)
 			return yield* ctx.refuse('errors.order_sealed');
 		if (!product?.active) return yield* ctx.refuse('errors.product_inactive');
@@ -70,6 +82,16 @@ const priced = Effect.fnUntraced(function* (
 			return yield* ctx.refuse('errors.ledger_mismatch', { field: 'product' });
 		if (order.currency !== product.currency && input.unit_price == null && !old)
 			return yield* ctx.refuse('errors.currency_price');
+		const source_entry_id =
+			requestedEntry !== undefined ? requestedEntry : (old?.source_entry_id ?? null);
+		if (
+			!order.draft_setup &&
+			requestedEntry !== undefined &&
+			source_entry_id !== (old?.source_entry_id ?? null)
+		)
+			return yield* ctx.refuse('errors.evidence_sealed');
+		if (old?.source_entry_id && source_entry_id !== old.source_entry_id)
+			return yield* ctx.refuse('errors.evidence_sealed');
 		const quantity = input.quantity ?? old?.quantity;
 		const unit_price =
 			input.unit_price ??
@@ -92,6 +114,28 @@ const priced = Effect.fnUntraced(function* (
 			Decimal.of(tax_rate).gt(100)
 		)
 			return yield* ctx.refuse('errors.percentage');
+		let setupTarget;
+		if (order.draft_setup) {
+			const current = currentAgreement(order);
+			setupTarget = current?.snapshot.lines.find((line) =>
+				source_entry_id ? contractEntryId(current, line) === source_entry_id : line.id === old?.id
+			);
+			if (
+				!current ||
+				current.seal_hash !== order.draft_setup ||
+				!setupTarget ||
+				!draftLineMatches(current, setupTarget, {
+					product: productId,
+					source_entry_id,
+					unit,
+					quantity: Decimal.of(quantity),
+					unit_price: Decimal.of(unit_price),
+					discount_pct: Decimal.of(discount_pct),
+					tax_rate: Decimal.of(tax_rate)
+				})
+			)
+				return yield* ctx.refuse('errors.contract_setup');
+		}
 		const group = warehouses.rows.find((v) => v.id === order.warehouse)?.group_code;
 		const floor = floors.rows
 			.filter(
@@ -117,12 +161,13 @@ const priced = Effect.fnUntraced(function* (
 				: floor.floor_price
 			: null;
 		out.push({
+			source_entry_id,
 			quantity: Decimal.of(quantity),
 			unit_price: Decimal.of(unit_price),
 			discount_pct: Decimal.of(discount_pct),
 			tax_rate: Decimal.of(tax_rate),
-			product_code: old?.product_code ?? product.external_code,
-			product_name: old?.product_name ?? product.name,
+			product_code: setupTarget?.product_code ?? old?.product_code ?? product.external_code,
+			product_name: setupTarget?.product_name ?? old?.product_name ?? product.name,
 			unit,
 			...price(order, { quantity, unit_price, discount_pct, tax_rate }),
 			floor_net,
@@ -139,6 +184,7 @@ export default model('order_lines', {
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'lines', owned: true },
 		product: { kind: 'ref', to: 'products' },
+		source_entry_id: { kind: 'text', optional: true, hidden: true },
 		product_code: {
 			kind: 'text'
 		},
@@ -217,18 +263,24 @@ export default model('order_lines', {
 	read: 'all',
 	// a line created through its order's `with` runs this after the order's own `create.transform`
 	create: {
-		columns: ['order', 'product', ...cells],
+		columns: ['order', 'product', ...cells, 'source_entry_id'],
 		filled: ['unit_price', 'tax_rate'],
 		transform: function* (rows, ctx) {
 			const derived = yield* priced(
 				ctx,
-				rows.map((row) => ({ order: row.order, product: row.product, cells: row, before: null }))
+				rows.map((row) => ({
+					order: row.order,
+					product: row.product,
+					cells: row,
+					before: null,
+					...(row.source_entry_id !== undefined ? { source_entry_id: row.source_entry_id } : {})
+				}))
 			);
 			return rows.map((row, i) => ({ ...row, ...derived[i] }));
 		}
 	},
 	update: {
-		columns: cells,
+		columns: [...cells, 'source_entry_id'],
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -236,7 +288,8 @@ export default model('order_lines', {
 					order: before.order,
 					product: before.product,
 					cells: set,
-					before
+					before,
+					...(set.source_entry_id !== undefined ? { source_entry_id: set.source_entry_id } : {})
 				}))
 			);
 			return changes.map(({ set }, i) => ({ ...set, ...derived[i] }));
@@ -245,11 +298,33 @@ export default model('order_lines', {
 	delete: {
 		check: function* (rows, ctx) {
 			const orders = rows.map((row) => row.order);
+			const parents = yield* ctx.db.after('orders', { id: { in: orders } });
 			const { salesOrders, purchaseOrders } = yield* ctx.db.query({
 				salesOrders: { from: 'ext_sales_orders', where: { order: { in: orders } }, limit: 1 },
 				purchaseOrders: { from: 'ext_purchase_orders', where: { order: { in: orders } }, limit: 1 }
 			});
-			if (salesOrders.rows.length || purchaseOrders.rows.length)
+			for (const row of rows) {
+				const parent = parents.find((order) => order.id === row.order);
+				if (!parent?.draft_setup) continue;
+				const current = currentAgreement(parent);
+				const target = current ? draftLineTarget(current, row) : undefined;
+				if (
+					!current ||
+					current.seal_hash !== parent.draft_setup ||
+					(target && target.product === row.product && target.unit === row.unit)
+				)
+					return yield* ctx.refuse('errors.contract_setup');
+			}
+			if (
+				parents.some((order) => order.archived || order.status !== 'draft') ||
+				parents.some(
+					(order) =>
+						!order.contract_versions?.length &&
+						[...salesOrders.rows, ...purchaseOrders.rows].some(
+							(source) => source.order === order.id
+						)
+				)
+			)
 				return yield* ctx.refuse('errors.order_sealed');
 		}
 	}

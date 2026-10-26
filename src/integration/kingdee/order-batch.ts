@@ -5,6 +5,7 @@ import { SourceRowInvalid } from './polling.js';
 
 export type OrderLine = {
 	readonly id: string;
+	readonly source_entry_id?: string;
 	readonly product_code: string;
 	readonly unit: string;
 	readonly quantity: string;
@@ -28,6 +29,16 @@ export type OrderPayload = {
 	readonly party_code: string;
 	readonly payment_terms: string;
 	readonly lines: readonly OrderLine[];
+	readonly previous?: {
+		readonly binding_id: string;
+		readonly source_id: string;
+		readonly source_uuid: string;
+		readonly source_version: string;
+		readonly source_exchange_rate: string;
+		readonly agreement_hash: string;
+		readonly tax_inclusive: boolean;
+		readonly lines: readonly (OrderLine & { readonly source_entry_id: string })[];
+	};
 };
 export type SourceOrderBindings = {
 	readonly branchNo: string;
@@ -125,6 +136,70 @@ export function sourceInteger(value: string, column: string): string {
 		return invalid(column, 'A positive SQL Server internal ID is required');
 	return String(Number(value));
 }
+/** An amendment keeps existing entry identities and appends new ones; positions are never renumbered. */
+export function sourceEntryIds(payload: OrderPayload) {
+	if (
+		!Number.isInteger(payload.version) || payload.version < 1 ||
+		payload.lines.length === 0 || payload.lines.length > 200 ||
+		payload.lines.some((line) => line.id.trim() === '') ||
+		new Set(payload.lines.map((line) => line.id)).size !== payload.lines.length
+	)
+		return invalid('lines', 'A contract requires a bounded set of unique line identities');
+	if (payload.version === 1 && payload.previous === undefined) {
+		if (payload.lines.some((line) => line.source_entry_id !== undefined))
+			return invalid('FEntryID', 'Existing source entries require the previous source basis');
+		return payload.lines.map((line, index) => ({
+			local_line_id: line.id,
+			entry_id: String(index + 1)
+		}));
+	}
+	const previous = payload.previous;
+	if (
+		previous === undefined ||
+		previous.binding_id.trim() === '' || previous.binding_id.length > 512 ||
+		!/^\d{3}$/.test(previous.source_version) ||
+		previous.source_version === '999' ||
+		!previous.agreement_hash ||
+		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+			previous.source_uuid
+		) ||
+		previous.lines.length === 0 ||
+		previous.lines.length > 200 ||
+		new Set(previous.lines.map((line) => line.id)).size !== previous.lines.length
+	)
+		return invalid('version', 'An amendment requires the complete previously observed source version');
+	sourceInteger(previous.source_id, 'FInterID');
+	if (Decimal.of(previous.source_exchange_rate).lte(0))
+		return invalid('currency', 'A positive previously observed exchange rate is required');
+	const existing = new Map(
+		previous.lines.map((line) => [line.id, sourceInteger(line.source_entry_id, 'FEntryID')])
+	);
+	if (new Set(existing.values()).size !== existing.size)
+		return invalid('FEntryID', 'The previous source entry identities are ambiguous');
+	const sourceLines = new Map(
+		previous.lines.map((line) => [sourceInteger(line.source_entry_id, 'FEntryID'), line])
+	);
+	const used = new Set<string>();
+	let next = Math.max(...[...existing.values()].map(Number));
+	return payload.lines.map((line) => {
+		const known = existing.get(line.id);
+		const explicit = line.source_entry_id === undefined
+			? undefined
+			: sourceInteger(line.source_entry_id, 'FEntryID');
+		if (explicit !== undefined && !sourceLines.has(explicit))
+			return invalid('FEntryID', 'The claimed source entry is absent from the previous source basis');
+		if (explicit !== undefined && known !== undefined && explicit !== known)
+			return invalid('FEntryID', 'An existing local line cannot change its source entry identity');
+		const entry = explicit ?? known ?? sourceInteger(String(++next), 'FEntryID');
+		const basis = sourceLines.get(entry);
+		if (basis && (sourceInteger(basis.product_code, 'FItemID') !== sourceInteger(line.product_code, 'FItemID') || basis.unit !== line.unit))
+			return invalid('FEntryID', 'A source entry cannot be reassigned to another product or unit');
+		if (used.has(entry))
+			return invalid('FEntryID', 'More than one target line claims the same source entry');
+		used.add(entry);
+		return { local_line_id: line.id, entry_id: entry };
+	});
+}
 /** The installed ledger has no source credit-day column; the explicit term binding supplies this rule. */
 export function settlementDate(orderedOn: string, days: number, fromMonthEnd: boolean): string {
 	PlainDate(orderedOn);
@@ -159,8 +234,8 @@ export function sourceOrderBatch(
 ): SourceOrderBatch {
 	if (payload.direction !== 'sales')
 		return invalid('direction', 'The purchase-order write mapping has not been verified');
-	if (payload.version !== 1)
-		return invalid('version', 'Kingdee order amendments require a verified amendment mapping');
+	if (!Number.isInteger(payload.version) || payload.version < 1)
+		return invalid('version', 'A positive contract version is required');
 	if (
 		payload.lines.length === 0 ||
 		payload.lines.length > 200 ||
@@ -206,6 +281,7 @@ export function sourceOrderBatch(
 		FHeadSelfS0192: '-',
 		FSettleDate: `${settlementDate(payload.ordered_on, bindings.creditDays, bindings.fromMonthEnd)}T00:00:00`
 	};
+	const entries = sourceEntryIds(payload);
 	const rows = payload.lines.map((line, index) => {
 		const item = bindings.items[index];
 		if (item === undefined) return invalid('lines', 'Source item mapping is missing');
@@ -234,7 +310,7 @@ export function sourceOrderBatch(
 		const exclusive = payload.tax_inclusive ? discounted.div(factor, 8) : discounted;
 		const inclusive = payload.tax_inclusive ? discounted : discounted.times(factor).round(8);
 		return {
-			FEntryID: String(index + 1),
+			FEntryID: entries[index]?.entry_id ?? invalid('FEntryID', 'Source entry mapping is missing'),
 			FItemID: sourceInteger(item.itemId, 'FItemID'),
 			FUnitID: sourceInteger(item.unitId, 'FUnitID'),
 			FQty: quantity.toString(),

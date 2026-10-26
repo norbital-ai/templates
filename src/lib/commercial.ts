@@ -80,6 +80,7 @@ export function snapshot(
 			.sort((a, b) => a.id.localeCompare(b.id))
 			.map((l) => ({
 				id: l.id,
+				...(l.source_entry_id ? { source_entry_id: l.source_entry_id } : {}),
 				product: l.product,
 				product_code: l.product_code,
 				product_name: l.product_name,

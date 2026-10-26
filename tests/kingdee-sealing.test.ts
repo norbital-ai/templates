@@ -2,7 +2,7 @@ import { Effect, Schema } from 'effect';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { expect, it } from '@effect/vitest';
-import { committed, confirm, orderRun, workspace } from './kit.js';
+import { committed, confirm, workspace } from './kit.js';
 import { direct } from './synced-kit.js';
 import { kingdeeDraft, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 import { fixtureId, firstRow } from './test-runtime.js';
@@ -81,93 +81,86 @@ it.live.each(['configuration', 'source refusal'] as const)(
 		})
 );
 
-it.live('a quotation stays editable and local until confirmation irreversibly seals the SO', () =>
-	Effect.gen(function* () {
-		const fixture = kingdeeFixture();
-		const t = yield* workspace({ source: fixture.request });
-		const as = t.as(t.admin);
-		const own = yield* kingdeeDraft(t, fixture);
-		committed(
-			'orders',
-			yield* as.act('orders.update', {
-				target: own.order,
-				set: { notes: 'Agreed quotation wording' }
-			})
-		);
-		committed(
-			'order_lines',
-			yield* as.act('order_lines.update', {
-				target: own.line,
-				set: { quantity: Decimal.of(11) }
-			})
-		);
-		expect(yield* as.query('orders', { id: own.order })).toMatchObject({
-			notes: 'Agreed quotation wording'
-		});
-		expect((yield* as.query('orders.quotation_export', { order: own.order })).contract).toContain(
-			'11 kg'
-		);
-		yield* t.deliver();
-		expect(fixture.submissions.size).toBe(0);
-		yield* confirm(t, own.order);
-		const original = yield* as.query('orders', { id: own.order });
-		const line = yield* as.query('order_lines', { id: own.line });
-		expect(
-			(yield* as.query('ext_sales_orders', { where: { order: { eq: own.order } }, all: true })).rows
-		).toEqual([]);
-		// The lock applies before delivery or source polling, closing the acknowledgement-before-mirror gap.
-		expect(
-			yield* Effect.flip(
-				as.act('orders.update', {
+it.live(
+	'a quotation remains local until sealing its contract, and archiving does not drop its queued submission',
+	() =>
+		Effect.gen(function* () {
+			const fixture = kingdeeFixture();
+			const t = yield* workspace({ source: fixture.request });
+			const as = t.as(t.admin);
+			const own = yield* kingdeeDraft(t, fixture);
+			committed(
+				'orders',
+				yield* as.act('orders.update', {
 					target: own.order,
-					set: { status: 'draft' }
+					set: { notes: 'Agreed quotation wording' }
 				})
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(
-			yield* Effect.flip(
-				as.act('orders.update', {
-					target: own.order,
-					set: { payment_terms: 'Overwrite sealed terms' }
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(
-			yield* Effect.flip(
-				as.act('order_lines.update', {
+			);
+			committed(
+				'order_lines',
+				yield* as.act('order_lines.update', {
 					target: own.line,
-					set: { unit_price: Decimal.of(99) }
+					set: { quantity: Decimal.of(11) }
 				})
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(
-			yield* Effect.flip(
-				as.act('order_lines.create', {
-					order: own.order,
-					product: own.product,
-					quantity: Decimal.of(1),
-					unit_price: Decimal.of(2),
-					tax_rate: Decimal.of(13)
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(yield* Effect.flip(as.act('order_lines.delete', { target: own.line }))).toMatchObject({
-			_tag: 'ActRefused'
-		});
-		expect(
-			yield* orderRun(t, as, 'orders_cancel', {
-				target: own.order,
-				reason: 'Cancel before source polling'
-			})
-		).toMatchObject({ state: 'failed', error: { message: 'errors.remote_close_required' } });
-		expect(yield* as.query('orders', { id: own.order })).toEqual({
-			...original,
-			$sync: expect.anything()
-		});
-		expect(yield* as.query('order_lines', { id: own.line })).toEqual(line);
-		yield* t.deliver();
-		expect(fixture.submissions.size).toBe(1);
-	})
+			);
+			expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+				notes: 'Agreed quotation wording'
+			});
+			expect((yield* as.query('orders.quotation_export', { order: own.order })).contract).toContain(
+				'11 kg'
+			);
+			yield* t.deliver();
+			expect(fixture.submissions.size).toBe(0);
+			yield* confirm(t, own.order);
+			const original = yield* as.query('orders', { id: own.order });
+			const line = yield* as.query('order_lines', { id: own.line });
+			expect(
+				(yield* as.query('ext_sales_orders', { where: { order: { eq: own.order } }, all: true }))
+					.rows
+			).toEqual([]);
+			// The contract lock applies before delivery or source polling.
+			expect(
+				yield* Effect.flip(
+					as.act('orders.update', {
+						target: own.order,
+						set: { payment_terms: 'Overwrite sealed terms' }
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(
+				yield* Effect.flip(
+					as.act('order_lines.update', {
+						target: own.line,
+						set: { unit_price: Decimal.of(99) }
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(
+				yield* Effect.flip(
+					as.act('order_lines.create', {
+						order: own.order,
+						product: own.product,
+						quantity: Decimal.of(1),
+						unit_price: Decimal.of(2),
+						tax_rate: Decimal.of(13)
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(yield* Effect.flip(as.act('order_lines.delete', { target: own.line }))).toMatchObject({
+				_tag: 'ActRefused'
+			});
+			expect(yield* as.query('orders', { id: own.order })).toEqual({
+				...original,
+				$sync: expect.anything()
+			});
+			expect(yield* as.query('order_lines', { id: own.line })).toEqual(line);
+			committed(
+				'orders',
+				yield* as.act('orders.update', { target: own.order, set: { archived: true } })
+			);
+			yield* t.deliver();
+			expect(fixture.submissions.size).toBe(1);
+		})
 );
 
 it.live.each(['draft', 'issued', 'void'] as const)(
@@ -201,12 +194,12 @@ it.live.each(['draft', 'issued', 'void'] as const)(
 			const line = yield* as.query('order_lines', { id: own.line });
 			expect(mirror).toMatchObject({ status, agreement_hash: own.seal });
 			expect(
-				yield* Effect.flip(
-					as.act('orders.update', {
+				yield* as
+					.act('orders.update', {
 						target: own.order,
-						set: { status: 'draft' }
+						set: { payment_terms: 'Overwrite approved terms' }
 					})
-				)
+					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* direct(t, as.authority, {
@@ -224,50 +217,48 @@ it.live.each(['draft', 'issued', 'void'] as const)(
 		})
 );
 
-it.live(
-	'source voiding permits cancellation without removing the SO seal or reopening its terms',
-	() =>
-		Effect.gen(function* () {
-			const fixture = kingdeeFixture();
-			const t = yield* workspace({ source: fixture.request });
-			const as = t.as(t.admin);
-			const own = yield* kingdeeSale(t, fixture);
-			yield* t.deliver();
-			yield* t.pull('ext_sales_orders');
-			const original = yield* as.query('orders', { id: own.order });
-			expect(
-				yield* orderRun(t, as, 'orders_cancel', { target: own.order, reason: 'Cancel locally' })
-			).toMatchObject({ state: 'failed', error: { message: 'errors.remote_close_required' } });
-			const header = fixture.tables.SEOrder?.[0];
-			if (!header) throw new Error('The submitted source SO is missing');
-			fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
-				row === header ? { ...row, cancelled: true } : row
-			);
-			yield* t.pull('ext_sales_orders');
-			expect(
-				yield* orderRun(t, as, 'orders_cancel', {
-					target: own.order,
-					reason: 'Kingdee has voided it'
-				})
-			).toMatchObject({ state: 'succeeded' });
-			expect(yield* as.query('orders', { id: own.order })).toMatchObject({
-				status: 'cancelled',
-				seal_hash: original?.seal_hash,
-				sealed_contract: original?.sealed_contract,
-				sealed_snapshot: original?.sealed_snapshot
-			});
-			yield* t.pull('ext_sales_orders');
-			expect(
-				(yield* as.query('ext_sales_orders', { where: { order: { eq: own.order } }, all: true }))
-					.rows
-			).toMatchObject([{ status: 'void', agreement_hash: own.seal }]);
-			expect(
-				yield* Effect.flip(
-					as.act('orders.update', {
-						target: own.order,
-						set: { status: 'draft' }
-					})
-				)
-			).toMatchObject({ _tag: 'ActRefused' });
-		})
+it.live('archiving does not void Kingdee and a later source void retains the contract', () =>
+	Effect.gen(function* () {
+		const fixture = kingdeeFixture();
+		const t = yield* workspace({ source: fixture.request });
+		const as = t.as(t.admin);
+		const own = yield* kingdeeSale(t, fixture);
+		yield* t.deliver();
+		yield* t.pull('ext_sales_orders');
+		const original = yield* as.query('orders', { id: own.order });
+		if (!original) throw new Error('Sealed contract required');
+		committed(
+			'orders',
+			yield* as.act('orders.update', { target: own.order, set: { archived: true } })
+		);
+		yield* t.pull('ext_sales_orders');
+		expect(
+			(yield* as.query('ext_sales_orders', { where: { order: { eq: own.order } }, all: true })).rows
+		).toMatchObject([{ status: 'draft', agreement_hash: own.seal }]);
+		const header = fixture.tables.SEOrder?.[0];
+		if (!header) throw new Error('The submitted source SO is missing');
+		fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
+			row === header ? { ...row, cancelled: true } : row
+		);
+		yield* t.pull('ext_sales_orders');
+		expect(
+			(yield* as.query('ext_sales_orders', { where: { order: { eq: own.order } }, all: true })).rows
+		).toMatchObject([{ status: 'void', agreement_hash: own.seal }]);
+		expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+			archived: true,
+			status: 'confirmed',
+			seal_hash: original.seal_hash,
+			sealed_contract: original.sealed_contract,
+			sealed_snapshot: original.sealed_snapshot
+		});
+		committed(
+			'orders',
+			yield* as.act('orders.update', { target: own.order, set: { archived: false } })
+		);
+		expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+			archived: false,
+			status: 'confirmed',
+			seal_hash: original.seal_hash
+		});
+	})
 );

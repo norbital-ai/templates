@@ -1,11 +1,4 @@
-import type {
-	Committed,
-	PendingApproval,
-	Id,
-	Row,
-	CollectionName,
-	StartInput
-} from '@norbital-ai/bolt';
+import type { Committed, PendingApproval, Id, Row, CollectionName } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { PlainDate, Instant } from '@norbital-ai/std/date';
 import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
@@ -28,6 +21,7 @@ export function committed<C extends CollectionName, O, N extends string>(
 }
 /** The models the `kingdee` sync reads. */
 export type Synced =
+	| 'orders'
 	| 'parties'
 	| 'products'
 	| 'warehouses'
@@ -76,48 +70,6 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 	};
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;
-type OrderAutomation = 'orders_cancel' | 'orders_close';
-type OrderStart = {
-	[A in OrderAutomation]: [name: A, input: StartInput<A>];
-}[OrderAutomation];
-const OrderRun = Schema.Struct({
-	id: Schema.String,
-	automation: Schema.String,
-	state: Schema.String,
-	output: Schema.Json,
-	error: Schema.NullOr(
-		Schema.Struct({
-			code: Schema.String,
-			message: Schema.optionalKey(Schema.String),
-			field: Schema.optionalKey(Schema.String),
-			records: Schema.optionalKey(
-				Schema.Array(
-					Schema.Struct({
-						collection: Schema.String,
-						id: Schema.String,
-						fields: Schema.Array(Schema.String)
-					})
-				)
-			)
-		})
-	)
-});
-/** Enqueue the business operation, drain the real queue, and inspect its recorded outcome. */
-export const orderRun = Effect.fnUntraced(function* (
-	t: T,
-	caller: ReturnType<T['as']>,
-	...[name, input]: OrderStart
-) {
-	const started = yield* caller.start(name, input);
-	if (started.kind !== 'committed') throw new Error(JSON.stringify(started));
-	yield* t.runDue();
-	const [run] = yield* t.db.rows(OrderRun, {
-		text: 'SELECT id, automation, state, output, error FROM sys_run WHERE id = $1',
-		params: [started.output.id]
-	});
-	if (run === undefined) throw new Error(`Run ${started.output.id} was not recorded`);
-	return run;
-});
 export const draft = Effect.fnUntraced(function* (
 	t: T,
 	direction: Row<'orders'>['direction'] = 'sales',
@@ -163,4 +115,23 @@ export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 			set: { status: 'confirmed', check_hash: check.check_hash }
 		})
 	);
+});
+
+/** Start a replacement draft without mutating the current sealed contract. */
+export const revise = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
+	const as = t.as(t.admin);
+	const before = yield* as.query('orders', { id: order });
+	if (!before) throw new Error('Current contract required');
+	const started = yield* as.start('orders_revise', { target: order, revision: before.revision });
+	if (started.kind !== 'committed') throw new Error('Replacement must be admitted directly');
+	yield* t.runDue();
+	const [run] = yield* t.db.rows(
+		Schema.Struct({ state: Schema.String, error: Schema.NullOr(Schema.Json) }),
+		{
+			text: 'SELECT state, error FROM sys_run WHERE id = $1',
+			params: [started.output.id]
+		}
+	);
+	if (run?.state !== 'succeeded') throw new Error(JSON.stringify(run));
+	return order;
 });

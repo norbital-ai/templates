@@ -33,13 +33,7 @@ const settle = Effect.fnUntraced(function* (
 	for (const [i, { value, old }] of rows.entries()) {
 		if (!value.order) return yield* ctx.refuse('errors.order_not_confirmed', { row: i });
 		const order = orders.rows.find((row) => row.id === value.order);
-		if (
-			!order ||
-			order.direction !== 'sales' ||
-			(!['draft', 'confirmed', 'closed'].includes(order.status) &&
-				!(order.status === 'cancelled' && value.status === 'void')) ||
-			!agreement(order, value.agreement_hash)
-		)
+		if (!order || order.direction !== 'sales' || !agreement(order, value.agreement_hash))
 			return yield* ctx.refuse('errors.order_not_confirmed', { row: i });
 		if (order.ledger !== value.source)
 			return yield* ctx.refuse('errors.ledger_mismatch', { row: i });

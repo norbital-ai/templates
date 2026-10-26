@@ -67,7 +67,15 @@ export default model('parties', {
 						valid_until: { kind: 'date', optional: true },
 						state: {
 							kind: 'enum',
-							values: ['unknown', 'late', 'complete', 'overdue', 'in_progress']
+							values: [
+								'unknown',
+								'late',
+								'complete',
+								'overdue',
+								'in_progress',
+								'source_void',
+								'source_closed'
+							]
 						}
 					}
 				}

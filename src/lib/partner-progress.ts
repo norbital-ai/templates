@@ -1,5 +1,10 @@
-import { Decimal, sum } from '@norbital-ai/std/decimal';
-import { agreements, type AgreementOrder } from './agreements.js';
+import { currency, Decimal, sum } from '@norbital-ai/std/decimal';
+import {
+	agreements,
+	currentAgreement,
+	executableAgreement,
+	type AgreementOrder
+} from './agreements.js';
 
 import { PlainDate } from '@norbital-ai/std/date';
 import { isMasked, type Row } from '@norbital-ai/bolt';
@@ -26,8 +31,9 @@ export function partnerProgress(
 ) {
 	return orders.flatMap((order) => {
 		const versions = agreements(order),
-			current = versions.at(-1);
+			current = currentAgreement(order);
 		if (!current) return [];
+		const executable = executableAgreement(order);
 		const lines = new Map(
 			versions.flatMap((version) =>
 				version.snapshot.lines.map((line) => [`${version.seal_hash}:${line.id}`, line] as const)
@@ -104,16 +110,27 @@ export function partnerProgress(
 				else if (before) fulfilled = event.on;
 			}
 			if (!complete || events.some((event) => event.on === null)) fulfilled = null;
-			const state: 'unknown' | 'late' | 'complete' | 'overdue' | 'in_progress' =
-				quantity === null
-					? 'unknown'
-					: complete
-						? until && fulfilled && fulfilled > until
-							? 'late'
-							: 'complete'
-						: until && until < today
-							? 'overdue'
-							: 'in_progress';
+			const state:
+				| 'unknown'
+				| 'late'
+				| 'complete'
+				| 'overdue'
+				| 'in_progress'
+				| 'source_void'
+				| 'source_closed' =
+				current.kingdee?.status === 'void'
+					? 'source_void'
+					: current.kingdee?.closed
+						? 'source_closed'
+						: quantity === null
+							? 'unknown'
+							: complete
+								? until && fulfilled && fulfilled > until
+									? 'late'
+									: 'complete'
+								: until && until < today
+									? 'overdue'
+									: 'in_progress';
 			const invoiceItems = issued
 				.filter((doc) => doc.kind === 'invoice')
 				.flatMap((doc) =>
@@ -141,11 +158,11 @@ export function partnerProgress(
 				number: order.number,
 				sku: line.product_name,
 				unit: line.unit,
-				currency: order.currency,
+				currency: currency(current.snapshot.currency),
 				quota: Decimal.of(line.quantity),
 				delivered: quantity,
 				fulfillment: quantity?.times(100).div(line.quantity, 2) ?? null,
-				forecast: Decimal.of(line.net),
+				forecast: executable ? Decimal.of(line.net) : Decimal.of(0),
 				actual: value,
 				valid_until: until ? PlainDate(until) : null,
 				state

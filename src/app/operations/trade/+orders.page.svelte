@@ -1,13 +1,25 @@
 <script lang="ts">
 	import OrderCreateFields from '../../../lib/ui/order-create-fields.svelte';
-	import { type FormState, Dialog, useKinds, useBolt, Combobox, Button } from '@norbital-ai/ui';
+	import {
+		type FormState,
+		type RowIn,
+		type ColumnsIn,
+		Dialog,
+		useKinds,
+		useBolt,
+		Combobox,
+		Button,
+		Show
+	} from '@norbital-ai/ui';
 	import CreateTable from '../../../lib/ui/create-table.svelte';
 	import { bolt, fork, run } from '$bolt';
 	import { Effect } from 'effect';
-	import type { Id } from '@norbital-ai/bolt';
+	import { isMasked, type Id } from '@norbital-ai/bolt';
+	import { currentContractVersion } from '../../../lib/agreements.js';
 	const kinds = useKinds();
 	const translate = useBolt().t;
 	let previewOpen = $state(false);
+	let filing = $state('active');
 	let selectedOrder = $state<Id<'orders'> | null>(null);
 	let selectedVersion = $state<number | null>(null);
 	let exporting = $state(false);
@@ -70,6 +82,39 @@
 </script>
 
 {#snippet orderFields(form: FormState)}<OrderCreateFields {form} />{/snippet}
+{#snippet orderTotal({
+	row,
+	value
+}: {
+	row: RowIn<'orders'>;
+	value: ColumnsIn<'orders'>['contract_versions'] | undefined;
+})}
+	{@const accepted =
+		(row.status !== 'draft' || row.draft_setup) && value && !isMasked(value)
+			? currentContractVersion(value)
+			: undefined}
+	{#if accepted}
+		<Show
+			kind={{ kind: 'money', currency: accepted.snapshot.currency }}
+			value={accepted.snapshot.total}
+		/>
+	{:else}
+		<Show kind={{ kind: 'money', currency: 'currency' }} value={row.total} {row} />
+	{/if}
+{/snippet}
+
+{#snippet filingFilter()}<Combobox
+		size="sm"
+		value={filing}
+		aria-label={bolt.t('models.orders.fields.archived')}
+		options={[
+			{ value: 'active', label: bolt.t('component.order_active') },
+			{ value: 'archived', label: bolt.t('component.order_archived') }
+		]}
+		onChange={(value) => {
+			if (value) filing = value;
+		}}
+	/>{/snippet}
 <AppShell
 	description={bolt.t('app.trade.description')}
 	icon="lucide:clipboard-list"
@@ -78,11 +123,25 @@
 >
 	<CreateTable
 		of="orders"
-		where={{ direction: { eq: 'sales' } }}
+		where={{ direction: { eq: 'sales' }, archived: { eq: filing === 'archived' } }}
 		createValues={{ direction: 'sales' }}
+		allowCreate={filing === 'active'}
 		createForm={orderFields}
-		columns={['number', 'title', 'party', 'status', 'total', 'owner']}
+		columns={[
+			'number',
+			'title',
+			'party',
+			'status',
+			{
+				field: 'contract_versions',
+				label: bolt.t('models.orders.fields.total'),
+				align: 'end',
+				cell: orderTotal
+			},
+			'owner'
+		]}
 		toolbar={{
+			controls: filingFilter,
 			actions: [
 				...(kinds.catalog?.orders?.queries?.document_preview
 					? [

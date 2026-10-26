@@ -1,5 +1,6 @@
 import type { snapshot } from './commercial.js';
-import { isMasked, type Row } from '@norbital-ai/bolt';
+import { isMasked, type Row, type StoredRow } from '@norbital-ai/bolt';
+import { currency } from '@norbital-ai/std/decimal';
 export const agreementSelect = {
 	seal_hash: true,
 	sealed_snapshot: true,
@@ -11,7 +12,8 @@ export const agreementSelect = {
 	contract_versions: true,
 	ordered_on: true,
 	freight_treatment: true,
-	status: true
+	status: true,
+	supporting_documents: true
 } as const;
 export type AgreementOrder = Pick<
 	Row<'orders'>,
@@ -26,9 +28,11 @@ export type AgreementOrder = Pick<
 	| 'ordered_on'
 	| 'freight_treatment'
 	| 'status'
+	| 'supporting_documents'
 >;
+export type ContractVersion = NonNullable<StoredRow<'orders'>['contract_versions']>[number];
 /** Approved versions only; a pending replacement never becomes an approved source basis. */
-export function agreements(order: AgreementOrder) {
+export function agreements(order: AgreementOrder): ContractVersion[] {
 	const versions =
 		order.contract_versions && !isMasked(order.contract_versions)
 			? [...order.contract_versions]
@@ -41,7 +45,7 @@ export function agreements(order: AgreementOrder) {
 		!isMasked(order.sealed_contract) &&
 		order.sealed_at &&
 		order.sealed_by &&
-		['confirmed', 'closed', 'cancelled'].includes(order.status) &&
+		order.status === 'confirmed' &&
 		!versions.some((v) => v.seal_hash === order.seal_hash)
 	) {
 		versions.push({
@@ -53,11 +57,27 @@ export function agreements(order: AgreementOrder) {
 			approved_at: order.sealed_at,
 			approved_by: order.sealed_by,
 			ordered_on: order.ordered_on,
-			freight_treatment: order.freight_treatment
+			freight_treatment: order.freight_treatment,
+			...(order.supporting_documents && !isMasked(order.supporting_documents)
+				? { supporting_documents: order.supporting_documents }
+				: {}),
+			origin: 'local' as const,
+			lifecycle: 'current' as const
 		});
 	}
 	return versions;
 }
+/** Only source-accepted replacements displace the previous current agreement. */
+export const currentContractVersion = (versions: readonly ContractVersion[]) =>
+	versions.find((version) => version.lifecycle === 'current') ??
+	versions.filter((version) => version.lifecycle == null).at(-1);
+export const currentAgreement = (order: AgreementOrder) =>
+	currentContractVersion(agreements(order));
+/** A source void or closure ends execution without deleting the retained contract. */
+export const executableAgreement = (order: AgreementOrder) => {
+	const current = currentAgreement(order);
+	return current?.kingdee?.status === 'void' || current?.kingdee?.closed ? undefined : current;
+};
 export const agreement = (order: AgreementOrder, seal: string | null | undefined) =>
 	agreements(order).find((v) => v.seal_hash === seal);
 export function withAgreement<T extends AgreementOrder>(
@@ -66,6 +86,12 @@ export function withAgreement<T extends AgreementOrder>(
 ) {
 	return {
 		...order,
+		currency: currency(version.snapshot.currency),
+		tax_inclusive: version.snapshot.tax_inclusive,
+		payment_terms: version.snapshot.payment_terms,
+		delivery_terms: version.snapshot.delivery_terms,
+		party_name: version.snapshot.party_name,
+		supporting_documents: version.supporting_documents ?? [],
 		seal_hash: version.seal_hash,
 		sealed_snapshot: version.snapshot,
 		sealed_contract: version.contract,
@@ -75,7 +101,7 @@ export function withAgreement<T extends AgreementOrder>(
 		contract_version: version.version,
 		ordered_on: version.ordered_on,
 		freight_treatment: version.freight_treatment,
-		status: order.status === 'draft' ? ('confirmed' as const) : order.status
+		status: 'confirmed' as const
 	};
 }
 /** The exact approval acknowledgement shared by the transform and confirmation query. */

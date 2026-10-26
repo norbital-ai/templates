@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { isMasked, type QueryCtx, type Id, type Row } from '@norbital-ai/bolt';
 import { contract, snapshot } from './commercial.js';
-import { agreements, agreementSelect } from './agreements.js';
+import { agreements, currentAgreement, agreementSelect } from './agreements.js';
 const variables = ['reference', 'title', 'agreement', 'version'];
 export function validateDocumentTemplate(body: string) {
 	if (!body.trim() || !body.includes('{agreement}')) throw new Error('Agreement required');
@@ -129,7 +129,9 @@ export const orderDocument = Effect.fnUntraced(function* (
 	} else {
 		const approved = agreements(order);
 		const selected =
-			input.version == null ? approved.at(-1) : approved.find((v) => v.version === input.version);
+			input.version == null
+				? currentAgreement(order)
+				: approved.find((v) => v.version === input.version);
 		if (!selected)
 			return yield* new DocumentUnavailable({ message: 'Approved contract version unavailable' });
 		agreement = selected.contract;

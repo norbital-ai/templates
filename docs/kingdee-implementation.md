@@ -14,7 +14,7 @@ China LAN                                    Alibaba private connection         
 | dbo tables          |      +------------------------------------------------+     | keys + sync state |
 +----------------------+                                                            +-------------------+
       SELECT rowversions/current rows  ---------------------------------------------> local model updates
-      unapproved SEOrder + SEOrderEntry <--------------------------------------------- sealed order outbox
+      initial SO + guarded amendments <---------------------------------------------- sealed contract outbox
 ```
 
 The network and TCP relay must already provide a reachable SQL endpoint. Existing TLS validation
@@ -27,8 +27,9 @@ Pair each Kingdee integration instance with its own SQL connection string in the
 fields. The endpoint is the Singapore relay, and the database/login identify the China account set.
 Credentials remain sealed host-side; they never enter template source, seeds, bookmarks or browser
 responses. Use a dedicated SQL login with SELECT access to the mapped source tables and, when
-writes are enabled, only the required INSERT permissions on SEOrder/SEOrderEntry and UPDATE on
-ICMaxNum. Do not use `sa` for synchronization.
+writes are enabled, only the required INSERT/UPDATE permissions on the mapped SO, line, amendment
+archive and change-log tables, plus UPDATE on ICMaxNum. Initial creation needs fewer permissions
+than amendments. Do not use `sa` for synchronization.
 
 Each instance has its own credentials, configuration, model scope, bookmark and outbox. A new China
 counterpart uses the same template deployment and another configured instance/relay route.
@@ -71,10 +72,13 @@ Stock is an aggregate complete read of ICInventory by item, warehouse and batch.
 commitments and source position remain null. Unknown product prices, tax and units are not
 invented; order entry requires the missing commercial values before sealing.
 
-Owned orders are identified by an existing `SEOrder.FUUID` derived from the local order and sealed
-agreement. Lines are fetched by captured `FInterID`, and complete owned-order reads also observe
+Owned orders are anchored by their original `SEOrder.FUUID` and retained source binding. Archive
+families are verified within the account set and branch; bill number alone is never ownership.
+Lines are fetched by captured `FInterID`, and complete owned-order reads also observe
 changes that do not bump the header. Delivery and invoice lineage follows the physical source
-order/entry references. Missing owned orders/documents become void; they are retained locally.
+order/entry references. Missing source orders or archives raise attention while local proofs
+remain intact. Missing downstream documents may be marked void only after a complete, verified
+listing; they remain retained locally.
 No document links or PDFs are fabricated from SQL rows. Unapproved new DOs/invoices wait for
 approval; unauditing already retained evidence fails visibly instead of silently withdrawing it.
 An invoice may merge multiple deliveries of the same sealed line/lot; its local items aggregate
@@ -86,10 +90,19 @@ fail visibly. A remaining balance of zero is never treated as proof of payment.
 
 ## Writes
 
-Quotations remain local and can be edited or exported before confirmation. Confirmation converts
-the quotation into an immutable SO: header and lines cannot reopen while delivery is queued or
-after the Kingdee counterpart appears. Read-only source evidence can change its own status without
-changing the sealed agreement. Cancellation and closure preserve that seal.
+The order is the stable container for customer, ownership, remarks, Kingdee linkage and filing.
+Archive / Unarchive is reversible and local. It does not void the source SO, release stock,
+remove financial facts or stop incoming synchronization. There is one Remarks field; archiving
+does not require a separate reason.
+
+Each contract version retains its complete commercial snapshot, supporting files, generated
+document and seal. Sealing freezes that version. Order title and operational remarks can change
+without rewriting a sealed contract. A replacement draft copies the current terms into a new
+editor; it never reopens or deletes the previous sealed version. A sealed replacement remains
+pending until the source amendment is accepted, and the previous contract remains current while
+delivery is pending or fails. Superseded contracts remain available for historical documents.
+Draft setup is resumable: an incomplete copy cannot be sealed or edited as a finished draft.
+Copied lines retain explicit Kingdee entry identities even when the local editor needs new IDs.
 
 An initial sealed sales agreement creates an **unapproved** SEOrder and its SEOrderEntry rows.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
@@ -97,6 +110,31 @@ FInterID through ICMaxNum, and writes the complete header/line set. Existing FUU
 makes retry identity independent of the nonunique bill number. A retry verifies the immutable
 source header, line cardinality and financial values before acknowledging the existing order.
 A lost response therefore retries the same order rather than creating a duplicate.
+
+Amendments use the existing Kingdee SO lineage. The source batch verifies the expected previous
+version and terms under lock, preserves the previous source header/lines as an amendment archive,
+increments FVersionNo and updates the permitted live terms. Unsupported header changes and
+quantities below existing fulfillment are refused before committing. A newer source version is
+a conflict, never permission to overwrite a direct Kingdee edit.
+
+Contract tracking is version-specific. It retains source account/branch, live and archive
+identifiers, Kingdee version, content fingerprint, available source change metadata and observed
+status events. A formal Kingdee amendment imports a new immutable version; known archive rows
+can backfill prior versions. A non-versioned change to sealed terms needs attention. Rowversion
+does not reconstruct overwritten intermediate edits, and missing source archives are recorded
+as unavailable history rather than invented versions or proof that the entire SO was voided.
+Source change timestamps are retained as the source's raw local value; observation timestamps
+are UTC instants. The connector does not invent a timezone or historical approval time.
+
+Previously accepted DOs and invoices keep their original contract linkage when the live SO is
+amended. Source dates alone do not establish a contract version. An ambiguous first import or an
+invoice spanning contract versions needs attention; it must not be assigned to the newest terms.
+SQL imports create source term snapshots, not fabricated signed contract files.
+
+Supporting files remain readable through their original native upload ownership. A draft selects
+its own attachments while every sealed version retains its exact file list. The native form's
+current limit is 20 retained supporting files across an order; history is never trimmed to make
+room for a later upload.
 
 A failed delivery preserves the sealed local SO and its lines, including mapping errors and
 source conflicts. The native queue retries, then retains an actionable dead letter after eight
@@ -108,7 +146,7 @@ and preserves the cursor and existing evidence. The next poll resumes after that
 issued; it does not attempt an invalid document upsert or reconcile rows as absent while waiting.
 
 The reader observes subsequent Kingdee approval; the template does not call a fictional approval
-procedure. Purchase-order creation, amendment writes, red-document reversals and a verified credit
+procedure. Purchase-order creation, red-document reversals and a verified credit
 hold/limit mapping remain unavailable and fail explicitly. They must not fall back to normalized
 simulation tables or fabricate empty successful results.
 
@@ -123,3 +161,21 @@ The standalone manual probe uses Microsoft SQL Server 2019 with synthetic Kingde
 and the normal application credential-pairing UI. Its loopback-only SQL adapter is a local test
 transport, not a production policy change. SQL credentials remain sealed and masked. No real
 installation, Alibaba provisioning, Realm reset or deployment is part of this validation.
+
+The 27 October 2026 standalone acceptance run used a restricted login with neither `sysadmin`
+nor `db_owner`. Application credential pairing, initial SO creation and a same-SO amendment were
+exercised against SQL Server 2019 with CDC disabled:
+
+| Local contract | Kingdee version | Quantity × net price | Gross CNY | Result |
+| --- | --- | --- | --- | --- |
+| v1 | `000` | 10 × 2 | 22.60 | Application-created SO; later retained as SQL archive. |
+| v2 | `001` | 12 × 3 | 40.68 | Formal source amendment imported as a new immutable contract. |
+| v3 | `002` | 14 × 4 | 63.28 | Application amendment updated the same live SO and retained v2's SQL archive. |
+
+The live `FInterID` remained `9002`; archive rows `9003` and `9004` retained the earlier terms,
+and `ICOrderAlter` retained the amendment log. The original delivery and CNY 4.52 invoice kept
+their original local IDs and v1 seal. Direct edits to sealed terms and lines were refused, while
+operational Remarks remained editable. A later Kingdee closure reached v3's tracker while the
+order was archived. Unarchiving retained all three versions and still refused sealed-term edits.
+These are synthetic fixture results, not validation of a
+customer's Kingdee customization or the Alibaba network path.
