@@ -591,7 +591,7 @@ packages:
     resolution: {integrity: sha512-yGSkCLWRMZoB0rBFv9rWvseavJq9wHqlPZFwE4wmFRKB+mGCqQ9gNmpW2jUtGeOl1nOcMjcW5xrZuwMvjjt27Q==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.3/5df4fdd1fb57904a33cbe74d6346a169064a3c2e}
 
   '@norbital-ai/bolt@0.0.3':
-    resolution: {integrity: sha512-m77M+aciNDDVRRPGtPuDhwJvzJfTN1yrFdzF5FTIi7IEPWbnjnr/u1wyHRvWhmqUa8tbKzbG/lI2QbkRUGphOw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.3/c8f7e563be41d43806105293737139e5fbe86c07}
+    resolution: {integrity: sha512-repYW6g6inC7Aka3cfqGFZfUQSj8ci+D7MM6d816CRoPGzieAFD29usN5V4j5yeZPsxhJUk1YGhy/rAgnInIeg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.3/a05b9893380ff29fce7155751f049c0c7ab90e01}
     hasBin: true
     peerDependencies:
       '@typescript/native': npm:typescript@7.0.2
