@@ -1,12 +1,12 @@
 <script lang="ts" generics="C extends CollectionName">
-	import type { Component, Snippet } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import type { CollectionName } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import {
-		Table,
+		Table as NativeTable,
 		Button,
 		Dialog,
-		Form,
+		Form as NativeForm,
 		singular,
 		useKinds,
 		type TableProps,
@@ -16,6 +16,8 @@
 		type FormState
 	} from '@norbital-ai/ui';
 	import { Stack, Scroll } from '@norbital-ai/ui/layout';
+	const Table = NativeTable<C>;
+	const Form = NativeForm<C>;
 	let {
 		createFields,
 		createForm,
@@ -29,7 +31,6 @@
 		allowCreate?: boolean;
 	} = $props();
 	const kinds = useKinds();
-	const CreateForm = Form as Component<FormProps<C>>;
 	let open = $state(false);
 	const canCreate = $derived(
 		allowCreate &&
@@ -54,7 +55,7 @@
 		><Dialog.Title>{singular(bolt, props.of)}</Dialog.Title><Scroll
 			name={'create-' + props.of}
 			max="tall"
-			><CreateForm
+			><Form
 				of={props.of}
 				mode="create"
 				{...createForm ? { children: createForm } : {}}

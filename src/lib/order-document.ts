@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect';
-import type { QueryCtx, Id, Row } from '@norbital-ai/bolt';
-import { isMasked } from './access.js';
+import { isMasked, type QueryCtx, type Id, type Row } from '@norbital-ai/bolt';
 import { contract, snapshot } from './commercial.js';
 import { agreements, agreementSelect } from './agreements.js';
 const variables = ['reference', 'title', 'agreement', 'version'];
@@ -66,16 +65,16 @@ class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>()('Doc
 	message: Schema.String
 }) {}
 export const orderDocument = Effect.fnUntraced(function* (
-	ctx: Pick<QueryCtx, 'read'>,
+	ctx: Pick<QueryCtx, 'query'>,
 	input: {
 		order: Id<'orders'>;
 		locale?: 'en' | 'zh';
 		version?: number | null;
 	}
 ) {
-	const { orders, templates, lines, parties } = yield* ctx.read({
+	const { orders, templates, lines, parties } = yield* ctx.query({
 		orders: {
-			collection: 'orders',
+			from: 'orders',
 			where: { id: { eq: input.order } },
 			select: {
 				...agreementSelect,
@@ -94,28 +93,24 @@ export const orderDocument = Effect.fnUntraced(function* (
 			limit: 1
 		},
 		templates: {
-			collection: 'document_templates',
+			from: 'document_templates',
 			where: { locale: { eq: input.locale ?? 'en' }, status: { eq: 'published' } },
 			all: true
 		},
-		lines: { collection: 'order_lines', where: { order: { eq: input.order } }, all: true },
+		lines: { from: 'order_lines', where: { order: { eq: input.order } }, all: true },
 		parties: {
-			collection: 'parties',
+			from: 'parties',
 			where: { orders: { some: { id: { eq: input.order } } } },
 			limit: 1
 		}
 	});
 	const order = orders.rows[0];
 	if (!order || isMasked(order.currency))
-		return yield* Effect.fail(
-			new DocumentUnavailable({ message: 'Commercial document unavailable' })
-		);
+		return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	const kind = input.version == null && order.status === 'draft' ? 'quotation' : 'contract';
 	const template = publishedTemplate(templates.rows, kind, input.locale ?? 'en');
 	if (!template)
-		return yield* Effect.fail(
-			new DocumentUnavailable({ message: 'No published document template' })
-		);
+		return yield* new DocumentUnavailable({ message: 'No published document template' });
 	let agreement = order.sealed_contract;
 	let title = order.title;
 	let documentTitle = template.title;
@@ -124,7 +119,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 	if (kind === 'quotation') {
 		const party = parties.rows[0];
 		if (!party || !lines.rows.length)
-			return yield* Effect.fail(new DocumentUnavailable({ message: 'Quotation is incomplete' }));
+			return yield* new DocumentUnavailable({ message: 'Quotation is incomplete' });
 		agreement = agreementText(
 			template,
 			snapshot(order, party, lines.rows, template.version),
@@ -136,9 +131,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 		const selected =
 			input.version == null ? approved.at(-1) : approved.find((v) => v.version === input.version);
 		if (!selected)
-			return yield* Effect.fail(
-				new DocumentUnavailable({ message: 'Approved contract version unavailable' })
-			);
+			return yield* new DocumentUnavailable({ message: 'Approved contract version unavailable' });
 		agreement = selected.contract;
 		title = selected.snapshot.title ?? order.title;
 		documentTitle =
@@ -147,9 +140,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 		version = String(selected.version);
 	}
 	if (!agreement || isMasked(agreement))
-		return yield* Effect.fail(
-			new DocumentUnavailable({ message: 'Commercial document unavailable' })
-		);
+		return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	return {
 		title: documentTitle,
 		html: renderOrderDocument(documentTitle, '{agreement}', {

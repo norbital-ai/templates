@@ -28,14 +28,16 @@ The main Orders view contains customer sales agreements. Supplier purchase order
 
 Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
 
-Teams (`src/access_control/team/+team.ts`) link one policy each: **Sales** (`sales`),
-**Procurement** (`procurement`), **Commercial Managers** (`manager`), **Finance** (`finance`),
-**Logistics** (`logistics`) and **Configurators** (`configuration`).
+Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sales** (`sales` →
+`sales`), **Procurement** (`procurement` → `procurement`), **Commercial Managers**
+(`commercial_managers` → `manager`), **Finance** (`finance` → `finance`), **Logistics**
+(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Sales and
+procurement confirmations go to a `commercial_managers` approval step.
 
 Sales reads its own customer agreements and financial facts; procurement reads its own supplier
 agreements. Logistics sees operational quantities with commercial fields masked. Finance and
 managers use the reports; configuration access does not grant commercial records. Source records
-are written only by their Kingdee feed; administrators can change only a table's local fields
+are written only by their Kingdee sync; administrators can change only a table's local fields
 (product commission settings).
 English and Chinese catalogs own captions, business statuses and error messages. Native Bolt
 history, permissions, approvals, Actions, kinds and runs are reused.
@@ -43,8 +45,8 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 ## Data model
 
 - `orders` / `order_lines`: our sales or purchase agreement and its editable contract SKU rows.
-  Approved versions are sealed inside the same order; changing terms archives the approved version
-  before drafting the next. External records and financial calculations retain their agreement seal.
+  Confirmation seals the agreement permanently; its header and lines cannot return to draft or be rewritten.
+  Read-only Kingdee SOs, deliveries and invoices retain that agreement seal.
 - `ext_sales_orders` / `ext_purchase_orders`: read-only source confirmations linked to our agreement.
 - `transactions`: read-only deliveries and invoices linked to the appropriate external order.
   Issued invoices retain their actual issue date, due date and total; AR does not invent these values.
@@ -69,28 +71,34 @@ required. Issued transactions or active payments prevent cancellation.
 
 ## Automations and integrations
 
-| Automation      | Trigger                               | What it does                                                                  |
-| --------------- | ------------------------------------- | ----------------------------------------------------------------------------- |
-| `export_order`  | manual, from the Orders page          | Renders the selected order version with its published document template (PDF) |
-| `source_health` | a `kingdee` instance's status changes | Notifies configuration holders when a ledger connection needs attention       |
+| Automation      | Trigger                               | What it does                                                            |
+| --------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| `source_health` | a `kingdee` instance's status changes | Notifies configuration holders when a ledger connection needs attention |
+
+Order documents need no automation. The Orders page converts the previewed quotation or contract
+version to PDF (`bolt.convert`), and `orders` declares a `document` file sync whose `write` returns
+the same rendered document for a view's Export menu.
 
 The custom [Kingdee integration](docs/kingdee-implementation.md) lives in
-`src/integration/kingdee/`. It owns SQL Server snapshot and CDC queries, capture/source identity,
-ordered positions and verify-first header/item submission. Bolt supplies the generic SQL Server
-request driver, native feed scheduling, ledger-scoped identity and atomic cursor/model writes.
+`src/integration/kingdee/`. It owns SQL Server rowversion polling and complete listings, source identity,
+ordered positions and header/item submission. Each source model declares a `kingdee` sync with a
+`read`; `orders` declares one with only a `write` for verified initial sales-order submissions. Unsupported purchase/amendment writes fail explicitly.
+Bolt supplies the generic SQL Server request driver, sync scheduling, the outbox and its retries,
+ledger-scoped identity and atomic cursor/model writes.
 Each Kingdee ledger is one `sys_integration` instance with its sealed credential and safe
 configuration; the named `kingdee` connection is the first, and more can be added at run time.
 Every source record carries its ledger (`source`), and an order belongs to its party's ledger
 (`ledger`), which is where its sealed agreement is submitted.
 
-Settings → Integrations sets the CDC health limits of each ledger and pauses or resumes it.
+Settings → Integrations sets each ledger’s full-reconciliation interval and window-age alert, and pauses or resumes it.
 Configurators are notified when a ledger needs attention. Commercial Settings holds business
 controls. A matching issued `ext_*` confirmation confirms business receipt; source documents remain
 read-only.
 
-The dedicated SQL Server 2017 and 2022 simulations use normalized fixture tables. Actual
-Kingdee physical mappings, source approval semantics, relationship keys, cleanup retention,
-private connectivity and source privileges require source-environment verification.
+The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
+Focused local probes use synthetic physical tables with CDC disabled. Live SQL Server 2019,
+relay TLS, source defaults/permissions and query plans remain deployment checks. Credit-policy
+binding and unsupported document/write types remain explicitly unavailable.
 
 ## Seed
 
@@ -103,9 +111,8 @@ private connectivity and source privileges require source-environment verificati
 
 ```bash
 pnpm install
-pnpm check   # bolt check
+pnpm exec bolt check   # types, Svelte warnings, layout and declarations
 pnpm test    # bolt build, then bolt test (including tests/e2e)
-pnpm lint    # prettier --check .
 ```
 
 `.norbital/` is generated and never committed.

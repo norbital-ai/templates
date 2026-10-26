@@ -1,6 +1,5 @@
 import type { snapshot } from './commercial.js';
-import type { Row } from '@norbital-ai/bolt';
-import { isMasked } from './access.js';
+import { isMasked, type Row } from '@norbital-ai/bolt';
 export const agreementSelect = {
 	seal_hash: true,
 	sealed_snapshot: true,

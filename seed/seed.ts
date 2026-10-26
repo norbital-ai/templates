@@ -8,6 +8,21 @@ import warehouses from './warehouses.json';
 
 const PUBLIC = { commercial_settings, document_templates, parties, products, warehouses };
 const Rows = Schema.Array(Schema.Record(Schema.String, Schema.Json));
+/** The bank names members' teams by label; the workspace holds them by handle. */
+const TEAMS: Readonly<Record<string, string>> = {
+	Sales: 'sales',
+	Procurement: 'procurement',
+	'Commercial Managers': 'commercial_managers',
+	Finance: 'finance',
+	Logistics: 'logistics',
+	Configurators: 'configurators'
+};
+const withHandle = (row: Record<string, Schema.Json>) => {
+	if (row.team === undefined || row.team === null) return row;
+	const handle = TEAMS[Schema.decodeUnknownSync(Schema.String)(row.team)];
+	if (handle === undefined) throw new Error(`Unknown sample team ${String(row.team)}.`);
+	return { ...row, team: handle };
+};
 const collections = [
 	'sys_user',
 	'parties',
@@ -29,7 +44,8 @@ const source = {
 		for (const collection of collections) {
 			const file = `${collection}.json`;
 			if (!bank.has(file)) continue;
-			const supplied = Schema.decodeUnknownSync(Rows)(bank.json(file));
+			const decoded = Schema.decodeUnknownSync(Rows)(bank.json(file));
+			const supplied = collection === 'sys_user' ? decoded.map(withHandle) : decoded;
 			const merged = new Map((rows[collection] ?? []).map((row) => [row.id, row]));
 			const ids = new Set<string>();
 			for (const row of supplied) {

@@ -9,6 +9,7 @@ import document_templates from '../seed/document_templates.json';
 import parties from '../seed/parties.json';
 import products from '../seed/products.json';
 import warehouses from '../seed/warehouses.json';
+import { Instant } from '@norbital-ai/std/date';
 import { committed, CUSTOMER, workspace } from './kit.js';
 import { decimalText, firstRow, fixtureId } from './test-runtime.js';
 
@@ -63,6 +64,11 @@ test.live(
 					JSON.stringify([{ id: SALES }, { id: SALES }])
 				);
 				expect(() => source.rows(bank)).toThrow('Duplicate sample identity in sys_user.');
+				writeFileSync(
+					join(bank.directory, 'sys_user.json'),
+					JSON.stringify([{ id: SALES, team: 'Warehouse' }])
+				);
+				expect(() => source.rows(bank)).toThrow('Unknown sample team Warehouse.');
 			})
 		)
 );
@@ -191,16 +197,18 @@ test.live(
 				expect(rows.document_templates).toEqual(document_templates);
 				const t = yield* workspace({ seed: rows, now: NOW });
 				const as = t.as(t.admin);
-				expect((yield* as.read('parties', { all: true })).rows).toHaveLength(2);
-				expect((yield* as.read('products', { all: true })).rows).toHaveLength(2);
-				expect((yield* as.read('orders', { all: true })).rows).toHaveLength(1);
-				expect(yield* as.get('sys_user', SALES)).toMatchObject({
-					team: 'Sales',
+				expect((yield* as.query('parties', { all: true })).rows).toHaveLength(2);
+				expect((yield* as.query('products', { all: true })).rows).toHaveLength(2);
+				expect((yield* as.query('orders', { all: true })).rows).toHaveLength(1);
+				// the bank names the team by label; the seed maps it to the workspace's handle
+				expect(yield* as.query('sys_user', { id: SALES })).toMatchObject({
+					team: 'sales',
 					admin: false,
 					active: true
 				});
 				expect(
-					yield* as.get('orders', ORDER, {
+					yield* as.query('orders', {
+						id: ORDER,
 						select: {
 							number: true,
 							ledger: true,
@@ -230,14 +238,21 @@ test.live(
 						}
 					]
 				});
-				expect(yield* as.get('stock_snapshots', STOCK)).toMatchObject({
+				expect(yield* as.query('stock_snapshots', { id: STOCK })).toMatchObject({
 					product: PRODUCT,
 					warehouse: WAREHOUSE,
 					source: 'kingdee'
 				});
-				expect(yield* as.get('credit_snapshots', CREDIT)).toMatchObject({ party: CUSTOMER });
-				expect(yield* as.get('pricing_floors', FLOOR)).toMatchObject({ product: PRODUCT });
-				const check = yield* as.query('orders.confirmation_check', { order: ORDER });
+				expect(yield* as.query('credit_snapshots', { id: CREDIT })).toMatchObject({
+					party: CUSTOMER
+				});
+				expect(yield* as.query('pricing_floors', { id: FLOOR })).toMatchObject({
+					product: PRODUCT
+				});
+				const check = yield* as.query('orders.confirmation_check', {
+					order: ORDER,
+					as_of: Instant(NOW)
+				});
 				expect(check).toMatchObject({
 					warning: false,
 					unavailable: false,
@@ -253,7 +268,7 @@ test.live(
 						})
 					)
 				).toBe(ORDER);
-				const sealed = yield* as.get('orders', ORDER);
+				const sealed = yield* as.query('orders', { id: ORDER });
 				expect(sealed).toMatchObject({
 					status: 'confirmed',
 					sealed_snapshot: {

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { Show, openRecord, type RecordView } from '@norbital-ai/ui';
+	import { Show, type RecordView } from '@norbital-ai/ui';
+	import RecordLink from './record-link.svelte';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { isMasked } from '../access.js';
+	import { isMasked } from '@norbital-ai/bolt';
 	let {
 		of,
 		view
@@ -24,9 +25,7 @@
 			<dt class="text-sm text-muted-foreground">{bolt.t(`models.${of}.fields.order`)}</dt>
 			<dd>
 				{#if view.record.order && !isMasked(view.record.order)}
-					<button type="button" onclick={() => openRecord('orders', String(view.record.order))}
-						>{bolt.t('models.orders.singular')}</button
-					>
+					<RecordLink of="orders" id={String(view.record.order)} />
 				{/if}
 			</dd>
 		</div>

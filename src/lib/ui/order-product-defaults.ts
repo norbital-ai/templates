@@ -8,7 +8,7 @@ export const selectOrderProduct = Effect.fnUntraced(function* (
 	field: FieldEditor,
 	id: Id<'products'> | null,
 	setCurrency: (currency: string) => void,
-	defaults = true
+	defaults: boolean = true
 ) {
 	field.onChange(id);
 	if (!defaults) return;
@@ -22,8 +22,8 @@ export const selectOrderProduct = Effect.fnUntraced(function* (
 	const current = () => form.id('product') === id && form.id('order') === order;
 	yield* Effect.all(
 		{
-			product: bolt.get('products', id),
-			header: bolt.get('orders', order)
+			product: bolt.query('products', { id }),
+			header: bolt.query('orders', { id: order })
 		},
 		{ concurrency: 'unbounded' }
 	).pipe(
@@ -32,7 +32,8 @@ export const selectOrderProduct = Effect.fnUntraced(function* (
 				if (!current() || product === null || header === null) return;
 				setCurrency(header.currency);
 				if (form.notice?.text === 'component.catalog_defaults_unavailable') form.notice = null;
-				if (form.get('tax_rate') === oldTax) form.set('tax_rate', product.tax_rate.toString());
+				if (form.get('tax_rate') === oldTax)
+					form.set('tax_rate', product.tax_rate?.toString() ?? null);
 				if (form.get('unit_price') === oldPrice)
 					form.set(
 						'unit_price',

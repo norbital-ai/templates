@@ -1,11 +1,66 @@
+import { Instant } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { committed } from './kit.js';
+const sealingWorkspace = () =>
+	acquireWorkspace({
+		root: process.cwd(),
+		now: '2026-10-10T00:00:00Z',
+		seed: {
+			parties: [
+				{
+					id: '00000000-0000-4000-8000-000000000101',
+					external_code: 'CUSTOMER',
+					name: 'Synthetic customer',
+					kind: 'customer',
+					currency: 'SGD',
+					active: true,
+					source_updated_at: '2026-10-10T00:00:00Z',
+					source: 'kingdee'
+				}
+			],
+			products: [
+				{
+					id: '00000000-0000-4000-8000-000000000201',
+					external_code: 'PRODUCT',
+					name: 'Synthetic product',
+					unit: 'kg',
+					currency: 'SGD',
+					unit_price: '2',
+					tax_rate: '9',
+					active: true,
+					source_updated_at: '2026-10-10T00:00:00Z',
+					source: 'kingdee'
+				}
+			],
+			commercial_settings: [
+				{
+					id: '00000000-0000-4000-8000-000000000401',
+					code: 'default',
+					require_floor: false,
+					credit_fresh_minutes: 60,
+					stock_fresh_minutes: 30
+				}
+			],
+			document_templates: [
+				{
+					id: '00000000-0000-4000-8000-000000000502',
+					kind: 'contract',
+					locale: 'en',
+					version: '1',
+					title: 'Synthetic agreement',
+					body: '{agreement}',
+					status: 'published',
+					published_at: '2026-01-01T00:00:00Z'
+				}
+			]
+		}
+	});
 test.live('confirmation seals this SO and blocks all subsequent commercial edits', () =>
 	Effect.gen(function* () {
-		const t = yield* acquireWorkspace({ root: process.cwd(), now: '2026-10-10T00:00:00Z' });
+		const t = yield* sealingWorkspace();
 		const as = t.as(t.admin);
 		const order = committed(
 			'orders',
@@ -28,7 +83,10 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 				tax_rate: Decimal.of('9')
 			})
 		);
-		const check = yield* as.query('orders.confirmation_check', { order });
+		const check = yield* as.query('orders.confirmation_check', {
+			as_of: Instant(t.clock.now()),
+			order
+		});
 		expect(check).toHaveProperty('check_hash');
 		const checked = check;
 		committed(
@@ -38,7 +96,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 				set: { status: 'confirmed', check_hash: checked.check_hash }
 			})
 		);
-		const before = yield* as.get('orders', order);
+		const before = yield* as.query('orders', { id: order });
 		expect(before).toMatchObject({ status: 'confirmed', sealed_contract_version: '1' });
 		expect(before?.sealed_snapshot).toMatchObject({ total: '21.80', payment_terms: 'Net 30' });
 		expect(before?.sealed_contract).toContain('Net 30');
@@ -74,7 +132,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 				set: { status: 'published' }
 			})
 		);
-		const after = yield* as.get('orders', order);
+		const after = yield* as.query('orders', { id: order });
 		expect(after?.seal_hash).toEqual(before?.seal_hash);
 		expect(after?.sealed_snapshot).toEqual(before?.sealed_snapshot);
 		expect(after?.sealed_contract).toEqual(before?.sealed_contract);
@@ -82,7 +140,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 );
 test.live('a credit acknowledgment cannot confirm changed pricing or another SO', () =>
 	Effect.gen(function* () {
-		const t = yield* acquireWorkspace({ root: process.cwd(), now: '2026-10-10T00:00:00Z' });
+		const t = yield* sealingWorkspace();
 		const as = t.as(t.admin);
 		const createOrder = Effect.fnUntraced(function* (title: string) {
 			return committed(
@@ -120,7 +178,10 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 				tax_rate: Decimal.of('9')
 			})
 		);
-		const check = yield* as.query('orders.confirmation_check', { order: first });
+		const check = yield* as.query('orders.confirmation_check', {
+			as_of: Instant(t.clock.now()),
+			order: first
+		});
 		expect(
 			yield* Effect.flip(
 				as.act('orders.update', {
@@ -141,7 +202,10 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 				})
 			)
 		).toMatchObject({ _tag: 'ActRefused', message: 'errors.check_changed' });
-		const refreshed = yield* as.query('orders.confirmation_check', { order: first });
+		const refreshed = yield* as.query('orders.confirmation_check', {
+			as_of: Instant(t.clock.now()),
+			order: first
+		});
 		committed(
 			'orders',
 			yield* as.act('orders.update', {
@@ -149,8 +213,10 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 				set: { status: 'confirmed', check_hash: refreshed.check_hash }
 			})
 		);
-		expect(yield* as.get('orders', first)).toMatchObject({ sealed_snapshot: { total: '32.70' } });
-		expect(yield* as.get('orders', second)).toMatchObject({
+		expect(yield* as.query('orders', { id: first })).toMatchObject({
+			sealed_snapshot: { total: '32.70' }
+		});
+		expect(yield* as.query('orders', { id: second })).toMatchObject({
 			status: 'draft',
 			sealed_snapshot: null,
 			seal_hash: null

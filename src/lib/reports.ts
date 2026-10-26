@@ -13,16 +13,15 @@ import {
 	DEFAULT_COMMISSION_EXPRESSION,
 	COMMISSION_ENGINE
 } from './commission-expressions.js';
-import { isMasked } from './access.js';
-import type { QueryCtx, Row } from '@norbital-ai/bolt';
-import { d, hash, sum } from './commercial.js';
-import { minorDigits } from '@norbital-ai/std/decimal';
+import { isMasked, type QueryCtx, type Row } from '@norbital-ai/bolt';
+import { hash } from './commercial.js';
+import { minorDigits, Decimal, sum } from '@norbital-ai/std/decimal';
 const text = { kind: 'text' } as const;
 const money = { kind: 'money', currency: 'currency' } as const;
 export const reportQueries = {
 	ar_aging: {
 		description: 'Open issued invoices by due-date bucket, with unapplied payments kept separate.',
-		input: { as_of: { kind: 'date', default: { today: '' } } },
+		input: { as_of: { kind: 'date' } },
 		output: {
 			kind: 'list',
 			of: {
@@ -218,7 +217,7 @@ function commissionLines(
 		const base = {
 			order_line: orderLine,
 			product: line?.product_name ?? '',
-			quantity: d(rawQuantity),
+			quantity: Decimal.of(rawQuantity),
 			basis_unit: rule?.basis_unit ?? '',
 			spread: null,
 			amount: null
@@ -230,16 +229,16 @@ function commissionLines(
 		)
 			return { ...base, reason: 'expression_error' as const };
 		if (!rule) return { ...base, reason: 'rule_missing' as const };
-		const quantity = fact ? d(fact.quantity).abs().toString() : line.quantity;
+		const quantity = fact ? Decimal.of(fact.quantity).abs().toString() : line.quantity;
 		const factNet = fact?.net_amount;
 		if (fact && factNet == null) return { ...base, reason: 'expression_error' as const };
-		const net = factNet == null ? line.net : d(factNet).abs().toString();
+		const net = factNet == null ? line.net : Decimal.of(factNet).abs().toString();
 		const evaluated = Result.try(() => {
 			if (rule.engine_version && rule.engine_version !== COMMISSION_ENGINE)
 				throw new Error('Unknown commission engine');
 			const factor =
 				line.commission_factor &&
-				d(line.commission_factor).gt(0) &&
+				Decimal.of(line.commission_factor).gt(0) &&
 				line.commission_basis_unit === rule.basis_unit
 					? line.commission_factor
 					: null;
@@ -265,7 +264,7 @@ function commissionLines(
 			);
 			const spread =
 				line.floor_net && factor
-					? d(net).div(quantity, 18).minus(line.floor_net).div(factor, 18).round(8)
+					? Decimal.of(net).div(quantity, 18).minus(line.floor_net).div(factor, 18).round(8)
 					: null;
 			return {
 				...base,
@@ -283,7 +282,7 @@ function commissionLines(
 					? ('expression_error' as const)
 					: !line.floor_net
 						? ('floor_missing' as const)
-						: !line.commission_factor || d(line.commission_factor).lte(0)
+						: !line.commission_factor || Decimal.of(line.commission_factor).lte(0)
 							? ('conversion_missing' as const)
 							: line.commission_basis_unit !== rule.basis_unit
 								? ('unit_mismatch' as const)
@@ -323,9 +322,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 ) {
 	const version = seal ? agreement(record, seal) : agreements(record).at(-1);
 	if (seal && !version)
-		return yield* Effect.fail(
-			new AgreementUnavailable({ message: 'Approved contract version unavailable' })
-		);
+		return yield* new AgreementUnavailable({ message: 'Approved contract version unavailable' });
 	const order = version ? withAgreement(record, version) : record;
 	const lines = commissionLines(order, seal, actual);
 	const unresolved_lines = lines.filter((line) => line.amount === null).length;
@@ -366,9 +363,9 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 	} = {}
 ) {
 	if (range.from && range.to && range.from > range.to) yield* ctx.refuse('errors.report_range');
-	const { sources, orders, users } = yield* ctx.read({
+	const { sources, orders, users } = yield* ctx.query({
 		sources: {
-			collection: 'source_sales_lines',
+			from: 'source_sales_lines',
 			where: { active: { eq: true } },
 			select: {
 				order: true,
@@ -381,7 +378,7 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 			all: true
 		},
 		orders: {
-			collection: 'orders',
+			from: 'orders',
 			where: {
 				direction: { eq: 'sales' },
 				seal_hash: { isNull: false }
@@ -389,7 +386,7 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 			select: { ...agreementSelect, owner: true, currency: true },
 			all: true
 		},
-		users: { collection: 'sys_user', select: { name: true }, all: true }
+		users: { from: 'sys_user', select: { name: true }, all: true }
 	});
 	const byOrder = new Map(orders.rows.map((o) => [o.id, o]));
 	const byUser = new Map(users.rows.map((u) => [u.id, u.name]));
@@ -404,10 +401,10 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 			orderIds: Set<string>;
 			source_lines: number;
 			unresolved_lines: number;
-			net: ReturnType<typeof d> | null;
-			tax: ReturnType<typeof d> | null;
-			total: ReturnType<typeof d> | null;
-			freight: ReturnType<typeof d> | null;
+			net: ReturnType<typeof Decimal.of> | null;
+			tax: ReturnType<typeof Decimal.of> | null;
+			total: ReturnType<typeof Decimal.of> | null;
+			freight: ReturnType<typeof Decimal.of> | null;
 		}
 	>();
 	for (const source of sources.rows) {
@@ -431,10 +428,10 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 			orderIds: new Set<string>(),
 			source_lines: 0,
 			unresolved_lines: 0,
-			net: d(0),
-			tax: d(0),
-			total: d(0),
-			freight: d(0)
+			net: Decimal.of(0),
+			tax: Decimal.of(0),
+			total: Decimal.of(0),
+			freight: Decimal.of(0)
 		};
 		const net = source.net_amount,
 			tax = source.tax_amount,
@@ -482,9 +479,9 @@ export const salesDetail = Effect.fnUntraced(function* (
 	}
 ) {
 	if (range.from && range.to && range.from > range.to) yield* ctx.refuse('errors.report_range');
-	const { sources, orders, lines, products, parties, users } = yield* ctx.read({
+	const { sources, orders, lines, products, parties, users } = yield* ctx.query({
 		sources: {
-			collection: 'source_sales_lines',
+			from: 'source_sales_lines',
 			where: { active: { eq: true } },
 			select: {
 				order: true,
@@ -505,7 +502,7 @@ export const salesDetail = Effect.fnUntraced(function* (
 			all: true
 		},
 		orders: {
-			collection: 'orders',
+			from: 'orders',
 			where: {
 				direction: { eq: 'sales' },
 				seal_hash: { isNull: false }
@@ -513,10 +510,10 @@ export const salesDetail = Effect.fnUntraced(function* (
 			select: { ...agreementSelect, number: true, party: true, owner: true, currency: true },
 			all: true
 		},
-		lines: { collection: 'order_lines', select: { product: true }, all: true },
-		products: { collection: 'products', select: { name: true }, all: true },
-		parties: { collection: 'parties', select: { name: true }, all: true },
-		users: { collection: 'sys_user', select: { name: true }, all: true }
+		lines: { from: 'order_lines', select: { product: true }, all: true },
+		products: { from: 'products', select: { name: true }, all: true },
+		parties: { from: 'parties', select: { name: true }, all: true },
+		users: { from: 'sys_user', select: { name: true }, all: true }
 	});
 	const byOrder = new Map(orders.rows.map((row) => [row.id, row]));
 	const byLine = new Map<string, (typeof lines.rows)[number]>(
@@ -563,7 +560,7 @@ export const salesDetail = Effect.fnUntraced(function* (
 					party: order.party,
 					owner: order.owner,
 					sold_price: net === null ? null : net.div(source.quantity, 8),
-					floor_net: capturedFloor ? d(capturedFloor) : null,
+					floor_net: capturedFloor ? Decimal.of(capturedFloor) : null,
 					order_number: order.number,
 					party_name: byParty.get(order.party) ?? '',
 					product_name:
@@ -579,12 +576,14 @@ export const salesDetail = Effect.fnUntraced(function* (
 					lot_number: source.lot_number,
 					cost:
 						source.lot_number && source.unit_cost !== null
-							? d(source.unit_cost).times(source.quantity).round(minorDigits(order.currency))
+							? Decimal.of(source.unit_cost)
+									.times(source.quantity)
+									.round(minorDigits(order.currency))
 							: null,
 					margin:
 						source.lot_number && source.unit_cost !== null && booked !== null
 							? booked
-									.minus(d(source.unit_cost).times(source.quantity))
+									.minus(Decimal.of(source.unit_cost).times(source.quantity))
 									.round(minorDigits(order.currency))
 							: null,
 					currency: order.currency,

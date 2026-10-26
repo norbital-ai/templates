@@ -26,7 +26,7 @@ test.live(
 				'order_lines',
 				yield* as.act('order_lines.create', { order, product: PRODUCT, quantity: Decimal.of('10') })
 			);
-			expect(yield* as.get('order_lines', line)).toMatchObject({
+			expect(yield* as.query('order_lines', { id: line })).toMatchObject({
 				unit_price: decimalText('2.0000'),
 				tax_rate: decimalText('9'),
 				total: decimalText('21.80')
@@ -40,7 +40,7 @@ test.live(
 					tax_rate: Decimal.of('0')
 				})
 			);
-			expect(yield* as.get('order_lines', zero)).toMatchObject({
+			expect(yield* as.query('order_lines', { id: zero })).toMatchObject({
 				tax_rate: decimalText('0'),
 				total: decimalText('2.00')
 			});
@@ -63,7 +63,7 @@ test.live(
 					unit_price: Decimal.of('1.25')
 				})
 			);
-			expect(yield* as.get('order_lines', cost)).toMatchObject({
+			expect(yield* as.query('order_lines', { id: cost })).toMatchObject({
 				unit_price: decimalText('1.25'),
 				tax_rate: decimalText('9')
 			});

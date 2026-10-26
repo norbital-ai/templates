@@ -119,7 +119,7 @@ test.live(
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			yield* confirm(t, own.order);
-			const sealed = yield* as.get('orders', own.order);
+			const sealed = yield* as.query('orders', { id: own.order });
 			expect(sealed?.sealed_commission).toMatchObject({
 				engine_version: 'cel-decimal-v1',
 				amount_expression: 'min(net * params.rate, params.cap)',
@@ -142,7 +142,7 @@ test.live(
 			expect(yield* f.query('orders.commission', {})).toMatchObject([
 				{ order: own.order, amount: decimalText('250.00') }
 			]);
-			expect(yield* as.get('orders', own.order)).toEqual(sealed);
+			expect(yield* as.query('orders', { id: own.order })).toEqual(sealed);
 			expect(
 				yield* Effect.flip(
 					as.act('commission_rules.update', { target: rule, set: { amount_expression: 'net * (' } })

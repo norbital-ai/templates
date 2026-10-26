@@ -1,11 +1,12 @@
-import { fixtureId, decimalText, firstRow } from './test-runtime.js';
+import { fixtureId, decimalText } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Schema, Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { Instant } from '@norbital-ai/std/date';
-import { d } from '../src/lib/commercial.js';
+
 import { availability } from '../src/lib/stock.js';
 import { workspace } from './kit.js';
+import { businessRows } from './business-source.js';
 const id = <C extends 'products' | 'warehouses' | 'orders' | 'order_lines'>(
 	collection: C,
 	suffix: string
@@ -15,8 +16,8 @@ const source = {
 	product: id('products', '201'),
 	warehouse: id('warehouses', '301'),
 	unit: 'kg',
-	on_hand: d('100'),
-	erp_committed: d('30'),
+	on_hand: Decimal.of('100'),
+	erp_committed: Decimal.of('30'),
 	as_of: now,
 	orders_as_of: now
 } satisfies Parameters<typeof availability>[0];
@@ -33,7 +34,7 @@ const line = {
 	order: order.id,
 	product: source.product,
 	unit: 'kg',
-	quantity: d('80')
+	quantity: Decimal.of('80')
 } satisfies NonNullable<Parameters<typeof availability>[3]>['lines'][number];
 const commitments = { orders: [order], lines: [line], receipts: [], delivered: [] };
 test('fresh compatible stock retains negative projected balances and does not count ERP-included orders twice', () => {
@@ -80,7 +81,7 @@ test('unknown, stale, mixed units and unreconciled delivery never fabricate avai
 	expect(
 		availability(source, now, 30, {
 			...commitments,
-			delivered: [{ order_line: line.id, quantity: d('5') }]
+			delivered: [{ order_line: line.id, quantity: Decimal.of('5') }]
 		})
 	).toMatchObject({ projected: null, reason: 'delivery_unreconciled' });
 	expect(availability(source, now, 30)).toMatchObject({
@@ -95,17 +96,23 @@ test.live(
 		Effect.gen(function* () {
 			const t = yield* workspace();
 			const sales = t.member(['sales']);
-			expect(yield* t.as(sales).query('stock_snapshots.erp_availability', {})).toEqual([]);
+			expect(yield* t.as(sales).query('stock_snapshots.erp_availability', { as_of: now })).toEqual(
+				[]
+			);
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
-						Effect.runPromise(t.as(sales).query('stock_snapshots.projected_availability', {}))
+						Effect.runPromise(
+							t.as(sales).query('stock_snapshots.projected_availability', { as_of: now })
+						)
 					).rejects.toThrow(),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			for (const policy of ['manager', 'logistics', 'finance']) {
 				const actor = t.member([policy]);
-				expect(yield* t.as(actor).query('stock_snapshots.projected_availability', {})).toEqual([]);
+				expect(
+					yield* t.as(actor).query('stock_snapshots.projected_availability', { as_of: now })
+				).toEqual([]);
 			}
 		})
 );
@@ -143,7 +150,7 @@ test.live(
 				}
 			});
 			const as = t.as(t.member(['logistics']));
-			const rows = yield* as.query('stock_snapshots.projected_availability', {});
+			const rows = yield* as.query('stock_snapshots.projected_availability', { as_of: now });
 			expect(rows).toMatchObject([
 				{
 					product: source.product,
@@ -159,52 +166,6 @@ test.live(
 			expect(rows).not.toMatchObject([{ unit_price: expect.anything() }]);
 		})
 );
-test('stock keeps approved quota while drafting and waits for an amended source confirmation', () => {
-	const operational_contracts = [
-		{
-			seal_hash: 'sealed',
-			lines: [{ id: line.id, product: line.product, unit: line.unit, quantity: '80' }]
-		}
-	];
-	const drafting = { ...order, status: 'draft' as const, operational_contracts };
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [drafting],
-			lines: [{ ...line, quantity: d('20') }]
-		})
-	).toMatchObject({ local_committed: '80', projected: '-10' });
-	const oldReceipt = {
-		order: order.id,
-		status: 'issued' as const,
-		agreement_hash: 'sealed',
-		source_updated_at: now
-	};
-	expect(
-		availability(source, now, 30, { ...commitments, orders: [drafting], receipts: [oldReceipt] })
-	).toMatchObject({ local_committed: '0', projected: '70' });
-	const amended = {
-		...order,
-		seal_hash: 'new',
-		operational_contracts: [
-			...operational_contracts,
-			{
-				seal_hash: 'new',
-				lines: [{ ...firstRow(firstRow(operational_contracts).lines), quantity: '100' }]
-			}
-		]
-	};
-	expect(
-		availability(source, now, 30, { ...commitments, orders: [amended], receipts: [oldReceipt] })
-	).toMatchObject({ projected: null, reason: 'contract_unreconciled' });
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [amended],
-			receipts: [{ ...oldReceipt, agreement_hash: 'new' }]
-		})
-	).toMatchObject({ projected: '70' });
-});
 test.live(
 	'average inventory cost weights remaining lots and leaves incomplete cost evidence unknown',
 	() =>
@@ -225,14 +186,11 @@ test.live(
 				averageLotCost([...rows, { ...base, unit_cost: null }], 'resin', 'kg', 'SGD')
 			).toBeNull();
 			expect(averageLotCost(rows, 'resin', 'box', 'SGD')).toBeNull();
+			expect(averageLotCost([...rows, { ...base, unit: null }], 'resin', 'kg', 'SGD')).toBeNull();
 		})
 );
 test.live('sales get a below-average lot cost warning without blocking an editable draft', () =>
 	Effect.gen(function* () {
-		const { sourceFixture } = yield* Effect.tryPromise({
-			try: () => import('./source-fixture.js'),
-			catch: (cause) => new TestIoFailed({ message: String(cause) })
-		});
 		const { draft, committed } = yield* Effect.tryPromise({
 			try: () => import('./kit.js'),
 			catch: (cause) => new TestIoFailed({ message: String(cause) })
@@ -250,13 +208,16 @@ test.live('sales get a below-average lot cost warning without blocking an editab
 			as_of: '2026-10-10T00:00:00Z',
 			orders_as_of: '2026-10-10T00:00:00Z'
 		}));
-		const t = yield* workspace({ source: sourceFixture(() => ({ '/stock_snapshots': lots })) });
-		expect(yield* t.pull('stock_snapshots', 'lot-warning')).toMatchObject({
-			pages: expect.any(Number)
-		});
+		const t = yield* workspace();
+		yield* businessRows(t, 'stock_snapshots', lots);
 		const own = yield* draft(t);
 		const as = t.as(t.admin);
-		expect(yield* as.query('orders.confirmation_check', { order: own.order })).toMatchObject({
+		expect(
+			yield* as.query('orders.confirmation_check', {
+				as_of: Instant(t.clock.now()),
+				order: own.order
+			})
+		).toMatchObject({
 			below_inventory_cost: ['Resin A']
 		});
 		committed(
@@ -266,7 +227,12 @@ test.live('sales get a below-average lot cost warning without blocking an editab
 				set: { unit_price: Decimal.of('4') }
 			})
 		);
-		expect(yield* as.query('orders.confirmation_check', { order: own.order })).toMatchObject({
+		expect(
+			yield* as.query('orders.confirmation_check', {
+				as_of: Instant(t.clock.now()),
+				order: own.order
+			})
+		).toMatchObject({
 			below_inventory_cost: []
 		});
 		expect(

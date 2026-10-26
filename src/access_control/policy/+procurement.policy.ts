@@ -4,6 +4,7 @@ export default policy({
 	capabilities: {
 		apps: ['operations']
 	},
+	automations: ['orders_cancel', 'orders_close'],
 	grants: {
 		ext_purchase_orders: {
 			read: { order: { is: { direction: { eq: 'purchasing' }, owner: { eq: { actor: 'id' } } } } },
@@ -70,6 +71,7 @@ export default policy({
 					eq: 'purchasing'
 				}
 			},
+			// a confirmation needs a commercial manager; any other edit of an unconfirmed order is direct
 			update: {
 				previous: {
 					direction: {
@@ -77,32 +79,18 @@ export default policy({
 					}
 				},
 				where: {
-					status: { ne: 'confirmed' },
 					direction: {
 						eq: 'purchasing'
 					}
-				}
-			},
-			approval: {
-				update: [
-					{
-						previous: {
-							direction: {
-								eq: 'purchasing'
-							}
-						},
-						where: {
-							direction: {
-								eq: 'purchasing'
-							}
-						},
-						match: { record: { status: { eq: 'confirmed' } }, changed: ['status'] },
-						steps: [['Commercial Managers']]
-					}
-				]
+				},
+				approval: (write, flow) =>
+					write.record.status !== 'confirmed'
+						? flow.allow()
+						: write.changed.includes('status')
+							? flow.step('Commercial review', { teams: ['commercial_managers'] })
+							: flow.deny('errors.order_sealed')
 			},
 			moves: 'all',
-			actions: ['cancel', 'close'],
 			queries: [
 				'document_preview',
 				'document_versions',
@@ -255,6 +243,5 @@ export default policy({
 				}
 			}
 		}
-	},
-	automations: ['export_order']
+	}
 });

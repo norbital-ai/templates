@@ -1,8 +1,7 @@
 import { Effect, Encoding, Schema } from 'effect';
 import { Decimal, minorDigits, sum, type DecimalLike } from '@norbital-ai/std/decimal';
 import type { Row } from '@norbital-ai/bolt';
-export { Decimal, sum };
-export const d = Decimal.of;
+
 export function price(
 	document: Pick<Row<'orders'>, 'currency' | 'tax_inclusive'>,
 	line: {
@@ -13,11 +12,11 @@ export function price(
 	}
 ) {
 	const digits = minorDigits(document.currency);
-	const base = d(line.quantity)
+	const base = Decimal.of(line.quantity)
 		.times(line.unit_price)
-		.times(d(100).minus(line.discount_pct))
+		.times(Decimal.of(100).minus(line.discount_pct))
 		.div(100, 12);
-	const factor = d(1).plus(d(line.tax_rate).div(100, 6));
+	const factor = Decimal.of(1).plus(Decimal.of(line.tax_rate).div(100, 6));
 	const net = document.tax_inclusive ? base.round(digits).div(factor, digits) : base.round(digits);
 	const tax = document.tax_inclusive
 		? base.round(digits).minus(net)
@@ -85,16 +84,17 @@ export function snapshot(
 				product_code: l.product_code,
 				product_name: l.product_name,
 				unit: l.unit,
-				quantity: d(l.quantity).toString(),
-				unit_price: d(l.unit_price).toString(),
-				discount_pct: d(l.discount_pct).toString(),
-				tax_rate: d(l.tax_rate).toString(),
-				net: d(l.net).toString(),
-				tax: d(l.tax).toString(),
-				total: d(l.total).toString(),
-				floor_net: l.floor_net === null ? '' : d(l.floor_net).toString(),
+				quantity: Decimal.of(l.quantity).toString(),
+				unit_price: Decimal.of(l.unit_price).toString(),
+				discount_pct: Decimal.of(l.discount_pct).toString(),
+				tax_rate: Decimal.of(l.tax_rate).toString(),
+				net: Decimal.of(l.net).toString(),
+				tax: Decimal.of(l.tax).toString(),
+				total: Decimal.of(l.total).toString(),
+				floor_net: l.floor_net === null ? '' : Decimal.of(l.floor_net).toString(),
 				commission_basis_unit: l.commission_basis_unit ?? '',
-				commission_factor: l.commission_factor === null ? '' : d(l.commission_factor).toString()
+				commission_factor:
+					l.commission_factor === null ? '' : Decimal.of(l.commission_factor).toString()
 			})),
 		net: sum(lines.map((l) => l.net)).toString(),
 		tax: sum(lines.map((l) => l.tax)).toString(),
@@ -147,7 +147,7 @@ export function creditWarning(
 	const adverse =
 		credit !== undefined &&
 		(credit.credit_hold ||
-			(!unavailable && d(credit.credit_used!).plus(gross).gt(credit.credit_limit!)));
+			(!unavailable && Decimal.of(credit.credit_used!).plus(gross).gt(credit.credit_limit!)));
 	return { warning: unavailable || adverse, unavailable };
 }
 /** Internal approval basis is refreshed until confirmation, then retained in the SO seal. */
@@ -155,29 +155,33 @@ export function currentFloors(
 	order: Pick<Row<'orders'>, 'currency' | 'ordered_on'>,
 	lines: readonly Row<'order_lines'>[],
 	floors: readonly Row<'pricing_floors'>[],
-	group: string | undefined
+	group: string | null | undefined
 ) {
 	return lines.map((line) => {
 		const floor = floors
 			.filter(
 				(f) =>
+					group != null &&
 					f.product === line.product &&
 					f.currency === order.currency &&
 					f.group_code === group &&
 					f.effective_on <= order.ordered_on &&
-					d(f.minimum_quantity).lte(line.quantity)
+					Decimal.of(f.minimum_quantity).lte(line.quantity)
 			)
 			.sort(
 				(a, b) =>
 					b.effective_on.localeCompare(a.effective_on) ||
-					d(b.minimum_quantity).cmp(a.minimum_quantity)
+					Decimal.of(b.minimum_quantity).cmp(a.minimum_quantity)
 			)[0];
 		return {
 			...line,
 			floor_net:
 				floor && floor.unit === line.unit
 					? floor.tax_inclusive
-						? d(floor.floor_price).div(d(1).plus(d(floor.tax_rate).div(100, 6)), 8)
+						? Decimal.of(floor.floor_price).div(
+								Decimal.of(1).plus(Decimal.of(floor.tax_rate).div(100, 6)),
+								8
+							)
 						: floor.floor_price
 					: null,
 			floor_on: floor?.effective_on ?? null

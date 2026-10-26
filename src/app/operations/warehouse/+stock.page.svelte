@@ -28,7 +28,11 @@
 		of="warehouses"
 		columns={['external_code', 'name', 'group_code', 'active']}
 	/>{/snippet}
-<AppShell description="" icon="lucide:package" title={bolt.t('component.stock')} variant="full"
+<AppShell
+	description={bolt.t('app.warehouse.description')}
+	icon="lucide:package"
+	title={bolt.t('component.stock')}
+	variant="full"
 	><Tabs
 		tabs={[
 			{ name: 'products', title: bolt.t('models.products.label'), body: products },

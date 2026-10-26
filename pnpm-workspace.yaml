@@ -22,9 +22,9 @@ patchedDependencies:
 minimumReleaseAgeExclude:
   - '@norbital-ai/bolt@0.0.1'
   - '@norbital-ai/bolt-server@0.0.1'
-  - '@norbital-ai/doctor@0.0.1'
   - '@norbital-ai/providers@0.0.1'
   - '@norbital-ai/std@0.0.1'
+  - '@norbital-ai/store@0.0.1'
   - '@norbital-ai/ui@0.0.1'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.

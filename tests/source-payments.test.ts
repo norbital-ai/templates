@@ -83,7 +83,7 @@ test.live(
 					'upsert'
 				)
 			).not.toMatchObject({ kind: 'committed' });
-			expect(yield* as.get('source_payments', paid.id)).toMatchObject({
+			expect(yield* as.query('source_payments', { id: paid.id })).toMatchObject({
 				invoice: null,
 				amount: decimalText('3')
 			});
