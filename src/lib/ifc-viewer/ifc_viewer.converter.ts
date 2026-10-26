@@ -65,6 +65,7 @@ function runConversion(
 			send(Effect.fail(workerFailure(resolveWorkerError(message.value.error, t))));
 		};
 		worker.onerror = (event: ErrorEvent) => {
+			const cause: unknown = event.error;
 			const details = [
 				event.message,
 				event.filename ? `file: ${event.filename}` : null,
@@ -76,12 +77,12 @@ function runConversion(
 			const errorMessage = details || t('component.ifc_unknown_worker_error');
 			send(
 				Effect.fail(
-					workerFailure(event.error instanceof Error ? event.error.message : errorMessage, {
+					workerFailure(cause instanceof Error ? cause.message : errorMessage, {
 						message: event.message,
 						filename: event.filename ?? null,
 						lineno: event.lineno ?? null,
 						colno: event.colno ?? null,
-						error: event.error ?? null
+						error: cause ?? null
 					})
 				)
 			);

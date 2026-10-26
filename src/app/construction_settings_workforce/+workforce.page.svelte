@@ -33,7 +33,7 @@
 		columns={[
 			'job_title',
 			'job_number',
-			{ field: 'project_id', width: 200 },
+			'project_id',
 			'job_type',
 			'status',
 			'priority',

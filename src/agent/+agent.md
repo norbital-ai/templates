@@ -29,11 +29,11 @@ For all of them:
 
 ## Recipes
 
-No collection here declares a nested write: a record and its link rows are separate writes.
+No model here declares a nested write: a record and its link rows are separate writes.
 
 - **A record that may already exist.** Look it up first by its own reference (`project_number`,
   `job_number`, `permit_number`, `claim_number`, `worker_number`, …). If it exists,
-  `<collection>.update` it; if not, `<collection>.create`. Never file a second record for the same reference.
+  `<model>.update` it; if not, `<model>.create`. Never file a second record for the same reference.
 - **Assign a worker:** `job_assignments.create` with the worker, the site location and the job. It
   is refused unless the worker holds active, in-force permits to work covering every certification
   some job at that site location requires. On a refusal, read the worker's permits
@@ -50,9 +50,9 @@ No collection here declares a nested write: a record and its link rows are separ
 - **A fresh digest:** the four automations run daily at 06:00 and publish the first 25 rows. Start
   one now with `automation.permit_expiry_watch`, `automation.rfi_followup_watch`,
   `automation.defect_closeout_digest` or `automation.payment_claim_readiness_watch` when someone
-  wants the extract itself; for a question, read the collection directly.
+  wants the extract itself; for a question, read the model directly.
 
-## What the collections mean
+## What the models mean
 
 - A **project** carries a contract value and the sites under it.
 - A **site location** is a work front or zone within a project; it can sit under a parent location.

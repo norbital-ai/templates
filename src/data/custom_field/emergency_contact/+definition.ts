@@ -1,5 +1,5 @@
 import { customField } from '@norbital-ai/bolt';
-export default customField({
+export default customField('emergency_contact', {
 	description:
 		'A next-of-kin name and phone number with their relationship to the worker, held so site supervision can reach someone after an incident.',
 	shape: {

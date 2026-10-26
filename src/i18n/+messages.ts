@@ -42,7 +42,7 @@ export default messages({
 	'models.site_locations.singular': 'Site location',
 	'models.workers.label': 'Workers',
 	'models.workers.singular': 'Worker',
-	'models.asset_documents.fields.document_url': 'Document URL',
+	'models.asset_documents.fields.document_url': 'Document link',
 	'models.asset_documents.fields.validity_range': 'Validity',
 	'models.asset_documents.fields.document_type.ifc_model': 'IFC model',
 	'models.asset_documents.fields.document_type.handover_pack': 'Handover pack',
@@ -166,5 +166,8 @@ export default messages({
 	'section.specification': 'Specification',
 	'section.submission': 'Submission',
 	'section.validity': 'Validity',
-	'section.worker': 'Worker'
+	'section.worker': 'Worker',
+	'section.signoff': 'Sign-off',
+	'component.not_signed': 'Not signed',
+	'component.open_document': 'Open'
 });

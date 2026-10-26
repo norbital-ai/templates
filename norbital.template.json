@@ -6,7 +6,7 @@
 	"description": "Construction project, workforce, permit, quality, and commercial operations.",
 	"visibility": "public",
 	"counts": {
-		"collections": 16,
+		"models": 16,
 		"apps": 3,
 		"automations": 4
 	},

@@ -1,22 +1,22 @@
 import { team } from '@norbital-ai/bolt';
-/** Source access roles: stable handles are membership and approval identities. */
+/** Source access roles: readable handles are membership and approval identities (`seed/seed.ts` maps the bank's ids). */
 export default team({
-	'019f8a30-0000-7000-8000-000000000001': {
+	project_delivery: {
 		name: 'Project Delivery',
 		parent: null,
 		policies: ['construction_read', 'construction_project_workspace']
 	},
-	'019f8a30-0000-7000-8000-000000000002': {
+	reference_matrix_administrators: {
 		name: 'Reference Matrix Administrators',
 		parent: null,
 		policies: ['construction_read', 'construction_settings_reference_matrix']
 	},
-	'019f8a30-0000-7000-8000-000000000003': {
+	workforce_administrators: {
 		name: 'Workforce Administrators',
 		parent: null,
 		policies: ['construction_read', 'construction_settings_workforce']
 	},
-	'019f8a30-0000-7000-8000-000000000004': {
+	construction_administrators: {
 		name: 'Construction Administrators',
 		parent: null,
 		policies: [

@@ -162,5 +162,8 @@ export default messages({
 	'section.specification': '规格',
 	'section.submission': '提交',
 	'section.validity': '有效期',
-	'section.worker': '工人'
+	'section.worker': '工人',
+	'section.signoff': '签署',
+	'component.not_signed': '未签署',
+	'component.open_document': '打开'
 });

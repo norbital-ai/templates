@@ -11,6 +11,14 @@
 		/** An empty optional part is `null`; an empty required part is `''`. */
 		optional?: true;
 	};
+	/** A required text part as a shape stores it: `''` when empty. */
+	export const text = (entry: Entry | undefined): string => (entry == null ? '' : String(entry));
+	/** An optional text part as a shape stores it: `null` when empty. */
+	export const optionalText = (entry: Entry | undefined): string | null =>
+		entry == null || entry === '' ? null : String(entry);
+	/** A number part: `null` when empty. */
+	export const number = (entry: Entry | undefined): number | null =>
+		typeof entry === 'number' ? entry : null;
 </script>
 
 <script lang="ts">
