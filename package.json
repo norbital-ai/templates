@@ -19,10 +19,11 @@
 		"test": "bolt templates test"
 	},
 	"devDependencies": {
+		"@norbital-ai/bolt": "0.0.3",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"pg": "^8.23.0",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
-		"svelte": "^5.56.10",
-		"@norbital-ai/bolt": "0.0.3",
-		"@typescript/native": "npm:typescript@7.0.2"
+		"svelte": "^5.56.10"
 	}
 }
