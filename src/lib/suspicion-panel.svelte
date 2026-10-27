@@ -66,7 +66,7 @@
 					}
 				})
 	);
-	const view = (file: FileRef) => ({ name: file.name, url: bolt.fileUrl(file) });
+	const view = (file: FileRef) => ({ name: file.name, url: bolt.fileUrl(file, { preview: 1024 }) });
 	const flagged = $derived(
 		(photos.current?.photo_evidence.rows ?? []).filter((p) => p.flags.length > 0)
 	);
@@ -105,7 +105,7 @@
 							onclick={() => onOpen(view(photo.photo))}
 						>
 							<img
-								src={bolt.fileUrl(photo.photo)}
+								src={bolt.fileUrl(photo.photo, { preview: 1024 })}
 								alt={photo.photo.name}
 								class="size-14 rounded-md object-cover"
 								loading="lazy"
@@ -146,7 +146,7 @@
 							<Cluster gap="xs" align="center">
 								<button type="button" onclick={() => onOpen(view(pair.mine.photo))}>
 									<img
-										src={bolt.fileUrl(pair.mine.photo)}
+										src={bolt.fileUrl(pair.mine.photo, { preview: 1024 })}
 										alt={pair.mine.photo.name}
 										class="h-14 w-20 rounded object-cover"
 									/>
@@ -154,7 +154,7 @@
 								<Icon icon="lucide:arrow-left-right" class="size-3.5 text-muted-foreground" />
 								<button type="button" onclick={() => onOpen(view(pair.other.photo))}>
 									<img
-										src={bolt.fileUrl(pair.other.photo)}
+										src={bolt.fileUrl(pair.other.photo, { preview: 1024 })}
 										alt={pair.other.photo.name}
 										class="h-14 w-20 rounded object-cover"
 									/>
