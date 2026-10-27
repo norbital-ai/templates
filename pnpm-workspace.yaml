@@ -7,14 +7,14 @@ allowBuilds:
 # it; `bolt check` type-checks with each template's own Bolt). Like every template's
 # own policy, only these exact, reviewed first-party releases bypass the minimum-release-age gate.
 minimumReleaseAgeExclude:
-  - '@norbital-ai/app-shell@0.0.5'
-  - '@norbital-ai/bolt@0.0.5'
-  - '@norbital-ai/bolt-server@0.0.5'
-  - '@norbital-ai/doctor@0.0.5'
-  - '@norbital-ai/providers@0.0.5'
-  - '@norbital-ai/std@0.0.5'
-  - '@norbital-ai/store@0.0.5'
-  - '@norbital-ai/ui@0.0.5'
+  - '@norbital-ai/app-shell@0.0.6'
+  - '@norbital-ai/bolt@0.0.6'
+  - '@norbital-ai/bolt-server@0.0.6'
+  - '@norbital-ai/doctor@0.0.6'
+  - '@norbital-ai/providers@0.0.6'
+  - '@norbital-ai/std@0.0.6'
+  - '@norbital-ai/store@0.0.6'
+  - '@norbital-ai/ui@0.0.6'
 
 # As in every template: pnpm 11 would reinstall the published Bolt over a local overlay before
 # running any script, so `pnpm templates:*` would run the registry's `bolt` instead of the linked one.
@@ -23,3 +23,12 @@ verifyDepsBeforeRun: false
 overrides:
   # platform-node asks for `^4.0.0-rc.112`, which a stable 4.x satisfies; hold it on the rc line.
   '@effect/platform-node-shared': 4.0.0-rc.112
+
+packageExtensions:
+  # GitHub Packages omits optional peer metadata from registry responses.
+  '@norbital-ai/bolt':
+    peerDependenciesMeta:
+      svelte2tsx:
+        optional: true
+      typescript:
+        optional: true

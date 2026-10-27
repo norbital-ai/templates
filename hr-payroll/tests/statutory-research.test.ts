@@ -392,7 +392,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			assert.ok(content.includes(source.url));
 			assert.ok(!content.includes('"agent":"catalog"'));
 			const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
-				content.slice(content.indexOf(marker) + marker.length).split('\n', 1)[0]
+				content.slice(content.indexOf(marker) + marker.length).split('\n```', 1)[0]
 			);
 			// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
 			assert.deepEqual(Object.keys(index.sections), ['rule_set']);
