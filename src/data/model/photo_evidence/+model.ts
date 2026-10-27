@@ -1,36 +1,25 @@
 import { model } from '@norbital-ai/bolt';
-import {
-	exactlyOneParent,
-	photoSourceKey,
-	photoSummary,
-	uninspectedPhotoFacts
-} from '../../../lib/photo-integrity.js';
+import { photoSourceKey, photoSummary, uninspectedPhotoFacts } from '../../../lib/photo-integrity.js';
 const PROBE = { vector: { kind: 'list', of: { kind: 'number' } } } as const;
 /**
- * One photo filed against exactly one job assignment or variation request, with its integrity facts. A photo is born
+ * One photo filed against one job assignment, with its integrity facts. A photo is born
  * uninspected (`sha256` empty, a zero `perceptual_embedding`); the suspicion review fills the facts from
  * `ctx.files.image`, or, when the host cannot read it, records the failure and judges the rest. Flags and similarity
  * are evidence for a judgement, never a verdict.
  *
  * A photo created here directly is a workspace upload: `source` is no create column. A message photo arrives through its
- * assignment's update, whose `with` states the message `source`. Provenance (the file, the parent, the source and its
- * key) never changes; the facts may. The indexes read the vectors the review writes (image facts need the host).
+ * assignment's update, whose `job_assignments.photo_evidence` layer states the message `source`. Provenance (the file, the
+ * parent, the source and its key) never changes; the facts may. The indexes read the vectors the review writes (image facts need the host).
  */
 export default model('photo_evidence', {
 	description:
-		'One explicitly selected photo and its deterministic integrity facts, linked to exactly one job assignment or variation request. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
+		'One explicitly selected photo and its deterministic integrity facts, linked to one job assignment. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
 	icon: 'lucide:scan-search',
 	label: 'summary',
 	fields: {
 		job_assignment_id: {
 			kind: 'ref',
 			to: 'job_assignments',
-			inverse: 'photo_evidence',
-			optional: true
-		},
-		variation_request_id: {
-			kind: 'ref',
-			to: 'variation_requests',
 			inverse: 'photo_evidence',
 			optional: true
 		},
@@ -93,18 +82,22 @@ export default model('photo_evidence', {
 			}
 		}
 	},
-	read: 'all',
+	read: {
+		photo_evidence: { fields: 'all' },
+		/**
+		 * The job a photo was filed against: its title (the review panel's other-assignment photos) and its site (a
+		 * `where` hop through this layer, e.g. the site handover).
+		 */
+		'photo_evidence.job_assignment_id': { fields: ['title', 'site_id'] }
+	},
 	create: {
-		columns: ['job_assignment_id', 'variation_request_id', 'photo'],
+		columns: { photo_evidence: ['job_assignment_id', 'photo'] },
 		transform: function* (rows, ctx) {
-			const orphan = rows.findIndex(
-				(row) => !exactlyOneParent(row.job_assignment_id, row.variation_request_id)
-			);
+			const orphan = rows.findIndex((row) => row.job_assignment_id == null);
 			if (orphan >= 0)
-				return yield* ctx.refuse(
-					'Photo evidence must reference exactly one job assignment or variation request.',
-					{ row: orphan }
-				);
+				return yield* ctx.refuse('Photo evidence must reference a job assignment.', {
+					row: orphan
+				});
 			return rows.map((row) => {
 				const source = row.source ?? ({ kind: 'workspace_upload' } as const);
 				return {
@@ -118,16 +111,18 @@ export default model('photo_evidence', {
 		}
 	},
 	update: {
-		columns: [
-			'sha256',
-			'inspection_failed_at',
-			'inspection_failure_reason',
-			'inspection_claimed_at',
-			'perceptual_embedding',
-			'scene_embedding',
-			'flags',
-			'matched_evidence_ids'
-		]
+		columns: {
+			photo_evidence: [
+				'sha256',
+				'inspection_failed_at',
+				'inspection_failure_reason',
+				'inspection_claimed_at',
+				'perceptual_embedding',
+				'scene_embedding',
+				'flags',
+				'matched_evidence_ids'
+			]
+		}
 	},
 	delete: {}
 });

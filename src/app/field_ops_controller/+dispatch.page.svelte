@@ -42,46 +42,52 @@
 		{ lazy: false }
 	);
 	const jobs = $derived(
-		bolt.query('job_assignments', {
-			where: { scheduled_for: { eq: date } },
-			select: { site_id: true },
-			limit: 1000
+		bolt.query({
+			job_assignments: {
+				where: { scheduled_for: { eq: date } },
+				fields: ['site_id'],
+				limit: 1000
+			}
 		})
 	);
-	const dayJobs = $derived(jobs.current?.rows ?? []);
+	const dayJobs = $derived(jobs.current?.job_assignments.rows ?? []);
 	const siteIds = $derived([...new Set(dayJobs.map((job) => job.site_id))]);
 	const sites = $derived(
 		siteIds.length === 0
 			? null
-			: bolt.query('sites', {
-					where: { id: { in: siteIds } },
-					select: { name: true, location: true },
-					limit: 1000
+			: bolt.query({
+					sites: { where: { id: { in: siteIds } }, fields: ['name', 'location'], limit: 1000 }
 				})
 	);
 	const siteName = $derived(
-		new globalThis.Map((sites?.current?.rows ?? []).map((site) => [site.id, site.name]))
+		new globalThis.Map((sites?.current?.sites.rows ?? []).map((site) => [site.id, site.name]))
 	);
 	const mappedSites = $derived(
-		(sites?.current?.rows ?? []).filter((site) => site.location != null).map((site) => site.id)
+		(sites?.current?.sites.rows ?? [])
+			.filter((site) => site.location != null)
+			.map((site) => site.id)
 	);
 	/** Read once for the board: which of the day's jobs carry a finding nobody has answered. */
 	const open = $derived(
 		dayJobs.length === 0
 			? null
-			: bolt.query('suspicious_activity_logs', {
-					where: {
-						resolved_at: { isNull: true },
-						job_assignment_id: { in: dayJobs.map((job) => job.id) }
-					},
-					select: { job_assignment_id: true },
-					limit: 1000
+			: bolt.query({
+					suspicious_activity_logs: {
+						where: {
+							resolved_at: { isNull: true },
+							job_assignment_id: { in: dayJobs.map((job) => job.id) }
+						},
+						fields: ['job_assignment_id'],
+						limit: 1000
+					}
 				})
 	);
 	const suspicious = $derived(
-		new Set((open?.current?.rows ?? []).map((log) => log.job_assignment_id))
+		new Set(
+			(open?.current?.suspicious_activity_logs.rows ?? []).map((log) => log.job_assignment_id)
+		)
 	);
-	const statusLabel = (status: 'unassigned' | 'assigned' | 'completed') =>
+	const statusLabel = (status: 'pending' | 'completed') =>
 		t(`component.status_${status}`);
 	let message = $state<string | null>(null);
 	let importing = $state(false);
@@ -204,6 +210,12 @@
 			{row.nature ?? row.title}
 		</p>
 		<p class="line-clamp-2 text-meta leading-snug">{siteName.get(row.site_id) ?? '—'}</p>
+		{#if row.assignee_user_id == null}
+			<p class="text-meta leading-snug text-warning">
+				<Icon icon="lucide:user-x" class="inline size-3.5" aria-hidden="true" />
+				{t('component.no_contractor')}
+			</p>
+		{/if}
 	</Stack>
 {/snippet}
 
@@ -270,7 +282,7 @@
 							}
 						]
 					}}
-					lanes={(['unassigned', 'assigned', 'completed'] as const).map((value) => ({
+					lanes={(['pending', 'completed'] as const).map((value) => ({
 						value,
 						label: statusLabel(value)
 					}))}

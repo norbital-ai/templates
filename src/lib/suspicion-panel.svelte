@@ -21,49 +21,62 @@
 	} = $props();
 	const t = bolt.t;
 	const photos = $derived(
-		bolt.query('photo_evidence', {
-			where: { job_assignment_id: { eq: job } },
-			select: { photo: true, flags: true },
-			limit: 250
+		bolt.query({
+			photo_evidence: {
+				where: { job_assignment_id: { eq: job } },
+				fields: ['photo', 'flags'],
+				limit: 250
+			}
 		})
 	);
 	const reviews = $derived(
-		bolt.query('suspicion_reviews', {
-			where: { job_assignment_id: { eq: job } },
-			orderBy: { reviewed_at: 'desc' },
-			select: { basis: true },
-			limit: 100
+		bolt.query({
+			suspicion_reviews: {
+				where: { job_assignment_id: { eq: job } },
+				orderBy: { reviewed_at: 'desc' },
+				fields: ['basis'],
+				limit: 100
+			}
 		})
 	);
 	const candidates = $derived(
-		reviewCandidatesFrom((reviews.current?.rows ?? []).map((r) => r.basis))
+		reviewCandidatesFrom((reviews.current?.suspicion_reviews.rows ?? []).map((r) => r.basis))
 	);
 	const others = $derived(
 		candidates.length === 0
 			? null
-			: bolt.query('photo_evidence', {
-					where: { id: { in: candidates.map((c) => c.id) } },
-					select: { photo: true, job_assignment_id: { select: { title: true } } },
-					limit: 250
+			: bolt.query({
+					photo_evidence: {
+						where: { id: { in: candidates.map((c) => c.id) } },
+						fields: ['photo'],
+						limit: 250
+					},
+					'photo_evidence.job_assignment_id': { fields: ['title'] }
 				})
 	);
 	const logs = $derived(
 		!findings
 			? null
-			: bolt.query('suspicious_activity_logs', {
-					where: { job_assignment_id: { eq: job } },
-					orderBy: 'created_at',
-					select: { reason: true, resolution: true, resolved_at: true },
-					limit: 100
+			: bolt.query({
+					suspicious_activity_logs: {
+						where: { job_assignment_id: { eq: job } },
+						orderBy: 'created_at',
+						fields: ['reason', 'resolution', 'resolved_at'],
+						limit: 100
+					}
 				})
 	);
 	const view = (file: FileRef) => ({ name: file.name, url: bolt.fileUrl(file) });
-	const flagged = $derived((photos.current?.rows ?? []).filter((p) => p.flags.length > 0));
+	const flagged = $derived(
+		(photos.current?.photo_evidence.rows ?? []).filter((p) => p.flags.length > 0)
+	);
 	const pairs = $derived(
 		candidates.flatMap((candidate) => {
-			const other = (others?.current?.rows ?? []).find((row) => row.id === candidate.id);
+			const other = (others?.current?.photo_evidence.rows ?? []).find(
+				(row) => row.id === candidate.id
+			);
 			return candidate.matchedPhotoIds.flatMap((own) => {
-				const mine = (photos.current?.rows ?? []).find((p) => p.id === own);
+				const mine = (photos.current?.photo_evidence.rows ?? []).find((p) => p.id === own);
 				return mine === undefined || other === undefined
 					? []
 					: [{ id: `${own}:${candidate.id}`, distance: candidate.distance, mine, other }];
@@ -161,11 +174,13 @@
 			{#if logs?.error}<p class="text-tiny text-destructive" role="alert">
 					{t('component.suspicion_load_failed')}
 				</p>{/if}
-			{#if (logs?.current?.rows ?? []).length === 0}<p class="text-tiny text-muted-foreground">
+			{#if (logs?.current?.suspicious_activity_logs.rows ?? []).length === 0}<p
+					class="text-tiny text-muted-foreground"
+				>
 					{t('component.suspicion_logs_empty')}
 				</p>{/if}
 			<Stack gap="sm">
-				{#each logs?.current?.rows ?? [] as log (log.id)}
+				{#each logs?.current?.suspicious_activity_logs.rows ?? [] as log (log.id)}
 					<Stack
 						gap="xs"
 						class={log.resolved_at == null

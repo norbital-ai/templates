@@ -3,10 +3,9 @@
 ![Field Operations workspace thumbnail](assets/thumbnail.svg)
 
 Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
-contractor, track on-site progress, raise scope-change requests, and collect photographic
-evidence whose integrity is checked mechanically. It is deliberately focused — it does not attempt
-project costing, payroll, or portfolio management, and the platform's native approval system owns the
-variation approval lifecycle.
+contractor, track on-site progress, and collect photographic evidence whose integrity is checked
+mechanically. It is deliberately focused — it does not attempt project costing, payroll, or
+portfolio management.
 
 The problem: field-service work needs the right people at the right site on the right day, and the
 evidence that the work happened needs to be trustworthy. A photo of a job site is not proof by
@@ -22,7 +21,7 @@ findings a controller resolves).
 | App                    | Audience                                                   | What it provides                                                                                                                                                                                                                          |
 | ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, a job-assignment CSV import, and a sites tab.                                                                                                 |
-| `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · scheduled date · status (plus the contractor for dispatchers). Opening a row shows the job scope, progress, dispatch time, location, assignment activity, variations, and evidence photos. |
+| `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · scheduled date · status (plus the contractor for dispatchers). Opening a row shows the job scope, progress, dispatch time, location, assignment activity, and evidence photos. |
 
 Flag visibility is reserved for the controller dashboard: photo integrity flags, the review
 ledger and every suspicion-log field render only for controllers. Contractors see their own
@@ -33,23 +32,22 @@ sync-backed models. Its board cards and map points are local projections of thos
 stay live without a remote query handler or refresh control.
 
 Teams (`src/access_control/team/+team.ts`, handles `field_ops_controllers`, `contractor_controllers`,
-`commercial_managers`, `contractors`): **Field Operations Controllers**, **Contractor (Controller)**
-and **Commercial Managers** hold `field_ops_controller`; **Contractor** holds `field_ops_contractor`.
-Commercial Managers sign off large variations. A contractor is a role, not a record: a user whose
-team holds `field_ops_contractor`.
+`contractors`): **Field Operations Controllers** and **Contractor (Controller)** hold
+`field_ops_controller`; **Contractor** holds `field_ops_contractor`. A contractor is a role, not a
+record: a user whose team holds `field_ops_contractor`.
 
 | Policy                        | What it grants                                                                                                                                                                                                                                                                                           |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                      |
-| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own variations (`read`; `create` and an `update` of the amount held by the approval flow, a wording fix saved directly); own evidence (`read` + `create`). |
-| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
+| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own evidence (`read` + `create`). |
+| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read sites and assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
 | `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                |
 
 ## Operating walkthrough
 
 The paths below are relative to the workspace. For example, a hosted workspace prefixes
 `/app/field_ops_controller/dispatch` with its workspace handle. Opening a record adds
-`?record=<collection>/<id>` to the current page; `new` opens a creation form. Closing the record
+`?record=<model>/<id>` to the current page; `new` opens a creation form. Closing the record
 returns to the surrounding board or table.
 
 | Flow                      | Who operates it                  | Entry and outcome                                                                                              |
@@ -58,7 +56,6 @@ returns to the surrounding board or table.
 | File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.               |
 | Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it. |
 | Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                         |
-| Request a variation       | Contractor, then controller      | Variation record and **Approvals**: submit a scope change, review it, and approve, return or reject it.        |
 | File and inspect evidence | Contractor, Envoy and controller | Photo record or WhatsApp report, then the job's **Conversation** and **Suspicion logs** tabs.                  |
 | Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's conclusion.     |
 | Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.          |
@@ -68,14 +65,14 @@ returns to the surrounding board or table.
 
 An administrator opens **Settings → People** (`/settings/people`), invites the member by email or
 international mobile number, and selects an existing team. Use **Field Operations Controllers**
-for dispatchers and variation approvers, **Contractor** for field staff who should see only their
+for dispatchers, **Contractor** for field staff who should see only their
 own work, or **Contractor (Controller)** when the person also dispatches the workspace. Keep the
-member **Active**. Use **Commercial Managers** for whoever signs off variations of SGD 5,000 or
-more. Team definitions and approval flows come from source; People assigns those roles to people.
+member **Active**. Team definitions come from source; People assigns those roles to people.
 
 For WhatsApp, open the member, enter their **Mobile number** in international format, and press
-**Save**. The sender's number must match this active account. A contractor is assigned by that
-workspace member identity, rather than by a separate contractor record or a display name.
+**Save**. The sender's number must match this active account. A job is linked to that workspace
+member by the email or phone number entered as its contractor contact, rather than by a separate
+contractor record or a display name.
 
 ![Invite a member into the Contractor role](docs/screenshots/19-member-setup.jpg)
 
@@ -99,21 +96,22 @@ scope**; **Job nature** and **Contractor** are optional. **New site by location*
 the location and unit first, using **Add site**, without leaving the assignment form. Select that
 site and choose **Create assignment**.
 
-With no contractor, the new work order is **Unassigned**. Selecting a contractor during creation
-files it **Assigned** and records **Dispatched at**. The scheduled date is a Singapore work day;
+Every new work order is **Pending**. Entering the contractor's email or phone number links the
+member who holds it and records **Dispatched at**; a contact no member holds leaves the job without
+a contractor, and its board card warns **No contractor linked**. The scheduled date is a Singapore work day;
 it is separate from the instant at which dispatch happens.
 
 ### 3. Dispatch the day and report progress
 
 The controller opens **Dispatch → Dispatch schedule**
 (`/app/field_ops_controller/dispatch`). Choose the dispatch date or **Today**. The date remains
-in `?day=YYYY-MM-DD` while opening records. The board groups that day's work into **Unassigned**,
-**Assigned** and **Completed**, beside a map of its mapped sites. An empty day has an empty board
+in `?day=YYYY-MM-DD` while opening records. The board groups that day's work into **Pending** and
+**Completed**, beside a map of its mapped sites. An empty day has an empty board
 and map message; it does not move older unfinished work into today's schedule.
 
-Open an unassigned job and choose **Edit**. In **Progress**, select **Contractor** and set **Status** to **Assigned**,
-then save. Assigning an existing job records its first dispatch time; changing the contractor
-alone does not change an already stored status. A controller can reassign work from this same
+Open a job without a contractor and choose **Edit**. In **Progress**, enter the contractor's email or
+phone number, then save. Linking a contractor records the job's first dispatch time; it never
+changes the status. A controller can reassign work from this same
 section.
 
 ![Assign a contractor and dispatch the job](docs/screenshots/03-assignment-progress.jpg)
@@ -123,10 +121,10 @@ assignments. Controllers using this page see workspace-wide assignments and a Co
 Use the table's view controls to filter by status and its search to find a job. The **Job scope**
 tab retains the site's work order while **Progress** and **Completion** capture the report:
 
-1. Keep **Status** at **Assigned** while the work continues.
+1. Keep **Status** at **Pending** while the work continues.
 2. Record **Value charged** and **Completion / visit summary** when available. Expand
    **Reported location** to capture where the report was made.
-3. Set **Status** to **Completed** and save when the work is finished. The collection supplies
+3. Set **Status** to **Completed** and save when the work is finished. The model supplies
    **Completed at** if it was not entered; later summary edits preserve that completion time.
 
 Contractors can report progress, completion, charged amount and location on their own jobs. Work
@@ -142,7 +140,7 @@ assignment eligible for another evidence review; completion does not settle an o
 Open a site from **Sites** or the dispatch map. **Upcoming jobs** includes future work and
 unfinished assignments that are overdue. **Activity history** lists assigned and completed work,
 including dispatch/completion times, value charged, reported location and summary. Open a listed
-job to inspect its scope, variations, conversation and, as a controller, suspicion records.
+job to inspect its scope, conversation and, as a controller, suspicion records.
 
 Changing a site's Location updates the derived site title. Existing seed sites that have no
 location remain readable, but require a Location when edited.
@@ -157,13 +155,13 @@ On **Dispatch schedule**, choose **Import** and select a CSV or XLSX. Start with
 `scheduled_for` (`YYYY-MM-DD`) and `title`. An existing site can be named by code or matching
 address and unit. A new site also needs `latitude` and `longitude`; import does not geocode
 address text. `unit_number` is optional and overrides a unit embedded in the address. Optional
-work-order columns include nature, description, contractor user ID and `external_ref`.
+work-order columns include nature, description, contractor email or phone (`assignee_contact`) and `external_ref`.
 
-The complete sheet is checked before writing. Invalid dates, malformed member IDs, repeated
+The complete sheet is checked before writing. Invalid dates, repeated
 references or missing coordinates for new sites produce row-specific errors. Fix the sheet and
 import it again. A valid import reports the number of created assignments; select the sheet's
-scheduled day to see them on the board. A contractor ID files the row Assigned; otherwise it is
-Unassigned. The ID must name a workspace member, so leave it blank when dispatching later.
+scheduled day to see them on the board. Every row is filed Pending; a contact naming a member
+links that contractor, otherwise the card warns that no contractor is linked.
 
 Re-importing the same `external_ref` skips that work order. Without a reference, the same title,
 day and site is skipped. A successful repeat therefore creates no duplicate work.
@@ -174,61 +172,10 @@ day and site is skipped. A successful repeat therefore creates no duplicate work
 
 ![A new site without coordinates is refused before import](docs/screenshots/24-import-validation.jpg)
 
-### 6. Propose a variation and decide its approval
+### 6. File photos and inspect the assignment conversation
 
-A contractor raises a scope change against their assignment using a variation creation record
-(`?record=variation_requests/new`) or the in-app agent. Supply the assignment, requested time,
-title and description; add the amount when known. The assignment's **Variations** tab lists
-recorded requests; it is not a separate submission form.
-
-![A Contractor's variation proposal](docs/screenshots/07-variation-proposal.jpg)
-
-Submitting as a contractor returns **Pending approval**. The contractor policy's flow
-(`src/access_control/policy/+field_ops_contractor.policy.ts`) names the steps: **Controller
-review** by Field Operations Controllers, then **Commercial sign-off** by Commercial Managers when
-the amount is SGD 5,000 or more; Field Operations Controllers may decide in either step's place.
-Changing the amount later is held the same way; a wording fix is saved directly. The proposal is
-held while the decision is outstanding, so its presence is not evidence that the commercial change
-has been approved. Creating the same variation as a controller uses the controller's direct
-authority and commits immediately.
-
-The approver opens **Approvals** (`/inbox`) and opens the request to review its record. The
-inbox offers only the moves allowed for the current person and state. The requester and
-approvers retain access to the held record while unrelated changes are blocked.
-
-The record's **Approval** panel shows a timeline: the request, then one node per step, each with
-who decided and when, or that it is waiting. Hover or focus a node for that step's history. Whoever
-may decide the current step chooses **Approve**, **Reject** or **Request changes**; a reason is
-required to reject or request changes. A record that had several requests offers a selector
-between them.
-
-| Decision        | What happens to the proposal                                                                                   | What to do next                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Approve         | The step is done; after the last step the proposed values are accepted.                                        | Continue the job.                                                            |
-| Request changes | The proposal remains held; its values stay available for correction.                                           | The requester edits it and saves: saving resubmits it for approval.          |
-| Reject          | The proposal is reverted. A newly created record is removed; an updated record returns to its previous values. | Read the reason and restoration result. A later attempt needs a new request. |
-
-For example, rejecting a proposed change from SGD25 to SGD35 restores SGD25. Rejection ends the
-request; it is different from asking the requester to correct and resubmit that same request.
-A requester who no longer wants a change asks an approver to reject it. A rejected creation can
-still be reviewed from **Approvals** after its proposed record has been removed.
-
-![Controller approval actions](docs/screenshots/08-approvals.jpg)
-
-![Changes requested](docs/screenshots/29-approval-changes-requested.jpg)
-
-![After the requester saved: pending again](docs/screenshots/30-approval-resubmitted.jpg)
-
-![Approved](docs/screenshots/31-approval-approved.jpg)
-
-![A later SGD25 to SGD35 proposal rejected with a reason; the panel reports Variations restored](docs/screenshots/33-approval-rejected.jpg)
-
-![After rejection the record shows the restored amount, SGD 25.00](docs/screenshots/34-rejected-value-restored.jpg)
-
-### 7. File photos and inspect the assignment conversation
-
-Create a photo evidence record (`?record=photo_evidence/new`) for a permitted assignment or
-variation. Select **exactly one** parent and attach a JPEG, PNG or HEIC photo up to 20 MiB. A
+Create a photo evidence record (`?record=photo_evidence/new`) for a permitted assignment. Select
+the assignment and attach a JPEG, PNG or HEIC photo up to 20 MiB. A
 workspace upload is labelled as such; the photo's file, parent and provenance cannot be replaced
 after filing. Correct a mistaken filing by adding the correct evidence.
 
@@ -251,10 +198,9 @@ is read-only, and communication records are captured from inbound reports rather
 into this tab.
 
 Contractors see their own messages and photos. Controllers also see the source and integrity
-facts. Variation evidence remains attached to its variation; the site handover includes both
-assignment and variation photos.
+facts.
 
-### 8. Review evidence and close a finding
+### 7. Review evidence and close a finding
 
 The controller chooses **Suspicion review** on **Dispatch schedule**. The automation inspects
 pending photos and reviews unchecked assignments, including completed work. Open
@@ -280,18 +226,17 @@ Any other open judgement still requires its own resolution.
 
 ![The saved resolution remains attached to the finding](docs/screenshots/32-finding-resolved.jpg)
 
-### 9. Hand selected sites to another system
+### 8. Hand selected sites to another system
 
 In **Sites**, select one or more rows and choose **Actions → Site handover**. On success the page
 reports **Site handover succeeded** with download links; the same output stays on the automation
-run under **Settings → Automations**. Each selected site produces four files: a JSON bundle, a job-assignment CSV, a variation CSV and a photo-evidence CSV. The JSON
-contains the site details and those related records, including held variations and their
-photos. File references and integrity facts travel with the evidence; this action exports the
+run under **Settings → Automations**. Each selected site produces three files: a JSON bundle, a job-assignment CSV and a photo-evidence CSV. The JSON
+contains the site details and those related records and their photos. File references and integrity facts travel with the evidence; this action exports the
 records rather than changing their workflow state.
 
-![Site handover succeeded with the JSON and three CSV downloads](docs/screenshots/13-site-handover.jpg)
+![Site handover succeeded with the JSON and CSV downloads](docs/screenshots/13-site-handover.jpg)
 
-### 10. Connect and operate the WhatsApp Envoy
+### 9. Connect and operate the WhatsApp Envoy
 
 An administrator opens **More → System → Integrations**
 (`/settings/integrations`). Under **Agent channels**, **Norbital · Private** is the
@@ -392,7 +337,7 @@ refuses and nothing changes.
 ```text
 site → job assignment → user (the assignee)
              ↓
-       photo evidence ← variation request
+       photo evidence
        communication logs   (immutable inbound messages, one per assignment)
 ```
 
@@ -402,19 +347,14 @@ site → job assignment → user (the assignee)
 - **job_assignments** — one dispatched day job: the work order (site, day, title, nature,
   description, the dispatch system's reference) and the contractor who holds it, in one row.
   `assignee_user_id` is `user.id` directly — a contractor is a **role**, not a record, a user whose
-  team holds `field_ops_contractor` — and is null while the work order is filed but unassigned.
+  team holds `field_ops_contractor` — linked from `assignee_contact` (the contractor's email or phone) and null when no member holds it.
   Controllers file work orders in the dashboard or import them from a sheet; `external_ref` is the
   dispatch system's reference when a sheet carries one (unique, so a re-imported sheet files nothing
-  twice) and `source_message_id` is the WhatsApp message the dispatch came from. Status runs `unassigned` →
-  `assigned` → `completed`; whether the work was legitimately done is a suspicion question and is
+  twice) and `source_message_id` is the WhatsApp message the dispatch came from. Status runs `pending` →
+  `completed`; whether the work was legitimately done is a suspicion question and is
   never stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by
   the review automation after a run).
-- **variation_requests** — a scope change against one assignment. A contractor's create, and an
-  update of its amount, are governed by the contractor policy's approval flow: writing one raises a
-  platform approval request (controller review, then commercial sign-off from SGD 5,000), not a row
-  that is directly applied.
-- **photo_evidence** — one explicitly filed photo attached to exactly one assignment or one
-  variation, with deterministic integrity facts. Channel history and attachments are stored
+- **photo_evidence** — one explicitly filed photo attached to one assignment, with deterministic integrity facts. Channel history and attachments are stored
   separately by the platform; the assignment's message **content** is retained in
   `communication_logs`.
 - **communication_logs** — the contractor's inbound messages about one assignment, immutable, one
@@ -432,7 +372,7 @@ site → job assignment → user (the assignee)
 | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `inspect_photo_evidence`          | photo filed                                                      | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
 | `review_job_assignment_suspicion` | assignment filed or its check cleared; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
-| `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, variations, photo evidence) plus a CSV per table, for another system                     |
+| `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                     |
 
 ### Photo integrity
 
@@ -530,7 +470,7 @@ src/
 ├── data/
 │   ├── model/<m>/                  +model.ts (fields and refs, exposure, write callbacks, actions, search indexes) and +representation.svelte
 │   └── custom_field/photo_source/  where a photo came from: workspace upload or a WhatsApp message
-├── access_control/                 policy/: the four +<name>.policy.ts (the variation approval is in the contractor's); team/+team.ts
+├── access_control/                 policy/: the four +<name>.policy.ts; team/+team.ts
 ├── agent/                          +agent.md
 ├── agent/envoy/                    +field_ops_whatsapp.envoy.ts
 ├── automation/                     inspect_photo_evidence, review_job_assignment_suspicion, site_handover
@@ -541,13 +481,13 @@ seed/                               base pack JSON; seed.ts reads the bank tree 
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
-its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
+its job scope, activity, and photo evidence together; opening a site separates upcoming
 work from activity history. Each model's `+model.ts` declares what a caller may submit, and its
 `create.transform`, `update.transform` and `delete.check` carry the domain rules, so they apply to
 every client, function, and agent — not only the UI:
 
-- A dispatched job must reference an existing site. Creating it with a contractor defaults to
-  `assigned`; dispatching an existing unassigned job sets both its contractor and status.
+- A dispatched job must reference an existing site. Every job is `pending` until `completed`; a
+  contractor contact links the member holding that email or phone and stamps the dispatch time.
 - `external_ref` is an imported job's dispatch-system reference and `source_message_id` the
   WhatsApp message's; both are unique idempotency keys.
 - A reported location beyond the site tolerance is recorded as an evidence fact and never sets

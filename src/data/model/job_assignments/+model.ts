@@ -1,11 +1,24 @@
-import { model } from '@norbital-ai/bolt';
-import { dispatchFacts, searchTextFor } from '../../../lib/dispatch.js';
+import { model, type WorkspaceQuery } from '@norbital-ai/bolt';
+import * as Effect from 'effect/Effect';
+import { dispatchFacts, memberByContact, searchTextFor } from '../../../lib/dispatch.js';
+const contacted = (contact: string | null | undefined) => (contact?.trim() ?? '') !== '';
+/** The members a batch's contacts may name, in one read (none when no row names a contact). */
+// ponytail: reads every member's email and phone; filter by contact key once membership nears the read limit
+const membersFor = Effect.fnUntraced(function* (
+	db: WorkspaceQuery,
+	contacts: readonly (string | null | undefined)[]
+) {
+	if (!contacts.some((contact) => contacted(contact))) return [];
+	const { sys_user } = yield* db.query({ sys_user: { fields: ['email', 'phone'] } });
+	return sys_user.rows;
+});
 const progress = [
 	'site_id',
 	'title',
 	'nature',
 	'scheduled_for',
 	'description',
+	'assignee_contact',
 	'assignee_user_id',
 	'dispatched_at',
 	'status',
@@ -16,8 +29,10 @@ const progress = [
 	'summary'
 ] as const;
 /**
- * The work order and its dispatch in one row: filed unassigned, dispatched by naming who holds it. `status` is where
- * the work got to; findings about it live in `suspicious_activity_logs`, so a suspicion never erases progress.
+ * The work order and its dispatch in one row: pending until completed, dispatched by linking the contractor who holds
+ * it. `status` is where the work got to; findings about it live in `suspicious_activity_logs`, so a suspicion never
+ * erases progress. A contractor's email or phone number (`assignee_contact`) links the member it names; a contact no
+ * member holds leaves the job without a contractor, which the board shows as a warning, never as a status.
  *
  * A work order names its site and day and may carry the dispatch system's reference and the WhatsApp message it came
  * from; those identity keys are create-only. Naming a contractor is the dispatch. A WhatsApp report lands as one update:
@@ -34,6 +49,8 @@ export default model('job_assignments', {
 		site_id: { kind: 'ref', to: 'sites', inverse: 'job_assignments' },
 		/** The contractor holding the work: a member whose team holds `field_ops_contractor`, not a record. */
 		assignee_user_id: { kind: 'ref', to: 'sys_user', optional: true },
+		/** The contractor's email or phone number as entered; the write callbacks link the member it names. */
+		assignee_contact: { kind: 'text', optional: true },
 		/** The dispatch system's reference, when an imported sheet carries one; a sheet imported twice files once. */
 		external_ref: { kind: 'text', optional: true, unique: true },
 		title: { kind: 'text' },
@@ -43,8 +60,8 @@ export default model('job_assignments', {
 		dispatched_at: { kind: 'instant', optional: true },
 		status: {
 			kind: 'enum',
-			values: ['unassigned', 'assigned', 'completed'],
-			default: 'unassigned'
+			values: ['pending', 'completed'],
+			default: 'pending'
 		},
 		completed_at: { kind: 'instant', optional: true },
 		amount_charged: { kind: 'money', optional: true },
@@ -66,30 +83,49 @@ export default model('job_assignments', {
 		// of the `bolt_embedding` column every job's vector and every probe are read at, so the host's model must honour it.
 		semantic: { fields: ['title', 'description', 'summary'], model: 'default', dim: 1536 }
 	},
-	read: 'all',
+	read: {
+		job_assignments: { fields: 'all' },
+		/** The photos filed on a job: so a reader (a controller, the WhatsApp envoy) sees what was sent for it. */
+		'job_assignments.photo_evidence': { fields: ['photo', 'summary', 'flags', 'created_at'] }
+	},
 	create: {
-		columns: ['external_ref', ...progress, 'source_message_id'],
-		// a job filed under a new site (its `with`, an import) reads that site from this act
+		columns: { job_assignments: ['external_ref', ...progress, 'source_message_id'] },
+		// a job filed under a new site (its `sites.job_assignments` layer, an import) reads that site from this act
 		transform: function* (rows, ctx) {
 			const sites = yield* ctx.db.after('sites', {
 				id: { in: [...new Set(rows.map((row) => row.site_id))] }
 			});
 			const siteOf = new Map(sites.map((site) => [site.id, site]));
-			return rows.map((row) => ({
-				...row,
-				...dispatchFacts(row, siteOf.get(row.site_id), ctx.now)
-			}));
+			const members = yield* membersFor(
+				ctx.db,
+				rows.map((row) => row.assignee_contact)
+			);
+			return rows.map((row) => {
+				const linked = contacted(row.assignee_contact)
+					? { ...row, assignee_user_id: memberByContact(members, row.assignee_contact) }
+					: row;
+				return { ...linked, ...dispatchFacts(linked, siteOf.get(row.site_id), ctx.now) };
+			});
 		}
 	},
 	update: {
-		columns: [...progress, 'suspicion_checked_at'],
-		with: {
-			photo_evidence: { create: { columns: ['photo', 'source'] } },
-			communication_logs: {
-				create: { columns: ['message', 'sent_at', 'sender', 'source_message_id'] }
-			}
+		columns: {
+			job_assignments: [...progress, 'suspicion_checked_at'],
+			'job_assignments.photo_evidence': ['photo', 'source'],
+			'job_assignments.communication_logs': ['message', 'sent_at', 'sender', 'source_message_id']
 		},
 		transform: function* (changes, ctx) {
+			// a report files photos and messages; it never changes or removes one already filed
+			const rewrite = changes.findIndex(({ set }) =>
+				[set.photo_evidence, set.communication_logs].some(
+					(filed) => filed !== undefined && Object.keys(filed).some((verb) => verb !== 'create')
+				)
+			);
+			if (rewrite >= 0)
+				return yield* ctx.refuse(
+					'An assignment files new photos and messages; it never changes or removes filed ones.',
+					{ row: rewrite }
+				);
 			// a new title or site (a link from the site's side included) re-derives the search copy
 			const retitled = (set: (typeof changes)[number]['set']) =>
 				set.title !== undefined || set.site_id !== undefined;
@@ -102,7 +138,15 @@ export default model('job_assignments', {
 			];
 			const sites = siteIds.length ? yield* ctx.db.after('sites', { id: { in: siteIds } }) : [];
 			const siteOf = new Map(sites.map((site) => [site.id, site]));
-			return changes.map(({ before, set }) => {
+			const members = yield* membersFor(
+				ctx.db,
+				changes.map(({ set }) => set.assignee_contact)
+			);
+			return changes.map(({ before, set: given }) => {
+				// a new contact relinks the job: to the member it names, or to nobody
+				const set = contacted(given.assignee_contact)
+					? { ...given, assignee_user_id: memberByContact(members, given.assignee_contact) }
+					: given;
 				// only the review's own stamp leaves the job read; any other change is new evidence
 				const reviewStamp = Object.keys(set).every((key) => key === 'suspicion_checked_at');
 				const status = set.status ?? before.status;

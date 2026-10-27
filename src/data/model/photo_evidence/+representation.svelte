@@ -8,12 +8,7 @@
 
 {#if record === null}
 	<RecordShell of="photo_evidence" mode="create" {values}>
-		<Form
-			of="photo_evidence"
-			mode="create"
-			{values}
-			fields={['job_assignment_id', 'variation_request_id', 'photo']}
-		/>
+		<Form of="photo_evidence" mode="create" {values} fields={['job_assignment_id', 'photo']} />
 	</RecordShell>
 {:else}
 	<RecordShell of="photo_evidence" id={record.id} />

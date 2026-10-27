@@ -40,16 +40,20 @@ export const messageOf = (error: unknown): string => {
 	const message = error['message'] ?? error['reason'];
 	return message != null ? String(message) : JSON.stringify(error);
 };
-const HIT = {
-	photo: true,
-	sha256: true,
-	flags: true,
-	job_assignment_id: true,
-	variation_request_id: true
-} as const;
-/** The photos nearest a probe on one of photo_evidence's indexes (`pdq`: L2 over the PDQ bits; `scene`: cosine). */
+/**
+ * The photos nearest a probe on one of photo_evidence's indexes (`pdq`: L2 over the PDQ bits; `scene`: cosine), each with
+ * its `$distance`. `limit` stays explicit: the default page times the rerank candidates is too large.
+ */
 const nearest = (ctx: Ctx, search: IndexSearch<'photo_evidence'>, limit: number) =>
-	ctx.query('photo_evidence', { search, select: HIT, limit }).pipe(Effect.map((page) => page.rows));
+	ctx
+		.query({
+			photo_evidence: {
+				search,
+				fields: ['photo', 'sha256', 'flags', 'job_assignment_id'],
+				limit
+			}
+		})
+		.pipe(Effect.map(({ photo_evidence }) => photo_evidence.rows));
 /** The `sys_2` model class the review asks (every one is multimodal, P39). */
 const SUSPICION_REVIEW_MODEL = 'default';
 const MAX_INFERENCE_IMAGES = 3;
@@ -68,7 +72,8 @@ const INSPECTIONS_PER_RUN = 50;
 const MAX_INSPECTION_FAILURE_REASON_CHARS = 500;
 const INSPECTION_CLAIM_LEASE_MS = 10 * 60_000;
 const SCENE_BACKFILL_PER_RUN = 1000;
-const SCENE_BATCH = 16;
+/** Raw job-site JPEGs can be a MiB each; keep a batch within the AI call's 20-second wall. */
+const SCENE_BATCH = 4;
 const SCENE_BATCHES_AT_ONCE = 4;
 /** A scene candidate must sit this close (cosine) and beat its runner-up by the margin below. */
 const SCENE_MAX_COSINE = 0.35;
@@ -447,34 +452,6 @@ const fileFactsOf = Effect.fnUntraced(function* (ctx: Ctx, ref: FileRef) {
 		Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as({ photo: ref, bytes: -1 })))
 	);
 });
-/** The assignment a photo hangs off, directly or through its variation. */
-const assignmentsOf = Effect.fnUntraced(function* (
-	ctx: Ctx,
-	photos: readonly {
-		readonly id: Id<'photo_evidence'>;
-		readonly job_assignment_id: Id<'job_assignments'> | null;
-		readonly variation_request_id: Id<'variation_requests'> | null;
-	}[]
-) {
-	const variationIds = photos.flatMap((p) =>
-		p.job_assignment_id == null && p.variation_request_id != null ? [p.variation_request_id] : []
-	);
-	const variations = variationIds.length
-		? yield* ctx.query('variation_requests', {
-				where: { id: { in: variationIds } },
-				select: { job_assignment_id: true },
-				all: true
-			})
-		: { rows: [] };
-	const byVariation = new Map(variations.rows.map((v) => [v.id, v.job_assignment_id]));
-	return new Map(
-		photos.map((p) => [
-			p.id,
-			p.job_assignment_id ??
-				(p.variation_request_id == null ? null : (byVariation.get(p.variation_request_id) ?? null))
-		])
-	);
-});
 /**
  * Fill the facts of photos still awaiting them (empty `sha256`): the host's image facts, the scene embedding, the capture
  * point against the site of the photo's work, and near-duplicates under other assignments (an identical file is `exact_duplicate`, a
@@ -490,16 +467,12 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	const abandoned = instantOf(
 		new Date(Date.parse(ctx.now) - INSPECTION_CLAIM_LEASE_MS).toISOString()
 	);
-	const pending = yield* ctx.query('photo_evidence', {
-		where: { sha256: { eq: '' }, inspection_failed_at: { isNull: true } },
-		select: {
-			revision: true,
-			photo: true,
-			job_assignment_id: true,
-			variation_request_id: true,
-			inspection_claimed_at: true
-		},
-		limit: INSPECTIONS_PER_RUN
+	const { photo_evidence: pending } = yield* ctx.query({
+		photo_evidence: {
+			where: { sha256: { eq: '' }, inspection_failed_at: { isNull: true } },
+			fields: ['revision', 'photo', 'job_assignment_id', 'inspection_claimed_at'],
+			limit: INSPECTIONS_PER_RUN
+		}
 	});
 	const failures: {
 		photo_id: Id<'photo_evidence'>;
@@ -515,28 +488,29 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 			p.inspection_claimed_at != null &&
 			Date.parse(p.inspection_claimed_at) > Date.parse(abandoned),
 		photo: p.photo,
-		job_assignment_id: p.job_assignment_id,
-		variation_request_id: p.variation_request_id
+		job_assignment_id: p.job_assignment_id
 	}));
-	const owner = yield* assignmentsOf(ctx, rows);
-	const jobIds = [...new Set([...owner.values()].flatMap((id) => (id == null ? [] : [id])))];
-	const jobs = jobIds.length
-		? yield* ctx.query('job_assignments', {
-				where: { id: { in: jobIds } },
-				select: { site_id: { select: { location: true } } },
-				all: true
-			})
-		: { rows: [] };
-	const siteOf = new Map(jobs.rows.map((job) => [job.id, job.site_id?.location ?? null]));
+	const jobIds = [
+		...new Set(rows.flatMap((p) => (p.job_assignment_id == null ? [] : [p.job_assignment_id])))
+	];
+	const { job_assignments: jobs } = jobIds.length
+		? yield* ctx.query({ job_assignments: { where: { id: { in: jobIds } }, fields: ['site_id'] } })
+		: { job_assignments: { rows: [] } };
+	const siteIds = [...new Set(jobs.rows.map((job) => job.site_id))];
+	const { sites } = siteIds.length
+		? yield* ctx.query({ sites: { where: { id: { in: siteIds } }, fields: ['location'] } })
+		: { sites: { rows: [] } };
+	const locationOf = new Map(sites.rows.map((site) => [site.id, site.location]));
+	const siteOf = new Map(jobs.rows.map((job) => [job.id, locationOf.get(job.site_id) ?? null]));
 	let inspected = 0;
 	for (const photo of rows) {
-		const own = owner.get(photo.id) ?? null;
+		const own = photo.job_assignment_id;
 		const claimed =
 			!photo.claimed &&
 			(yield* ctx
 				.act(
 					'photo_evidence.update',
-					{ target: photo.id, set: { inspection_claimed_at: ctx.now } },
+					[{ target: photo.id, set: { inspection_claimed_at: ctx.now } }],
 					{ observed: { [photo.id]: photo.revision } }
 				)
 				.pipe(
@@ -552,10 +526,12 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 		if (Result.isFailure(inspectedPhoto)) {
 			const reason = clipText(inspectedPhoto.failure.message, MAX_INSPECTION_FAILURE_REASON_CHARS);
 			failures.push({ photo_id: photo.id, reason });
-			yield* ctx.act('photo_evidence.update', {
-				target: photo.id,
-				set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
-			});
+			yield* ctx.act('photo_evidence.update', [
+				{
+					target: photo.id,
+					set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
+				}
+			]);
 			continue;
 		}
 		const facts = inspectedPhoto.success;
@@ -569,14 +545,8 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 				(hit) =>
 					hit.$distance <= VISUAL_DUPLICATE_MAX_L2 && hit.id !== photo.id && hit.sha256 !== ''
 			)
-			.map((hit) => ({
-				id: hit.id,
-				sha256: hit.sha256,
-				job_assignment_id: hit.job_assignment_id,
-				variation_request_id: hit.variation_request_id
-			}));
-		const hitOwner = yield* assignmentsOf(ctx, hits);
-		const foreign = hits.filter((hit) => hitOwner.get(hit.id) !== own);
+			.map((hit) => ({ id: hit.id, sha256: hit.sha256, job_assignment_id: hit.job_assignment_id }));
+		const foreign = hits.filter((hit) => hit.job_assignment_id !== own);
 		if (foreign.some((hit) => hit.sha256 === facts.sha256)) flags.add('exact_duplicate');
 		if (foreign.some((hit) => hit.sha256 !== facts.sha256)) flags.add('visual_duplicate');
 		// the scene is retrieval only: a photo the embedding model cannot take keeps no scene, never a failed inspection
@@ -589,16 +559,18 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 			.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as(null))));
 		const scene_embedding =
 			scene === null || scene[0]?.length !== SCENE_DIMENSIONS ? null : [...scene[0]];
-		yield* ctx.act('photo_evidence.update', {
-			target: photo.id,
-			set: {
-				sha256: facts.sha256,
-				perceptual_embedding: embedding,
-				scene_embedding,
-				flags: [...flags],
-				matched_evidence_ids: foreign.map((hit) => hit.id)
+		yield* ctx.act('photo_evidence.update', [
+			{
+				target: photo.id,
+				set: {
+					sha256: facts.sha256,
+					perceptual_embedding: embedding,
+					scene_embedding,
+					flags: [...flags],
+					matched_evidence_ids: foreign.map((hit) => hit.id)
+				}
 			}
-		});
+		]);
 		inspected += 1;
 	}
 	return { inspected, failures, settled: [...settled], held: [...held] };
@@ -606,66 +578,84 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 /**
  * Give a scene to hashed photos that have none: a seeded or bank-loaded photo arrives with its hash and pixel embedding but
  * no scene (the scene model is the host's), and without it a re-photographed site under another assignment is invisible
- * to every review. Batched per `ctx.ai.embed` call; a batch that fails is left for the next run.
- * ponytail: a photo the model always refuses is asked again each run (bounded by the cap); flag it if that shows up in cost.
+ * to every review. Batched per native `ctx.ai.embed` call (never one image per call); a batch that fails is left for the next run.
+ * `ponytail: a photo the model always refuses is asked again each run (bounded by the cap); flag it if that shows up in cost.
  */
 export const backfillScenes = Effect.fnUntraced(function* (ctx: Ctx) {
-	const { rows } = yield* ctx.query('photo_evidence', {
-		where: { sha256: { ne: '' }, scene_embedding: { isNull: true } },
-		select: { photo: true },
-		limit: SCENE_BACKFILL_PER_RUN
+	const {
+		photo_evidence: { rows }
+	} = yield* ctx.query({
+		photo_evidence: {
+			where: { sha256: { ne: '' }, scene_embedding: { isNull: true } },
+			fields: ['photo'],
+			limit: SCENE_BACKFILL_PER_RUN
+		}
 	});
 	let filled = 0;
+	const failures: { photo_id: Id<'photo_evidence'>; reason: string }[] = [];
 	const place = Effect.fnUntraced(function* (batch: ReadonlyArray<(typeof rows)[number]>) {
 		const files = yield* Effect.forEach(batch, (row) => visible(ctx, row.photo), {
 			concurrency: 'unbounded'
 		});
-		const scenes = yield* ctx.ai
+		const answer = yield* ctx.ai
 			.embed(files, {
 				model: 'scene',
 				dimensions: SCENE_DIMENSIONS
 			})
-			.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as(null))));
-		if (scenes === null) return;
+			.pipe(Effect.result);
+		if (Result.isFailure(answer)) {
+			const reason = messageOf(answer.failure);
+			failures.push(...batch.map((row) => ({ photo_id: row.id, reason })));
+			yield* Effect.logWarning(answer.failure);
+			return;
+		}
 		for (const [j, row] of batch.entries()) {
-			const scene = scenes[j];
-			if (scene?.length !== SCENE_DIMENSIONS) continue;
-			yield* ctx.act('photo_evidence.update', {
-				target: row.id,
-				set: { scene_embedding: [...scene] }
-			});
+			const scene = answer.success[j];
+			if (scene?.length !== SCENE_DIMENSIONS) {
+				failures.push({
+					photo_id: row.id,
+					reason: `The scene model returned ${scene?.length ?? 0} dimensions; expected ${SCENE_DIMENSIONS}.`
+				});
+				continue;
+			}
+			yield* ctx.act('photo_evidence.update', [
+				{ target: row.id, set: { scene_embedding: [...scene] } }
+			]);
 			filled += 1;
 		}
 	});
-	// SCENE_BATCHES_AT_ONCE embedding requests in flight: each is seconds of provider time, not of this run's
+	// SCENE_BATCHES_AT_ONCE native batch requests in flight: each is seconds of provider time, not of this run's
 	yield* Effect.forEach(
 		Arr.chunksOf(rows, SCENE_BATCH),
 		(batch) => place(batch).pipe(Effect.uninterruptible),
 		{ concurrency: SCENE_BATCHES_AT_ONCE, discard: true }
 	);
-	return filled;
+	return { filled, failures };
 });
 /** The unchecked worklist, materialised before reviewing (stamps shrink it as reviews succeed). */
 export const uncheckedAssignments = Effect.fnUntraced(function* (
 	ctx: Ctx,
 	only?: readonly Id<'job_assignments'>[]
 ) {
-	const { rows } = yield* ctx.query('job_assignments', {
-		where: {
-			suspicion_checked_at: { isNull: true },
-			...(only === undefined ? {} : { id: { in: only } })
-		},
-		select: {
-			site_id: true,
-			title: true,
-			nature: true,
-			scheduled_for: true,
-			description: true,
-			status: true,
-			summary: true,
-			location: true
-		},
-		all: true
+	const {
+		job_assignments: { rows }
+	} = yield* ctx.query({
+		job_assignments: {
+			where: {
+				suspicion_checked_at: { isNull: true },
+				...(only === undefined ? {} : { id: { in: only } })
+			},
+			fields: [
+				'site_id',
+				'title',
+				'nature',
+				'scheduled_for',
+				'description',
+				'status',
+				'summary',
+				'location'
+			]
+		}
 	});
 	return rows.map((row) => ({
 		id: row.id,
@@ -681,42 +671,32 @@ export const uncheckedAssignments = Effect.fnUntraced(function* (
 });
 const loadFacts = Effect.fnUntraced(function* (ctx: Ctx, assignment: ReviewFacts['assignment']) {
 	const job = assignment.id;
-	const [site, variations, messages] = yield* Effect.all(
-		[
-			ctx.query('sites', {
-				id: assignment.site_id,
-				select: { name: true, location: true, house_type: true }
-			}),
-			ctx.query('variation_requests', {
-				where: { job_assignment_id: { eq: job } },
-				select: {},
-				all: true
-			}),
-			ctx.query('communication_logs', {
-				where: { job_assignment_id: { eq: job } },
-				select: { source_message_id: true, sender: true, sent_at: true, message: true },
-				all: true
-			})
-		],
-		{ concurrency: 'unbounded' }
-	);
-	const variationIds = variations.rows.map((v) => v.id);
-	const photos = yield* ctx.query('photo_evidence', {
-		where: variationIds.length
-			? {
-					or: [{ job_assignment_id: { eq: job } }, { variation_request_id: { in: variationIds } }]
-				}
-			: { job_assignment_id: { eq: job } },
-		select: {
-			photo: true,
-			sha256: true,
-			inspection_failed_at: true,
-			flags: true,
-			matched_evidence_ids: true,
-			created_at: true,
-			scene_embedding: true
+	// the independent facts in one read request: one crossing, one statement
+	const { sites, communication_logs: messages } = yield* ctx.query({
+		sites: {
+			where: { id: { eq: assignment.site_id } },
+			fields: ['name', 'location', 'house_type'],
+			limit: 1
 		},
-		all: true
+		communication_logs: {
+			where: { job_assignment_id: { eq: job } },
+			fields: ['source_message_id', 'sender', 'sent_at', 'message']
+		}
+	});
+	const site = sites.rows[0] ?? null;
+	const { photo_evidence: photos } = yield* ctx.query({
+		photo_evidence: {
+			where: { job_assignment_id: { eq: job } },
+			fields: [
+				'photo',
+				'sha256',
+				'inspection_failed_at',
+				'flags',
+				'matched_evidence_ids',
+				'created_at',
+				'scene_embedding'
+			]
+		}
 	});
 	const waiting = photos.rows.find(
 		(photo) => photo.sha256 === '' && photo.inspection_failed_at == null
@@ -788,15 +768,8 @@ const sceneCandidates = Effect.fnUntraced(function* (ctx: Ctx, facts: ReviewFact
 		const near = yield* nearest(ctx, { scene: { vector: embedding } }, 12);
 		const rows = near
 			.filter((hit) => hit.$distance <= SCENE_MAX_COSINE && hit.id !== probe.id)
-			.map((hit) => ({
-				hit,
-				id: hit.id,
-				job_assignment_id: hit.job_assignment_id,
-				variation_request_id: hit.variation_request_id
-			}));
-		const owners = yield* assignmentsOf(ctx, rows);
-		for (const { hit, id } of rows) {
-			const owner = owners.get(id);
+			.map((hit) => ({ hit, id: hit.id, owner: hit.job_assignment_id }));
+		for (const { hit, id, owner } of rows) {
 			if (owner == null || owner === facts.assignment.id) continue;
 			hits.push({
 				probe: probe.id,
@@ -900,17 +873,19 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 	const job = assignment.id;
 	// a retried run with the same basis finds its review by the unique key instead of writing a second
 	const written = yield* Effect.result(
-		ctx.act('suspicion_reviews.create', {
-			job_assignment_id: job,
-			basis_hash: basisHash,
-			basis,
-			suspicious: verdict.suspicious,
-			reason: verdict.reason,
-			evidence_id: verdict.evidence_id,
-			model: SUSPICION_REVIEW_MODEL,
-			reviewed_at: ctx.now,
-			source_key: reviewSourceKey(assignment.id, basisHash)
-		})
+		ctx.act('suspicion_reviews.create', [
+			{
+				job_assignment_id: job,
+				basis_hash: basisHash,
+				basis,
+				suspicious: verdict.suspicious,
+				reason: verdict.reason,
+				evidence_id: verdict.evidence_id,
+				model: SUSPICION_REVIEW_MODEL,
+				reviewed_at: ctx.now,
+				source_key: reviewSourceKey(assignment.id, basisHash)
+			}
+		])
 	);
 	if (
 		Result.isFailure(written) &&
@@ -919,11 +894,15 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 		return yield* Effect.fail(written.failure);
 	const created = Result.isSuccess(written) && written.success.kind === 'committed';
 	const {
-		rows: [review]
-	} = yield* ctx.query('suspicion_reviews', {
-		where: { job_assignment_id: { eq: job }, basis_hash: { eq: basisHash } },
-		select: { basis: true, suspicious: true, reason: true, evidence_id: true },
-		limit: 1
+		suspicion_reviews: {
+			rows: [review]
+		}
+	} = yield* ctx.query({
+		suspicion_reviews: {
+			where: { job_assignment_id: { eq: job }, basis_hash: { eq: basisHash } },
+			fields: ['basis', 'suspicious', 'reason', 'evidence_id'],
+			limit: 1
+		}
 	});
 	if (review === undefined) {
 		const { ReviewPersistenceFailed } = yield* Effect.promise(
@@ -936,36 +915,37 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 	let status: ReviewStatus = created ? 'clear' : 'clear_existing';
 	if (review.suspicious) {
 		// inference is external I/O: re-read the durable findings so a retry never writes a second log
-		const [fromReview, open] = yield* Effect.all(
-			[
-				ctx.query('suspicious_activity_logs', {
-					where: { review_id: { eq: review.id } },
-					select: {},
-					limit: 1
-				}),
-				ctx.query('suspicious_activity_logs', {
-					where: { job_assignment_id: { eq: job }, resolved_at: { isNull: true } },
-					select: {},
-					limit: 1
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (fromReview.rows.length > 0) status = 'suspicious_log_exists';
-		else if (open.rows.length > 0) status = 'suspicious_open_exists';
+		// a model is one root per request: the log this review wrote, or any open one, in one read
+		const { suspicious_activity_logs: standing } = yield* ctx.query({
+			suspicious_activity_logs: {
+				where: {
+					or: [
+						{ review_id: { eq: review.id } },
+						{ job_assignment_id: { eq: job }, resolved_at: { isNull: true } }
+					]
+				},
+				fields: ['review_id']
+			}
+		});
+		if (standing.rows.some((log) => log.review_id === review.id)) status = 'suspicious_log_exists';
+		else if (standing.rows.length > 0) status = 'suspicious_open_exists';
 		else {
-			yield* ctx.act('suspicious_activity_logs.create', {
-				job_assignment_id: job,
-				origin: 'automation',
-				basis: review.basis,
-				review_id: review.id,
-				evidence_id: review.evidence_id,
-				reason: review.reason
-			});
+			yield* ctx.act('suspicious_activity_logs.create', [
+				{
+					job_assignment_id: job,
+					origin: 'automation',
+					basis: review.basis,
+					review_id: review.id,
+					evidence_id: review.evidence_id,
+					reason: review.reason
+				}
+			]);
 			status = 'suspicious';
 		}
 	}
-	yield* ctx.act('job_assignments.update', { target: job, set: { suspicion_checked_at: ctx.now } });
+	yield* ctx.act('job_assignments.update', [
+		{ target: job, set: { suspicion_checked_at: ctx.now } }
+	]);
 	return status;
 });
 /** The next two-hour slot (00:00, 02:00, … UTC), when a review that did not complete is tried again. */

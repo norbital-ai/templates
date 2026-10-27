@@ -9,18 +9,26 @@ export default automation('suspicious_activity_logs_resolve', {
 		resolution: { kind: 'text' }
 	},
 	run: function* ({ finding, resolution }, ctx) {
-		const target = yield* ctx.query('suspicious_activity_logs', { id: finding });
-		if (target === null) return yield* new Refusal({ message: 'The finding is unavailable.' });
+		const {
+			suspicious_activity_logs: {
+				rows: [target]
+			}
+		} = yield* ctx.query({
+			suspicious_activity_logs: { where: { id: { eq: finding } }, fields: ['revision'], limit: 1 }
+		});
+		if (target === undefined) return yield* new Refusal({ message: 'The finding is unavailable.' });
 		yield* ctx.act(
 			'suspicious_activity_logs.update',
-			{
-				target: target.id,
-				set: {
-					resolution,
-					resolved_at: ctx.now,
-					resolved_by: ctx.actor.kind === 'member' ? ctx.actor.id : null
+			[
+				{
+					target: target.id,
+					set: {
+						resolution,
+						resolved_at: ctx.now,
+						resolved_by: ctx.actor.kind === 'member' ? ctx.actor.id : null
+					}
 				}
-			},
+			],
 			{ observed: { [target.id]: target.revision } }
 		);
 	}

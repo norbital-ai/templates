@@ -19,7 +19,9 @@ export default model('communication_logs', {
 	search: { text: ['message', 'sender'] },
 	read: 'all',
 	create: {
-		columns: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id'],
+		columns: {
+			communication_logs: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']
+		},
 		transform: function* (rows, ctx) {
 			for (const [row, message] of rows.entries())
 				for (const field of ['message', 'sender', 'source_message_id'] as const)

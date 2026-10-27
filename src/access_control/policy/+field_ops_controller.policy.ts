@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-/** Every job field but the review's stamp; the identity keys are create-only by the collection. */
+/** Every job field but the review's stamp; the identity keys are create-only by the model. */
 const JOB_FIELDS = [
 	'site_id',
 	'title',
@@ -13,12 +13,10 @@ const JOB_FIELDS = [
 	'amount_charged',
 	'location',
 	'location_address',
-	'summary',
-	'photo_evidence',
-	'communication_logs'
+	'summary'
 ] as const;
 /**
- * Dispatch: full command of sites, jobs, variations and evidence, and the review ledgers. Audit ledgers are
+ * Dispatch: full command of sites, jobs and evidence, and the review ledgers. Audit ledgers are
  * append-only: controllers read and append received messages and AI decisions and never rewrite them; a finding is
  * closed only by resolving it.
  */
@@ -37,7 +35,18 @@ export default policy({
 		job_assignments: {
 			read: true,
 			create: true,
-			update: { fields: JOB_FIELDS },
+			update: {
+				columns: {
+					job_assignments: JOB_FIELDS,
+					'job_assignments.photo_evidence': ['photo', 'source'],
+					'job_assignments.communication_logs': [
+						'message',
+						'sent_at',
+						'sender',
+						'source_message_id'
+					]
+				}
+			},
 			delete: true
 		},
 		suspicious_activity_logs: {
@@ -45,7 +54,6 @@ export default policy({
 			create: true,
 			update: true
 		},
-		variation_requests: { read: true, create: true, update: true, delete: true },
 		photo_evidence: { read: true, create: true, update: true, delete: true },
 		communication_logs: { read: true, create: true },
 		suspicion_reviews: { read: true, create: true },

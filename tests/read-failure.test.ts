@@ -12,7 +12,7 @@ it.live('a failed batched facts read writes no review or finding and schedules r
 		const failedRead = vi.spyOn(t.db, 'read').mockImplementation((statements) => {
 			if (
 				statements.some(({ text }) =>
-					['sites', 'variation_requests', 'communication_logs'].every((table) =>
+					['sites', 'communication_logs'].every((table) =>
 						text.includes(`FROM "${table}"`)
 					)
 				)

@@ -23,7 +23,7 @@
 				site_id: { eq: record.id },
 				or: [
 					{ scheduled_for: { gte: clock.today } },
-					{ status: { in: ['unassigned', 'assigned'] } }
+					{ status: { eq: 'pending' } }
 				]
 			}}
 			orderBy={{ scheduled_for: 'asc' }}
@@ -41,7 +41,7 @@
 			of="job_assignments"
 			key="site-history"
 			toolbar={{ title: t('component.activity_history') }}
-			where={{ site_id: { eq: record.id }, status: { in: ['assigned', 'completed'] } }}
+			where={{ site_id: { eq: record.id }, dispatched_at: { isNull: false } }}
 			orderBy={{ dispatched_at: 'desc' }}
 			columns={[
 				'title',

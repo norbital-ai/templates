@@ -38,14 +38,14 @@ const csv = (
 		.join('\r\n');
 };
 /**
- * The handover bundle for the selected sites: per site, one JSON file with the site, its dispatched jobs, variation
- * requests (held ones included) and photo evidence, and a CSV per table, left on its run. It
+ * The handover bundle for the selected sites: per site, one JSON file with the site, its dispatched jobs and photo
+ * evidence, and a CSV per table, left on its run. It
  * reads as its starter (`runAs: 'trigger'`). `location` keeps the downstream contract's `{ geometry, formatted_address }`
  * shape.
  */
 export default automation('site_handover', {
 	description:
-		'Bundles each selected site with its dispatched jobs, variation requests and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
+		'Bundles each selected site with its dispatched jobs and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
 	input: { ids: { kind: 'list', of: { kind: 'id', of: 'sites' }, min: 1 } },
 	output: {
 		kind: 'object',
@@ -55,49 +55,33 @@ export default automation('site_handover', {
 	run: function* ({ ids }, ctx) {
 		const put = (text: string, name: string, mime: string) =>
 			ctx.files.put(new TextEncoder().encode(text), { name, mime, for: 'site_handover' });
-		const { rows: sites } = yield* ctx.query('sites', { where: { id: { in: ids } }, all: true });
-		const { rows: jobs } = yield* ctx.query('job_assignments', {
-			where: { site_id: { in: ids } },
-			all: true
+		// one read: the sites, their jobs and those jobs' photos
+		const ON_SITES = { site_id: { in: ids } } as const;
+		const {
+			sites: { rows: sites },
+			job_assignments: { rows: jobs },
+			photo_evidence: { rows: photos }
+		} = yield* ctx.query({
+			sites: { where: { id: { in: ids } } },
+			job_assignments: { where: ON_SITES },
+			photo_evidence: {
+				where: { job_assignment_id: { is: ON_SITES } },
+				// a read returns a file field only when named: the bundle carries each photo
+				fields: [
+					'job_assignment_id',
+					'photo',
+					'sha256',
+					'flags',
+					'matched_evidence_ids'
+				]
+			}
 		});
-		const jobIds = jobs.map((job) => job.id);
-		const { rows: variations } = jobIds.length
-			? yield* ctx.query('variation_requests', {
-					where: { job_assignment_id: { in: jobIds } },
-					all: true
-				})
-			: { rows: [] };
-		const variationIds = variations.map((v) => v.id);
-		const { rows: photos } = jobIds.length
-			? yield* ctx.query('photo_evidence', {
-					where: {
-						or: [
-							{ job_assignment_id: { in: jobIds } },
-							...(variationIds.length ? [{ variation_request_id: { in: variationIds } }] : [])
-						]
-					},
-					// a read returns a file field only when selected: the bundle carries each photo
-					select: {
-						job_assignment_id: true,
-						variation_request_id: true,
-						photo: true,
-						sha256: true,
-						flags: true,
-						matched_evidence_ids: true
-					},
-					all: true
-				})
-			: { rows: [] };
 		const files: StartOutput<'site_handover'>['files'][number][] = [];
 		for (const site of sites) {
 			const siteJobs = jobs.filter((job) => job.site_id === site.id);
 			const jobSet = new Set<string>(siteJobs.map((job) => job.id));
-			const siteVariations = variations.filter((v) => jobSet.has(v.job_assignment_id));
-			const variationSet = new Set<string>(siteVariations.map((v) => v.id));
 			const sitePhotos = photos.filter(
-				(p) =>
-					(p.job_assignment_id != null && jobSet.has(p.job_assignment_id)) ||
-					(p.variation_request_id != null && variationSet.has(p.variation_request_id))
+				(p) => p.job_assignment_id != null && jobSet.has(p.job_assignment_id)
 			);
 			const code = (site.name || site.id).replace(/[^a-z0-9_-]/gi, '_');
 			const jobRows = siteJobs.map((job) => ({
@@ -116,18 +100,9 @@ export default automation('site_handover', {
 				summary: job.summary,
 				location: geolocation(job.location, job.location_address)
 			}));
-			const variationRows = siteVariations.map((v) => ({
-				record_id: v.id,
-				job_assignment_id: v.job_assignment_id,
-				requested_at: v.requested_at,
-				title: v.title,
-				description: v.description,
-				amount: v.amount
-			}));
 			const photoRows = sitePhotos.map((p) => ({
 				record_id: p.id,
 				job_assignment_id: p.job_assignment_id,
-				variation_request_id: p.variation_request_id,
 				photo: p.photo,
 				sha256: p.sha256,
 				flags: p.flags,
@@ -137,13 +112,11 @@ export default automation('site_handover', {
 				schema: SCHEMA,
 				site: { ...site, location: geolocation(site.location, site.address) },
 				job_assignments: jobRows,
-				variation_requests: variationRows,
 				photo_evidence: photoRows
 			};
 			files.push(
 				yield* put(JSON.stringify(bundle), `field_ops_${code}.json`, 'application/json'),
 				yield* put(csv(jobRows), `field_ops_${code}_job_assignments.csv`, 'text/csv'),
-				yield* put(csv(variationRows), `field_ops_${code}_variations.csv`, 'text/csv'),
 				yield* put(
 					csv(
 						photoRows.map((p) => ({

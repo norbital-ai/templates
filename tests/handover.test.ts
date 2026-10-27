@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { expect, it } from '@effect/vitest';
 import { CONTROLLER, rows, siteWithJob, workspace } from './kit.ts';
 it.live(
-	'bundles each selected site with its jobs, variations and photos, as the starter reads them',
+	'bundles each selected site with its jobs and photos, as the starter reads them',
 	() =>
 		Effect.gen(function* () {
 			const put = new Map<string, string>();
@@ -56,8 +56,8 @@ it.live(
 				})
 			)(run?.output).files;
 			expect(
-				files.map((f) => f.name.replace(/field_ops_.*?(_job|_var|_photo|\.json)/, '$1'))
-			).toEqual(['.json', '_job_assignments.csv', '_variations.csv', '_photo_evidence.csv']);
+				files.map((f) => f.name.replace(/field_ops_.*?(_job|_photo|\.json)/, '$1'))
+			).toEqual(['.json', '_job_assignments.csv', '_photo_evidence.csv']);
 			const json = [...put.entries()].find(([name]) => name.endsWith('.json'))?.[1];
 			expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Json))(json)).toMatchObject({
 				schema: 'norbital.field_operations.interoperability.v2',

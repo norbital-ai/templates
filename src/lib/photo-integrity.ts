@@ -75,8 +75,3 @@ export function imageFlags(
 	else if (site != null && exceedsSiteTolerance(gps, site)) flags.add('location_mismatch');
 	return [...flags];
 }
-/** Photo evidence hangs off exactly one of a job assignment or a variation request. */
-export const exactlyOneParent = (
-	job: string | null | undefined,
-	variation: string | null | undefined
-): boolean => (job != null && job !== '') !== (variation != null && variation !== '');

@@ -26,16 +26,18 @@ export default model('suspicion_reviews', {
 	search: { text: ['reason'] },
 	read: 'all',
 	create: {
-		columns: [
-			'job_assignment_id',
-			'basis_hash',
-			'basis',
-			'suspicious',
-			'reason',
-			'evidence_id',
-			'model',
-			'reviewed_at',
-			'source_key'
-		]
+		columns: {
+			suspicion_reviews: [
+				'job_assignment_id',
+				'basis_hash',
+				'basis',
+				'suspicious',
+				'reason',
+				'evidence_id',
+				'model',
+				'reviewed_at',
+				'source_key'
+			]
+		}
 	}
 });

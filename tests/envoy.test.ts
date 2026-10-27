@@ -22,7 +22,7 @@ import {
 } from '@norbital-ai/bolt/engine';
 import { CONTRACTOR, person, rows, siteWithJob, workspace, type T } from './kit.ts';
 import { fixtureId } from './test-runtime.js';
-/** `act <callable> <json>` in a message becomes that call; `$FILE` is the message's first file reference. */
+/** `act <callable> <json batch>` in a message becomes that call; `$FILE` is the message's first file reference. */
 function scripted() {
 	const requests: AiRequest[] = [];
 	let n = 0;
@@ -134,10 +134,7 @@ const setup = Effect.fnUntraced(function* () {
 	ai = scripted();
 	t = yield* workspace({ ports: ai.layer });
 	const bob = yield* person(t, CONTRACTOR, '6591111111');
-	mine = yield* siteWithJob(t, {
-		assignee_user_id: fixtureId('sys_user', bob.id),
-		status: 'assigned'
-	});
+	mine = yield* siteWithJob(t, { assignee_user_id: fixtureId('sys_user', bob.id) });
 	theirs = yield* siteWithJob(t);
 	// Creation reviews are separate from the inbound envoy turn counted by each scenario.
 	yield* t.runDue();
@@ -214,38 +211,40 @@ describe('field_ops_whatsapp (G12 5)', () => {
 			Effect.gen(function* () {
 				yield* setup();
 				const report = (id: string) =>
-					`act job_assignments.update ${JSON.stringify({
-						target: mine.job,
-						set: {
-							status: 'completed',
-							summary: 'Grab bars installed',
-							photo_evidence: {
-								create: [
-									{
-										photo: '$FILE',
-										source: {
-											kind: 'message',
-											integration: 'whatsapp',
-											conversation_id: '6591111111@s.whatsapp.net',
-											message_id: id,
-											attachment_id: 'IMG_0042.jpg',
-											sender_id: '6591111111@s.whatsapp.net'
+					`act job_assignments.update ${JSON.stringify([
+						{
+							target: mine.job,
+							set: {
+								status: 'completed',
+								summary: 'Grab bars installed',
+								photo_evidence: {
+									create: [
+										{
+											photo: '$FILE',
+											source: {
+												kind: 'message',
+												integration: 'whatsapp',
+												conversation_id: '6591111111@s.whatsapp.net',
+												message_id: id,
+												attachment_id: 'IMG_0042.jpg',
+												sender_id: '6591111111@s.whatsapp.net'
+											}
 										}
-									}
-								]
-							},
-							communication_logs: {
-								create: [
-									{
-										message: 'Done, photo attached',
-										sent_at: '2026-09-25T10:00:00.000Z',
-										sender: '6591111111@s.whatsapp.net',
-										source_message_id: id
-									}
-								]
+									]
+								},
+								communication_logs: {
+									create: [
+										{
+											message: 'Done, photo attached',
+											sent_at: '2026-09-25T10:00:00.000Z',
+											sender: '6591111111@s.whatsapp.net',
+											source_message_id: id
+										}
+									]
+								}
 							}
 						}
-					})}`;
+					])}`;
 				const id = yield* say({ from: '6591111111', text: report(`M${seq + 1}`), photo: true });
 				expect((yield* inbound(id)).as).toMatchObject({
 					envoy: { name: 'field_ops_whatsapp', instance: 'field_ops_whatsapp', dm: true }
@@ -279,7 +278,7 @@ describe('field_ops_whatsapp (G12 5)', () => {
 				yield* setup();
 				yield* say({
 					from: '6591111111',
-					text: `act job_assignments.update ${JSON.stringify({ target: theirs.job, set: { status: 'completed' } })}`
+					text: `act job_assignments.update ${JSON.stringify([{ target: theirs.job, set: { status: 'completed' } }])}`
 				});
 				expect((yield* job(theirs.job)).status).toBe('completed');
 			})
@@ -323,7 +322,7 @@ describe('field_ops_whatsapp (G12 5)', () => {
 				// P32: a group turn holds the envoy's policy alone, which may update any assignment
 				yield* say({
 					from: '6591111111',
-					text: `act job_assignments.update ${JSON.stringify({ target: theirs.job, set: { status: 'completed' } })}`,
+					text: `act job_assignments.update ${JSON.stringify([{ target: theirs.job, set: { status: 'completed' } }])}`,
 					group: '120363@g.us',
 					mention: true
 				});
