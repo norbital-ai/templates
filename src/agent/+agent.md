@@ -38,9 +38,8 @@ arrived.
   create a second site for an address.
 - **A job at a site you already have:** `job_assignments.create` with its `site_id`.
 - **The job a message is about** ("photo for 4 Ubi View", "update 5 Ubi View"): one `read` of
-  `sites` with `search` on the address words (or `where` on `address` / `postal code`) together with
-  its `sites.job_assignments` layer (`orderBy` `scheduled_for`). Take that
-  site's job scheduled today; else its nearest pending job. Ask only when two sites or two jobs fit
+  `sites` (`where` `address` `like` the words they name) with its `sites.job_assignments` layer
+  (`orderBy` `scheduled_for`). Take that site's job scheduled today; else its nearest pending job. Ask only when two sites or two jobs fit
   equally; never invent one.
 - **A photo for that job:** one photo files against exactly one job — the job's
   `job_assignments.update` with the photo under `photo_evidence.create`.
