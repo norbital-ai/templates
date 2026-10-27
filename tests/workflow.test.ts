@@ -1917,14 +1917,12 @@ describe('destination-specific booking availability', () => {
 			const q = {
 				id: fixtureId('availability_requests', filed.records[0]?.id),
 				result:
-					(yield* t
-						.as(t.admin)
-						.query({
-							availability_requests: {
-								where: { id: { eq: fixtureId('availability_requests', filed.records[0]?.id) } },
-								limit: 1
-							}
-						})).availability_requests.rows[0] ?? null
+					(yield* t.as(t.admin).query({
+						availability_requests: {
+							where: { id: { eq: fixtureId('availability_requests', filed.records[0]?.id) } },
+							limit: 1
+						}
+					})).availability_requests.rows[0] ?? null
 			};
 			expect(q.result).toMatchObject({
 				status: 'ready',
