@@ -8,12 +8,7 @@ const words = (key: string) => key.replace(/_/g, ' ').replace(/^\w/, (c) => c.to
  * (`payroll.attendance.step_hours`) and `<path>.help` replaces its declared help. `Show` and the structure editors
  * read a nested field's words only from its kind.
  */
-export function labelled(
-	bolt: Pick<ViewBolt, 't'>,
-	model: string,
-	path: string,
-	kind: Kind
-): Kind {
+export function labelled(bolt: Pick<ViewBolt, 't'>, model: string, path: string, kind: Kind): Kind {
 	const helpKey = `models.${model}.fields.${path}.help`;
 	const help = bolt.t(helpKey);
 	const own = {
@@ -25,10 +20,7 @@ export function labelled(
 		return {
 			...own,
 			fields: Object.fromEntries(
-				Object.entries(own.fields).map(([f, k]) => [
-					f,
-					labelled(bolt, model, `${path}.${f}`, k)
-				])
+				Object.entries(own.fields).map(([f, k]) => [f, labelled(bolt, model, `${path}.${f}`, k)])
 			)
 		};
 	if (own.kind === 'list') return { ...own, of: labelled(bolt, model, path, own.of) };

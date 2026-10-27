@@ -81,7 +81,9 @@ export default model('workplace_case', {
 	},
 	read: 'all',
 	create: {
-		columns: { workplace_case: ['kind', 'opened_on', 'closed_on', 'facts', 'company_id', 'employment_id'] },
+		columns: {
+			workplace_case: ['kind', 'opened_on', 'closed_on', 'facts', 'company_id', 'employment_id']
+		},
 		transform: function* (rows, ctx) {
 			const prefetched = yield* loadWorkplaceAdmission(ctx.db.query, rows);
 			return yield* Effect.forEach(rows, (row, at) =>

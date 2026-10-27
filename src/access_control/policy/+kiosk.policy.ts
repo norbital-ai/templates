@@ -12,7 +12,12 @@ const PROFILE_FIELDS = [
 	'face_match_count',
 	'face_last_match_at'
 ] as const;
-const CONTRACT_FIELDS = ['employee_id', 'company_id', 'employee_number', 'effective_range'] as const;
+const CONTRACT_FIELDS = [
+	'employee_id',
+	'company_id',
+	'employee_number',
+	'effective_range'
+] as const;
 const ENTITY_FIELDS = ['name', 'settings_code'] as const;
 const ROSTER_FIELDS = ['employment_id', 'work_date', 'worked_intervals'] as const;
 

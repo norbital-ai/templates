@@ -87,16 +87,18 @@ export default model('adhoc_catalog_entry', {
 		'adhoc_catalog_entry.employment_id': { fields: 'all' }
 	},
 	create: {
-		columns: { adhoc_catalog_entry: [
-			'catalog_id',
-			'employment_id',
-			'occurred_on',
-			'activity',
-			'amount',
-			'quantity',
-			'label',
-			'facts'
-		] },
+		columns: {
+			adhoc_catalog_entry: [
+				'catalog_id',
+				'employment_id',
+				'occurred_on',
+				'activity',
+				'amount',
+				'quantity',
+				'label',
+				'facts'
+			]
+		},
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -110,16 +112,18 @@ export default model('adhoc_catalog_entry', {
 		}
 	},
 	update: {
-		columns: { adhoc_catalog_entry: [
-			'catalog_id',
-			'occurred_on',
-			'activity',
-			'amount',
-			'quantity',
-			'label',
-			'facts',
-			'payslip_id'
-		] },
+		columns: {
+			adhoc_catalog_entry: [
+				'catalog_id',
+				'occurred_on',
+				'activity',
+				'amount',
+				'quantity',
+				'label',
+				'facts',
+				'payslip_id'
+			]
+		},
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

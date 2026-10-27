@@ -83,9 +83,7 @@ it.live(
 			]);
 			expect(cloned.kind, JSON.stringify(cloned)).toBe('committed');
 			if (cloned.kind !== 'committed') throw new Error('The successor did not commit.');
-			const successor = cloned.records.find(
-				(row) => row.model === 'jurisdiction_settings'
-			)?.id;
+			const successor = cloned.records.find((row) => row.model === 'jurisdiction_settings')?.id;
 			if (successor === undefined) throw new Error('The successor record is absent.');
 			expect(
 				(yield* admin.query({

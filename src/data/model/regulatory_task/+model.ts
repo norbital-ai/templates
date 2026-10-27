@@ -78,35 +78,39 @@ export default model('regulatory_task', {
 	},
 	read: 'all',
 	create: {
-		columns: { regulatory_task: [
-			'code',
-			'title',
-			'references',
-			'subject_collection',
-			'subject_id',
-			'trigger_ref',
-			'triggered_on',
-			'due_on',
-			'state',
-			'done_on',
-			'dismiss_reason',
-			'evidence_file',
-			'occurrence_key',
-			'facts',
-			'company_id',
-			'settings_id'
-		] }
+		columns: {
+			regulatory_task: [
+				'code',
+				'title',
+				'references',
+				'subject_collection',
+				'subject_id',
+				'trigger_ref',
+				'triggered_on',
+				'due_on',
+				'state',
+				'done_on',
+				'dismiss_reason',
+				'evidence_file',
+				'occurrence_key',
+				'facts',
+				'company_id',
+				'settings_id'
+			]
+		}
 	},
 	// `occurrence_key` moves when a duty is withdrawn (its exit moved or undone), so the exit as it now stands raises anew.
 	update: {
-		columns: { regulatory_task: [
-			'occurrence_key',
-			'due_on',
-			'state',
-			'done_on',
-			'dismiss_reason',
-			'evidence_file',
-			'facts'
-		] }
+		columns: {
+			regulatory_task: [
+				'occurrence_key',
+				'due_on',
+				'state',
+				'done_on',
+				'dismiss_reason',
+				'evidence_file',
+				'facts'
+			]
+		}
 	}
 });
