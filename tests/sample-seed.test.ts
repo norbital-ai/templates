@@ -57,9 +57,7 @@ test.live(
 					products,
 					warehouses
 				});
-				expect(
-					Object.values(rows).reduce((count, model) => count + model.length, 0)
-				).toBe(9);
+				expect(Object.values(rows).reduce((count, model) => count + model.length, 0)).toBe(9);
 				writeFileSync(
 					join(bank.directory, 'sys_user.json'),
 					JSON.stringify([{ id: SALES }, { id: SALES }])

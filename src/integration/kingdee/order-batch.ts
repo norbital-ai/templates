@@ -139,8 +139,10 @@ export function sourceInteger(value: string, column: string): string {
 /** An amendment keeps existing entry identities and appends new ones; positions are never renumbered. */
 export function sourceEntryIds(payload: OrderPayload) {
 	if (
-		!Number.isInteger(payload.version) || payload.version < 1 ||
-		payload.lines.length === 0 || payload.lines.length > 200 ||
+		!Number.isInteger(payload.version) ||
+		payload.version < 1 ||
+		payload.lines.length === 0 ||
+		payload.lines.length > 200 ||
 		payload.lines.some((line) => line.id.trim() === '') ||
 		new Set(payload.lines.map((line) => line.id)).size !== payload.lines.length
 	)
@@ -156,18 +158,20 @@ export function sourceEntryIds(payload: OrderPayload) {
 	const previous = payload.previous;
 	if (
 		previous === undefined ||
-		previous.binding_id.trim() === '' || previous.binding_id.length > 512 ||
+		previous.binding_id.trim() === '' ||
+		previous.binding_id.length > 512 ||
 		!/^\d{3}$/.test(previous.source_version) ||
 		previous.source_version === '999' ||
 		!previous.agreement_hash ||
-		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-			previous.source_uuid
-		) ||
+		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(previous.source_uuid) ||
 		previous.lines.length === 0 ||
 		previous.lines.length > 200 ||
 		new Set(previous.lines.map((line) => line.id)).size !== previous.lines.length
 	)
-		return invalid('version', 'An amendment requires the complete previously observed source version');
+		return invalid(
+			'version',
+			'An amendment requires the complete previously observed source version'
+		);
 	sourceInteger(previous.source_id, 'FInterID');
 	if (Decimal.of(previous.source_exchange_rate).lte(0))
 		return invalid('currency', 'A positive previously observed exchange rate is required');
@@ -183,16 +187,25 @@ export function sourceEntryIds(payload: OrderPayload) {
 	let next = Math.max(...[...existing.values()].map(Number));
 	return payload.lines.map((line) => {
 		const known = existing.get(line.id);
-		const explicit = line.source_entry_id === undefined
-			? undefined
-			: sourceInteger(line.source_entry_id, 'FEntryID');
+		const explicit =
+			line.source_entry_id === undefined
+				? undefined
+				: sourceInteger(line.source_entry_id, 'FEntryID');
 		if (explicit !== undefined && !sourceLines.has(explicit))
-			return invalid('FEntryID', 'The claimed source entry is absent from the previous source basis');
+			return invalid(
+				'FEntryID',
+				'The claimed source entry is absent from the previous source basis'
+			);
 		if (explicit !== undefined && known !== undefined && explicit !== known)
 			return invalid('FEntryID', 'An existing local line cannot change its source entry identity');
 		const entry = explicit ?? known ?? sourceInteger(String(++next), 'FEntryID');
 		const basis = sourceLines.get(entry);
-		if (basis && (sourceInteger(basis.product_code, 'FItemID') !== sourceInteger(line.product_code, 'FItemID') || basis.unit !== line.unit))
+		if (
+			basis &&
+			(sourceInteger(basis.product_code, 'FItemID') !==
+				sourceInteger(line.product_code, 'FItemID') ||
+				basis.unit !== line.unit)
+		)
 			return invalid('FEntryID', 'A source entry cannot be reassigned to another product or unit');
 		if (used.has(entry))
 			return invalid('FEntryID', 'More than one target line claims the same source entry');

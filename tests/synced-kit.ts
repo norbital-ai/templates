@@ -164,8 +164,7 @@ export const sourceTransaction = Effect.fnUntraced(function* (
 	const input = {
 		erp_id: randomUUID(),
 		order: own.order,
-		[parent.model === 'ext_sales_orders' ? 'ext_sales_order' : 'ext_purchase_order']:
-			parent.id,
+		[parent.model === 'ext_sales_orders' ? 'ext_sales_order' : 'ext_purchase_order']: parent.id,
 		kind,
 		reference: kind === 'invoice' ? 'INV-1' : 'DO-1',
 		seal_hash: parent.input.agreement_hash,

@@ -1,38 +1,78 @@
 import { Decimal } from '@norbital-ai/std/decimal';
 import { SourceRowInvalid } from './polling.js';
-import { headerTypes, itemTypes, type OrderPayload, type SourceOrderBatch, type SourceOrderBindings } from './order-batch.js';
+import {
+	headerTypes,
+	itemTypes,
+	type OrderPayload,
+	type SourceOrderBatch,
+	type SourceOrderBindings
+} from './order-batch.js';
 
 const escape = (value: string) =>
 	value.replace(/[&<>"']/g, (character) => {
 		switch (character) {
-			case '&': return '&amp;';
-			case '<': return '&lt;';
-			case '>': return '&gt;';
-			case '"': return '&quot;';
-			default: return '&apos;';
+			case '&':
+				return '&amp;';
+			case '<':
+				return '&lt;';
+			case '>':
+				return '&gt;';
+			case '"':
+				return '&quot;';
+			default:
+				return '&apos;';
 		}
 	});
 const q = (name: string) => `[${name}]`;
 const columns = (types: Readonly<Record<string, string>>) => Object.keys(types).map(q).join(',');
 const declaration = (types: Readonly<Record<string, string>>) =>
-	Object.entries(types).map(([name, type]) => `${q(name)} ${type} NOT NULL`).join(',');
+	Object.entries(types)
+		.map(([name, type]) => `${q(name)} ${type} NOT NULL`)
+		.join(',');
 const xmlValues = (types: Readonly<Record<string, string>>) =>
-	Object.entries(types).map(([name, type]) => `item.value('(@${name})[1]','${type}')`).join(',');
+	Object.entries(types)
+		.map(([name, type]) => `item.value('(@${name})[1]','${type}')`)
+		.join(',');
 const fail = (message: string) => `BEGIN RAISERROR('${message}',16,1); RETURN; END;`;
 const sameText = (left: string, right: string) =>
 	`CONVERT(nvarchar(max),${left}) COLLATE Latin1_General_BIN2=CONVERT(nvarchar(max),${right}) COLLATE Latin1_General_BIN2 AND DATALENGTH(CONVERT(nvarchar(max),${left}))=DATALENGTH(CONVERT(nvarchar(max),${right}))`;
 const logText = (value: string, column: string) =>
 	`LEFT(CONVERT(nvarchar(max),${value}),COALESCE((SELECT capacity FROM @log_limits WHERE name=N'${column}'),2147483647))`;
 const header = [
-	'FBrNo', 'FBillNo', 'FTranType', 'FCurrencyID', 'FCustID', 'FDate', 'FExchangeRate',
-	'FDeptID', 'FEmpID', 'FSettleID', 'FAreaPS', 'FSaleStyle', 'FSettleDate'
+	'FBrNo',
+	'FBillNo',
+	'FTranType',
+	'FCurrencyID',
+	'FCustID',
+	'FDate',
+	'FExchangeRate',
+	'FDeptID',
+	'FEmpID',
+	'FSettleID',
+	'FAreaPS',
+	'FSaleStyle',
+	'FSettleDate'
 ];
 const amounts = [
-	'FQty', 'Fauxqty', 'FComplexQty', 'Fauxprice', 'FPrice', 'FAuxTaxPrice', 'FTaxPrice',
-	'FPriceDiscount', 'FAuxPriceDiscount', 'FCESS', 'FAmount', 'FAllAmount', 'FAllStdAmount', 'FTaxAmt'
+	'FQty',
+	'Fauxqty',
+	'FComplexQty',
+	'Fauxprice',
+	'FPrice',
+	'FAuxTaxPrice',
+	'FTaxPrice',
+	'FPriceDiscount',
+	'FAuxPriceDiscount',
+	'FCESS',
+	'FAmount',
+	'FAllAmount',
+	'FAllStdAmount',
+	'FTaxAmt'
 ];
 const targetFields = ['FEntryID', 'FItemID', 'FUnitID', ...amounts];
-const targetMatches = targetFields.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ');
+const targetMatches = targetFields
+	.map((name) => `actual.${q(name)}=expected.${q(name)}`)
+	.join(' AND ');
 const noticeQty = (alias: string) =>
 	`ISNULL((SELECT SUM(n.FQty) FROM dbo.SEOutStockEntry n WHERE n.FSourceTranType=81 AND n.FSourceInterId=${alias}.FInterID AND n.FItemID=${alias}.FItemID),0)`;
 const deliveredQty = (alias: string) =>
@@ -43,24 +83,45 @@ const linked = (alias: string) =>
 	`EXISTS(SELECT 1 FROM dbo.ICStockBillEntry d JOIN dbo.ICStockBill h ON h.FInterID=d.FInterID WHERE h.FTranType=21 AND ((d.FSourceTranType=81 AND d.FSourceInterId=${alias}.FInterID AND d.FSourceEntryID=${alias}.FEntryID) OR (d.FOrderInterID=${alias}.FInterID AND d.FItemID=${alias}.FItemID))) OR EXISTS(SELECT 1 FROM dbo.SEOutStockEntry n WHERE n.FSourceTranType=81 AND n.FSourceInterId=${alias}.FInterID AND n.FItemID=${alias}.FItemID) OR EXISTS(SELECT 1 FROM dbo.ICSaleEntry i WHERE i.FSourceTranType=81 AND i.FSourceInterId=${alias}.FInterID AND i.FSourceEntryID=${alias}.FEntryID)`;
 
 /** The previous snapshot is evidence, never a fresh read that silently accepts someone else's changes. */
-export function previousOrderDocument(payload: OrderPayload, bindings: Pick<SourceOrderBindings, 'rate' | 'baseCurrency'>) {
+export function previousOrderDocument(
+	payload: OrderPayload,
+	bindings: Pick<SourceOrderBindings, 'rate' | 'baseCurrency'>
+) {
 	const previous = payload.previous;
 	if (previous === undefined)
-		throw new SourceRowInvalid({ column: 'version', reason: 'The previous source version is required' });
-	return `<previous>${previous.lines.map((line) => {
-		const effective = Decimal.of(line.unit_price)
-			.times(Decimal.of(100).minus(line.discount_pct)).div(100, 12);
-		const factor = Decimal.of(1).plus(Decimal.of(line.tax_rate).div(100, 6));
-		const exclusive = previous.tax_inclusive ? effective.div(factor, 8) : effective;
-		const inclusive = previous.tax_inclusive ? effective : effective.times(factor).round(8);
-		const values = {
-			entry: line.source_entry_id, item: line.product_code, unit: line.unit,
-			quantity: line.quantity, exclusive: exclusive.toString(), inclusive: inclusive.toString(),
-			tax_rate: line.tax_rate, net: line.net, tax: line.tax, total: line.total,
-			standard_total: Decimal.of(line.total).times(previous.source_exchange_rate).roundTo(bindings.baseCurrency).toString()
-		};
-		return `<line ${Object.entries(values).map(([key, value]) => `${key}="${escape(value)}"`).join(' ')}/>`;
-	}).join('')}</previous>`;
+		throw new SourceRowInvalid({
+			column: 'version',
+			reason: 'The previous source version is required'
+		});
+	return `<previous>${previous.lines
+		.map((line) => {
+			const effective = Decimal.of(line.unit_price)
+				.times(Decimal.of(100).minus(line.discount_pct))
+				.div(100, 12);
+			const factor = Decimal.of(1).plus(Decimal.of(line.tax_rate).div(100, 6));
+			const exclusive = previous.tax_inclusive ? effective.div(factor, 8) : effective;
+			const inclusive = previous.tax_inclusive ? effective : effective.times(factor).round(8);
+			const values = {
+				entry: line.source_entry_id,
+				item: line.product_code,
+				unit: line.unit,
+				quantity: line.quantity,
+				exclusive: exclusive.toString(),
+				inclusive: inclusive.toString(),
+				tax_rate: line.tax_rate,
+				net: line.net,
+				tax: line.tax,
+				total: line.total,
+				standard_total: Decimal.of(line.total)
+					.times(previous.source_exchange_rate)
+					.roundTo(bindings.baseCurrency)
+					.toString()
+			};
+			return `<line ${Object.entries(values)
+				.map(([key, value]) => `${key}="${escape(value)}"`)
+				.join(' ')}/>`;
+		})
+		.join('')}</previous>`;
 }
 
 /** Existing lines keep their physical identity and source-only fields; only agreed monetary/quantity fields change. */
@@ -83,7 +144,7 @@ SELECT @actual_version=FVersionNo FROM dbo.SEOrder WITH (UPDLOCK,HOLDLOCK) WHERE
 IF @actual_version IS NULL ${fail('The verified source order identity moved or disappeared')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Ambiguous source correlation')}
 IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND CAST(FExchangeRate AS decimal(28,10))=@source_exchange_rate) ${fail('Source exchange rate changed since the previous contract observation')}
-IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND ${header.map((name) => name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`).join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
+IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND ${header.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
 IF EXISTS(SELECT FEntryID FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Source entry identities are ambiguous')}
 IF @actual_version=@new_version BEGIN
  IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) OR EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${targetMatches})) ${fail('The amended source order differs from the frozen submission')}
@@ -93,7 +154,7 @@ END;
 IF @actual_version<>@source_version ${fail('Source business version changed; import it before amending')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (FCancellation<>0 OR FChangeMark<>0 OR FClosed<>0 OR FStatus=3)) ${fail('Source order is void, archived or closed')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FBillNo=expected.FBillNo AND actual.FCancellation=0 AND actual.FChangeMark=0)<>1 ${fail('The source document family has an ambiguous live order')}
-IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @previous) OR EXISTS(SELECT 1 FROM @previous expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual JOIN dbo.t_Item unit ON unit.FItemID=actual.FUnitID AND unit.FItemClassID=7 WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.entry_id AND actual.FItemID=expected.item_id AND ${sameText('unit.FName','expected.unit_name')} AND actual.FQty=expected.quantity AND actual.Fauxqty=expected.quantity AND actual.FComplexQty=expected.quantity AND actual.FAuxPrice=expected.exclusive AND actual.FPrice=expected.exclusive AND actual.FAuxTaxPrice=expected.inclusive AND actual.FTaxPrice=expected.inclusive AND actual.FPriceDiscount=expected.inclusive AND actual.FAuxPriceDiscount=expected.inclusive AND actual.FCESS=expected.tax_rate AND actual.FAmount=expected.net AND actual.FTaxAmt=expected.tax AND actual.FAllAmount=expected.total AND actual.FAllStdAmount=expected.standard_total)) ${fail('Source contents changed since the previous contract observation')}
+IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @previous) OR EXISTS(SELECT 1 FROM @previous expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual JOIN dbo.t_Item unit ON unit.FItemID=actual.FUnitID AND unit.FItemClassID=7 WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.entry_id AND actual.FItemID=expected.item_id AND ${sameText('unit.FName', 'expected.unit_name')} AND actual.FQty=expected.quantity AND actual.Fauxqty=expected.quantity AND actual.FComplexQty=expected.quantity AND actual.FAuxPrice=expected.exclusive AND actual.FPrice=expected.exclusive AND actual.FAuxTaxPrice=expected.inclusive AND actual.FTaxPrice=expected.inclusive AND actual.FPriceDiscount=expected.inclusive AND actual.FAuxPriceDiscount=expected.inclusive AND actual.FCESS=expected.tax_rate AND actual.FAmount=expected.net AND actual.FTaxAmt=expected.tax AND actual.FAllAmount=expected.total AND actual.FAllStdAmount=expected.standard_total)) ${fail('Source contents changed since the previous contract observation')}
 IF EXISTS(SELECT 1 FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FItemID<>old.item_id) ${fail('A changed product requires a new line identity')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrderEntry old JOIN @lines target ON target.FEntryID=old.FEntryID WHERE old.FBrNO=@branch AND old.FInterID=@remote AND old.FUnitID<>target.FUnitID) ${fail('An existing source line cannot change its unit')}
 IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Item item JOIN dbo.t_ICItem detail ON detail.FItemID=item.FItemID WHERE item.FItemID=expected.FItemID AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0 AND detail.FDeleted=0 AND detail.FUnitID=expected.FUnitID)) ${fail('Source item or base unit changed')}
@@ -132,7 +193,7 @@ IF @@ROWCOUNT<>1 ${fail('Source version update failed')}
 DECLARE @log_limits TABLE (name sysname NOT NULL PRIMARY KEY,capacity int NOT NULL);
 INSERT @log_limits SELECT c.name,CASE WHEN c.max_length=-1 THEN 2147483647 ELSE c.max_length/2 END FROM sys.columns c JOIN sys.types t ON t.user_type_id=c.user_type_id WHERE c.object_id=OBJECT_ID('dbo.ICOrderAlter') AND t.name IN ('nvarchar','nchar','varchar','char');
 INSERT dbo.ICOrderAlter (FInterID,FBillType,FTableName,FVersionNo,FChangeDate,FChangeUser,FChangeType,FoldNo,FNumbers,FitemName,Fmodel,FChangeField,FBChangeValue,FEChangeValue,FChangeCauses,FPage)
-SELECT @remote,81,'SEOrderEntry',@new_version,GETDATE(),${logText('@user','FChangeUser')},${logText('changes.kind','FChangeType')},${logText('changes.entry_id','FoldNo')},${logText('item.FNumber','FNumbers')},${logText('item.FName','FitemName')},${logText("ISNULL(detail.FModel,'')",'Fmodel')},${logText('changes.field','FChangeField')},${logText('changes.before_value','FBChangeValue')},${logText('changes.after_value','FEChangeValue')},@change_cause,0 FROM @changes changes JOIN dbo.t_Item item ON item.FItemID=changes.item_id LEFT JOIN dbo.t_ICItem detail ON detail.FItemID=changes.item_id;
+SELECT @remote,81,'SEOrderEntry',@new_version,GETDATE(),${logText('@user', 'FChangeUser')},${logText('changes.kind', 'FChangeType')},${logText('changes.entry_id', 'FoldNo')},${logText('item.FNumber', 'FNumbers')},${logText('item.FName', 'FitemName')},${logText("ISNULL(detail.FModel,'')", 'Fmodel')},${logText('changes.field', 'FChangeField')},${logText('changes.before_value', 'FBChangeValue')},${logText('changes.after_value', 'FEChangeValue')},@change_cause,0 FROM @changes changes JOIN dbo.t_Item item ON item.FItemID=changes.item_id LEFT JOIN dbo.t_ICItem detail ON detail.FItemID=changes.item_id;
 IF @@ROWCOUNT<>(SELECT COUNT(*) FROM @changes) ${fail('Source change log is incomplete')}
 IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) OR EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${targetMatches})) ${fail('Source amendment did not preserve the full target contract')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;

@@ -166,11 +166,11 @@ The 27 October 2026 standalone acceptance run used a restricted login with neith
 nor `db_owner`. Application credential pairing, initial SO creation and a same-SO amendment were
 exercised against SQL Server 2019 with CDC disabled:
 
-| Local contract | Kingdee version | Quantity × net price | Gross CNY | Result |
-| --- | --- | --- | --- | --- |
-| v1 | `000` | 10 × 2 | 22.60 | Application-created SO; later retained as SQL archive. |
-| v2 | `001` | 12 × 3 | 40.68 | Formal source amendment imported as a new immutable contract. |
-| v3 | `002` | 14 × 4 | 63.28 | Application amendment updated the same live SO and retained v2's SQL archive. |
+| Local contract | Kingdee version | Quantity × net price | Gross CNY | Result                                                                        |
+| -------------- | --------------- | -------------------- | --------- | ----------------------------------------------------------------------------- |
+| v1             | `000`           | 10 × 2               | 22.60     | Application-created SO; later retained as SQL archive.                        |
+| v2             | `001`           | 12 × 3               | 40.68     | Formal source amendment imported as a new immutable contract.                 |
+| v3             | `002`           | 14 × 4               | 63.28     | Application amendment updated the same live SO and retained v2's SQL archive. |
 
 The live `FInterID` remained `9002`; archive rows `9003` and `9004` retained the earlier terms,
 and `ICOrderAlter` retained the amendment log. The original delivery and CNY 4.52 invoice kept

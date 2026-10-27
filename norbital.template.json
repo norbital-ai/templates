@@ -10,13 +10,7 @@
 		"apps": 5,
 		"automations": 2
 	},
-	"tags": [
-		"Trading",
-		"Manufacturing",
-		"Distribution",
-		"Sales",
-		"Procurement"
-	],
+	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],
 	"name_zh": "贸易运营",
 	"description_zh": "以订单为核心的商务工作区，封存合同与定价，整合采购、履约和ERP同步模型。"
 }

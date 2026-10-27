@@ -23,9 +23,7 @@ export const fixtureId = <C extends string>(model: C, value: string) =>
 	Schema.decodeUnknownSync(
 		Schema.declare<Id<C>>((input): input is Id<C> =>
 			Schema.is(
-				inputSchema(
-					model === 'sys_integration' ? { kind: 'text' } : { kind: 'id', of: model }
-				)
+				inputSchema(model === 'sys_integration' ? { kind: 'text' } : { kind: 'id', of: model })
 			)(input)
 		)
 	)(value);
