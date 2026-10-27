@@ -141,13 +141,6 @@ type ReviewFacts = {
 		readonly message: string;
 	}[];
 };
-/** Only what ingestion durably retained about GPS: the flag, never an invented coordinate. */
-const gpsMetadataStatus = (flags: readonly string[]) =>
-	flags.includes('missing_geolocation')
-		? 'missing_from_asset'
-		: flags.includes('location_mismatch')
-			? 'present_and_outside_assigned_site_tolerance'
-			: 'present_without_location_mismatch';
 const photoOrder = (photo: ReviewPhoto) => `${photo.created_at ?? ''}\u0000${photo.id}`;
 const byOrder = (left: ReviewPhoto, right: ReviewPhoto) =>
 	photoOrder(left).localeCompare(photoOrder(right));
@@ -269,86 +262,66 @@ const pairsOf = (facts: ReviewFacts, representatives: readonly ReviewPhoto[]): P
 				];
 	});
 };
-/** The provider-bounded facts of one turn, derived from the complete durable basis. */
+/** GPS state in words a reviewer reads. */
+const gpsWords = (flags: readonly string[]) =>
+	flags.includes('missing_geolocation')
+		? 'no GPS'
+		: flags.includes('location_mismatch')
+			? 'GPS outside the site'
+			: 'GPS at the site';
+/** The provider-bounded facts of one turn as compact text: only what a reviewer needs, oldest messages dropped first. */
 function inferenceContext(
 	facts: ReviewFacts,
 	representatives = selectInferencePhotos(facts.photos)
 ): string {
+	const a = facts.assignment;
 	const attached = new Set(representatives.map((photo) => photo.id));
-	const base = {
-		review_scope: { kind: 'single_assignment_review' },
-		attachment_manifest: {
-			instruction:
-				'The attached images appear in exactly this order. The role and asset_name are authoritative; use no other image identifier.',
-			images: representatives.map((photo) => ({
-				asset_name: assetName(photo),
-				gps_metadata: gpsMetadataStatus(photo.flags),
-				role: 'job_site_photo'
-			}))
-		},
-		assignment: {
-			...facts.assignment,
-			summary: facts.assignment.summary == null ? null : clipText(facts.assignment.summary, 1600)
-		},
-		job: {
-			id: facts.assignment.id,
-			title: clipText(facts.assignment.title, 512),
-			nature: facts.assignment.nature == null ? null : clipText(facts.assignment.nature, 512),
-			scheduled_for: facts.assignment.scheduled_for,
-			description: clipText(facts.assignment.description, 4000)
-		},
-		site: facts.site == null ? null : { ...facts.site, name: clipText(facts.site.name, 512) },
-		photo_summary: {
-			total: facts.photos.length,
-			attached_representatives: representatives.length,
-			omitted_from_visual_turn: facts.photos.length - representatives.length,
-			flag_counts: Object.fromEntries(
-				PHOTO_FLAGS.map((flag): [PhotoFlag, number] => [
-					flag,
-					facts.photos.filter((photo) => photo.flags.includes(flag)).length
-				]).filter(([, count]) => count !== 0)
-			),
-			similarity_relationships: facts.photos.reduce(
-				(count, photo) => count + photo.matched_evidence_ids.length,
-				0
-			),
-			/** Zero means the scene task had nothing to retrieve with, not that the corpus was found clear. */
-			scene_embedding_photos: facts.photos.filter(
-				(photo) => (photo.scene_embedding?.length ?? 0) > 0
-			).length,
-			job_site_photo_dataset: [...facts.photos].sort(byOrder).map((photo) => ({
-				asset_name: assetName(photo),
-				gps_metadata: gpsMetadataStatus(photo.flags),
-				visually_attached: attached.has(photo.id),
-				file_size: photo.bytes,
-				mime_type: photo.photo.mime,
-				integrity_flags: [...photo.flags].sort()
-			}))
-		}
-	};
+	const others = facts.photos.filter((photo) => !attached.has(photo.id));
+	const counts = PHOTO_FLAGS.map(
+		(flag) => [flag, others.filter((p) => p.flags.includes(flag)).length] as const
+	)
+		.filter(([, n]) => n > 0)
+		.map(([flag, n]) => `${flag} ×${n}`);
+	const head = [
+		`Job: ${clipText(a.title, 200)}${a.nature == null ? '' : ` (${clipText(a.nature, 80)})`}, ${a.scheduled_for}, ${a.status}.`,
+		`Site: ${facts.site == null ? 'unknown' : clipText(facts.site.name, 200)}.`,
+		...(a.description.trim() === '' ? [] : [`Work order: ${clipText(a.description, 600)}`]),
+		...(a.summary == null ? [] : [`Contractor summary: ${clipText(a.summary, 600)}`]),
+		'',
+		representatives.length === 0
+			? `Photos: ${facts.photos.length}, none attached for viewing.`
+			: `Attached photos, in order (${representatives.length} of ${facts.photos.length}):`,
+		...representatives.map(
+			(photo, i) =>
+				`${i + 1}. ${assetName(photo)} — ${gpsWords(photo.flags)}${photo.flags.length === 0 ? '' : `; ${[...photo.flags].sort().join(', ')}`}`
+		),
+		...(others.length === 0
+			? []
+			: [
+					`Not attached: ${others.length} more photo${others.length === 1 ? '' : 's'}${counts.length === 0 ? '' : ` (${counts.join(', ')})`}.`
+				])
+	];
 	let messages = [...facts.communications]
 		.sort(
 			(l, r) =>
 				l.sent_at.localeCompare(r.sent_at) || l.source_message_id.localeCompare(r.source_message_id)
 		)
 		.slice(-MAX_COMMUNICATIONS)
-		.map((m) => ({
-			source_message_id: clipText(m.source_message_id, 256),
-			sender: clipText(m.sender, 256),
-			sent_at: m.sent_at,
-			message: clipText(m.message, MAX_MESSAGE_CHARS)
-		}));
+		.map(
+			(m) =>
+				`- ${m.sent_at.slice(0, 16).replace('T', ' ')} ${clipText(m.sender, 60)}: ${clipText(m.message, MAX_MESSAGE_CHARS)}`
+		);
 	for (;;) {
-		const encoded = JSON.stringify({
-			...base,
-			communication_summary: {
-				total: facts.communications.length,
-				included_recent: messages.length,
-				omitted: facts.communications.length - messages.length,
-				messages
-			}
-		});
-		if (encoded.length <= MAX_INFERENCE_CONTEXT_CHARS || messages.length === 0) return encoded;
+		const omitted = facts.communications.length - messages.length;
+		const text = [
+			...head,
+			'',
+			messages.length === 0
+				? 'Messages: none.'
+				: `Messages (${messages.length}${omitted > 0 ? ` most recent; ${omitted} older omitted` : ''}):`,
+			...messages
+		].join('\n');
+		if (text.length <= MAX_INFERENCE_CONTEXT_CHARS || messages.length === 0) return text;
 		messages = messages.slice(1);
 	}
 }
@@ -357,25 +330,20 @@ function suspicionPrompt(
 	representatives = selectInferencePhotos(facts.photos)
 ): string {
 	return [
-		'Review this field-work assignment in exactly one structured turn.',
-		'The attachment_manifest is authoritative: it names every attached image in order. Refer to an image only by its exact asset_name. Do not invent a photo number, record id, attachment label, address, GPS coordinate, or any other identification method.',
-		'The job_site_photo_dataset is the complete set submitted to this assignment. Each row gives the actual asset_name and the GPS metadata state durably retained by ingestion.',
+		'Review this field-work assignment in one structured turn. Rules:',
+		'- Refer to a photo only by its exact name from the list below; invent no other identifier, address or coordinate.',
 		representatives.length === 0
-			? 'No photo fit the bounded attachment budget. Judge from the assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications; do not pretend a scene was visible.'
-			: `The attachment_manifest names the ${representatives.length} job-site photo${representatives.length === 1 ? '' : 's'} actually attached for visual review. Photos marked visually_attached false are listed for completeness but were not visible; never claim to have read a marker from one of them.`,
-		'The durable audit basis covers every photo and communication; this inference context is deliberately bounded and states what was omitted.',
-		'Missing photo geolocation is a neutral fact because messaging services commonly strip metadata.',
-		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
-		'Use only physical scene markers visibly present in an attached job-site photo, such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits, when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
-		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
-		'Raise an unresolved mixed-sites suspicion only when two or more attached job-site photos contain concrete physical markers for conflicting sites. Different-looking rooms, fixtures, exterior views, or common trade features alone do not establish multiple sites.',
-		'A suspicion log is an actionable escalation, not a queue for low-confidence review. Plausibly benign ambiguity, incomplete corroboration, or the fact that a controller could confirm something is not enough. When the available evidence has a reasonable ordinary explanation and no concrete contradiction, return suspicious false.',
-		'For every other fact, return suspicious only when your contextual judgement finds a concrete, articulable reason to question this assignment.',
-		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
-		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate. Set evidence_asset_name to the exact asset_name of one decisive attached job-site photo and reference only exact asset names from the supplied dataset in the reason.`,
-		`If suspicious is false, set evidence_asset_name to an empty string and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
-		`Bounded inference facts: ${inferenceContext(facts, representatives)}`
-	].join(' ');
+			? '- No photo is attached: judge from the job, the site, the photo flags and the messages; do not describe a scene.'
+			: '- Only the listed attached photos are visible; never claim to have seen a marker in one that is not attached.',
+		'- Missing GPS and repeated similar views within one job are neutral facts on their own.',
+		'- Judge location only from physical markers visible in a photo (door plates, house numbers, street or building signs, lobby signs, lift permits); ignore timestamp/GPS/address overlays, labels, tape measures, tag and phone numbers.',
+		'- Duplicate reuse matters only across different jobs; the same file twice in one job is neutral.',
+		'- Flag mixed sites only when two attached photos show concrete markers of conflicting sites.',
+		'- A suspicion is an escalation: return suspicious true only for a concrete, articulable reason; a location mismatch is evidence to weigh, not an automatic verdict.',
+		`- If suspicious: a reason a controller can investigate (at most ${MAX_INFERENCE_REASON_CHARS} characters) and evidence_asset_name = the decisive photo's exact name. If not: evidence_asset_name "" and why (at most ${MAX_INFERENCE_REASON_CHARS} characters).`,
+		'',
+		inferenceContext(facts, representatives)
+	].join('\n');
 }
 /** One nominated pair, judged alone: exactly two images, so neither can be mistaken for another. */
 const PAIR_PROMPT = [
