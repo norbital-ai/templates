@@ -33,6 +33,6 @@ export default model('workers', {
 	},
 	search: { text: ['worker_name'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { workers: columns } },
+	update: { columns: { workers: columns } }
 });

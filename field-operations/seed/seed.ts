@@ -149,7 +149,6 @@ function photoRows(bank: Pick<BankReader, 'has' | 'json'>): Row[] {
 			created_at: photo.sentAt,
 			updated_at: photo.sentAt,
 			job_assignment_id: `019f6f10-3000-7000-8000-${pad12(photo.jobIndex + 1)}`,
-			variation_request_id: null,
 			photo: { asset: `assets/${photo.fileName}` },
 			source,
 			source_key: photoSourceKey(source, ''),
@@ -165,7 +164,7 @@ function photoRows(bank: Pick<BankReader, 'has' | 'json'>): Row[] {
 
 /**
  * The public base pack (no bank): this directory's invented `<model>.json` fixtures, read through the same
- * conversions. They name no member and carry no photos; an assignee no member on file holds is left unassigned.
+ * conversions. They name no member and carry no photos; an assignee no member on file holds is left unlinked.
  */
 const PUBLIC = import.meta.glob<unknown>('./*.json', { eager: true, import: 'default' });
 
@@ -212,6 +211,10 @@ const source: SeedSource = {
 				const assignee = job['assignee_user_id'];
 				return {
 					...job,
+					// a job is pending until completed; who holds it is the link, not a status
+					...(job['status'] === undefined
+						? {}
+						: { status: job['status'] === 'completed' ? 'completed' : 'pending' }),
 					assignee_user_id: Predicate.isString(assignee) && members.has(assignee) ? assignee : null,
 					...(job['scheduled_for'] === undefined
 						? {}

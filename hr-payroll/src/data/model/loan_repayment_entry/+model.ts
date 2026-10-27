@@ -152,7 +152,7 @@ export default model('loan_repayment_entry', {
 	locked: { payslip_id: { isNull: false } },
 	read: 'all',
 	update: {
-		columns: ['occurred_on', 'amount', 'payslip_id'],
+		columns: { loan_repayment_entry: ['occurred_on', 'amount', 'payslip_id'] },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

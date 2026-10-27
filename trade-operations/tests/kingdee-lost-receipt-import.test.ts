@@ -12,7 +12,9 @@ it.live(
 			const source = kingdeeFixture();
 			const t = yield* workspace({ source: source.request });
 			const own = yield* kingdeeSale(t, source);
-			const initial = yield* t.as(t.admin).query('orders', { id: own.order });
+			const initial = (yield* t
+				.as(t.admin)
+				.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0];
 			if (!initial?.source_order_key)
 				throw new Error('The order needs its immutable birth identity');
 			source.state.loseNextReceipt = true;
@@ -67,7 +69,8 @@ it.live(
 			);
 			yield* t.pull('orders');
 			const as = t.as(t.admin);
-			const current = yield* as.query('orders', { id: own.order });
+			const current = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!current) throw new Error('The existing local order must be adopted');
 			expect(current.source_order_key).toBe(initial.source_order_key);
 			expect(agreements(current)).toHaveLength(2);
@@ -76,7 +79,7 @@ it.live(
 				kingdee: { source_version: '001' },
 				snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
 			});
-			expect((yield* as.query('orders', { all: true })).rows.map((row) => row.id)).toEqual([
+			expect((yield* as.query({ orders: {} })).orders.rows.map((row) => row.id)).toEqual([
 				own.order
 			]);
 			const countWrites = () =>

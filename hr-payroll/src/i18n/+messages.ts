@@ -20,8 +20,6 @@ export default messages({
 	'app.hr_employee.my_loans_title': 'My loans',
 	'app.hr_employee.my_payslips_title': 'My payslips',
 	'app.hr_employee.my_profile': 'My profile',
-	'app.hr_employee.my_schedule_description':
-		'Your schedule, attendance, and leave on one calendar. Pending punches are held for your manager.',
 	'app.hr_employee.my_schedule_title': 'My schedule',
 	'app.hr_employee.no_active_company': 'No active company',
 	'app.hr_employee.no_active_employment': 'No active employment on your record',

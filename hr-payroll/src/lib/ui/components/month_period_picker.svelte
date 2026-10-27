@@ -44,7 +44,7 @@
 {#snippet periodButton(active: boolean, label: string, select: () => void, title?: string)}
 	<button
 		type="button"
-		class="h-9 max-sm:min-h-11 rounded-md border px-2 text-xs {active
+		class="h-8 max-sm:min-h-11 rounded-md border px-2 text-xs {active
 			? 'border-foreground bg-foreground text-background'
 			: 'border-border text-muted-foreground hover:bg-muted'}"
 		aria-pressed={active}
@@ -61,6 +61,7 @@
 	<TimeInput
 		of="date"
 		precision="month"
+		size="sm"
 		value={period_month(month) + '-01'}
 		onChange={(date: string | null) => {
 			if (date == null) return;

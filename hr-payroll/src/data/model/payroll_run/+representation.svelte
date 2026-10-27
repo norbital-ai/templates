@@ -2,7 +2,7 @@
 	/**
 	 * A payroll run opens on itself: the windows it was built against, what its build noticed, and the payslips it
 	 * produced, whose payment state moves here (hold, release, paid). Creating one goes through the payroll page's
-	 * run sheet; this view shows the collection's own form only when opened in create mode elsewhere.
+	 * run sheet; this view shows the model's own form only when opened in create mode elsewhere.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
@@ -17,33 +17,31 @@
 
 	let { view }: { view: RecordView<'payroll_run'> } = $props();
 	const run = $derived(view.mode !== 'create' ? view.record : null);
-	const company = $derived.by(() =>
-		run == null ? null : bolt.query('entity', { id: run.company_id, select: { name: true } })
-	);
-	const slips = $derived.by(() =>
+	const book = $derived.by(() =>
 		run == null
 			? null
-			: bolt.query('payslip', {
-					where: { payroll_run_id: { eq: run.id } },
-					select: { id: true, status: true, gross: true, net: true, employer_cost: true },
-					all: true
+			: bolt.query({
+					entity: { where: { id: { eq: run.company_id } }, fields: ['name'], limit: 1 },
+					payslip: {
+						where: { payroll_run_id: { eq: run.id } },
+						fields: ['status', 'gross', 'net', 'employer_cost']
+					}
 				})
 	);
+	type Slip = NonNullable<NonNullable<typeof book>['current']>['payslip']['rows'][number];
+	const slipRows = $derived<readonly Slip[]>(book?.current?.payslip.rows ?? []);
 	const money = versionMoney(() => (run == null ? null : { version: run.settings_id }));
-	const total = $derived(slips?.loading ? null : (slips?.current?.rows ?? []).length);
-	const count = (status: string) =>
-		(slips?.current?.rows ?? []).filter((row) => row.status === status).length;
+	const total = $derived(book?.loading ? null : slipRows.length);
+	const count = (status: string) => slipRows.filter((row) => row.status === status).length;
 	const paid = $derived(count('PAID'));
 	const held = $derived(count('ON_HOLD'));
-	const sum = (
-		pick: (row: NonNullable<NonNullable<typeof slips>['current']>['rows'][number]) => unknown
-	) => (slips?.current?.rows ?? []).reduce((acc, row) => acc + decodeNumber(pick(row) ?? 0), 0);
+	const sum = (pick: (row: Slip) => unknown) =>
+		slipRows.reduce((acc, row) => acc + decodeNumber(pick(row) ?? 0), 0);
 	/** What the build refused or noticed, one sentence per line. */
 	const warnings = $derived(run == null || !run.warnings ? [] : run.warnings.split('\n'));
 	/** Hold keeps reviewed slips out of payment; release returns them; paid is terminal, stamped now. */
 	// a slip already in the target state (a paid one) is skipped, not refused with the whole batch
-	const statusOf = (id: Id<'payslip'>) =>
-		(slips?.current?.rows ?? []).find((row) => row.id === id)?.status;
+	const statusOf = (id: Id<'payslip'>) => slipRows.find((row) => row.id === id)?.status;
 	// the menu item stays pending until the write settles; a refusal is its error
 	const move = (status: 'DRAFT' | 'ON_HOLD' | 'PAID') => (selected: Id<'payslip'>[]) => {
 		const targets = movable(status, selected, statusOf);
@@ -69,7 +67,7 @@
 			<Cluster align="start" justify="between" gap="sm">
 				<Stack gap="none" class="min-w-0">
 					<h2 class="truncate text-heading">
-						{company?.current?.name ?? bolt.t('component.company')}
+						{book?.current?.entity.rows[0]?.name ?? bolt.t('component.company')}
 					</h2>
 					<p class="text-sm text-muted-foreground">
 						{bolt.t('component.period_line', { period: run.period, count: total ?? 0 })}

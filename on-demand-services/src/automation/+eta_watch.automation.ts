@@ -16,20 +16,21 @@ export default automation('eta_watch', {
 	run: function* (_, ctx) {
 		const now = Date.parse(ctx.now);
 		const settings = yield* settingsOf(ctx);
-		const { rows } = yield* ctx.query('visits', {
-			where: {
-				status: { eq: 'scheduled' },
-				helper: { isNull: false },
-				slot: {
-					overlaps: {
-						start: ctx.now,
-						end: Instant(new Date(now + settings.eta_check_lead_minutes * MINUTE).toISOString())
+		const { rows } = (yield* ctx.query({
+			visits: {
+				where: {
+					status: { eq: 'scheduled' },
+					helper: { isNull: false },
+					slot: {
+						overlaps: {
+							start: ctx.now,
+							end: Instant(new Date(now + settings.eta_check_lead_minutes * MINUTE).toISOString())
+						}
 					}
-				}
-			},
-			select: { slot: true },
-			all: true
-		});
+				},
+				fields: ['slot']
+			}
+		})).visits;
 		yield* Effect.forEach(
 			rows.filter((v) => Date.parse(v.slot.start) >= now),
 			(v) => ctx.schedule('eta_check', { visit: v.id }, { key: `eta-${v.id}` }),

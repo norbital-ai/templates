@@ -10,4 +10,4 @@ it does not edit those definitions. Connected services use Settings → Integrat
 pairing/status controls. Credentials remain sealed; available providers determine the setup flow.
 
 A submitted approval proposal is awaiting a decision, not a completed business write. Record
-sheets retain the surrounding collection context; their tabs and accordion sections disclose details.
+sheets retain the surrounding model context; their tabs and accordion sections disclose details.

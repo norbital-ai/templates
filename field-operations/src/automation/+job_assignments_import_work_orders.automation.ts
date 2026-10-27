@@ -36,8 +36,8 @@ const WORK_ORDER_ROW = {
 		title: { kind: 'text' },
 		nature: { kind: 'text', optional: true },
 		description: { kind: 'text', optional: true },
-		/** The contractor's member id; the ref refuses an id that is no member. */
-		assignee_user_id: { kind: 'id', of: 'sys_user', optional: true },
+		/** The contractor's email or phone number; the job links the member it names, else none. */
+		assignee_contact: { kind: 'text', optional: true },
 		/** The dispatch system's own reference, unique across assignments. */
 		external_ref: { kind: 'text', optional: true }
 	}
@@ -68,29 +68,14 @@ export default automation('job_assignments_import_work_orders', {
 		}
 		const keys = [...new Set(rows.map((row) => siteKey(addressOf(row), unitOf(row))))];
 		const codes = [...new Set(rows.map((row) => row.site?.trim() ?? ''))];
-		const { sites, work, filedRefs } = yield* ctx.query({
-			sites: {
-				from: 'sites',
-				where: { or: [{ site_key: { in: keys } }, { site_code: { in: codes } }] },
-				select: { site_code: true, site_key: true },
-				all: true
-			},
-			work: {
-				from: 'job_assignments',
-				where: { site_id: { in: { member: 'sites', field: 'id' } } },
-				select: { site_id: true, scheduled_for: true, title: true },
-				all: true
-			},
-			...(refs.size === 0
-				? {}
-				: {
-						filedRefs: {
-							from: 'job_assignments',
-							where: { external_ref: { in: [...refs] } },
-							select: { external_ref: true },
-							all: true
-						}
-					})
+		// the sites the sheet names, the work already filed on them, and any job already holding a sheet reference
+		const MATCHED = { or: [{ site_key: { in: keys } }, { site_code: { in: codes } }] } as const;
+		const { sites, job_assignments: work } = yield* ctx.query({
+			sites: { where: MATCHED, fields: ['site_code', 'site_key'] },
+			job_assignments: {
+				where: { or: [{ site_id: { is: MATCHED } }, { external_ref: { in: [...refs] } }] },
+				fields: ['site_id', 'scheduled_for', 'title', 'external_ref']
+			}
 		});
 		const byCode = new Map(
 			sites.rows.flatMap((s) => (s.site_code == null ? [] : [[s.site_code, s.id] as const]))
@@ -99,19 +84,17 @@ export default automation('job_assignments_import_work_orders', {
 		const siteOf = (row: Row) =>
 			byCode.get(row.site?.trim() ?? '') ?? byKey.get(siteKey(addressOf(row), unitOf(row)));
 		const filed = new Set([
-			...(filedRefs?.rows ?? []).flatMap((job) =>
-				job.external_ref == null ? [] : [job.external_ref]
-			),
+			...work.rows.flatMap((job) => (job.external_ref == null ? [] : [job.external_ref])),
 			...work.rows.map((job) => sameWork(String(job.site_id), String(job.scheduled_for), job.title))
 		]);
 		const job = (row: Row) => {
-			const assignee = row.assignee_user_id;
+			const contact = row.assignee_contact?.trim() ?? '';
 			return {
 				title: row.title?.trim() ?? '',
 				nature: (row.nature?.trim() ?? '') || null,
 				scheduled_for: row.scheduled_for,
 				description: row.description?.trim() ?? '',
-				...(assignee == null ? {} : { assignee_user_id: assignee }),
+				...(contact === '' ? {} : { assignee_contact: contact }),
 				...((row.external_ref?.trim() ?? '') === ''
 					? {}
 					: { external_ref: row.external_ref?.trim() ?? '' })
@@ -178,7 +161,7 @@ export default automation('job_assignments_import_work_orders', {
 			address: site.address,
 			unit_number: site.unit_number,
 			location: site.location,
-			job_assignments: { create: site.jobs }
+			job_assignments: site.jobs
 		}));
 		// Fresh sites carry their own jobs; the other jobs name existing sites. Both settle together.
 		if (newSites.length > 0 && onSites.length > 0)

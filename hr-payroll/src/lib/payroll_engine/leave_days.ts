@@ -11,6 +11,7 @@ import { Effect, Schema } from 'effect';
 import { chargeableDays, dayKey } from './leave.js';
 import { termInForceOn, termsFromFacts } from './contract_terms.js';
 import { type Read, type ReadError } from './foundation.js';
+import { idsOf } from './payslip/context.js';
 import { plannedShift, plannedShiftId, type PlannedShift } from './shift_pattern.js';
 const isString = Schema.is(Schema.String);
 type RequestDays = {
@@ -27,54 +28,57 @@ export type RequestDaysInput = {
 	readonly half_day_start?: boolean | null;
 	readonly half_day_end?: boolean | null;
 };
-const requestDayMembers = (input: RequestDaysInput, from: string, to: string) =>
-	({
-		employment: {
-			from: 'employment_contract',
+/**
+ * What one request counts over, as two reads: the employment, the class and the roster days; then the company's shifts,
+ * patterns and published holidays.
+ */
+const readRequestDays = Effect.fnUntraced(function* (
+	read: Read,
+	input: RequestDaysInput,
+	from: string,
+	to: string
+) {
+	const one = yield* read({
+		employment_contract: {
 			where: { id: { eq: input.employment_id } },
-			select: { company_id: true, facts: true },
-			all: true
-		},
-		classes: {
-			from: 'leave_catalog',
-			where: { id: { eq: input.catalog_id } },
-			select: { code: true, unit: true, unplanned_days: true },
+			fields: ['company_id', 'facts'],
 			limit: 1
 		},
-		roster: {
-			from: 'roster_entry',
+		leave_catalog: {
+			where: { id: { eq: input.catalog_id } },
+			fields: ['code', 'unit', 'unplanned_days'],
+			limit: 1
+		},
+		roster_entry: {
 			where: {
-				employment_id: { in: { member: 'employment', field: 'id' } },
+				employment_id: { eq: input.employment_id },
 				work_date: { gte: PlainDate(from), lte: PlainDate(to) }
 			},
-			select: { work_date: true, shift_definition_id: true },
-			all: true
-		},
-		definitions: {
-			from: 'shift_definition',
-			where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
-			select: { code: true, variant: true },
-			all: true
-		},
-		patterns: {
-			from: 'shift_pattern',
-			where: { company_id: { in: { member: 'employment', field: 'company_id' } } },
-			select: { pattern: true, effective_range: true },
-			all: true
-		},
-		holidays: {
-			from: 'holiday',
+			fields: ['work_date', 'shift_definition_id']
+		}
+	});
+	const company_id = { in: idsOf(one.employment_contract.rows.map((row) => row.company_id)) };
+	const two = yield* read({
+		shift_definition: { where: { company_id }, fields: ['code', 'variant'] },
+		shift_pattern: { where: { company_id }, fields: ['pattern', 'effective_range'] },
+		holiday: {
 			where: {
-				company_id: { in: { member: 'employment', field: 'company_id' } },
+				company_id,
 				date: { gte: PlainDate(from), lte: PlainDate(to) },
 				published_at: { isNull: false }
 			},
-			select: { date: true },
-			all: true
+			fields: ['date']
 		}
-	}) as const;
-const readRequestDays = (read: Read, ...args: Parameters<typeof requestDayMembers>) =>
-	read(requestDayMembers(...args));
+	});
+	return {
+		employment: one.employment_contract,
+		classes: one.leave_catalog,
+		roster: one.roster_entry,
+		definitions: two.shift_definition,
+		patterns: two.shift_pattern,
+		holidays: two.holiday
+	};
+});
 export type RequestDaysRead = Effect.Success<ReturnType<typeof readRequestDays>>;
 
 export function requestDays(

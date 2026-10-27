@@ -36,7 +36,7 @@
 	const reads = me === null ? null : bolt.query(bookReads);
 	const answer = $derived(reads?.current ?? data);
 	// a returning customer starts with their details; typing replaces them
-	const known = $derived(answer.mine?.rows[0]);
+	const known = $derived(answer.customers?.rows[0]);
 	let service = $state<Id<'services'> | null>(null);
 	let name = $derived(known?.name ?? '');
 	let address = $derived(known?.address ?? '');
@@ -52,11 +52,14 @@
 	let busy = $state(false);
 	let error = $state<string | null>(null);
 	const quote = $derived(
-		availability === null ? null : bolt.query('availability_requests', { id: availability })
+		availability === null
+			? null
+			: bolt.query({ availability_requests: { where: { id: { eq: availability } }, limit: 1 } })
 	);
+	const quoted = $derived(quote?.current?.availability_requests.rows[0]);
 	const days = $derived.by(() => {
 		const by = new Map<string, string[]>();
-		for (const start of quote?.current?.starts ?? []) {
+		for (const start of quoted?.starts ?? []) {
 			const day = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date(start));
 			by.set(day, [...(by.get(day) ?? []), start]);
 		}
@@ -65,11 +68,15 @@
 	const settled = $derived(
 		request === null
 			? null
-			: bolt.query('booking_requests', {
-					id: request,
-					select: { status: true, number: true, start: true, booking: true }
+			: bolt.query({
+					booking_requests: {
+						where: { id: { eq: request } },
+						fields: ['status', 'number', 'start', 'booking'],
+						limit: 1
+					}
 				})
 	);
+	const settledRow = $derived(settled?.current?.booking_requests.rows[0]);
 	const chosen = $derived(answer.services?.rows.find((s) => s.id === service));
 	const mismatch = $derived(
 		preference === 'preferred' &&
@@ -79,14 +86,17 @@
 	);
 	/** The booking's first visit, once it is booked: who comes, and exactly when. */
 	const first = $derived.by(() => {
-		const booking = settled?.current?.booking;
+		const booking = settledRow?.booking;
 		return booking == null
 			? null
-			: bolt.query('visits', {
-					where: { booking: { eq: booking } },
-					select: { slot: true, helper: { select: { name: true } } },
-					orderBy: { number: 'asc' },
-					limit: 1
+			: bolt.query({
+					visits: {
+						where: { booking: { eq: booking } },
+						fields: ['slot', 'helper'],
+						orderBy: { number: 'asc' },
+						limit: 1
+					},
+					'visits.helper': { fields: ['name'] }
 				});
 	});
 	const visitSpan = (
@@ -104,9 +114,9 @@
 	};
 	/** What the confirmation lists: the visit, where, who comes (once matched) and the reference. */
 	const summary = $derived.by(() => {
-		const r = settled?.current;
+		const r = settledRow;
 		if (r == null) return [];
-		const visit = first?.current?.rows[0];
+		const visit = first?.current?.visits.rows[0];
 		return [
 			{ icon: 'lucide:sparkles', label: t('app.portal.row_service'), value: chosen?.name ?? '' },
 			{
@@ -134,7 +144,7 @@
 	});
 	/** The visit as a calendar file the customer's phone opens in its own calendar. */
 	function addToCalendar(reference: string) {
-		const slot = first?.current?.rows[0]?.slot;
+		const slot = first?.current?.visits.rows[0]?.slot;
 		if (slot == null) return;
 		const stamp = (i: string) => i.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 		const end =
@@ -193,20 +203,22 @@
 		availability = null;
 		fork(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('availability_requests.create', {
-					phone,
-					service: selectedService,
-					address: address.trim(),
-					...(location === null ? {} : { location }),
-					preference,
-					repeat,
-					...(preference === 'preferred' && helper !== null ? { helper } : {})
-				});
+				const outcome = yield* bolt.act('availability_requests.create', [
+					{
+						phone,
+						service: selectedService,
+						address: address.trim(),
+						...(location === null ? {} : { location }),
+						preference,
+						repeat,
+						...(preference === 'preferred' && helper !== null ? { helper } : {})
+					}
+				]);
 				// past the person-wait the request runs on: its run reports the outcome
 				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
 				const record =
 					outcome.kind === 'committed'
-						? outcome.records.find((record) => record.collection === 'availability_requests')
+						? outcome.records.find((record) => record.model === 'availability_requests')
 						: undefined;
 				if (record === undefined) {
 					error = t('app.portal.failed');
@@ -236,28 +248,30 @@
 			selectedService === null ||
 			selectedStart === null ||
 			selectedAvailability === null ||
-			quote?.current?.status !== 'ready'
+			quoted?.status !== 'ready'
 		)
 			return;
 		busy = true;
 		error = null;
 		fork(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('booking_requests.create', {
-					availability: selectedAvailability,
-					name: name.trim(),
-					phone,
-					address: address.trim(),
-					service: selectedService,
-					start: Instant(selectedStart),
-					repeat,
-					...(notes.trim() === '' ? {} : { notes: notes.trim() })
-				});
+				const outcome = yield* bolt.act('booking_requests.create', [
+					{
+						availability: selectedAvailability,
+						name: name.trim(),
+						phone,
+						address: address.trim(),
+						service: selectedService,
+						start: Instant(selectedStart),
+						repeat,
+						...(notes.trim() === '' ? {} : { notes: notes.trim() })
+					}
+				]);
 				// past the person-wait the request runs on: its run reports the outcome
 				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
 				const record =
 					outcome.kind === 'committed'
-						? outcome.records.find((record) => record.collection === 'booking_requests')
+						? outcome.records.find((record) => record.model === 'booking_requests')
 						: undefined;
 				if (record === undefined) {
 					error = t('app.portal.failed');
@@ -411,10 +425,10 @@
 			{:else if step === 'time'}
 				<Stack gap="lg">
 					<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
-					{#if quote?.current == null || quote?.current.status === 'pending'}
+					{#if quoted == null || quoted.status === 'pending'}
 						<Spinner class="h-4 w-4" />
-					{:else if quote?.current.status === 'failed'}
-						<p role="alert" class="text-sm text-destructive">{quote?.current.problem}</p>
+					{:else if quoted.status === 'failed'}
+						<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
 					{:else if days.length === 0}
 						<p class="text-sm">{t('app.portal.no_times')}</p>
 					{:else}
@@ -427,7 +441,7 @@
 							{t}
 						/>
 					{/if}
-					{#if quote?.current?.estimated}<p class="text-caption">
+					{#if quoted?.estimated}<p class="text-caption">
 							{t('app.booking.travel_estimated')}
 						</p>{/if}
 					{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
@@ -435,7 +449,7 @@
 						<Button
 							size="lg"
 							class="w-full"
-							disabled={start === null || busy || quote?.current?.status !== 'ready'}
+							disabled={start === null || busy || quoted?.status !== 'ready'}
 							onclick={confirm}
 						>
 							{#if busy}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
@@ -452,7 +466,7 @@
 					</Stack>
 				</Stack>
 			{:else}
-				{@const r = settled?.current}
+				{@const r = settledRow}
 				{#if r == null || r.status === 'received'}
 					<Stack gap="md" align="center" class="py-12 text-center">
 						<Spinner class="h-6 w-6" />

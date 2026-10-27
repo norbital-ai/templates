@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { Browser, Reads, WebRead, type AiResponse, type HostTool } from '@norbital-ai/bolt/engine';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
-import type { DeclaredRow, Page } from '@norbital-ai/bolt';
+import { dynamicRead } from '@norbital-ai/bolt/protocol';
 import { SNAPSHOT_MODELS } from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import { RESEARCH_AGENT_NAMES, RULE_FAMILIES } from '../src/lib/payroll_engine/research_agents.ts';
 import { workspace } from './kit.ts';
@@ -273,20 +273,24 @@ const research = (
 		const snapshotStarts: number[] = [];
 		const spy = vi.spyOn(reads, 'run').mockImplementation((batch, reader, bindings) => {
 			if (reader.as === 'caller')
-				for (const member of batch) {
+				for (const member of batch.flatMap((one) =>
+					// a read request crosses as its roots' reads
+					one.kind === 'request'
+						? one.roots.flatMap((root) => ('read' in root ? [root.read] : []))
+						: [one]
+				)) {
 					if (member.kind !== 'read') continue;
-					const selected = member.select.fields ?? [];
-					if (member.collection === 'jurisdiction_settings' && selected.includes('payroll')) {
+					// no `fields` reads every exposed field
+					const has = (field: string) =>
+						member.select.fields === null || member.select.fields.includes(field);
+					if (member.model === 'jurisdiction_settings' && has('payroll')) {
 						snapshotStarts.push(t.fakes.ai?.requests.length ?? 0);
-						assert.ok(selected.includes('suspension_kinds'));
+						assert.ok(has('suspension_kinds'));
 					}
-					const spec = Object.entries(SNAPSHOT_MODELS).find(
-						([name]) => name === member.collection
-					)?.[1];
+					const spec = Object.entries(SNAPSHOT_MODELS).find(([name]) => name === member.model)?.[1];
 					if (spec === undefined) continue;
-					observed.add(member.collection);
-					for (const key of Object.keys(spec.fields))
-						assert.ok(selected.includes(key), `${member.collection}.${key}`);
+					observed.add(member.model);
+					for (const key of Object.keys(spec.fields)) assert.ok(has(key), `${member.model}.${key}`);
 				}
 			return run(batch, reader, bindings);
 		});
@@ -312,18 +316,15 @@ const research = (
 		);
 		assert.ok(completed);
 		assert.equal(completed.state, 'succeeded', JSON.stringify(completed.error));
-		const { rows: drafts } = yield* t.as(t.admin).query('jurisdiction_settings', {
-			where: { cloned_from_id: { eq: VERSION } },
-			select: {
-				id: true,
-				sealed_at: true,
-				cloned_from_id: true,
-				suspension_kinds: true,
-				sources: true,
-				change_summary: true
-			},
-			all: true
-		});
+		const { rows: drafts } = yield* t
+			.as(t.admin)
+			.query({
+				jurisdiction_settings: {
+					where: { cloned_from_id: { eq: VERSION } },
+					fields: ['sealed_at', 'cloned_from_id', 'suspension_kinds', 'sources', 'change_summary']
+				}
+			})
+			.pipe(Effect.map((answer) => answer.jurisdiction_settings));
 		return {
 			...seeded,
 			t,
@@ -392,7 +393,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			assert.ok(content.includes(source.url));
 			assert.ok(!content.includes('"agent":"catalog"'));
 			const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
-				content.slice(content.indexOf(marker) + marker.length).split('\n', 1)[0]
+				content.slice(content.indexOf(marker) + marker.length).split('\n```', 1)[0]
 			);
 			// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
 			assert.deepEqual(Object.keys(index.sections), ['rule_set']);
@@ -420,12 +421,12 @@ describe('statutory drift research transport (mock inference, not live research)
 			assert.equal('suspension_kind' in created, false);
 			for (const name of tables) {
 				assert.ok(result.observed.has(name), `The native body read ${name}.`);
-				const children: Page<DeclaredRow<typeof name>> = yield* t.as(t.admin).query(name, {
-					mode: 'declared',
-					where: { settings_id: { eq: created.id } },
-					select: ['code'],
-					all: true
+				// a runtime-named root: the JSON request form, answered as plain JSON rows
+				const request = dynamicRead({
+					[name]: { where: { settings_id: { eq: created.id } }, fields: ['code'] }
 				});
+				const children = (yield* t.as(t.admin).query(request))[name];
+				assert.ok(children, `The read answers ${name}.`);
 				assert.equal(children.rows.length, rows[name].length + (name === 'rule_set' ? 1 : 0));
 				for (const row of rows[name])
 					assert.ok(children.rows.some((child) => child['code'] === row['code']));

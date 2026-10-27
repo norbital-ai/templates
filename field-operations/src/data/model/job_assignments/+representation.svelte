@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * A job: its scope and progress (the dispatch is naming the contractor), its variations, its conversation, and for
-	 * a controller its review evidence and findings. Creating one can first add the site by its address.
+	 * A job: its scope and progress (the dispatch is the contractor's email or phone, linking that member), its
+	 * conversation, and for a controller its review evidence and findings. Creating one can first add the site by its address.
 	 */
 	import { bolt } from '$bolt';
 	import {
@@ -12,7 +12,6 @@
 		Form,
 		RecordShell,
 		Section,
-		Table,
 		useKinds
 	} from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -34,13 +33,15 @@
 	const open = $derived(
 		id == null || !reviewer
 			? null
-			: bolt.query('suspicious_activity_logs', {
-					where: { job_assignment_id: { eq: id }, resolved_at: { isNull: true } },
-					select: { reason: true },
-					limit: 1
+			: bolt.query({
+					suspicious_activity_logs: {
+						where: { job_assignment_id: { eq: id }, resolved_at: { isNull: true } },
+						fields: ['reason'],
+						limit: 1
+					}
 				})
 	);
-	const finding = $derived(open?.current?.rows[0]);
+	const finding = $derived(open?.current?.suspicious_activity_logs.rows[0]);
 	let addingSite = $state(false);
 	let opened = $state<{
 		name: string;
@@ -48,17 +49,6 @@
 	} | null>(null);
 	const show = (photo: { name: string; url: string }) => (opened = photo);
 </script>
-
-{#snippet variationList()}
-	{#if id}<Table
-			of="variation_requests"
-			key="job-variations"
-			where={{ job_assignment_id: { eq: id } }}
-			orderBy={{ requested_at: 'desc' }}
-			columns={['title', 'description', 'amount', 'requested_at']}
-			toolbar={{ new: false, description: t('component.variations_description') }}
-		/>{/if}
-{/snippet}
 
 {#snippet conversation()}{#if id}<Conversation job={id} onOpen={show} />{/if}{/snippet}
 {#snippet evidence()}{#if id}<SuspicionPanel job={id} onOpen={show} />{/if}{/snippet}
@@ -110,7 +100,7 @@
 							<Field name="title" label={t('component.job_title')} />
 							<Field name="nature" label={t('component.job_nature')} />
 							<Field name="scheduled_for" label={t('component.scheduled_date')} />
-							<Field name="assignee_user_id" label={t('component.contractor')} />
+							<Field name="assignee_contact" label={t('component.contractor_contact')} />
 							<Column span="all"
 								><Field name="description" label={t('component.job_description_scope')} /></Column
 							>
@@ -129,7 +119,6 @@
 			? { icon: 'lucide:shield-alert', badge: t('component.suspicion_open'), hint: finding.reason }
 			: {}}
 		tabs={[
-			{ name: 'variations', title: t('component.variations'), body: variationList },
 			...(talker
 				? [{ name: 'conversation', title: t('component.conversation'), body: conversation }]
 				: []),
@@ -154,6 +143,7 @@
 				<Section name="progress" title={t('section.progress')}>
 					<Grid minimum="card">
 						<Field name="status" />
+						<Field name="assignee_contact" label={t('component.contractor_contact')} />
 						<Field name="assignee_user_id" label={t('component.contractor')} />
 						<Field name="dispatched_at" label={t('component.dispatched_at')} />
 						<Field name="completed_at" label={t('component.completed_at')} />

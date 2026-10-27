@@ -11,6 +11,7 @@ import {
 	writtenId,
 	direct
 } from './synced-kit.js';
+import { agingOf, ledgerOf } from './reads.js';
 test.live(
 	'receipt replay counts once, refunds reduce payment, deposits stay separate and withdrawn facts are retained',
 	() =>
@@ -27,22 +28,20 @@ test.live(
 			});
 			yield* sourcePayment(t, parent, invoice.id, '-2');
 			yield* sourcePayment(t, parent, null, '3');
-			expect(yield* as.query('orders.ar_aging', { as_of: PlainDate('2026-10-10') })).toMatchObject([
+			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
 				{ invoice: invoice.id, balance: decimalText('13.80') }
 			]);
-			expect(yield* as.query('source_payments.ledger', { unapplied: true })).toMatchObject([
+			expect(yield* ledgerOf(as, { unapplied: true })).toMatchObject([
 				{ invoice: null, amount: decimalText('3') }
 			]);
 			writtenId(
 				'source_payments',
 				yield* sync(t, 'source_payments', [{ ...paid.input, active: false }], 'upsert')
 			);
-			expect(yield* as.query('orders.ar_aging', { as_of: PlainDate('2026-10-10') })).toMatchObject([
+			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
 				{ balance: decimalText('23.80') }
 			]);
-			expect(
-				yield* as.query('source_payments.ledger', { order: own.order, include_withdrawn: true })
-			).toEqual(
+			expect(yield* ledgerOf(as, { order: own.order, include_withdrawn: true })).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({ source_payment: paid.id, state: 'withdrawn' })
 				])
@@ -66,7 +65,7 @@ test.live(
 			const paid = yield* sourcePayment(t, parent, null, '3');
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'source_payments',
+					model: 'source_payments',
 					verb: 'create',
 					input: [paid.input]
 				})
@@ -83,7 +82,10 @@ test.live(
 					'upsert'
 				)
 			).not.toMatchObject({ kind: 'committed' });
-			expect(yield* as.query('source_payments', { id: paid.id })).toMatchObject({
+			expect(
+				(yield* as.query({ source_payments: { where: { id: { eq: paid.id } }, limit: 1 } }))
+					.source_payments.rows[0]
+			).toMatchObject({
 				invoice: null,
 				amount: decimalText('3')
 			});
@@ -116,9 +118,7 @@ test.live(
 				yield* sync(t, 'source_payments', [{ ...paid.input, active: false }], 'upsert')
 			);
 			expect(
-				yield* t
-					.as(t.admin)
-					.query('source_payments.ledger', { order: own.order, include_withdrawn: true })
+				yield* ledgerOf(t.as(t.admin), { order: own.order, include_withdrawn: true })
 			).toMatchObject([{ invoice: invoice.id, state: 'withdrawn' }]);
 		})
 );

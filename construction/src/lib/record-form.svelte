@@ -1,22 +1,22 @@
 <script lang="ts">
 	/**
-	 * A record view that is one form: the record frame, and the collection's form laid out by the page's `Section`s. A
+	 * A record view that is one form: the record frame, and the model's form laid out by the page's `Section`s. A
 	 * create opens the new record, as the generated view does.
 	 */
 	import type { Snippet } from 'svelte';
-	import type { CollectionName } from '@norbital-ai/bolt';
+	import type { ModelName } from '@norbital-ai/bolt';
 	import { Form, RecordShell, openRecord, type RecordView } from '@norbital-ai/ui';
 	let {
 		view,
 		subtitle,
 		children
 	}: {
-		view: RecordView<CollectionName>;
+		view: RecordView<ModelName>;
 		/** The fields under the heading, each shown by its kind. */
 		subtitle?: readonly string[];
 		children: Snippet;
 	} = $props();
-	const of = $derived(view.collection);
+	const of = $derived(view.model);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 

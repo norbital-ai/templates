@@ -4,8 +4,8 @@
 	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Field, Form, Section } from '@norbital-ai/ui';
 	const t = bolt.t;
-	const settings = $derived(bolt.query('dispatch_settings', { limit: 1 }));
-	const row = $derived(settings.current?.rows[0]);
+	const settings = $derived(bolt.query({ dispatch_settings: { limit: 1 } }));
+	const row = $derived(settings.current?.dispatch_settings.rows[0]);
 	let saved = $state<string | null>(null);
 </script>
 

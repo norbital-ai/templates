@@ -1,6 +1,15 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import { bolt, run } from '$bolt';
 	import { marginSeries } from '../../../lib/financial-series.js';
+	import {
+		agingRead,
+		arAging,
+		ledgerRead,
+		paymentLedger,
+		salesDetail,
+		salesRead
+	} from '../../../lib/reports.js';
+	import { boardRead, commissionBoard, monthOf } from '../../../lib/monthly-commission.js';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate, addDays, addMonths } from '@norbital-ai/std/date';
 	import { localOf } from '@norbital-ai/std/zone';
@@ -21,8 +30,7 @@
 		type Kind,
 		type ShowProps
 	} from '@norbital-ai/ui';
-	import { Schema } from 'effect';
-	import type { QueryOutput } from '@norbital-ai/bolt';
+	import { Effect, Schema } from 'effect';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -36,38 +44,46 @@
 	).date;
 	const currentMonth = today.slice(0, 7) + '-01';
 	let commissionPeriod = $state<string | null>(currentMonth);
-	type MonthlyCommission = QueryOutput<'commission_statements.board'>[number];
+	type MonthlyCommission = Effect.Success<ReturnType<typeof commissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
 	const monthEnd = (value: string) =>
 		addDays(addMonths(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
 	let asOf = $state<string | null>(today);
 	let salesFrom = $state<string | null>(currentMonth);
 	let salesTo = $state<string | null>(currentMonth);
-	const queries = $derived(kinds.catalog?.orders?.queries);
+	// each report shows to whoever reads its root: sales lines, invoices with payments, statements
+	const salesShown = $derived(Boolean(kinds.catalog?.source_sales_lines));
+	const agingShown = $derived(
+		Boolean(kinds.catalog?.transactions && kinds.catalog?.source_payments)
+	);
+	const boardShown = $derived(Boolean(kinds.catalog?.commission_statements));
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
 	// a cleared date means today, which rolls over at midnight
 	const day = bolt.clock('day');
 	const agingDay = $derived(asOf ? PlainDate(asOf) : day.today);
+	const futureAging = $derived(agingDay > day.today);
+	const sales = $derived(salesShown ? bolt.query(salesRead) : null);
 	const detailRows = $derived(
-		queries?.sales_detail && !invalidSalesRange
-			? bolt.query('orders.sales_detail', {
-					...(salesFrom ? { from: PlainDate(salesFrom) } : {}),
-					...(salesTo ? { to: PlainDate(monthEnd(salesTo)) } : {})
+		sales?.current && !invalidSalesRange
+			? salesDetail(sales.current, {
+					from: salesFrom ? PlainDate(salesFrom) : null,
+					to: salesTo ? PlainDate(monthEnd(salesTo)) : null
 				})
 			: null
 	);
-	const agingRows = $derived(
-		queries?.ar_aging ? bolt.query('orders.ar_aging', { as_of: agingDay }) : null
+	const agingAnswer = $derived(agingShown && !futureAging ? bolt.query(agingRead(agingDay)) : null);
+	const agingRows = $derived(agingAnswer?.current ? arAging(agingAnswer.current, agingDay) : null);
+	const paymentAnswer = $derived(
+		agingShown && !futureAging ? bolt.query(ledgerRead({ as_of: agingDay })) : null
 	);
 	const paymentRows = $derived(
-		kinds.catalog?.source_payments?.queries?.ledger
-			? bolt.query('source_payments.ledger', { unapplied: true, as_of: agingDay })
-			: null
+		paymentAnswer?.current ? paymentLedger(paymentAnswer.current, { unapplied: true }) : null
 	);
+	const period = $derived(commissionPeriod ? monthOf(commissionPeriod) : null);
+	const boardAnswer = $derived(boardShown && period ? bolt.query(boardRead(period)) : null);
+	// the board hashes each calculation, so it resolves once the read has answered
 	const monthlyRows = $derived(
-		kinds.catalog?.commission_statements?.queries?.board && commissionPeriod
-			? bolt.query('commission_statements.board', { period: PlainDate(commissionPeriod) })
-			: null
+		boardAnswer?.current && period ? run(commissionBoard(boardAnswer.current, period)) : null
 	);
 </script>
 
@@ -124,10 +140,10 @@
 		kind={{ kind: 'date' }}
 		{value}
 	/>{/snippet}
-{#snippet agingOrder({ row }: { row: { order: string; order_number: string } })}<Button
-		variant="link"
-		onclick={() => openRecord('orders', row.order)}>{row.order_number}</Button
-	>{/snippet}
+{#snippet agingOrder({ row }: { row: { order: string | null; order_number: string } })}{#if row.order}<Button
+			variant="link"
+			onclick={() => openRecord('orders', row.order!)}>{row.order_number}</Button
+		>{:else}{row.order_number}{/if}{/snippet}
 {#snippet agingBill({
 	row
 }: {
@@ -135,15 +151,15 @@
 })}{#if row.invoice}<Button variant="link" onclick={() => openRecord('transactions', row.invoice!)}
 			>{row.invoice_number}</Button
 		>{:else}{row.invoice_number}{/if}{/snippet}
-{#snippet salesDetail()}<Stack gap="md">
+{#snippet salesTab()}<Stack gap="md">
 		{#if invalidSalesRange}<p role="alert">{bolt.t('errors.report_range')}</p>
-		{:else if detailRows?.current}
-			{@const rows = detailRows.current.map((row) => ({
+		{:else if detailRows}
+			{@const rows = detailRows.map((row) => ({
 				...row,
 				freight_treatment_label: bolt.t(`reports.freight.${row.freight_treatment}`),
 				kind_label: bolt.t(`reports.sales.kind.${row.kind}`)
 			}))}
-			{@const margins = marginSeries(detailRows.current)}
+			{@const margins = marginSeries(detailRows)}
 			{#each [...new Set(margins.map((r) => r.currency))] as currency}
 				<Chart
 					of={margins.filter((r) => r.currency === currency)}
@@ -190,13 +206,14 @@
 				toolbar={{ new: false, export: true, controls: salesRange }}
 			/>
 		{:else}<p role="status">
-				{detailRows?.error ? detailRows.error.message : bolt.t('component.reports_loading')}
+				{sales?.error ? sales.error.message : bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
 {#snippet aging()}<Stack gap="md">
-		{#if agingRows?.current && paymentRows?.current}
+		{#if futureAging}<p role="alert">{bolt.t('errors.report_future')}</p>
+		{:else if agingRows && paymentRows}
 			{@const rows = [
-				...agingRows.current.map((row) => ({
+				...agingRows.map((row) => ({
 					...row,
 					bucket_label: bolt.t(`reports.aging.${row.bucket}`),
 					not_due: row.bucket === 'not_due' ? row.balance : '0',
@@ -206,7 +223,7 @@
 					over_90: row.bucket === 'over_90' ? row.balance : '0',
 					no_due_date: row.bucket === 'no_due_date' ? row.balance : '0'
 				})),
-				...paymentRows.current.map((p) => ({
+				...paymentRows.map((p) => ({
 					order: p.order,
 					order_number: p.order_number,
 					invoice: null,
@@ -266,8 +283,8 @@
 				toolbar={{ new: false, export: true, controls: agingDate }}
 			/>
 		{:else}<p role="status">
-				{agingRows?.error?.message ??
-					paymentRows?.error?.message ??
+				{agingAnswer?.error?.message ??
+					paymentAnswer?.error?.message ??
 					bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
@@ -282,77 +299,81 @@
 		>{/if}
 {/snippet}
 {#snippet monthlyCommission()}<Stack gap="md">
-		{#if monthlyRows?.current}
-			{@const rows = monthlyRows.current.map((row) => ({
-				...row,
-				state_label: bolt.t(`reports.commission_ack.${row.state}`)
-			}))}
-			<Table
-				layout="grid"
-				of={rows}
-				key="monthly_commission"
-				columns={[
-					{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
-					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-					{ field: 'order_count', label: label(bolt, 'commission_statements', 'order_count') },
-					{
-						field: 'amount',
-						kind: moneyKind,
-						label: label(bolt, 'orders', 'amount'),
-						align: 'end' as const,
-						cell: money
-					},
-					{
-						field: 'latest_amount',
-						kind: moneyKind,
-						label: bolt.t('component.commission_previous'),
-						align: 'end' as const,
-						cell: money
-					},
-					{ field: 'unresolved_lines', label: bolt.t('component.commission_unresolved_items') },
+		{#if monthlyRows}{#await monthlyRows}<p role="status">{bolt.t('component.reports_loading')}</p>
+			{:then monthly}
+				{@const rows = monthly.map((row) => ({
+					...row,
+					state_label: bolt.t(`reports.commission_ack.${row.state}`)
+				}))}
+				<Table
+					layout="grid"
+					of={rows}
+					key="monthly_commission"
+					columns={[
+						{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
+						{ field: 'currency', label: label(bolt, 'orders', 'currency') },
+						{ field: 'order_count', label: label(bolt, 'commission_statements', 'order_count') },
+						{
+							field: 'amount',
+							kind: moneyKind,
+							label: label(bolt, 'orders', 'amount'),
+							align: 'end' as const,
+							cell: money
+						},
+						{
+							field: 'latest_amount',
+							kind: moneyKind,
+							label: bolt.t('component.commission_previous'),
+							align: 'end' as const,
+							cell: money
+						},
+						{ field: 'unresolved_lines', label: bolt.t('component.commission_unresolved_items') },
 
-					{ field: 'state_label', label: label(bolt, 'orders', 'status'), cell: enumCell },
-					{
-						field: 'owner',
-						label: bolt.t('component.monthly_commission_statement'),
-						cell: monthActions
-					}
-				]}
-				toolbar={{ new: false, export: true, controls: commissionMonth }}
-			/>
-			{#if monthSelection && rows.some((row) => row.calculation_hash === monthSelection?.calculation_hash && ['unacknowledged', 'changed'].includes(row.state))}
-				<Dialog.Root
-					open={monthSelection !== null}
-					onOpenChange={(open) => {
-						if (!open) monthSelection = null;
-					}}
-					><Dialog.Content
-						><Dialog.Title>{bolt.t('component.monthly_commission_statement')}</Dialog.Title>
-						<p>
-							{monthSelection.owner_name} · {monthSelection.period.slice(0, 7)} · <Show
-								kind={{ kind: 'money', currency: 'currency' }}
-								value={monthSelection.amount}
-								row={monthSelection}
+						{ field: 'state_label', label: label(bolt, 'orders', 'status'), cell: enumCell },
+						{
+							field: 'owner',
+							label: bolt.t('component.monthly_commission_statement'),
+							cell: monthActions
+						}
+					]}
+					toolbar={{ new: false, export: true, controls: commissionMonth }}
+				/>
+				{#if monthSelection && rows.some((row) => row.calculation_hash === monthSelection?.calculation_hash && ['unacknowledged', 'changed'].includes(row.state))}
+					<Dialog.Root
+						open={monthSelection !== null}
+						onOpenChange={(open) => {
+							if (!open) monthSelection = null;
+						}}
+						><Dialog.Content
+							><Dialog.Title>{bolt.t('component.monthly_commission_statement')}</Dialog.Title>
+							<p>
+								{monthSelection.owner_name} · {monthSelection.period.slice(0, 7)} · <Show
+									kind={{ kind: 'money', currency: 'currency' }}
+									value={monthSelection.amount}
+									row={monthSelection}
+								/>
+							</p>
+							<Form
+								of="commission_statements"
+								mode="create"
+								values={{
+									owner: monthSelection.owner,
+									period: monthSelection.period,
+									currency: monthSelection.currency,
+									calculation_hash: monthSelection.calculation_hash
+								}}
+								fields={[]}
+								submit={bolt.t('component.commission_acknowledge')}
+								onOutcome={() => (monthSelection = null)}
 							/>
-						</p>
-						<Form
-							of="commission_statements"
-							mode="create"
-							values={{
-								owner: monthSelection.owner,
-								period: monthSelection.period,
-								currency: monthSelection.currency,
-								calculation_hash: monthSelection.calculation_hash
-							}}
-							fields={[]}
-							submit={bolt.t('component.commission_acknowledge')}
-							onOutcome={() => (monthSelection = null)}
-						/>
-					</Dialog.Content></Dialog.Root
-				>
-			{/if}
+						</Dialog.Content></Dialog.Root
+					>
+				{/if}
+			{:catch failure}<p role="status">
+					{failure instanceof Error ? failure.message : String(failure)}
+				</p>{/await}
 		{:else}<p role="status">
-				{monthlyRows?.error ? monthlyRows.error.message : bolt.t('component.reports_loading')}
+				{boardAnswer?.error ? boardAnswer.error.message : bolt.t('component.reports_loading')}
 			</p>{/if}
 	</Stack>{/snippet}
 <AppShell
@@ -360,15 +381,15 @@
 	icon="lucide:chart-column"
 	title={bolt.t('component.reports')}
 	variant="full"
-	>{#if queries?.sales_detail || queries?.ar_aging || kinds.catalog?.commission_statements?.queries?.board}<Tabs
+	>{#if salesShown || agingShown || boardShown}<Tabs
 			tabs={[
-				...(queries?.sales_detail
-					? [{ name: 'sales', title: bolt.t('component.sales_analysis'), body: salesDetail }]
+				...(salesShown
+					? [{ name: 'sales', title: bolt.t('component.sales_analysis'), body: salesTab }]
 					: []),
-				...(queries?.ar_aging
+				...(agingShown
 					? [{ name: 'aging', title: bolt.t('component.ar_aging'), body: aging }]
 					: []),
-				...(kinds.catalog?.commission_statements?.queries?.board
+				...(boardShown
 					? [{ name: 'commission', title: bolt.t('component.commission'), body: monthlyCommission }]
 					: [])
 			]}

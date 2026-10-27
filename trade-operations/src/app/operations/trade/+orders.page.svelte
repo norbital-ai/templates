@@ -16,6 +16,12 @@
 	import { Effect } from 'effect';
 	import { isMasked, type Id } from '@norbital-ai/bolt';
 	import { currentContractVersion } from '../../../lib/agreements.js';
+	import {
+		agreementRead,
+		documentRead,
+		documentVersions,
+		orderDocument
+	} from '../../../lib/order-document.js';
 	const kinds = useKinds();
 	const translate = useBolt().t;
 	let previewOpen = $state(false);
@@ -28,16 +34,19 @@
 	let feedback = $state('');
 	let versions = $state<ReturnType<typeof contractVersions> | null>(null);
 	function contractVersions(order: Id<'orders'>) {
-		return run(bolt.query('orders.document_versions', { order }));
+		return run(
+			bolt
+				.query(agreementRead(order))
+				.pipe(Effect.flatMap((answer) => Effect.fromResult(documentVersions(answer))))
+		);
 	}
 	let preview = $state<ReturnType<typeof previewOrder> | null>(null);
 	function previewOrder(order: Id<'orders'>, version = selectedVersion) {
+		const locale = bolt.locale.startsWith('zh') ? 'zh' : 'en';
 		return run(
-			bolt.query('orders.document_preview', {
-				order,
-				...(version == null ? {} : { version }),
-				locale: bolt.locale.startsWith('zh') ? 'zh' : 'en'
-			})
+			bolt
+				.query(documentRead(order, locale))
+				.pipe(Effect.flatMap((answer) => orderDocument(answer, { version, locale })))
 		);
 	}
 	function openDocument(order: Id<'orders'>, download: boolean) {
@@ -143,7 +152,7 @@
 		toolbar={{
 			controls: filingFilter,
 			actions: [
-				...(kinds.catalog?.orders?.queries?.document_preview
+				...(kinds.catalog?.document_templates
 					? [
 							{
 								icon: 'lucide:eye',
@@ -159,7 +168,7 @@
 							}
 						]
 					: []),
-				...(kinds.catalog?.orders?.queries?.document_preview
+				...(kinds.catalog?.document_templates
 					? [
 							{
 								icon: 'lucide:file-down',

@@ -3,8 +3,8 @@
 	import { bolt } from '$bolt';
 	import { Field, Form, Section } from '@norbital-ai/ui';
 	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	const settings = bolt.query('commercial_settings', { limit: 1 });
-	const row = $derived(settings.current?.rows[0]);
+	const settings = bolt.query({ commercial_settings: { limit: 1 } });
+	const row = $derived(settings.current?.commercial_settings.rows[0]);
 	let saved = $state<string | null>(null);
 </script>
 

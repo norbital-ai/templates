@@ -1,9 +1,9 @@
-import type { QueryInput } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { workspace, PRODUCT } from './kit.js';
 import { businessRows } from './business-source.js';
+import { inventoryCostOf } from './reads.js';
 test.live(
 	'floor warning compares remaining lot cost in matching units and currency, excluding tax',
 	() =>
@@ -32,22 +32,23 @@ test.live(
 				price: Decimal.of('1.60'),
 				tax_inclusive: true,
 				tax_rate: Decimal.of('9')
-			} satisfies QueryInput<'pricing_floors.inventory_cost'>;
-			expect(yield* as.query('pricing_floors.inventory_cost', input)).toMatchObject({
+			} satisfies Parameters<typeof inventoryCostOf>[1];
+			expect(yield* inventoryCostOf(as, input)).toMatchObject({
 				below: true
 			});
 			expect(
-				yield* as.query('pricing_floors.inventory_cost', {
+				yield* inventoryCostOf(as, {
 					...input,
 					price: Decimal.of('1.60'),
 					tax_rate: Decimal.of('9')
 				})
 			).toMatchObject({ below: true });
-			expect(
-				yield* as.query('pricing_floors.inventory_cost', { ...input, price: Decimal.of('1.635') })
-			).toMatchObject({ below: false });
-			expect(
-				yield* as.query('pricing_floors.inventory_cost', { ...input, currency: 'USD' })
-			).toMatchObject({ below: false, average: null });
+			expect(yield* inventoryCostOf(as, { ...input, price: Decimal.of('1.635') })).toMatchObject({
+				below: false
+			});
+			expect(yield* inventoryCostOf(as, { ...input, currency: 'USD' })).toMatchObject({
+				below: false,
+				average: null
+			});
 		})
 );

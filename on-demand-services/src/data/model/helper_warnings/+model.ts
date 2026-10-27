@@ -16,7 +16,11 @@ export default model('helper_warnings', {
 		notes: { kind: 'text', optional: true }
 	},
 	index: ['issued_at'],
-	read: { fields: 'all' },
-	create: { columns: ['helper', 'visit', 'reason', 'issued_at', 'notes'] },
-	update: { columns: ['letter'] }
+	read: {
+		helper_warnings: { fields: 'all' },
+		'helper_warnings.helper': { fields: 'all' },
+		'helper_warnings.visit': { fields: 'all' }
+	},
+	create: { columns: { helper_warnings: ['helper', 'visit', 'reason', 'issued_at', 'notes'] } },
+	update: { columns: { helper_warnings: ['letter'] } }
 });

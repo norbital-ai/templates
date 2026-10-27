@@ -8,8 +8,10 @@ export default policy({
 		sys_user: { read: true },
 		employment_profile: {
 			read: true,
-			create: { fields: ['name', 'email', 'phone', 'invitation_id', 'user_id'] },
-			update: { fields: ['invitation_id', 'user_id'] }
+			create: {
+				columns: { employment_profile: ['name', 'email', 'phone', 'invitation_id', 'user_id'] }
+			},
+			update: { columns: { employment_profile: ['invitation_id', 'user_id'] } }
 		}
 	},
 	limits: AUTOMATION_LIMITS

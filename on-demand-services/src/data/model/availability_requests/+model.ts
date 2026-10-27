@@ -30,7 +30,22 @@ export default model('availability_requests', {
 	},
 	read: 'all',
 	create: {
-		columns: ['phone', 'address', 'location', 'area', 'service', 'preference', 'helper', 'repeat']
+		columns: {
+			availability_requests: [
+				'phone',
+				'address',
+				'location',
+				'area',
+				'service',
+				'preference',
+				'helper',
+				'repeat'
+			]
+		}
 	},
-	update: { columns: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status'] }
+	update: {
+		columns: {
+			availability_requests: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status']
+		}
+	}
 });

@@ -13,10 +13,8 @@ export default automation('bookings_cancel', {
 	output: { kind: 'object', fields: { cancelled: { kind: 'int' }, late: { kind: 'int' } } },
 	runAs: 'trigger',
 	run: function* ({ targets }, ctx) {
-		const { rows: targetsOf } = yield* ctx.query('bookings', {
-			where: { id: { in: targets } },
-			all: true
-		});
+		const { rows: targetsOf } = (yield* ctx.query({ bookings: { where: { id: { in: targets } } } }))
+			.bookings;
 		if (targetsOf.length !== targets.length)
 			return yield* new Refusal({
 				message: 'The selected record does not exist or is not readable.',
@@ -31,11 +29,12 @@ export default automation('bookings_cancel', {
 		for (const booking of targetsOf) {
 			if (booking.status === 'cancelled')
 				return yield* new Refusal({ message: 'This booking is already cancelled.' });
-			const { rows } = yield* ctx.query('visits', {
-				where: { booking: { eq: booking.id }, status: { eq: 'scheduled' } },
-				select: { slot: true, revision: true },
-				all: true
-			});
+			const { rows } = (yield* ctx.query({
+				visits: {
+					where: { booking: { eq: booking.id }, status: { eq: 'scheduled' } },
+					fields: ['slot', 'revision']
+				}
+			})).visits;
 			for (const row of rows) visitRevisions.set(row.id, row.revision);
 			const { free_change_hours } = yield* settingsOf(ctx);
 			const late = (start: string) =>

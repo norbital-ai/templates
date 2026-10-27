@@ -15,36 +15,33 @@
 	let { view }: { view: RecordView<'payslip'> } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const money = versionMoney(() => (record == null ? null : { run: record.payroll_run_id }));
-	const run = $derived.by(() =>
+	const held = $derived.by(() =>
 		record == null
 			? null
-			: bolt.query('payroll_run', {
-					id: record.payroll_run_id,
-					select: {
-						period: true,
-						kind: true,
-						settings_id: true,
-						company_id: { select: { name: true } }
-					}
+			: bolt.query({
+					payroll_run: {
+						where: { id: { eq: record.payroll_run_id } },
+						fields: ['period', 'kind', 'settings_id', 'company_id'],
+						limit: 1
+					},
+					'payroll_run.company_id': { fields: ['name'] },
+					employment_contract: {
+						where: { id: { eq: record.employment_id } },
+						fields: ['employee_number', 'employee_id'],
+						limit: 1
+					},
+					'employment_contract.employee_id': { fields: ['name'] }
 				})
 	);
+	const run = $derived(held?.current?.payroll_run.rows[0]);
+	const employment = $derived(held?.current?.employment_contract.rows[0]);
 	const schemes = $derived.by(() =>
-		run?.current == null
+		run == null
 			? null
-			: bolt.query('statutory_contribution_catalog', {
-					where: { settings_id: { eq: run?.current.settings_id } },
-					select: { code: true, label: true, display_order: true },
-					all: true
-				})
-	);
-	const employment = $derived.by(() =>
-		record == null
-			? null
-			: bolt.query('employment_contract', {
-					id: record.employment_id,
-					select: {
-						employee_number: true,
-						employee_id: { select: { name: true } }
+			: bolt.query({
+					statutory_contribution_catalog: {
+						where: { settings_id: { eq: run.settings_id } },
+						fields: ['code', 'label', 'display_order']
 					}
 				})
 	);
@@ -79,7 +76,7 @@
 		if (record == null) return [];
 		const base = record.base ?? [];
 		const adjustments = record.adjustments ?? [];
-		const catalogue = schemes?.current?.rows ?? [];
+		const catalogue = schemes?.current?.statutory_contribution_catalog.rows ?? [];
 		const statutory = (record.statutory ?? []).toSorted(
 			(a, b) => schemeRank(catalogue, a.scheme_code) - schemeRank(catalogue, b.scheme_code)
 		);
@@ -182,17 +179,17 @@
 	});
 
 	const header = $derived([
-		[bolt.t('component.payslip_employer'), run?.current?.company_id?.name],
-		[bolt.t('component.employee'), employment?.current?.employee_id?.name],
-		[bolt.t('component.employee_number'), employment?.current?.employee_number],
-		[bolt.t('app.payroll.period'), run?.current?.period],
+		[bolt.t('component.payslip_employer'), run?.company_id?.name],
+		[bolt.t('component.employee'), employment?.employee_id?.name],
+		[bolt.t('component.employee_number'), employment?.employee_number],
+		[bolt.t('app.payroll.period'), run?.period],
 		[
 			bolt.t('app.payroll.kind'),
-			run?.current?.kind == null
+			run?.kind == null
 				? null
-				: enumText(run?.current.kind, {
+				: enumText(run.kind, {
 						t: (key) => ui.t(key),
-						collection: 'payroll_run',
+						model: 'payroll_run',
 						field: 'kind'
 					})
 		],

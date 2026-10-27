@@ -16,10 +16,8 @@ export default automation('helpers_offboard', {
 	output: { kind: 'object', fields: { proposed: { kind: 'int' }, open: { kind: 'int' } } },
 	runAs: 'trigger',
 	run: function* ({ last_day, targets }, ctx) {
-		const { rows: targetsOf } = yield* ctx.query('helpers', {
-			where: { id: { in: targets } },
-			all: true
-		});
+		const { rows: targetsOf } = (yield* ctx.query({ helpers: { where: { id: { in: targets } } } }))
+			.helpers;
 		if (targetsOf.length !== targets.length)
 			return yield* new Refusal({
 				message: 'The selected record does not exist or is not readable.',
@@ -35,23 +33,17 @@ export default automation('helpers_offboard', {
 			if (helper.status !== 'active')
 				return yield* new Refusal({ message: `${helper.name} has already left.` });
 			const after = instant(new Date(utcOf(addDays(last_day, 1), 0, ctx.tz)).toISOString());
-			const { rows: later } = yield* ctx.query('visits', {
-				where: {
-					helper: { eq: helper.id },
-					status: { eq: 'scheduled' },
-					slot: { overlaps: { start: after, end: null } }
+			const { rows: later } = (yield* ctx.query({
+				visits: {
+					where: {
+						helper: { eq: helper.id },
+						status: { eq: 'scheduled' },
+						slot: { overlaps: { start: after, end: null } }
+					},
+					fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking']
 				},
-				select: {
-					revision: true,
-					number: true,
-					slot: true,
-					location: true,
-					area: true,
-					skill: true,
-					booking: { select: { customer: true } }
-				},
-				all: true
-			});
+				'visits.booking': { fields: ['customer'] }
+			})).visits;
 			for (const row of later) visitRevisions.set(row.id, row.revision);
 			const starts = later.map((v) => v.slot.start).sort();
 			const pool =
@@ -91,7 +83,7 @@ export default automation('helpers_offboard', {
 						attention: 'helper_left' as const
 					}
 				});
-				if (found !== null)
+				if (found !== null && v.booking !== null)
 					notices.push({
 						customer: v.booking.customer,
 						visit: v.id,

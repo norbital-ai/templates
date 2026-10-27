@@ -8,7 +8,7 @@
 	import { Table, useKinds } from '@norbital-ai/ui';
 	const t = bolt.t;
 	const kinds = useKinds();
-	/** Dispatchers read the review ledgers; a contractor's catalog has no such collection. */
+	/** Dispatchers read the review ledgers; a contractor's catalog has no such model. */
 	const dispatcher = $derived(kinds.catalog?.['suspicion_reviews'] !== undefined);
 </script>
 

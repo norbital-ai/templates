@@ -44,32 +44,21 @@
 		['statutory_contribution_catalog', 'component.statutory_contributions'],
 		['rule_set', 'section.rule_sets']
 	] as const satisfies readonly (readonly [string, MessageKey])[];
-	type Child = (typeof CHILDREN)[number][0];
-	const rowsOf = (of: Child, id: () => Id<'jurisdiction_settings'> | null | undefined) => {
-		const rows = $derived.by(() => {
-			const at = id();
-			return at == null ? null : bolt.query(of, { where: { settings_id: { eq: at } }, all: true });
+	/** One version with every catalogue it holds, in one read. */
+	const versionOf = (id: Id<'jurisdiction_settings'>) =>
+		bolt.query({
+			jurisdiction_settings: { where: { id: { eq: id } }, limit: 1 },
+			'jurisdiction_settings.leave_catalog': {},
+			'jurisdiction_settings.claim_catalog': {},
+			'jurisdiction_settings.allowance_catalog': {},
+			'jurisdiction_settings.adhoc_catalog': {},
+			'jurisdiction_settings.loan_catalog': {},
+			'jurisdiction_settings.work_catalog': {},
+			'jurisdiction_settings.statutory_contribution_catalog': {},
+			'jurisdiction_settings.rule_set': {}
 		});
-		return {
-			get current() {
-				return rows?.current?.rows;
-			},
-			get error() {
-				return rows?.error;
-			}
-		};
-	};
-	const head = $derived.by(() =>
-		version == null ? null : bolt.query('jurisdiction_settings', { id: version.id })
-	);
-	const base = $derived.by(() =>
-		against == null ? null : bolt.query('jurisdiction_settings', { id: against })
-	);
-	const children = CHILDREN.map(([of]) => ({
-		of,
-		head: rowsOf(of, () => version?.id),
-		base: rowsOf(of, () => against)
-	}));
+	const head = $derived.by(() => (version == null ? null : versionOf(version.id)));
+	const base = $derived.by(() => (against == null ? null : versionOf(against)));
 	/** Row identity and audit columns never describe a difference between two versions. */
 	const SYSTEM = new Set(['id', 'settings_id', 'revision', 'created_at', 'updated_at']);
 	const strip = (row: Readonly<Record<string, Value | undefined>>): Record<string, Value> =>
@@ -79,8 +68,8 @@
 			)
 		);
 	const snapshots = $derived.by(() => {
-		const left = base?.current;
-		const right = head?.current;
+		const left = base?.current?.jurisdiction_settings.rows[0];
+		const right = head?.current?.jurisdiction_settings.rows[0];
 		if (left == null || right == null) return null;
 		const before: Record<string, Value> = {
 			settings: Object.fromEntries(
@@ -92,12 +81,9 @@
 				SETTINGS_DIFF_FIELDS.map((field): [string, Value] => [field, right[field]])
 			)
 		};
-		for (const child of children) {
-			const prior = child.base.current;
-			const current = child.head.current;
-			if (prior === undefined || current === undefined) return null;
-			before[child.of] = prior.map(strip);
-			value[child.of] = current.map(strip);
+		for (const [of] of CHILDREN) {
+			before[of] = left[of].map(strip);
+			value[of] = right[of].map(strip);
 		}
 		return { before, value };
 	});
@@ -140,11 +126,7 @@
 			of === 'rule_set' ? ['family', 'code'] : 'code'
 		])
 	);
-	const error = $derived(
-		head?.error ??
-			base?.error ??
-			children.flatMap((child) => [child.head.error, child.base.error]).find(Boolean)
-	);
+	const error = $derived(head?.error ?? base?.error);
 </script>
 
 {#if version == null}

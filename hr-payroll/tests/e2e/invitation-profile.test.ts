@@ -16,7 +16,7 @@ it.live(
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
-			yield* admin.query('sys_user', { all: true });
+			yield* admin.query({ sys_user: {} }).pipe(Effect.map((answer) => answer.sys_user));
 			const actor = admin.authority.actor;
 			if (actor.kind !== 'member') throw new Error('The invitation administrator is not a member');
 			const cookie = yield* t.session(actor.id);
@@ -54,7 +54,9 @@ it.live(
 			);
 			expect(external.ok).toBe(true);
 			yield* t.runDue();
-			const profiles = yield* admin.query('employment_profile', { all: true });
+			const profiles = yield* admin
+				.query({ employment_profile: {} })
+				.pipe(Effect.map((answer) => answer.employment_profile));
 			expect(profiles.rows.filter((row) => emails.includes(String(row.email)))).toHaveLength(1001);
 			expect(profiles.rows.some((row) => row.email === 'external@example.com')).toBe(false);
 			expect(
@@ -74,10 +76,11 @@ it.live(
 			expect(repeated.ok).toBe(true);
 			yield* t.runDue();
 			expect(
-				(yield* admin.query('employment_profile', {
-					where: { email: { eq: firstEmail } },
-					all: true
-				})).rows
+				(yield* admin.query({
+					employment_profile: {
+						where: { email: { eq: firstEmail } }
+					}
+				})).employment_profile.rows
 			).toHaveLength(1);
 			const code = yield* t.handle(
 				new Request('http://localhost/__bolt/session/code', {
@@ -108,10 +111,13 @@ it.live(
 				Schema.Struct({ value: Schema.Struct({ user: Schema.String }) })
 			)(answer);
 			yield* t.runDue();
-			const after = yield* admin.query('employment_profile', {
-				where: { email: { eq: firstEmail } },
-				all: true
-			});
+			const after = yield* admin
+				.query({
+					employment_profile: {
+						where: { email: { eq: firstEmail } }
+					}
+				})
+				.pipe(Effect.map((answer) => answer.employment_profile));
 			expect(after.rows).toHaveLength(1);
 			const linked = after.rows[0];
 			if (linked === undefined) throw new Error('The accepted employment profile is absent');

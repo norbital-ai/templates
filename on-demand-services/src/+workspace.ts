@@ -31,6 +31,6 @@ export default workspace({
 	signup: {
 		via: ['phone'],
 		policies: ['customer'],
-		party: { collection: 'customers', match: { phone: 'phone' } }
+		party: { model: 'customers', match: { phone: 'phone' } }
 	}
 });

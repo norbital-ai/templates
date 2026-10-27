@@ -254,13 +254,14 @@ src/
 ├── data/model/<name>/      one folder per model: services, helpers, helper_time_off, customers, bookings,
 │                           booking_helpers, visits, helper_warnings, customer_notices,
 │                           booking_requests, availability_requests, openings, dispatch_settings, drive_times;
-│                           with native write guards, matching queries and the notices' `mail` sync
+│                           with native write guards and the notices' `mail` sync
 ├── automation/             shift_watch, eta_watch, check_drives, warning_letter,
 │                           portal_intake, prepare_availability, publish_openings, deliver_notices, helper_alerts;
 │                           bookings_book, bookings_cancel, helpers_offboard and visits_* recovery/shift operations
 ├── integration/            google_routes (http)
 ├── lib/matching.ts         the matching rules, pure and unit-tested
 ├── lib/dispatch.ts         loading the pool (with cached drive times), Google calls, reassignment plans
+├── lib/slots.ts            open starts, rebooking starts and replacement candidates over a read pool
 ├── lib/booking.ts          one atomic booking, its children and its confirmation notice
 └── lib/visit-recovery.ts   recovery plans shared by manual starts and proposal acceptance
 ```

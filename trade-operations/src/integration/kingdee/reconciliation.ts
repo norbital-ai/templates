@@ -20,12 +20,18 @@ export const preserveSource = ({
 	readonly ctx: Context;
 }) =>
 	Effect.fnUntraced(function* (after: string) {
-		const local = yield* ctx.db.query(model, {
+		const page = {
 			where: { source: { eq: instance }, external_code: { gt: after } },
-			select: { external_code: true, active: true },
+			fields: ['external_code', 'active'],
 			orderBy: 'external_code',
 			limit: PAGE
-		});
+		} as const;
+		const local =
+			model === 'parties'
+				? (yield* ctx.db.query({ parties: page })).parties
+				: model === 'products'
+					? (yield* ctx.db.query({ products: page })).products
+					: (yield* ctx.db.query({ warehouses: page })).warehouses;
 		const keys = local.rows.map((row) => row.external_code);
 		const found = keys.length === 0 ? [] : yield* sourceKeys(ctx, projection, keys);
 		const present = yield* Effect.try({

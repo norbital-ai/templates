@@ -26,8 +26,7 @@ export default policy({
 			read: true,
 			create: true,
 			update: true,
-			moves: 'all',
-			queries: ['open_slots']
+			moves: 'all'
 		},
 		helper_time_off: { read: true, create: true, update: true, delete: true },
 		booking_requests: { read: true, update: true, moves: 'all' },
@@ -35,15 +34,13 @@ export default policy({
 			read: true,
 			create: true,
 			update: true,
-			moves: 'all',
-			queries: ['open_slots']
+			moves: 'all'
 		},
 		booking_helpers: { read: true },
 		visits: {
 			read: true,
 			update: true,
-			moves: 'all',
-			queries: ['candidates', 'rebooking_slots']
+			moves: 'all'
 		},
 		helper_warnings: { read: true, create: true },
 		customer_notices: { read: true, create: true },

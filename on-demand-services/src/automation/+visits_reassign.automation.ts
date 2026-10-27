@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput, type CreateRow } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { planReassignment, VISIT, when } from '../lib/dispatch.js';
+import { planReassignment, visitsToMove, when } from '../lib/dispatch.js';
 
 export default automation('visits_reassign', {
 	description:
@@ -12,10 +12,8 @@ export default automation('visits_reassign', {
 	},
 	runAs: 'trigger',
 	run: function* ({ helper, targets }, ctx) {
-		const { rows: targetsOf } = yield* ctx.query('visits', {
-			where: { id: { in: targets } },
-			all: true
-		});
+		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
+			.visits;
 		if (targetsOf.length !== targets.length)
 			return yield* new Refusal({
 				message: 'The selected record does not exist or is not readable.',
@@ -27,11 +25,7 @@ export default automation('visits_reassign', {
 			if (v.status !== 'scheduled')
 				return yield* new Refusal({ message: 'Only a scheduled visit can be reassigned.' });
 			if (helper == null) {
-				const [row] = (yield* ctx.query('visits', {
-					where: { id: { eq: v.id } },
-					select: VISIT,
-					limit: 1
-				})).rows;
+				const [row] = (yield* ctx.query(visitsToMove({ id: { eq: v.id } }))).visits.rows;
 				if (row === undefined || v.helper === null)
 					return yield* new Refusal({ message: 'The assigned visit is not readable.' });
 				const plan = yield* planReassignment(ctx, [row], v.helper);
@@ -48,14 +42,16 @@ export default automation('visits_reassign', {
 				target: v.id,
 				set: { helper, attention: 'none', proposed_helper: null, proposed_slot: null, mc: false }
 			});
-			const { booking, next } = yield* ctx.query({
-				booking: {
-					from: 'bookings',
-					id: v.booking,
-					select: { preference: true, customer: true }
+			const { bookings, helpers } = yield* ctx.query({
+				bookings: {
+					where: { id: { eq: v.booking } },
+					fields: ['preference', 'customer'],
+					limit: 1
 				},
-				next: { from: 'helpers', id: helper }
+				helpers: { where: { id: { eq: helper } }, fields: ['name'], limit: 1 }
 			});
+			const booking = bookings.rows[0],
+				next = helpers.rows[0];
 			if (booking?.preference === 'preferred')
 				notices.push({
 					customer: booking.customer,

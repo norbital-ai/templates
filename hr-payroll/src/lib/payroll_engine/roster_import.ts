@@ -215,170 +215,134 @@ const sheetSpan = (records: readonly Pick<SheetRecord, 'work_date'>[]) => {
 	const dates = records.map((record) => dayOf(record.work_date)).toSorted();
 	return { from: dates[0] ?? '9999-12-31', to: dates.at(-1) ?? '9999-12-31' };
 };
-/** The sheet's scope, its stored days, and the rows the roster validations need in one native statement. */
-const loadSheetScope = (
+/**
+ * The sheet's scope, its stored days, and the rows the roster validations need, in four dependent waves (each one read
+ * request): the entity; what hangs off it and its jurisdiction; the named employments' days, leave, slips and the
+ * versions' rules; the leave classes and runs those name. Answered under the reader's own aliases.
+ */
+const loadSheetScope = Effect.fnUntraced(function* (
 	read: Read,
 	records: readonly Pick<SheetRecord, 'employee_number'>[],
 	context: SheetContext,
 	span: { from: string; to: string }
-) =>
-	read({
+) {
+	const near = { gte: PlainDate(addDays(span.from, -6)), lte: PlainDate(addDays(span.to, 6)) };
+	const { entity } = yield* read({
 		entity: {
-			from: 'entity',
 			where: context.company_id == null ? {} : { id: { eq: context.company_id } },
-			select: ENTITY,
-			all: true
+			fields: ENTITY
+		}
+	});
+	const companies = entity.rows.map((row) => row.id);
+	const scoped = yield* read({
+		employment_contract: {
+			where: { company_id: { in: companies } },
+			fields: [...CONTRACT, 'employee_number']
 		},
-		contracts: {
-			from: 'employment_contract',
-			where: { company_id: { in: { member: 'entity', field: 'id' } } },
-			select: { ...CONTRACT, employee_number: true },
-			all: true
+		shift_definition: {
+			where: { company_id: { in: companies } },
+			fields: ['company_id', 'code', 'variant', 'effective_range']
 		},
-		named: {
-			from: 'employment_contract',
+		shift_pattern: {
+			where: { company_id: { in: companies } },
+			fields: ['company_id', 'pattern', 'effective_range']
+		},
+		holiday: {
+			where: { company_id: { in: companies }, date: near, published_at: { isNull: false } },
+			fields: HOLIDAY
+		},
+		payroll_run: {
+			where: { company_id: { in: companies }, kind: { eq: 'REGULAR' } },
+			fields: [
+				'company_id',
+				'period',
+				'attendance_from',
+				'attendance_to',
+				'salary_from',
+				'salary_to'
+			]
+		},
+		jurisdiction_settings: {
 			where: {
-				company_id: { in: { member: 'entity', field: 'id' } },
-				employee_number: { in: [...new Set(records.map((record) => record.employee_number))] }
-			},
-			select: { ...CONTRACT, employee_number: true },
-			all: true
-		},
-		people: {
-			from: 'employment_profile',
-			where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
-			select: PROFILE,
-			all: true
-		},
-		entries: {
-			from: 'roster_entry',
-			where: {
-				employment_id: { in: { member: 'named', field: 'id' } },
-				work_date: {
-					gte: PlainDate(addDays(span.from, -6)),
-					lte: PlainDate(addDays(span.to, 6))
-				}
-			},
-			select: ROSTER,
-			all: true
-		},
-		definitions: {
-			from: 'shift_definition',
-			where: { company_id: { in: { member: 'entity', field: 'id' } } },
-			select: { company_id: true, code: true, variant: true, effective_range: true },
-			all: true
-		},
-		patterns: {
-			from: 'shift_pattern',
-			where: { company_id: { in: { member: 'entity', field: 'id' } } },
-			select: { company_id: true, pattern: true, effective_range: true },
-			all: true
-		},
-		holidays: {
-			from: 'holiday',
-			where: {
-				company_id: { in: { member: 'entity', field: 'id' } },
-				date: {
-					gte: PlainDate(addDays(span.from, -6)),
-					lte: PlainDate(addDays(span.to, 6))
-				},
-				published_at: { isNull: false }
-			},
-			select: { ...HOLIDAY, company_id: true },
-			all: true
-		},
-		versions: {
-			from: 'jurisdiction_settings',
-			where: {
-				code: { in: { member: 'entity', field: 'settings_code' } },
+				code: { in: [...new Set(entity.rows.map((row) => row.settings_code))] },
 				voided_at: { isNull: true },
 				sealed_at: { isNull: false },
-				effective_range: {
-					overlaps: {
-						from: PlainDate(addDays(span.from, -6)),
-						to: PlainDate(addDays(span.to, 6))
-					}
-				}
+				effective_range: { overlaps: { from: near.gte, to: near.lte } }
 			},
-			select: SETTINGS,
-			all: true
-		},
-		rules: {
-			from: 'rule_set',
+			fields: SETTINGS
+		}
+	});
+	const numbers = new Set(records.map((record) => record.employee_number));
+	const named = scoped.employment_contract.rows.filter((row) => numbers.has(row.employee_number));
+	const namedIds = named.map((row) => row.id);
+	const settingsIds = scoped.jurisdiction_settings.rows.map((row) => row.id);
+	const held = yield* read({
+		employment_profile: {
 			where: {
-				settings_id: { in: { member: 'versions', field: 'id' } },
-				family: { in: ['VALIDATIONS', 'PAYROLL'] }
+				id: { in: [...new Set(scoped.employment_contract.rows.map((row) => row.employee_id))] }
 			},
-			select: { ...RULES, family: true, settings_id: true },
-			all: true
+			fields: PROFILE
 		},
-		classes: {
-			from: 'leave_catalog',
-			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-			select: { code: true, settings_id: true },
-			all: true
-		},
-		leave: {
-			from: 'leave_catalog_entry',
+		roster_entry: { where: { employment_id: { in: namedIds }, work_date: near }, fields: ROSTER },
+		leave_catalog_entry: {
 			where: {
-				employment_id: { in: { member: 'named', field: 'id' } },
+				employment_id: { in: namedIds },
 				activity: { eq: 'TIME_OFF' },
 				occurred_on: { lte: PlainDate(span.to) }
 			},
-			select: {
-				employment_id: true,
-				catalog_id: true,
-				occurred_on: true,
-				days: true,
-				from: true,
-				to: true,
-				half_day_start: true,
-				half_day_end: true,
-				payslip_id: true
-			},
-			all: true
+			fields: [
+				'employment_id',
+				'catalog_id',
+				'occurred_on',
+				'days',
+				'from',
+				'to',
+				'half_day_start',
+				'half_day_end',
+				'payslip_id'
+			]
 		},
-		catalogues: {
-			from: 'leave_catalog',
-			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
+		payslip: {
+			where: { employment_id: { in: namedIds } },
+			fields: ['employment_id', 'payroll_run_id']
 		},
-		slips: {
-			from: 'payslip',
-			where: { employment_id: { in: { member: 'named', field: 'id' } } },
-			select: { employment_id: true, payroll_run_id: true },
-			all: true
+		rule_set: {
+			where: { settings_id: { in: settingsIds }, family: { in: ['VALIDATIONS', 'PAYROLL'] } },
+			fields: [...RULES, 'family', 'settings_id']
 		},
-		ran: {
-			from: 'payroll_run',
+		leave_catalog: { where: { settings_id: { in: settingsIds } }, fields: ['code', 'settings_id'] }
+	});
+	const cited = yield* read({
+		leave_catalog: {
 			where: {
-				company_id: { in: { member: 'entity', field: 'id' } },
-				kind: { eq: 'REGULAR' }
+				id: { in: [...new Set(held.leave_catalog_entry.rows.map((row) => row.catalog_id))] }
 			},
-			select: {
-				company_id: true,
-				period: true,
-				attendance_from: true,
-				attendance_to: true,
-				salary_from: true,
-				salary_to: true
-			},
-			all: true
+			fields: ['code']
 		},
-		runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'slips', field: 'payroll_run_id' } } },
-			select: {
-				kind: true,
-				attendance_from: true,
-				attendance_to: true,
-				salary_from: true,
-				salary_to: true
-			},
-			all: true
+		payroll_run: {
+			where: { id: { in: [...new Set(held.payslip.rows.map((row) => row.payroll_run_id))] } },
+			fields: ['kind', 'attendance_from', 'attendance_to', 'salary_from', 'salary_to']
 		}
 	});
+	return {
+		entity,
+		contracts: scoped.employment_contract,
+		named: { rows: named },
+		people: held.employment_profile,
+		entries: held.roster_entry,
+		definitions: scoped.shift_definition,
+		patterns: scoped.shift_pattern,
+		holidays: scoped.holiday,
+		versions: scoped.jurisdiction_settings,
+		rules: held.rule_set,
+		classes: held.leave_catalog,
+		leave: held.leave_catalog_entry,
+		catalogues: cited.leave_catalog,
+		slips: held.payslip,
+		ran: scoped.payroll_run,
+		runs: cited.payroll_run
+	};
+});
 export type SheetScopeRead = Effect.Success<ReturnType<typeof loadSheetScope>>;
 const sheetScope = Effect.fnUntraced(function* (
 	records: readonly Pick<SheetRecord, 'employee_number' | 'work_date'>[],
@@ -1220,94 +1184,91 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 		const month = today.slice(0, 7);
 		const from = context.from ?? `${month}-01`;
 		const to = context.to ?? dayOf(addDays(`${addDays(`${month}-28`, 4).slice(0, 7)}-01`, -1));
-		const got = yield* read({
-			entities: {
-				from: 'entity',
+		// three waves: the entities; their employments, codes, holidays and versions; the days, people and leave
+		const { entity } = yield* read({
+			entity: {
 				where: context.company_id == null ? {} : { id: { eq: context.company_id } },
-				select: ENTITY,
-				all: true
+				fields: ENTITY
+			}
+		});
+		const companies = entity.rows.map((row) => row.id);
+		const scoped = yield* read({
+			employment_contract: {
+				where: { company_id: { in: companies } },
+				fields: ['employee_number', 'employee_id', 'company_id', 'effective_range']
 			},
-			contracts: {
-				from: 'employment_contract',
-				where: { company_id: { in: { member: 'entities', field: 'id' } } },
-				select: {
-					id: true,
-					employee_number: true,
-					employee_id: true,
-					company_id: true,
-					effective_range: true
-				},
-				all: true
-			},
-			people: {
-				from: 'employment_profile',
-				where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
-				select: { name: true },
-				all: true
-			},
-			entries: {
-				from: 'roster_entry',
+			shift_definition: { where: { company_id: { in: companies } }, fields: ['code'] },
+			holiday: {
 				where: {
-					employment_id: { in: { member: 'contracts', field: 'id' } },
-					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
-				},
-				select: ROSTER,
-				all: true
-			},
-			definitions: {
-				from: 'shift_definition',
-				where: { company_id: { in: { member: 'entities', field: 'id' } } },
-				select: { code: true },
-				all: true
-			},
-			holidays: {
-				from: 'holiday',
-				where: {
-					company_id: { in: { member: 'entities', field: 'id' } },
+					company_id: { in: companies },
 					date: { gte: PlainDate(from), lte: PlainDate(to) },
 					published_at: { isNull: false }
 				},
-				select: { company_id: true, date: true, name: true },
-				all: true
+				fields: ['company_id', 'date', 'name']
 			},
-			leave: {
-				from: 'leave_catalog_entry',
+			jurisdiction_settings: {
 				where: {
-					employment_id: { in: { member: 'contracts', field: 'id' } },
-					activity: { eq: 'TIME_OFF' },
-					occurred_on: { lte: PlainDate(to) }
-				},
-				select: {
-					employment_id: true,
-					catalog_id: true,
-					occurred_on: true,
-					days: true,
-					from: true,
-					to: true,
-					half_day_start: true,
-					half_day_end: true,
-					payslip_id: true
-				},
-				all: true
-			},
-			catalogues: {
-				from: 'leave_catalog',
-				where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-				select: { code: true },
-				all: true
-			},
-			versions: {
-				from: 'jurisdiction_settings',
-				where: {
-					code: { in: { member: 'entities', field: 'settings_code' } },
+					code: { in: [...new Set(entity.rows.map((row) => row.settings_code))] },
 					voided_at: { isNull: true },
 					sealed_at: { isNull: false },
 					effective_range: { overlaps: { from: PlainDate(from), to: PlainDate(to) } }
 				},
-				select: SETTINGS,
-				all: true
+				fields: SETTINGS
 			}
 		});
+		const contractIds = scoped.employment_contract.rows.map((row) => row.id);
+		const held = yield* read({
+			employment_profile: {
+				where: {
+					id: { in: [...new Set(scoped.employment_contract.rows.map((row) => row.employee_id))] }
+				},
+				fields: ['name']
+			},
+			roster_entry: {
+				where: {
+					employment_id: { in: contractIds },
+					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
+				},
+				fields: ROSTER
+			},
+			leave_catalog_entry: {
+				where: {
+					employment_id: { in: contractIds },
+					activity: { eq: 'TIME_OFF' },
+					occurred_on: { lte: PlainDate(to) }
+				},
+				fields: [
+					'employment_id',
+					'catalog_id',
+					'occurred_on',
+					'days',
+					'from',
+					'to',
+					'half_day_start',
+					'half_day_end',
+					'payslip_id'
+				]
+			}
+		});
+		const { leave_catalog } = yield* read({
+			leave_catalog: {
+				where: {
+					id: { in: [...new Set(held.leave_catalog_entry.rows.map((row) => row.catalog_id))] }
+				},
+				fields: ['code']
+			}
+		});
+		const got = {
+			entities: entity,
+			contracts: scoped.employment_contract,
+			people: held.employment_profile,
+			entries: held.roster_entry,
+			definitions: scoped.shift_definition,
+			holidays: scoped.holiday,
+			leave: held.leave_catalog_entry,
+			catalogues: leave_catalog,
+			versions: scoped.jurisdiction_settings
+		};
 		const entries = new Map(
 			got.entries.rows.map((row) => [keyOf(row.employment_id, dayOf(row.work_date)), row])
 		);

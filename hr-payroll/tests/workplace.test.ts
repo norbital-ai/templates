@@ -88,7 +88,7 @@ it.effect(
 					])
 				);
 				assert.match(rejected.message, /lists no case kind UNLISTED/);
-				assert.equal((yield* hr.query('workplace_case', { all: true })).rows.length, 3);
+				assert.equal((yield* hr.query({ workplace_case: {} })).workplace_case.rows.length, 3);
 			})
 		);
 	}

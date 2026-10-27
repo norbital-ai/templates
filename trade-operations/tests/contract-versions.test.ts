@@ -16,6 +16,7 @@ import { sourceOrder, sourcePayment, sourceTransaction, sync, direct } from './s
 import { configuredCommission } from './commission-kit.js';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { kingdeeDraft, kingdeeFixture, observeKingdeeOrder } from './kingdee-fixture.js';
+import { boardOf, commissionOf, confirmationOf } from './reads.js';
 
 test.live(
 	'an interrupted replacement setup cannot seal partial terms and resumes through the native operation',
@@ -27,60 +28,72 @@ test.live(
 			const own = yield* kingdeeDraft(t, fixture);
 			yield* confirm(t, own.order);
 			yield* observeKingdeeOrder(t, fixture, own.order);
-			yield* as.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { active: false }
-			});
-			const original = yield* as.query('orders', { id: own.order });
+			yield* as.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { active: false }
+				}
+			]);
+			const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!original) throw new Error('Accepted contract required');
 			const current = currentAgreement(original);
 			if (!current) throw new Error('Current source-accepted version required');
 			// This is the committed first phase if revision setup stops before copying its lines.
 			committed(
 				'orders',
-				yield* as.act('orders.update', {
-					target: own.order,
-					set: { status: 'draft' }
-				})
+				yield* as.act('orders.update', [
+					{
+						target: own.order,
+						set: { status: 'draft' }
+					}
+				])
 			);
-			const interrupted = yield* as.query('orders', { id: own.order });
+			const interrupted = (yield* as.query({
+				orders: { where: { id: { eq: own.order } }, limit: 1 }
+			})).orders.rows[0];
 			expect(interrupted).toMatchObject({ status: 'draft', draft_setup: current.seal_hash });
 			expect(
-				yield* as
-					.query('orders.confirmation_check', {
-						order: own.order,
-						as_of: Instant(t.clock.now())
-					})
-					.pipe(Effect.flip)
+				yield* confirmationOf(as, {
+					order: own.order,
+					as_of: Instant(t.clock.now())
+				}).pipe(Effect.flip)
 			).toMatchObject({ message: 'errors.contract_setup' });
 			expect(
 				yield* as
-					.act('orders.update', {
-						target: own.order,
-						set: { status: 'confirmed', check_hash: 'incomplete-draft' }
-					})
+					.act('orders.update', [
+						{
+							target: own.order,
+							set: { status: 'confirmed', check_hash: 'incomplete-draft' }
+						}
+					])
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.contract_setup' });
 			expect(
 				yield* as
-					.act('order_lines.update', {
-						target: own.line,
-						set: { quantity: Decimal.of(12) }
-					})
+					.act('order_lines.update', [
+						{
+							target: own.line,
+							set: { quantity: Decimal.of(12) }
+						}
+					])
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			yield* revise(t, own.order);
-			const ready = yield* as.query('orders', { id: own.order });
+			const ready = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!ready) throw new Error('Replacement draft required');
 			expect(ready).toMatchObject({ status: 'draft', draft_setup: null, contract_version: 2 });
 			expect(currentAgreement(ready)?.seal_hash).toBe(current.seal_hash);
 			expect(currentAgreement(ready)?.snapshot).toEqual(current.snapshot);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', {
-					target: own.line,
-					set: { quantity: Decimal.of(12) }
-				})
+				yield* as.act('order_lines.update', [
+					{
+						target: own.line,
+						set: { quantity: Decimal.of(12) }
+					}
+				])
 			);
 		})
 );
@@ -93,25 +106,34 @@ test.live('a replacement draft retains its prior contract and historical source 
 		const own = yield* kingdeeDraft(t, fixture);
 		yield* confirm(t, own.order);
 		yield* observeKingdeeOrder(t, fixture, own.order);
-		yield* as.act('sys_integration.update', {
-			target: fixtureId('sys_integration', 'kingdee'),
-			set: { active: false }
-		});
-		const original = yield* as.query('orders', { id: own.order });
+		yield* as.act('sys_integration.update', [
+			{
+				target: fixtureId('sys_integration', 'kingdee'),
+				set: { active: false }
+			}
+		]);
+		const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
 		if (!original) throw new Error('Original contract required');
 		const parent = yield* sourceOrder(t, own.order);
 		const invoice = yield* sourceTransaction(t, own, parent);
-		const retained = yield* as.query('transactions', { id: invoice.id });
+		const retained = (yield* as.query({
+			transactions: { where: { id: { eq: invoice.id } }, limit: 1 }
+		})).transactions.rows[0];
 		yield* sourcePayment(t, parent, invoice.id, '2');
 		yield* revise(t, own.order);
 		committed(
 			'order_lines',
-			yield* as.act('order_lines.update', {
-				target: own.line,
-				set: { quantity: Decimal.of(12), unit_price: Decimal.of(3) }
-			})
+			yield* as.act('order_lines.update', [
+				{
+					target: own.line,
+					set: { quantity: Decimal.of(12), unit_price: Decimal.of(3) }
+				}
+			])
 		);
-		const replacement = yield* as.query('orders', { id: own.order });
+		const replacement = (yield* as.query({
+			orders: { where: { id: { eq: own.order } }, limit: 1 }
+		})).orders.rows[0];
 		if (!replacement) throw new Error('Replacement draft required');
 		expect(replacement).toMatchObject({ status: 'draft', contract_version: 2 });
 		expect(currentAgreement(replacement)?.seal_hash).toBe(original.seal_hash);
@@ -122,9 +144,15 @@ test.live('a replacement draft retains its prior contract and historical source 
 				contract: original.sealed_contract
 			}
 		]);
-		expect(yield* as.query('transactions', { id: invoice.id })).toEqual(retained);
+		expect(
+			(yield* as.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } }))
+				.transactions.rows[0]
+		).toEqual(retained);
 		const late = yield* sourceTransaction(t, own, parent, 'delivery', '4');
-		expect((yield* as.query('transactions', { id: late.id }))?.seal_hash).toBe(original.seal_hash);
+		expect(
+			(yield* as.query({ transactions: { where: { id: { eq: late.id } }, limit: 1 } })).transactions
+				.rows[0]?.seal_hash
+		).toBe(original.seal_hash);
 		expect(
 			yield* sync(
 				t,
@@ -160,23 +188,30 @@ test.live(
 			const own = yield* kingdeeDraft(t, fixture);
 			yield* confirm(t, own.order);
 			yield* observeKingdeeOrder(t, fixture, own.order);
-			yield* as.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { active: false }
-			});
-			const original = yield* as.query('orders', { id: own.order });
+			yield* as.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { active: false }
+				}
+			]);
+			const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!original) throw new Error('Original contract required');
 			yield* sourceOrder(t, own.order);
 			yield* revise(t, own.order);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', {
-					target: own.line,
-					set: { quantity: Decimal.of(12) }
-				})
+				yield* as.act('order_lines.update', [
+					{
+						target: own.line,
+						set: { quantity: Decimal.of(12) }
+					}
+				])
 			);
 			yield* confirm(t, own.order);
-			const replacement = yield* as.query('orders', { id: own.order });
+			const replacement = (yield* as.query({
+				orders: { where: { id: { eq: own.order } }, limit: 1 }
+			})).orders.rows[0];
 			if (!replacement) throw new Error('Sealed replacement required');
 			expect(replacement.seal_hash).not.toBe(original.seal_hash);
 			expect(currentAgreement(replacement)?.seal_hash).toBe(original.seal_hash);
@@ -199,16 +234,21 @@ test.live('order remarks and title can change without rewriting a sealed contrac
 		const own = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
 		yield* confirm(t, own.order);
 		const as = t.as(sales);
-		const original = yield* as.query('orders', { id: own.order });
+		const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
 		if (!original) throw new Error('Original contract required');
 		committed(
 			'orders',
-			yield* as.act('orders.update', {
-				target: own.order,
-				set: { title: 'Customer follow-up', notes: 'Operational remarks after signing' }
-			})
+			yield* as.act('orders.update', [
+				{
+					target: own.order,
+					set: { title: 'Customer follow-up', notes: 'Operational remarks after signing' }
+				}
+			])
 		);
-		expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+		).toMatchObject({
 			title: 'Customer follow-up',
 			notes: 'Operational remarks after signing',
 			seal_hash: original.seal_hash,
@@ -217,17 +257,19 @@ test.live('order remarks and title can change without rewriting a sealed contrac
 		});
 		expect(
 			yield* direct(t, t.as(t.admin).authority, {
-				collection: 'orders',
+				model: 'orders',
 				verb: 'update',
 				input: [{ target: own.order, set: { contract_versions: [] } }]
 			})
 		).not.toMatchObject({ kind: 'committed' });
 		expect(
 			yield* as
-				.act('orders.update', {
-					target: own.order,
-					set: { payment_terms: 'Overwrite approved payment terms' }
-				})
+				.act('orders.update', [
+					{
+						target: own.order,
+						set: { payment_terms: 'Overwrite approved payment terms' }
+					}
+				])
 				.pipe(Effect.flip)
 		).toMatchObject({ _tag: 'ActRefused' });
 	})
@@ -254,39 +296,50 @@ test.live(
 			});
 			committed(
 				'orders',
-				yield* as.act('orders.update', {
-					target: own.order,
-					set: { supporting_documents: [document] }
-				})
+				yield* as.act('orders.update', [
+					{
+						target: own.order,
+						set: { supporting_documents: [document] }
+					}
+				])
 			);
 			yield* confirm(t, own.order);
 			yield* observeKingdeeOrder(t, fixture, own.order);
-			yield* as.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { active: false }
-			});
-			const original = yield* as.query('orders', { id: own.order });
+			yield* as.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { active: false }
+				}
+			]);
+			const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!original) throw new Error('Original contract required');
 			expect(agreements(original)[0]?.supporting_documents).toMatchObject([
 				{ id: uploaded.output.id, name: 'signed-original.pdf' }
 			]);
 			expect(
 				yield* as
-					.act('orders.update', {
-						target: own.order,
-						set: { supporting_documents: [] }
-					})
+					.act('orders.update', [
+						{
+							target: own.order,
+							set: { supporting_documents: [] }
+						}
+					])
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			yield* revise(t, own.order);
 			committed(
 				'orders',
-				yield* as.act('orders.update', {
-					target: own.order,
-					set: { supporting_documents: [] }
-				})
+				yield* as.act('orders.update', [
+					{
+						target: own.order,
+						set: { supporting_documents: [] }
+					}
+				])
 			);
-			const replacement = yield* as.query('orders', { id: own.order });
+			const replacement = (yield* as.query({
+				orders: { where: { id: { eq: own.order } }, limit: 1 }
+			})).orders.rows[0];
 			if (!replacement) throw new Error('Replacement draft required');
 			expect(
 				agreements(replacement).find((version) => version.seal_hash === original.seal_hash)
@@ -297,32 +350,37 @@ test.live(
 test.live('sealed commission retains its approved rule when runtime configuration changes', () =>
 	Effect.gen(function* () {
 		const { t, as, own, rule } = yield* configuredCommission();
-		const original = yield* as.query('orders', { id: own.order });
-		expect(yield* as.query('orders.commission', { order: own.order })).toMatchObject([
+		const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
+		expect(yield* commissionOf(as, { order: own.order })).toMatchObject([
 			{ amount: decimalText('210.00') }
 		]);
 		committed(
 			'commission_rules',
-			yield* as.act('commission_rules.update', {
-				target: rule,
-				set: { fixed_rate: Decimal.of(30), spread_pct: Decimal.of(50) }
-			})
+			yield* as.act('commission_rules.update', [
+				{
+					target: rule,
+					set: { fixed_rate: Decimal.of(30), spread_pct: Decimal.of(50) }
+				}
+			])
 		);
-		expect(yield* as.query('orders.commission', { order: own.order })).toMatchObject([
+		expect(yield* commissionOf(as, { order: own.order })).toMatchObject([
 			{ amount: decimalText('210.00') }
 		]);
 		expect(
 			yield* Effect.flip(
-				as.act('order_lines.update', {
-					target: own.line,
-					set: { quantity: Decimal.of(2000), unit_price: Decimal.of(3) }
-				})
+				as.act('order_lines.update', [
+					{
+						target: own.line,
+						set: { quantity: Decimal.of(2000), unit_price: Decimal.of(3) }
+					}
+				])
 			)
 		).toMatchObject({ _tag: 'ActRefused' });
-		expect(yield* as.query('orders', { id: own.order })).toEqual(original);
 		expect(
-			yield* as.query('commission_statements.board', { period: PlainDate('2026-10-01') })
-		).toEqual([]);
+			(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+		).toEqual(original);
+		expect(yield* boardOf(as, { period: PlainDate('2026-10-01') })).toEqual([]);
 	})
 );
 test.live.each(['sales', 'procurement'])(
@@ -347,16 +405,18 @@ test.live.each(['sales', 'procurement'])(
 			const as = t.as(member);
 			committed(
 				'orders',
-				yield* as.act('orders.update', { target: own.order, set: { payment_terms: 'Net 45' } })
+				yield* as.act('orders.update', [{ target: own.order, set: { payment_terms: 'Net 45' } }])
 			);
-			const check = yield* as.query('orders.confirmation_check', {
+			const check = yield* confirmationOf(as, {
 				as_of: Instant(t.clock.now()),
 				order: own.order
 			});
-			const outcome = yield* as.act('orders.update', {
-				target: own.order,
-				set: { status: 'confirmed', check_hash: check.check_hash }
-			});
+			const outcome = yield* as.act('orders.update', [
+				{
+					target: own.order,
+					set: { status: 'confirmed', check_hash: check.check_hash }
+				}
+			]);
 			expect(outcome.kind).toBe('pendingApproval');
 			if (outcome.kind !== 'pendingApproval') throw new Error('Native approval required');
 			const approver = t.member(['manager'], {
@@ -376,7 +436,9 @@ test.live.each(['sales', 'procurement'])(
 				kind: 'decided',
 				status: 'Approved'
 			});
-			expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				status: 'confirmed'
 			});
 		})
@@ -390,16 +452,20 @@ test.live('a manager with direct permission seals without an approval request', 
 			});
 		const own = yield* draft(t, 'sales', fixtureId('sys_user', manager.id)),
 			as = t.as(manager);
-		const check = yield* as.query('orders.confirmation_check', {
+		const check = yield* confirmationOf(as, {
 			as_of: Instant(t.clock.now()),
 			order: own.order
 		});
-		const outcome = yield* as.act('orders.update', {
-			target: own.order,
-			set: { status: 'confirmed', check_hash: check.check_hash }
-		});
+		const outcome = yield* as.act('orders.update', [
+			{
+				target: own.order,
+				set: { status: 'confirmed', check_hash: check.check_hash }
+			}
+		]);
 		expect(outcome.kind).toBe('committed');
-		expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+		).toMatchObject({
 			status: 'confirmed'
 		});
 	})

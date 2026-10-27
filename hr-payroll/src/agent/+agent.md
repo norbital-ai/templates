@@ -57,6 +57,10 @@ yourself; the payroll run computes it.
   ad hoc or claim entries listed in `sources`, with no salary, and settles statutory contributions
   month-to-date. The build runs after creation (after
   approval when held); read the run's payslips and `warnings` before reporting an outcome.
+- Reading: `read` takes a layer map, e.g. `{ payslip: { where: { payroll_run_id: { eq: run } } }, 'payslip.payroll_run_id': {} }`;
+  read the rows you need and explain from them. Leave balances are computed by self-service and the entry
+  form, never by you: report the entries (`leave_catalog_entry` with `'leave_catalog_entry.catalog_id': {}`).
+- Exports: bank files and the salary listing are the `payroll_run.sync.export` run (context `ids`, `kind`).
 - Re-run: delete the unpaid run, then create it again.
 - Payment: move payslips to ON_HOLD, back to DRAFT, or to PAID.
 

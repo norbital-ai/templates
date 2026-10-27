@@ -43,29 +43,27 @@
 	const version = $derived(
 		!Predicate.isString(code)
 			? null
-			: bolt.query('jurisdiction_settings', {
-					where: {
-						code: { eq: code },
-						sealed_at: { isNull: false },
-						voided_at: { isNull: true },
-						effective_range: { contains: day.today }
-					},
-					select: {
-						rule_set: {
-							select: { code: true, name: true, rules: true },
-							where: { family: { eq: 'VALIDATIONS' } },
-							all: true
+			: bolt.query({
+					jurisdiction_settings: {
+						where: {
+							code: { eq: code },
+							sealed_at: { isNull: false },
+							voided_at: { isNull: true },
+							effective_range: { contains: day.today }
 						},
-						statutory_contribution_catalog: {
-							select: { code: true, name: true, configuration: true },
-							all: true
-						}
+						fields: ['code']
 					},
-					all: true
+					'jurisdiction_settings.rule_set': {
+						where: { family: { eq: 'VALIDATIONS' } },
+						fields: ['code', 'name', 'rules']
+					},
+					'jurisdiction_settings.statutory_contribution_catalog': {
+						fields: ['code', 'name', 'configuration']
+					}
 				})
 	);
 	const rules = $derived(
-		(version?.current?.rows ?? []).flatMap((row) => [
+		(version?.current?.jurisdiction_settings.rows ?? []).flatMap((row) => [
 			...row.rule_set.flatMap((held) =>
 				Schema.is(Rule)(held.rules)
 					? [

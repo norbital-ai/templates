@@ -58,7 +58,7 @@
 			target_collection: kindOf('target_collection'),
 			events: kindOf('events'),
 			fields: kindOf('fields'),
-			// each read: the collection it reads, its filter and the columns it selects; other keys are kept
+			// each read: the model it reads, its filter and the columns it selects; other keys are kept
 			reads: {
 				kind: 'record',
 				optional: true,
@@ -104,7 +104,7 @@
 			.trim()
 			.toLowerCase()
 			.replace(/^\w/, (c) => c.toUpperCase());
-	/** What starts a rule, in words: its events on what it targets (a collection or a catalogue family). */
+	/** What starts a rule, in words: its events on what it targets (a model or a catalogue family). */
 	const trigger = (rule: { readonly [key: string]: Json }) => {
 		if (!isRule(rule)) return '';
 		const events = rule.events.map((event) => words(event).toLowerCase()).join(', ');

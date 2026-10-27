@@ -121,87 +121,46 @@ const transformRows = Effect.fnUntraced(function* (
 			merged.flatMap((row) => (row.shift_definition_id == null ? [] : [row.shift_definition_id]))
 		)
 	];
+	const attached = [...new Set(attachments.map((row) => row.payslip_id))];
 	const got = yield* ctx.db.query({
-		employments: {
-			from: 'employment_contract',
-			where: { id: { in: employmentIds } },
-			select: { id: true, company_id: true },
-			all: true
-		},
-		shifts: {
-			from: 'shift_definition',
+		employment_contract: { where: { id: { in: employmentIds } }, fields: ['company_id'] },
+		shift_definition: {
 			where: { id: { in: shiftIds } },
-			select: { company_id: true, effective_range: true },
-			all: true
+			fields: ['company_id', 'effective_range']
 		},
-		leaves: {
-			from: 'leave_catalog_entry',
-			where: {
-				employment_id: { in: { member: 'employments', field: 'id' } },
-				activity: { eq: 'TIME_OFF' }
-			},
-			select: {
-				catalog_id: true,
-				employment_id: true,
-				activity: true,
-				occurred_on: true,
-				days: true,
-				from: true,
-				to: true,
-				half_day_start: true,
-				half_day_end: true,
-				payslip_id: true
-			},
-			all: true
+		leave_catalog_entry: {
+			where: { employment_id: { in: employmentIds }, activity: { eq: 'TIME_OFF' } },
+			fields: [
+				'catalog_id',
+				'employment_id',
+				'activity',
+				'occurred_on',
+				'days',
+				'from',
+				'to',
+				'half_day_start',
+				'half_day_end',
+				'payslip_id'
+			]
 		},
-		slips: {
-			from: 'payslip',
-			where: { employment_id: { in: { member: 'employments', field: 'id' } } },
-			select: { employment_id: true, payroll_run_id: true },
-			all: true
+		// the employees' own slips (settled windows) and the slips being attached, each with its run
+		payslip: {
+			where: { or: [{ employment_id: { in: employmentIds } }, { id: { in: attached } }] },
+			fields: ['employment_id', 'payroll_run_id']
 		},
-		runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'slips', field: 'payroll_run_id' } } },
-			select: { kind: true, attendance_from: true, attendance_to: true },
-			all: true
-		},
-		attachment_slips: {
-			from: 'payslip',
-			where: { id: { in: [...new Set(attachments.map((row) => row.payslip_id))] } },
-			select: { employment_id: true, payroll_run_id: true },
-			all: true
-		},
-		attachment_runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'attachment_slips', field: 'payroll_run_id' } } },
-			select: {
-				company_id: true,
-				kind: true,
-				attendance_from: true,
-				attendance_to: true,
-				pins: true
-			},
-			all: true
+		'payslip.payroll_run_id': {
+			fields: ['company_id', 'kind', 'attendance_from', 'attendance_to', 'pins']
 		}
 	});
+	const employments = got.employment_contract.rows;
+	const leaves = got.leave_catalog_entry.rows;
+	const ownSlips = got.payslip.rows.filter((slip) => employmentIds.includes(slip.employment_id));
 	if (attachments.length > 0) {
-		const slips = new Map(got.attachment_slips.rows.map((row) => [row.id, row]));
-		const runs = new Map(got.attachment_runs.rows.map((row) => [row.id, row]));
-		const employers = new Map(got.employments.rows.map((row) => [row.id, row.company_id]));
-		const captured = new Map<string, Set<string>>();
-		for (const run of got.attachment_runs.rows)
-			captured.set(
-				run.id,
-				new Set(
-					(run.pins ?? [])
-						.filter((pin) => pin.collection === 'roster_entry')
-						.map((pin) => `${pin.id}:${pin.employment_id}`)
-				)
-			);
+		const slips = new Map(got.payslip.rows.map((row) => [row.id, row]));
+		const employers = new Map(employments.map((row) => [row.id, row.company_id]));
 		for (const { before, payslip_id } of attachments) {
 			const slip = slips.get(payslip_id);
-			const run = slip === undefined ? undefined : runs.get(slip.payroll_run_id);
+			const run = slip?.payroll_run_id ?? undefined;
 			if (
 				slip?.employment_id !== before.employment_id ||
 				run?.kind !== 'REGULAR' ||
@@ -210,7 +169,12 @@ const transformRows = Effect.fnUntraced(function* (
 				run.attendance_to == null ||
 				before.work_date < run.attendance_from ||
 				before.work_date > run.attendance_to ||
-				!captured.get(run.id)?.has(`${before.id}:${before.employment_id}`)
+				!(run.pins ?? []).some(
+					(pin) =>
+						pin.collection === 'roster_entry' &&
+						pin.id === before.id &&
+						pin.employment_id === before.employment_id
+				)
 			)
 				return yield* ctx.refuse(
 					'Only the payroll run that captured this work day can attach it to its employee’s payslip.'
@@ -219,9 +183,8 @@ const transformRows = Effect.fnUntraced(function* (
 	}
 	if (inputs.every((input) => !('$delete' in input) && pinOnly(input))) return inputs;
 	const windows = new Map<string, SettledWindow[]>();
-	const runs = new Map(got.runs.rows.map((run) => [run.id, run]));
-	for (const slip of got.slips.rows) {
-		const run = runs.get(slip.payroll_run_id);
+	for (const slip of ownSlips) {
+		const run = slip.payroll_run_id;
 		if (run?.kind !== 'REGULAR' || run.attendance_from == null || run.attendance_to == null)
 			continue;
 		windows.set(slip.employment_id, [
@@ -229,9 +192,9 @@ const transformRows = Effect.fnUntraced(function* (
 			{ from: String(run.attendance_from), to: String(run.attendance_to) }
 		]);
 	}
-	const movements = got.leaves.rows.map(movementFromRow);
-	const employers = new Map(got.employments.rows.map((row) => [row.id, row.company_id]));
-	const shifts = new Map(got.shifts.rows.map((row) => [row.id, row]));
+	const movements = leaves.map(movementFromRow);
+	const employers = new Map(employments.map((row) => [row.id, row.company_id]));
+	const shifts = new Map(got.shift_definition.rows.map((row) => [row.id, row]));
 	const out: WriteInput[] = [];
 	const touched: RosterTouch[] = [];
 	for (const [i, input] of inputs.entries()) {
@@ -251,11 +214,7 @@ const transformRows = Effect.fnUntraced(function* (
 			([before, row].some(
 				(day) =>
 					day?.employment_id != null &&
-					consumedLeaveCovers(
-						got.leaves.rows,
-						day.employment_id,
-						String(day.work_date).slice(0, 10)
-					)
+					consumedLeaveCovers(leaves, day.employment_id, String(day.work_date).slice(0, 10))
 			)
 				? 'A day on leave settled on a payslip cannot be changed. Delete that payroll run to change it.'
 				: null);
@@ -337,7 +296,7 @@ const transformRows = Effect.fnUntraced(function* (
 		out.push(input);
 	}
 	const broken = yield* runEngine(
-		rosterPlanRefusal(touched, got.employments.rows),
+		rosterPlanRefusal(touched, employments),
 		ctx.db.query,
 		ctx.refuse
 	);
@@ -430,7 +389,7 @@ export default model('roster_entry', {
 	locked: { payslip_id: { isNull: false } },
 	read: 'all',
 	create: {
-		columns: create_columns,
+		columns: { roster_entry: create_columns },
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -444,7 +403,7 @@ export default model('roster_entry', {
 		}
 	},
 	update: {
-		columns: update_columns,
+		columns: { roster_entry: update_columns },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

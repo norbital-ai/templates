@@ -26,10 +26,7 @@
 	const t = bolt.t;
 	// a create has no record yet: the cycle offers the definitions of the entity its form names
 	const definitions = $derived(
-		bolt.query('shift_definition', {
-			select: { id: true, code: true, company_id: true },
-			all: true
-		})
+		bolt.query({ shift_definition: { fields: ['code', 'company_id'] } })
 	);
 	const daysOf = (value: unknown): readonly Json[] => {
 		const obj = Schema.is(Schema.Record(Schema.String, Schema.Json))(value) ? value : null;
@@ -56,7 +53,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'shift_pattern');
+				const created = outcome.records.find((row) => row.model === 'shift_pattern');
 				if (created) openRecord('shift_pattern', created.id);
 			}}
 		>
@@ -75,7 +72,7 @@
 						{#snippet editor(field)}
 							<ShiftCycle
 								days={daysOf(field.value)}
-								definitions={(definitions.current?.rows ?? [])
+								definitions={(definitions.current?.shift_definition.rows ?? [])
 									.filter((row) => row.company_id === company)
 									.map((row) => ({
 										id: row.id,

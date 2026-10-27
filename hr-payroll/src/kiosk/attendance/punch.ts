@@ -23,19 +23,21 @@ const pending = (outcome: { readonly kind: string; readonly code?: string }) =>
 	outcome.kind === 'pendingApproval' || (outcome.kind === 'refused' && outcome.code === 'locked');
 /**
  * One punch through `roster_entry`: the first punch of the day stores the arrival, every later one moves the
- * departure. The kiosk policy grants the collection exactly those writes.
+ * departure. The kiosk policy grants the model exactly those writes.
  */
 export const punchWork = Effect.fnUntraced(function* (
 	employment_id: Id<'employment_contract'>,
 	kind: 'FACE' | 'MANUAL'
 ) {
 	const day = todayKey(new Date(yield* Clock.currentTimeMillis));
-	const answer = yield* bolt.query('roster_entry', {
-		where: { employment_id: { eq: employment_id }, work_date: { eq: day } },
-		select: { id: true, worked_intervals: true },
-		limit: 1
+	const { roster_entry } = yield* bolt.query({
+		roster_entry: {
+			where: { employment_id: { eq: employment_id }, work_date: { eq: day } },
+			fields: ['worked_intervals'],
+			limit: 1
+		}
 	});
-	const row = answer.rows[0];
+	const row = roster_entry.rows[0];
 	const intervals = row?.worked_intervals ?? [];
 	const last = intervals.at(-1);
 	const lastPunch = last == null ? undefined : Date.parse(last.end ?? last.start);
@@ -52,11 +54,9 @@ export const punchWork = Effect.fnUntraced(function* (
 	}
 	const time = Instant(new Date(nowMs).toISOString());
 	if (row == null) {
-		const created = yield* bolt.act('roster_entry.create', {
-			employment_id,
-			work_date: day,
-			worked_intervals: [{ start: time, end: null }]
-		});
+		const created = yield* bolt.act('roster_entry.create', [
+			{ employment_id, work_date: day, worked_intervals: [{ start: time, end: null }] }
+		]);
 		if (created.kind !== 'committed')
 			return {
 				status: 'blocked' as const,
@@ -71,10 +71,9 @@ export const punchWork = Effect.fnUntraced(function* (
 			: intervals.map((interval, index) =>
 					index === intervals.length - 1 ? { ...interval, end: time } : interval
 				);
-	const updated = yield* bolt.act('roster_entry.update', {
-		target: row.id,
-		set: { worked_intervals: next }
-	});
+	const updated = yield* bolt.act('roster_entry.update', [
+		{ target: row.id, set: { worked_intervals: next } }
+	]);
 	if (updated.kind !== 'committed')
 		return {
 			status: 'blocked' as const,

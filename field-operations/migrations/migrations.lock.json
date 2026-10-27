@@ -1,10 +1,14 @@
 {
-	"snapshot": "e5d939b1f7ab3aa6795ce630e442f16d6e4af56970e88ad8114475e64ac7f8f6",
+	"snapshot": "022d75bf1464c28e44f7f66fffe7103884caee15c5115d96fc8b6c1099785b36",
 	"files": {
-		"0001_initial.sql": "afdbaaa8de56ab62225ba3029b8eeeb87a1ca23c78a80d406e9e54732a2703e7"
+		"0001_initial.sql": "afdbaaa8de56ab62225ba3029b8eeeb87a1ca23c78a80d406e9e54732a2703e7",
+		"0002_schema.sql": "8772c4da6b33ff8ee3d8ab5e49f453b22d95c74a91308e2fcf8db43d48e74ed5",
+		"0003_schema.sql": "dc12fe4cfa08e2b3f629f5e64f26414e5d4f0c63f6d37c003ef6a159af9dbdf7"
 	},
 	"physical": {
 		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-		"0001_initial.sql": "608338d9188572e542d1f6ef6a51403d3bab4187b39a41fe87cf5302dcc868bb"
+		"0001_initial.sql": "608338d9188572e542d1f6ef6a51403d3bab4187b39a41fe87cf5302dcc868bb",
+		"0002_schema.sql": "2daac0bbf7cb4e9c5a3b544055c22786d1f923e003f526ecf48e5fea6c26742f",
+		"0003_schema.sql": "fd8c2095a82c705bbbb6326e110a6bdcc86c2df1fb4e6a7bcc07466c34789146"
 	}
 }

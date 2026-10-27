@@ -1,7 +1,6 @@
 import { Effect, Schema } from 'effect';
 import { columns, decode } from '@norbital-ai/std/sheet';
-import { IdValue } from '@norbital-ai/std/kind';
-import type { StartInput, Id } from '@norbital-ai/bolt';
+import type { StartInput } from '@norbital-ai/bolt';
 
 type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
 const WORK_ORDER_COLUMNS = columns({
@@ -14,16 +13,12 @@ const WORK_ORDER_COLUMNS = columns({
 	title: 'text',
 	nature: { optional: 'text' },
 	description: { optional: 'text' },
-	assignee_user_id: { optional: 'text' },
+	assignee_contact: { optional: 'text' },
 	external_ref: { optional: 'text' }
 });
 export class SheetInvalid extends Schema.TaggedError<SheetInvalid>()('SheetInvalid', {
 	message: Schema.String
 }) {}
-const UserId = Schema.toType(IdValue);
-const MemberId = Schema.declare<Id<'sys_user'>>(
-	(input): input is Id<'sys_user'> => Schema.is(Schema.String)(input) && Schema.is(UserId)(input)
-);
 /** Decode the complete sheet once, before the first write. */
 export const decodeWorkOrders = Effect.fnUntraced(function* (
 	records: readonly Record<string, string>[]
@@ -54,16 +49,9 @@ export const decodeWorkOrders = Effect.fnUntraced(function* (
 				})
 				.join('\n')
 		});
-	const identities = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.NullOr(UserId)))(
-		decoded.rows.map((row) => row.assignee_user_id)
-	).pipe(Effect.mapError((error) => new SheetInvalid({ message: String(error) })));
-	const users = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.NullOr(MemberId)))(
-		identities
-	).pipe(Effect.mapError((error) => new SheetInvalid({ message: String(error) })));
-	return decoded.rows.map((row, index): Row => ({
+	return decoded.rows.map((row): Row => ({
 		...row,
 		latitude: row.latitude?.toNumber() ?? null,
-		longitude: row.longitude?.toNumber() ?? null,
-		assignee_user_id: users[index] ?? null
+		longitude: row.longitude?.toNumber() ?? null
 	}));
 });

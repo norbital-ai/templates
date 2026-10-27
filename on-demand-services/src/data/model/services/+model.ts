@@ -14,8 +14,8 @@ export default model('services', {
 		description: { kind: 'text', optional: true },
 		active: { kind: 'bool', default: true }
 	},
-	read: { fields: 'all' },
-	create: { columns },
-	update: { columns },
+	read: 'all',
+	create: { columns: { services: columns } },
+	update: { columns: { services: columns } },
 	delete: {}
 });

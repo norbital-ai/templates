@@ -14,13 +14,14 @@ export default automation('inspect_photo_evidence', {
 	concurrency: { max: 1 },
 	run: function* (_input, ctx) {
 		const { inspected, failures, settled } = yield* inspectPendingPhotos(ctx);
-		const waiting = settled.length
-			? yield* ctx.query('job_assignments', {
-					where: { id: { in: settled }, suspicion_checked_at: { isNull: true } },
-					select: {},
-					all: true
+		const { job_assignments: waiting } = settled.length
+			? yield* ctx.query({
+					job_assignments: {
+						where: { id: { in: settled }, suspicion_checked_at: { isNull: true } },
+						fields: ['id']
+					}
 				})
-			: { rows: [] };
+			: { job_assignments: { rows: [] } };
 		if (waiting.rows.length > 0)
 			yield* ctx.schedule('review_job_assignment_suspicion', {
 				ids: waiting.rows.map((job) => job.id)

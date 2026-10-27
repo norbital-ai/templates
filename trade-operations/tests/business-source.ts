@@ -81,12 +81,12 @@ const fields = {
 		'active'
 	]
 } as const;
-type Collection = keyof typeof fields;
+type Model = keyof typeof fields;
 
 /** Internal model evidence for business-rule tests. This does not simulate the Kingdee SQL adapter. */
 export const businessRows = Effect.fnUntraced(function* (
 	t: T,
-	collection: Collection,
+	model: Model,
 	values: readonly Json[]
 ) {
 	const rows = yield* Schema.decodeUnknownEffect(Schema.Array(Record))(values).pipe(
@@ -94,35 +94,38 @@ export const businessRows = Effect.fnUntraced(function* (
 	);
 	const as = t.as(t.admin);
 	const products =
-		collection === 'stock_snapshots'
-			? (yield* as.query('products', {
-					where: { source: { eq: instance } },
-					select: { external_code: true },
-					all: true
-				})).rows
+		model === 'stock_snapshots'
+			? (yield* as.query({
+					products: {
+						where: { source: { eq: instance } },
+						fields: ['external_code']
+					}
+				})).products.rows
 			: [];
 	const warehouses =
-		collection === 'stock_snapshots'
-			? (yield* as.query('warehouses', {
-					where: { source: { eq: instance } },
-					select: { external_code: true },
-					all: true
-				})).rows
+		model === 'stock_snapshots'
+			? (yield* as.query({
+					warehouses: {
+						where: { source: { eq: instance } },
+						fields: ['external_code']
+					}
+				})).warehouses.rows
 			: [];
 	const parties =
-		collection === 'credit_snapshots'
-			? (yield* as.query('parties', {
-					where: { source: { eq: instance } },
-					select: { external_code: true },
-					all: true
-				})).rows
+		model === 'credit_snapshots'
+			? (yield* as.query({
+					parties: {
+						where: { source: { eq: instance } },
+						fields: ['external_code']
+					}
+				})).parties.rows
 			: [];
 	const prepared = yield* Effect.try({
 		try: () =>
 			rows.map((row): Record<string, Json> => {
 				const value: Record<string, Json> = {};
-				for (const name of fields[collection]) if (row[name] !== undefined) value[name] = row[name];
-				if (collection === 'stock_snapshots') {
+				for (const name of fields[model]) if (row[name] !== undefined) value[name] = row[name];
+				if (model === 'stock_snapshots') {
 					const product = products.find(
 						(candidate) => candidate.external_code === row.product_code
 					);
@@ -137,7 +140,7 @@ export const businessRows = Effect.fnUntraced(function* (
 					value.product = product.id;
 					value.warehouse = warehouse.id;
 				}
-				if (collection === 'credit_snapshots') {
+				if (model === 'credit_snapshots') {
 					const party = parties.find((candidate) => candidate.external_code === row.party_code);
 					if (!party)
 						throw new BusinessFixtureInvalid({
@@ -145,7 +148,7 @@ export const businessRows = Effect.fnUntraced(function* (
 						});
 					value.party = party.id;
 				}
-				if (collection === 'source_sales_lines') {
+				if (model === 'source_sales_lines') {
 					if (typeof row.order_id !== 'string' || typeof row.order_line_id !== 'string')
 						throw new BusinessFixtureInvalid({
 							reason: 'Sales evidence requires the existing order and sealed line identities'
@@ -161,7 +164,7 @@ export const businessRows = Effect.fnUntraced(function* (
 				: new BusinessFixtureInvalid({ reason: String(cause) })
 	});
 	if (!prepared.length) return;
-	const outcome = yield* sync(t, collection, prepared, 'upsert');
+	const outcome = yield* sync(t, model, prepared, 'upsert');
 	if (outcome.kind !== 'committed')
 		return yield* new BusinessFixtureInvalid({ reason: JSON.stringify(outcome) });
 });

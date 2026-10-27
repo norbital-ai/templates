@@ -29,10 +29,12 @@
 	} = $props();
 	const t = bolt.t;
 	const logs = $derived(
-		bolt.query('communication_logs', {
-			where: { job_assignment_id: { eq: job } },
-			orderBy: 'sent_at',
-			limit: 250
+		bolt.query({
+			communication_logs: {
+				where: { job_assignment_id: { eq: job } },
+				orderBy: 'sent_at',
+				limit: 250
+			}
 		})
 	);
 	/** A contractor's grant masks a photo's provenance: select it only where it is readable. */
@@ -41,36 +43,50 @@
 	const provenance = kinds.catalog?.['photo_evidence']?.fields['source'] !== undefined;
 	const traced = $derived(
 		provenance
-			? bolt.query('photo_evidence', {
-					where: { job_assignment_id: { eq: job } },
-					select: { photo: true, created_at: true, source: true, flags: true },
-					orderBy: 'created_at',
-					limit: 250
+			? bolt.query({
+					photo_evidence: {
+						where: { job_assignment_id: { eq: job } },
+						fields: ['photo', 'created_at', 'source', 'flags'],
+						orderBy: 'created_at',
+						limit: 250
+					}
 				})
 			: null
 	);
 	const untraced = $derived(
 		provenance
 			? null
-			: bolt.query('photo_evidence', {
-					where: { job_assignment_id: { eq: job } },
-					select: { photo: true, created_at: true },
-					orderBy: 'created_at',
-					limit: 250
+			: bolt.query({
+					photo_evidence: {
+						where: { job_assignment_id: { eq: job } },
+						fields: ['photo', 'created_at'],
+						orderBy: 'created_at',
+						limit: 250
+					}
 				})
 	);
 	const photos = $derived<Photo[]>(
-		[...(traced?.current?.rows ?? []), ...(untraced?.current?.rows ?? [])].flatMap((row) => {
+		[
+			...(traced?.current?.photo_evidence.rows ?? []).map((row) => ({
+				row,
+				source: row.source,
+				flags: [...row.flags]
+			})),
+			...(untraced?.current?.photo_evidence.rows ?? []).map((row) => ({
+				row,
+				source: null,
+				flags: []
+			}))
+		].flatMap(({ row, source, flags }) => {
 			const file = row.photo;
 			if (file == null) return [];
-			const source = 'source' in row ? row.source : null;
 			const message = source?.kind === 'message' ? source : null;
 			return [
 				{
 					id: String(row.id),
 					name: file.name,
 					url: bolt.fileUrl(file),
-					flags: 'flags' in row ? [...row.flags] : [],
+					flags,
 					sender:
 						message?.sender_id ??
 						(message
@@ -97,7 +113,7 @@
 			(p) => p.messageId!
 		);
 		const items: Item[] = [
-			...(logs.current?.rows ?? []).map((m) => ({
+			...(logs.current?.communication_logs.rows ?? []).map((m) => ({
 				id: `message:${m.source_message_id}`,
 				sender: m.sender,
 				text: m.message,
@@ -109,7 +125,9 @@
 				.filter(
 					(p) =>
 						p.messageId == null ||
-						!(logs.current?.rows ?? []).some((m) => m.source_message_id === p.messageId)
+						!(logs.current?.communication_logs.rows ?? []).some(
+							(m) => m.source_message_id === p.messageId
+						)
 				)
 				.map((p) => ({
 					id: `photo:${p.id}`,

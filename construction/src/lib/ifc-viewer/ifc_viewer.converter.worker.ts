@@ -119,7 +119,7 @@ function handleConvert(message: ConvertRequestMessage): Effect.Effect<void, neve
 					type: 'error',
 					error: error instanceof Error ? messageOf(error) : 'ifc.unable_to_convert'
 				} satisfies WorkerErrorMessage)
-			)
+			).pipe(Effect.ignore)
 		)
 	);
 }

@@ -22,7 +22,8 @@ export default automation('orders_revise', {
 		revision: { kind: 'int', optional: true }
 	},
 	run: function* ({ target, revision }, ctx) {
-		const order = yield* ctx.query('orders', { id: target });
+		const [order] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
+			.orders.rows;
 		if (!order || isMasked(order.currency))
 			return yield* new Refusal({ message: 'errors.agreement_access' });
 		if (order.archived) return yield* new Refusal({ message: 'errors.order_archived' });
@@ -38,33 +39,33 @@ export default automation('orders_revise', {
 		// Parent aggregates cannot be read prospectively inside a combined parent/line write.
 		const opened = yield* ctx.act(
 			'orders.update',
-			{
-				target,
-				set: {
-					status: 'draft',
-					draft_setup: current.seal_hash,
-					currency: currency(current.snapshot.currency),
-					tax_inclusive: current.snapshot.tax_inclusive,
-					ordered_on: current.ordered_on,
-					warehouse: current.snapshot.warehouse
-						? yield* identity('warehouses', current.snapshot.warehouse)
-						: null,
-					valid_from: current.snapshot.valid_from ? PlainDate(current.snapshot.valid_from) : null,
-					valid_until: current.snapshot.valid_until
-						? PlainDate(current.snapshot.valid_until)
-						: null,
-					payment_terms: current.snapshot.payment_terms,
-					delivery_terms: current.snapshot.delivery_terms || null,
-					supporting_documents: current.supporting_documents ?? []
+			[
+				{
+					target,
+					set: {
+						status: 'draft',
+						draft_setup: current.seal_hash,
+						currency: currency(current.snapshot.currency),
+						tax_inclusive: current.snapshot.tax_inclusive,
+						ordered_on: current.ordered_on,
+						warehouse: current.snapshot.warehouse
+							? yield* identity('warehouses', current.snapshot.warehouse)
+							: null,
+						valid_from: current.snapshot.valid_from ? PlainDate(current.snapshot.valid_from) : null,
+						valid_until: current.snapshot.valid_until
+							? PlainDate(current.snapshot.valid_until)
+							: null,
+						payment_terms: current.snapshot.payment_terms,
+						delivery_terms: current.snapshot.delivery_terms || null,
+						supporting_documents: current.supporting_documents ?? []
+					}
 				}
-			},
+			],
 			{ observed: { [target]: revision ?? order.revision } }
 		);
 		if (opened.kind === 'pendingApproval') return;
-		const { rows } = yield* ctx.query('order_lines', {
-			where: { order: { eq: target } },
-			all: true
-		});
+		const { rows } = (yield* ctx.query({ order_lines: { where: { order: { eq: target } } } }))
+			.order_lines;
 		const lines = yield* Effect.forEach(current.snapshot.lines, (line) =>
 			Effect.gen(function* () {
 				if (!line.product) return yield* new Refusal({ message: 'errors.product_inactive' });
@@ -103,20 +104,23 @@ export default automation('orders_revise', {
 				: []),
 			...(creates.length ? [{ callable: 'order_lines.create' as const, input: creates }] : []),
 			...(deletes.length
-				? [{ callable: 'order_lines.delete' as const, input: { target: deletes }, observed }]
+				? [
+						{
+							callable: 'order_lines.delete' as const,
+							input: deletes.map((id) => ({ target: id })),
+							observed
+						}
+					]
 				: [])
 		]);
 		if (copied.kind === 'pendingApproval') return;
-		const ready = yield* ctx.query('orders', { id: target });
+		const [ready] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
+			.orders.rows;
 		if (!ready || ready.draft_setup !== current.seal_hash)
 			return yield* new Refusal({ message: 'errors.contract_setup' });
 		// Clearing the marker validates the complete one-to-one copy before editing or sealing is enabled.
-		yield* ctx.act(
-			'orders.update',
-			{ target, set: { draft_setup: null } },
-			{
-				observed: { [target]: ready.revision }
-			}
-		);
+		yield* ctx.act('orders.update', [{ target, set: { draft_setup: null } }], {
+			observed: { [target]: ready.revision }
+		});
 	}
 });

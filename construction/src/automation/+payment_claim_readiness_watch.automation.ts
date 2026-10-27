@@ -9,10 +9,14 @@ export default automation('payment_claim_readiness_watch', {
 	runAs: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
-		const { rows } = yield* ctx.query('payment_claims', {
-			where: { status: { in: ['draft', 'submitted'] } },
-			orderBy: { updated_at: 'desc' },
-			limit: 25
+		const {
+			payment_claims: { rows }
+		} = yield* ctx.query({
+			payment_claims: {
+				where: { status: { in: ['draft', 'submitted'] } },
+				orderBy: { updated_at: 'desc' },
+				limit: 25
+			}
 		});
 		return { generated_at: ctx.now, count: rows.length, rows };
 	}

@@ -46,7 +46,22 @@ export default automation('review_job_assignment_suspicion', {
 		const inspection = yield* inspectPendingPhotos(ctx);
 		const unreadable = new Set<string>(inspection.failures.map((failure) => failure.photo_id));
 		yield* ctx.progress({ ratio: 0.03, text: 'Placing photos without a scene' });
-		yield* backfillScenes(ctx);
+		const scenes = yield* backfillScenes(ctx);
+		// A checked stamp must not hide a later scene match when these photos are retried.
+		if (scenes.failures.length > 0) {
+			yield* ctx.schedule(
+				'review_job_assignment_suspicion',
+				{},
+				{ at: nextRetrySlot(ctx.now), key: 'suspicion_retry' }
+			);
+			const { ReviewIncomplete } = yield* Effect.promise(
+				() => import('../lib/suspicion-review-failures.js')
+			);
+			const first = scenes.failures[0];
+			return yield* new ReviewIncomplete({
+				message: `Suspicion review did not complete: ${scenes.failures.length} scene embeddings failed; first failure ${first?.photo_id}: ${first?.reason}`
+			});
+		}
 		yield* ctx.progress({ ratio: 0.05, text: 'Loading unchecked assignments' });
 		const only = input.assignment_id != null ? [input.assignment_id] : (input.ids ?? undefined);
 		// an assignment with a photo another run is inspecting is reviewed by the run that run starts once it is settled
@@ -56,7 +71,8 @@ export default automation('review_job_assignment_suspicion', {
 		const counts: Record<string, number> = {
 			checked: 0,
 			inspected_photos: inspection.inspected,
-			inspection_failed: inspection.failures.length
+			inspection_failed: inspection.failures.length,
+			scene_embeddings: scenes.filled
 		};
 		if (assignments.length < unchecked.length)
 			counts.awaiting_inspection = unchecked.length - assignments.length;

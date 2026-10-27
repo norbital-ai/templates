@@ -2,7 +2,7 @@
 	/**
 	 * A workplace case's or work suspension's kind, picked from the catalogue (`case_kinds` rule rows;
 	 * the version’s inline suspension kinds) of the chosen entity's lineage version governing the record's day (today until one is
-	 * set); without an entity yet, each lineage's version in force today, grouped by lineage. The collection's
+	 * set); without an entity yet, each lineage's version in force today, grouped by lineage. The model's
 	 * transform judges the kind on save. Readonly, the kind reads as its name.
 	 */
 	import { bolt } from '$bolt';
@@ -36,34 +36,34 @@
 	const entity = $derived.by(() =>
 		companyId == null
 			? null
-			: bolt.query('entity', {
-					where: { id: { eq: companyId } },
-					select: { settings_code: true },
-					limit: 1
+			: bolt.query({
+					entity: { where: { id: { eq: companyId } }, fields: ['settings_code'], limit: 1 }
 				})
 	);
-	const lineage = $derived(entity?.current?.rows?.[0]?.settings_code ?? null);
+	const lineage = $derived(entity?.current?.entity.rows[0]?.settings_code ?? null);
 
 	const versions = $derived.by(() =>
-		bolt.query('jurisdiction_settings', {
-			where: { sealed_at: { isNull: false }, voided_at: { isNull: true } },
-			select: { id: true, code: true, effective_range: true, suspension_kinds: true },
-			all: true
+		bolt.query({
+			jurisdiction_settings: {
+				where: { sealed_at: { isNull: false }, voided_at: { isNull: true } },
+				fields: ['code', 'effective_range', 'suspension_kinds']
+			}
 		})
 	);
 	const cases = $derived.by(() =>
 		source !== 'case'
 			? null
-			: bolt.query('rule_set', {
-					where: { family: { eq: 'PAYROLL' }, code: { eq: 'case_kinds' } },
-					select: { settings_id: true, rules: true },
-					all: true
+			: bolt.query({
+					rule_set: {
+						where: { family: { eq: 'PAYROLL' }, code: { eq: 'case_kinds' } },
+						fields: ['settings_id', 'rules']
+					}
 				})
 	);
 	const options = $derived.by(() => {
 		const today = day ?? todayKey();
 		const inForce = new Map(
-			(versions?.current?.rows ?? [])
+			(versions?.current?.jurisdiction_settings.rows ?? [])
 				.filter((row) => lineage == null || row.code === lineage)
 				.filter((row) => {
 					const from = String(row.effective_range?.from ?? '');
@@ -74,14 +74,14 @@
 		);
 		const kinds: { settings_id: string; code: string; name: string }[] =
 			source === 'suspension'
-				? (versions?.current?.rows ?? []).flatMap((version) =>
+				? (versions?.current?.jurisdiction_settings.rows ?? []).flatMap((version) =>
 						(version.suspension_kinds ?? []).map((kind) => ({
 							settings_id: String(version.id),
 							code: kind.code,
 							name: kind.name ?? kind.code
 						}))
 					)
-				: (cases?.current?.rows ?? []).flatMap((row) =>
+				: (cases?.current?.rule_set.rows ?? []).flatMap((row) =>
 						kindsOf(row.rules).map((kind) => ({ settings_id: String(row.settings_id), ...kind }))
 					);
 		return kinds

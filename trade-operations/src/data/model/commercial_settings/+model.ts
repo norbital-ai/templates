@@ -28,6 +28,13 @@ export default model('commercial_settings', {
 	key: ['code'],
 	read: 'all',
 	update: {
-		columns: ['freight_treatment', 'require_floor', 'credit_fresh_minutes', 'stock_fresh_minutes']
+		columns: {
+			commercial_settings: [
+				'freight_treatment',
+				'require_floor',
+				'credit_fresh_minutes',
+				'stock_fresh_minutes'
+			]
+		}
 	}
 });

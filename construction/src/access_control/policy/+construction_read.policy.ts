@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-/** Shared read authority; the app-opening policies carry no collection grants. */
+/** Shared read authority; the app-opening policies carry no model grants. */
 export default policy({
 	description: 'Read access shared by every construction surface.',
 	grants: {

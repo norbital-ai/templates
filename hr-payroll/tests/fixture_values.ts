@@ -14,7 +14,7 @@ export function fixtureId(label: string): string {
 	return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
 
-/** The canonical kind codec validates the UUID; the declaration adds only its collection's nominal brand. */
+/** The canonical kind codec validates the UUID; the declaration adds only its model's nominal brand. */
 export function nativeId<C extends string>(collection: C, value: unknown): Id<C> {
 	const codec = inputSchema({ kind: 'id', of: collection });
 	const decoded = Schema.decodeUnknownSync(codec)(value);

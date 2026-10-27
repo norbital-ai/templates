@@ -52,9 +52,9 @@ export default model('leave_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { leave_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { leave_catalog: update_columns }
 	}
 });

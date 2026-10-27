@@ -29,16 +29,15 @@ const columns = [
 	'facts'
 ] as const;
 
+/** A create's repayment rows enter as the update's `{ create }` changes, so both verbs plan one schedule shape. */
 type WriteInput = Omit<UpdateSet<'loan_catalog_entry'>, 'id'> &
-	Partial<Omit<CreateRow<'loan_catalog_entry'>, 'id'>> & {
+	Partial<Omit<CreateRow<'loan_catalog_entry'>, 'id' | 'repayments'>> & {
 		readonly id?: Id<'loan_catalog_entry'>;
 		readonly $delete?: true;
 	};
 
 type RepaymentWrites = NonNullable<UpdateSet<'loan_catalog_entry'>['repayments']>;
-type RepaymentCreate = NonNullable<
-	NonNullable<CreateRow<'loan_catalog_entry'>['repayments']>['create']
->[number];
+type RepaymentCreate = NonNullable<RepaymentWrites['create']>[number];
 type ScheduleRepayment = {
 	readonly occurred_on: PlainDate;
 	readonly amount: Decimal;
@@ -73,27 +72,14 @@ const transformRows = Effect.fnUntraced(function* (
 		)
 	];
 	// the schedule's money and calendar come from the version governing each loan class
-	const {
-		children: stored,
-		classes,
-		versions
-	} = yield* ctx.db.query({
-		children: {
-			from: 'loan_repayment_entry',
-			where: { loan_id: { in: ids } },
-			all: true
-		},
-		classes: {
-			from: 'loan_catalog',
-			where: { id: { in: catalogIds } },
-			select: { id: true, settings_id: true },
-			all: true
-		},
-		versions: {
-			from: 'jurisdiction_settings',
-			where: { id: { in: { member: 'classes', field: 'settings_id' } } },
-			select: { id: true, payroll: true },
-			all: true
+	const { loan_repayment_entry: stored, loan_catalog: classes } = yield* ctx.db.query({
+		loan_repayment_entry: { where: { loan_id: { in: ids } } },
+		loan_catalog: { where: { id: { in: catalogIds } }, fields: ['settings_id'] }
+	});
+	const { jurisdiction_settings: versions } = yield* ctx.db.query({
+		jurisdiction_settings: {
+			where: { id: { in: [...new Set(classes.rows.map((row) => row.settings_id))] } },
+			fields: ['payroll']
 		}
 	});
 	const children = stored.rows;
@@ -439,40 +425,37 @@ export default model('loan_catalog_entry', {
 			optional: true
 		}
 	},
-	read: 'all',
+	read: {
+		loan_catalog_entry: { fields: 'all' },
+		'loan_catalog_entry.repayments': { fields: 'all' }
+	},
 	create: {
-		columns,
-		with: {
-			repayments: {
-				create: {
-					columns: ['occurred_on', 'amount']
-				}
-			}
+		columns: {
+			loan_catalog_entry: columns,
+			'loan_catalog_entry.repayments': ['occurred_on', 'amount']
 		},
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
-				rows,
+				rows.map(({ repayments, ...row }) =>
+					repayments === undefined ? row : { ...row, repayments: { create: repayments } }
+				),
 				rows.map(() => undefined),
 				ctx
 			);
-			return rows.map((row, index) => {
-				const { id: _id, $delete: _delete, ...set } = transformed[index] ?? {};
-				return { ...row, ...set };
+			return rows.map(({ repayments: _given, ...row }, index) => {
+				const { id: _id, $delete: _delete, repayments, ...set } = transformed[index] ?? {};
+				return {
+					...row,
+					...set,
+					...(repayments?.create === undefined ? {} : { repayments: repayments.create })
+				};
 			});
 		}
 	},
 	update: {
-		columns,
-		with: {
-			repayments: {
-				create: {
-					columns: ['occurred_on', 'amount']
-				},
-				update: {
-					columns: ['occurred_on', 'amount']
-				},
-				delete: {}
-			}
+		columns: {
+			loan_catalog_entry: columns,
+			'loan_catalog_entry.repayments': ['occurred_on', 'amount']
 		},
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(

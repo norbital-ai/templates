@@ -16,27 +16,27 @@
 		$props();
 
 	const entity = $derived.by(() =>
-		bolt.query('entity', {
-			id: companyId,
-			select: {
-				pay_frequency: true,
-				pay_frequency_changes: true,
-				settings_code: true
+		bolt.query({
+			entity: {
+				where: { id: { eq: companyId } },
+				fields: ['pay_frequency', 'pay_frequency_changes', 'settings_code'],
+				limit: 1
 			}
 		})
 	);
+	const company = $derived(entity?.current?.entity.rows[0]);
 	const money = versionMoney(() => {
-		const lineage = entity?.current?.settings_code;
+		const lineage = company?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
 	const calendar = versionCalendar(() => {
-		const lineage = entity?.current?.settings_code;
+		const lineage = company?.settings_code;
 		return lineage == null || lineage === '' ? null : { lineage };
 	});
 	/** The periods the entity's schedule offers, twelve months back from now (a daily entity: its days), each paid at
 	 * the frequency in force on its days (`periodsIn`): a month that switches offers both frequencies' own. */
 	const periods = $derived.by(() =>
-		periodOptions(entity?.current ?? {}, calendar() ?? {}, todayKey()).map((period) => {
+		periodOptions(company ?? {}, calendar() ?? {}, todayKey()).map((period) => {
 			const label = new Date(`${period.from}T00:00:00Z`).toLocaleDateString(undefined, {
 				month: 'long',
 				year: 'numeric',
@@ -50,29 +50,27 @@
 		})
 	);
 
-	const openEntryRead = () =>
-		({
-			where: {
-				company_id: { eq: companyId },
-				payslip_id: { isNull: true }
-			},
-			select: {
-				id: true,
-				occurred_on: true,
-				amount: true,
-				catalog_id: { select: { name: true, code: true } },
-				employment_id: { select: { employee_number: true } }
-			},
-			orderBy: { occurred_on: 'desc' },
-			all: true
-		}) as const;
-	const adhoc = $derived.by(() =>
-		open ? bolt.query('adhoc_catalog_entry', openEntryRead()) : null
+	const open_entry = {
+		where: { company_id: { eq: companyId }, payslip_id: { isNull: true } },
+		fields: ['occurred_on', 'amount', 'catalog_id', 'employment_id'],
+		orderBy: { occurred_on: 'desc' }
+	} as const;
+	const open_entries = $derived.by(() =>
+		open
+			? bolt.query({
+					adhoc_catalog_entry: open_entry,
+					'adhoc_catalog_entry.catalog_id': { fields: ['name', 'code'] },
+					'adhoc_catalog_entry.employment_id': { fields: ['employee_number'] },
+					claim_catalog_entry: open_entry,
+					'claim_catalog_entry.catalog_id': { fields: ['name', 'code'] },
+					'claim_catalog_entry.employment_id': { fields: ['employee_number'] }
+				})
+			: null
 	);
-	const claims = $derived.by(() =>
-		open ? bolt.query('claim_catalog_entry', openEntryRead()) : null
-	);
-	const entries = $derived([...(adhoc?.current?.rows ?? []), ...(claims?.current?.rows ?? [])]);
+	const entries = $derived([
+		...(open_entries?.current?.adhoc_catalog_entry.rows ?? []),
+		...(open_entries?.current?.claim_catalog_entry.rows ?? [])
+	]);
 
 	type Picked = {
 		readonly id: string;
@@ -80,13 +78,11 @@
 		readonly person: string;
 		readonly item: string;
 	};
-	type EntryRow =
-		| NonNullable<NonNullable<typeof adhoc>['current']>['rows'][number]
-		| NonNullable<NonNullable<typeof claims>['current']>['rows'][number];
+	type EntryRow = (typeof entries)[number];
 	const picked = (row: EntryRow): Picked => {
 		const amount = row.amount?.toNumber() ?? null;
 		const person = row.employment_id?.employee_number || '—';
-		const itemName = row.catalog_id.name || row.catalog_id.code || '—';
+		const itemName = row.catalog_id?.name || row.catalog_id?.code || '—';
 		return {
 			id: row.id,
 			person,

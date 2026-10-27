@@ -8,6 +8,7 @@ import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { committed, confirm, draft, PRODUCT } from './kit.js';
+import { boardOf } from './reads.js';
 const configuredMonthly = Effect.fnUntraced(function* () {
 	let facts: Record<string, Json>[] = [];
 	const setup = yield* configuredCommission();
@@ -19,7 +20,9 @@ const configuredMonthly = Effect.fnUntraced(function* () {
 		kind: string = 'shipment',
 		businessOn: string = '2026-10-10'
 	) {
-		const order = yield* setup.as.query('orders', { id: own.order });
+		const order = (yield* setup.as.query({
+			orders: { where: { id: { eq: own.order } }, limit: 1 }
+		})).orders.rows[0];
 		facts.push({
 			external_code: code,
 			order_id: own.order,
@@ -57,8 +60,7 @@ test.live(
 			const { t, as, sales, own, deactivate } = yield* configuredMonthly();
 			const finance = t.member(['finance']);
 			const f = t.as(finance);
-			const board = () =>
-				f.query('commission_statements.board', { period: PlainDate('2026-10-10') });
+			const board = () => boardOf(f, { period: PlainDate('2026-10-10') });
 			const current = firstRow(yield* board());
 			expect(current).toMatchObject({
 				owner: fixtureId('sys_user', sales.id),
@@ -76,13 +78,13 @@ test.live(
 			};
 			expect(
 				yield* Effect.flip(
-					f.act('commission_statements.create', { ...input, calculation_hash: 'stale' })
+					f.act('commission_statements.create', [{ ...input, calculation_hash: 'stale' }])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			const concurrent = yield* Effect.all(
 				[
-					f.act('commission_statements.create', input),
-					f.act('commission_statements.create', input)
+					f.act('commission_statements.create', [input]),
+					f.act('commission_statements.create', [input])
 				],
 				{ concurrency: 'unbounded', mode: 'result' }
 			);
@@ -91,9 +93,11 @@ test.live(
 					(result) => Result.isSuccess(result) && result.success.kind === 'committed'
 				)
 			).toHaveLength(1);
-			const statements = yield* as.query('commission_statements', { all: true });
+			const statements = (yield* as.query({ commission_statements: {} })).commission_statements;
 			const signedId = firstRow(statements.rows).id;
-			const signed = yield* as.query('commission_statements', { id: signedId });
+			const signed = (yield* as.query({
+				commission_statements: { where: { id: { eq: signedId } }, limit: 1 }
+			})).commission_statements.rows[0];
 			expect(signed).toMatchObject({
 				owner: fixtureId('sys_user', sales.id),
 				amount: decimalText('210.00'),
@@ -104,10 +108,11 @@ test.live(
 				state: 'current',
 				latest_amount: decimalText('210.00')
 			});
-			const seal = yield* as.query('orders', { id: own.order });
+			const seal = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			committed(
 				'orders',
-				yield* as.act('orders.update', { target: own.order, set: { archived: true } })
+				yield* as.act('orders.update', [{ target: own.order, set: { archived: true } }])
 			);
 			expect((yield* board())[0]).toMatchObject({
 				amount: decimalText('210.00'),
@@ -121,38 +126,45 @@ test.live(
 				latest_amount: decimalText('210.00'),
 				order_count: 0
 			});
-			expect(yield* Effect.flip(f.act('commission_statements.create', input))).toMatchObject({
+			expect(yield* Effect.flip(f.act('commission_statements.create', [input]))).toMatchObject({
 				_tag: 'ActRefused'
 			});
 			committed(
 				'commission_statements',
-				yield* f.act('commission_statements.create', {
-					...input,
-					calculation_hash: changed.calculation_hash
-				})
+				yield* f.act('commission_statements.create', [
+					{
+						...input,
+						calculation_hash: changed.calculation_hash
+					}
+				])
 			);
 			expect((yield* board())[0]).toMatchObject({
 				state: 'current',
 				amount: decimalText('0.00'),
 				latest_amount: decimalText('0.00')
 			});
-			expect(yield* as.query('commission_statements', { id: signedId })).toEqual(signed);
-			expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+			expect(
+				(yield* as.query({ commission_statements: { where: { id: { eq: signedId } }, limit: 1 } }))
+					.commission_statements.rows[0]
+			).toEqual(signed);
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				seal_hash: seal?.seal_hash,
 				sealed_contract: seal?.sealed_contract
 			});
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'commission_statements',
+					model: 'commission_statements',
 					verb: 'update',
-					input: { target: signedId, set: { amount: '999' } }
+					input: [{ target: signedId, set: { amount: '999' } }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'commission_statements',
+					model: 'commission_statements',
 					verb: 'delete',
-					input: { target: signedId }
+					input: [{ target: signedId }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 		})
@@ -163,9 +175,7 @@ test.live(
 		Effect.gen(function* () {
 			const { t, as, sales, own, addFact } = yield* configuredMonthly();
 			const f = t.as(t.member(['finance']));
-			const current = firstRow(
-				yield* f.query('commission_statements.board', { period: PlainDate('2026-10-01') })
-			);
+			const current = firstRow(yield* boardOf(f, { period: PlainDate('2026-10-01') }));
 			const input = {
 				owner: current.owner,
 				period: current.period,
@@ -173,26 +183,22 @@ test.live(
 				calculation_hash: current.calculation_hash
 			};
 			expect(
-				yield* Effect.flip(t.as(sales).act('commission_statements.create', input))
+				yield* Effect.flip(t.as(sales).act('commission_statements.create', [input]))
 			).toMatchObject({
 				_tag: 'ActRefused'
 			});
 			expect(
-				yield* t
-					.as(t.member(['sales']))
-					.query('commission_statements.board', { period: PlainDate('2026-10-01') })
+				yield* boardOf(t.as(t.member(['sales'])), { period: PlainDate('2026-10-01') })
 			).toEqual([]);
-			expect(
-				yield* t.as(sales).query('commission_statements.board', { period: PlainDate('2026-10-01') })
-			).toMatchObject([{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }]);
+			expect(yield* boardOf(t.as(sales), { period: PlainDate('2026-10-01') })).toMatchObject([
+				{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }
+			]);
 			for (const role of ['procurement', 'logistics', 'configuration'])
 				yield* Effect.tryPromise({
 					try: () =>
 						expect(
 							Effect.runPromise(
-								t
-									.as(t.member([role]))
-									.query('commission_statements.board', { period: PlainDate('2026-10-01') })
+								boardOf(t.as(t.member([role])), { period: PlainDate('2026-10-01') })
 							)
 						).rejects.toThrow(),
 					catch: (cause) => new TestIoFailed({ message: String(cause) })
@@ -200,32 +206,40 @@ test.live(
 			const foreign = yield* draft(t, 'sales');
 			yield* confirm(t, foreign.order);
 			yield* addFact(foreign, '4', '8', 'FOREIGN');
-			const unknown = (yield* f.query('commission_statements.board', {
+			const unknown = (yield* boardOf(f, {
 				period: PlainDate('2026-10-01')
 			})).find((r) => r.owner !== sales.id);
 			if (unknown === undefined) throw new Error('Foreign monthly commission required');
 			expect(unknown).toMatchObject({ state: 'unresolved', amount: null });
 			expect(
 				yield* Effect.flip(
-					f.act('commission_statements.create', {
-						owner: unknown.owner,
-						period: unknown.period,
-						currency: unknown.currency,
-						calculation_hash: unknown.calculation_hash
-					})
+					f.act('commission_statements.create', [
+						{
+							owner: unknown.owner,
+							period: unknown.period,
+							currency: unknown.currency,
+							calculation_hash: unknown.calculation_hash
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			const record = committed(
 				'commission_statements',
-				yield* f.act('commission_statements.create', input)
+				yield* f.act('commission_statements.create', [input])
 			);
 			expect(
-				(yield* t.as(sales).query('commission_statements', { all: true })).rows.map((r) => r.id)
+				(yield* t.as(sales).query({ commission_statements: {} })).commission_statements.rows.map(
+					(r) => r.id
+				)
 			).toEqual([record]);
 			expect(
-				(yield* t.as(t.member(['sales'])).query('commission_statements', { all: true })).rows
+				(yield* t.as(t.member(['sales'])).query({ commission_statements: {} }))
+					.commission_statements.rows
 			).toEqual([]);
-			expect((yield* as.query('orders', { id: own.order }))?.seal_hash).toBeTruthy();
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+					?.seal_hash
+			).toBeTruthy();
 		})
 );
 test.live(
@@ -236,7 +250,7 @@ test.live(
 			yield* deactivate();
 			yield* addFact(own, '400', '800', 'PARTIAL');
 			const board = Effect.fnUntraced(function* () {
-				return yield* as.query('commission_statements.board', { period: PlainDate('2026-10-01') });
+				return yield* boardOf(as, { period: PlainDate('2026-10-01') });
 			});
 			expect((yield* board())[0]).toMatchObject({
 				owner: fixtureId('sys_user', sales.id),
@@ -246,20 +260,20 @@ test.live(
 			expect((yield* board())[0]).toMatchObject({ amount: decimalText('63.00') });
 			yield* addFact(own, '100', '200', 'NEXT-MONTH', 'shipment', '2026-11-02');
 			expect((yield* board())[0]).toMatchObject({ amount: decimalText('63.00') });
-			expect(
-				yield* as.query('commission_statements.board', { period: PlainDate('2026-11-01') })
-			).toMatchObject([{ amount: decimalText('21.00') }]);
+			expect(yield* boardOf(as, { period: PlainDate('2026-11-01') })).toMatchObject([
+				{ amount: decimalText('21.00') }
+			]);
 			committed(
 				'products',
-				yield* as.act('products.update', {
-					target: PRODUCT,
-					set: { commission_factor: Decimal.of('0.75') }
-				})
+				yield* as.act('products.update', [
+					{
+						target: PRODUCT,
+						set: { commission_factor: Decimal.of('0.75') }
+					}
+				])
 			);
 			expect((yield* board())[0]).toMatchObject({ amount: decimalText('63.00') });
-			expect(
-				yield* as.query('commission_statements.board', { period: PlainDate('2026-09-01') })
-			).toEqual([]);
+			expect(yield* boardOf(as, { period: PlainDate('2026-09-01') })).toEqual([]);
 		})
 );
 class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {

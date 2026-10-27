@@ -1,15 +1,18 @@
-import { Decimal, sum } from '@norbital-ai/std/decimal';
-import { averageLotCost } from '../../../lib/lot-cost.js';
+import { Decimal } from '@norbital-ai/std/decimal';
 import {
 	agreements,
 	currentAgreement,
 	executableAgreement,
 	type ContractVersion,
-	agreementSelect,
 	confirmationBasis,
 	operationalLines
 } from '../../../lib/agreements.js';
-import { agreementText, publishedTemplate, orderDocument } from '../../../lib/order-document.js';
+import {
+	agreementText,
+	documentRead,
+	publishedTemplate,
+	orderDocument
+} from '../../../lib/order-document.js';
 import { COMMISSION_ENGINE } from '../../../lib/commission-expressions.js';
 import { submitOrder, type OrderPayload } from '../../../integration/kingdee/submission.js';
 import { readContractVersions } from '../../../integration/kingdee/contract-versions.js';
@@ -20,7 +23,6 @@ import {
 import { draftLineMatches, draftLineTarget } from '../../../lib/contract-draft.js';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import {
-	isMasked,
 	model,
 	type CreateRow,
 	type UpdateSet,
@@ -29,14 +31,7 @@ import {
 	type WriteCtx
 } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { creditWarning, currentFloors, hash, price, snapshot } from '../../../lib/commercial.js';
-import {
-	commissionRows,
-	reportQueries,
-	reportSelect,
-	salesAnalysis,
-	salesDetail
-} from '../../../lib/reports.js';
+import { currentFloors, hash, snapshot } from '../../../lib/commercial.js';
 const snapshotShape = {
 	kind: 'object',
 	fields: {
@@ -278,9 +273,10 @@ const contractProof = (version: ContractVersion) => ({
 /** The party and warehouse an order names must be active, match its direction, and share the party's ledger. */
 const admitParty = Effect.fnUntraced(function* (
 	ctx: WriteCtx<'orders'>,
-	party: StoredRow<'parties'> | undefined,
+	party:
+		Pick<StoredRow<'parties'>, 'active' | 'kind' | 'source' | 'name' | 'external_code'> | undefined,
 	direction: Row<'orders'>['direction'],
-	warehouse: StoredRow<'warehouses'> | undefined
+	warehouse: Pick<StoredRow<'warehouses'>, 'source'> | undefined
 ) {
 	if (!party || !party.active)
 		return yield* ctx.refuse('errors.party_inactive', { field: 'party' });
@@ -578,23 +574,25 @@ export default model('orders', {
 		text: ['number', 'title', 'party_name']
 	},
 	key: ['ledger', 'source_order_key'],
-	read: 'all',
+	// the layers the document, confirmation and stock reads walk (their policies narrow them per team)
+	read: {
+		orders: { fields: 'all' },
+		'orders.party': { fields: 'all' },
+		'orders.lines': { fields: 'all' },
+		'orders.transactions': { fields: 'all' },
+		'orders.ext_sales_orders': { fields: 'all' }
+	},
 	create: {
-		columns: terms,
 		// each line prices itself in its own `create.transform`, after this one
-		with: {
-			lines: {
-				create: { columns: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate'] }
-			}
+		columns: {
+			orders: terms,
+			'orders.lines': ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate']
 		},
+		filled: { 'orders.lines': ['unit_price', 'tax_rate'] },
 		transform: function* (rows, ctx) {
 			const { parties, warehouses } = yield* ctx.db.query({
-				parties: { from: 'parties', where: { id: { in: rows.map((r) => r.party) } }, all: true },
-				warehouses: {
-					from: 'warehouses',
-					where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } },
-					all: true
-				}
+				parties: { where: { id: { in: rows.map((r) => r.party) } } },
+				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } }
 			});
 			const out: CreateRow<'orders'>[] = [];
 			for (const row of rows) {
@@ -625,74 +623,43 @@ export default model('orders', {
 		}
 	},
 	update: {
-		columns: [...terms, 'status', 'check_hash', 'archived', 'draft_setup'],
-		with: {
-			lines: {
-				upsert: { columns: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate'] },
-				delete: true
-			}
+		columns: {
+			orders: [...terms, 'status', 'check_hash', 'archived', 'draft_setup'],
+			'orders.lines': ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate']
 		},
 		transform: function* (changes, ctx) {
 			const ids = changes.map((c) => c.before.id);
 			const {
 				parties,
-				lines,
-				settings,
-				templates,
-				products,
-				rules,
-				floors,
+				order_lines: lines,
+				commercial_settings: settings,
+				document_templates: templates,
+				commission_rules: rules,
 				warehouses,
-				references
+				orders: references
 			} = yield* ctx.db.query({
-				references: {
-					from: 'orders',
-					where: { id: { in: ids } },
-					select: { number: true },
-					all: true
-				},
-				rules: {
-					from: 'commission_rules',
-					where: { active: { eq: true }, code: { eq: 'default' } },
-					all: true
-				},
+				orders: { where: { id: { in: ids } }, fields: ['number'] },
+				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
 				parties: {
-					from: 'parties',
-					where: { id: { in: changes.map(({ before, set }) => set.party ?? before.party) } },
-					all: true
+					where: { id: { in: changes.map(({ before, set }) => set.party ?? before.party) } }
 				},
-				lines: { from: 'order_lines', where: { order: { in: ids } }, all: true },
-				templates: {
-					from: 'document_templates',
-					where: { status: { eq: 'published' } },
-					all: true
-				},
-				settings: {
-					from: 'commercial_settings',
-					where: { code: { eq: 'default' } },
-					limit: 1
-				},
-				products: {
-					from: 'products',
-					where: { id: { in: { member: 'lines', field: 'product' } } },
-					all: true
-				},
-				floors: {
-					from: 'pricing_floors',
-					where: { product: { in: { member: 'products', field: 'id' } } },
-					all: true
-				},
+				order_lines: { where: { order: { in: ids } } },
+				document_templates: { where: { status: { eq: 'published' } } },
+				commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 },
 				warehouses: {
-					from: 'warehouses',
 					where: {
 						id: {
 							in: changes.flatMap(({ before, set }) =>
 								set.warehouse !== undefined ? (set.warehouse ?? []) : (before.warehouse ?? [])
 							)
 						}
-					},
-					all: true
+					}
 				}
+			});
+			const productIds = [...new Set(lines.rows.map((l) => l.product))];
+			const { products, pricing_floors: floors } = yield* ctx.db.query({
+				products: { where: { id: { in: productIds } } },
+				pricing_floors: { where: { product: { in: productIds } } }
 			});
 			const config = settings.rows[0];
 			const template = publishedTemplate(templates.rows, 'contract');
@@ -1058,318 +1025,6 @@ export default model('orders', {
 			return transformed;
 		}
 	},
-	queries: {
-		document_versions: {
-			description: 'Approved contract versions available to preview or export.',
-			input: { order: { kind: 'id', of: 'orders' } },
-			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: { version: { kind: 'int' }, approved_at: { kind: 'instant' } }
-				}
-			},
-			run: function* ({ order }, ctx) {
-				const result = yield* ctx.query('orders', {
-					where: { id: { eq: order } },
-					select: { ...agreementSelect, currency: true },
-					limit: 1
-				});
-				const row = result.rows[0];
-				if (!row || isMasked(row.currency)) return yield* ctx.refuse('errors.agreement_access');
-				return agreements(row).map((v) => ({ version: v.version, approved_at: v.approved_at }));
-			}
-		},
-		document_preview: {
-			description: 'Render a quotation or retained agreement using a published document template.',
-			input: {
-				order: { kind: 'id', of: 'orders' },
-				version: { kind: 'int', min: 1, optional: true },
-				locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' }
-			},
-			output: {
-				kind: 'object',
-				fields: {
-					title: { kind: 'text' },
-					html: { kind: 'text' },
-					reference: { kind: 'text' },
-					template_version: { kind: 'text' },
-					contract_version: { kind: 'text' }
-				}
-			},
-			run: function* (input, ctx) {
-				return yield* orderDocument(ctx, input);
-			}
-		},
-		ar_aging: {
-			...reportQueries.ar_aging,
-			run: function* ({ as_of }, ctx) {
-				if (as_of > ctx.today) yield* ctx.refuse('errors.report_future');
-				const { invoices, sourcePayments, orders } = yield* ctx.query({
-					invoices: {
-						from: 'transactions',
-						where: { kind: { eq: 'invoice' }, status: { eq: 'issued' }, issued_on: { lte: as_of } },
-						all: true
-					},
-					sourcePayments: {
-						from: 'source_payments',
-						where: { settled_on: { lte: as_of }, active: { eq: true } },
-						all: true
-					},
-					orders: {
-						from: 'orders',
-						where: { id: { in: { member: 'invoices', field: 'order' } } },
-						all: true
-					}
-				});
-				return invoices.rows.flatMap((invoice) => {
-					const order = orders.rows.find((o) => o.id === invoice.order);
-					if (!order) return [];
-					const paid = sum(
-						sourcePayments.rows.filter((p) => p.invoice === invoice.id).map((p) => p.amount)
-					);
-					if (invoice.total === null) return [];
-					const raw = Decimal.of(invoice.total).minus(paid);
-					const balance = raw.lt(0) ? Decimal.of(0) : raw;
-					const overpaid = raw.lt(0) ? Decimal.of(0).minus(raw) : Decimal.of(0);
-					if (balance.eq(0) && overpaid.eq(0)) return [];
-					const days = invoice.due_on
-						? Math.floor(
-								(Date.parse(as_of + 'T00:00:00Z') - Date.parse(invoice.due_on + 'T00:00:00Z')) /
-									86400000
-							)
-						: null;
-					const thresholds = [
-						[0, 'not_due'],
-						[30, '1_30'],
-						[60, '31_60'],
-						[90, '61_90'],
-						[Infinity, 'over_90']
-					] as const;
-					const bucket =
-						days === null
-							? 'no_due_date'
-							: (thresholds.find(([threshold]) => days <= threshold)?.[1] ?? 'over_90');
-					return [
-						{
-							order: order.id,
-							order_number: order.number,
-							party_name: order.party_name ?? '',
-							invoice: invoice.id,
-							invoice_number: invoice.reference,
-							currency: invoice.currency,
-							due_on: invoice.due_on,
-							as_of,
-							balance,
-							overpaid,
-							bucket
-						}
-					];
-				});
-			}
-		},
-		sales_analysis: {
-			...reportQueries.sales_analysis,
-			run: function* (input, ctx) {
-				return yield* salesAnalysis(ctx, input);
-			}
-		},
-		sales_detail: {
-			...reportQueries.sales_detail,
-			run: function* (input, ctx) {
-				return yield* salesDetail(ctx, input);
-			}
-		},
-		commission: {
-			...reportQueries.commission,
-			run: function* (input, ctx) {
-				const { orders, users } = yield* ctx.query({
-					orders: {
-						from: 'orders',
-						where: {
-							...(input.order ? { id: { eq: input.order } } : {}),
-							direction: { eq: 'sales' },
-							status: { in: ['draft', 'confirmed'] }
-						},
-						select: reportSelect,
-						all: true
-					},
-					users: { from: 'sys_user', select: { name: true }, all: true }
-				});
-				return commissionRows(orders.rows, input.version).map((row) => ({
-					...row,
-					owner_name: users.rows.find((u) => u.id === row.owner)?.name ?? ''
-				}));
-			}
-		},
-		confirmation_check: {
-			description:
-				'Current checks and version-bound acknowledgment for this order; credit freshness is judged as of `as_of`.',
-			input: {
-				order: { kind: 'id', of: 'orders' },
-				revision: { kind: 'int', optional: true },
-				as_of: { kind: 'instant' }
-			},
-			output: {
-				kind: 'object',
-				fields: {
-					check_hash: { kind: 'text' },
-					warning: { kind: 'bool' },
-					unavailable: { kind: 'bool' },
-					gross: { kind: 'text' },
-					credit_as_of: { kind: 'text', optional: true },
-					below_inventory_cost: { kind: 'list', of: { kind: 'text' } }
-				}
-			},
-			run: function* ({ order, revision, as_of }, ctx) {
-				const { orders, lines, credits, settings, templates, parties, floors, warehouses, stock } =
-					yield* ctx.query({
-						stock: { from: 'stock_snapshots', all: true },
-						floors: { from: 'pricing_floors', all: true },
-						warehouses: { from: 'warehouses', all: true },
-						orders: { from: 'orders', id: order },
-						lines: { from: 'order_lines', where: { order: { eq: order } }, all: true },
-						credits: {
-							from: 'credit_snapshots',
-							where: { party: { is: { orders: { some: { id: { eq: order } } } } } },
-							all: true
-						},
-						parties: {
-							from: 'parties',
-							where: { orders: { some: { id: { eq: order } } } },
-							limit: 1
-						},
-						templates: {
-							from: 'document_templates',
-							where: { status: { eq: 'published' } },
-							all: true
-						},
-						settings: { from: 'commercial_settings', where: { code: { eq: 'default' } }, limit: 1 }
-					});
-				const doc = orders;
-				if (doc && isMasked(doc.currency)) yield* ctx.refuse('errors.commercial_access');
-				const party = parties.rows[0];
-				const config = settings.rows[0];
-				const template = publishedTemplate(templates.rows, 'contract');
-				if (!doc || !party || !config || !template)
-					return yield* ctx.refuse('errors.configuration_missing');
-				if (doc.draft_setup) return yield* ctx.refuse('errors.contract_setup');
-				if (revision !== undefined && revision !== doc.revision)
-					yield* ctx.refuse('errors.check_changed');
-				const credit = credits.rows
-					.filter((v) => v.currency === doc.currency)
-					.sort((a, b) => b.as_of.localeCompare(a.as_of))[0];
-				const sealed = {
-					...snapshot(
-						doc,
-						party,
-						currentFloors(
-							doc,
-							lines.rows,
-							floors.rows,
-							warehouses.rows.find((w) => w.id === doc.warehouse)?.group_code
-						),
-						template.version
-					),
-					document_title: template.title
-				};
-				return {
-					check_hash: yield* hash(confirmationBasis(doc.revision, sealed, config, template)),
-					...creditWarning(
-						doc,
-						sum(lines.rows.map((l) => l.total)),
-						credit,
-						as_of,
-						config.credit_fresh_minutes
-					),
-					gross: sealed.total,
-					credit_as_of: credit?.as_of ?? null,
-					below_inventory_cost:
-						doc.direction === 'sales'
-							? lines.rows
-									.filter((line) => {
-										const average = averageLotCost(
-											stock.rows,
-											line.product,
-											line.unit,
-											doc.currency
-										);
-										return (
-											average !== null && price(doc, line).net.div(line.quantity, 8).lt(average)
-										);
-									})
-									.map((line) => line.product_name)
-							: []
-				};
-			}
-		},
-		quotation_export: {
-			description: 'Current saved commercial terms of this unfinalized order, without a seal.',
-			input: { order: { kind: 'id', of: 'orders' }, revision: { kind: 'int', optional: true } },
-			output: {
-				kind: 'object',
-				fields: { number: { kind: 'text' }, contract: { kind: 'text' }, revision: { kind: 'int' } }
-			},
-			run: function* ({ order, revision }, ctx) {
-				const { doc, lines, parties, settings, templates } = yield* ctx.query({
-					doc: { from: 'orders', id: order },
-					lines: { from: 'order_lines', where: { order: { eq: order } }, all: true },
-					parties: {
-						from: 'parties',
-						where: { orders: { some: { id: { eq: order } } } },
-						limit: 1
-					},
-					templates: {
-						from: 'document_templates',
-						where: { status: { eq: 'published' } },
-						all: true
-					},
-					settings: { from: 'commercial_settings', where: { code: { eq: 'default' } }, limit: 1 }
-				});
-				const party = parties.rows[0];
-				const config = settings.rows[0];
-				const template = publishedTemplate(templates.rows, 'contract');
-				if (!doc || !party || !config || !template)
-					return yield* ctx.refuse('errors.configuration_missing');
-				if (doc.status !== 'draft') yield* ctx.refuse('errors.order_sealed');
-				if (isMasked(doc.currency)) yield* ctx.refuse('errors.commercial_access');
-				if (revision !== undefined && revision !== doc.revision)
-					yield* ctx.refuse('errors.check_changed');
-				if (!lines.rows.length) yield* ctx.refuse('errors.lines_required');
-				const current = snapshot(doc, party, lines.rows, template.version);
-				return {
-					number: doc.number,
-					revision: doc.revision,
-					contract: agreementText(template, current, doc.number)
-				};
-			}
-		},
-		sealed_export: {
-			description: 'Customer-facing commercial facts from this order seal only.',
-			input: { order: { kind: 'id', of: 'orders' } },
-			output: {
-				kind: 'object',
-				fields: {
-					number: { kind: 'text' },
-					contract: { kind: 'text' },
-					seal_hash: { kind: 'text' }
-				}
-			},
-			run: function* ({ order }, ctx) {
-				const doc = yield* ctx.query('orders', { id: order });
-				if (!doc) return yield* ctx.refuse('errors.order_not_confirmed');
-				if (
-					isMasked(doc.contract_versions) ||
-					isMasked(doc.sealed_contract) ||
-					isMasked(doc.sealed_snapshot)
-				)
-					return yield* ctx.refuse('errors.agreement_access');
-				const current = currentAgreement(doc);
-				if (!current) return yield* ctx.refuse('errors.order_not_confirmed');
-				return { number: doc.number, contract: current.contract, seal_hash: current.seal_hash };
-			}
-		}
-	},
 	syncs: {
 		// Each contract keeps its source version observations; the outbox writes approved local replacements.
 		kingdee: {
@@ -1383,7 +1038,9 @@ export default model('orders', {
 				// Metadata and imported source versions do not write back to Kingdee.
 				if (payload === null || $version === payload.agreement_hash) return null;
 				// Outbox rows are frozen; a proven newer source version retires an obsolete submission.
-				const latest = yield* ctx.db.query('orders', { id: row.id });
+				const [latest] = (yield* ctx.db.query({
+					orders: { where: { id: { eq: row.id } }, limit: 1 }
+				})).orders.rows;
 				const accepted = latest ? currentAgreement(latest) : undefined;
 				if (
 					accepted?.kingdee?.binding_id &&
@@ -1417,7 +1074,11 @@ export default model('orders', {
 				locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' }
 			},
 			write: function* ({ context }, ctx) {
-				const document = yield* ctx.db.query('orders.document_preview', context);
+				// a file sync reads as the member who started the export: their grants scope and mask the order
+				const document = yield* orderDocument(
+					yield* ctx.db.query(documentRead(context.order, context.locale)),
+					context
+				);
 				return { document: { html: document.html }, name: `${document.reference}.pdf` };
 			}
 		}

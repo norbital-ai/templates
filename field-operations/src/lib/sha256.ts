@@ -1,4 +1,5 @@
-import { Effect, Encoding } from 'effect';
+import { Effect } from 'effect';
+import { Hex } from 'effect/encoding';
 import * as Schema from 'effect/Schema';
 class DigestUnavailable extends Schema.TaggedError<DigestUnavailable>()('DigestUnavailable', {
 	message: Schema.String
@@ -8,4 +9,4 @@ export const sha256Text = (message: string) =>
 	Effect.tryPromise({
 		try: () => crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)),
 		catch: (cause) => new DigestUnavailable({ message: String(cause) })
-	}).pipe(Effect.map((bytes) => Encoding.encodeHex(new Uint8Array(bytes))));
+	}).pipe(Effect.map((bytes) => Hex.encode(new Uint8Array(bytes))));

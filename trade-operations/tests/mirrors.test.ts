@@ -25,17 +25,19 @@ test.live(
 			};
 			yield* businessRows(t, 'parties', [customer]);
 			const first = firstRow(
-				(yield* as.query('parties', {
-					where: { external_code: { eq: customer.external_code } },
-					all: true
-				})).rows
+				(yield* as.query({
+					parties: {
+						where: { external_code: { eq: customer.external_code } }
+					}
+				})).parties.rows
 			);
 			yield* businessRows(t, 'parties', [customer]);
 			expect(
-				(yield* as.query('parties', {
-					where: { external_code: { eq: customer.external_code } },
-					all: true
-				})).rows.map((row) => row.id)
+				(yield* as.query({
+					parties: {
+						where: { external_code: { eq: customer.external_code } }
+					}
+				})).parties.rows.map((row) => row.id)
 			).toEqual([first.id]);
 			const sourceProduct = {
 				external_code: 'ERP-P',
@@ -49,34 +51,40 @@ test.live(
 			};
 			yield* businessRows(t, 'products', [sourceProduct]);
 			const product = firstRow(
-				(yield* as.query('products', {
-					where: { external_code: { eq: sourceProduct.external_code } },
-					all: true
-				})).rows
+				(yield* as.query({
+					products: {
+						where: { external_code: { eq: sourceProduct.external_code } }
+					}
+				})).products.rows
 			);
 			const order = committed(
 				'orders',
-				yield* as.act('orders.create', {
-					title: 'Source-owned customer sale',
-					direction: 'sales',
-					party: first.id,
-					currency: 'SGD',
-					payment_terms: 'Net 30'
-				})
+				yield* as.act('orders.create', [
+					{
+						title: 'Source-owned customer sale',
+						direction: 'sales',
+						party: first.id,
+						currency: 'SGD',
+						payment_terms: 'Net 30'
+					}
+				])
 			);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.create', {
-					order,
-					product: product.id,
-					quantity: Decimal.of('10'),
-					unit_price: Decimal.of('2'),
-					tax_rate: Decimal.of('9'),
-					discount_pct: Decimal.of('0')
-				})
+				yield* as.act('order_lines.create', [
+					{
+						order,
+						product: product.id,
+						quantity: Decimal.of('10'),
+						unit_price: Decimal.of('2'),
+						tax_rate: Decimal.of('9'),
+						discount_pct: Decimal.of('0')
+					}
+				])
 			);
 			yield* confirm(t, order);
-			const sealed = yield* as.query('orders', { id: order });
+			const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+				.orders.rows[0];
 			yield* businessRows(t, 'products', [
 				{
 					...sourceProduct,
@@ -88,28 +96,35 @@ test.live(
 			yield* businessRows(t, 'parties', [
 				{ ...customer, name: 'Inactive source customer', active: false }
 			]);
-			expect(yield* as.query('orders', { id: order })).toMatchObject({
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				seal_hash: sealed?.seal_hash,
 				sealed_snapshot: sealed?.sealed_snapshot,
 				sealed_contract: sealed?.sealed_contract
 			});
-			expect(yield* as.query('parties', { id: first.id })).toMatchObject({ active: false });
+			expect(
+				(yield* as.query({ parties: { where: { id: { eq: first.id } }, limit: 1 } })).parties
+					.rows[0]
+			).toMatchObject({ active: false });
 			expect(
 				yield* Effect.flip(
-					as.act('orders.create', {
-						title: 'Inactive',
-						direction: 'sales',
-						party: first.id,
-						currency: 'SGD',
-						payment_terms: 'Net 30'
-					})
+					as.act('orders.create', [
+						{
+							title: 'Inactive',
+							direction: 'sales',
+							party: first.id,
+							currency: 'SGD',
+							payment_terms: 'Net 30'
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'products',
+					model: 'products',
 					verb: 'update',
-					input: { target: product.id, set: { name: 'Local override' } }
+					input: [{ target: product.id, set: { name: 'Local override' } }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 		})

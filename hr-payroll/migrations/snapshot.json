@@ -2770,12 +2770,22 @@
 					"kind": "state",
 					"states": {
 						"DRAFT": {
+							"edit": [
+								"status",
+								"paid_at",
+								"bank_charges"
+							],
 							"to": [
 								"ON_HOLD",
 								"PAID"
 							]
 						},
 						"ON_HOLD": {
+							"edit": [
+								"status",
+								"paid_at",
+								"bank_charges"
+							],
 							"to": [
 								"DRAFT",
 								"PAID"
@@ -2903,7 +2913,7 @@
 					]
 				},
 				"subject_collection": {
-					"help": "The collection of the row that triggered the duty.",
+					"help": "The model of the row that triggered the duty.",
 					"kind": "text"
 				},
 				"subject_id": {
@@ -3568,6 +3578,76 @@
 				}
 			},
 			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_envoy": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"audience": {
+					"default": "private",
+					"kind": "enum",
+					"values": [
+						"private",
+						"public"
+					]
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"delegation": {
+					"default": "disabled",
+					"kind": "enum",
+					"values": [
+						"enabled",
+						"disabled"
+					]
+				},
+				"dm": {
+					"default": "union",
+					"kind": "enum",
+					"values": [
+						"union",
+						"envoy"
+					]
+				},
+				"group_messages": {
+					"default": "mention_or_reply",
+					"kind": "enum",
+					"values": [
+						"disabled",
+						"mention_or_reply",
+						"all"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"policies": {
+					"default": [],
+					"kind": "text",
+					"many": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"task": {
+					"default": "",
+					"format": "markdown",
+					"kind": "text"
+				},
+				"triage": {
+					"default": false,
+					"kind": "bool"
+				}
+			},
+			"key": "uuid",
 			"nativeRules": 2
 		},
 		"sys_file": {

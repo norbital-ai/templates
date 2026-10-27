@@ -34,6 +34,6 @@ export default model('site_locations', {
 	},
 	search: { text: ['location_name'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { site_locations: columns } },
+	update: { columns: { site_locations: columns } }
 });

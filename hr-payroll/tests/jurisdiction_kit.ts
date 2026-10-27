@@ -363,7 +363,7 @@ export type Person = {
 
 /**
  * The law, one UTC employer paying monthly on a Monday-to-Friday 09:00–18:00 week (an hour's break: eight scheduled
- * hours), and its people; every entry and run collection starts empty.
+ * hours), and its people; every entry and run model starts empty.
  */
 export function employer(people: readonly Person[]): Tables {
 	const rows = law();
@@ -498,25 +498,19 @@ export const runOf = Effect.fnUntraced(function* (
 	period: string,
 	kind: 'REGULAR' | 'OFF_CYCLE' = 'REGULAR'
 ) {
-	const [run] = (yield* actor.query('payroll_run', {
-		where: { period: { eq: period }, kind: { eq: kind } },
-		select: { warnings: true, pins: true },
-		all: true
-	})).rows;
+	const [run] = (yield* actor.query({
+		payroll_run: {
+			where: { period: { eq: period }, kind: { eq: kind } },
+			fields: ['warnings', 'pins']
+		}
+	})).payroll_run.rows;
 	assert.ok(run, `The ${period} ${kind} run exists.`);
-	const { rows } = yield* actor.query('payslip', {
-		where: { payroll_run_id: { eq: run.id } },
-		select: {
-			employment_id: true,
-			status: true,
-			base: true,
-			adjustments: true,
-			statutory: true,
-			gross: true,
-			net: true
-		},
-		all: true
-	});
+	const { rows } = (yield* actor.query({
+		payslip: {
+			where: { payroll_run_id: { eq: run.id } },
+			fields: ['employment_id', 'status', 'base', 'adjustments', 'statutory', 'gross', 'net']
+		}
+	})).payslip;
 	const slips = new Map(
 		yield* Effect.forEach(rows, (row) =>
 			Effect.gen(function* () {

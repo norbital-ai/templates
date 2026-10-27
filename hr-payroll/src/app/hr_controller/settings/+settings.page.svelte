@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * The jurisdiction configuration app: one version of one settings lineage (MY, SG, …), chosen in the header, shared
-	 * by every entity bound to the lineage. Tabs: the version itself (its facts and work rules, the collection's record
+	 * by every entity bound to the lineage. Tabs: the version itself (its facts and work rules, the model's record
 	 * view), statutory contributions and the six catalogues. A sealed version is law that has frozen: no table
 	 * under it offers a create.
 	 */
@@ -20,10 +20,14 @@
 
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
-	const scope = $derived(resolveJurisdictionScope(all.current?.rows ?? [], chosen));
-	const options = $derived(jurisdictionOptions(all.current?.rows ?? []));
+	const scope = $derived(
+		resolveJurisdictionScope(all.current?.jurisdiction_settings.rows ?? [], chosen)
+	);
+	const options = $derived(jurisdictionOptions(all.current?.jurisdiction_settings.rows ?? []));
 	const versions = $derived(
-		newest_first((all.current?.rows ?? []).filter((row) => row.code === scope?.code))
+		newest_first(
+			(all.current?.jurisdiction_settings.rows ?? []).filter((row) => row.code === scope?.code)
+		)
 	);
 	const version = $derived(
 		versions.find((row) => row.id === scope?.versionId) ?? versions[0] ?? null
@@ -147,7 +151,7 @@
 		/>
 		<VersionLifecycle {version} {versions} onCreated={(id) => (chosen = id)} />
 	{/snippet}
-	{#if all.current?.rows !== undefined}
+	{#if all.current?.jurisdiction_settings.rows !== undefined}
 		{#if scope == null}
 			<EmptyState title={bolt.t('app.settings.choose_jurisdiction_empty')} />
 		{:else}

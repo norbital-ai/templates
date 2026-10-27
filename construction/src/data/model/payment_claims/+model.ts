@@ -52,6 +52,6 @@ export default model('payment_claims', {
 	},
 	search: { text: ['claim_number'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { payment_claims: columns } },
+	update: { columns: { payment_claims: columns } }
 });

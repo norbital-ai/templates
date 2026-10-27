@@ -14,8 +14,8 @@ export default model('openings', {
 		starts: { kind: 'text', many: true }
 	},
 	unique: [{ fields: ['service', 'day'] }],
-	read: { fields: 'all' },
-	create: { columns: ['service', 'day', 'starts'] },
-	update: { columns: ['starts'] },
+	read: 'all',
+	create: { columns: { openings: ['service', 'day', 'starts'] } },
+	update: { columns: { openings: ['starts'] } },
 	delete: {}
 });

@@ -25,7 +25,13 @@ export default model('source_sales_lines', {
 		order: { kind: 'ref', to: 'orders', inverse: 'source_sales_lines' }
 	},
 	key: ['source', 'external_code'],
-	read: 'all',
+	// the sales reports price each line against its order's seal (its party, its lines' products)
+	read: {
+		source_sales_lines: { fields: 'all' },
+		'source_sales_lines.order': { fields: 'all' },
+		'source_sales_lines.order.party': { fields: 'all' },
+		'source_sales_lines.order.lines': { fields: 'all' }
+	},
 	syncs: {
 		kingdee: {
 			with: 'kingdee',

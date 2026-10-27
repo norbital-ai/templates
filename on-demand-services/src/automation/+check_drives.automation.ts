@@ -1,6 +1,13 @@
 import { automation, type Id } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
-import { HELD_SHIFT, learnLegs, loadPool, optimise, reassign, VISIT } from '../lib/dispatch.js';
+import {
+	HELD_SHIFT,
+	learnLegs,
+	loadPool,
+	optimise,
+	reassign,
+	visitsToMove
+} from '../lib/dispatch.js';
 import {
 	cellOf,
 	driveMinutes,
@@ -87,11 +94,9 @@ export default automation('check_drives', {
 		}
 		// a visit written since it was read is the newer writer's: its conflict is skipped, and that write runs this again
 		for (const [helper, ids] of late) {
-			const { rows } = yield* ctx.query('visits', {
-				where: { id: { in: ids }, status: { eq: 'scheduled' }, shift_check: HELD_SHIFT },
-				select: VISIT,
-				all: true
-			});
+			const { rows } = (yield* ctx.query(
+				visitsToMove({ id: { in: ids }, status: { eq: 'scheduled' }, shift_check: HELD_SHIFT })
+			)).visits;
 			yield* reassign(ctx, rows, helper).pipe(Effect.catchTag('ActConflict', () => Effect.void));
 		}
 		yield* optimise(ctx).pipe(Effect.catchTag('ActConflict', () => Effect.void));

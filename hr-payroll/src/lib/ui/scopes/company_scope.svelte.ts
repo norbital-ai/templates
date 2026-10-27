@@ -1,7 +1,7 @@
 import type { Id } from '@norbital-ai/bolt';
 import { getContext, setContext } from 'svelte';
 import { bolt } from '$bolt';
-import { EMPLOYMENT_LABEL_SELECT, employmentLabel } from './create_scope.js';
+import { employmentLabel } from './create_scope.js';
 
 /** The entity last chosen on any HR page: moving between Payroll runs, Compliance and the rest keeps it. */
 let chosen = $state<Id<'entity'> | null>(null);
@@ -13,24 +13,25 @@ let chosen = $state<Id<'entity'> | null>(null);
 export function companyScope() {
 	const clock = bolt.clock('day');
 	const entities = $derived.by(() =>
-		bolt.query('entity', {
-			select: {
-				name: true,
-				settings_code: true,
-				pay_cutoff_day: true,
-				pay_frequency: true,
-				pay_frequency_changes: true,
-				region: true,
-				risk_class: true,
-				time_zone: true,
-				effective_range: true
-			},
-			where: { effective_range: { contains: clock.today } },
-			orderBy: { name: 'asc' },
-			all: true
+		bolt.query({
+			entity: {
+				fields: [
+					'name',
+					'settings_code',
+					'pay_cutoff_day',
+					'pay_frequency',
+					'pay_frequency_changes',
+					'region',
+					'risk_class',
+					'time_zone',
+					'effective_range'
+				],
+				where: { effective_range: { contains: clock.today } },
+				orderBy: { name: 'asc' }
+			}
 		})
 	);
-	const list = $derived(entities?.current?.rows ?? []);
+	const list = $derived(entities?.current?.entity.rows ?? []);
 	const company = $derived(list.find((row) => row.id === chosen) ?? list[0] ?? null);
 	return {
 		get entities() {
@@ -38,7 +39,7 @@ export function companyScope() {
 		},
 		/** The entities are still loading: no page says "choose an entity" before it knows there is none. */
 		get unknown() {
-			return entities?.current?.rows === undefined;
+			return entities?.current === undefined;
 		},
 		get company() {
 			return company;
@@ -66,15 +67,17 @@ export function employmentNames(companyId: () => Id<'entity'> | null) {
 		const id = companyId();
 		return id == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { company_id: { eq: id } },
-					select: EMPLOYMENT_LABEL_SELECT,
-					all: true
+			: bolt.query({
+					employment_contract: {
+						where: { company_id: { eq: id } },
+						fields: ['employee_number', 'employee_id']
+					},
+					'employment_contract.employee_id': { fields: ['name'] }
 				});
 	});
 	const names = $derived(
 		new Map<string, string>(
-			(rows?.current?.rows ?? []).map((row) => [row.id, employmentLabel(row)])
+			(rows?.current?.employment_contract.rows ?? []).map((row) => [row.id, employmentLabel(row)])
 		)
 	);
 	return (id: unknown): string => names.get(String(id)) ?? '—';

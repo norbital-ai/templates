@@ -180,15 +180,10 @@
 		error: 'border-destructive/30 bg-destructive/10 text-destructive'
 	};
 	const companies = $derived.by(() =>
-		bolt.query('entity', {
-			where: {},
-			select: { name: true },
-			orderBy: { name: 'asc' },
-			limit: 200
-		})
+		bolt.query({ entity: { fields: ['name'], orderBy: { name: 'asc' }, limit: 200 } })
 	);
 	const companyById = $derived(
-		new Map((companies?.current?.rows ?? []).map((company) => [company.id, company.name]))
+		new Map((companies?.current?.entity.rows ?? []).map((company) => [company.id, company.name]))
 	);
 	const companyId = $derived(
 		selectedCompanyId != null && companyById.has(selectedCompanyId) ? selectedCompanyId : null
@@ -582,10 +577,11 @@
 		probe: readonly number[],
 		threshold: number
 	) {
-		const holders = yield* bolt.query('employment_profile', {
-			where: { face_enrollment_status: { eq: 'APPROVED' } },
-			select: { name: true, face_embedding: true },
-			all: true
+		const { employment_profile: holders } = yield* bolt.query({
+			employment_profile: {
+				where: { face_enrollment_status: { eq: 'APPROVED' } },
+				fields: ['name', 'face_embedding']
+			}
 		});
 		let best: {
 			readonly id: Id<'employment_profile'>;
@@ -603,13 +599,14 @@
 		}
 		if (best == null || bestDistance > threshold)
 			return { status: 'unknown' } satisfies MatchResult;
-		const contracts = yield* bolt.query('employment_contract', {
-			where: {
-				employee_id: { eq: best.id },
-				company_id: { eq: requestedCompanyId }
-			},
-			select: { id: true, employee_number: true, company_id: true, effective_range: true },
-			all: true
+		const { employment_contract: contracts } = yield* bolt.query({
+			employment_contract: {
+				where: {
+					employee_id: { eq: best.id },
+					company_id: { eq: requestedCompanyId }
+				},
+				fields: ['employee_number', 'company_id', 'effective_range']
+			}
 		});
 		const day = todayKey(new Date(yield* Clock.currentTimeMillis));
 		const active = contracts.rows.find((row) => rangeCovers(row.effective_range, day));

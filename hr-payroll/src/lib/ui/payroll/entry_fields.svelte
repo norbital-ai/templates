@@ -3,7 +3,7 @@
 	 * A captured entry's fields (inside its `Form`): the person from the opening page's entity only, and the class from
 	 * the catalogue of the employment's lineage version governing the entry day, not every lineage's identical "Bonus".
 	 * Opened from no scoped page (self-service), the person is not narrowed; the class still follows the employment. A
-	 * leave class is narrowed further to those the employee is eligible for (the balances the server lists). An entry a
+	 * leave class is narrowed further to those the employee is eligible for (the balances the leave write lists). An entry a
 	 * payslip consumed shows its lock and opens that payslip; its `Form` is readonly. The entry's `facts` are asked for
 	 * as the version's `employee_input_schema` declares them (`<family>_facts`; a loan class's own version's
 	 * `loan_facts`); a version declaring none leaves them a plain field (a leave event's `event_id`).
@@ -24,6 +24,8 @@
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
+	import { observeOnce } from '@norbital-ai/ui/effect';
+	import { leaveBalancesOn, pageRead } from '../../leave_reads.js';
 	import { pageEntity } from '../scopes/company_scope.svelte.js';
 	import { todayKey } from '../format/calendar.js';
 	import { jsonSchemaOf, schemaAt } from '../person/input_schema.js';
@@ -56,29 +58,47 @@
 		const id = employmentId;
 		return id == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { id: { eq: id } },
-					select: { company_id: { select: { settings_code: true } } },
-					limit: 1
+			: bolt.query({
+					employment_contract: { where: { id: { eq: id } }, fields: ['company_id'], limit: 1 }
+				});
+	});
+	const employer = $derived.by(() => {
+		const company = employment?.current?.employment_contract.rows[0]?.company_id;
+		return company == null
+			? null
+			: bolt.query({
+					entity: { where: { id: { eq: company } }, fields: ['settings_code'], limit: 1 }
 				});
 	});
 	const lineage = $derived(
-		employment?.current?.rows?.[0]?.company_id?.settings_code ??
-			page?.company?.settings_code ??
-			null
+		employer?.current?.entity.rows[0]?.settings_code ?? page?.company?.settings_code ?? null
 	);
 	const loan = $derived.by(() => {
 		const id = form.get('catalog_id');
 		return catalog !== 'loan_catalog' || !isLoanCatalogId(id)
 			? null
-			: bolt.query('loan_catalog', {
-					where: { id: { eq: id } },
-					select: { eligibility: true, settings_id: { select: { employee_input_schema: true } } },
-					limit: 1
+			: bolt.query({
+					loan_catalog: {
+						where: { id: { eq: id } },
+						fields: ['eligibility', 'settings_id'],
+						limit: 1
+					}
+				});
+	});
+	const loanVersion = $derived.by(() => {
+		const settings = loan?.current?.loan_catalog.rows[0]?.settings_id;
+		return settings == null
+			? null
+			: bolt.query({
+					jurisdiction_settings: {
+						where: { id: { eq: settings } },
+						fields: ['employee_input_schema'],
+						limit: 1
+					}
 				});
 	});
 	/** The loan class's own rule names the agreement facts it reads; only those are asked for. */
-	const loanReads = $derived(loan?.current?.rows?.[0]?.eligibility ?? '');
+	const loanReads = $derived(loan?.current?.loan_catalog.rows[0]?.eligibility ?? '');
 	/** The `employee_input_schema` property declaring each family's entry `facts`. */
 	const FACTS = {
 		adhoc_catalog: 'adhoc_facts',
@@ -97,19 +117,17 @@
 		const held = form.get('occurred_on');
 		return Predicate.isString(held) && held !== '' ? held : todayKey();
 	});
-	/** The leave classes the employee may take on the day: the server's listing, eligibility applied. */
-	const balances = $derived.by(() =>
+	/** The leave classes the employee may take on the day: the leave write's listing, eligibility applied. */
+	const read = pageRead(bolt.query);
+	const balances = observeOnce(() =>
 		catalog !== 'leave_catalog' || employmentId == null
 			? null
-			: bolt.query('leave_catalog_entry.leave_balances', {
-					employment_id: employmentId,
-					as_of: PlainDate(day)
-				})
+			: leaveBalancesOn(read, employmentId, day)
 	);
 	const eligible = $derived(
-		balances?.current == null
+		balances.current == null
 			? {}
-			: { id: { in: [...new Set(balances?.current.balances.map((row) => row.catalog_id))] } }
+			: { id: { in: [...new Set(balances.current.map((row) => row.catalog_id))] } }
 	);
 	const governs = $derived({
 		sealed_at: { isNull: false },
@@ -121,10 +139,8 @@
 	const version = $derived.by(() =>
 		catalog === 'loan_catalog' || lineage == null
 			? null
-			: bolt.query('jurisdiction_settings', {
-					where: governs,
-					select: { employee_input_schema: true },
-					limit: 1
+			: bolt.query({
+					jurisdiction_settings: { where: governs, fields: ['employee_input_schema'], limit: 1 }
 				})
 	);
 	/** The entry inputs the governing version declares (a loan: its class's own version): its `facts`. */
@@ -133,8 +149,8 @@
 			schemaAt(
 				jsonSchemaOf(
 					catalog === 'loan_catalog'
-						? loan?.current?.rows?.[0]?.settings_id?.employee_input_schema
-						: version?.current?.rows?.[0]?.employee_input_schema
+						? loanVersion?.current?.jurisdiction_settings.rows[0]?.employee_input_schema
+						: version?.current?.jurisdiction_settings.rows[0]?.employee_input_schema
 				),
 				FACTS[catalog]
 			)

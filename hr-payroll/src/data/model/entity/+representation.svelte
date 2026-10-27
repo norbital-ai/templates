@@ -38,29 +38,30 @@
 	const day = bolt.clock('day');
 	/** Each lineage's version in force: the region picker offers the regions the form's lineage names. */
 	const versions = $derived(
-		bolt.query('jurisdiction_settings', {
-			where: {
-				sealed_at: { isNull: false },
-				voided_at: { isNull: true },
-				effective_range: { contains: day.today }
+		bolt.query({
+			jurisdiction_settings: {
+				where: {
+					sealed_at: { isNull: false },
+					voided_at: { isNull: true },
+					effective_range: { contains: day.today }
+				},
+				fields: ['code', 'entity_input_schema']
 			},
-			select: {
-				code: true,
-				entity_input_schema: true,
-				rule_set: { select: { rules: true }, where: { family: { eq: 'PAYROLL' } }, all: true }
-			},
-			all: true
+			'jurisdiction_settings.rule_set': {
+				where: { family: { eq: 'PAYROLL' } },
+				fields: ['rules']
+			}
 		})
 	);
 	const regionsOf = (code: unknown): readonly string[] =>
 		regionsIn(
-			(versions.current?.rows ?? [])
+			(versions.current?.jurisdiction_settings.rows ?? [])
 				.filter((row) => row.code === code)
 				.flatMap((row) => row.rule_set.map((held) => held.rules))
 		);
 	/** The entity facts the lineage's version in force declares; null when it declares none. */
 	const factsSchemaOf = (code: unknown) => {
-		const schema = (versions.current?.rows ?? []).find(
+		const schema = (versions.current?.jurisdiction_settings.rows ?? []).find(
 			(row) => row.code === code
 		)?.entity_input_schema;
 		return isJsonSchema(schema) ? schema : null;
@@ -104,13 +105,15 @@
 	const hotline = $derived(
 		record?.hotline == null
 			? null
-			: bolt.query('sys_integration', { id: record.hotline, select: { envoy: true } })
+			: bolt.query({
+					sys_integration: { where: { id: { eq: record.hotline } }, fields: ['envoy'], limit: 1 }
+				})
 	);
 	/** Deploys the payroll hotline on the entity's number: an ordinary `sys_integration` update. */
 	function deployHotline(instance: Id<'sys_integration'>): void {
 		fork(
 			bolt
-				.act('sys_integration.update', { target: instance, set: { envoy: 'payroll_hotline' } })
+				.act('sys_integration.update', [{ target: instance, set: { envoy: 'payroll_hotline' } }])
 				.pipe(
 					Effect.tap((outcome) =>
 						Effect.sync(() =>
@@ -134,7 +137,7 @@
 		{values}
 		onOutcome={(outcome) => {
 			if (outcome.kind !== 'committed' || record) return;
-			const created = outcome.records.find((row) => row.collection === 'entity');
+			const created = outcome.records.find((row) => row.model === 'entity');
 			if (created) openRecord('entity', created.id);
 		}}
 	>
@@ -185,7 +188,7 @@
 				<Stack gap="sm">
 					<Field name="hotline" help={t('entity.hotline_help')} />
 					{#if record?.hotline != null && hotline?.current !== undefined}
-						{#if hotline.current?.envoy === 'payroll_hotline'}
+						{#if hotline.current?.sys_integration.rows[0]?.envoy === 'payroll_hotline'}
 							<p class="text-xs text-muted-foreground">{t('entity.hotline_answering')}</p>
 						{:else}
 							<Button variant="outline" size="sm" onclick={() => deployHotline(record.hotline!)}>

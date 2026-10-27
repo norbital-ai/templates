@@ -48,9 +48,9 @@ export default model('adhoc_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { adhoc_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { adhoc_catalog: update_columns }
 	}
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { QueryOutput } from '@norbital-ai/bolt';
+	import { progressOf, progressRead } from '../../../lib/partner-progress.js';
 	import OrderCreateFields from '../../../lib/ui/order-create-fields.svelte';
 	import { type FormState, Table, Badge, format, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { bolt } from '$bolt';
@@ -14,6 +14,12 @@
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const kinds = useKinds();
 	const clock = bolt.clock('day');
+	const progressAnswer = $derived(
+		id && kinds.catalog?.source_sales_lines ? bolt.query(progressRead(id)) : null
+	);
+	const progressRows = $derived(
+		progressAnswer?.current ? progressOf(progressAnswer.current, clock.today) : null
+	);
 	const supplier = $derived(
 		view.mode !== 'create' && ['supplier', 'both'].includes(view.record.kind)
 	);
@@ -40,13 +46,13 @@
 {#snippet progressState({
 	row
 }: {
-	row: Pick<QueryOutput<'parties.progress'>[number], 'state'>;
+	row: Pick<ReturnType<typeof progressOf>[number], 'state'>;
 })}<Badge variant={row.state === 'overdue' || row.state === 'late' ? 'warning' : 'outline'}
 		>{bolt.t(`component.progress_${row.state}`)}</Badge
 	>{/snippet}
-{#snippet progress()}{#if id && kinds.catalog?.parties?.queries?.progress}<Table
+{#snippet progress()}{#if progressRows}<Table
 			layout="grid"
-			of={{ query: 'parties.progress', input: { party: id, as_of: clock.today } }}
+			of={progressRows}
 			key="partner_progress"
 			columns={[
 				{ field: 'number', label: bolt.t('models.orders.singular') },

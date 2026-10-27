@@ -12,7 +12,7 @@ import { zipSync } from 'fflate';
 import { csvRecords } from '../src/lib/csv.ts';
 import { xlsxRecords } from '../src/lib/xlsx.ts';
 import { decodeWorkOrders } from '../src/lib/work-order-sheet.ts';
-import { completedRun, CONTRACTOR, CONTROLLER, person, rows, workspace } from './kit.ts';
+import { committed, completedRun, CONTRACTOR, CONTROLLER, person, rows, workspace } from './kit.ts';
 it.live('imports the sample xlsx once, filing a site for every address the workspace lacks', () =>
 	Effect.gen(function* () {
 		const bytes = readFileSync('tests/fixtures/job-import.xlsx');
@@ -52,8 +52,7 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 5]);
 		expect(
 			present(
-				(yield* as.query('sites', { where: { site_key: { eq: '520412#07-221' } }, all: true }))
-					.rows[0]
+				(yield* as.query({ sites: { where: { site_key: { eq: '520412#07-221' } } } })).sites.rows[0]
 			)
 		).toMatchObject({
 			address: 'Blk 412 Tampines Street 41, Singapore 520412',
@@ -64,7 +63,7 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			t,
 			`SELECT site_id, scheduled_for::text AS day, status FROM job_assignments WHERE external_ref IN ('IMP-1001', 'IMP-1002') ORDER BY external_ref`
 		);
-		expect(survey).toMatchObject({ day: '2026-10-12', status: 'unassigned' });
+		expect(survey).toMatchObject({ day: '2026-10-12', status: 'pending' });
 		expect(present(install).site_id).toBe(present(survey).site_id);
 		const repeated = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
 		expect(repeated.kind).toBe('committed');
@@ -96,17 +95,11 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		expect(present(linked).site_id).toBe(present(survey).site_id);
 		const invalidRows = [
 			{ site: '1 Nowhere Rd', scheduled_for: '2026-13-40', title: 'A' },
-			{ site: '1 Nowhere Rd', scheduled_for: '2026-10-01', title: 'B', assignee_user_id: 'bob' }
+			{ site: '1 Nowhere Rd', scheduled_for: '2026-10-01', title: 'B', assignee_contact: 'bob' }
 		];
 		const bad = yield* Effect.flip(decodeWorkOrders(invalidRows));
 		expect(bad).toMatchObject({ _tag: 'SheetInvalid' });
 		expect(bad.message).toMatch(/Row 1: .*calendar day/);
-		const badUser = yield* Effect.flip(
-			decodeWorkOrders([
-				{ site: '1 Nowhere Rd', scheduled_for: '2026-10-01', title: 'B', assignee_user_id: 'bob' }
-			])
-		);
-		expect(badUser.message).toMatch(/id|sys_user/);
 		const raw = yield* Context.get(t.services, Callables).start({
 			automation: 'job_assignments_import_work_orders',
 			runs: [{ id: crypto.randomUUID(), input: { rows: invalidRows } }],
@@ -115,11 +108,7 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 		});
 		expect(raw).toMatchObject({ kind: 'refused' });
 		if (raw.kind !== 'refused') throw new Error('Invalid raw sheet queued');
-		expect(raw.message).toBe(
-			'rows.0.scheduled_for: expected a date (YYYY-MM-DD); rows.1.assignee_user_id: expected an id'
-		);
-		expect(raw.message).toContain('rows.0.scheduled_for');
-		expect(raw.message).toContain('rows.1.assignee_user_id');
+		expect(raw.message).toBe('rows.0.scheduled_for: expected a date (YYYY-MM-DD)');
 		expect([yield* count('sites'), yield* count('job_assignments')]).toEqual([4, 6]);
 	})
 );
@@ -170,19 +159,17 @@ it.live('refuses every unresolved site without valid coordinates before writing 
 	})
 );
 it.live(
-	'rolls back fresh nested work and existing-site work when an admitted assignee disappears',
+	"links each row's contractor by its email or phone, fresh nested work included, and files the rest without one",
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
 			const as = t.as(yield* person(t, CONTROLLER));
-			const assignee = yield* person(t, CONTRACTOR);
-			const existing = yield* as.act('sites.create', {
-				address: '10 Existing Road, Singapore 500001',
-				location: { lat: 1.3, lng: 103.8 }
-			});
-			expect(existing.kind).toBe('committed');
-			const baseline = yield* rows(t, 'SELECT * FROM sites ORDER BY id');
-			expect(baseline).toHaveLength(1);
+			const assignee = yield* person(t, CONTRACTOR, '+6591234567');
+			committed(
+				yield* as.act('sites.create', [
+					{ address: '10 Existing Road, Singapore 500001', location: { lat: 1.3, lng: 103.8 } }
+				])
+			);
 			const decoded = yield* decodeWorkOrders([
 				{
 					site: '20 New Road',
@@ -190,30 +177,56 @@ it.live(
 					scheduled_for: '2026-10-01',
 					title: 'Fresh nested work',
 					latitude: '1.31',
-					longitude: '103.81'
+					longitude: '103.81',
+					assignee_contact: '9123 4567'
 				},
 				{
 					site: '10 Existing Road',
 					postal_code: '500001',
 					scheduled_for: '2026-10-01',
 					title: 'Existing-site work',
-					assignee_user_id: assignee.id
+					assignee_contact: `${assignee.id}@FIELD.test`
+				},
+				{
+					site: '10 Existing Road',
+					postal_code: '500001',
+					scheduled_for: '2026-10-01',
+					title: 'Unknown contractor',
+					assignee_contact: 'nobody@field.test'
 				}
 			]);
 			const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
 			expect(started.kind).toBe('committed');
-			if (started.kind !== 'committed') throw new Error('The mixed sheet import did not start.');
-			expect(
-				yield* rows(t, 'SELECT state FROM sys_run WHERE id = $1', [started.output.id])
-			).toEqual([{ state: 'queued' }]);
-			// The input reference was valid at admission; the native batch must reject its disappearance.
-			yield* t.db.write({ text: 'DELETE FROM sys_user WHERE id = $1', params: [assignee.id] });
+			if (started.kind !== 'committed') throw new Error('The contact sheet import did not start.');
 			expect(yield* completedRun(t, started.output.id)).toMatchObject({
-				state: 'failed',
-				error: { code: 'notFound', message: 'No readable sys_user has this id.' }
+				state: 'succeeded',
+				output: { created: 3, sites: 1, skipped: 0 }
 			});
-			expect(yield* rows(t, 'SELECT * FROM sites ORDER BY id')).toEqual(baseline);
-			expect(yield* rows(t, 'SELECT count(*)::int AS n FROM job_assignments')).toEqual([{ n: 0 }]);
+			expect(
+				yield* rows(
+					t,
+					'SELECT title, status, assignee_contact, assignee_user_id FROM job_assignments ORDER BY title'
+				)
+			).toEqual([
+				{
+					title: 'Existing-site work',
+					status: 'pending',
+					assignee_contact: `${assignee.id}@FIELD.test`,
+					assignee_user_id: assignee.id
+				},
+				{
+					title: 'Fresh nested work',
+					status: 'pending',
+					assignee_contact: '9123 4567',
+					assignee_user_id: assignee.id
+				},
+				{
+					title: 'Unknown contractor',
+					status: 'pending',
+					assignee_contact: 'nobody@field.test',
+					assignee_user_id: null
+				}
+			]);
 		})
 );
 it.live('keeps the public workbook refusal messages for invalid ZIP and no worksheet', () =>

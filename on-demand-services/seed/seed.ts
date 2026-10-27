@@ -88,8 +88,8 @@ const NOTES = [
 const startOf = (v: Row) =>
 	Schema.decodeUnknownSync(Schema.Struct({ start: Schema.String }))(v['slot']).start;
 /** Matching consumes native values; the seed pack keeps their original JSON representations. */
-const idOf = <C extends string>(collection: C, value: string): Id<C> => {
-	const schema = inputSchema({ kind: 'id', of: collection });
+const idOf = <C extends string>(model: C, value: string): Id<C> => {
+	const schema = inputSchema({ kind: 'id', of: model });
 	const decoded = Schema.decodeUnknownSync(schema)(value);
 	return Schema.decodeUnknownSync(
 		Schema.declare<Id<C>>((input): input is Id<C> => Schema.is(Schema.toType(schema))(input))

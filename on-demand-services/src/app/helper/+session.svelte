@@ -7,15 +7,11 @@
 	const actor = bolt.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query('helpers', {
-					where: { user: { eq: actor.id } },
-					select: { name: true },
-					limit: 1
-				})
+			? bolt.query({ helpers: { where: { user: { eq: actor.id } }, fields: ['name'], limit: 1 } })
 			: null
 	);
 	// keyed by the id: the helper's own row changes with every position it reports
-	const helperId = $derived(me?.current?.rows[0]?.id);
+	const helperId = $derived(me?.current?.helpers.rows[0]?.id);
 	// The host may supply native GPS (background delivery); the same page keeps working in a browser.
 	const geo = bolt.device?.geolocation?.api ?? navigator.geolocation;
 	function tracking(id: Id<'helpers'>) {
@@ -66,7 +62,7 @@
 					if (now - sent < EVERY_MS) continue;
 					sent = now;
 					yield* bolt
-						.act('helpers.update', { target: id, set: { last_location: employeeLocation.here } })
+						.act('helpers.update', [{ target: id, set: { last_location: employeeLocation.here } }])
 						.pipe(Effect.tapError(Effect.logWarning), Effect.ignore);
 				}
 			})

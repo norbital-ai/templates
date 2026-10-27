@@ -7,17 +7,17 @@ export default policy({
 	grants: {
 		ext_sales_orders: { read: true, history: true },
 		ext_purchase_orders: { read: true, history: true },
-		document_templates: { read: { status: { eq: 'published' } } },
+		document_templates: {
+			read: { document_templates: { where: { status: { eq: 'published' } } } }
+		},
 		transactions: { read: true, history: true },
-		commission_statements: { read: true, history: true, create: true, queries: ['board'] },
+		commission_statements: { read: true, history: true, create: true },
 		source_payments: {
-			queries: ['ledger'],
 			history: true,
 			read: true
 		},
 		source_sales_lines: { read: true, history: true },
 		parties: {
-			queries: ['progress'],
 			read: true
 		},
 		products: {
@@ -27,7 +27,6 @@ export default policy({
 			read: true
 		},
 		stock_snapshots: {
-			queries: ['erp_availability', 'projected_availability'],
 			read: true
 		},
 		credit_snapshots: {
@@ -48,16 +47,7 @@ export default policy({
 		},
 		orders: {
 			read: true,
-			history: true,
-			queries: [
-				'document_preview',
-				'document_versions',
-				'sealed_export',
-				'ar_aging',
-				'sales_analysis',
-				'sales_detail',
-				'commission'
-			]
+			history: true
 		},
 		order_lines: {
 			read: true,

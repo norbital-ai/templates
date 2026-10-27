@@ -61,15 +61,13 @@ export default model('customer_notices', {
 		/** An out-of-office or other automatic answer: kept apart, never the customer's reply. */
 		auto_replied_at: { kind: 'instant', optional: true }
 	},
-	read: { fields: 'all' },
+	read: { customer_notices: { fields: 'all' }, 'customer_notices.customer': { fields: 'all' } },
 	create: {
-		columns: ['customer', 'visit', 'subject', 'body'],
+		columns: { customer_notices: ['customer', 'visit', 'subject', 'body'] },
 		transform: function* (rows, ctx) {
-			const { rows: customers } = yield* ctx.db.query('customers', {
-				where: { id: { in: rows.map((r) => r.customer) } },
-				select: { email: true },
-				all: true
-			});
+			const { rows: customers } = (yield* ctx.db.query({
+				customers: { where: { id: { in: rows.map((r) => r.customer) } }, fields: ['email'] }
+			})).customers;
 			const email = new Map(customers.map((c) => [c.id, c.email]));
 			return rows.map((r) => {
 				const to = email.get(r.customer) ?? null;
@@ -78,18 +76,20 @@ export default model('customer_notices', {
 		}
 	},
 	update: {
-		columns: [
-			'whatsapp',
-			'delivery',
-			'delivery_reason',
-			'sent_at',
-			'delivered_at',
-			'delivery_presumed',
-			'opened_at',
-			'replied_at',
-			'reply_excerpt',
-			'auto_replied_at'
-		],
+		columns: {
+			customer_notices: [
+				'whatsapp',
+				'delivery',
+				'delivery_reason',
+				'sent_at',
+				'delivered_at',
+				'delivery_presumed',
+				'opened_at',
+				'replied_at',
+				'reply_excerpt',
+				'auto_replied_at'
+			]
+		},
 		// a report that arrives after a later one is stale: it writes nothing
 		transform: function* (changes) {
 			return changes.map(({ before, set }) =>

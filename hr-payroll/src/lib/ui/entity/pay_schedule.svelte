@@ -40,15 +40,17 @@
 		saving = true;
 		fork(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('entity.update', {
-					target: id,
-					set: {
-						pay_frequency_changes: list.flatMap((change) => {
-							const frequency = FREQUENCIES.find((code) => code === change.frequency);
-							return frequency == null ? [] : [{ from: PlainDate(change.from), frequency }];
-						})
+				const outcome = yield* bolt.act('entity.update', [
+					{
+						target: id,
+						set: {
+							pay_frequency_changes: list.flatMap((change) => {
+								const frequency = FREQUENCIES.find((code) => code === change.frequency);
+								return frequency == null ? [] : [{ from: PlainDate(change.from), frequency }];
+							})
+						}
 					}
-				});
+				]);
 				{
 					// past the person-wait the write runs on: its run reports the outcome
 					if (outcome.kind === 'running') notifyOutcome(bolt, outcome);

@@ -70,7 +70,7 @@
 											>
 										{/if}
 									</Cluster>
-									<p class="text-sm">{v.booking.service.name}</p>
+									<p class="text-sm">{v.booking?.service?.name ?? ''}</p>
 									<p class="text-sm text-muted-foreground">
 										{v.helper === null
 											? t('app.portal.visits_helper_pending')
@@ -87,16 +87,16 @@
 						<Label>{t('app.portal.visits_done')}</Label>
 						{#each done as v (v.id)}
 							<Cluster gap="xs" justify="between">
-								<p class="text-sm">{when(v.slot.start)} · {v.booking.service.name}</p>
+								<p class="text-sm">{when(v.slot.start)} · {v.booking?.service?.name ?? ''}</p>
 								<Badge variant="success">{t('component.status_done')}</Badge>
 							</Cluster>
 						{/each}
 					</Stack>
 				{/if}
-				{#if (answer.notices?.rows.length ?? 0) > 0}
+				{#if (answer.customer_notices?.rows.length ?? 0) > 0}
 					<Stack gap="sm">
 						<Label>{t('app.portal.visits_messages')}</Label>
-						{#each answer.notices?.rows ?? [] as n (n.id)}
+						{#each answer.customer_notices?.rows ?? [] as n (n.id)}
 							<Stack gap="xs">
 								<p class="text-sm font-medium">{n.subject}</p>
 								<p class="text-sm text-muted-foreground">{n.body}</p>

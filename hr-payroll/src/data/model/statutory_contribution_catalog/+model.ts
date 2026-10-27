@@ -28,9 +28,9 @@ export default model('statutory_contribution_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { statutory_contribution_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { statutory_contribution_catalog: update_columns }
 	}
 });

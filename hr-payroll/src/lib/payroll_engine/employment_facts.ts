@@ -108,18 +108,13 @@ export const refuseEmploymentFactsBatch = Effect.fnUntraced(function* (
 	const ids = yield* Schema.decodeUnknownEffect(Schema.Array(SchemeId))(candidates).pipe(
 		Effect.mapError(() => new Refusal({ message: 'A statutory standing needs its actual scheme.' }))
 	);
-	const { schemes, versions } = yield* read({
-		schemes: {
-			from: 'statutory_contribution_catalog',
-			where: { id: { in: ids } },
-			select: { settings_id: true },
-			all: true
-		},
-		versions: {
-			from: 'jurisdiction_settings',
-			where: { id: { in: { member: 'schemes', field: 'settings_id' } } },
-			select: { employee_input_schema: true },
-			all: true
+	const { statutory_contribution_catalog: schemes } = yield* read({
+		statutory_contribution_catalog: { where: { id: { in: ids } }, fields: ['settings_id'] }
+	});
+	const { jurisdiction_settings: versions } = yield* read({
+		jurisdiction_settings: {
+			where: { id: { in: [...new Set(schemes.rows.map((row) => row.settings_id))] } },
+			fields: ['employee_input_schema']
 		}
 	});
 	return standing.map((rows) => {

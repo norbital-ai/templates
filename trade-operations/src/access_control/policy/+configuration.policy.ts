@@ -6,11 +6,14 @@ export default policy({
 	},
 	grants: {
 		sys_integration: {
-			read: { integration: { eq: 'kingdee' } },
+			read: { sys_integration: { where: { integration: { eq: 'kingdee' } } } },
 			update: {
-				previous: { integration: { eq: 'kingdee' } },
-				where: { integration: { eq: 'kingdee' } },
-				fields: ['name', 'active', 'configuration']
+				columns: { sys_integration: ['name', 'active', 'configuration'] },
+				// the definition never changes on update, so the stored row decides
+				check: function* (changes, ctx) {
+					const other = changes.findIndex((change) => change.before.integration !== 'kingdee');
+					return other >= 0 ? ctx.deny('errors.integration_scope', { row: other }) : ctx.allow();
+				}
 			},
 			history: true
 		},
@@ -43,14 +46,12 @@ export default policy({
 			history: true
 		},
 		pricing_floors: {
-			queries: ['inventory_cost'],
 			read: true,
 			create: true,
 			update: true,
 			history: true
 		},
 		commission_rules: {
-			queries: ['preview'],
 			read: true,
 			create: true,
 			update: true,

@@ -45,30 +45,35 @@ it.effect(
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				yield* hr.act('adhoc_catalog_entry.create', {
-					catalog_id: CATALOG.BONUS,
-					employment_id: employment('a'),
-					occurred_on: PlainDate('2026-03-10'),
-					amount: Decimal.of('100')
-				});
-				yield* hr.act('payroll_run.create', {
-					company_id: COMPANY,
-					period: '2026-03',
-					kind: 'REGULAR'
-				});
+				yield* hr.act('adhoc_catalog_entry.create', [
+					{
+						catalog_id: CATALOG.BONUS,
+						employment_id: employment('a'),
+						occurred_on: PlainDate('2026-03-10'),
+						amount: Decimal.of('100')
+					}
+				]);
+				yield* hr.act('payroll_run.create', [
+					{ company_id: COMPANY, period: '2026-03', kind: 'REGULAR' }
+				]);
 				const run = yield* runOf(hr, '2026-03');
-				const [bonus] = (yield* hr.query('adhoc_catalog_entry', { all: true })).rows;
+				const [bonus] = (yield* hr.query({ adhoc_catalog_entry: {} })).adhoc_catalog_entry.rows;
 				assert.ok(bonus);
 				// the run itself only records them
 				assert.equal(bonus.payslip_id, null);
 				assert.equal(run.slip('b').status, 'DRAFT');
 				yield* t.runDue();
-				assert.equal(
-					(yield* hr.query('adhoc_catalog_entry', { id: bonus.id }))?.payslip_id,
-					run.slip('a').id
-				);
-				assert.equal((yield* hr.query('payslip', { id: run.slip('b').id }))?.status, 'ON_HOLD');
-				assert.equal((yield* hr.query('payslip', { id: run.slip('a').id }))?.status, 'DRAFT');
+				const after = yield* hr.query({
+					adhoc_catalog_entry: { where: { id: { eq: bonus.id } }, fields: ['payslip_id'] },
+					payslip: {
+						where: { id: { in: [run.slip('a').id, run.slip('b').id] } },
+						fields: ['status']
+					}
+				});
+				assert.equal(after.adhoc_catalog_entry.rows[0]?.payslip_id, run.slip('a').id);
+				const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
+				assert.equal(status(run.slip('b').id), 'ON_HOLD');
+				assert.equal(status(run.slip('a').id), 'DRAFT');
 				const failed = yield* t.db.rows(Schema.Struct({ error: Schema.NullOr(Schema.Json) }), {
 					text: "SELECT error FROM sys_run WHERE automation = 'behaviour_taps' AND state = 'failed'",
 					params: []
@@ -85,10 +90,10 @@ it.effect('calendar_tick writes the holidays the version lists, once', () =>
 			const holidays = () =>
 				t
 					.as(t.admin)
-					.query('holiday', { where: { company_id: { eq: COMPANY } }, all: true })
+					.query({ holiday: { where: { company_id: { eq: COMPANY } } } })
 					.pipe(
-						Effect.map((page) =>
-							page.rows.map((row) => [row.date, row.name, row.kind, row.published_at])
+						Effect.map(({ holiday }) =>
+							holiday.rows.map((row) => [row.date, row.name, row.kind, row.published_at])
 						)
 					);
 			for (let tick = 0; tick < 2; tick++) {

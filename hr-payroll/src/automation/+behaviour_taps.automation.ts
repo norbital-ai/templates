@@ -1,13 +1,13 @@
-import { automation, type Id, type MemberWhere, type Row as StoredRow } from '@norbital-ai/bolt';
+import { automation, type Id, type Row as StoredRow } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
 import { celValues, moneyNumber, Reads, readsFrom } from '../lib/payroll_engine/foundation.js';
 import { rosterOvertime } from '../lib/payroll_engine/admit.js';
 import {
-	describeFrom,
-	describeMembers,
-	entityMembers,
+	describeRows,
+	idsAs,
 	leaveBalancesFor,
 	primeEntities,
+	readEntities,
 	type Row,
 	runBehaviourEvents,
 	runTotals,
@@ -15,8 +15,8 @@ import {
 	text,
 	versionLookup
 } from '../lib/payroll_engine/behaviour_runner.js';
-import { leaveStateMembers } from '../lib/payroll_engine/payslip/context.js';
-import { CATALOG_DETAILS, CONTRACT, TRIGGER } from '../lib/payroll_engine/rows.js';
+import { idsOf } from '../lib/payroll_engine/payslip/context.js';
+import { CONTRACT, TRIGGER } from '../lib/payroll_engine/rows.js';
 import payroll_run from '../data/model/payroll_run/+model.js';
 import payslip from '../data/model/payslip/+model.js';
 import employment_contract from '../data/model/employment_contract/+model.js';
@@ -37,7 +37,7 @@ const Range = Schema.Struct({
 	from: Schema.String,
 	to: Schema.optional(Schema.NullOr(Schema.String))
 });
-/** The collections whose row events the taps answer (the `on` arms below), by their models. */
+/** The models whose row events the taps answer (the `on` arms below), by their models. */
 const MODELS = {
 	payroll_run,
 	payslip,
@@ -137,14 +137,14 @@ const dayOf = (collection: string, action: string, held: Row, today: string): st
 	);
 };
 /**
- * The record-driven behaviour taps. The write runs in the collection's own transform; this tap applies its rule
+ * The record-driven behaviour taps. The write runs in the model's own transform; this tap applies its rule
  * set: for every fired row and each of its subjects it resolves the entity's governing jurisdiction version, plans
- * the rules whose trigger is this collection and event, evaluates each rule's `when`, loads its declared reads and
+ * the rules whose trigger is this model and event, evaluates each rule's `when`, loads its declared reads and
  * applies the writes its `effect` returns, in order. Nothing here knows what any behaviour means.
  */
 export default automation('behaviour_taps', {
 	description:
-		'Applies the jurisdiction behaviour rules for a row event: each rule reads its declared rows and its effect returns the collection writes to make.',
+		'Applies the jurisdiction behaviour rules for a row event: each rule reads its declared rows and its effect returns the model writes to make.',
 	on: [
 		{ created: 'payroll_run' },
 		// a deleted run withdraws the unpaid duties it raised (`withdraw-run-duties`), from its pre-image
@@ -204,7 +204,7 @@ export default automation('behaviour_taps', {
 	runAs: ['hr_controller', 'payslip_hold_automation'],
 	concurrency: { max: 1 },
 	run: function* (input, ctx) {
-		const { collection } = input;
+		const { model: collection } = input;
 		const action = String(ctx.cause);
 		const today = String(ctx.today).slice(0, 10);
 		const read = ctx.query;
@@ -218,302 +218,167 @@ export default automation('behaviour_taps', {
 			spec.kind === 'ref' ? [name] : []
 		);
 		const employs = keys.includes('employment_id');
-		const descriptions = describeMembers(collection, 'rows');
-		// Deleted runs use their native pre-images; actual row and contract entities remain separate members.
+		// Deleted runs use their native pre-images.
 		const removed = action === 'deleted' ? input.rows : undefined;
-		const prefetchEntityWhere: MemberWhere<'entity'> = {
-			id: { in: { member: 'row_entities', field: 'id' } }
-		};
-		const prefetchSubjectEntityWhere: MemberWhere<'entity'> = {
-			id: { in: { member: 'subject_entities', field: 'id' } }
-		};
-		const entitySet = entityMembers(prefetchEntityWhere);
-		const subjectEntitySet = entityMembers(prefetchSubjectEntityWhere);
-		// Every actual lineage version is available before a contract's own event day is read from its row.
-		const {
-			versions: contractVersions,
-			rules: contractRules,
-			classes: contractClasses,
-			...contractState
-		} = leaveStateMembers(
-			input.collection === 'employment_contract'
-				? input.ids.map((employment_id) => ({ employment_id, asOf: today }))
-				: [],
-			{ allVersions: true }
-		);
-		const common = {
-			subjects: {
-				from: 'employment_contract',
-				where:
-					collection === 'employment_profile'
-						? { employee_id: { in: { member: 'rows', field: 'id' } } }
-						: {
-								id:
-									collection === 'employment_contract'
-										? { in: { member: 'rows', field: 'id' } }
-										: employs
-											? { in: { member: 'rows', field: 'employment_id' } }
-											: { in: [] }
-							},
-				select: CONTRACT,
-				all: true
-			},
-			row_entities: {
-				from: 'entity',
-				where: {
-					id:
-						removed === undefined
-							? collection === 'entity'
-								? { in: { member: 'rows', field: 'id' } }
-								: keys.includes('company_id')
-									? { in: { member: 'rows', field: 'company_id' } }
-									: { in: [] }
-							: { in: [...new Set(removed.map((row) => row.company_id))] }
-				},
-				select: { id: true },
-				all: true
-			},
-			subject_entities: {
-				from: 'entity',
-				where: { id: { in: { member: 'subjects', field: 'company_id' } } },
-				select: { id: true },
-				all: true
-			},
-			describe_lines: descriptions.describe_lines,
-			describe_runs: descriptions.describe_runs,
-			describe_leave: descriptions.describe_leave,
-			describe_leave_catalog: descriptions.describe_leave_catalog,
-			run_slips: {
-				from: 'payslip',
-				where: {
-					payroll_run_id:
-						collection === 'payroll_run' ? { in: { member: 'rows', field: 'id' } } : { in: [] }
-				},
-				select: {
-					payroll_run_id: true,
-					gross: true,
-					net: true,
-					employer_cost: true,
-					statutory: true
-				},
-				all: true
-			},
-			// Native member references follow the row and subject members they depend on.
-			...contractState,
-			...entitySet,
-			versions: collection === 'employment_contract' ? contractVersions : entitySet.versions,
-			rules: collection === 'employment_contract' ? contractRules : entitySet.rules,
-			classes:
-				collection === 'employment_contract'
-					? contractClasses
-					: { ...contractClasses, where: { settings_id: { in: [] } } },
-			// A row's company and its employment's company can differ; both complete scopes share this read.
-			subject_scope_entities: subjectEntitySet.entities,
-			subject_scope_contracts: {
-				...subjectEntitySet.contracts,
-				where: { company_id: { in: { member: 'subject_scope_entities', field: 'id' } } }
-			},
-			subject_scope_versions: {
-				...subjectEntitySet.versions,
-				where: {
-					...subjectEntitySet.versions.where,
-					code: { in: { member: 'subject_scope_entities', field: 'settings_code' } }
-				}
-			},
-			subject_scope_rules: {
-				...subjectEntitySet.rules,
-				where: {
-					...subjectEntitySet.rules.where,
-					settings_id: { in: { member: 'subject_scope_versions', field: 'id' } }
-				}
-			}
-		} as const;
-		const noCatalog = {
-			from: 'leave_catalog',
-			where: { id: { in: [] } },
-			select: CATALOG_DETAILS.leave_catalog,
-			all: true
-		} as const;
-		// Discriminating the native trigger keeps every collection's ID and selected field tied together.
-		const got = yield* (() => {
-			switch (input.collection) {
+		// Discriminating the native trigger keeps every model's ID and selected field tied together.
+		const stored: readonly Row[] = yield* (() => {
+			switch (input.model) {
 				case 'payroll_run':
-					return ctx.query({
-						rows: {
-							from: 'payroll_run',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.payroll_run,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							payroll_run: { where: { id: { in: input.ids } }, fields: TRIGGER.payroll_run }
+						}),
+						(got) => got.payroll_run.rows
+					);
 				case 'payslip':
-					return ctx.query({
-						rows: {
-							from: 'payslip',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.payslip,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({ payslip: { where: { id: { in: input.ids } }, fields: TRIGGER.payslip } }),
+						(got) => got.payslip.rows
+					);
 				case 'employment_contract':
-					return ctx.query({
-						rows: {
-							from: 'employment_contract',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.employment_contract,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							employment_contract: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.employment_contract
+							}
+						}),
+						(got) => got.employment_contract.rows
+					);
 				case 'employment_profile':
-					return ctx.query({
-						rows: {
-							from: 'employment_profile',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.employment_profile,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							employment_profile: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.employment_profile
+							}
+						}),
+						(got) => got.employment_profile.rows
+					);
 				case 'entity':
-					return ctx.query({
-						rows: {
-							from: 'entity',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.entity,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({ entity: { where: { id: { in: input.ids } }, fields: TRIGGER.entity } }),
+						(got) => got.entity.rows
+					);
 				case 'leave_catalog_entry':
-					return ctx.query({
-						rows: {
-							from: 'leave_catalog_entry',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.leave_catalog_entry,
-							all: true
-						},
-						...common,
-						describe_catalog: {
-							from: 'leave_catalog',
-							where: { id: { in: { member: 'rows', field: 'catalog_id' } } },
-							select: CATALOG_DETAILS.leave_catalog,
-							all: true
-						}
-					});
+					return Effect.map(
+						ctx.query({
+							leave_catalog_entry: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.leave_catalog_entry
+							}
+						}),
+						(got) => got.leave_catalog_entry.rows
+					);
 				case 'claim_catalog_entry':
-					return ctx.query({
-						rows: {
-							from: 'claim_catalog_entry',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.claim_catalog_entry,
-							all: true
-						},
-						...common,
-						describe_catalog: {
-							from: 'claim_catalog',
-							where: { id: { in: { member: 'rows', field: 'catalog_id' } } },
-							select: CATALOG_DETAILS.claim_catalog,
-							all: true
-						}
-					});
+					return Effect.map(
+						ctx.query({
+							claim_catalog_entry: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.claim_catalog_entry
+							}
+						}),
+						(got) => got.claim_catalog_entry.rows
+					);
 				case 'adhoc_catalog_entry':
-					return ctx.query({
-						rows: {
-							from: 'adhoc_catalog_entry',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.adhoc_catalog_entry,
-							all: true
-						},
-						...common,
-						describe_catalog: {
-							from: 'adhoc_catalog',
-							where: { id: { in: { member: 'rows', field: 'catalog_id' } } },
-							select: CATALOG_DETAILS.adhoc_catalog,
-							all: true
-						}
-					});
+					return Effect.map(
+						ctx.query({
+							adhoc_catalog_entry: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.adhoc_catalog_entry
+							}
+						}),
+						(got) => got.adhoc_catalog_entry.rows
+					);
 				case 'loan_catalog_entry':
-					return ctx.query({
-						rows: {
-							from: 'loan_catalog_entry',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.loan_catalog_entry,
-							all: true
-						},
-						...common,
-						describe_catalog: {
-							from: 'loan_catalog',
-							where: { id: { in: { member: 'rows', field: 'catalog_id' } } },
-							select: CATALOG_DETAILS.loan_catalog,
-							all: true
-						}
-					});
+					return Effect.map(
+						ctx.query({
+							loan_catalog_entry: {
+								where: { id: { in: input.ids } },
+								fields: TRIGGER.loan_catalog_entry
+							}
+						}),
+						(got) => got.loan_catalog_entry.rows
+					);
 				case 'roster_entry':
-					return ctx.query({
-						rows: {
-							from: 'roster_entry',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.roster_entry,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							roster_entry: { where: { id: { in: input.ids } }, fields: TRIGGER.roster_entry }
+						}),
+						(got) => got.roster_entry.rows
+					);
 				case 'obligation':
-					return ctx.query({
-						rows: {
-							from: 'obligation',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.obligation,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							obligation: { where: { id: { in: input.ids } }, fields: TRIGGER.obligation }
+						}),
+						(got) => got.obligation.rows
+					);
 				case 'regulatory_task':
-					return ctx.query({
-						rows: {
-							from: 'regulatory_task',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.regulatory_task,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							regulatory_task: { where: { id: { in: input.ids } }, fields: TRIGGER.regulatory_task }
+						}),
+						(got) => got.regulatory_task.rows
+					);
 				case 'workplace_case':
-					return ctx.query({
-						rows: {
-							from: 'workplace_case',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.workplace_case,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							workplace_case: { where: { id: { in: input.ids } }, fields: TRIGGER.workplace_case }
+						}),
+						(got) => got.workplace_case.rows
+					);
 				case 'work_suspension':
-					return ctx.query({
-						rows: {
-							from: 'work_suspension',
-							where: { id: { in: input.ids } },
-							select: TRIGGER.work_suspension,
-							all: true
-						},
-						...common,
-						describe_catalog: noCatalog
-					});
+					return Effect.map(
+						ctx.query({
+							work_suspension: { where: { id: { in: input.ids } }, fields: TRIGGER.work_suspension }
+						}),
+						(got) => got.work_suspension.rows
+					);
 			}
 		})();
-		const joined: readonly Row[] = removed ?? got.rows.rows;
+		const joined: readonly Row[] = removed ?? stored;
+		const column = (field: string) => joined.map((row) => row[field]);
+		// The rows' subjects: the employments they name (a person's every contract), and a payroll run's payslips.
+		const scope = yield* ctx.query({
+			employment_contract: {
+				where:
+					collection === 'employment_profile'
+						? { employee_id: { in: idsAs('employment_profile', column('id')) } }
+						: {
+								id: {
+									in:
+										collection === 'employment_contract'
+											? idsAs('employment_contract', column('id'))
+											: employs
+												? idsAs('employment_contract', column('employment_id'))
+												: []
+								}
+							},
+				fields: CONTRACT
+			},
+			payslip: {
+				where: {
+					payroll_run_id: {
+						in: collection === 'payroll_run' ? idsAs('payroll_run', column('id')) : []
+					}
+				},
+				fields: ['payroll_run_id', 'gross', 'net', 'employer_cost', 'statutory']
+			}
+		});
+		// A row's company and its employment's company can differ; both are subjects' entities.
+		const rowEntities =
+			collection === 'entity'
+				? idsAs('entity', column('id'))
+				: keys.includes('company_id')
+					? idsAs('entity', column('company_id'))
+					: [];
+		const companyIds = [
+			...new Set([
+				...rowEntities,
+				...idsOf(scope.employment_contract.rows.map((row) => row.company_id))
+			])
+		];
 		const byId = new Map(joined.map((held) => [String(held['id']), held]));
 		const loaded = ids.flatMap((id) => {
 			const found = byId.get(id);
@@ -527,21 +392,13 @@ export default automation('behaviour_taps', {
 			);
 			return [plain];
 		});
-		const described = yield* describeFrom<(typeof got.describe_catalog.rows)[number]>(
-			collection,
-			loaded,
-			got,
-			read
-		);
-		const companyIds = [
-			...new Set([...got.row_entities.rows, ...got.subject_entities.rows].map((row) => row.id))
-		];
-		const subjects = subjectsOf(collection, described, got.subjects.rows, companyIds);
-		const slips = got.run_slips.rows;
+		const described = yield* describeRows(read, collection, loaded);
+		const subjects = subjectsOf(collection, described, scope.employment_contract.rows, companyIds);
+		const slips = scope.payslip.rows;
 		// A contract event reads its leave balances on its day (the exit encashment pays what the balance leaves): every
 		// contract's leave state from one read.
-		const contracts = new Map<string, (typeof got.subjects.rows)[number]>(
-			got.subjects.rows.map((row) => [row.id, row])
+		const contracts = new Map<string, (typeof scope.employment_contract.rows)[number]>(
+			scope.employment_contract.rows.map((row) => [row.id, row])
 		);
 		const wants =
 			collection === 'employment_contract'
@@ -552,24 +409,12 @@ export default automation('behaviour_taps', {
 							: [{ employment_id: contract.id, asOf: dayOf(collection, action, row, today) }];
 					})
 				: [];
-		yield* primeEntities(versionFor, got);
-		yield* primeEntities(versionFor, {
-			entities: got.subject_scope_entities,
-			contracts: got.subject_scope_contracts,
-			versions: got.subject_scope_versions,
-			rules: got.subject_scope_rules
-		});
-		let balances: Effect.Success<ReturnType<typeof leaveBalancesFor>> = [];
-		if (wants.length > 0) {
-			balances = yield* leaveBalancesFor(read, wants, {
-				withoutExitEffects: true,
-				prefetched: got
-			});
-		}
+		yield* primeEntities(versionFor, yield* readEntities(read, { id: { in: companyIds } }));
+		const balances = yield* leaveBalancesFor(read, wants, { withoutExitEffects: true });
 		const byBalance = new Map(wants.map((want, n) => [want.employment_id, balances[n] ?? []]));
 		// A roster day carries the overtime its clock derives past the planned shift: a task's `when` reads it.
 		const overtime =
-			input.collection === 'roster_entry'
+			input.model === 'roster_entry'
 				? yield* rosterOvertime(input.ids).pipe(Effect.provideService(Reads, readsFrom(read)))
 				: new Map<string, { approved_overtime_hours: number; overtime_hours: number }>();
 		const events = described.map((stored) => {
@@ -592,7 +437,7 @@ export default automation('behaviour_taps', {
 				row: collection === 'employment_contract' ? { ...triggerRow, leave_balances } : triggerRow,
 				day,
 				subjects: subjects.get(id) ?? [],
-				// A rule's extra fields: every one the trigger collection carries is already on the row.
+				// A rule's extra fields: every one the trigger model carries is already on the row.
 				fields: Effect.fnUntraced(function* (names: readonly string[]) {
 					return Object.fromEntries(
 						names

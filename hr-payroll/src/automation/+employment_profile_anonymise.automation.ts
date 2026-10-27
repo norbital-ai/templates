@@ -8,17 +8,14 @@ export default automation('employment_profile_anonymise', {
 	agent: 'confirm',
 	input: { employee: { kind: 'id', of: 'employment_profile' } },
 	run: function* ({ employee }, ctx) {
-		const profile = yield* ctx.query('employment_profile', { id: employee });
-		if (profile === null) return yield* new Refusal({ message: 'The employee is unavailable.' });
-		const contracts = yield* ctx.query('employment_contract', {
-			where: { employee_id: { eq: profile.id } },
-			select: { id: true, revision: true },
-			all: true
+		const { employment_profile, employment_contract: contracts } = yield* ctx.query({
+			employment_profile: { where: { id: { eq: employee } }, fields: ['revision'], limit: 1 },
+			employment_contract: { where: { employee_id: { eq: employee } }, fields: ['revision'] }
 		});
-		const profileWrite = {
-			target: profile.id,
-			set: { anonymised_at: ctx.now }
-		};
+		const profile = employment_profile.rows[0];
+		if (profile === undefined)
+			return yield* new Refusal({ message: 'The employee is unavailable.' });
+		const profileWrite = [{ target: profile.id, set: { anonymised_at: ctx.now } }];
 		if (contracts.rows.length === 0) {
 			yield* ctx.act('employment_profile.update', profileWrite, {
 				observed: { [profile.id]: profile.revision }
@@ -34,10 +31,10 @@ export default automation('employment_profile_anonymise', {
 			},
 			{
 				callable: 'employment_contract.update',
-				input: {
-					target: contracts.rows.map((row) => row.id),
+				input: contracts.rows.map((row) => ({
+					target: row.id,
 					set: { bank: null, comments: null }
-				},
+				})),
 				observed: Object.fromEntries(
 					contracts.rows.map((row): [string, number] => [row.id, row.revision])
 				)

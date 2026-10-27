@@ -1,7 +1,7 @@
 import { Array as EffectArray } from 'effect';
 import type { ValueOf } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
-import { Record as Records, Schema, Struct } from 'effect';
+import { Schema, Struct } from 'effect';
 import { REFERENCES_SHAPE } from './references.js';
 import { STATUTORY_FIELDS } from './statutory_fields.js';
 import { AGENT_SECTIONS, RULE_FAMILIES, type ResearchAgent } from './research_agents.js';
@@ -145,12 +145,6 @@ export const SnapshotSchema = Schema.declare<StatutorySnapshot>(
 	(value): value is StatutorySnapshot => Schema.is(snapshotValue)(value)
 );
 export const decodeSnapshot = Schema.decodeUnknownEffect(SnapshotSchema);
-
-export function snapshotSelect<const K extends string>(
-	fields: Readonly<Record<K, unknown>>
-): Record<K, true> {
-	return Records.map(fields, (): true => true);
-}
 
 /** Only the named model fields enter research, preserving their decoded values. */
 export function snapshotFields<R extends object, const K extends keyof R & string>(

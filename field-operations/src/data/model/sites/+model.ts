@@ -10,13 +10,15 @@ const columns = [
 	'house_type',
 	'floor_area_sqm'
 ] as const;
-/** Work filed at an address from the site's side: a job created under it, or an existing job moved to it. */
-const jobs = {
-	create: {
-		columns: ['external_ref', 'title', 'nature', 'scheduled_for', 'description', 'assignee_user_id']
-	},
-	link: {}
-} as const;
+/** Work filed at an address from the site's side: a job created under it, or an existing job moved to it (its id). */
+const jobs = [
+	'external_ref',
+	'title',
+	'nature',
+	'scheduled_for',
+	'description',
+	'assignee_contact'
+] as const;
 type Place = {
 	readonly location?: Point | null;
 	readonly address?: string | null;
@@ -55,7 +57,9 @@ const placed = Effect.fnUntraced(function* (
 	const keys = places.map((place) => siteKey(place.name, place.unit_number));
 	if (new Set(keys).size < keys.length)
 		return yield* ctx.refuse('Two sites in this batch have one address.');
-	const holders = yield* ctx.db.query('sites', { where: { site_key: { in: keys } }, all: true });
+	const { sites: holders } = yield* ctx.db.query({
+		sites: { where: { site_key: { in: keys } }, fields: ['site_key', 'name'] }
+	});
 	const holderOf = new Map(holders.rows.map((site) => [site.site_key, site]));
 	for (const [row, key] of keys.entries()) {
 		const before = writes[row]?.before;
@@ -105,10 +109,25 @@ export default model('sites', {
 		floor_area_sqm: { kind: 'decimal', scale: 2, optional: true }
 	},
 	search: { text: ['name', 'address', 'unit_number', 'site_code', 'client_name'] },
-	read: 'all',
+	read: {
+		sites: { fields: 'all' },
+		/** The work at a site: how a message naming an address finds its job (today's, else the next pending). */
+		'sites.job_assignments': {
+			fields: [
+				'title',
+				'nature',
+				'scheduled_for',
+				'status',
+				'assignee_user_id',
+				'assignee_contact',
+				'description',
+				'summary',
+				'completed_at'
+			]
+		}
+	},
 	create: {
-		columns,
-		with: { job_assignments: jobs },
+		columns: { sites: columns, 'sites.job_assignments': jobs },
 		transform: function* (rows, ctx) {
 			const derived = yield* placed(
 				rows.map((set) => ({ set, before: undefined })),
@@ -118,9 +137,18 @@ export default model('sites', {
 		}
 	},
 	update: {
-		columns,
-		with: { job_assignments: jobs },
+		columns: { sites: columns, 'sites.job_assignments': jobs },
 		transform: function* (changes, ctx) {
+			// from the site's side a job is only filed or moved here; its own update changes it
+			const rewrite = changes.findIndex(
+				({ set }) =>
+					set.job_assignments !== undefined &&
+					Object.keys(set.job_assignments).some((verb) => verb !== 'create' && verb !== 'link')
+			);
+			if (rewrite >= 0)
+				return yield* ctx.refuse('A site files or moves jobs; change a job on the job itself.', {
+					row: rewrite
+				});
 			const derived = yield* placed(changes, ctx);
 			return changes.map(({ set }, i) => ({ ...set, ...derived[i] }));
 		}

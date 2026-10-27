@@ -23,32 +23,42 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const admin = t.as(t.member(['hr_manager']));
-				const created = yield* admin.act('bank.create', {
-					code: 'EXAMPLE_DRAFT',
-					name: 'Example draft bank'
-				});
+				const created = yield* admin.act('bank.create', [
+					{
+						code: 'EXAMPLE_DRAFT',
+						name: 'Example draft bank'
+					}
+				]);
 				assert.equal(created.kind, 'committed');
-				const [draft] = (yield* admin.query('bank', {
-					where: { code: { eq: 'EXAMPLE_DRAFT' } },
-					select: { id: true, enabled: true, bank_codes: true, currencies: true, template: true },
-					all: true
-				})).rows;
+				const [draft] = (yield* admin.query({
+					bank: {
+						where: { code: { eq: 'EXAMPLE_DRAFT' } },
+						fields: ['enabled', 'bank_codes', 'currencies', 'template']
+					}
+				})).bank.rows;
 				assert.ok(draft);
 				assert.equal(draft.enabled, false);
 				assert.deepEqual(draft.bank_codes, []);
 				assert.deepEqual(draft.currencies, []);
 				assert.deepEqual(draft.template, {});
 				const incomplete = yield* Effect.flip(
-					admin.act('bank.update', { target: draft.id, set: { enabled: true } })
+					admin.act('bank.update', [{ target: draft.id, set: { enabled: true } }])
 				);
 				assert.equal(incomplete._tag, 'ActRefused');
-				assert.equal((yield* admin.query('bank', { id: draft.id }))?.enabled, false);
-				const completed = yield* admin.act('bank.update', {
-					target: draft.id,
-					set: { bank_codes: ['EXAMPLEBANK'], currencies: ['SGD'], template, enabled: true }
-				});
+				assert.equal(
+					((yield* admin.query({ bank: { where: { id: { eq: draft.id } } } })).bank.rows[0] ?? null)
+						?.enabled,
+					false
+				);
+				const completed = yield* admin.act('bank.update', [
+					{
+						target: draft.id,
+						set: { bank_codes: ['EXAMPLEBANK'], currencies: ['SGD'], template, enabled: true }
+					}
+				]);
 				assert.equal(completed.kind, 'committed');
-				const saved = yield* admin.query('bank', { id: draft.id });
+				const saved =
+					(yield* admin.query({ bank: { where: { id: { eq: draft.id } } } })).bank.rows[0] ?? null;
 				assert.ok(saved);
 				assert.equal(saved.enabled, true);
 				assert.equal(saved.template.file, '"example-payments.txt"');
@@ -61,18 +71,22 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const admin = t.as(t.member(['hr_manager']));
-				yield* admin.act('bank.create', {
-					code: 'EXAMPLE_VALIDATION',
-					name: 'Example validation bank',
-					bank_codes: ['EXAMPLEBANK'],
-					currencies: ['SGD'],
-					template
-				});
-				const [draft] = (yield* admin.query('bank', {
-					where: { code: { eq: 'EXAMPLE_VALIDATION' } },
-					all: true
-				})).rows;
+				yield* admin.act('bank.create', [
+					{
+						code: 'EXAMPLE_VALIDATION',
+						name: 'Example validation bank',
+						bank_codes: ['EXAMPLEBANK'],
+						currencies: ['SGD'],
+						template
+					}
+				]);
+				const [draft] = (yield* admin.query({
+					bank: {
+						where: { code: { eq: 'EXAMPLE_VALIDATION' } }
+					}
+				})).bank.rows;
 				assert.ok(draft);
+				const id = draft.id;
 				const badTemplates = [
 					{},
 					{ ...template, file: 'runs[' },
@@ -86,25 +100,28 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 				];
 				for (const invalidTemplate of badTemplates) {
 					const refused: ActFailure = yield* Effect.flip(
-						admin.act('bank.update', {
-							target: draft.id,
-							set: { template: invalidTemplate, enabled: true }
-						})
+						admin.act('bank.update', [
+							{
+								target: id,
+								set: { template: invalidTemplate, enabled: true }
+							}
+						])
 					);
 					assert.equal(refused._tag, 'ActRefused');
-					const saved: Row<'bank'> | null = yield* admin.query('bank', { id: draft.id });
+					const saved =
+						(yield* admin.query({ bank: { where: { id: { eq: id } } } })).bank.rows[0] ?? null;
 					assert.ok(saved);
 					assert.equal(saved.enabled, false);
 					assert.equal(saved.template.file, template.file);
 				}
 				for (const currencies of [[], ['sgd'], ['SGD', 'SGD']]) {
 					const refused: ActFailure = yield* Effect.flip(
-						admin.act('bank.update', { target: draft.id, set: { currencies, enabled: true } })
+						admin.act('bank.update', [{ target: id, set: { currencies, enabled: true } }])
 					);
 					assert.equal(refused._tag, 'ActRefused');
 				}
 				const emptyBanks = yield* Effect.flip(
-					admin.act('bank.update', { target: draft.id, set: { bank_codes: [], enabled: true } })
+					admin.act('bank.update', [{ target: id, set: { bank_codes: [], enabled: true } }])
 				);
 				assert.equal(emptyBanks._tag, 'ActRefused');
 			})
@@ -114,29 +131,39 @@ layer(workspace({ seed: 'none' }))('native reusable bank template configuration'
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.member(['hr_manager']));
-			yield* admin.act('bank.create', {
-				code: 'EXAMPLE_ENABLED',
-				name: 'Example enabled bank',
-				bank_codes: ['EXAMPLEBANK'],
-				currencies: ['SGD'],
-				template,
-				enabled: true
-			});
-			const [bank] = (yield* admin.query('bank', {
-				where: { code: { eq: 'EXAMPLE_ENABLED' } },
-				all: true
-			})).rows;
+			yield* admin.act('bank.create', [
+				{
+					code: 'EXAMPLE_ENABLED',
+					name: 'Example enabled bank',
+					bank_codes: ['EXAMPLEBANK'],
+					currencies: ['SGD'],
+					template,
+					enabled: true
+				}
+			]);
+			const [bank] = (yield* admin.query({
+				bank: {
+					where: { code: { eq: 'EXAMPLE_ENABLED' } }
+				}
+			})).bank.rows;
 			assert.ok(bank);
 			const refused = yield* Effect.flip(
-				admin.act('bank.update', { target: bank.id, set: { template: {} } })
+				admin.act('bank.update', [{ target: bank.id, set: { template: {} } }])
 			);
 			assert.equal(refused._tag, 'ActRefused');
-			assert.equal((yield* admin.query('bank', { id: bank.id }))?.enabled, true);
-			yield* admin.act('bank.update', {
-				target: bank.id,
-				set: { enabled: false, template: {} }
-			});
-			const draft = yield* admin.query('bank', { id: bank.id });
+			assert.equal(
+				((yield* admin.query({ bank: { where: { id: { eq: bank.id } } } })).bank.rows[0] ?? null)
+					?.enabled,
+				true
+			);
+			yield* admin.act('bank.update', [
+				{
+					target: bank.id,
+					set: { enabled: false, template: {} }
+				}
+			]);
+			const draft =
+				(yield* admin.query({ bank: { where: { id: { eq: bank.id } } } })).bank.rows[0] ?? null;
 			assert.ok(draft);
 			assert.equal(draft.enabled, false);
 			assert.deepEqual(draft.template, {});

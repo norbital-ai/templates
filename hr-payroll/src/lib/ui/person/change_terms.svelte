@@ -3,7 +3,7 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	/**
 	 * L-TPL-hr-payroll-033: one `employment_contract.update` that closes the terms in force the day before
-	 * the successor starts (L-TPL-hr-payroll-036 overlap refusal lives in the collection transform).
+	 * the successor starts (L-TPL-hr-payroll-036 overlap refusal lives in the model transform).
 	 */
 	import { bolt } from '$bolt';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
@@ -71,10 +71,8 @@
 	const termForm = $derived(formSchema(termSchema, TERM_KEYS));
 	const patterns = $derived.by(() =>
 		sheetOpen
-			? bolt.query('shift_pattern', {
-					where: { company_id: { eq: companyId } },
-					select: { id: true, code: true, name: true },
-					all: true
+			? bolt.query({
+					shift_pattern: { where: { company_id: { eq: companyId } }, fields: ['code', 'name'] }
 				})
 			: null
 	);
@@ -144,7 +142,7 @@
 		saving = true;
 		fork(
 			Effect.gen(function* () {
-				const payload: ActInput<'employment_contract.update'> = { target: id, set };
+				const payload: ActInput<'employment_contract.update'> = [{ target: id, set }];
 				const outcome = yield* bolt.act('employment_contract.update', payload);
 				// past the person-wait the write runs on: its run reports the outcome
 				if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
@@ -214,13 +212,13 @@
 					disabled={saving}
 				/>
 			{/if}
-			{#if (patterns?.current?.rows ?? []).length > 0}
+			{#if (patterns?.current?.shift_pattern.rows ?? []).length > 0}
 				<Stack gap="xs">
 					<Label for="terms-pattern">{bolt.t('component.shift_pattern')}</Label>
 					<Combobox
 						id="terms-pattern"
 						class="w-full"
-						options={(patterns?.current?.rows ?? []).map((row) => ({
+						options={(patterns?.current?.shift_pattern.rows ?? []).map((row) => ({
 							value: row.id,
 							label: row.name ?? row.code ?? row.id
 						}))}

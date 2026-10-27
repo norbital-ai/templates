@@ -20,18 +20,15 @@
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
 
-	const entities = $derived.by(() =>
-		bolt.query('entity', { select: { id: true, name: true }, all: true })
-	);
-	const holidays = $derived.by(() =>
-		bolt.query('holiday', { select: { company_id: true, date: true }, all: true })
+	const held = $derived.by(() =>
+		bolt.query({ entity: { fields: ['name'] }, holiday: { fields: ['company_id', 'date'] } })
 	);
 
 	function holidayRows(grids: WorkbookGrids): ActInput<'holiday.create'> {
-		const parsed = parseEntityHolidaySheets(grids, entities?.current?.rows ?? []);
+		const parsed = parseEntityHolidaySheets(grids, held?.current?.entity.rows ?? []);
 		if ('error' in parsed)
 			throw new WorkbookImportError({ message: parsed.error, detail: parsed.detail ?? [] });
-		const { insert } = skipHeldHolidays(parsed.rows, holidays?.current?.rows ?? []);
+		const { insert } = skipHeldHolidays(parsed.rows, held?.current?.holiday.rows ?? []);
 		if (insert.length === 0)
 			throw new WorkbookImportError({
 				message: 'This file has no holidays to import.',
@@ -54,7 +51,7 @@
 				action: 'holiday.create',
 				recordLabel: bolt.t('app.settings.holidays').toLowerCase(),
 				buildPayload: holidayRows,
-				importedCount: (payload) => (Array.isArray(payload) ? payload.length : 1)
+				importedCount: (payload) => payload.length
 			}).pipe(
 				Effect.ensuring(
 					Effect.sync(() => {

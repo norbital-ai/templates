@@ -25,6 +25,6 @@ export default model('certification_types', {
 	},
 	search: { text: ['certification_name'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { certification_types: columns } },
+	update: { columns: { certification_types: columns } }
 });

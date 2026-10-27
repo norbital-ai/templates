@@ -1,8 +1,7 @@
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
-import { PlainDate } from '@norbital-ai/std/date';
-import { reportSelect, commissionFactSelect } from '../../../lib/reports.js';
-import { monthlyCommission } from '../../../lib/monthly-commission.js';
+import { reportFields, commissionFactFields } from '../../../lib/reports.js';
+import { monthlyCommission, statementFields } from '../../../lib/monthly-commission.js';
 export default model('commission_statements', {
 	description: 'Monthly salesperson commission statement.',
 	label: 'number',
@@ -43,35 +42,20 @@ export default model('commission_statements', {
 	],
 	read: 'all',
 	create: {
-		columns: ['owner', 'period', 'currency', 'calculation_hash'],
+		columns: { commission_statements: ['owner', 'period', 'currency', 'calculation_hash'] },
 		transform: function* (rows, ctx) {
 			if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.commission_member');
 			const acknowledged_by = ctx.actor.id;
-			const { orders, statements, users, facts } = yield* ctx.db.query({
-				orders: {
-					from: 'orders',
-					where: { direction: { eq: 'sales' } },
-					select: reportSelect,
-					all: true
-				},
-				statements: {
-					from: 'commission_statements',
-					select: {
-						number: true,
-						owner: true,
-						period: true,
-						currency: true,
-						calculation_hash: true,
-						amount: true,
-						order_count: true,
-						acknowledged_at: true,
-						acknowledged_by: true,
-						snapshot: true
-					},
-					all: true
-				},
-				users: { from: 'sys_user', select: { name: true }, all: true },
-				facts: { from: 'source_sales_lines', select: commissionFactSelect, all: true }
+			const {
+				orders,
+				commission_statements: statements,
+				sys_user: users,
+				source_sales_lines: facts
+			} = yield* ctx.db.query({
+				orders: { where: { direction: { eq: 'sales' } }, fields: reportFields },
+				commission_statements: { fields: statementFields },
+				sys_user: { fields: ['name'] },
+				source_sales_lines: { fields: commissionFactFields }
 			});
 			return yield* Effect.forEach(
 				rows,
@@ -111,62 +95,6 @@ export default model('commission_statements', {
 					}),
 				{ concurrency: 'unbounded' }
 			);
-		}
-	},
-	queries: {
-		board: {
-			description:
-				'Scoped monthly salesperson commission board. Currencies remain separate; sign-offs never change an SO seal.',
-			input: { period: { kind: 'date' } },
-			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						owner: { kind: 'id', of: 'sys_user' },
-						owner_name: { kind: 'text' },
-						period: { kind: 'date' },
-						currency: { kind: 'currency' },
-						order_count: { kind: 'int' },
-						amount: { kind: 'money', currency: 'currency', optional: true },
-						calculation_hash: { kind: 'text' },
-						unresolved_lines: { kind: 'int' },
-						awaiting_approval: { kind: 'int' },
-						latest_amount: { kind: 'money', currency: 'currency', optional: true },
-						latest_statement: { kind: 'id', of: 'commission_statements', optional: true },
-						state: {
-							kind: 'enum',
-							values: ['unacknowledged', 'current', 'changed', 'unresolved', 'awaiting_approval']
-						}
-					}
-				}
-			},
-			run: function* (input, ctx) {
-				const period = input.period.slice(0, 7) + '-01';
-				const { orders, statements, users, facts } = yield* ctx.query({
-					orders: {
-						from: 'orders',
-						where: { direction: { eq: 'sales' } },
-						select: reportSelect,
-						all: true
-					},
-					statements: {
-						from: 'commission_statements',
-						where: { period: { eq: PlainDate(period) } },
-						all: true
-					},
-					users: { from: 'sys_user', select: { name: true }, all: true },
-					facts: { from: 'source_sales_lines', select: commissionFactSelect, all: true }
-				});
-				const rows = yield* monthlyCommission(
-					orders.rows,
-					statements.rows,
-					users.rows,
-					period,
-					facts.rows
-				);
-				return rows.map(({ snapshot, ...row }) => ({ ...row, period: PlainDate(row.period) }));
-			}
 		}
 	}
 });

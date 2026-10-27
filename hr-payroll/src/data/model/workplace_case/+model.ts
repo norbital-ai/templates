@@ -81,7 +81,7 @@ export default model('workplace_case', {
 	},
 	read: 'all',
 	create: {
-		columns: ['kind', 'opened_on', 'closed_on', 'facts', 'company_id', 'employment_id'],
+		columns: { workplace_case: ['kind', 'opened_on', 'closed_on', 'facts', 'company_id', 'employment_id'] },
 		transform: function* (rows, ctx) {
 			const prefetched = yield* loadWorkplaceAdmission(ctx.db.query, rows);
 			return yield* Effect.forEach(rows, (row, at) =>
@@ -92,7 +92,7 @@ export default model('workplace_case', {
 		}
 	},
 	update: {
-		columns: ['kind', 'opened_on', 'closed_on', 'facts'],
+		columns: { workplace_case: ['kind', 'opened_on', 'closed_on', 'facts'] },
 		// an update records what it changed, for the duties that answer a change
 		transform: function* (changes, ctx) {
 			const prefetched = yield* loadWorkplaceAdmission(

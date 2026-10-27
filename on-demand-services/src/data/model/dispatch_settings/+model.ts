@@ -48,7 +48,7 @@ export default model('dispatch_settings', {
 	check: {
 		reply_inside_lead: { shift_reply_minutes: { lt: { field: 'shift_check_lead_minutes' } } }
 	},
-	read: { fields: 'all' },
-	create: { columns },
-	update: { columns }
+	read: 'all',
+	create: { columns: { dispatch_settings: columns } },
+	update: { columns: { dispatch_settings: columns } }
 });

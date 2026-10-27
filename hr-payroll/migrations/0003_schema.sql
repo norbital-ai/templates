@@ -1,0 +1,7 @@
+-- 0003_schema.sql: 1 step(s), from c40a085d61e618bc2dcc04d0e6517ce3d0f187aaae4e9554d790a492c4d597ec to 88173d07f536073c255f321e6b7a5f78715b78645070906b60430c0137e547da.
+-- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
+
+-- step replace:trigger:payslip.store_row_rules (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+drop trigger if exists store_row_rules on "payslip";
+create trigger store_row_rules before insert or update or delete on "payslip" for each row execute function store_row_rules('{"audit":true,"fields":{"adjustments":["adjustments"],"bank_charges":["bank_charges"],"base":["base"],"company_payments":["company_payments"],"currency":["currency"],"employer_cost":["employer_cost"],"employment_id":["employment_id"],"gross":["gross"],"net":["net"],"paid_at":["paid_at"],"payroll_run_id":["payroll_run_id"],"proration":["proration"],"salary_from":["salary_from"],"salary_to":["salary_to"],"service_basis":["service_basis"],"status":["status"],"statutory":["statutory"],"terms_through":["terms_through"],"total_deductions":["total_deductions"]},"key":["id"],"parents":[{"column":"payroll_run_id","key":"id","relation":"payslip","states":{},"table":"payroll_run","type":"uuid"}],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"edit":["status","paid_at","bank_charges"],"to":["ON_HOLD","PAID"]},"ON_HOLD":{"edit":["status","paid_at","bank_charges"],"to":["DRAFT","PAID"]},"PAID":{"edit":"none"}}}}}');

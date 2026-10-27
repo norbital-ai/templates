@@ -47,7 +47,9 @@ expressions on those rows; behaviours are event rules on the settings version. T
 made without touching source. Jurisdiction versions also own their suspension kinds (a validated custom field).
 
 The 29 record models live in `src/data/model/<name>/+model.ts`. Each model declares its fields, relationships,
-per-verb write callbacks and queries inline; its companion `+representation.svelte` renders the record.
+its read and write layers and per-verb write callbacks inline; its companion `+representation.svelte` renders the
+record. Pages and automations read layer maps and compute in `src/lib` (leave balances: `src/lib/leave_reads.ts`);
+payroll exports (bank files, salary listing) are the `payroll_run.sync.export` file sync.
 Business operations are ordinary automations under `src/automation/`.
 
 What each jurisdiction configures is tracked in the [jurisdiction trackers](docs/inventory/README.md); the latest

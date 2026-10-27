@@ -403,7 +403,7 @@ type PinnedEntry = {
 	readonly to?: unknown;
 	readonly facts?: unknown;
 };
-/** A payslip with the entries it pinned, one arm per entry collection. */
+/** A payslip with the entries it pinned, one arm per entry model. */
 type PinningSlip = {
 	readonly [C in (typeof FAMILIES)[number]['collection']]?: readonly PinnedEntry[];
 };

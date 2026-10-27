@@ -17,7 +17,7 @@ matter and blank cells are ignored.
 | `title`            | yes      | The work order's title, shown on the dispatch board.                                                    |
 | `nature`           | no       | What kind of work it is, for example `Survey` or `Installation`.                                        |
 | `description`      | no       | The work scope.                                                                                         |
-| `assignee_user_id` | no       | The contractor's workspace user id. With it the row is filed `assigned`; without it, `unassigned`.      |
+| `assignee_contact` | no       | The contractor's email or phone number. The job links the member holding it; otherwise no contractor.  |
 | `external_ref`     | no       | The dispatch system's own reference. It must be unique across assignments.                              |
 
 A site is matched by its code, or by its address and unit key: the postal code plus the unit (`#05-12`) when
@@ -32,12 +32,12 @@ To import work without coordinates, first add the site by selecting its required
 the app, optionally enter its **Unit number**, and then use its site code or matching address and
 unit in the sheet.
 
-The whole sheet is checked before anything is written: a bad day, a malformed user id or an
+The whole sheet is checked before anything is written: a bad day, an
 `external_ref` repeated within the sheet, or missing/invalid coordinates for a new site refuses
 the import and names every row at fault. A row
 already filed — its `external_ref` is taken, or, without one, the same title on the same day at the
 same site exists — is skipped, so importing the same sheet twice files nothing twice.
 
-`assignee_user_id` names a **person**. The template does not query the private identity directory to
-turn a display name into an id; the relationship's foreign key rejects an id that is not a workspace
-user. Leave it blank to dispatch from the board instead.
+`assignee_contact` names a **person** by email or phone number (a Singapore number with or without
+`+65`). A job filed with a contact no member holds stays pending without a contractor, and the board
+warns on its card. Every job is filed `pending`; leave the contact blank to dispatch from the board.

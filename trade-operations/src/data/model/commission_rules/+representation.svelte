@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Decimal } from '@norbital-ai/std/decimal';
 
-	import type { QueryOutput } from '@norbital-ai/bolt';
+	import { commissionPreview, previewRead } from '../../../lib/commission-expressions.js';
 	import { fork, bolt } from '$bolt';
 	import { Effect, Schema } from 'effect';
 	import { Input, Button, Show, useKinds, TimeInput, type RecordView } from '@norbital-ai/ui';
@@ -23,7 +23,7 @@
 	let unit = $state('kg');
 	let party = $state('');
 	let orderedOn = $state<string | null>(new Date().toISOString().slice(0, 10));
-	let result = $state<QueryOutput<'commission_rules.preview'> | null>(null);
+	let result = $state<ReturnType<typeof commissionPreview>>(null);
 	let feedback = $state('');
 	let busy = $state(false);
 	class PreviewInputInvalid extends Schema.TaggedError<PreviewInputInvalid>()(
@@ -40,7 +40,6 @@
 		fork(
 			Effect.try({
 				try: () => ({
-					rule,
 					quantity: Decimal.of(quantity),
 					net: Decimal.of(net),
 					...(floor ? { floor_net: Decimal.of(floor) } : {}),
@@ -52,7 +51,16 @@
 				}),
 				catch: (cause) => new PreviewInputInvalid({ message: String(cause) })
 			}).pipe(
-				Effect.flatMap((input) => bolt.query('commission_rules.preview', input)),
+				Effect.flatMap((sample) =>
+					bolt.query(previewRead(rule)).pipe(
+						Effect.flatMap((answer) => {
+							const outcome = commissionPreview(answer, sample);
+							return outcome === null
+								? Effect.fail(new PreviewInputInvalid({ message: 'rule unavailable' }))
+								: Effect.succeed(outcome);
+						})
+					)
+				),
 				Effect.tap((answer) =>
 					Effect.sync(() => {
 						result = answer;
@@ -96,7 +104,7 @@
 	</Stack>
 {/snippet}
 {#snippet testExpression()}
-	{#if view.mode !== 'create' && kinds.catalog?.commission_rules?.queries?.preview}
+	{#if view.mode !== 'create' && kinds.catalog?.commission_rules?.update}
 		<Stack gap="md">
 			<p>{bolt.t('component.commission_preview_saved')}</p>
 			<Grid gap="md" minimum="compact">
@@ -194,7 +202,7 @@
 			title: bolt.t('component.commission_expression_reference'),
 			body: reference
 		},
-		...(view.mode !== 'create' && kinds.catalog?.commission_rules?.queries?.preview
+		...(view.mode !== 'create' && kinds.catalog?.commission_rules?.update
 			? [{ name: 'preview', title: bolt.t('component.commission_preview'), body: testExpression }]
 			: [])
 	]}

@@ -20,7 +20,7 @@ export default model('customers', {
 	},
 	search: { text: ['name', 'phone', 'email', 'address'] },
 	read: 'all',
-	create: { columns },
-	update: { columns },
+	create: { columns: { customers: columns } },
+	update: { columns: { customers: columns } },
 	delete: {}
 });

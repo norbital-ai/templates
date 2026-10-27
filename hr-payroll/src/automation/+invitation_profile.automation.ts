@@ -1,4 +1,4 @@
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation, type Id, type Where } from '@norbital-ai/bolt';
 import { Schema } from 'effect';
 /** People and profiles that do not pair one to one: the run fails, and retries, until HR resolves the duplicates. */
 class ProfileMismatch extends Schema.TaggedError<ProfileMismatch>()('ProfileMismatch', {
@@ -19,33 +19,34 @@ export default automation('invitation_profile', {
 		// Runs may merge several invitation batches; keep each read below the predicate list limit.
 		for (let offset = 0; offset < input.ids.length; offset += 500) {
 			const people =
-				input.collection === 'sys_invitation'
-					? (yield* ctx.query('sys_invitation', {
-							where: { id: { in: input.ids.slice(offset, offset + 500) } },
-							select: { id: true, email: true, phone: true, external: true },
-							all: true
-						})).rows.filter((row) => !row.external)
-					: (yield* ctx.query('sys_user', {
-							where: { id: { in: input.ids.slice(offset, offset + 500) } },
-							select: { id: true, name: true, email: true, phone: true, kind: true },
-							all: true
-						})).rows.filter((row) => row.kind === 'staff');
+				input.model === 'sys_invitation'
+					? (yield* ctx.query({
+							sys_invitation: {
+								where: { id: { in: input.ids.slice(offset, offset + 500) } },
+								fields: ['email', 'phone', 'external']
+							}
+						})).sys_invitation.rows.filter((row) => !row.external)
+					: (yield* ctx.query({
+							sys_user: {
+								where: { id: { in: input.ids.slice(offset, offset + 500) } },
+								fields: ['name', 'email', 'phone', 'kind']
+							}
+						})).sys_user.rows.filter((row) => row.kind === 'staff');
 			if (people.length === 0) continue;
-			const profiles = (yield* ctx.query('employment_profile', {
-				where: {
-					or: [
-						...people.flatMap((row) =>
-							row.email == null ? [] : [{ email: { like: row.email.replace(/[\\%_]/g, '\\$&') } }]
-						),
-						{ phone: { in: people.flatMap((row) => (row.phone == null ? [] : [row.phone])) } },
-						...(input.collection === 'sys_invitation'
-							? [{ invitation_id: { in: input.ids.slice(offset, offset + 500) } }]
-							: [{ user_id: { in: input.ids.slice(offset, offset + 500) } }])
-					]
-				},
-				select: { id: true, email: true, phone: true, invitation_id: true, user_id: true },
-				all: true
-			})).rows;
+			const where: Where<'employment_profile'> = {
+				or: [
+					...people.flatMap((row) =>
+						row.email == null ? [] : [{ email: { like: row.email.replace(/[\\%_]/g, '\\$&') } }]
+					),
+					{ phone: { in: people.flatMap((row) => (row.phone == null ? [] : [row.phone])) } },
+					...(input.model === 'sys_invitation'
+						? [{ invitation_id: { in: input.ids.slice(offset, offset + 500) } }]
+						: [{ user_id: { in: input.ids.slice(offset, offset + 500) } }])
+				]
+			};
+			const profiles = (yield* ctx.query({
+				employment_profile: { where, fields: ['email', 'phone', 'invitation_id', 'user_id'] }
+			})).employment_profile.rows;
 			const creates: {
 				name: string;
 				email: string | null;
@@ -66,7 +67,7 @@ export default automation('invitation_profile', {
 			for (const person of people) {
 				const matches = profiles.filter(
 					(row) =>
-						(input.collection === 'sys_invitation'
+						(input.model === 'sys_invitation'
 							? row.invitation_id === person.id
 							: row.user_id === person.id) ||
 						(person.email != null && row.email?.toLowerCase() === person.email.toLowerCase()) ||
@@ -80,7 +81,7 @@ export default automation('invitation_profile', {
 				const profile = matches[0];
 				if (profile !== undefined) {
 					if (
-						input.collection === 'sys_user' &&
+						input.model === 'sys_user' &&
 						profile.user_id != null &&
 						profile.user_id !== person.id
 					)
@@ -88,7 +89,7 @@ export default automation('invitation_profile', {
 							message: 'The employment profile already belongs to another user.'
 						});
 					if (
-						input.collection === 'sys_invitation' &&
+						input.model === 'sys_invitation' &&
 						profile.invitation_id == null &&
 						!updates.some((update) => update.target === profile.id)
 					)
@@ -96,7 +97,7 @@ export default automation('invitation_profile', {
 							target: profile.id,
 							set: { invitation_id: input.ids.find((id) => id === person.id)! }
 						});
-					else if (input.collection === 'sys_user' && profile.user_id == null)
+					else if (input.model === 'sys_user' && profile.user_id == null)
 						updates.push({
 							target: profile.id,
 							set: { user_id: input.ids.find((id) => id === person.id)! }
@@ -116,11 +117,11 @@ export default automation('invitation_profile', {
 					email: person.email,
 					phone: person.phone,
 					invitation_id:
-						input.collection === 'sys_invitation'
+						input.model === 'sys_invitation'
 							? input.ids.find((id) => id === person.id)!
 							: null,
 					user_id:
-						input.collection === 'sys_user' ? input.ids.find((id) => id === person.id)! : null
+						input.model === 'sys_user' ? input.ids.find((id) => id === person.id)! : null
 				});
 			}
 			if (creates.length > 0 || updates.length > 0)

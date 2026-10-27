@@ -1,16 +1,39 @@
-import type { Committed, PendingApproval, ActInput, Id } from '@norbital-ai/bolt';
-import { Writes, type ActRequest, type Authority, type Json } from '@norbital-ai/bolt/engine';
+import type { Committed, PendingApproval, Id, Insert } from '@norbital-ai/bolt';
+import {
+	Ai,
+	Port,
+	Writes,
+	type ActRequest,
+	type Authority,
+	type Json
+} from '@norbital-ai/bolt/engine';
+import { Unavailable } from '@norbital-ai/bolt/errors';
 import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-import { Context, Effect, Schema } from 'effect';
+import { Context, Effect, Layer, Schema, Stream } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';
 /** The template root: `bolt test` runs from it. */
 const root = `${process.cwd()}/`;
 export const CONTROLLER = ['field_ops_controller'];
 export const CONTRACTOR = ['field_ops_contractor'];
 type Options<P extends TestPorts> = Omit<Extract<TestOptions<P>, { artifact?: never }>, 'root'>;
+/** The host every fixture runs on: one model class, and a deterministic scene vector per input. */
+const TestAi = Layer.succeed(Ai, {
+	ask: () => Port.unavailable('ai'),
+	maxChoices: undefined,
+	models: ['default'],
+	catalog: Port.unavailable('ai'),
+	infer: () =>
+		Stream.fail(new Unavailable({ facility: 'ai', reason: 'the test host scripts no inference' })),
+	embed: (inputs, _model, dimensions = 256) =>
+		Effect.succeed(
+			inputs.map(() => Array.from({ length: dimensions }, (_, index) => (index === 0 ? 1 : 0)))
+		)
+});
 export const workspace = <P extends TestPorts = never>(options: Options<P> = {}) =>
-	acquireWorkspace({ root, seed: 'none', ...options });
+	options.ports === undefined
+		? acquireWorkspace({ root, seed: 'none', ...options, ports: TestAi })
+		: acquireWorkspace({ root, seed: 'none', ...options });
 /** The ids an act committed, or the outcome as the failure. */
 export function committed<O, N extends string>(outcome: Committed<O, N> | PendingApproval<N>) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
@@ -21,7 +44,7 @@ export type T = Effect.Success<ReturnType<typeof workspace>>;
 export const wireAct = Effect.fnUntraced(function* (
 	t: T,
 	authority: Authority,
-	request: Pick<ActRequest, 'collection' | 'verb' | 'input'>
+	request: Pick<ActRequest, 'model' | 'verb' | 'input'>
 ) {
 	const now = t.clock.now();
 	return (yield* Context.get(t.services, Writes).act({
@@ -35,27 +58,31 @@ export const wireAct = Effect.fnUntraced(function* (
 	})).outcome;
 });
 let postal = 500000;
-/** A site (at a fresh postal code) and an unassigned job on it, as a controller files them. */
+/** A site (at a fresh postal code) and a pending job on it, as a controller files them. */
 export const siteWithJob = Effect.fnUntraced(function* (
 	t: T,
-	over: Partial<Exclude<ActInput<'job_assignments.create'>, readonly unknown[]>> = {}
+	over: Partial<Insert<'job_assignments'>> = {}
 ) {
 	const as = t.as(t.member(CONTROLLER));
 	const [createdSite] = committed(
-		yield* as.act('sites.create', {
-			location: { lat: 1.34, lng: 103.77 },
-			address: `58 Kismis Avenue, Singapore ${++postal}`
-		})
+		yield* as.act('sites.create', [
+			{
+				location: { lat: 1.34, lng: 103.77 },
+				address: `58 Kismis Avenue, Singapore ${++postal}`
+			}
+		])
 	);
 	const site = fixtureId('sites', createdSite);
 	const [createdJob] = committed(
-		yield* as.act('job_assignments.create', {
-			site_id: site,
-			title: 'Installation — Kismis',
-			scheduled_for: PlainDate('2026-09-25'),
-			description: 'Grab bars',
-			...over
-		})
+		yield* as.act('job_assignments.create', [
+			{
+				site_id: site,
+				title: 'Installation — Kismis',
+				scheduled_for: PlainDate('2026-09-25'),
+				description: 'Grab bars',
+				...over
+			}
+		])
 	);
 	return { site, job: fixtureId('job_assignments', createdJob) };
 });

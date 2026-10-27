@@ -36,7 +36,7 @@ export const configureWorkflow = Effect.fnUntraced(function* (t: T) {
 			duration_minutes: 360,
 			price: dec(260)
 		}
-	] satisfies Exclude<ActInput<'services.create'>, readonly unknown[]>[];
+	] satisfies ActInput<'services.create'>;
 	const helpers = [
 		{
 			name: 'Fixture Helper Alpha',
@@ -71,7 +71,7 @@ export const configureWorkflow = Effect.fnUntraced(function* (t: T) {
 			day_start: time('07:00'),
 			day_end: time('16:00')
 		}
-	] satisfies Exclude<ActInput<'helpers.create'>, readonly unknown[]>[];
+	] satisfies ActInput<'helpers.create'>;
 	const customers = [
 		{
 			name: 'Fixture Customer One',
@@ -89,24 +89,26 @@ export const configureWorkflow = Effect.fnUntraced(function* (t: T) {
 			location: { lat: 1.3329, lng: 103.7436 },
 			area: 'west'
 		}
-	] satisfies Exclude<ActInput<'customers.create'>, readonly unknown[]>[];
+	] satisfies ActInput<'customers.create'>;
 	for (const answer of [
 		yield* admin.act('services.create', services),
 		yield* admin.act('helpers.create', helpers),
 		yield* admin.act('customers.create', customers),
-		yield* admin.act('dispatch_settings.create', {
-			eta_limit_minutes: 30,
-			eta_check_lead_minutes: 60,
-			shift_check_lead_minutes: 120,
-			shift_reply_minutes: 60,
-			free_change_hours: 24
-		})
+		yield* admin.act('dispatch_settings.create', [
+			{
+				eta_limit_minutes: 30,
+				eta_check_lead_minutes: 60,
+				shift_check_lead_minutes: 120,
+				shift_reply_minutes: 60,
+				free_change_hours: 24
+			}
+		])
 	])
 		if (answer.kind !== 'committed') throw new Error(`Fixture write ${answer.kind}`);
 	const data = yield* admin.query({
-		services: { from: 'services', select: { name: true }, all: true },
-		helpers: { from: 'helpers', select: { name: true }, all: true },
-		customers: { from: 'customers', select: { phone: true }, all: true }
+		services: { fields: ['name'] },
+		helpers: { fields: ['name'] },
+		customers: { fields: ['phone'] }
 	});
 	return {
 		HOME_CLEANING: present(data.services.rows.find((row) => row.name === 'Fixture home cleaning'))

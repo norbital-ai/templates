@@ -4,7 +4,7 @@ import {
 	agreement,
 	agreements,
 	executableAgreement,
-	agreementSelect,
+	agreementFields,
 	withAgreement,
 	type AgreementOrder
 } from './agreements.js';
@@ -14,151 +14,17 @@ import {
 	DEFAULT_COMMISSION_EXPRESSION,
 	COMMISSION_ENGINE
 } from './commission-expressions.js';
-import { isMasked, type QueryCtx, type Row } from '@norbital-ai/bolt';
+import { isMasked, type Id, type ReadAnswer, type Row, type Where } from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { minorDigits, Decimal, sum } from '@norbital-ai/std/decimal';
-const text = { kind: 'text' } as const;
-const money = { kind: 'money', currency: 'currency' } as const;
-export const reportQueries = {
-	ar_aging: {
-		description: 'Open issued invoices by due-date bucket, with unapplied payments kept separate.',
-		input: { as_of: { kind: 'date' } },
-		output: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					order: { kind: 'id', of: 'orders' },
-					order_number: text,
-					party_name: text,
-					invoice: { kind: 'id', of: 'transactions' },
-					invoice_number: text,
-					currency: { kind: 'currency' },
-					due_on: { kind: 'date', optional: true },
-					as_of: { kind: 'date' },
-					balance: money,
-					overpaid: money,
-					bucket: {
-						kind: 'enum',
-						values: ['not_due', '1_30', '31_60', '61_90', 'over_90', 'no_due_date']
-					}
-				}
-			}
-		}
-	},
-	sales_analysis: {
-		description: 'Monthly sales and returns by currency and salesperson.',
-		input: { from: { kind: 'date', optional: true }, to: { kind: 'date', optional: true } },
-		output: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					currency: { kind: 'currency' },
-					owner: { kind: 'id', of: 'sys_user' },
-					owner_name: text,
-					period: { kind: 'date' },
-					orders: { kind: 'int' },
-					source_lines: { kind: 'int' },
-					unresolved_lines: { kind: 'int' },
-					freight_treatment: { kind: 'enum', values: ['deduct', 'include'] },
-					freight: { ...money, optional: true },
-					net: { ...money, optional: true },
-					tax: { ...money, optional: true },
-					total: { ...money, optional: true }
-				}
-			}
-		}
-	},
-	sales_detail: {
-		description: 'Sales and returns for the selected dates.',
-		input: { from: { kind: 'date', optional: true }, to: { kind: 'date', optional: true } },
-		output: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					order: { kind: 'id', of: 'orders' },
-					product: { kind: 'id', of: 'products', optional: true },
-					party: { kind: 'id', of: 'parties' },
-					owner: { kind: 'id', of: 'sys_user' },
-					sold_price: { kind: 'decimal', scale: 8, optional: true },
-					floor_net: { kind: 'decimal', scale: 8, optional: true },
-					order_number: text,
-					party_name: text,
-					product_name: text,
-					owner_name: text,
-					reference: text,
-					external_code: text,
-					business_on: { kind: 'date' },
-					kind: { kind: 'enum', values: ['shipment', 'return', 'invoice_only'] },
-					unit: text,
-					quantity: { kind: 'decimal', scale: 3 },
-					lot_number: { kind: 'text', optional: true },
-					cost: { ...money, optional: true },
-					margin: { ...money, optional: true },
-					currency: { kind: 'currency' },
-					net: { ...money, optional: true },
-					tax: { ...money, optional: true },
-					freight: { ...money, optional: true },
-					total: { ...money, optional: true },
-					freight_treatment: { kind: 'enum', values: ['deduct', 'include'] }
-				}
-			}
-		}
-	},
-	commission: {
-		description:
-			'Commission from SO-sealed prices, floors, unit conversion and applicable rule. Missing inputs remain unresolved.',
-		input: {
-			order: { kind: 'id', of: 'orders', optional: true },
-			version: { kind: 'int', min: 1, optional: true }
-		},
-		output: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					order: { kind: 'id', of: 'orders' },
-					number: text,
-					owner: { kind: 'id', of: 'sys_user' },
-					owner_name: text,
-					ordered_on: { kind: 'date' },
-					currency: { kind: 'currency' },
-					product: text,
-					quantity: { kind: 'decimal', scale: 3 },
-					basis_unit: text,
-					spread: { kind: 'decimal', scale: 8, optional: true },
-					amount: { kind: 'money', currency: 'currency', optional: true },
-					reason: {
-						kind: 'enum',
-						values: [
-							'resolved',
-							'rule_missing',
-							'expression_error',
-							'ineligible',
-							'floor_missing',
-							'conversion_missing',
-							'unit_mismatch'
-						]
-					}
-				}
-			}
-		}
-	}
-} as const;
-export const reportSelect = {
-	...agreementSelect,
-	number: true,
-	direction: true,
-	status: true,
-	owner: true,
-	ordered_on: true,
-	currency: true,
-	sealed_snapshot: true,
-	sealed_commission: true,
-	seal_hash: true
-} as const;
+/** The order fields the commission and report helpers read. */
+export const reportFields = [
+	...agreementFields,
+	'number',
+	'direction',
+	'owner',
+	'currency'
+] as const;
 type CommissionOrder = AgreementOrder & Pick<Row<'orders'>, 'id' | 'direction' | 'currency'>;
 export type CommissionFact = Pick<
 	Row<'source_sales_lines'>,
@@ -174,18 +40,18 @@ export type CommissionFact = Pick<
 	| 'active'
 	| 'business_on'
 >;
-export const commissionFactSelect = {
-	order: true,
-	seal_hash: true,
-	order_line: true,
-	kind: true,
-	unit: true,
-	quantity: true,
-	currency: true,
-	net_amount: true,
-	active: true,
-	business_on: true
-} as const;
+export const commissionFactFields = [
+	'order',
+	'seal_hash',
+	'order_line',
+	'kind',
+	'unit',
+	'quantity',
+	'currency',
+	'net_amount',
+	'active',
+	'business_on'
+] as const;
 function commissionLines(
 	record: CommissionOrder,
 	seal?: string,
@@ -294,7 +160,7 @@ function commissionLines(
 		}
 	});
 }
-type ReportOrder = Pick<Row<'orders'>, 'id' | keyof typeof reportSelect>;
+export type ReportOrder = Pick<Row<'orders'>, 'id' | (typeof reportFields)[number]>;
 export function commissionRows(orders: readonly ReportOrder[], selectedVersion?: number | null) {
 	return orders.flatMap((record) => {
 		const version =
@@ -358,41 +224,75 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 		snapshot
 	};
 });
-export const salesAnalysis = Effect.fnUntraced(function* (
-	ctx: QueryCtx,
-	range: {
-		from?: string | null;
-		to?: string | null;
-	} = {}
+/** The commission report's read: open and confirmed sales orders with their seals, and salesperson names. */
+export const commissionRead = {
+	orders: {
+		where: { direction: { eq: 'sales' }, status: { in: ['draft', 'confirmed'] } },
+		fields: reportFields
+	},
+	sys_user: { fields: ['name'] }
+} as const;
+/** Commission per sealed line of the read orders (one order when `order` is named), for a version or the executable one. */
+export function commissionReport(
+	answer: ReadAnswer<typeof commissionRead>,
+	input: { order?: Id<'orders'> | null; version?: number | null } = {}
 ) {
-	if (range.from && range.to && range.from > range.to) yield* ctx.refuse('errors.report_range');
-	const { sources, orders, users } = yield* ctx.query({
-		sources: {
-			from: 'source_sales_lines',
-			where: { active: { eq: true } },
-			select: {
-				order: true,
-				seal_hash: true,
-				business_on: true,
-				net_amount: true,
-				tax_amount: true,
-				freight: true
-			},
-			all: true
-		},
-		orders: {
-			from: 'orders',
-			where: {
-				direction: { eq: 'sales' },
-				seal_hash: { isNull: false }
-			},
-			select: { ...agreementSelect, owner: true, currency: true },
-			all: true
-		},
-		users: { from: 'sys_user', select: { name: true }, all: true }
-	});
-	const byOrder = new Map(orders.rows.map((o) => [o.id, o]));
-	const byUser = new Map(users.rows.map((u) => [u.id, u.name]));
+	const names = new Map(answer.sys_user.rows.map((u) => [u.id, u.name]));
+	return commissionRows(
+		answer.orders.rows.filter((o) => !input.order || o.id === input.order),
+		input.version
+	).map((row) => ({ ...row, owner_name: names.get(row.owner) ?? '' }));
+}
+/**
+ * The sales read: active source sales lines, each with its sealed sales order (party name and line products), product
+ * and salesperson names.
+ */
+export const salesRead = {
+	source_sales_lines: {
+		where: { active: { eq: true } },
+		fields: [
+			'order',
+			'order_line',
+			'seal_hash',
+			'reference',
+			'external_code',
+			'business_on',
+			'kind',
+			'unit',
+			'quantity',
+			'lot_number',
+			'unit_cost',
+			'net_amount',
+			'tax_amount',
+			'freight'
+		]
+	},
+	'source_sales_lines.order': {
+		where: { direction: { eq: 'sales' }, seal_hash: { isNull: false } },
+		fields: [...agreementFields, 'number', 'party', 'owner', 'currency']
+	},
+	'source_sales_lines.order.party': { fields: ['name'] },
+	'source_sales_lines.order.lines': { fields: ['product'] },
+	products: { fields: ['name'] },
+	sys_user: { fields: ['name'] }
+} as const;
+type SalesAnswer = ReadAnswer<typeof salesRead>;
+type SalesRange = { readonly from?: string | null; readonly to?: string | null };
+const inRange = (on: string, range: SalesRange) =>
+	!(range.from && on < range.from) && !(range.to && on > range.to);
+/** Net sales after the agreed freight treatment, `null` while a needed amount is unknown. */
+function bookedNet(
+	net: Decimal | null,
+	freight: Decimal | null,
+	treatment: Row<'orders'>['freight_treatment']
+) {
+	if (net === null) return null;
+	if (treatment !== 'deduct') return net;
+	return freight === null ? null : net.minus(freight);
+}
+/** Monthly sales and returns by currency and salesperson (an inverted range reads nothing). */
+export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
+	const byUser = new Map(answer.sys_user.rows.map((u) => [u.id, u.name]));
 	const groups = new Map<
 		string,
 		{
@@ -404,19 +304,15 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 			orderIds: Set<string>;
 			source_lines: number;
 			unresolved_lines: number;
-			net: ReturnType<typeof Decimal.of> | null;
-			tax: ReturnType<typeof Decimal.of> | null;
-			total: ReturnType<typeof Decimal.of> | null;
-			freight: ReturnType<typeof Decimal.of> | null;
+			net: Decimal | null;
+			tax: Decimal | null;
+			total: Decimal | null;
+			freight: Decimal | null;
 		}
 	>();
-	for (const source of sources.rows) {
-		if (
-			(range.from && source.business_on < range.from) ||
-			(range.to && source.business_on > range.to)
-		)
-			continue;
-		const record = byOrder.get(source.order);
+	for (const source of answer.source_sales_lines.rows) {
+		if (!inRange(source.business_on, range)) continue;
+		const record = source.order;
 		const version = record ? agreement(record, source.seal_hash) : undefined;
 		if (!record || !version) continue;
 		const order = withAgreement(record, version);
@@ -439,14 +335,7 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 		const net = source.net_amount,
 			tax = source.tax_amount,
 			freight = source.freight;
-		const booked =
-			net === null || (order.freight_treatment === 'deduct' && freight === null)
-				? null
-				: order.freight_treatment === 'deduct'
-					? freight === null
-						? null
-						: net.minus(freight)
-					: net;
+		const booked = bookedNet(net, freight, order.freight_treatment);
 		group.orderIds.add(order.id);
 		group.source_lines++;
 		if (net === null || tax === null || freight === null) group.unresolved_lines++;
@@ -473,102 +362,39 @@ export const salesAnalysis = Effect.fnUntraced(function* (
 				a.owner.localeCompare(b.owner) ||
 				a.freight_treatment.localeCompare(b.freight_treatment)
 		);
-});
-export const salesDetail = Effect.fnUntraced(function* (
-	ctx: QueryCtx,
-	range: {
-		from?: string | null;
-		to?: string | null;
-	}
-) {
-	if (range.from && range.to && range.from > range.to) yield* ctx.refuse('errors.report_range');
-	const { sources, orders, lines, products, parties, users } = yield* ctx.query({
-		sources: {
-			from: 'source_sales_lines',
-			where: { active: { eq: true } },
-			select: {
-				order: true,
-				order_line: true,
-				seal_hash: true,
-				reference: true,
-				external_code: true,
-				business_on: true,
-				kind: true,
-				unit: true,
-				quantity: true,
-				lot_number: true,
-				unit_cost: true,
-				net_amount: true,
-				tax_amount: true,
-				freight: true
-			},
-			all: true
-		},
-		orders: {
-			from: 'orders',
-			where: {
-				direction: { eq: 'sales' },
-				seal_hash: { isNull: false }
-			},
-			select: { ...agreementSelect, number: true, party: true, owner: true, currency: true },
-			all: true
-		},
-		lines: { from: 'order_lines', select: { product: true }, all: true },
-		products: { from: 'products', select: { name: true }, all: true },
-		parties: { from: 'parties', select: { name: true }, all: true },
-		users: { from: 'sys_user', select: { name: true }, all: true }
-	});
-	const byOrder = new Map(orders.rows.map((row) => [row.id, row]));
-	const byLine = new Map<string, (typeof lines.rows)[number]>(
-		lines.rows.map((row) => [row.id, row])
-	);
-	const byProduct = new Map(products.rows.map((row) => [row.id, row.name]));
-	const byParty = new Map(parties.rows.map((row) => [row.id, row.name]));
-	const byUser = new Map(users.rows.map((row) => [row.id, row.name]));
-	return sources.rows
+}
+/** Sales and returns per source line for the selected dates, priced against the seal each line names. */
+export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
+	const byProduct = new Map(answer.products.rows.map((row) => [row.id, row.name]));
+	const byUser = new Map(answer.sys_user.rows.map((row) => [row.id, row.name]));
+	return answer.source_sales_lines.rows
 		.flatMap((source) => {
-			const record = byOrder.get(source.order);
+			const record = source.order;
 			const version = record ? agreement(record, source.seal_hash) : undefined;
 			const order = record && version ? withAgreement(record, version) : undefined;
-			if (
-				!order ||
-				(range.from && source.business_on < range.from) ||
-				(range.to && source.business_on > range.to)
-			)
-				return [];
-			const capturedFloor = version?.snapshot.lines.find(
-				(item) => item.id === source.order_line
-			)?.floor_net;
-			const line = byLine.get(source.order_line);
+			if (!order || !inRange(source.business_on, range)) return [];
+			const sealed = version?.snapshot.lines.find((item) => item.id === source.order_line);
+			const line = order.lines.find((row) => row.id === source.order_line);
 			const net = source.net_amount,
 				tax = source.tax_amount,
 				freight = source.freight;
-			const booked =
-				net === null || (order.freight_treatment === 'deduct' && freight === null)
-					? null
-					: order.freight_treatment === 'deduct'
-						? freight === null
-							? null
-							: net.minus(freight)
-						: net;
+			const booked = bookedNet(net, freight, order.freight_treatment);
+			const digits = minorDigits(order.currency);
+			const cost =
+				source.lot_number && source.unit_cost !== null
+					? Decimal.of(source.unit_cost).times(source.quantity)
+					: null;
 			return [
 				{
 					order: order.id,
-					product:
-						products.rows.find(
-							(p) =>
-								p.id ===
-								version?.snapshot.lines.find((item) => item.id === source.order_line)?.product
-						)?.id ?? null,
-					party: order.party,
+					product: answer.products.rows.find((p) => p.id === sealed?.product)?.id ?? null,
+					party: order.party?.id ?? null,
 					owner: order.owner,
 					sold_price: net === null ? null : net.div(source.quantity, 8),
-					floor_net: capturedFloor ? Decimal.of(capturedFloor) : null,
+					floor_net: sealed?.floor_net ? Decimal.of(sealed.floor_net) : null,
 					order_number: order.number,
-					party_name: byParty.get(order.party) ?? '',
-					product_name:
-						version?.snapshot.lines.find((item) => item.id === source.order_line)?.product_name ??
-						(line ? (byProduct.get(line.product) ?? '') : ''),
+					party_name: order.party?.name ?? '',
+					product_name: sealed?.product_name ?? (line ? (byProduct.get(line.product) ?? '') : ''),
 					owner_name: byUser.get(order.owner) ?? '',
 					reference: source.reference,
 					external_code: source.external_code,
@@ -577,25 +403,14 @@ export const salesDetail = Effect.fnUntraced(function* (
 					unit: source.unit,
 					quantity: source.quantity,
 					lot_number: source.lot_number,
-					cost:
-						source.lot_number && source.unit_cost !== null
-							? Decimal.of(source.unit_cost)
-									.times(source.quantity)
-									.round(minorDigits(order.currency))
-							: null,
-					margin:
-						source.lot_number && source.unit_cost !== null && booked !== null
-							? booked
-									.minus(Decimal.of(source.unit_cost).times(source.quantity))
-									.round(minorDigits(order.currency))
-							: null,
+					cost: cost?.round(digits) ?? null,
+					margin: cost && booked !== null ? booked.minus(cost).round(digits) : null,
 					currency: order.currency,
 					freight_treatment: order.freight_treatment,
-					net: booked?.round(minorDigits(order.currency)) ?? null,
+					net: booked?.round(digits) ?? null,
 					tax,
 					freight,
-					total:
-						net === null || tax === null ? null : net.plus(tax).round(minorDigits(order.currency))
+					total: net === null || tax === null ? null : net.plus(tax).round(digits)
 				}
 			];
 		})
@@ -603,4 +418,102 @@ export const salesDetail = Effect.fnUntraced(function* (
 			(a, b) =>
 				b.business_on.localeCompare(a.business_on) || a.external_code.localeCompare(b.external_code)
 		);
-});
+}
+/** The aging read on `as_of`: issued invoices with their order, and the active payments settled by then. */
+export const agingRead = (as_of: PlainDate) =>
+	({
+		transactions: {
+			where: { kind: { eq: 'invoice' }, status: { eq: 'issued' }, issued_on: { lte: as_of } },
+			fields: ['order', 'reference', 'currency', 'total', 'due_on']
+		},
+		'transactions.order': { fields: ['number', 'party_name'] },
+		source_payments: {
+			where: { settled_on: { lte: as_of }, active: { eq: true } },
+			fields: ['invoice', 'amount']
+		}
+	}) as const;
+const AGING = [
+	[0, 'not_due'],
+	[30, '1_30'],
+	[60, '31_60'],
+	[90, '61_90'],
+	[Infinity, 'over_90']
+] as const;
+/** Open issued invoices by due-date bucket on `as_of`; unapplied payments stay with the payment ledger. */
+export function arAging(answer: ReadAnswer<ReturnType<typeof agingRead>>, as_of: PlainDate) {
+	return answer.transactions.rows.flatMap((invoice) => {
+		const order = invoice.order;
+		if (!order || invoice.total === null || isMasked(invoice.total)) return [];
+		const paid = sum(
+			answer.source_payments.rows.filter((p) => p.invoice === invoice.id).map((p) => p.amount)
+		);
+		const raw = Decimal.of(invoice.total).minus(paid);
+		const balance = raw.lt(0) ? Decimal.of(0) : raw;
+		const overpaid = raw.lt(0) ? Decimal.of(0).minus(raw) : Decimal.of(0);
+		if (balance.eq(0) && overpaid.eq(0)) return [];
+		const days = invoice.due_on
+			? Math.floor(
+					(Date.parse(as_of + 'T00:00:00Z') - Date.parse(invoice.due_on + 'T00:00:00Z')) / 86400000
+				)
+			: null;
+		const bucket =
+			days === null
+				? ('no_due_date' as const)
+				: (AGING.find(([threshold]) => days <= threshold)?.[1] ?? 'over_90');
+		return [
+			{
+				order: order.id,
+				order_number: order.number,
+				party_name: order.party_name ?? '',
+				invoice: invoice.id,
+				invoice_number: invoice.reference,
+				currency: invoice.currency,
+				due_on: invoice.due_on,
+				as_of,
+				balance,
+				overpaid,
+				bucket
+			}
+		];
+	});
+}
+/** The payment ledger's read: payments and refunds (of one order, settled by `as_of`), with order, party and invoice. */
+export function ledgerRead(input: { order?: Id<'orders'> | null; as_of?: PlainDate | null } = {}) {
+	const where: Where<'source_payments'> = {
+		...(input.order ? { order: { eq: input.order } } : {}),
+		...(input.as_of ? { settled_on: { lte: input.as_of } } : {})
+	};
+	return {
+		source_payments: {
+			where,
+			fields: ['order', 'invoice', 'reference', 'currency', 'amount', 'settled_on', 'active']
+		},
+		'source_payments.order': { fields: ['number', 'party'] },
+		'source_payments.order.party': { fields: ['name'] },
+		'source_payments.invoice': { fields: ['reference'] }
+	} as const;
+}
+/** Payments and refunds, newest first: active ones (withdrawn too when asked), or only those no invoice applies. */
+export function paymentLedger(
+	answer: ReadAnswer<ReturnType<typeof ledgerRead>>,
+	input: { unapplied?: boolean; include_withdrawn?: boolean } = {}
+) {
+	return answer.source_payments.rows
+		.filter((p) => (p.active || input.include_withdrawn) && (!input.unapplied || !p.invoice))
+		.map((p) => ({
+			order: p.order?.id ?? null,
+			order_number: p.order?.number ?? '',
+			party_name: p.order?.party?.name ?? '',
+			invoice: p.invoice?.id ?? null,
+			invoice_number: p.invoice?.reference ?? '',
+			reference: p.reference,
+			currency: p.currency,
+			amount: p.amount,
+			settled_on: p.settled_on,
+			state: p.active ? ('active' as const) : ('withdrawn' as const),
+			source_payment: p.id
+		}))
+		.sort(
+			(a, b) => b.settled_on.localeCompare(a.settled_on) || a.reference.localeCompare(b.reference)
+		);
+}

@@ -14,12 +14,17 @@ import {
 	PAYROLL_SLOTS,
 	Reads,
 	readsFrom,
+	Refusal,
+	type HostRead,
 	runEngine
 } from '../../../lib/payroll_engine/foundation.js';
 import { admitPayrollRun, loadPayrollAdmission } from '../../../lib/payroll_engine/admit.js';
 import { buildPayrollRun, loadPayrollBuild } from '../../../lib/payroll_engine/run.js';
 import {
+	LONG_HISTORY_MONTHS,
 	currencyScale,
+	payrollMonths,
+	idsOf,
 	type PayrollRunRequest,
 	type PinnedCollection
 } from '../../../lib/payroll_engine/payslip/context.js';
@@ -71,13 +76,160 @@ const leaveId = inputSchema({ kind: 'id', of: 'leave_catalog_entry' });
 
 const isLeaveId = (value: unknown): value is Id<'leave_catalog_entry'> => Schema.is(leaveId)(value);
 
-const PINNED = {
-	employment_id: true,
-	payslip_id: true,
-	catalog_id: true,
-	amount: true,
-	facts: true
-} as const;
+const PINNED = ['employment_id', 'payslip_id', 'catalog_id', 'amount', 'facts'] as const;
+/**
+ * What an export reads, as the exporter (their grants and masks), in four dependent reads: the runs; their payslips,
+ * entities and versions with the catalogue rows a listing names; the payslips' contracts and consumed entries and the
+ * entities' banks; then the people and the entries' classes.
+ */
+const exportReads = Effect.fnUntraced(function* (
+	read: HostRead,
+	ids: readonly Id<'payroll_run'>[]
+) {
+	const { payroll_run: runs } = yield* read({
+		payroll_run: {
+			where: { id: { in: ids } },
+			fields: [
+				'company_id',
+				'period',
+				'kind',
+				'settings_id',
+				'salary_from',
+				'salary_to',
+				'pay_date'
+			]
+		}
+	});
+	const second = yield* read({
+		payslip: {
+			where: { payroll_run_id: { in: ids } },
+			fields: [
+				'payroll_run_id',
+				'employment_id',
+				'net',
+				'gross',
+				'total_deductions',
+				'currency',
+				'status',
+				'bank_charges',
+				'base',
+				'statutory',
+				'adjustments',
+				'company_payments'
+			]
+		},
+		entity: {
+			where: { id: { in: idsOf(runs.rows.map((run) => run.company_id)) } },
+			fields: [
+				'name',
+				'registration_number',
+				'region',
+				'facts',
+				'payment_bank_id',
+				'disbursement_account'
+			]
+		},
+		jurisdiction_settings: {
+			where: { id: { in: idsOf(runs.rows.map((run) => run.settings_id)) } },
+			fields: ['code', 'payroll']
+		},
+		'jurisdiction_settings.work_catalog': {
+			fields: ['settings_id', 'code', 'component_code', 'direction', 'destination', 'name']
+		},
+		'jurisdiction_settings.allowance_catalog': {
+			fields: ['settings_id', 'code', 'direction', 'destination', 'name']
+		},
+		'jurisdiction_settings.adhoc_catalog': {
+			fields: ['settings_id', 'code', 'direction', 'destination', 'name']
+		},
+		'jurisdiction_settings.claim_catalog': {
+			fields: ['settings_id', 'code', 'destination', 'name']
+		},
+		'jurisdiction_settings.statutory_contribution_catalog': {
+			fields: ['settings_id', 'code', 'label', 'display_order']
+		},
+		'jurisdiction_settings.rule_set': {
+			where: {
+				or: [
+					{ family: { eq: 'EXPORTS' } },
+					{ family: { eq: 'PAYROLL' }, code: { eq: SALARY_REPORT } }
+				]
+			},
+			fields: ['family', 'code', 'rules', 'settings_id']
+		}
+	});
+	const slipIds = { payslip_id: { in: second.payslip.rows.map((slip) => slip.id) } };
+	const third = yield* read({
+		employment_contract: {
+			where: { id: { in: idsOf(second.payslip.rows.map((slip) => slip.employment_id)) } },
+			fields: ['employee_id', 'employee_number', 'bank', 'effective_range', 'exit_ground', 'facts']
+		},
+		bank: {
+			where: { id: { in: idsOf(second.entity.rows.map((entity) => entity.payment_bank_id)) } },
+			fields: ['code', 'name', 'bank_codes', 'currencies', 'enabled', 'template']
+		},
+		adhoc_catalog_entry: { where: slipIds, fields: [...PINNED, 'quantity'] },
+		claim_catalog_entry: { where: slipIds, fields: [...PINNED, 'quantity'] },
+		loan_repayment_entry: {
+			where: slipIds,
+			fields: ['employment_id', 'payslip_id', 'catalog_id', 'amount']
+		},
+		leave_catalog_entry: { where: slipIds, fields: [...PINNED, 'days', 'from', 'to'] }
+	});
+	const catalogIds = <T extends string>(
+		rows: readonly { readonly catalog_id: Parameters<typeof idsOf<T>>[0][number] }[]
+	) => idsOf(rows.map((row) => row.catalog_id));
+	const fourth = yield* read({
+		employment_profile: {
+			where: { id: { in: idsOf(third.employment_contract.rows.map((row) => row.employee_id)) } },
+			fields: ['name', 'identity_number', 'date_of_birth', 'nationality', 'facts']
+		},
+		adhoc_catalog: {
+			where: { id: { in: catalogIds(third.adhoc_catalog_entry.rows) } },
+			fields: ['code']
+		},
+		claim_catalog: {
+			where: { id: { in: catalogIds(third.claim_catalog_entry.rows) } },
+			fields: ['code']
+		},
+		loan_catalog: {
+			where: { id: { in: catalogIds(third.loan_repayment_entry.rows) } },
+			fields: ['code']
+		},
+		leave_catalog: {
+			where: { id: { in: catalogIds(third.leave_catalog_entry.rows) } },
+			fields: ['code']
+		}
+	});
+	const versions = second.jurisdiction_settings;
+	const rules = versions.rows.flatMap((version) => version.rule_set);
+	return {
+		runs,
+		slips: second.payslip,
+		contracts: third.employment_contract,
+		people: fourth.employment_profile,
+		entities: second.entity,
+		banks: third.bank,
+		versions,
+		work_meta: { rows: versions.rows.flatMap((version) => version.work_catalog) },
+		allowance_meta: { rows: versions.rows.flatMap((version) => version.allowance_catalog) },
+		adhoc_meta: { rows: versions.rows.flatMap((version) => version.adhoc_catalog) },
+		claim_meta: { rows: versions.rows.flatMap((version) => version.claim_catalog) },
+		scheme_meta: {
+			rows: versions.rows.flatMap((version) => version.statutory_contribution_catalog)
+		},
+		rules: { rows: rules.filter((row) => row.family === 'EXPORTS') },
+		salary_report_rules: { rows: rules.filter((row) => row.family === 'PAYROLL') },
+		adhoc: third.adhoc_catalog_entry,
+		adhoc_catalog: fourth.adhoc_catalog,
+		claims: third.claim_catalog_entry,
+		claim_catalog: fourth.claim_catalog,
+		loans: third.loan_repayment_entry,
+		loan_catalog: fourth.loan_catalog,
+		leave: third.leave_catalog_entry,
+		leave_catalog: fourth.leave_catalog
+	};
+});
 
 type WriteInput = Omit<UpdateSet<'payroll_run'>, 'id'> &
 	Partial<Omit<CreateRow<'payroll_run'>, 'id'>> & {
@@ -145,7 +297,13 @@ const transformRows = Effect.fnUntraced(function* (
 		...new Set([...requests.values()].map((request) => request.company_id).concat(deletedCompanies))
 	];
 	if (companies.length === 0) return inputs;
-	const admission = yield* loadPayrollAdmission(ctx.db.query, companies, deleted, capturedLeave);
+	const admission = yield* loadPayrollAdmission(
+		ctx.db.query,
+		companies,
+		[...requests.values()].map((request) => request.period),
+		deleted,
+		capturedLeave
+	);
 	const dependencies =
 		deleted.length === 0
 			? undefined
@@ -160,7 +318,17 @@ const transformRows = Effect.fnUntraced(function* (
 			? undefined
 			: yield* loadPayrollBuild(
 					ctx.db.query,
-					[...requests.values()].map((request) => request.company_id)
+					[...requests.values()].map((request) => request.company_id),
+					[...requests.values()].map((request) => request.period),
+					Math.max(
+						LONG_HISTORY_MONTHS,
+						...admission.lineage.rows.flatMap((version) =>
+							[
+								payrollMonths(version, 'history_months'),
+								payrollMonths(version, 'rolling_hours_months')
+							].flatMap((answer) => (Result.isSuccess(answer) ? [answer.success] : []))
+						)
+					)
 				);
 
 	// A frozen range can price later periods while its single backlink remains on the first capturing payslip.
@@ -277,7 +445,7 @@ const transformRows = Effect.fnUntraced(function* (
 			holds: plan.payslips.flatMap((slip) =>
 				slip.hold == null ? [] : [{ employment_id: slip.employment_id, message: slip.hold }]
 			),
-			payslip: { create: payslips }
+			payslip: payslips
 		});
 	}
 	return out;
@@ -375,15 +543,11 @@ export default model('payroll_run', {
 			inverse: 'payroll_run'
 		}
 	},
-	read: 'all',
+	read: { payroll_run: { fields: 'all' }, 'payroll_run.company_id': { fields: 'all' } },
 	create: {
-		columns: ['company_id', 'period', 'kind', 'sources', 'pay_due_date'],
-		with: {
-			payslip: {
-				create: {
-					columns: payslip_columns
-				}
-			}
+		columns: {
+			payroll_run: ['company_id', 'period', 'kind', 'sources', 'pay_due_date'],
+			'payroll_run.payslip': payslip_columns
 		},
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
@@ -398,7 +562,7 @@ export default model('payroll_run', {
 		}
 	},
 	update: {
-		columns: ['pay_due_date', 'configuration_hash', 'warnings'],
+		columns: { payroll_run: ['pay_due_date', 'configuration_hash', 'warnings'] },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),
@@ -411,308 +575,35 @@ export default model('payroll_run', {
 			});
 		}
 	},
-	queries: {
-		export_payroll: {
-			description:
-				'Bank payment files or a salary report for the selected runs. Each entity, run and currency stays separate. Held employees remain in the salary report and are omitted from bank files.',
-			input: {
+	syncs: {
+		/**
+		 * Bank payment files, compliance records or a salary report for the selected runs (export only). Each entity, run
+		 * and currency stays separate. Held employees remain in the salary report and are omitted from bank files. A
+		 * record is one file: its `name` and its text `content` (a salary report's is its JSON, which the payroll page
+		 * lays out as a workbook).
+		 */
+		export: {
+			with: 'file',
+			parser: ['json'],
+			schema: { name: { kind: 'text' }, content: { kind: 'text' } },
+			context: {
 				ids: { kind: 'list', of: { kind: 'id', of: 'payroll_run' }, min: 1 },
-				kind: {
-					kind: 'enum',
-					values: ['BANK', 'SALARY', 'COMPLIANCE'],
-					default: 'BANK'
-				},
-				generated_at: { kind: 'instant' }
+				kind: { kind: 'enum', values: ['BANK', 'SALARY', 'COMPLIANCE'], default: 'BANK' },
+				generated_at: { kind: 'instant', optional: true }
 			},
-			output: {
-				kind: 'object',
-				fields: {
-					documents: {
-						kind: 'list',
-						of: {
-							kind: 'object',
-							fields: { name: { kind: 'text' }, content: { kind: 'text' } }
-						}
-					},
-					salary_reports: {
-						kind: 'list',
-						of: {
-							kind: 'object',
-							fields: {
-								company: { kind: 'text' },
-								period: { kind: 'text' },
-								currency: { kind: 'text' },
-								run_kind: { kind: 'text' },
-								pay_date: { kind: 'text' },
-								run_reference: { kind: 'text' },
-								minor_units: { kind: 'int' },
-								warnings: { kind: 'list', of: { kind: 'text' } },
-								columns: {
-									kind: 'list',
-									of: {
-										kind: 'object',
-										fields: {
-											group: { kind: 'text' },
-											family: { kind: 'text' },
-											code: { kind: 'text' },
-											label: { kind: 'text' },
-											external: { kind: 'bool' }
-										}
-									}
-								},
-								rows: {
-									kind: 'list',
-									of: {
-										kind: 'object',
-										fields: {
-											employee_number: { kind: 'text' },
-											name: { kind: 'text' },
-											status: { kind: 'text' },
-											amounts: {
-												kind: 'list',
-												of: { kind: 'number', optional: true }
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+			// export only: a payroll export is never imported back
+			read: function* () {
+				return {
+					rows: [],
+					findings: [
+						{ at: 0, message: 'A payroll export cannot be imported.', severity: 'refuse' as const }
+					]
+				};
 			},
-			run: function* ({ ids, kind, generated_at }, ctx) {
-				const got = yield* ctx.query({
-					runs: {
-						from: 'payroll_run',
-						where: { id: { in: ids } },
-						select: {
-							id: true,
-							company_id: true,
-							period: true,
-							kind: true,
-							settings_id: true,
-							salary_from: true,
-							salary_to: true,
-							pay_date: true
-						},
-						all: true
-					},
-					slips: {
-						from: 'payslip',
-						where: { payroll_run_id: { in: { member: 'runs', field: 'id' } } },
-						select: {
-							id: true,
-							payroll_run_id: true,
-							employment_id: true,
-							net: true,
-							gross: true,
-							total_deductions: true,
-							currency: true,
-							status: true,
-							bank_charges: true,
-							base: true,
-							statutory: true,
-							adjustments: true,
-							company_payments: true
-						},
-						all: true
-					},
-					contracts: {
-						from: 'employment_contract',
-						where: { id: { in: { member: 'slips', field: 'employment_id' } } },
-						select: {
-							id: true,
-							employee_id: true,
-							employee_number: true,
-							bank: true,
-							effective_range: true,
-							exit_ground: true,
-							facts: true
-						},
-						all: true
-					},
-					people: {
-						from: 'employment_profile',
-						where: {
-							id: { in: { member: 'contracts', field: 'employee_id' } }
-						},
-						select: {
-							id: true,
-							name: true,
-							identity_number: true,
-							date_of_birth: true,
-							nationality: true,
-							facts: true
-						},
-						all: true
-					},
-					entities: {
-						from: 'entity',
-						where: { id: { in: { member: 'runs', field: 'company_id' } } },
-						select: {
-							id: true,
-							name: true,
-							registration_number: true,
-							region: true,
-							facts: true,
-							payment_bank_id: true,
-							disbursement_account: true
-						},
-						all: true
-					},
-					banks: {
-						from: 'bank',
-						where: {
-							id: { in: { member: 'entities', field: 'payment_bank_id' } }
-						},
-						select: {
-							code: true,
-							name: true,
-							bank_codes: true,
-							currencies: true,
-							enabled: true,
-							template: true
-						},
-						all: true
-					},
-					versions: {
-						from: 'jurisdiction_settings',
-						where: { id: { in: { member: 'runs', field: 'settings_id' } } },
-						select: { id: true, code: true, payroll: true },
-						all: true
-					},
-					work_meta: {
-						from: 'work_catalog',
-						where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-						select: {
-							settings_id: true,
-							code: true,
-							component_code: true,
-							direction: true,
-							destination: true,
-							name: true
-						},
-						all: true
-					},
-					allowance_meta: {
-						from: 'allowance_catalog',
-						where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-						select: {
-							settings_id: true,
-							code: true,
-							direction: true,
-							destination: true,
-							name: true
-						},
-						all: true
-					},
-					adhoc_meta: {
-						from: 'adhoc_catalog',
-						where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-						select: {
-							settings_id: true,
-							code: true,
-							direction: true,
-							destination: true,
-							name: true
-						},
-						all: true
-					},
-					claim_meta: {
-						from: 'claim_catalog',
-						where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-						select: {
-							settings_id: true,
-							code: true,
-							destination: true,
-							name: true
-						},
-						all: true
-					},
-					scheme_meta: {
-						from: 'statutory_contribution_catalog',
-						where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-						select: {
-							settings_id: true,
-							code: true,
-							label: true,
-							display_order: true
-						},
-						all: true
-					},
-					rules: {
-						from: 'rule_set',
-						where: {
-							settings_id: { in: { member: 'versions', field: 'id' } },
-							family: { eq: 'EXPORTS' }
-						},
-						select: { code: true, rules: true, settings_id: true },
-						all: true
-					},
-					salary_report_rules: {
-						from: 'rule_set',
-						where: {
-							settings_id: { in: { member: 'versions', field: 'id' } },
-							family: { eq: 'PAYROLL' },
-							code: { eq: SALARY_REPORT }
-						},
-						select: { rules: true, settings_id: true },
-						all: true
-					},
-					adhoc: {
-						from: 'adhoc_catalog_entry',
-						where: { payslip_id: { in: { member: 'slips', field: 'id' } } },
-						select: { ...PINNED, quantity: true },
-						all: true
-					},
-					adhoc_catalog: {
-						from: 'adhoc_catalog',
-						where: { id: { in: { member: 'adhoc', field: 'catalog_id' } } },
-						select: { code: true },
-						all: true
-					},
-					claims: {
-						from: 'claim_catalog_entry',
-						where: { payslip_id: { in: { member: 'slips', field: 'id' } } },
-						select: { ...PINNED, quantity: true },
-						all: true
-					},
-					claim_catalog: {
-						from: 'claim_catalog',
-						where: { id: { in: { member: 'claims', field: 'catalog_id' } } },
-						select: { code: true },
-						all: true
-					},
-					loans: {
-						from: 'loan_repayment_entry',
-						where: { payslip_id: { in: { member: 'slips', field: 'id' } } },
-						select: {
-							employment_id: true,
-							payslip_id: true,
-							catalog_id: true,
-							amount: true
-						},
-						all: true
-					},
-					loan_catalog: {
-						from: 'loan_catalog',
-						where: { id: { in: { member: 'loans', field: 'catalog_id' } } },
-						select: { code: true },
-						all: true
-					},
-					leave: {
-						from: 'leave_catalog_entry',
-						where: { payslip_id: { in: { member: 'slips', field: 'id' } } },
-						select: { ...PINNED, days: true, from: true, to: true },
-						all: true
-					},
-					leave_catalog: {
-						from: 'leave_catalog',
-						where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-						select: { code: true },
-						all: true
-					}
-				});
+			write: function* ({ context }, ctx) {
+				const { ids, kind } = context;
+				const generated_at = context.generated_at ?? ctx.now;
+				const got = yield* exportReads(ctx.db.query, ids);
 				const { runs, contracts, people, entities, versions } = got;
 				const adhoc = new Map(got.adhoc_catalog.rows.map((row) => [row.id, row]));
 				const claims = new Map(got.claim_catalog.rows.map((row) => [row.id, row]));
@@ -906,9 +797,10 @@ export default model('payroll_run', {
 						const paymentBank =
 							company?.payment_bank_id == null ? undefined : byBank.get(company.payment_bank_id);
 						if (company?.payment_bank_id != null && paymentBank === undefined)
-							return yield* ctx.refuse(
-								'The selected payment bank is unavailable. Review this entity’s bank in Settings before exporting.'
-							);
+							return yield* new Refusal({
+								message:
+									'The selected payment bank is unavailable. Review this entity’s bank in Settings before exporting.'
+							});
 						const bank = bankExportDocuments({
 							...(paymentBank === undefined ? {} : { bank: paymentBank }),
 							templates: layouts,
@@ -918,21 +810,22 @@ export default model('payroll_run', {
 							currency,
 							generated_at: String(generated_at)
 						});
-						if (bank.issue !== null) return yield* ctx.refuse(bank.issue);
+						if (bank.issue !== null) return yield* new Refusal({ message: bank.issue });
 						const bankFiles = bank.documents;
 						if (bankFiles.length === 0)
-							return yield* ctx.refuse(
-								`No bank payment layout is configured for ${company?.name ?? 'this entity'} (${currency}). Select the paying bank and configure its bank-file layout before exporting.`
-							);
+							return yield* new Refusal({
+								message: `No bank payment layout is configured for ${company?.name ?? 'this entity'} (${currency}). Select the paying bank and configure its bank-file layout before exporting.`
+							});
 						for (const file of bankFiles) {
 							if (
 								documents.some(
 									(document) => document.name.toLowerCase() === file.name.toLowerCase()
 								)
 							)
-								return yield* ctx.refuse(
-									'The selected payroll runs produce the same bank-file name. Export these runs separately to preserve the bank-required file name and every payment.'
-								);
+								return yield* new Refusal({
+									message:
+										'The selected payroll runs produce the same bank-file name. Export these runs separately to preserve the bank-required file name and every payment.'
+								});
 							documents.push(file);
 						}
 					}
@@ -964,7 +857,12 @@ export default model('payroll_run', {
 						}
 					}
 				}
-				return { documents, salary_reports };
+				return kind === 'SALARY'
+					? salary_reports.map((report) => ({
+							name: `${report.company} ${report.period} ${report.currency}.json`,
+							content: JSON.stringify(report)
+						}))
+					: documents;
 			}
 		}
 	},

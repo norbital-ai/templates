@@ -45,6 +45,6 @@ export default model('rfis', {
 	},
 	search: { text: ['title'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { rfis: columns } },
+	update: { columns: { rfis: columns } }
 });

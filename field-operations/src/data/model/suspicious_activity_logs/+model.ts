@@ -8,14 +8,15 @@ import { SUSPICION_BASIS } from '../../../lib/basis.js';
  */
 export default model('suspicious_activity_logs', {
 	description:
-		'An AI or authorized-human suspicion judgement against one job assignment, with immutable evidence basis and an explicit controller resolution.',
+		'A suspicion log (finding): an AI or authorized-human suspicion judgement against one job assignment, with immutable evidence basis and an explicit controller resolution.',
 	icon: 'lucide:shield-alert',
 	label: 'reason',
 	fields: {
+		/** A job's findings read as its `suspicion_logs` ("jobs with a suspicion log" filters on it). */
 		job_assignment_id: {
 			kind: 'ref',
 			to: 'job_assignments',
-			inverse: 'suspicious_activity_logs'
+			inverse: 'suspicion_logs'
 		},
 		review_id: {
 			kind: 'ref',
@@ -39,7 +40,16 @@ export default model('suspicious_activity_logs', {
 	search: { text: ['reason', 'resolution'] },
 	read: 'all',
 	create: {
-		columns: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
+		columns: {
+			suspicious_activity_logs: [
+				'job_assignment_id',
+				'origin',
+				'basis',
+				'review_id',
+				'evidence_id',
+				'reason'
+			]
+		},
 		transform: function* (rows, ctx) {
 			const reviewIds = [
 				...new Set(rows.flatMap((row) => (row.review_id == null ? [] : [row.review_id])))
@@ -47,34 +57,18 @@ export default model('suspicious_activity_logs', {
 			const evidenceIds = [
 				...new Set(rows.flatMap((row) => (row.evidence_id == null ? [] : [row.evidence_id])))
 			];
-			const { reviews, evidence } = yield* ctx.db.query({
-				reviews: { from: 'suspicion_reviews', where: { id: { in: reviewIds } }, all: true },
-				evidence: { from: 'photo_evidence', where: { id: { in: evidenceIds } }, all: true }
+			// one read: the cited reviews and photos
+			const { suspicion_reviews: reviews, photo_evidence: evidence } = yield* ctx.db.query({
+				suspicion_reviews: { where: { id: { in: reviewIds } }, fields: ['job_assignment_id'] },
+				photo_evidence: { where: { id: { in: evidenceIds } }, fields: ['job_assignment_id'] }
 			});
-			// the second read: the assignment a variation's photo belongs to
-			const variationIds = evidence.rows.flatMap((photo) =>
-				photo.job_assignment_id == null && photo.variation_request_id != null
-					? [photo.variation_request_id]
-					: []
-			);
-			const variations = variationIds.length
-				? yield* ctx.db.query('variation_requests', {
-						where: { id: { in: variationIds } },
-						all: true
-					})
-				: { rows: [] };
 			const reviewJob = new Map(
 				reviews.rows.map((r) => [String(r.id), String(r.job_assignment_id)])
-			);
-			const variationJob = new Map(
-				variations.rows.map((v) => [String(v.id), String(v.job_assignment_id)])
 			);
 			const evidenceJob = new Map(
 				evidence.rows.map((p) => [
 					String(p.id),
-					p.job_assignment_id != null
-						? String(p.job_assignment_id)
-						: variationJob.get(String(p.variation_request_id))
+					p.job_assignment_id == null ? undefined : String(p.job_assignment_id)
 				])
 			);
 			const { sha256Text } = yield* Effect.promise(() => import('../../../lib/sha256.js'));
@@ -122,7 +116,7 @@ export default model('suspicious_activity_logs', {
 		}
 	},
 	update: {
-		columns: ['resolution', 'resolved_at', 'resolved_by'],
+		columns: { suspicious_activity_logs: ['resolution', 'resolved_at', 'resolved_by'] },
 		transform: function* (changes, ctx) {
 			for (const [row, { before, set }] of changes.entries()) {
 				if (before.resolved_at != null)
@@ -142,5 +136,21 @@ export default model('suspicious_activity_logs', {
 			}
 			return changes.map(({ set }) => set);
 		}
+	},
+	/** A new judgement needs a controller's resolution: every controller hears of it in the app. */
+	notify: function* (event, ctx) {
+		if (event.kind !== 'write' || event.action !== 'create') return [];
+		const jobs = (yield* ctx.db.query({
+			job_assignments: {
+				where: { id: { in: event.records.map((log) => log.job_assignment_id) } },
+				fields: ['title']
+			}
+		})).job_assignments;
+		const titleOf = new Map(jobs.rows.map((job) => [job.id, job.title]));
+		return event.records.map((log) => ({
+			title: 'Suspicion raised',
+			description: `${titleOf.get(log.job_assignment_id) ?? 'An assignment'}: ${log.reason}`,
+			to: [{ team: 'field_ops_controllers' }, { team: 'contractor_controllers' }]
+		}));
 	}
 });

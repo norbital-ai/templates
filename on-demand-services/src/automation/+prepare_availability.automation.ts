@@ -17,17 +17,17 @@ export default automation('prepare_availability', {
 	on: { created: 'availability_requests' },
 	runAs: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
-		const { rows } = yield* ctx.query('availability_requests', {
-			where: { id: { in: ids }, status: { eq: 'pending' } },
-			all: true
-		});
+		const { rows } = (yield* ctx.query({
+			availability_requests: { where: { id: { in: ids }, status: { eq: 'pending' } } }
+		})).availability_requests;
 		for (const r of rows) {
-			const service = yield* ctx.query('services', { id: r.service });
+			const service =
+				(yield* ctx.query({ services: { where: { id: { eq: r.service } }, limit: 1 } })).services
+					.rows[0] ?? null;
 			const fail = Effect.fnUntraced(function* (problem: string) {
-				return yield* ctx.act('availability_requests.update', {
-					target: r.id,
-					set: { status: 'failed', problem, checked_at: ctx.now }
-				});
+				return yield* ctx.act('availability_requests.update', [
+					{ target: r.id, set: { status: 'failed', problem, checked_at: ctx.now } }
+				]);
 			});
 			if (service === null || !service.active) {
 				yield* fail('Pick an active service.');
@@ -37,8 +37,9 @@ export default automation('prepare_availability', {
 				yield* fail('Pick a preferred helper.');
 				continue;
 			}
-			const known = (yield* ctx.query('customers', { where: { phone: { eq: r.phone } }, limit: 1 }))
-				.rows[0];
+			const known = (yield* ctx.query({
+				customers: { where: { phone: { eq: r.phone } }, limit: 1 }
+			})).customers.rows[0];
 			const savedLocation =
 				r.location ?? (known?.address === r.address ? known.location : null) ?? null;
 			const hits =
@@ -101,10 +102,12 @@ export default automation('prepare_availability', {
 				.filter(([leg]) => !pool.drive?.has(leg))
 				.map(([leg, minutes]) => ({ leg, minutes }));
 			if (timed.length > 0) yield* ctx.act('drive_times.create', timed);
-			yield* ctx.act('availability_requests.update', {
-				target: r.id,
-				set: { status: 'ready', starts, location, estimated: keyMissing, checked_at: ctx.now }
-			});
+			yield* ctx.act('availability_requests.update', [
+				{
+					target: r.id,
+					set: { status: 'ready', starts, location, estimated: keyMissing, checked_at: ctx.now }
+				}
+			]);
 		}
 	}
 });

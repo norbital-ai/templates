@@ -62,8 +62,10 @@ it.live('a job is embedded once filed and found by meaning, within what the read
 			dimensions: DIM
 		});
 		const similar = Effect.fnUntraced(function* (as: typeof controller, to: string) {
-			const page = yield* t.as(as).query('job_assignments', { where: { $similar: to }, limit: 20 });
-			return page.rows.map((row) => row.id).sort();
+			const { job_assignments } = yield* t
+				.as(as)
+				.query({ job_assignments: { where: { $similar: to }, limit: 20 } });
+			return job_assignments.rows.map((row) => row.id).sort();
 		});
 		expect(yield* similar(controller, 'water leak')).toEqual([mine.job, theirs.job].sort());
 		expect(yield* similar(controller, 'fresh paint')).toHaveLength(1);

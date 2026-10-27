@@ -37,7 +37,7 @@
 
 各辖区的配置内容及缺口记录在[各辖区跟踪表](docs/inventory/README.md)。
 
-辖区版本以经校验的自定义字段持有停工类别定义。工作区共有 29 个模型，声明位于 `src/data/model/<name>/+model.ts`：字段、关系、各写入操作的回调和查询都在模型内声明，同目录的 `+representation.svelte` 呈现记录。业务操作在 `src/automation/` 中声明为普通自动化。薪资变动、结算/付款记录以及独立复核的运营记录各自保留身份。
+辖区版本以经校验的自定义字段持有停工类别定义。工作区共有 29 个模型，声明位于 `src/data/model/<name>/+model.ts`：字段、关系、读写层和各写入操作的回调都在模型内声明；页面与自动化按层映射读取并在 `src/lib` 中计算（假期余额：`src/lib/leave_reads.ts`），薪资导出（银行文件、工资清单）是 `payroll_run.sync.export` 文件同步，同目录的 `+representation.svelte` 呈现记录。业务操作在 `src/automation/` 中声明为普通自动化。薪资变动、结算/付款记录以及独立复核的运营记录各自保留身份。
 
 ## 自动化与集成
 

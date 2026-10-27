@@ -20,16 +20,18 @@
 		end: Instant(new Date(utcOf(addDays(day, 1), 0, zone)).toISOString())
 	});
 	const helpers = $derived(
-		bolt.query('helpers', {
-			where: { status: { eq: 'active' } },
-			select: { name: true },
-			orderBy: { name: 'asc' },
-			limit: 200
+		bolt.query({
+			helpers: {
+				where: { status: { eq: 'active' } },
+				fields: ['name'],
+				orderBy: { name: 'asc' },
+				limit: 200
+			}
 		})
 	);
 	const lanes = $derived([
 		{ value: null, label: t('app.schedule.unassigned') },
-		...(helpers.current?.rows ?? []).map((h) => ({ value: h.id, label: h.name }))
+		...(helpers.current?.helpers.rows ?? []).map((h) => ({ value: h.id, label: h.name }))
 	]);
 	const time = (i: string | null) =>
 		i === null
@@ -42,21 +44,18 @@
 	const where = $derived({ slot: { overlaps: span }, status: { ne: 'cancelled' as const } });
 	/** Who each of the day's visits is for, and what: one read beside the board's own, keyed by visit. */
 	const booked = $derived(
-		bolt.query('visits', {
-			where,
-			select: {
-				booking: {
-					select: { customer: { select: { name: true } }, service: { select: { name: true } } }
-				}
-			},
-			limit: 500
+		bolt.query({
+			visits: { where, fields: ['booking'], limit: 500 },
+			'visits.booking': { fields: ['customer', 'service'] },
+			'visits.booking.customer': { fields: ['name'] },
+			'visits.booking.service': { fields: ['name'] }
 		})
 	);
 	const forWhom = $derived(
 		new globalThis.Map(
-			(booked.current?.rows ?? []).map((v) => [
+			(booked.current?.visits.rows ?? []).map((v) => [
 				v.id,
-				`${v.booking.customer.name} · ${v.booking.service.name}`
+				`${v.booking?.customer?.name ?? '—'} · ${v.booking?.service?.name ?? '—'}`
 			])
 		)
 	);

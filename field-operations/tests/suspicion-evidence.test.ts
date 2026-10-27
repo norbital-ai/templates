@@ -23,7 +23,7 @@ it('retains the newest decoded review evidence in first-seen order', () => {
 			nature: null,
 			scheduled_for: '2026-10-12',
 			description: '',
-			status: 'assigned',
+			status: 'pending',
 			summary: null,
 			location: null
 		},

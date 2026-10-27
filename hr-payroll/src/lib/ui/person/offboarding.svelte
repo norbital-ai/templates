@@ -67,18 +67,19 @@
 	const grounds = $derived.by(() =>
 		version.current == null
 			? null
-			: bolt.query('rule_set', {
-					where: {
-						settings_id: { eq: version.current.id },
-						family: { eq: 'PAYROLL' },
-						code: { eq: 'exit_grounds' }
-					},
-					select: { rules: true },
-					all: true
+			: bolt.query({
+					rule_set: {
+						where: {
+							settings_id: { eq: version.current.id },
+							family: { eq: 'PAYROLL' },
+							code: { eq: 'exit_grounds' }
+						},
+						fields: ['rules']
+					}
 				})
 	);
 	const options = $derived(
-		(grounds?.current?.rows ?? []).flatMap((row) =>
+		(grounds?.current?.rule_set.rows ?? []).flatMap((row) =>
 			kindsOf(row.rules).map((kind) => ({
 				value: kind.code,
 				label: kind.name,
@@ -92,11 +93,9 @@
 		facts = exited ? { ...(exitFacts ?? {}) } : {};
 		sheetOpen = true;
 	}
-	function act(
-		set: Extract<ActInput<'employment_contract.update'>, { readonly set: unknown }>['set']
-	) {
+	function act(set: ActInput<'employment_contract.update'>[number]['set']) {
 		saving = true;
-		return bolt.act('employment_contract.update', { target: id, set }).pipe(
+		return bolt.act('employment_contract.update', [{ target: id, set }]).pipe(
 			Effect.map((outcome) => {
 				if (outcome.kind === 'pendingApproval') toast.info(bolt.t('offboarding.pending'));
 				// past the person-wait the write runs on: its run reports the outcome

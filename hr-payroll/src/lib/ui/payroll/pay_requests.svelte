@@ -71,7 +71,7 @@
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
 {#snippet activityCell({ row, value }: { row: object; value: unknown })}{enumText(
 		String(value ?? ''),
-		{ t: (key) => view.t(key), collection, field: 'activity' }
+		{ t: (key) => view.t(key), model: collection, field: 'activity' }
 	)}{#if 'days' in row && row.days != null}
 		· {String(row.days)}{/if}{/snippet}
 {#snippet amountCell({

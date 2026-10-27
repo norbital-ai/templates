@@ -6,6 +6,7 @@ import { Approvals } from '@norbital-ai/bolt/engine';
 import { expect, it as test } from '@effect/vitest';
 import { direct } from './synced-kit.js';
 import { committed, workspace, draft, confirm } from './kit.js';
+import { confirmationOf } from './reads.js';
 test.live(
 	'sales is scoped through every child and configuration never grants commercial rows',
 	() =>
@@ -16,24 +17,24 @@ test.live(
 			const mine = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
 			const other = yield* draft(t);
 			const buy = yield* draft(t, 'purchasing');
-			expect((yield* as.query('orders', { all: true })).rows.map((r) => r.id)).toEqual([
-				mine.order
-			]);
-			expect((yield* as.query('order_lines', { all: true })).rows.map((r) => r.id)).toEqual([
+			expect((yield* as.query({ orders: {} })).orders.rows.map((r) => r.id)).toEqual([mine.order]);
+			expect((yield* as.query({ order_lines: {} })).order_lines.rows.map((r) => r.id)).toEqual([
 				mine.line
 			]);
 			for (const x of [other, buy]) {
-				expect(yield* as.query('orders', { id: x.order })).toBeNull();
+				expect(
+					(yield* as.query({ orders: { where: { id: { eq: x.order } }, limit: 1 } })).orders.rows[0]
+				).toBeUndefined();
 				expect(
 					yield* Effect.flip(
-						as.act('order_lines.update', { target: x.line, set: { unit_price: Decimal.of('1') } })
+						as.act('order_lines.update', [{ target: x.line, set: { unit_price: Decimal.of('1') } }])
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				yield* Effect.tryPromise({
 					try: () =>
 						expect(
 							Effect.runPromise(
-								as.query('orders.confirmation_check', {
+								confirmationOf(as, {
 									as_of: Instant(t.clock.now()),
 									order: x.order
 								})
@@ -44,36 +45,42 @@ test.live(
 			}
 			committed(
 				'activities',
-				yield* as.act('activities.create', {
-					order: mine.order,
-					title: 'Call customer',
-					kind: 'call'
-				})
+				yield* as.act('activities.create', [
+					{
+						order: mine.order,
+						title: 'Call customer',
+						kind: 'call'
+					}
+				])
 			);
 			expect(
 				yield* Effect.flip(
-					as.act('activities.create', {
-						order: buy.order,
-						title: 'Sneak into purchasing',
-						kind: 'note'
-					})
+					as.act('activities.create', [
+						{
+							order: buy.order,
+							title: 'Sneak into purchasing',
+							kind: 'note'
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
-						Effect.runPromise(t.as(t.member(['configuration'])).query('orders', { all: true }))
+						Effect.runPromise(t.as(t.member(['configuration'])).query({ orders: {} }))
 					).rejects.toThrow(),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'products',
+					model: 'products',
 					verb: 'update',
-					input: {
-						target: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-						set: { name: 'Overwrite ERP' }
-					}
+					input: [
+						{
+							target: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+							set: { name: 'Overwrite ERP' }
+						}
+					]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 		})
@@ -86,24 +93,28 @@ test.live(
 			const { order, line } = yield* draft(t);
 			yield* confirm(t, order);
 			const as = t.as(t.member(['logistics']));
-			const shown = yield* as.query('orders', { id: order });
+			const shown = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+				.rows[0];
 			expect(shown).toMatchObject({
 				sealed_snapshot: { $masked: true },
 				sealed_contract: { $masked: true }
 			});
-			expect(yield* as.query('order_lines', { id: line })).toMatchObject({
+			expect(
+				(yield* as.query({ order_lines: { where: { id: { eq: line } }, limit: 1 } })).order_lines
+					.rows[0]
+			).toMatchObject({
 				unit_price: { $masked: true }
 			});
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'transactions',
+					model: 'transactions',
 					verb: 'create',
 					input: [{ order }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* direct(t, as.authority, {
-					collection: 'source_payments',
+					model: 'source_payments',
 					verb: 'create',
 					input: [{ order }]
 				})
@@ -121,27 +132,32 @@ test.live('native sealing approval requires no credit-approval configuration', (
 		const approvals = Context.get(t.services, Approvals);
 		const request = (requestId: string, order: string) =>
 			approvals
-				.view(requestId, as.authority, (collection, id) =>
-					Effect.succeed(collection === 'orders' && id === order)
+				.view(requestId, as.authority, (model, id) =>
+					Effect.succeed(model === 'orders' && id === order)
 				)
 				.pipe(Effect.map(Option.getOrThrow));
 		const propose = Effect.fnUntraced(function* () {
 			const { order } = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
-			const check = yield* as.query('orders.confirmation_check', {
+			const check = yield* confirmationOf(as, {
 				as_of: Instant(t.clock.now()),
 				order
 			});
-			const outcome = yield* as.act('orders.update', {
-				target: order,
-				set: { status: 'confirmed', check_hash: check.check_hash }
-			});
+			const outcome = yield* as.act('orders.update', [
+				{
+					target: order,
+					set: { status: 'confirmed', check_hash: check.check_hash }
+				}
+			]);
 			if (outcome.kind !== 'pendingApproval') throw new Error('Native approval required');
 			return { order, requestId: outcome.requestId };
 		});
 
 		// The confirmation is applied at once and the request holds the sealed order.
 		const approved = yield* propose();
-		expect(yield* as.query('orders', { id: approved.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: approved.order } }, limit: 1 } })).orders
+				.rows[0]
+		).toMatchObject({
 			status: 'confirmed',
 			seal_hash: expect.any(String)
 		});
@@ -151,16 +167,18 @@ test.live('native sealing approval requires no credit-approval configuration', (
 			steps: [{ name: 'Commercial review', teams: ['commercial_managers'], users: [] }],
 			mine: true,
 			records: expect.arrayContaining([
-				expect.objectContaining({ collection: 'orders', id: approved.order })
+				expect.objectContaining({ model: 'orders', id: approved.order })
 			])
 		});
 		// Nobody outside the request may change it: an administrator cannot archive it around the approval.
 		expect(
 			yield* Effect.flip(
-				t.as(t.admin).act('orders.update', {
-					target: approved.order,
-					set: { archived: true }
-				})
+				t.as(t.admin).act('orders.update', [
+					{
+						target: approved.order,
+						set: { archived: true }
+					}
+				])
 			)
 		).toMatchObject({ _tag: 'ActRefused' });
 		expect(
@@ -171,7 +189,10 @@ test.live('native sealing approval requires no credit-approval configuration', (
 				now: t.clock.now()
 			})
 		).toMatchObject({ kind: 'decided', status: 'Approved' });
-		expect(yield* as.query('orders', { id: approved.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: approved.order } }, limit: 1 } })).orders
+				.rows[0]
+		).toMatchObject({
 			status: 'confirmed'
 		});
 
@@ -186,17 +207,23 @@ test.live('native sealing approval requires no credit-approval configuration', (
 				reason: 'Check the credit terms'
 			});
 		expect(yield* move('requestChanges')).toMatchObject({ status: 'ChangesRequested' });
-		expect(yield* as.query('orders', { id: returned.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: returned.order } }, limit: 1 } })).orders
+				.rows[0]
+		).toMatchObject({
 			status: 'confirmed'
 		});
 		expect(yield* move('reject')).toMatchObject({ status: 'Rejected' });
-		expect(yield* as.query('orders', { id: returned.order })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: returned.order } }, limit: 1 } })).orders
+				.rows[0]
+		).toMatchObject({
 			status: 'draft',
 			seal_hash: null
 		});
 		expect(
 			yield* direct(t, t.as(t.admin).authority, {
-				collection: 'transactions',
+				model: 'transactions',
 				verb: 'create',
 				input: [{ order: returned.order }]
 			})

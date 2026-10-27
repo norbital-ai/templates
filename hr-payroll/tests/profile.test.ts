@@ -61,7 +61,10 @@ it.effect(
 					])
 				);
 				assert.match(refused.message, /Unknown election 'unknown'/);
-				assert.equal((yield* hr.query('employment_profile', { all: true })).rows.length, 3);
+				assert.equal(
+					(yield* hr.query({ employment_profile: {} })).employment_profile.rows.length,
+					3
+				);
 			})
 		);
 	}

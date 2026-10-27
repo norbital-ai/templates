@@ -1,4 +1,4 @@
-import { automation } from '@norbital-ai/bolt';
+import { automation, isMasked } from '@norbital-ai/bolt';
 import { whatsapp } from '../lib/dispatch.js';
 import { deliverNoticeRows } from '../lib/notice-delivery.js';
 /**
@@ -11,18 +11,25 @@ export default automation('deliver_notices', {
 	on: { created: 'customer_notices' },
 	runAs: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
-		const { rows } = yield* ctx.query('customer_notices', {
-			where: { id: { in: ids }, whatsapp: { isNull: true } },
-			select: { subject: true, body: true, customer: { select: { phone: true } } },
-			all: true
-		});
+		const { rows } = (yield* ctx.query({
+			customer_notices: {
+				where: { id: { in: ids }, whatsapp: { isNull: true } },
+				fields: ['subject', 'body', 'customer']
+			},
+			'customer_notices.customer': { fields: ['phone'] }
+		})).customer_notices;
 		yield* deliverNoticeRows(
-			rows,
+			// a notice without a readable number has nowhere to go
+			rows.flatMap(({ customer, ...n }) =>
+				customer === null || isMasked(customer.phone)
+					? []
+					: [{ ...n, customer: { ...customer, phone: customer.phone } }]
+			),
 			(n) =>
 				ctx.send('whatsapp', {
 					to: whatsapp(n.customer.phone),
 					text: `${n.subject}\n\n${n.body}`,
-					about: { collection: 'customer_notices', id: n.id }
+					about: { model: 'customer_notices', id: n.id }
 				}),
 			(set) => ctx.act('customer_notices.update', set)
 		);

@@ -317,14 +317,16 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const purchases = yield* ctx.db.query('orders', {
-		where: {
-			ledger: { eq: instance },
-			direction: { eq: 'purchasing' },
-			seal_hash: { isNull: false }
-		},
-		select: { status: true },
-		limit: 1
+	const { orders: purchases } = yield* ctx.db.query({
+		orders: {
+			where: {
+				ledger: { eq: instance },
+				direction: { eq: 'purchasing' },
+				seal_hash: { isNull: false }
+			},
+			fields: ['status'],
+			limit: 1
+		}
 	});
 	if (purchases.rows.length)
 		return yield* new SourceUnavailable({
@@ -347,10 +349,11 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			);
 		return mapPayments(complete, graph.invoices, graph.observedAt, ctx.configuration.baseCurrency);
 	});
-	const invoices = yield* ctx.db.query('transactions', {
-		where: { source: { eq: instance }, kind: { eq: 'invoice' } },
-		select: { erp_id: true, order: true, seal_hash: true },
-		all: true
+	const { transactions: invoices } = yield* ctx.db.query({
+		transactions: {
+			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
+			fields: ['erp_id', 'order', 'seal_hash']
+		}
 	});
 	const current = yield* checked(() =>
 		facts.map(({ invoiceExternalId, ...fact }) => {
@@ -363,10 +366,8 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			return { ...fact, invoice: invoice.id };
 		})
 	);
-	const previous = yield* ctx.db.query('source_payments', {
-		where: { source: { eq: instance } },
-		select: { external_code: true, active: true },
-		all: true
+	const { source_payments: previous } = yield* ctx.db.query({
+		source_payments: { where: { source: { eq: instance } }, fields: ['external_code', 'active'] }
 	});
 	const present = new Set(current.map((fact) => fact.external_code));
 	const rows = [
@@ -387,17 +388,11 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	const facts = yield* checked(() =>
 		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt)
 	);
-	const previous = yield* ctx.db.query('source_sales_lines', {
-		where: { source: { eq: instance } },
-		select: {
-			external_code: true,
-			order: true,
-			order_line: true,
-			seal_hash: true,
-			source_updated_at: true,
-			active: true
-		},
-		all: true
+	const { source_sales_lines: previous } = yield* ctx.db.query({
+		source_sales_lines: {
+			where: { source: { eq: instance } },
+			fields: ['external_code', 'order', 'order_line', 'seal_hash', 'source_updated_at', 'active']
+		}
 	});
 	yield* checked(() => {
 		for (const fact of facts) {

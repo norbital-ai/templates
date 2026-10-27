@@ -36,24 +36,24 @@
 	const next = $derived(
 		upcomingWhere === null
 			? null
-			: bolt.query('visits', {
-					where: upcomingWhere,
-					select: {
-						slot: true,
-						helper: { select: { name: true } },
-						booking: { select: { service: { select: { name: true } } } }
+			: bolt.query({
+					visits: {
+						where: upcomingWhere,
+						fields: ['slot', 'helper', 'booking'],
+						orderBy: 'number'
 					},
-					orderBy: { number: 'asc' },
-					all: true
+					'visits.helper': { fields: ['name'] },
+					'visits.booking': { fields: ['service'] },
+					'visits.booking.service': { fields: ['name'] }
 				})
 	);
 	const past = $derived(
-		pastWhere === null
-			? null
-			: bolt.query('visits', { where: pastWhere, select: { status: true }, all: true })
+		pastWhere === null ? null : bolt.query({ visits: { where: pastWhere, fields: ['status'] } })
 	);
 	const soonest = $derived(
-		[...(next?.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))[0]
+		[...(next?.current?.visits.rows ?? [])].sort((a, b) =>
+			a.slot.start.localeCompare(b.slot.start)
+		)[0]
 	);
 	const when = (i: string) =>
 		new Intl.DateTimeFormat(bolt.locale, {
@@ -64,9 +64,11 @@
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(i));
-	const done = $derived((past?.current?.rows ?? []).filter((v) => v.status === 'done').length);
+	const done = $derived(
+		(past?.current?.visits.rows ?? []).filter((v) => v.status === 'done').length
+	);
 	const cancelled = $derived(
-		(past?.current?.rows ?? []).filter((v) => v.status === 'cancelled').length
+		(past?.current?.visits.rows ?? []).filter((v) => v.status === 'cancelled').length
 	);
 	// who they are, where the work is and their notes stay together; the map pin folds away
 	const sections: RecordSection[] = [
@@ -92,9 +94,9 @@
 				? t('app.customers.nothing_ahead')
 				: t('app.customers.next_visit', {
 						when: when(soonest.slot.start),
-						service: soonest.booking.service.name,
+						service: soonest.booking?.service?.name ?? '',
 						cleaner: soonest.helper?.name ?? t('app.customers.cleaner_tbc'),
-						count: next?.current?.rows.length ?? 0
+						count: next?.current?.visits.rows.length ?? 0
 					})}
 		</p>
 		<Table

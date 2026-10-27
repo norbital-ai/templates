@@ -14,7 +14,7 @@ import {
 	PlainDate
 } from '@norbital-ai/std/date';
 import { evaluateConfigured } from '../expressions.js';
-import { type Id, type Masked, type Row } from '@norbital-ai/bolt';
+import { isMasked, type Id, type Masked, type Row } from '@norbital-ai/bolt';
 import {
 	type DynObject,
 	type Json,
@@ -22,7 +22,6 @@ import {
 	completedMonths,
 	fieldValue,
 	Reads,
-	readAll,
 	type Read,
 	numberOf,
 	Refusal
@@ -156,7 +155,7 @@ export type PayrollRunRequest = {
 	/** The run being built, when it is already stored: it is not its own duplicate. */
 	readonly run_id?: string;
 };
-/** The entry and roster collections a payslip consumes; the run pins each consumed row to its payslip. */
+/** The entry and roster models a payslip consumes; the run pins each consumed row to its payslip. */
 export type PinnedCollection =
 	| 'adhoc_catalog_entry'
 	| 'claim_catalog_entry'
@@ -541,16 +540,23 @@ export const suspensionOn = (
 	});
 /** A version's inline suspension kinds by code. */
 export const suspensionKinds = (settings_id: Id<'jurisdiction_settings'>) =>
-	readAll('jurisdiction_settings', { id: { eq: settings_id } }, undefined, {
-		suspension_kinds: true
-	}).pipe(
-		Effect.flatMap((versions) =>
-			Effect.fromResult(
-				fieldValue(versions[0]?.suspension_kinds, 'jurisdiction_settings.suspension_kinds')
+	Effect.gen(function* () {
+		const { read } = yield* Reads;
+		const { jurisdiction_settings } = yield* read({
+			jurisdiction_settings: {
+				where: { id: { eq: settings_id } },
+				fields: ['suspension_kinds'],
+				limit: 1
+			}
+		});
+		const kinds = yield* Effect.fromResult(
+			fieldValue(
+				jurisdiction_settings.rows[0]?.suspension_kinds,
+				'jurisdiction_settings.suspension_kinds'
 			)
-		),
-		Effect.map((kinds) => new Map((kinds ?? []).map((kind) => [kind.code, kind])))
-	);
+		);
+		return new Map((kinds ?? []).map((kind) => [kind.code, kind]));
+	});
 /** One stored CEL flag of a suspension kind; a kind that leaves it blank is refused. */
 const kindFlag = (
 	kind: SuspensionKind | undefined,
@@ -662,94 +668,41 @@ export const FAMILIES = [
 	{ collection: 'leave_catalog_entry', catalog: 'leave_catalog', family: 'LEAVE' },
 	{ collection: 'loan_repayment_entry', catalog: 'loan_catalog', family: 'LOAN_REPAYMENT' }
 ] as const;
-/** A version with every catalogue row a payroll build prices from. */
-export const governanceMembers = (
-	ids: readonly Id<'jurisdiction_settings'>[] | { readonly member: string; readonly field: string }
-) => {
-	const membership =
-		'member' in ids ? { in: { member: ids.member, field: ids.field } } : { in: ids };
-	return {
-		versions: {
-			from: 'jurisdiction_settings',
-			where: { id: membership },
-			select: { suspension_kinds: true },
-			all: true
-		},
-		statutory: {
-			from: 'statutory_contribution_catalog',
-			where: { settings_id: membership },
-			select: { ...STATUTORY, settings_id: true },
-			all: true
-		},
-		work: {
-			from: 'work_catalog',
-			where: { settings_id: membership },
-			select: { ...CATALOG.work_catalog, settings_id: true },
-			all: true
-		},
-		allowance: {
-			from: 'allowance_catalog',
-			where: { settings_id: membership },
-			select: { ...CATALOG.allowance_catalog, settings_id: true },
-			all: true
-		},
-		adhoc: {
-			from: 'adhoc_catalog',
-			where: { settings_id: membership },
-			select: CATALOG.adhoc_catalog,
-			all: true
-		},
-		claim: {
-			from: 'claim_catalog',
-			where: { settings_id: membership },
-			select: CATALOG.claim_catalog,
-			all: true
-		},
-		leave: {
-			from: 'leave_catalog',
-			where: { settings_id: membership },
-			select: CATALOG.leave_catalog,
-			all: true
-		},
-		loan: {
-			from: 'loan_catalog',
-			where: { settings_id: membership },
-			select: CATALOG.loan_catalog,
-			all: true
-		},
-		rules: {
-			from: 'rule_set',
-			where: { settings_id: membership },
-			select: { code: true, family: true, rules: true, settings_id: true },
-			all: true
-		}
-	} as const;
-};
-export const loadGoverned = (read: Read, ids: readonly Id<'jurisdiction_settings'>[]) =>
-	read(governanceMembers(ids));
-type GovernedRead = Effect.Success<ReturnType<typeof loadGoverned>>;
-/** One version's catalogues from a governance read; its rule rows may come apart (`admitPayrollRun` pages them). */
-export function governedFrom(
-	got: Omit<GovernedRead, 'rules'>,
-	settings_id: Id<'jurisdiction_settings'>,
-	rules: readonly GovernedRead['rules']['rows'][number][]
+/**
+ * The catalogue layers a payroll build prices from, read under a `jurisdiction_settings` root: each version row comes
+ * with its `statutory_contribution_catalog`, `work_catalog`, … and `rule_set` rows. Spread beside the root.
+ */
+export const GOVERNED = {
+	'jurisdiction_settings.statutory_contribution_catalog': { fields: STATUTORY },
+	'jurisdiction_settings.work_catalog': { fields: CATALOG.work_catalog },
+	'jurisdiction_settings.allowance_catalog': { fields: CATALOG.allowance_catalog },
+	'jurisdiction_settings.adhoc_catalog': { fields: CATALOG.adhoc_catalog },
+	'jurisdiction_settings.claim_catalog': { fields: CATALOG.claim_catalog },
+	'jurisdiction_settings.leave_catalog': { fields: CATALOG.leave_catalog },
+	'jurisdiction_settings.loan_catalog': { fields: CATALOG.loan_catalog },
+	'jurisdiction_settings.rule_set': { fields: ['code', 'family', 'rules', 'settings_id'] }
+} as const;
+/** The versions `ids` with every catalogue row a payroll build prices from: one read. */
+export const loadGoverned = Effect.fnUntraced(function* (
+	read: Read,
+	ids: readonly Id<'jurisdiction_settings'>[]
 ) {
-	const version = got.versions.rows.find((row) => row.id === settings_id);
-	if (version === undefined) return undefined;
-	return {
-		...version,
-		statutory_contribution_catalog: got.statutory.rows.filter(
-			(row) => row.settings_id === settings_id
-		),
-		work_catalog: got.work.rows.filter((row) => row.settings_id === settings_id),
-		allowance_catalog: got.allowance.rows.filter((row) => row.settings_id === settings_id),
-		adhoc_catalog: got.adhoc.rows.filter((row) => row.settings_id === settings_id),
-		claim_catalog: got.claim.rows.filter((row) => row.settings_id === settings_id),
-		leave_catalog: got.leave.rows.filter((row) => row.settings_id === settings_id),
-		loan_catalog: got.loan.rows.filter((row) => row.settings_id === settings_id),
-		rule_set: rules.filter((row) => row.settings_id === settings_id)
-	};
-}
+	const { jurisdiction_settings } = yield* read({
+		jurisdiction_settings: { where: { id: { in: ids } }, fields: ['suspension_kinds'] },
+		...GOVERNED
+	});
+	return jurisdiction_settings.rows;
+});
+export type GovernedVersion = Effect.Success<ReturnType<typeof loadGoverned>>[number];
+/** One version of a governance read, with its catalogue layers. */
+export const governedFrom = <V extends { readonly id: string }>(
+	versions: readonly V[],
+	settings_id: Id<'jurisdiction_settings'>
+): V | undefined => versions.find((row) => row.id === settings_id);
+/** The distinct ids a column of one wave holds: the next wave's literal `{ in: [...] }`. */
+export const idsOf = <T extends string>(
+	values: readonly (T | Masked | null | undefined)[]
+): T[] => [...new Set(values.filter((value): value is T => value != null && !isMasked(value)))];
 type EntryFamily = (typeof FAMILIES)[number];
 export type EntryCollection = EntryFamily['collection'];
 export type CatalogName<C extends EntryCollection> = Extract<
@@ -879,90 +832,100 @@ export const governingVersion = Effect.fnUntraced(function* (
 	day: string
 ) {
 	const { read } = yield* Reads;
-	const got = yield* read({
-		versions: {
-			from: 'jurisdiction_settings',
+	const { jurisdiction_settings } = yield* read({
+		jurisdiction_settings: {
 			where: {
 				code: { eq: entity.settings_code },
 				voided_at: { isNull: true },
 				sealed_at: { isNull: false }
 			},
-			select: SETTINGS,
-			all: true
+			fields: SETTINGS
 		},
-		rules: {
-			from: 'rule_set',
-			where: {
-				settings_id: { in: { member: 'versions', field: 'id' } },
-				family: { eq: 'PAYROLL' }
-			},
-			select: { code: true, family: true, rules: true, settings_id: true },
-			all: true
+		'jurisdiction_settings.rule_set': {
+			where: { family: { eq: 'PAYROLL' } },
+			fields: ['code', 'family', 'rules', 'settings_id']
 		}
 	});
-	const version = yield* Effect.fromResult(versionOn(got.versions.rows, entity.settings_code, day));
-	return { ...version, rule_set: got.rules.rows.filter((rule) => rule.settings_id === version.id) };
+	return yield* Effect.fromResult(versionOn(jurisdiction_settings.rows, entity.settings_code, day));
 });
 export const entityOf = (company_id: Id<'entity'>) =>
 	Effect.gen(function* () {
-		const [entity] = yield* readAll('entity', { id: { eq: company_id } }, undefined, ENTITY);
-		if (entity == null)
+		const { read } = yield* Reads;
+		const { entity } = yield* read({
+			entity: { where: { id: { eq: company_id } }, fields: ENTITY, limit: 1 }
+		});
+		const found = entity.rows[0];
+		if (found == null)
 			return yield* new Refusal({ message: 'This needs an actual approved legal entity.' });
-		return entity;
+		return found;
 	});
-const subjectMembers = (ids: readonly Id<'employment_contract'>[]) =>
+/**
+ * The leave subjects `ids` as three dependent reads: the employments; their people, companies, the companies'
+ * staffing, payslips and leave movements; then the payslips' runs and the movements' classes.
+ */
+const subjectWaves = Effect.fnUntraced(function* (
+	read: Read,
+	ids: readonly Id<'employment_contract'>[]
+) {
+	const first = yield* read({
+		employment_contract: { where: { id: { in: ids } }, fields: CONTRACT }
+	});
+	const employment = first.employment_contract;
+	const second = yield* read({
+		employment_profile: {
+			where: { id: { in: idsOf(employment.rows.map((row) => row.employee_id)) } },
+			fields: PROFILE
+		},
+		entity: {
+			where: { id: { in: idsOf(employment.rows.map((row) => row.company_id)) } },
+			fields: ENTITY
+		},
+		employment_contract: {
+			where: { company_id: { in: idsOf(employment.rows.map((row) => row.company_id)) } },
+			fields: ['effective_range', 'engagement', 'company_id']
+		},
+		payslip: { where: { employment_id: { in: ids } }, fields: HISTORY },
+		leave_catalog_entry: {
+			where: { employment_id: { in: ids } },
+			fields: ENTRY.leave_catalog_entry
+		}
+	});
+	return { employment, second };
+});
+const subjectsOf = <P, L>(
+	{ employment, second }: Effect.Success<ReturnType<typeof subjectWaves>>,
+	third: { readonly payroll_run: P; readonly leave_catalog: L }
+) => ({
+	employment,
+	people: second.employment_profile,
+	companies: second.entity,
+	staffing: second.employment_contract,
+	payslips: second.payslip,
+	runs: third.payroll_run,
+	entries: second.leave_catalog_entry,
+	catalogues: third.leave_catalog
+});
+/** The third wave of a subject read: the payslips' runs and the movements' classes. */
+const subjectClassesOf = (waves: Effect.Success<ReturnType<typeof subjectWaves>>) =>
 	({
-		employment: {
-			from: 'employment_contract',
-			where: { id: { in: ids } },
-			select: CONTRACT,
-			all: true
+		payroll_run: {
+			where: { id: { in: idsOf(waves.second.payslip.rows.map((row) => row.payroll_run_id)) } },
+			fields: ['kind']
 		},
-		people: {
-			from: 'employment_profile',
-			where: { id: { in: { member: 'employment', field: 'employee_id' } } },
-			select: PROFILE,
-			all: true
-		},
-		companies: {
-			from: 'entity',
-			where: { id: { in: { member: 'employment', field: 'company_id' } } },
-			select: ENTITY,
-			all: true
-		},
-		staffing: {
-			from: 'employment_contract',
-			where: { company_id: { in: { member: 'companies', field: 'id' } } },
-			select: { effective_range: true, engagement: true, company_id: true },
-			all: true
-		},
-		payslips: {
-			from: 'payslip',
-			where: { employment_id: { in: { member: 'employment', field: 'id' } } },
-			select: HISTORY,
-			all: true
-		},
-		runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'payslips', field: 'payroll_run_id' } } },
-			select: { kind: true },
-			all: true
-		},
-		entries: {
-			from: 'leave_catalog_entry',
-			where: { employment_id: { in: { member: 'employment', field: 'id' } } },
-			select: ENTRY.leave_catalog_entry,
-			all: true
-		},
-		catalogues: {
-			from: 'leave_catalog',
-			where: { id: { in: { member: 'entries', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
+		leave_catalog: {
+			where: {
+				id: { in: idsOf(waves.second.leave_catalog_entry.rows.map((row) => row.catalog_id)) }
+			},
+			fields: ['code']
 		}
 	}) as const;
-const loadSubjects = (read: Read, ids: readonly Id<'employment_contract'>[]) =>
-	read(subjectMembers(ids));
+export const loadSubjects = Effect.fnUntraced(function* (
+	read: Read,
+	ids: readonly Id<'employment_contract'>[]
+) {
+	const waves = yield* subjectWaves(read, ids);
+	return subjectsOf(waves, yield* read(subjectClassesOf(waves)));
+});
 type SubjectRead = Effect.Success<ReturnType<typeof loadSubjects>>;
 export type Employment = ContractRow & {
 	readonly person: EmployeeRow | null;
@@ -1021,7 +984,7 @@ export const companyOf = (
 /**
  * Admit one payroll run request: its entity, the version governing its period, the behaviour that admits its kind,
  * no second salary run for the period, and — for a settlement run — only approved, unpaid ad hoc or claim entries.
- * The run collection's transform and the run build both admit through here.
+ * The run model's transform and the run build both admit through here.
  */
 export const subjectContext = (input: {
 	readonly contract: Partial<
@@ -2005,83 +1968,66 @@ export const ATTENDANCE_MONTHS = 24;
  * named by its own class's code, whatever version captured it.
  */
 /** The shared attendance window of a write batch, read once for every employment it touches. */
-export const attendanceMembers = (
+export const readAttendance = Effect.fnUntraced(function* (
+	read: Read,
 	employmentIds: readonly Id<'employment_contract'>[],
 	companyIds: readonly Id<'entity'>[],
 	span: { readonly from: string; readonly to: string }
-) =>
-	({
-		roster: {
-			from: 'roster_entry',
+) {
+	const got = yield* read({
+		roster_entry: {
 			where: {
 				employment_id: { in: employmentIds },
 				work_date: { gte: PlainDate(span.from), lte: PlainDate(span.to) }
 			},
-			select: ROSTER,
-			all: true
+			fields: ROSTER
 		},
-		leave: {
-			from: 'leave_catalog_entry',
+		leave_catalog_entry: {
 			where: { employment_id: { in: employmentIds }, activity: { eq: 'TIME_OFF' } },
-			select: {
-				employment_id: true,
-				catalog_id: true,
-				occurred_on: true,
-				days: true,
-				from: true,
-				to: true
-			},
-			all: true
+			fields: ['employment_id', 'catalog_id', 'occurred_on', 'days', 'from', 'to']
 		},
-		catalogues: {
-			from: 'leave_catalog',
-			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
-		},
-		definitions: {
-			from: 'shift_definition',
+		shift_definition: {
 			where: { company_id: { in: companyIds } },
-			select: { company_id: true, code: true, variant: true },
-			all: true
+			fields: ['company_id', 'code', 'variant']
 		},
-		patterns: {
-			from: 'shift_pattern',
+		shift_pattern: {
 			where: { company_id: { in: companyIds } },
-			select: { company_id: true, pattern: true, effective_range: true },
-			all: true
+			fields: ['company_id', 'pattern', 'effective_range']
 		},
-		holidays: {
-			from: 'holiday',
+		holiday: {
 			where: {
 				company_id: { in: companyIds },
 				date: { gte: PlainDate(span.from), lte: PlainDate(span.to) },
 				published_at: { isNull: false }
 			},
-			select: { ...HOLIDAY, company_id: true },
-			all: true
+			fields: HOLIDAY
 		},
-		suspensions: {
-			from: 'work_suspension',
+		work_suspension: {
 			where: {
 				company_id: { in: companyIds },
 				starts_on: { lte: PlainDate(span.to) },
 				ends_on: { gte: PlainDate(span.from) }
 			},
-			select: {
-				company_id: true,
-				kind: true,
-				starts_on: true,
-				ends_on: true,
-				worksite: true,
-				employment_ids: true,
-				facts: true
-			},
-			all: true
+			fields: ['company_id', 'kind', 'starts_on', 'ends_on', 'worksite', 'employment_ids', 'facts']
 		}
-	}) as const;
-const readAttendance = (read: Read, ...args: Parameters<typeof attendanceMembers>) =>
-	read(attendanceMembers(...args));
+	});
+	const { leave_catalog } = yield* read({
+		leave_catalog: {
+			where: { id: { in: idsOf(got.leave_catalog_entry.rows.map((row) => row.catalog_id)) } },
+			fields: ['code']
+		}
+	});
+	return {
+		roster: got.roster_entry,
+		leave: got.leave_catalog_entry,
+		catalogues: leave_catalog,
+		definitions: got.shift_definition,
+		patterns: got.shift_pattern,
+		holidays: got.holiday,
+		suspensions: got.work_suspension
+	};
+});
+/** The shared attendance window of a write batch (two reads), for every employment it touches. */
 export type AttendanceRead = Effect.Success<ReturnType<typeof readAttendance>>;
 
 export const attendanceDays = (
@@ -2296,20 +2242,22 @@ export const leaveSubject = (
  * movements (each with its class's code), and the versions of their lineages over the days (by the entity's code: no
  * relation) with their classes.
  */
-export const leaveStateMembers = (
+export const loadLeaveState = Effect.fnUntraced(function* (
+	read: Read,
 	wants: readonly { readonly employment_id: Id<'employment_contract'>; readonly asOf: string }[],
 	options: { readonly allVersions?: boolean } = {}
-) => {
+) {
 	const days = wants.map((want) => want.asOf).toSorted();
-	return {
-		...subjectMembers([...new Set(wants.map((want) => want.employment_id))]),
-		versions: {
-			from: 'jurisdiction_settings',
+	const waves = yield* subjectWaves(read, [...new Set(wants.map((want) => want.employment_id))]);
+	// the lineage is named by the entity's code (no relation): read beside the subjects' third wave
+	const { jurisdiction_settings, ...third } = yield* read({
+		...subjectClassesOf(waves),
+		jurisdiction_settings: {
 			where: {
-				code: { in: { member: 'companies', field: 'settings_code' } },
+				code: { in: idsOf(waves.second.entity.rows.map((row) => row.settings_code)) },
 				voided_at: { isNull: true },
 				sealed_at: { isNull: false },
-				...(options.allVersions
+				...(options.allVersions || days.length === 0
 					? {}
 					: {
 							effective_range: {
@@ -2317,30 +2265,24 @@ export const leaveStateMembers = (
 							}
 						})
 			},
-			select: SETTINGS,
-			all: true
+			fields: SETTINGS
 		},
-		classes: {
-			from: 'leave_catalog',
-			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-			select: { ...LEAVE_CLASS, settings_id: true },
-			all: true
-		},
-		rules: {
-			from: 'rule_set',
-			where: { settings_id: { in: { member: 'versions', field: 'id' } } },
-			select: { code: true, family: true, rules: true, settings_id: true },
-			all: true
-		}
-	} as const;
-};
-export const loadLeaveState = (read: Read, wants: Parameters<typeof leaveStateMembers>[0]) =>
-	read(leaveStateMembers(wants));
+		'jurisdiction_settings.leave_catalog': { fields: LEAVE_CLASS },
+		'jurisdiction_settings.rule_set': { fields: ['code', 'family', 'rules', 'settings_id'] }
+	});
+	return {
+		...subjectsOf(waves, third),
+		versions: jurisdiction_settings,
+		classes: jurisdiction_settings.rows.flatMap((version) => version.leave_catalog),
+		rules: jurisdiction_settings.rows.flatMap((version) => version.rule_set)
+	};
+});
+/** What `leaveState` reads for many employments at once: three dependent reads. */
 export type LeaveStateRead = Effect.Success<ReturnType<typeof loadLeaveState>>;
 /**
  * One employment's leave state on a day: the leave classes of the version in force, every movement of the employment,
  * its length of service and the entitlement subject. Leave balances, previews and the exit encashment read it; a batch
- * passes `prefetched` (`leaveStateMembers` over all its employments) and reads once.
+ * passes `prefetched` (`loadLeaveState` over all its employments) and reads once.
  */
 export const leaveState = (
 	employment_id: Id<'employment_contract'>,
@@ -2361,11 +2303,8 @@ export const leaveState = (
 				asOf
 			)
 		);
-		const version = {
-			...selected,
-			rule_set: got.rules.rows.filter((row) => row.settings_id === selected.id)
-		};
-		const classes = got.classes.rows.filter((row) => row.settings_id === version.id);
+		const version = selected;
+		const classes = selected.leave_catalog;
 		const movements = contract.leave_catalog_entry;
 		const parsed = classes.map(classFromRow);
 		const codeOf = new Map(got.catalogues.rows.map((row) => [row.id, row.code]));

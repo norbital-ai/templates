@@ -141,6 +141,10 @@
 					"kind": "money",
 					"optional": true
 				},
+				"assignee_contact": {
+					"kind": "text",
+					"optional": true
+				},
 				"assignee_user_id": {
 					"kind": "ref",
 					"optional": true,
@@ -193,11 +197,10 @@
 					"unique": true
 				},
 				"status": {
-					"default": "unassigned",
+					"default": "pending",
 					"kind": "enum",
 					"values": [
-						"unassigned",
-						"assigned",
+						"pending",
 						"completed"
 					]
 				},
@@ -316,12 +319,6 @@
 				},
 				"summary": {
 					"kind": "text"
-				},
-				"variation_request_id": {
-					"inverse": "photo_evidence",
-					"kind": "ref",
-					"optional": true,
-					"to": "variation_requests"
 				}
 			},
 			"nativeRules": 2,
@@ -929,7 +926,7 @@
 					"to": "photo_evidence"
 				},
 				"job_assignment_id": {
-					"inverse": "suspicious_activity_logs",
+					"inverse": "suspicion_logs",
 					"kind": "ref",
 					"to": "job_assignments"
 				},
@@ -1150,6 +1147,76 @@
 				}
 			},
 			"key": "text",
+			"nativeRules": 2
+		},
+		"sys_envoy": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"audience": {
+					"default": "private",
+					"kind": "enum",
+					"values": [
+						"private",
+						"public"
+					]
+				},
+				"created_at": {
+					"default": {
+						"now": ""
+					},
+					"kind": "instant"
+				},
+				"delegation": {
+					"default": "disabled",
+					"kind": "enum",
+					"values": [
+						"enabled",
+						"disabled"
+					]
+				},
+				"dm": {
+					"default": "union",
+					"kind": "enum",
+					"values": [
+						"union",
+						"envoy"
+					]
+				},
+				"group_messages": {
+					"default": "mention_or_reply",
+					"kind": "enum",
+					"values": [
+						"disabled",
+						"mention_or_reply",
+						"all"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"policies": {
+					"default": [],
+					"kind": "text",
+					"many": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"task": {
+					"default": "",
+					"format": "markdown",
+					"kind": "text"
+				},
+				"triage": {
+					"default": false,
+					"kind": "bool"
+				}
+			},
+			"key": "uuid",
 			"nativeRules": 2
 		},
 		"sys_file": {
@@ -2202,40 +2269,6 @@
 			],
 			"key": "text",
 			"nativeRules": 2
-		},
-		"variation_requests": {
-			"audit": true,
-			"fields": {
-				"amount": {
-					"kind": "money",
-					"optional": true
-				},
-				"description": {
-					"kind": "text"
-				},
-				"job_assignment_id": {
-					"inverse": "variation_requests",
-					"kind": "ref",
-					"to": "job_assignments"
-				},
-				"requested_at": {
-					"kind": "instant"
-				},
-				"source_message_id": {
-					"kind": "text",
-					"optional": true,
-					"unique": true
-				},
-				"title": {
-					"kind": "text"
-				}
-			},
-			"nativeRules": 2,
-			"search": {
-				"text": [
-					"title"
-				]
-			}
 		}
 	},
 	"tz": "Asia/Singapore"

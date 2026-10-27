@@ -11,11 +11,5 @@ export default team({
 		name: 'Contractor (Controller)',
 		parent: null,
 		policies: ['field_ops_controller']
-	},
-	/** Sign off large variations (the contractor policy's second step); they hold dispatch to read what they decide. */
-	commercial_managers: {
-		name: 'Commercial Managers',
-		parent: null,
-		policies: ['field_ops_controller']
 	}
 });

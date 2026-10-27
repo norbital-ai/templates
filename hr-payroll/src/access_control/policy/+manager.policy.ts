@@ -10,7 +10,8 @@ export default policy({
 		...STAFF_READ,
 		...SELF,
 		employment_profile: { read: true },
-		employment_contract: { read: true }
+		employment_contract: { read: true },
+		entity: { read: true }
 	},
 	limits: MEMBER_LIMITS
 });

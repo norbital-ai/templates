@@ -1,4 +1,6 @@
-import { Decimal } from '@norbital-ai/std/decimal';
+import { Decimal, minorDigits, type DecimalLike } from '@norbital-ai/std/decimal';
+import { Result } from 'effect';
+import type { Id, ReadAnswer } from '@norbital-ai/bolt';
 import { compile, context, evaluate, formula } from '@norbital-ai/std/formula';
 
 export const DEFAULT_COMMISSION_EXPRESSION =
@@ -88,4 +90,56 @@ export function evaluateCommission(eligibility: string, amount: string, values: 
 	const result = compile(commission, amount, 'money');
 	if ('error' in result) throw new Error(result.error);
 	return { eligible: true, amount: evaluate(result, values) };
+}
+/** The saved rule a preview evaluates. */
+export const previewRead = (rule: Id<'commission_rules'>) =>
+	({ commission_rules: { where: { id: { eq: rule } }, limit: 1 } }) as const;
+/**
+ * The saved commission rule against explicit sample facts, changing no order: its amount, `ineligible`, or
+ * `expression_error`; `null` when the rule is not readable.
+ */
+export function commissionPreview(
+	answer: ReadAnswer<ReturnType<typeof previewRead>>,
+	sample: {
+		quantity: DecimalLike;
+		net: DecimalLike;
+		floor_net?: DecimalLike | null;
+		factor?: DecimalLike | null;
+		product_code?: string | null;
+		unit?: string | null;
+		party_code?: string | null;
+		ordered_on: string;
+	}
+) {
+	const rule = answer.commission_rules.rows[0];
+	if (!rule) return null;
+	const evaluated = Result.try(() => {
+		const result = evaluateCommission(
+			rule.eligibility_expression,
+			rule.amount_expression,
+			commissionContext({
+				quantity: Decimal.of(sample.quantity).toString(),
+				net: Decimal.of(sample.net).toString(),
+				floor_net: sample.floor_net == null ? null : Decimal.of(sample.floor_net).toString(),
+				factor: sample.factor == null ? null : Decimal.of(sample.factor).toString(),
+				product_code: sample.product_code ?? '',
+				product_name: '',
+				unit: sample.unit ?? '',
+				currency: rule.currency,
+				ordered_on: sample.ordered_on,
+				party_code: sample.party_code ?? '',
+				fixed_rate: rule.fixed_rate.toString(),
+				spread_pct: rule.spread_pct.toString(),
+				parameters: rule.parameters ?? []
+			})
+		);
+		return {
+			currency: rule.currency,
+			amount: result.amount.round(minorDigits(rule.currency)),
+			reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
+		};
+	});
+	return Result.isFailure(evaluated)
+		? { currency: rule.currency, amount: null, reason: 'expression_error' as const }
+		: evaluated.success;
 }

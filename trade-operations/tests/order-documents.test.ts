@@ -10,6 +10,7 @@ import { renderOrderDocument, validateDocumentTemplate } from '../src/lib/order-
 import { sourceFixture } from './source-fixture.js';
 import { kingdeeDraft, kingdeeFixture, observeKingdeeOrder } from './kingdee-fixture.js';
 import { agreements } from '../src/lib/agreements.js';
+import { documentOf, versionsOf } from './reads.js';
 test('document templates keep agreement content and escape all substituted text', () => {
 	expect(() => validateDocumentTemplate('{title}')).toThrow();
 	expect(() => validateDocumentTemplate('{agreement} {unknown}')).toThrow();
@@ -43,45 +44,51 @@ test.live('preview and PDF use the same sealed agreement without uploaded files'
 			})
 		});
 		const admin = t.as(t.admin);
-		yield* admin.act('sys_integration.update', {
-			target: fixtureId('sys_integration', 'kingdee'),
-			set: { active: false }
-		});
+		yield* admin.act('sys_integration.update', [
+			{
+				target: fixtureId('sys_integration', 'kingdee'),
+				set: { active: false }
+			}
+		]);
 		const { order } = yield* draft(t);
-		const quotation = yield* admin.query('orders.document_preview', { order, locale: 'en' });
+		const quotation = yield* documentOf(admin, { order, locale: 'en' });
 		expect(quotation.html).toContain('Quotation');
 		expect(quotation.html).toContain('Resin A');
 		yield* confirm(t, order);
-		const original = yield* admin.query('orders.document_preview', { order, locale: 'en' });
+		const original = yield* documentOf(admin, { order, locale: 'en' });
 		const nextTemplate = committed(
 			'document_templates',
-			yield* admin.act('document_templates.create', {
-				kind: 'contract',
-				locale: 'en',
-				version: '2',
-				title: 'New document heading',
-				body: '{agreement}\nNew contract wording'
-			})
+			yield* admin.act('document_templates.create', [
+				{
+					kind: 'contract',
+					locale: 'en',
+					version: '2',
+					title: 'New document heading',
+					body: '{agreement}\nNew contract wording'
+				}
+			])
 		);
 		committed(
 			'document_templates',
-			yield* admin.act('document_templates.update', {
-				target: nextTemplate,
-				set: { status: 'published' }
-			})
+			yield* admin.act('document_templates.update', [
+				{
+					target: nextTemplate,
+					set: { status: 'published' }
+				}
+			])
 		);
-		expect(yield* admin.query('orders.document_preview', { order, locale: 'en' })).toMatchObject(
-			original
-		);
+		expect(yield* documentOf(admin, { order, locale: 'en' })).toMatchObject(original);
 		const nextOrder = yield* draft(t);
 		yield* confirm(t, nextOrder.order);
-		expect((yield* admin.query('orders', { id: nextOrder.order }))?.sealed_contract).toContain(
-			'New contract wording'
-		);
 		expect(
-			yield* admin.query('orders.document_preview', { order: nextOrder.order, locale: 'en' })
-		).toMatchObject({ title: 'New document heading', template_version: '2' });
-		const preview = yield* admin.query('orders.document_preview', { order, locale: 'en' });
+			(yield* admin.query({ orders: { where: { id: { eq: nextOrder.order } }, limit: 1 } })).orders
+				.rows[0]?.sealed_contract
+		).toContain('New contract wording');
+		expect(yield* documentOf(admin, { order: nextOrder.order, locale: 'en' })).toMatchObject({
+			title: 'New document heading',
+			template_version: '2'
+		});
+		const preview = yield* documentOf(admin, { order, locale: 'en' });
 		expect(preview.html).toContain('21.80');
 		expect(preview.html).not.toContain('<script>');
 		const started = yield* admin.start('orders.sync.document', {
@@ -105,7 +112,7 @@ test.live('preview and PDF use the same sealed agreement without uploaded files'
 		expect(run.output).toMatchObject({
 			file: { name: 'TR-2026-0001.pdf' }
 		});
-		const chinese = yield* admin.query('orders.document_preview', { order, locale: 'zh' });
+		const chinese = yield* documentOf(admin, { order, locale: 'zh' });
 		expect(chinese.html).toContain('商务协议');
 	})
 );
@@ -115,22 +122,25 @@ test.live(
 		Effect.gen(function* () {
 			const t = yield* workspace({ source: sourceFixture(() => ({})) });
 			const admin = t.as(t.admin);
-			const templates = yield* admin.query('document_templates', { all: true });
+			const templates = (yield* admin.query({ document_templates: {} })).document_templates;
 			expect(templates.rows).toHaveLength(4);
 			expect(
 				yield* Effect.flip(
-					admin.act('document_templates.update', {
-						target: firstRow(templates.rows).id,
-						set: { body: '{agreement}\nOverwrite' }
-					})
+					admin.act('document_templates.update', [
+						{
+							target: firstRow(templates.rows).id,
+							set: { body: '{agreement}\nOverwrite' }
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			const { order } = yield* draft(t);
 			yield* confirm(t, order);
 			const logistics = t.as(t.member(['logistics']));
-			expect(
-				yield* Effect.flip(logistics.query('orders.document_preview', { order }))
-			).toMatchObject({ _tag: 'ReadFailed', code: 'forbidden' });
+			expect(yield* Effect.flip(documentOf(logistics, { order }))).toMatchObject({
+				_tag: 'ReadFailed',
+				code: 'forbidden'
+			});
 			const started = yield* logistics.start('orders.sync.document', {
 				mode: 'export',
 				to: 'pdf',
@@ -166,42 +176,48 @@ test.live(
 			const other = t.member(['sales']);
 			if (sales.actor.kind !== 'member') throw new Error('Member required');
 			const { order } = yield* draft(t, 'sales', fixtureId('sys_user', sales.actor.id));
-			const own = yield* t.as(sales).query('orders.document_preview', { order, locale: 'en' });
+			const own = yield* documentOf(t.as(sales), { order, locale: 'en' });
 			expect(own.html).toContain('Resin A');
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
-						Effect.runPromise(t.as(other).query('orders.document_preview', { order, locale: 'en' }))
+						Effect.runPromise(documentOf(t.as(other), { order, locale: 'en' }))
 					).rejects.toBeDefined(),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			const configuration = t.as(t.member(['configuration']));
 			expect(
 				yield* Effect.flip(
-					configuration.act('document_templates.create', {
-						kind: 'contract',
-						locale: 'en',
-						version: 'bad',
-						title: 'Bad',
-						body: '{title}'
-					})
+					configuration.act('document_templates.create', [
+						{
+							kind: 'contract',
+							locale: 'en',
+							version: 'bad',
+							title: 'Bad',
+							body: '{title}'
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			const layout = yield* configuration.act('document_templates.create', {
-				kind: 'contract',
-				locale: 'en',
-				version: '2',
-				title: 'Revised layout',
-				body: '{reference}\n{agreement}'
-			});
+			const layout = yield* configuration.act('document_templates.create', [
+				{
+					kind: 'contract',
+					locale: 'en',
+					version: '2',
+					title: 'Revised layout',
+					body: '{reference}\n{agreement}'
+				}
+			]);
 			expect(layout.kind).toBe('committed');
 			if (layout.kind !== 'committed') throw new Error('Template create failed');
 			const layoutId = committed('document_templates', layout);
 			expect(
-				yield* configuration.act('document_templates.update', {
-					target: layoutId,
-					set: { status: 'published' }
-				})
+				yield* configuration.act('document_templates.update', [
+					{
+						target: layoutId,
+						set: { status: 'published' }
+					}
+				])
 			).toMatchObject({ kind: 'committed' });
 		})
 );
@@ -226,36 +242,42 @@ test.live('a replacement draft cannot alter an earlier sealed preview or PDF', (
 		const { order } = yield* kingdeeDraft(t, fixture);
 		yield* confirm(t, order);
 		yield* observeKingdeeOrder(t, fixture, order);
-		yield* as.act('sys_integration.update', {
-			target: fixtureId('sys_integration', 'kingdee'),
-			set: { active: false }
-		});
-		const original = yield* as.query('orders.document_preview', {
+		yield* as.act('sys_integration.update', [
+			{
+				target: fixtureId('sys_integration', 'kingdee'),
+				set: { active: false }
+			}
+		]);
+		const original = yield* documentOf(as, {
 			order,
 			version: 1,
 			locale: 'en'
 		});
 		expect(
 			yield* Effect.result(
-				as.act('orders.update', {
-					target: order,
-					set: { payment_terms: 'Overwrite sealed terms' }
-				})
+				as.act('orders.update', [
+					{
+						target: order,
+						set: { payment_terms: 'Overwrite sealed terms' }
+					}
+				])
 			)
 		).toMatchObject({ _tag: 'Failure' });
 		yield* revise(t, order);
 		committed(
 			'orders',
-			yield* as.act('orders.update', {
-				target: order,
-				set: { title: 'Replacement draft', payment_terms: 'Net 60' }
-			})
+			yield* as.act('orders.update', [
+				{
+					target: order,
+					set: { title: 'Replacement draft', payment_terms: 'Net 60' }
+				}
+			])
 		);
-		expect(yield* as.query('orders.document_versions', { order })).toMatchObject([{ version: 1 }]);
-		expect(yield* as.query('orders.document_preview', { order, version: 1 })).toEqual(original);
-		expect(
-			yield* Effect.result(as.query('orders.document_preview', { order, version: 99 }))
-		).toMatchObject({ _tag: 'Failure' });
+		expect(yield* versionsOf(as, { order })).toMatchObject([{ version: 1 }]);
+		expect(yield* documentOf(as, { order, version: 1 })).toEqual(original);
+		expect(yield* Effect.result(documentOf(as, { order, version: 99 }))).toMatchObject({
+			_tag: 'Failure'
+		});
 		expect(
 			(yield* as.start('orders.sync.document', {
 				mode: 'export',
@@ -296,23 +318,31 @@ test.live('supporting documents belong to the sales order and stop changing once
 			const { order } = yield* kingdeeDraft(t, fixture);
 			committed(
 				'orders',
-				yield* admin.act('orders.update', {
-					target: order,
-					set: { owner: fixtureId('sys_user', sales.id) }
-				})
+				yield* admin.act('orders.update', [
+					{
+						target: order,
+						set: { owner: fixtureId('sys_user', sales.id) }
+					}
+				])
 			);
-			yield* admin.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { configuration: fixture.configuration(fixtureId('sys_user', sales.id)) }
-			});
+			yield* admin.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { configuration: fixture.configuration(fixtureId('sys_user', sales.id)) }
+				}
+			]);
 			committed(
 				'orders',
-				yield* owner.act('orders.update', {
-					target: order,
-					set: { supporting_documents: [first] }
-				})
+				yield* owner.act('orders.update', [
+					{
+						target: order,
+						set: { supporting_documents: [first] }
+					}
+				])
 			);
-			expect(yield* owner.query('orders', { id: order })).toMatchObject({
+			expect(
+				(yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				owner: sales.id,
 				status: 'draft',
 				supporting_documents: [first]
@@ -332,46 +362,65 @@ test.live('supporting documents belong to the sales order and stop changing once
 				)
 			).toEqual(bytes);
 			const foreign = yield* upload(unrelated, 'another-customer.pdf');
-			expect(yield* unrelated.query('orders', { id: order })).toBeNull();
+			expect(
+				(yield* unrelated.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+					.rows[0]
+			).toBeUndefined();
 			expect(
 				yield* Effect.flip(
-					unrelated.act('orders.update', {
-						target: order,
-						set: { supporting_documents: [foreign] }
-					})
+					unrelated.act('orders.update', [
+						{
+							target: order,
+							set: { supporting_documents: [foreign] }
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			expect((yield* owner.query('orders', { id: order }))?.supporting_documents).toEqual([first]);
+			expect(
+				(yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+					?.supporting_documents
+			).toEqual([first]);
 			const replacement = yield* upload(owner, 'revised-brief.pdf');
 			committed(
 				'orders',
-				yield* owner.act('orders.update', {
-					target: order,
-					set: { supporting_documents: [replacement] }
-				})
+				yield* owner.act('orders.update', [
+					{
+						target: order,
+						set: { supporting_documents: [replacement] }
+					}
+				])
 			);
-			expect((yield* owner.query('orders', { id: order }))?.supporting_documents).toEqual([
-				replacement
-			]);
+			expect(
+				(yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+					?.supporting_documents
+			).toEqual([replacement]);
 			committed(
 				'orders',
-				yield* owner.act('orders.update', { target: order, set: { supporting_documents: [] } })
+				yield* owner.act('orders.update', [{ target: order, set: { supporting_documents: [] } }])
 			);
-			expect((yield* owner.query('orders', { id: order }))?.supporting_documents).toEqual([]);
+			expect(
+				(yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+					?.supporting_documents
+			).toEqual([]);
 			committed(
 				'orders',
-				yield* owner.act('orders.update', {
-					target: order,
-					set: { supporting_documents: [first, replacement] }
-				})
+				yield* owner.act('orders.update', [
+					{
+						target: order,
+						set: { supporting_documents: [first, replacement] }
+					}
+				])
 			);
 			yield* confirm(t, order);
 			yield* observeKingdeeOrder(t, fixture, order);
-			yield* admin.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { active: false }
-			});
-			const confirmed = yield* owner.query('orders', { id: order });
+			yield* admin.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { active: false }
+				}
+			]);
+			const confirmed = (yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+				.orders.rows[0];
 			expect(confirmed).toMatchObject({
 				status: 'confirmed',
 				supporting_documents: [first, replacement]
@@ -379,21 +428,28 @@ test.live('supporting documents belong to the sales order and stop changing once
 			for (const who of [owner, admin]) {
 				for (const documents of [[], [replacement]]) {
 					const refused = yield* Effect.flip(
-						who.act('orders.update', { target: order, set: { supporting_documents: documents } })
+						who.act('orders.update', [{ target: order, set: { supporting_documents: documents } }])
 					);
 					expect(refused).toMatchObject({ _tag: 'ActRefused' });
-					expect(yield* owner.query('orders', { id: order })).toEqual(confirmed);
+					expect(
+						(yield* owner.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+							.rows[0]
+					).toEqual(confirmed);
 				}
 			}
 			yield* revise(t, order);
 			committed(
 				'orders',
-				yield* owner.act('orders.update', {
-					target: order,
-					set: { supporting_documents: [] }
-				})
+				yield* owner.act('orders.update', [
+					{
+						target: order,
+						set: { supporting_documents: [] }
+					}
+				])
 			);
-			const historical = yield* owner.query('orders', { id: order });
+			const historical = (yield* owner.query({
+				orders: { where: { id: { eq: order } }, limit: 1 }
+			})).orders.rows[0];
 			expect(historical?.contract_versions?.[0]?.supporting_documents).toEqual([
 				first,
 				replacement
@@ -405,13 +461,17 @@ test.live('supporting documents belong to the sales order and stop changing once
 			const next = yield* upload(owner, 'replacement-contract.pdf');
 			committed(
 				'orders',
-				yield* owner.act('orders.update', {
-					target: order,
-					set: { supporting_documents: [next] }
-				})
+				yield* owner.act('orders.update', [
+					{
+						target: order,
+						set: { supporting_documents: [next] }
+					}
+				])
 			);
 			yield* confirm(t, order);
-			const sealedReplacement = yield* owner.query('orders', { id: order });
+			const sealedReplacement = (yield* owner.query({
+				orders: { where: { id: { eq: order } }, limit: 1 }
+			})).orders.rows[0];
 			if (!sealedReplacement) throw new Error('Sealed replacement required');
 			const versions = agreements(sealedReplacement);
 			expect(versions.find((version) => version.version === 1)?.supporting_documents).toEqual([

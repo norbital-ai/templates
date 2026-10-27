@@ -5,22 +5,13 @@ import { Schema } from 'effect';
 import { SKILLS } from '../../lib/matching.js';
 
 export const bookReads = {
-	mine: {
-		from: 'customers',
-		select: { name: true, address: true, location: true },
-		limit: 1
-	},
+	customers: { fields: ['name', 'address', 'location'], limit: 1 },
 	services: {
-		from: 'services',
-		select: { name: true, duration_minutes: true, description: true, skill: true },
+		fields: ['name', 'duration_minutes', 'description', 'skill'],
 		orderBy: { name: 'asc' },
 		limit: 20
 	},
-	helpers: {
-		from: 'helpers',
-		select: { name: true, skills: true },
-		all: true
-	}
+	helpers: { fields: ['name', 'skills'] }
 } as const;
 
 const id = <C extends string>() =>
@@ -30,7 +21,7 @@ const id = <C extends string>() =>
 const skill = Schema.Literals(SKILLS);
 
 export default Schema.Struct({
-	mine: Schema.NullOr(
+	customers: Schema.NullOr(
 		Schema.Struct({
 			rows: Schema.Array(
 				Schema.Struct({

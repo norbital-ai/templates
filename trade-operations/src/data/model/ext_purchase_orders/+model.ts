@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { readPurchaseOrders } from '../../../integration/kingdee/order-source.js';
 import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { agreement, agreementSelect } from '../../../lib/agreements.js';
+import { agreement, agreementFields } from '../../../lib/agreements.js';
 type Header = Pick<
 	CreateRow<'ext_purchase_orders'>,
 	| 'order'
@@ -23,14 +23,12 @@ const settle = Effect.fnUntraced(function* (
 ) {
 	const { orders } = yield* ctx.db.query({
 		orders: {
-			from: 'orders',
 			where: {
 				id: {
 					in: rows.flatMap(({ value, old }) => [value.order, old?.order].flatMap((id) => id ?? []))
 				}
 			},
-			select: { ...agreementSelect, direction: true, ledger: true },
-			all: true
+			fields: [...agreementFields, 'direction', 'ledger']
 		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
@@ -77,7 +75,7 @@ export default model('ext_purchase_orders', {
 	read: 'all',
 	// the sync alone writes confirmations (no local columns); its rows pass through these checks
 	create: {
-		columns: [],
+		columns: { ext_purchase_orders: [] },
 		transform: function* (rows, ctx) {
 			yield* settle(
 				rows.map((value) => ({ value, old: null })),
@@ -87,7 +85,7 @@ export default model('ext_purchase_orders', {
 		}
 	},
 	update: {
-		columns: [],
+		columns: { ext_purchase_orders: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),

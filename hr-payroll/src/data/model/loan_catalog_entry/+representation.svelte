@@ -25,7 +25,7 @@
 				{values}
 				onOutcome={(outcome) => {
 					if (outcome.kind !== 'committed' || record) return;
-					const created = outcome.records.find((row) => row.collection === 'loan_catalog_entry');
+					const created = outcome.records.find((row) => row.model === 'loan_catalog_entry');
 					if (created) openRecord('loan_catalog_entry', created.id);
 				}}
 			>

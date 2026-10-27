@@ -19,7 +19,7 @@ export default model('regulatory_task', {
 		},
 		subject_collection: {
 			kind: 'text',
-			help: 'The collection of the row that triggered the duty.'
+			help: 'The model of the row that triggered the duty.'
 		},
 		subject_id: {
 			kind: 'text'
@@ -78,7 +78,7 @@ export default model('regulatory_task', {
 	},
 	read: 'all',
 	create: {
-		columns: [
+		columns: { regulatory_task: [
 			'code',
 			'title',
 			'references',
@@ -95,11 +95,11 @@ export default model('regulatory_task', {
 			'facts',
 			'company_id',
 			'settings_id'
-		]
+		] }
 	},
 	// `occurrence_key` moves when a duty is withdrawn (its exit moved or undone), so the exit as it now stands raises anew.
 	update: {
-		columns: [
+		columns: { regulatory_task: [
 			'occurrence_key',
 			'due_on',
 			'state',
@@ -107,6 +107,6 @@ export default model('regulatory_task', {
 			'dismiss_reason',
 			'evidence_file',
 			'facts'
-		]
+		] }
 	}
 });

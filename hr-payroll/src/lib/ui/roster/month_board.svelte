@@ -70,32 +70,33 @@
 	const plans = $derived.by(() =>
 		ids.length === 0
 			? null
-			: bolt.query('employment_contract', {
-					where: { id: { in: [...ids] } },
-					select: { facts: true },
-					all: true
-				})
+			: bolt.query({ employment_contract: { where: { id: { in: [...ids] } }, fields: ['facts'] } })
 	);
 	const shifts = $derived.by(() => shiftRead(companyId));
 	const patterns = $derived.by(() => patternRead(companyId));
 	const shiftOf = $derived(
 		plannedShiftOf({
-			contracts: plans?.current?.rows ?? [],
-			definitions: shifts?.current?.rows ?? [],
-			patterns: patterns?.current?.rows ?? []
+			contracts: plans?.current?.employment_contract.rows ?? [],
+			definitions: shifts?.current?.shift_definition.rows ?? [],
+			patterns: patterns?.current?.shift_pattern.rows ?? []
 		})
 	);
-	const loading = $derived(entries?.current?.rows === undefined && ids.length > 0);
+	const loading = $derived(entries?.current === undefined && ids.length > 0);
 	const holidayByDate = $derived(
-		new Map((holidays?.current?.rows ?? []).map((row) => [String(row.date).slice(0, 10), row.name]))
+		new Map(
+			(holidays?.current?.holiday.rows ?? []).map((row) => [
+				String(row.date).slice(0, 10),
+				row.name
+			])
+		)
 	);
 	const days = $derived(
 		buildDays({
 			dates,
 			people,
-			entries: entries?.current?.rows ?? [],
-			holidays: holidays?.current?.rows ?? [],
-			leave: leave?.current?.rows ?? [],
+			entries: entries?.current?.roster_entry.rows ?? [],
+			holidays: holidays?.current?.holiday.rows ?? [],
+			leave: leave?.current?.leave_catalog_entry.rows ?? [],
 			timeZone,
 			policy,
 			shiftOf
@@ -180,7 +181,7 @@
 			class="relative bg-card"
 			onscroll={syncHeader}
 		>
-			<!-- repository-health:allow UI3 -- a person-by-day board is a cross-tab of four collections, not one collection's rows. -->
+			<!-- repository-health:allow UI3 -- a person-by-day board is a cross-tab of four models, not one model's rows. -->
 			<table
 				class="table-fixed border-separate border-spacing-0 text-left text-xs"
 				style:width={`${PERSON_REM + dates.length * DAY_REM}rem`}

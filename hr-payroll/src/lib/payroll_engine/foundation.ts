@@ -5,23 +5,17 @@ import { addDays, datePeriod, eachDay, isPlainDate, monthOf } from '@norbital-ai
 import {
 	isMasked,
 	type CallerQuery,
-	type Cursor,
-	type DeclaredQuery,
-	type DeclaredRow,
+	type DynamicAnswer,
 	type Masked,
-	type Page,
-	type Paged,
-	type QueryMember,
-	type QuerySet,
-	type QuerySetAnswer,
+	type ReadAnswer,
+	type ReadField,
+	type ReadRequest,
+	type ReadRequestBase,
 	type ReadableName,
 	type Row,
-	type Select,
-	type StoredAnswer,
-	type StoredMember,
-	type WorkspaceQuery,
-	type Where
+	type WorkspaceQuery
 } from '@norbital-ai/bolt';
+import { dynamicRead, type DynamicRead, type ReadRequestJson } from '@norbital-ai/bolt/protocol';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 export type { ReadableName } from '@norbital-ai/bolt';
 /** Stored JSON, bounded once: a value the engine reads is one of these, never a free-form record. */
@@ -50,44 +44,43 @@ export const fieldValue = <A>(value: A | Masked, field: string): Result.Result<A
 	isMasked(value)
 		? Result.fail(new Refusal({ message: `This operation needs access to ${field}.` }))
 		: Result.succeed(value);
-/** Native readers retain Bolt's actual model, selection and keyed-answer types. */
+/** Native readers: the workspace's (`ctx.db.query`, unmasked) and the caller's (`ctx.query`, masked). */
 export type HostRead = WorkspaceQuery['query'];
 export type CallerRead = CallerQuery<ReadFailed>['query'];
 export type HostRow<C extends ReadableName> = Row<C>;
-export type StoredSelect<C extends ReadableName> = NonNullable<
-	Extract<StoredMember<C>, { readonly all: true }>['select']
->;
-declare const nativeRead: HostRead;
-declare const nativeCallerRead: CallerRead;
-export type StoredWhere<C extends ReadableName> = NonNullable<
-	Parameters<typeof nativeRead<C, {}>>[1]['where']
->;
-type ReadRow<C extends ReadableName, S extends StoredSelect<C> & Select<C>> =
-	| Effect.Success<ReturnType<typeof nativeRead<C, S>>>['rows'][number]
-	| Effect.Success<ReturnType<typeof nativeCallerRead<C, S>>>['rows'][number];
-/** Both native readers admit these inputs; each answer retains its native projections and caller masks. */
+/** The root-layer fields one read names on `C` (`id` always comes). */
+export type Fields<C extends ReadableName> = readonly ReadField<C>[];
+/**
+ * Every engine read is one layer-map read request (one crossing): a wave of roots and their declared layers. A
+ * dependent read is the next wave, filtered by a literal `{ in: [...] }` of the ids the last wave returned. The server's
+ * readers and the page's (`pageRead`) admit it; the caller's answer is masked, the workspace's is not.
+ */
 export interface Read<E = ReadFailed> {
-	<C extends ReadableName>(
-		model: C,
-		query: DeclaredQuery
-	): Effect.Effect<Page<DeclaredRow<C>>, ReadFailed>;
-	<C extends ReadableName, const S extends StoredSelect<C> & Select<C> = {}>(
-		model: C,
-		query: { where?: NoInfer<StoredWhere<C> & Where<C>>; select?: S } & Paged
-	): Effect.Effect<Page<ReadRow<C, S>>, E>;
-	<const M extends QuerySet>(
-		set: M & {
-			readonly [K in keyof M]: StoredMember<M[K]['from']> & QueryMember<M[K]['from']>;
-		}
-	): Effect.Effect<{ readonly [K in keyof M]: StoredAnswer<M[K]> } | QuerySetAnswer<M>, E>;
+	<const R extends ReadRequestBase>(
+		request: ReadRequest<R>
+	): Effect.Effect<ReadAnswer<R> | ReadAnswer<R, false>, E>;
+}
+/** A server reader that also takes a rule-declared request as JSON (`ctx.query`, `ctx.db.query`). */
+export interface JsonRead<E = ReadFailed> extends Read<E> {
+	(request: DynamicRead): Effect.Effect<DynamicAnswer, E>;
 }
 export type ReadError = Refusal | ReadFailed;
+/** A rule-declared read request, checked as the wire is; one that is not a read request refuses. */
+export const declaredRead = (request: ReadRequestJson): Result.Result<DynamicRead, Refusal> =>
+	Result.try({
+		try: () => dynamicRead(request),
+		catch: (cause) =>
+			new Refusal({
+				message: 'A behaviour rule declares a read that is not a read request.',
+				detail: getErrorMessage(cause)
+			})
+	});
 type ReadsShape = { readonly read: Read };
 export class Reads extends Context.Service<Reads, ReadsShape>()('payroll/Reads') {}
 export const readsFrom = (read: HostRead | CallerRead | Read): ReadsShape => ({ read });
 /**
  * Walks run concurrently and refusal selection follows the input order. Each read a walk makes is its own crossing, so a
- * write callback (two reads per call) reads for the whole batch in one keyed read instead of walking with a reader.
+ * write callback (ten reads per call) reads for the whole batch in one request per wave instead of walking with a reader.
  */
 export const eachBatched = Effect.fnUntraced(function* <I, O, E, R, Reader extends Read>(
 	inputs: readonly I[],
@@ -172,46 +165,6 @@ const sortValue = (value: unknown): unknown => {
 		);
 	return value;
 };
-/** Collections whose rows outgrow one crossing answer; page them. */
-const WIDE_ROWS: Partial<Record<ReadableName, number>> = {
-	payroll_run: 1,
-	payslip: 200,
-	leave_catalog_entry: 1000,
-	roster_entry: 1000
-};
-/** Native stored or caller projections, with native cursors for large rows. */
-const readPages = Effect.fnUntraced(function* <A, E>(
-	readPage: (paging: Paged) => Effect.Effect<Page<A>, E>,
-	page: number | undefined
-) {
-	if (page === undefined) return (yield* readPage({ all: true })).rows;
-	const first = yield* readPage({ limit: page });
-	const rows = [...first.rows];
-	let after: Cursor | null = first.next;
-	while (after !== null) {
-		const answer = yield* readPage({ limit: page, after });
-		rows.push(...answer.rows);
-		after = answer.next;
-	}
-	return rows;
-});
-export const readAll = <C extends ReadableName, const S extends StoredSelect<C> & Select<C> = {}>(
-	collection: C,
-	where: StoredWhere<C> & Where<C>,
-	page?: number,
-	select?: S
-): Effect.Effect<readonly ReadRow<C, S>[], ReadFailed, Reads> =>
-	Effect.flatMap(Reads, ({ read }) => {
-		const readPage = read<C, S>;
-		const query: { where: StoredWhere<C> & Where<C>; select?: S } = {
-			where,
-			...(select === undefined ? {} : { select })
-		};
-		return readPages<ReadRow<C, S>, ReadFailed>(
-			(paging) => readPage(collection, { ...query, ...paging }),
-			page ?? (select === undefined ? WIDE_ROWS[collection] : undefined)
-		);
-	});
 /** The `jurisdiction_settings.payroll` keys the engine requires: every seed version states each (tests/payroll-slots). */
 export const REQUIRED_PAYROLL_SETTINGS = [
 	'currency',

@@ -9,9 +9,14 @@ export default policy({
 		payslip: {
 			read: true,
 			update: {
-				fields: ['status'],
-				where: { status: { eq: 'ON_HOLD' } },
-				previous: { status: { eq: 'DRAFT' } }
+				columns: { payslip: ['status'] },
+				check: function* (changes, ctx) {
+					return changes.every(
+						({ before, set }) => before.status === 'DRAFT' && set.status === 'ON_HOLD'
+					)
+						? ctx.allow()
+						: ctx.deny('This automation only puts a draft payslip on hold.');
+				}
 			},
 			moves: { status: ['DRAFT->ON_HOLD'] }
 		}

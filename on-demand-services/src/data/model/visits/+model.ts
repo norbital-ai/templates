@@ -1,17 +1,6 @@
 import { model, type Instant, type UpdateSet } from '@norbital-ai/bolt';
-import { addDays, Instant as instant } from '@norbital-ai/std/date';
-import { utcOf } from '@norbital-ai/std/zone';
-import { loadPool } from '../../../lib/dispatch.js';
-import {
-	AREAS,
-	lookups,
-	openSlots,
-	rank,
-	refusal,
-	SKILLS,
-	slotOf,
-	type Refusal
-} from '../../../lib/matching.js';
+import { Instant as instant } from '@norbital-ai/std/date';
+import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../lib/matching.js';
 const HOUR = 3600000;
 const WHY: {
 	[R in Refusal]: string;
@@ -106,24 +95,34 @@ export default model('visits', {
 			where: { status: { ne: 'cancelled' }, helper: { isNull: false } }
 		}
 	],
-	read: 'all',
+	// the layers the desk, the helper's day and the portal show beside a visit; each policy narrows them for its holders
+	read: {
+		visits: { fields: 'all' },
+		'visits.helper': { fields: 'all' },
+		'visits.unavailable_helper': { fields: 'all' },
+		'visits.booking': { fields: 'all' },
+		'visits.booking.customer': { fields: 'all' },
+		'visits.booking.service': { fields: 'all' }
+	},
 	update: {
-		columns: [
-			'helper',
-			'slot',
-			'status',
-			'shift_check',
-			'shift_asked_at',
-			'mc',
-			'eta_minutes',
-			'eta_checked_at',
-			'attention',
-			'proposed_helper',
-			'unavailable_helper',
-			'proposed_slot',
-			'late_cancellation',
-			'completion_notes'
-		],
+		columns: {
+			visits: [
+				'helper',
+				'slot',
+				'status',
+				'shift_check',
+				'shift_asked_at',
+				'mc',
+				'eta_minutes',
+				'eta_checked_at',
+				'attention',
+				'proposed_helper',
+				'unavailable_helper',
+				'proposed_slot',
+				'late_cancellation',
+				'completion_notes'
+			]
+		},
 		transform: function* (changes, ctx) {
 			const touched = changes.flatMap(({ before, set }) => {
 				const helper = set.helper === undefined ? before.helper : set.helper;
@@ -136,19 +135,21 @@ export default model('visits', {
 			const starts = changes.map(({ before, set }) => Date.parse((set.slot ?? before.slot).start));
 			const from = instant(new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString());
 			const to = instant(new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString());
-			const { helpers, stored, off } = yield* ctx.db.query({
-				helpers: { from: 'helpers', where: { id: { in: ids } }, all: true },
-				stored: {
-					from: 'visits',
+			const {
+				helpers,
+				visits: stored,
+				helper_time_off: off
+			} = yield* ctx.db.query({
+				helpers: { where: { id: { in: ids } } },
+				visits: {
 					where: {
 						helper: { in: ids },
 						status: { ne: 'cancelled' },
 						slot: { overlaps: { start: from, end: to } }
 					},
-					select: { helper: true, slot: true, location: true, status: true },
-					all: true
+					fields: ['helper', 'slot', 'location', 'status']
 				},
-				off: { from: 'helper_time_off', where: { helper: { in: ids } }, all: true }
+				helper_time_off: { where: { helper: { in: ids } } }
 			});
 			// the stored holds with this batch laid over them, so two visits of one batch cannot collide either
 			const held = new Map(stored.rows.map((v) => [String(v.id), v]));
@@ -187,11 +188,9 @@ export default model('visits', {
 			const drive =
 				legs.length === 0
 					? []
-					: (yield* ctx.db.query('drive_times', {
-							where: { leg: { in: legs } },
-							select: { leg: true, minutes: true },
-							all: true
-						})).rows;
+					: (yield* ctx.db.query({
+							drive_times: { where: { leg: { in: legs } }, fields: ['leg', 'minutes'] }
+						})).drive_times.rows;
 			const pool = { ...holds, drive: new Map(drive.map((d) => [d.leg, d.minutes])) };
 			const out: UpdateSet<'visits'>[] = [];
 			for (const [row, { before, set }] of changes.entries()) {
@@ -235,97 +234,6 @@ export default model('visits', {
 				);
 			}
 			return out;
-		}
-	},
-	queries: {
-		rebooking_slots: {
-			description: 'Feasible replacement starts for this occurrence, including adjacent travel.',
-			input: {
-				visit: { kind: 'id', of: 'visits' },
-				from: { kind: 'date' },
-				days: { kind: 'int', min: 1, max: 14 }
-			},
-			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: { day: { kind: 'date' }, starts: { kind: 'list', of: { kind: 'instant' } } }
-				}
-			},
-			run: function* ({ visit, from, days }, ctx) {
-				const v = yield* ctx.query('visits', { id: visit });
-				if (v === null || v.status !== 'scheduled')
-					return yield* ctx.refuse('Choose a scheduled visit.');
-				const dates = Array.from({ length: days }, (_, i) => addDays(from, i));
-				const pool = yield* loadPool(
-					ctx,
-					new Date(utcOf(from, 0, ctx.tz)).toISOString(),
-					new Date(utcOf(dates.at(-1)!, 0, ctx.tz)).toISOString(),
-					[v.location]
-				);
-				const freed = {
-					...pool,
-					busy: pool.busy.filter((b) => b.id !== v.id),
-					helpers: pool.helpers.filter((h) => h.id !== v.unavailable_helper)
-				};
-				const need = {
-					skill: v.skill,
-					location: v.location,
-					area: v.area,
-					minutes: (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60000
-				};
-				const starts = new Map(dates.map((d) => [d, new Set<Instant>()]));
-				for (const h of freed.helpers)
-					for (const d of openSlots(h, need, dates, freed, ctx.tz, ctx.now))
-						for (const start of d.starts) starts.get(d.day)!.add(start);
-				return dates.map((day) => ({ day, starts: [...starts.get(day)!].sort() }));
-			}
-		},
-		candidates: {
-			description: 'The helpers who could take this visit instead, best match first.',
-			input: { visit: { kind: 'id', of: 'visits' }, start: { kind: 'instant', optional: true } },
-			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						helper: { kind: 'id', of: 'helpers' },
-						name: { kind: 'text' },
-						drive_minutes: { kind: 'int' },
-						same_area: { kind: 'bool' },
-						week_hours: { kind: 'number' }
-					}
-				}
-			},
-			run: function* ({ visit, start }, ctx) {
-				const v = yield* ctx.query('visits', { id: visit });
-				if (v === null) return yield* ctx.refuse('This visit is not visible to you.');
-				const at = start ?? v.slot.start;
-				const pool = yield* loadPool(ctx, at, at, [v.location]);
-				const need = {
-					skill: v.skill,
-					slot: slotOf(at, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60000),
-					location: v.location,
-					area: v.area,
-					visit: v.id
-				};
-				return rank(
-					need,
-					{
-						...pool,
-						helpers: pool.helpers.filter(
-							(h) => (start !== undefined || h.id !== v.helper) && h.id !== v.unavailable_helper
-						)
-					},
-					ctx.tz
-				).map((c) => ({
-					helper: c.helper,
-					name: c.name,
-					drive_minutes: c.drive_minutes,
-					same_area: c.same_area,
-					week_hours: c.week_hours
-				}));
-			}
 		}
 	}
 });

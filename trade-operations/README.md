@@ -16,13 +16,13 @@ Activities contains follow-ups. Native History combines the revision scrubber wi
 owns its documents. Partners has General, POC and Orders.
 
 Editable child tables use an explicit create form in a modal opened by a right-aligned
-`+ Collection` toolbar button. Source-owned tables have no create button or editable form.
+`+ Model` toolbar button. Source-owned tables have no create button or editable form.
 Native Actions owns order actions and on-demand document preview/PDF export.
 
 Contract SKU, quota, prices, credit terms and validity belong to the agreement in General. The
 approved-version selector shows earlier terms, and native Actions previews or exports the selected
 version on demand. Native order history retains record changes; there are no separate contract-file
-or revision collections. Matching issued confirmations appear as record links in General. Transactions shows deliveries and invoices.
+or revision models. Matching issued confirmations appear as record links in General. Transactions shows deliveries and invoices.
 
 The main Orders view contains customer sales agreements. Supplier purchase orders are created in the supplier’s Orders tab. Direction is fixed at creation. Draft contracts are editable and validity uses one date range; sealing uses native Bolt approval. Credit limits and balances are read-only source facts, with credit enforcement owned by the source system.
 

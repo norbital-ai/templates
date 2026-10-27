@@ -80,7 +80,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'shift_definition');
+				const created = outcome.records.find((row) => row.model === 'shift_definition');
 				if (created) openRecord('shift_definition', created.id);
 			}}
 		>

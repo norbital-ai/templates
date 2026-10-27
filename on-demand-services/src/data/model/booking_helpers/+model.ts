@@ -10,5 +10,5 @@ export default model('booking_helpers', {
 		rank: { kind: 'int', min: 1, max: 5 }
 	},
 	unique: [{ fields: ['booking', 'helper'] }],
-	read: { fields: 'all' }
+	read: 'all'
 });

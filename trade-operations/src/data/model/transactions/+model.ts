@@ -53,25 +53,23 @@ const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Evidence; readonly old: StoredRow<'transactions'> | null }[],
 	ctx: WriteCtx<'transactions'>
 ) {
-	const { owners, sales, purchases } = yield* ctx.db.query({
-		owners: {
-			from: 'orders',
+	const {
+		orders: owners,
+		ext_sales_orders: sales,
+		ext_purchase_orders: purchases
+	} = yield* ctx.db.query({
+		orders: {
 			where: {
 				id: {
 					in: rows.flatMap(({ value, old }) => [value.order, old?.order].flatMap((id) => id ?? []))
 				}
-			},
-			all: true
+			}
 		},
-		sales: {
-			from: 'ext_sales_orders',
-			where: { id: { in: rows.flatMap(({ value }) => value.ext_sales_order ?? []) } },
-			all: true
+		ext_sales_orders: {
+			where: { id: { in: rows.flatMap(({ value }) => value.ext_sales_order ?? []) } }
 		},
-		purchases: {
-			from: 'ext_purchase_orders',
-			where: { id: { in: rows.flatMap(({ value }) => value.ext_purchase_order ?? []) } },
-			all: true
+		ext_purchase_orders: {
+			where: { id: { in: rows.flatMap(({ value }) => value.ext_purchase_order ?? []) } }
 		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
@@ -182,10 +180,11 @@ export default model('transactions', {
 		order: { kind: 'ref', to: 'orders', inverse: 'transactions' }
 	},
 	key: ['source', 'erp_id'],
-	read: 'all',
+	// aging names each invoice's order
+	read: { transactions: { fields: 'all' }, 'transactions.order': { fields: 'all' } },
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {
-		columns: [],
+		columns: { transactions: [] },
 		transform: function* (rows, ctx) {
 			yield* settle(
 				rows.map((value) => ({ value, old: null })),
@@ -195,7 +194,7 @@ export default model('transactions', {
 		}
 	},
 	update: {
-		columns: [],
+		columns: { transactions: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),

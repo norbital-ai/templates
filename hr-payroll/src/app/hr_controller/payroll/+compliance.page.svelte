@@ -33,27 +33,22 @@
 	const t = bolt.t;
 	const ui = useBolt();
 	/** A remittance reads as the OBLIGATIONS rule that raised it, a case and a suspension as their kind's name. */
-	const duties = $derived.by(() =>
-		bolt.query('rule_set', {
-			where: { family: { eq: 'OBLIGATIONS' } },
-			select: { code: true, name: true },
-			all: true
+	const names = $derived.by(() =>
+		bolt.query({
+			rule_set: { where: { family: { eq: 'OBLIGATIONS' } }, fields: ['code', 'name'] },
+			jurisdiction_settings: {
+				where: { sealed_at: { isNull: false } },
+				fields: ['suspension_kinds']
+			}
 		})
 	);
 	const dutyName = $derived(
-		new Map((duties?.current?.rows ?? []).map((row) => [row.code, row.name] as const))
+		new Map((names?.current?.rule_set.rows ?? []).map((row) => [row.code, row.name] as const))
 	);
 	const caseName = listedKindNames('case_kinds');
-	const suspensions = $derived.by(() =>
-		bolt.query('jurisdiction_settings', {
-			where: { sealed_at: { isNull: false } },
-			select: { suspension_kinds: true },
-			all: true
-		})
-	);
 	const suspensionName = $derived(
 		new Map(
-			(suspensions?.current?.rows ?? []).flatMap((row) =>
+			(names?.current?.jurisdiction_settings.rows ?? []).flatMap((row) =>
 				(row.suspension_kinds ?? []).map((kind) => [kind.code, kind.name ?? kind.code] as const)
 			)
 		)
@@ -85,10 +80,10 @@
 			Effect.gen(function* () {
 				if (ids.length === 0) return;
 				report(
-					yield* bolt.act('obligation.update', {
-						target: ids,
-						set: { state: 'FULFILLED', fulfilled_on: todayKey() }
-					})
+					yield* bolt.act(
+						'obligation.update',
+						ids.map((target) => ({ target, set: { state: 'FULFILLED', fulfilled_on: todayKey() } }))
+					)
 				);
 			}).pipe(
 				Effect.catch((failure) =>
@@ -104,10 +99,10 @@
 			Effect.gen(function* () {
 				if (ids.length === 0) return;
 				report(
-					yield* bolt.act('regulatory_task.update', {
-						target: ids,
-						set: { state: 'DONE', done_on: todayKey() }
-					})
+					yield* bolt.act(
+						'regulatory_task.update',
+						ids.map((target) => ({ target, set: { state: 'DONE', done_on: todayKey() } }))
+					)
 				);
 			}).pipe(
 				Effect.catch((failure) =>
@@ -126,14 +121,20 @@
 			Effect.gen(function* () {
 				report(
 					selected.kind === 'obligation'
-						? yield* bolt.act('obligation.update', {
-								target: selected.ids,
-								set: { state: 'WAIVED', waive_reason: reason }
-							})
-						: yield* bolt.act('regulatory_task.update', {
-								target: selected.ids,
-								set: { state: 'DISMISSED', dismiss_reason: reason }
-							})
+						? yield* bolt.act(
+								'obligation.update',
+								selected.ids.map((target) => ({
+									target,
+									set: { state: 'WAIVED', waive_reason: reason }
+								}))
+							)
+						: yield* bolt.act(
+								'regulatory_task.update',
+								selected.ids.map((target) => ({
+									target,
+									set: { state: 'DISMISSED', dismiss_reason: reason }
+								}))
+							)
 				);
 				sheetOpen = false;
 			}).pipe(
