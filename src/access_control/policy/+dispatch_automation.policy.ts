@@ -19,28 +19,38 @@ export default policy({
 		availability_requests: { read: true, update: true, moves: 'all' },
 		booking_requests: {
 			read: true,
-			update: { fields: ['status', 'booking', 'outcome'] },
+			update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } },
 			moves: { status: ['received->booked', 'received->follow_up'] }
 		},
 		bookings: { read: true, create: true },
 		visits: {
 			read: true,
 			update: {
-				fields: [
-					'helper',
-					'shift_check',
-					'shift_asked_at',
-					'eta_minutes',
-					'eta_checked_at',
-					'attention',
-					'proposed_helper',
-					'proposed_slot',
-					'unavailable_helper'
-				]
+				columns: {
+					visits: [
+						'helper',
+						'shift_check',
+						'shift_asked_at',
+						'eta_minutes',
+						'eta_checked_at',
+						'attention',
+						'proposed_helper',
+						'proposed_slot',
+						'unavailable_helper'
+					]
+				}
 			}
 		},
-		helper_warnings: { read: true, create: true, update: { fields: ['letter'] } },
-		customer_notices: { read: true, create: true, update: { fields: ['whatsapp'] } }
+		helper_warnings: {
+			read: true,
+			create: true,
+			update: { columns: { helper_warnings: ['letter'] } }
+		},
+		customer_notices: {
+			read: true,
+			create: true,
+			update: { columns: { customer_notices: ['whatsapp'] } }
+		}
 	},
 	limits: { act: '600/min', read: '600/min' }
 });

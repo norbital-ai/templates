@@ -8,11 +8,13 @@ export default policy({
 	grants: {
 		services: {
 			read: {
-				where: { active: { eq: true } },
-				fields: ['id', 'name', 'duration_minutes', 'price', 'description']
+				services: {
+					where: { active: { eq: true } },
+					fields: ['id', 'name', 'duration_minutes', 'price', 'description']
+				}
 			}
 		},
-		openings: { read: { fields: ['id', 'service', 'day', 'starts'] } }
+		openings: { read: { openings: { fields: ['id', 'service', 'day', 'starts'] } } }
 	},
 	limits: { read: '120/min' }
 });

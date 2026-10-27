@@ -6,10 +6,11 @@ import { Effect } from 'effect';
 import type {
 	ActInput,
 	AutomationCtx,
-	CollectionName,
+	ModelName,
 	CreateRow,
 	Id,
-	QueryCtx
+	Masked,
+	Where
 } from '@norbital-ai/bolt';
 import { addDays, Instant } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
@@ -19,17 +20,17 @@ import {
 	lookups,
 	rank,
 	legOf,
+	type Helper,
 	type Point,
 	type Pool,
-	type Settings,
 	type Slot
 } from './matching.js';
-type Reads = Pick<QueryCtx, 'query' | 'tz' | 'now'>;
+type Reads = Pick<AutomationCtx, 'query' | 'tz' | 'now'>;
 type Writes = Reads & Pick<AutomationCtx, 'act' | 'notify'>;
 const iso = (t: number) => Instant(new Date(t).toISOString());
 /** The dispatch thresholds: the workspace's row, else the defaults. */
-export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<QueryCtx, 'query'>) {
-	const { rows } = yield* ctx.query('dispatch_settings', { limit: 1 });
+export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<AutomationCtx, 'query'>) {
+	const { rows } = (yield* ctx.query({ dispatch_settings: { limit: 1 } })).dispatch_settings;
 	return rows[0] ?? DEFAULTS;
 });
 /** The local day of an instant as a UTC span. */
@@ -37,10 +38,141 @@ export function dayOf(instant: string, zone: string): Slot {
 	const { date } = localOf(Date.parse(instant), zone);
 	return { start: iso(utcOf(date, 0, zone)), end: iso(utcOf(addDays(date, 1), 0, zone)) };
 }
+/** The complete weeks covering `from` through `to`, a day's margin either side: what a match looks at. */
+function windowOf(from: string, to: string, zone: string) {
+	const first = localOf(Date.parse(from), zone).date;
+	const last = localOf(Date.parse(to), zone).date;
+	const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7;
+	const monday = addDays(first, -weekday(first));
+	const nextMonday = addDays(last, 7 - weekday(last));
+	return {
+		start: iso(utcOf(addDays(monday, -1), 0, zone)),
+		end: iso(utcOf(addDays(nextMonday, 1), 0, zone)),
+		firstDay: addDays(monday, -1),
+		lastDay: addDays(nextMonday, 1)
+	};
+}
+/**
+ * The one read a match runs over (drive times aside): every active helper, the visits holding them and the
+ * replacements awaiting approval (a proposal holds its cleaner, so one cleaner is not proposed twice for one time), and
+ * their leave, across `windowOf(from, to)`. Pages read it with `bolt.query`, server code with `ctx.query`.
+ */
+export const poolRequest = (from: string, to: string, zone: string) => {
+	const { start, end, firstDay, lastDay } = windowOf(from, to, zone);
+	return {
+		helpers: {
+			where: { status: { eq: 'active' } },
+			fields: [
+				'name',
+				'skills',
+				'home_area',
+				'home_location',
+				'work_days',
+				'day_start',
+				'day_end',
+				'status'
+			]
+		},
+		visits: {
+			where: {
+				or: [
+					{
+						helper: { isNull: false },
+						status: { ne: 'cancelled' },
+						slot: { overlaps: { start, end } }
+					},
+					{
+						attention: { eq: 'awaiting_approval' },
+						proposed_helper: { isNull: false },
+						proposed_slot: { overlaps: { start, end } }
+					}
+				]
+			},
+			fields: [
+				'helper',
+				'slot',
+				'location',
+				'status',
+				'attention',
+				'proposed_helper',
+				'proposed_slot'
+			]
+		},
+		helper_time_off: {
+			where: { period: { overlaps: { from: firstDay, to: lastDay } } },
+			fields: ['helper', 'period']
+		}
+	} as const;
+};
+type Period = { readonly start: Instant; readonly end: Instant | null };
+/** What `poolOf` reads of a `poolRequest` answer. */
+export type PoolAnswer = {
+	readonly helpers: { readonly rows: readonly Helper[] };
+	readonly visits: {
+		readonly rows: readonly {
+			readonly id: Id<'visits'>;
+			readonly helper: Id<'helpers'> | null;
+			readonly slot: Period;
+			readonly location: Point | null;
+			readonly status: string;
+			readonly attention: string;
+			readonly proposed_helper: Id<'helpers'> | null;
+			readonly proposed_slot: Period | null;
+		}[];
+	};
+	readonly helper_time_off: { readonly rows: Pool['off'] };
+};
+const overlaps = (slot: Period, w: { readonly start: string; readonly end: string }) =>
+	Date.parse(slot.start) < Date.parse(w.end) &&
+	(slot.end === null || Date.parse(slot.end) > Date.parse(w.start));
+/** The pool of a `poolRequest(from, to, zone)` answer: each visit's hold and each proposal's, without drive times. */
+export function poolOf(answer: PoolAnswer, from: string, to: string, zone: string): Pool {
+	const w = windowOf(from, to, zone);
+	return {
+		helpers: answer.helpers.rows,
+		busy: answer.visits.rows.flatMap((v) => [
+			...(v.helper === null ||
+			v.status === 'cancelled' ||
+			v.slot.end === null ||
+			!overlaps(v.slot, w)
+				? []
+				: [
+						{
+							id: v.id,
+							helper: v.helper,
+							slot: { start: v.slot.start, end: v.slot.end },
+							location: v.location
+						}
+					]),
+			...(v.attention !== 'awaiting_approval' ||
+			v.proposed_helper === null ||
+			v.proposed_slot === null ||
+			v.proposed_slot.end === null ||
+			!overlaps(v.proposed_slot, w)
+				? []
+				: [
+						{
+							id: v.id,
+							helper: v.proposed_helper,
+							slot: { start: v.proposed_slot.start, end: v.proposed_slot.end },
+							location: v.location
+						}
+					])
+		]),
+		off: answer.helper_time_off.rows
+	};
+}
+/** The cached Google drive times of `legs` (`lookups`): the second read of a match. */
+export const driveRequest = (legs: readonly string[]) =>
+	({ drive_times: { where: { leg: { in: legs } }, fields: ['leg', 'minutes'] } }) as const;
+/** The pool with the drive times read for it. */
+export const withDrive = (
+	pool: Pool,
+	known: readonly { readonly leg: string; readonly minutes: number }[]
+): Pool => ({ ...pool, drive: new Map(known.map((d) => [d.leg, d.minutes])) });
 /**
  * Every active helper, visits and leave across the complete weeks covering `from` through `to` (plus day margins),
- * and the Google drive times cached
- * for the legs a match at `spots` may ask about.
+ * and the Google drive times cached for the legs a match at `spots` may ask about.
  */
 export const loadPool = Effect.fnUntraced(function* (
 	ctx: Reads,
@@ -48,101 +180,12 @@ export const loadPool = Effect.fnUntraced(function* (
 	to: string,
 	spots: readonly (Point | null)[] = []
 ) {
-	const first = localOf(Date.parse(from), ctx.tz).date;
-	const last = localOf(Date.parse(to), ctx.tz).date;
-	const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7;
-	const monday = addDays(first, -weekday(first));
-	const nextMonday = addDays(last, 7 - weekday(last));
-	const start = iso(utcOf(addDays(monday, -1), 0, ctx.tz)),
-		end = iso(utcOf(addDays(nextMonday, 1), 0, ctx.tz));
-	const { helpers, visits, proposed, off } = yield* ctx.query({
-		helpers: {
-			from: 'helpers',
-			where: { status: { eq: 'active' } },
-			select: {
-				name: true,
-				skills: true,
-				home_area: true,
-				home_location: true,
-				work_days: true,
-				day_start: true,
-				day_end: true,
-				status: true
-			},
-			all: true
-		},
-		visits: {
-			from: 'visits',
-			where: {
-				helper: { isNull: false },
-				status: { ne: 'cancelled' },
-				slot: { overlaps: { start, end } }
-			},
-			select: { helper: true, slot: true, location: true },
-			all: true
-		},
-		// a replacement awaiting approval holds its cleaner, so one cleaner is not proposed twice for one time
-		proposed: {
-			from: 'visits',
-			where: {
-				attention: { eq: 'awaiting_approval' },
-				proposed_helper: { isNull: false },
-				proposed_slot: { overlaps: { start, end } }
-			},
-			select: { proposed_helper: true, proposed_slot: true, location: true },
-			all: true
-		},
-		off: {
-			from: 'helper_time_off',
-			where: {
-				period: {
-					overlaps: { from: addDays(monday, -1), to: addDays(nextMonday, 1) }
-				}
-			},
-			select: { helper: true, period: true },
-			all: true
-		}
-	});
-	const pool = {
-		helpers: helpers.rows,
-		busy: [
-			...visits.rows.flatMap((v) =>
-				v.helper === null || v.slot.end === null
-					? []
-					: [
-							{
-								id: v.id,
-								helper: v.helper,
-								slot: { start: v.slot.start, end: v.slot.end },
-								location: v.location
-							}
-						]
-			),
-			...proposed.rows.flatMap((v) =>
-				v.proposed_helper === null || v.proposed_slot === null || v.proposed_slot.end === null
-					? []
-					: [
-							{
-								id: v.id,
-								helper: v.proposed_helper,
-								slot: { start: v.proposed_slot.start, end: v.proposed_slot.end },
-								location: v.location
-							}
-						]
-			)
-		],
-		off: off.rows
-	};
+	const pool = poolOf(yield* ctx.query(poolRequest(from, to, ctx.tz)), from, to, ctx.tz);
 	const legs = lookups(pool, spots, ctx.tz);
-	const known =
-		legs.length === 0
-			? []
-			: (yield* ctx.query('drive_times', {
-					where: { leg: { in: legs } },
-					select: { leg: true, minutes: true },
-					all: true
-				})).rows;
-	return { ...pool, drive: new Map(known.map((d) => [d.leg, d.minutes])) };
+	return withDrive(
+		pool,
+		legs.length === 0 ? [] : (yield* ctx.query(driveRequest(legs))).drive_times.rows
+	);
 });
 /**
  * Google's drive minutes from `origin` to each of `destinations` (at most 625), `null` for one it could not route; `null`
@@ -215,15 +258,14 @@ export const learnLegs = Effect.fnUntraced(function* (
 	return [...learned].map(([leg, minutes]) => ({ leg, minutes }));
 });
 /** What a reassignment reads of each visit; its write is guarded by the revision read. */
-export const VISIT = {
-	revision: true,
-	number: true,
-	slot: true,
-	location: true,
-	area: true,
-	skill: true,
-	booking: { select: { preference: true, customer: true } }
-} as const;
+export const visitsToMove = (where: Where<'visits'>) =>
+	({
+		visits: {
+			where,
+			fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking']
+		},
+		'visits.booking': { fields: ['preference', 'customer'] }
+	}) as const;
 type Visit = {
 	readonly id: Id<'visits'>;
 	readonly revision: number;
@@ -240,14 +282,14 @@ type Visit = {
 	readonly skill: string;
 	readonly booking: {
 		readonly id: Id<'bookings'>;
-		readonly preference: string;
+		readonly preference: string | Masked;
 		readonly customer: Id<'customers'>;
-	};
+	} | null;
 };
 /** A shift its cleaner still holds: a declined or lapsed day is `shift_watch`'s to recover, never moved by dispatch. */
 export const HELD_SHIFT = { in: ['not_due', 'asked', 'confirmed'] } as const;
 /** The revisions a write read its records at: a newer write to any of them is a conflict, not overwritten. */
-export const observedOf = <C extends CollectionName>(
+export const observedOf = <C extends ModelName>(
 	rows: readonly { readonly id: Id<C>; readonly revision: number }[]
 ) => Object.fromEntries(rows.map((row): [Id<C>, number] => [row.id, row.revision]));
 /** The WhatsApp address of a phone number. */
@@ -298,7 +340,7 @@ export const planReassignment = Effect.fnUntraced(function* (
 				attention: best === undefined ? ('unassigned' as const) : ('none' as const)
 			}
 		});
-		if (best !== undefined && v.booking.preference === 'preferred')
+		if (best !== undefined && v.booking !== null && v.booking.preference === 'preferred')
 			notices.push({
 				customer: v.booking.customer,
 				visit: v.id,
@@ -378,7 +420,7 @@ export const recommend = Effect.fnUntraced(function* (
 		title: 'Approve replacement cleaners',
 		description: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
 		to: [{ team: 'operations' }],
-		link: { collection: 'visits', id: ordered[0]!.id }
+		link: { model: 'visits', id: ordered[0]!.id }
 	});
 });
 /**
@@ -393,26 +435,21 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	const { free_change_hours } = yield* settingsOf(ctx);
 	const from = iso(Date.parse(ctx.now) + free_change_hours * HOUR);
 	const to = iso(Date.parse(ctx.now) + 14 * 24 * HOUR);
-	const { rows } = yield* ctx.query('visits', {
-		where: {
-			status: { eq: 'scheduled' },
-			helper: { isNull: false },
-			attention: { eq: 'none' },
-			shift_check: HELD_SHIFT,
-			slot: { overlaps: { start: from, end: to } }
+	const { rows } = (yield* ctx.query({
+		visits: {
+			where: {
+				status: { eq: 'scheduled' },
+				helper: { isNull: false },
+				attention: { eq: 'none' },
+				shift_check: HELD_SHIFT,
+				slot: { overlaps: { start: from, end: to } }
+			},
+			fields: ['revision', 'slot', 'location', 'area', 'skill', 'booking']
 		},
-		select: {
-			revision: true,
-			slot: true,
-			location: true,
-			area: true,
-			skill: true,
-			booking: { select: { preference: true } }
-		},
-		all: true
-	});
+		'visits.booking': { fields: ['preference'] }
+	})).visits;
 	const movable = rows
-		.filter((v) => v.booking.preference === 'any' && v.slot.start >= from)
+		.filter((v) => v.booking?.preference === 'any' && v.slot.start >= from)
 		.map((v) => ({
 			visit: v.id,
 			skill: v.skill,

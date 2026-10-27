@@ -10,21 +10,21 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"@norbital-ai/bolt": "0.0.4",
-		"@norbital-ai/std": "0.0.4",
-		"@norbital-ai/ui": "0.0.4",
-		"effect": "4.0.0-rc.112",
+		"@norbital-ai/bolt": "0.0.6",
+		"@norbital-ai/std": "0.0.6",
+		"@norbital-ai/ui": "0.0.6",
+		"effect": "4.0.6",
 		"svelte": "^5.57.1"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.4",
+		"@norbital-ai/bolt-server": "0.0.6",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.4.0",
 		"happy-dom": "20.11.6",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
 		"vite": "^8.2.2",
-		"vitest": "4.1.11",
-		"@effect/vitest": "4.0.0-rc.112"
+		"vitest": "5.0.5",
+		"@effect/vitest": "4.0.6"
 	}
 }

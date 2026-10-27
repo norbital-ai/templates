@@ -13,6 +13,6 @@ export default model('drive_times', {
 		leg: { kind: 'text', unique: true },
 		minutes: { kind: 'int', min: 0 }
 	},
-	read: { fields: 'all' },
-	create: { columns: ['leg', 'minutes'] }
+	read: 'all',
+	create: { columns: { drive_times: ['leg', 'minutes'] } }
 });

@@ -1,8 +1,5 @@
 import { model, type Instant, type StoredRow } from '@norbital-ai/bolt';
-import { addDays } from '@norbital-ai/std/date';
-import { utcOf } from '@norbital-ai/std/zone';
-import { loadPool } from '../../../lib/dispatch.js';
-import { AREAS, DAYS, openSlots, SKILLS, type Point } from '../../../lib/matching.js';
+import { AREAS, DAYS, SKILLS, type Point } from '../../../lib/matching.js';
 const columns = [
 	'name',
 	'phone',
@@ -31,7 +28,7 @@ const located = <S extends { readonly last_location?: Point | null }>(
 /**
  * A helper who takes visits. Skills and working hours constrain matching; the home point feeds planned travel and
  * the last reported position feeds the ETA check. Home area is descriptive metadata. Leaving helpers stay on file.
- * A helper's app reports their position into `last_location`, stamped with when. `open_slots` lays out when each of a
+ * A helper's app reports their position into `last_location`, stamped with when. `src/lib/slots.ts` lays out when each of a
  * customer's preferred helpers could come; `helpers_offboard` records a helper leaving. A helper signs in as the member `user` names.
  */
 export default model('helpers', {
@@ -65,81 +62,15 @@ export default model('helpers', {
 	search: { text: ['name'] },
 	read: 'all',
 	create: {
-		columns,
+		columns: { helpers: columns },
 		transform: function* (rows, ctx) {
 			return rows.map((r) => located(r, null, ctx.now));
 		}
 	},
 	update: {
-		columns,
+		columns: { helpers: columns },
 		transform: function* (changes, ctx) {
 			return changes.map(({ before, set }) => located(set, before, ctx.now));
-		}
-	},
-	queries: {
-		open_slots: {
-			description:
-				'The half-hour starts at which each named helper could take the service at the customer’s address, day by day.',
-			input: {
-				helpers: { kind: 'list', of: { kind: 'id', of: 'helpers' }, min: 1, max: 5 },
-				customer: { kind: 'id', of: 'customers' },
-				service: { kind: 'id', of: 'services' },
-				from: { kind: 'date' },
-				days: { kind: 'int', min: 1, max: 14 }
-			},
-			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						helper: { kind: 'id', of: 'helpers' },
-						name: { kind: 'text' },
-						days: {
-							kind: 'list',
-							of: {
-								kind: 'object',
-								fields: {
-									day: { kind: 'date' },
-									starts: { kind: 'list', of: { kind: 'instant' } }
-								}
-							}
-						}
-					}
-				}
-			},
-			run: function* (input, ctx) {
-				const { customer, service } = yield* ctx.query({
-					customer: { from: 'customers', id: input.customer },
-					service: { from: 'services', id: input.service }
-				});
-				if (customer === null || service === null)
-					return yield* ctx.refuse('Pick a customer and a service.');
-				const days = Array.from({ length: input.days }, (_, i) => addDays(input.from, i));
-				const pool = yield* loadPool(
-					ctx,
-					new Date(utcOf(days[0]!, 0, ctx.tz)).toISOString(),
-					new Date(utcOf(days.at(-1)!, 0, ctx.tz)).toISOString(),
-					[customer.location]
-				);
-				const need = {
-					skill: service.skill,
-					location: customer.location,
-					area: customer.area,
-					minutes: service.duration_minutes
-				};
-				return input.helpers.flatMap((id) => {
-					const helper = pool.helpers.find((h) => h.id === id);
-					return helper === undefined
-						? []
-						: [
-								{
-									helper: id,
-									name: helper.name,
-									days: openSlots(helper, need, days, pool, ctx.tz, ctx.now)
-								}
-							];
-				});
-			}
 		}
 	}
 });

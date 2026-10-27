@@ -24,7 +24,7 @@ it.live('a conflicting notice status write retries without sending WhatsApp twic
 			.mockReturnValueOnce(
 				Effect.fail(
 					new ActConflict({
-						records: [{ collection: 'customer_notices', id: notice.id, fields: [] }]
+						records: [{ model: 'customer_notices', id: notice.id, fields: [] }]
 					})
 				)
 			)

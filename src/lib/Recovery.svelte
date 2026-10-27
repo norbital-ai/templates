@@ -16,6 +16,14 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
+	import { livePool } from './pool.svelte.js';
+	import {
+		candidatesFor,
+		dayList,
+		rebookingSlots,
+		rebookingWindow,
+		type Rematch
+	} from './slots.js';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	let {
 		visit
@@ -25,48 +33,73 @@
 	const t = bolt.t;
 	const getErrorMessage = (e: unknown) => String(e instanceof Error ? e.message : e);
 	const stored = $derived(
-		bolt.query('visits', {
-			where: { id: { eq: visit } },
-			select: {
-				number: true,
-				slot: true,
-				status: true,
-				helper: true,
-				address: true,
-				attention: true,
-				proposed_helper: true,
-				unavailable_helper: { select: { name: true } },
-				booking: {
-					select: { customer: { select: { name: true } }, service: { select: { name: true } } }
-				}
+		bolt.query({
+			visits: {
+				where: { id: { eq: visit } },
+				fields: [
+					'number',
+					'slot',
+					'status',
+					'helper',
+					'address',
+					'location',
+					'area',
+					'skill',
+					'attention',
+					'proposed_helper',
+					'unavailable_helper',
+					'booking'
+				],
+				limit: 1
 			},
-			limit: 1
+			'visits.unavailable_helper': { fields: ['name'] },
+			'visits.booking': { fields: ['customer', 'service'] },
+			'visits.booking.customer': { fields: ['name'] },
+			'visits.booking.service': { fields: ['name'] }
 		})
 	);
-	const v = $derived(stored.current?.rows[0]);
+	const v = $derived(stored.current?.visits.rows[0]);
+	/** The visit as a re-match reads it. */
+	const rematch = $derived<Rematch | undefined>(
+		v === undefined ? undefined : { ...v, unavailable_helper: v.unavailable_helper?.id ?? null }
+	);
 	let newTime = $state(false);
 	let picked = $state<string | null>(null);
 	let chosen = $state<Id<'helpers'> | null>(null);
 	let from = $state(new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date()));
 	const start = $derived(newTime ? picked : (v?.slot.start ?? null));
+	// who could take it at `start`: the pool around that moment, ranked as `visits_rebook` ranks it
+	const around = livePool(
+		() =>
+			rematch === undefined || start === null
+				? null
+				: { from: start, to: start, spots: [rematch.location] },
+		zone
+	);
 	const candidates = $derived(
-		v === undefined || start === null
-			? null
-			: bolt.query('visits.candidates', { visit, ...(newTime ? { start: Instant(start) } : {}) })
+		rematch === undefined || start === null || around.current === undefined
+			? undefined
+			: candidatesFor(rematch, newTime ? Instant(start) : undefined, around.current, zone)
 	);
 	const best = $derived(
-		candidates?.current?.find((c) => c.helper === chosen) ??
-			(!newTime ? candidates?.current?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
-			candidates?.current?.[0]
+		candidates?.find((c) => c.helper === chosen) ??
+			(!newTime ? candidates?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
+			candidates?.[0]
+	);
+	const clock = bolt.clock('minute');
+	// another time: the next fortnight's feasible starts, adjacent travel included
+	const fortnight = $derived(dayList(PlainDate(from), 14));
+	const ahead = livePool(
+		() =>
+			!newTime || rematch === undefined
+				? null
+				: { ...rebookingWindow(fortnight, zone), spots: [rematch.location] },
+		zone
 	);
 	const days = $derived(
-		newTime
-			? bolt.query('visits.rebooking_slots', {
-					visit,
-					from: PlainDate(from),
-					days: 14
-				})
-			: null
+		!newTime || rematch === undefined || ahead.current === undefined
+			? undefined
+			: rebookingSlots(rematch, fortnight, ahead.current, zone, clock.now)
 	);
 	let busy = $state(false);
 	let medical = $state<'yes' | 'no'>('no');
@@ -156,7 +189,9 @@
 	{:else if v === undefined}<p>{t('component.loading')}</p>
 	{:else}
 		<Stack gap="xs">
-			<p class="text-lg font-semibold">{v.booking.customer.name} · {v.booking.service.name}</p>
+			<p class="text-lg font-semibold">
+				{v.booking?.customer?.name ?? ''} · {v.booking?.service?.name ?? ''}
+			</p>
 			<p class="text-sm">{when(v.slot.start)} · {v.address}</p>
 			<Countdown start={v.slot.start} />
 			{#if v.unavailable_helper}<p class="text-sm text-muted-foreground">
@@ -176,10 +211,10 @@
 							chosen = null;
 						}}
 					/>
-					{#if days?.error}<p role="alert">{days.error.message}</p>
-					{:else if days?.current === undefined}<p>{t('component.loading')}</p>
+					{#if ahead.error}<p role="alert">{ahead.error.message}</p>
+					{:else if days === undefined}<p>{t('component.loading')}</p>
 					{:else}<SlotPicker
-							days={days.current}
+							{days}
 							minutes={(Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000}
 							value={picked}
 							locale={bolt.locale}
@@ -192,15 +227,15 @@
 					<p class="text-sm text-muted-foreground">{t('app.recovery.date_change')}</p>
 				</Stack>
 			{/if}
-			{#if candidates?.error}<p role="alert">{candidates.error.message}</p>
-			{:else if candidates?.current === undefined && start !== null}<p>{t('component.loading')}</p>
+			{#if around.error}<p role="alert">{around.error.message}</p>
+			{:else if candidates === undefined && start !== null}<p>{t('component.loading')}</p>
 			{:else if best !== undefined}
 				<Stack gap="sm">
 					<Label for="replacement">{t('app.recovery.recommended')}</Label>
 					<Combobox
 						id="replacement"
 						value={chosen ?? best.helper}
-						options={(candidates?.current ?? []).map((c) => ({
+						options={(candidates ?? []).map((c) => ({
 							value: c.helper,
 							label: c.name
 						}))}

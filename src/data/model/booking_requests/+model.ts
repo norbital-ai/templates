@@ -40,27 +40,27 @@ export default model('booking_requests', {
 	index: ['status'],
 	read: 'all',
 	create: {
-		columns: [
-			'name',
-			'email',
-			'phone',
-			'address',
-			'area',
-			'service',
-			'start',
-			'repeat',
-			'notes',
-			'availability'
-		],
+		columns: {
+			booking_requests: [
+				'name',
+				'email',
+				'phone',
+				'address',
+				'area',
+				'service',
+				'start',
+				'repeat',
+				'notes',
+				'availability'
+			]
+		},
 		transform: function* (rows, ctx) {
 			const ids = rows.flatMap((r) => r.availability ?? []);
 			const quotes =
 				ids.length === 0
 					? []
-					: (yield* ctx.db.query('availability_requests', {
-							where: { id: { in: ids } },
-							all: true
-						})).rows;
+					: (yield* ctx.db.query({ availability_requests: { where: { id: { in: ids } } } }))
+							.availability_requests.rows;
 			for (const [row, r] of rows.entries()) {
 				if (Date.parse(r.start) <= Date.parse(ctx.now))
 					return yield* ctx.refuse('Pick a time in the future.', { field: 'start', row });
@@ -86,5 +86,5 @@ export default model('booking_requests', {
 			return rows;
 		}
 	},
-	update: { columns: ['status', 'booking', 'outcome'] }
+	update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } }
 });

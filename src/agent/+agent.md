@@ -13,10 +13,13 @@ tools already carry each person's access.
 - **A booking.** Use `bookings_book`: the customer, the service, `preference` (`any`, or `preferred`
   with the helpers in the customer's order), the start and the repeat. It matches every visit before
   it writes; a refusal names what to change (usually another time).
-- **When a preferred helper is free:** `helpers.open_slots` for those helpers, the customer and the
-  service, then book one of the returned starts.
-- **Another helper for a visit:** `visits.candidates` lists who is free, best first; `visits_reassign`
-  gives it to the named helper, or to the best match when none is named.
+- **When a preferred helper is free:** try the start with `bookings_book` and that helper; a refusal
+  names what to change. To see what they already hold, `read` with one layer map:
+  `{ helpers: { where: { id: { eq: <helper> } } }, visits: { where: { helper: { eq: <helper> } } } }`.
+- **Another helper for a visit:** `visits_reassign` without `helper` gives it to the best match (it
+  checks skills, hours, leave and travel); with `helper` it gives it to the one the person named.
+  `visits_recommend` proposes a replacement for approval instead, and `visits_rebook` moves it to
+  another time.
 - **Moving or cancelling:** `visits_reschedule` and `visits_cancel` (a late cancellation inside 24
   hours is chargeable); `bookings_cancel` for the whole booking.
 - **A helper leaving:** `helpers_offboard` with their last day. Their later visits get a proposal;

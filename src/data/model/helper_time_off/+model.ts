@@ -10,8 +10,8 @@ export default model('helper_time_off', {
 		reason: { kind: 'enum', values: ['leave', 'medical', 'other'] }
 	},
 	noOverlap: [{ key: ['helper'], period: 'period' }],
-	read: { fields: 'all' },
-	create: { columns: ['helper', 'period', 'reason'] },
-	update: { columns: ['period', 'reason'] },
+	read: 'all',
+	create: { columns: { helper_time_off: ['helper', 'period', 'reason'] } },
+	update: { columns: { helper_time_off: ['period', 'reason'] } },
 	delete: {}
 });

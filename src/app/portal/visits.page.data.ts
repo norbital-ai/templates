@@ -5,22 +5,14 @@ import { Schema } from 'effect';
 
 export const visitsReads = {
 	visits: {
-		from: 'visits',
 		where: { status: { in: ['scheduled', 'in_progress', 'done'] } },
-		select: {
-			number: true,
-			slot: true,
-			address: true,
-			status: true,
-			eta_minutes: true,
-			helper: { select: { name: true } },
-			booking: { select: { service: { select: { name: true } } } }
-		},
+		fields: ['number', 'slot', 'address', 'status', 'eta_minutes', 'helper', 'booking'],
 		limit: 100
 	},
-	notices: {
-		from: 'customer_notices',
-		select: { subject: true, body: true },
+	'visits.helper': { fields: ['name'] },
+	'visits.booking.service': { fields: ['name'] },
+	customer_notices: {
+		fields: ['subject', 'body'],
 		orderBy: { created_at: 'desc' },
 		limit: 10
 	}
@@ -51,16 +43,18 @@ export default Schema.Struct({
 					status: Schema.Literals(['scheduled', 'in_progress', 'done', 'cancelled']),
 					eta_minutes: Schema.NullOr(Schema.Int),
 					helper: Schema.NullOr(Schema.Struct({ id: id<'helpers'>(), name: Schema.String })),
-					booking: Schema.Struct({
-						id: id<'bookings'>(),
-						service: Schema.Struct({ id: id<'services'>(), name: Schema.String })
-					})
+					booking: Schema.NullOr(
+						Schema.Struct({
+							id: id<'bookings'>(),
+							service: Schema.NullOr(Schema.Struct({ id: id<'services'>(), name: Schema.String }))
+						})
+					)
 				})
 			),
 			next: Schema.NullOr(CursorValue)
 		})
 	),
-	notices: Schema.NullOr(
+	customer_notices: Schema.NullOr(
 		Schema.Struct({
 			rows: Schema.Array(
 				Schema.Struct({

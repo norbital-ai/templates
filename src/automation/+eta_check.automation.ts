@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { automation } from '@norbital-ai/bolt';
+import { automation, isMasked } from '@norbital-ai/bolt';
 import { googleMinutes, settingsOf } from '../lib/dispatch.js';
 import { driveMinutes } from '../lib/matching.js';
 
@@ -16,23 +16,18 @@ export default automation('eta_check', {
 		const { settings, current } = yield* Effect.all(
 			{
 				settings: settingsOf(ctx),
-				current: ctx.query('visits', {
-					where: { id: { eq: visit } },
-					select: {
-						revision: true,
-						number: true,
-						status: true,
-						slot: true,
-						location: true,
-						attention: true,
-						helper: { select: { name: true, last_location: true, last_location_at: true } }
+				current: ctx.query({
+					visits: {
+						where: { id: { eq: visit } },
+						fields: ['revision', 'number', 'status', 'slot', 'location', 'attention', 'helper'],
+						limit: 1
 					},
-					limit: 1
+					'visits.helper': { fields: ['name', 'last_location', 'last_location_at'] }
 				})
 			},
 			{ concurrency: 'unbounded' }
 		);
-		const v = current.rows[0];
+		const v = current.visits.rows[0];
 		if (
 			v === undefined ||
 			v.status !== 'scheduled' ||
@@ -42,11 +37,10 @@ export default automation('eta_check', {
 		)
 			return;
 		const helper = v.helper;
-		const from = helper.last_location;
-		const fresh =
-			from !== null &&
-			helper.last_location_at !== null &&
-			now - Date.parse(helper.last_location_at) <= FRESH_MINUTES * MINUTE;
+		// a position the run may not read is no position
+		const from = isMasked(helper.last_location) ? null : helper.last_location;
+		const at = isMasked(helper.last_location_at) ? null : helper.last_location_at;
+		const fresh = from !== null && at !== null && now - Date.parse(at) <= FRESH_MINUTES * MINUTE;
 		let eta = fresh ? driveMinutes(from, v.location) : null;
 		if (
 			from !== null &&
@@ -68,7 +62,7 @@ export default automation('eta_check', {
 		const written = yield* ctx
 			.act(
 				'visits.update',
-				{ target: v.id, set: { eta_minutes: eta, eta_checked_at: ctx.now, attention } },
+				[{ target: v.id, set: { eta_minutes: eta, eta_checked_at: ctx.now, attention } }],
 				{ observed: { [v.id]: v.revision } }
 			)
 			.pipe(
@@ -84,7 +78,7 @@ export default automation('eta_check', {
 				eta === null
 					? 'Their app has not reported a position in the last 15 minutes.'
 					: `They are about ${eta} minutes away. Reassign the visit if they cannot make it.`,
-			link: { collection: 'visits', id: v.id },
+			link: { model: 'visits', id: v.id },
 			once: `eta-${v.id}`
 		});
 	}

@@ -30,83 +30,66 @@
 	const actor = bolt.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query('helpers', {
-					where: { user: { eq: actor.id } },
-					select: { name: true },
-					limit: 1
-				})
+			? bolt.query({ helpers: { where: { user: { eq: actor.id } }, fields: ['name'], limit: 1 } })
 			: null
 	);
-	const helper = $derived(me?.current?.rows[0]);
+	const helper = $derived(me?.current?.helpers.rows[0]);
 	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
 	let selectedDay = $state(today);
 	const span = $derived({
 		start: Instant(new Date(utcOf(selectedDay, 0, zone)).toISOString()),
 		end: Instant(new Date(utcOf(addDays(selectedDay, 1), 0, zone)).toISOString())
 	});
-	const VISIT = {
-		number: true,
-		slot: true,
-		address: true,
-		location: true,
-		status: true,
-		shift_check: true,
-		completed_at: true,
-		booking: {
-			select: {
-				notes: true,
-				service: { select: { name: true } },
-				customer: { select: { name: true, phone: true } }
-			}
-		}
-	} as const;
+	/** A day's visits of this helper in `status`, with whom and what for. */
+	const dayRead = (
+		helperId: Id<'helpers'>,
+		status: readonly ('scheduled' | 'in_progress' | 'done')[]
+	) =>
+		bolt.query({
+			visits: {
+				where: { helper: { eq: helperId }, status: { in: status }, slot: { overlaps: span } },
+				fields: [
+					'number',
+					'slot',
+					'address',
+					'location',
+					'status',
+					'shift_check',
+					'completed_at',
+					'booking'
+				]
+			},
+			'visits.booking': { fields: ['notes', 'service', 'customer'] },
+			'visits.booking.service': { fields: ['name'] },
+			'visits.booking.customer': { fields: ['name', 'phone'] }
+		});
 	const open = $derived(
-		helper === undefined
-			? null
-			: bolt.query('visits', {
-					where: {
-						helper: { eq: helper.id },
-						status: { in: ['scheduled', 'in_progress'] },
-						slot: { overlaps: span }
-					},
-					select: VISIT,
-					all: true
-				})
+		helper === undefined ? null : dayRead(helper.id, ['scheduled', 'in_progress'])
 	);
-	const done = $derived(
-		helper === undefined
-			? null
-			: bolt.query('visits', {
-					where: {
-						helper: { eq: helper.id },
-						status: { eq: 'done' },
-						slot: { overlaps: span }
-					},
-					select: VISIT,
-					all: true
-				})
-	);
+	const done = $derived(helper === undefined ? null : dayRead(helper.id, ['done']));
 	/** Leave on the chosen day: after a decline, a missed shift check, or booked time off. */
 	const off = $derived(
 		helper === undefined
 			? null
-			: bolt.query('helper_time_off', {
-					where: {
-						helper: { eq: helper.id },
-						period: { overlaps: { from: PlainDate(selectedDay), to: PlainDate(selectedDay) } }
-					},
-					limit: 1
+			: bolt.query({
+					helper_time_off: {
+						where: {
+							helper: { eq: helper.id },
+							period: { overlaps: { from: PlainDate(selectedDay), to: PlainDate(selectedDay) } }
+						},
+						limit: 1
+					}
 				})
 	);
-	const away = $derived(off?.current?.rows.length === 1);
+	const away = $derived(off?.current?.helper_time_off.rows.length === 1);
 	const visits = $derived(
-		[...(open?.current?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
+		[...(open?.current?.visits.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
 	);
 	const current = $derived(visits.find((v) => v.status === 'in_progress'));
 	const upcoming = $derived(visits.filter((v) => v.status === 'scheduled'));
 	const asked = $derived(upcoming.find((v) => v.shift_check === 'asked') ?? upcoming[0]);
 	const route = $derived(
-		[...(done?.current?.rows ?? []), ...visits].sort((a, b) =>
+		[...(done?.current?.visits.rows ?? []), ...visits].sort((a, b) =>
 			a.slot.start.localeCompare(b.slot.start)
 		)
 	);
@@ -181,20 +164,24 @@
 		});
 	}
 	const start = (id: Id<'visits'>) =>
-		fork(perform(() => bolt.act('visits.update', { target: id, set: { status: 'in_progress' } })));
+		fork(
+			perform(() => bolt.act('visits.update', [{ target: id, set: { status: 'in_progress' } }]))
+		);
 	function complete() {
 		if (completing === null) return;
 		const visit = completing;
 		const completionNotes = notes.trim();
 		fork(
 			perform(() =>
-				bolt.act('visits.update', {
-					target: visit.id,
-					set: {
-						status: 'done',
-						...(completionNotes === '' ? {} : { completion_notes: completionNotes })
+				bolt.act('visits.update', [
+					{
+						target: visit.id,
+						set: {
+							status: 'done',
+							...(completionNotes === '' ? {} : { completion_notes: completionNotes })
+						}
 					}
-				})
+				])
 			).pipe(
 				Effect.tap((committed) =>
 					Effect.sync(() => {
@@ -259,16 +246,18 @@
 					{t('app.helper.day_confirmed')}
 				</p>{/if}
 			<Stack gap="xs">
-				<p class="font-medium">{v.booking.customer.name} · {v.booking.service.name}</p>
+				<p class="font-medium">
+					{v.booking?.customer?.name ?? ''} · {v.booking?.service?.name ?? ''}
+				</p>
 				<p class="text-sm text-muted-foreground">{v.address}</p>
-				{#if v.booking.notes}<p class="text-sm">{v.booking.notes}</p>{/if}
+				{#if v.booking?.notes}<p class="text-sm">{v.booking.notes}</p>{/if}
 			</Stack>
 			<Cluster gap="md">
 				<a class="text-sm underline" href={directions(v)} target="_blank" rel="noopener"
 					>{t('app.helper.directions')}</a
 				>
-				{#if v.booking.customer.phone}
-					<a class="text-sm underline" href={`tel:${v.booking.customer.phone}`}
+				{#if v.booking?.customer?.phone}
+					<a class="text-sm underline" href={`tel:${v.booking?.customer?.phone}`}
 						>{t('app.helper.call_customer')}</a
 					>
 				{/if}
@@ -427,7 +416,7 @@
 	{#if completing}
 		<Stack gap="md">
 			<p class="text-sm text-muted-foreground">
-				{completing.booking.customer.name} · {completing.address}
+				{completing.booking?.customer?.name ?? ''} · {completing.address}
 			</p>
 			<Stack gap="xs">
 				<Label for="completion-notes">{t('app.helper.notes')}</Label>

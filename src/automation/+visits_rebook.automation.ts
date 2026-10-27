@@ -14,10 +14,8 @@ export default automation('visits_rebook', {
 	},
 	runAs: 'trigger',
 	run: function* ({ start, helper, targets }, ctx) {
-		const { rows: targetsOf } = yield* ctx.query('visits', {
-			where: { id: { in: targets } },
-			all: true
-		});
+		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
+			.visits;
 		if (targetsOf.length !== targets.length)
 			return yield* new Refusal({
 				message: 'The selected record does not exist or is not readable.',

@@ -1,4 +1,4 @@
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation, isMasked, type Id } from '@norbital-ai/bolt';
 import { when, whatsapp } from '../lib/dispatch.js';
 /**
  * Tells a helper on WhatsApp when visits are given to them — booked, reassigned, or accepted from a proposal — one message
@@ -14,31 +14,28 @@ export default automation('helper_alerts', {
 	runAs: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		if (ids === undefined || ids.length === 0) return;
-		const { rows } = yield* ctx.query('visits', {
-			where: {
-				id: { in: ids },
-				status: { eq: 'scheduled' },
-				helper: { isNull: false },
-				slot: { overlaps: { start: ctx.now, end: null } }
+		const { rows } = (yield* ctx.query({
+			visits: {
+				where: {
+					id: { in: ids },
+					status: { eq: 'scheduled' },
+					helper: { isNull: false },
+					slot: { overlaps: { start: ctx.now, end: null } }
+				},
+				fields: ['number', 'slot', 'address', 'helper']
 			},
-			select: {
-				number: true,
-				slot: true,
-				address: true,
-				helper: { select: { phone: true, user: true } }
-			},
-			all: true
-		});
+			'visits.helper': { fields: ['phone', 'user'] }
+		})).visits;
 		yield* ctx.notify(
 			rows.flatMap((v) =>
-				v.helper!.user === null
+				v.helper!.user === null || isMasked(v.helper!.user)
 					? []
 					: [
 							{
 								title: 'Your route has a new assignment',
 								description: `${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}. Open My Day to review your route.`,
 								to: [{ user: v.helper!.user }],
-								link: { collection: 'visits', id: v.id }
+								link: { model: 'visits', id: v.id }
 							}
 						]
 			)

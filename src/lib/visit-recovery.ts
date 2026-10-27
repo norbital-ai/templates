@@ -8,10 +8,8 @@ export function* declineShift(
 	{ mc, targets }: { readonly mc: boolean; readonly targets: readonly Id<'visits'>[] },
 	ctx: Pick<AutomationCtx, 'query' | 'act' | 'tz'>
 ) {
-	const { rows: targetsOf } = yield* ctx.query('visits', {
-		where: { id: { in: targets } },
-		all: true
-	});
+	const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
+		.visits;
 	if (targetsOf.length !== targets.length)
 		return yield* new Refusal({
 			message: 'The selected record does not exist or is not readable.',
@@ -40,7 +38,10 @@ export const customerNotice = Effect.fnUntraced(function* (
 	subject: string,
 	body: string
 ) {
-	const booking = yield* ctx.query('bookings', { id: v.booking, select: { customer: true } });
+	const booking =
+		(yield* ctx.query({
+			bookings: { where: { id: { eq: v.booking } }, fields: ['customer'], limit: 1 }
+		})).bookings.rows[0] ?? null;
 	if (booking !== null)
 		return {
 			customer: booking.customer,
@@ -62,15 +63,16 @@ export const sameDay = Effect.fnUntraced(function* (
 ) {
 	if (v.helper === null || v.status !== 'scheduled')
 		return yield* new Refusal({ message: 'This visit has no shift to answer for.' });
-	const { rows } = yield* ctx.query('visits', {
-		where: {
-			helper: { eq: v.helper },
-			status: { eq: 'scheduled' },
-			slot: { overlaps: dayOf(v.slot.start, ctx.tz) }
-		},
-		select: { shift_check: true, revision: true },
-		all: true
-	});
+	const { rows } = (yield* ctx.query({
+		visits: {
+			where: {
+				helper: { eq: v.helper },
+				status: { eq: 'scheduled' },
+				slot: { overlaps: dayOf(v.slot.start, ctx.tz) }
+			},
+			fields: ['shift_check', 'revision']
+		}
+	})).visits;
 	return rows;
 });
 

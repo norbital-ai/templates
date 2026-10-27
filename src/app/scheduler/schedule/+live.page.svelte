@@ -6,6 +6,7 @@
 	 * watch last estimated. Both refresh as helpers report.
 	 */
 	import { bolt } from '$bolt';
+	import { isMasked } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -18,25 +19,23 @@
 			minute: '2-digit'
 		}).format(new Date(i));
 	const ahead = $derived(
-		bolt.query('visits', {
-			where: {
-				helper: { isNull: false },
-				status: { in: ['scheduled', 'in_progress'] },
-				slot: {
-					overlaps: {
-						start: Instant(new Date(Date.now() - 6 * HOUR).toISOString()),
-						end: Instant(new Date(Date.now() + 8 * HOUR).toISOString())
+		bolt.query({
+			visits: {
+				where: {
+					helper: { isNull: false },
+					status: { in: ['scheduled', 'in_progress'] },
+					slot: {
+						overlaps: {
+							start: Instant(new Date(Date.now() - 6 * HOUR).toISOString()),
+							end: Instant(new Date(Date.now() + 8 * HOUR).toISOString())
+						}
 					}
-				}
+				},
+				fields: ['slot', 'status', 'location', 'helper', 'booking']
 			},
-			select: {
-				slot: true,
-				status: true,
-				location: true,
-				helper: { select: { name: true, last_location: true } },
-				booking: { select: { customer: { select: { name: true } } } }
-			},
-			all: true
+			'visits.helper': { fields: ['name', 'last_location'] },
+			'visits.booking': { fields: ['customer'] },
+			'visits.booking.customer': { fields: ['name'] }
 		})
 	);
 	/** The under-way window moves with the clock, minute by minute. */
@@ -44,8 +43,11 @@
 	const soon = $derived(Instant(new Date(Date.parse(clock.now) + 4 * HOUR).toISOString()));
 	/** Each helper's next stop: the visit under way, else the earliest still to start. */
 	const overlays = $derived.by(() => {
-		const next = new globalThis.Map<string, NonNullable<typeof ahead.current>['rows'][number]>();
-		for (const v of ahead.current?.rows ?? []) {
+		const next = new globalThis.Map<
+			string,
+			NonNullable<typeof ahead.current>['visits']['rows'][number]
+		>();
+		for (const v of ahead.current?.visits.rows ?? []) {
 			if (v.location === null || v.helper === null) continue;
 			if (v.status === 'scheduled' && Date.parse(v.slot.end!) < Date.now()) continue;
 			const held = next.get(v.helper.id);
@@ -55,8 +57,10 @@
 		return [...next.values()].map((v) => ({
 			lat: v.location!.lat,
 			lng: v.location!.lng,
-			text: `${v.helper!.name.split(' ')[0]} → ${v.booking.customer.name} · ${time(v.slot.start)}`,
-			...(v.helper!.last_location === null ? {} : { from: v.helper!.last_location })
+			text: `${v.helper!.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${time(v.slot.start)}`,
+			...(v.helper!.last_location === null || isMasked(v.helper!.last_location)
+				? {}
+				: { from: v.helper!.last_location })
 		}));
 	});
 </script>

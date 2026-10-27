@@ -25,10 +25,9 @@ export default automation('publish_openings', {
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const days = Array.from({ length: AHEAD }, (_, i) => addDays(ctx.today, i));
-		const [services, stored, pool] = yield* Effect.all(
+		const [{ services, openings: stored }, pool] = yield* Effect.all(
 			[
-				ctx.query('services', { where: { active: { eq: true } }, all: true }),
-				ctx.query('openings', { all: true }),
+				ctx.query({ services: { where: { active: { eq: true } } }, openings: {} }),
 				loadPool(
 					ctx,
 					new Date(utcOf(ctx.today, 0, ctx.tz)).toISOString(),
@@ -68,6 +67,10 @@ export default automation('publish_openings', {
 		const gone = [...have.values()].map((o) => o.id);
 		if (creates.length > 0) yield* ctx.act('openings.create', creates);
 		if (updates.length > 0) yield* ctx.act('openings.update', updates);
-		if (gone.length > 0) yield* ctx.act('openings.delete', { target: gone });
+		if (gone.length > 0)
+			yield* ctx.act(
+				'openings.delete',
+				gone.map((target) => ({ target }))
+			);
 	}
 });

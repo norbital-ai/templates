@@ -20,6 +20,8 @@
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { untrack } from 'svelte';
 	import SlotPicker from '../../../lib/SlotPicker.svelte';
+	import { livePool } from '../../../lib/pool.svelte.js';
+	import { bookingSlots, bookingWindow } from '../../../lib/slots.js';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	let {
 		view
@@ -65,37 +67,59 @@
 	const names = $derived(
 		helpers.length === 0
 			? null
-			: bolt.query('helpers', {
-					where: { id: { in: helpers } },
-					select: { name: true, skills: true },
-					limit: 5
+			: bolt.query({
+					helpers: { where: { id: { in: helpers } }, fields: ['name', 'skills'], limit: 5 }
 				})
 	);
-	const open = $derived(
-		customer !== null && service !== null && (preference === 'any' || helpers.length > 0)
-			? bolt.query('bookings.open_slots', {
-					preference,
-					repeat,
-					...(preference === 'preferred' ? { helpers } : {}),
-					customer,
-					service,
-					from: PlainDate(from),
-					days: 7
-				})
-			: null
-	);
-	const shown = $derived(open?.current);
-	const chosenService = $derived(
-		service === null
+	// the starts this booking could take: the customer and service, then the pool over the full recurring horizon
+	const chosen = $derived(
+		customer === null || service === null
 			? null
-			: bolt.query('services', { id: service, select: { duration_minutes: true } })
+			: bolt.query({
+					customers: {
+						where: { id: { eq: customer } },
+						fields: ['location', 'area'],
+						limit: 1
+					},
+					services: {
+						where: { id: { eq: service } },
+						fields: ['skill', 'duration_minutes', 'active'],
+						limit: 1
+					}
+				})
 	);
+	const target = $derived(chosen?.current?.customers.rows[0] ?? null);
+	const chosenService = $derived(chosen?.current?.services.rows[0] ?? null);
+	const horizon = $derived(bookingWindow({ from: PlainDate(from), days: 7, repeat }, zone));
+	const pool = livePool(
+		() =>
+			chosen?.current !== undefined && (preference === 'any' || helpers.length > 0)
+				? { from: horizon.from, to: horizon.to, spots: [target?.location ?? null] }
+				: null,
+		zone
+	);
+	const clock = bolt.clock('minute');
+	const offered = $derived(
+		pool.current === undefined || chosen?.current === undefined
+			? undefined
+			: bookingSlots(
+					target,
+					chosenService,
+					{ preference, repeat, ...(preference === 'preferred' ? { helpers } : {}) },
+					horizon.days,
+					pool.current,
+					zone,
+					clock.now
+				)
+	);
+	const refused = $derived(typeof offered === 'string' ? offered : null);
+	const shown = $derived(typeof offered === 'string' ? undefined : offered);
 	const ready = $derived(
 		customer !== null &&
 			service !== null &&
 			start !== null &&
 			(preference === 'any' || helpers.length > 0) &&
-			open?.current?.some((d) => d.starts.includes(Instant(start!))) === true
+			shown?.some((d) => d.starts.includes(Instant(start!))) === true
 	);
 	function book() {
 		const selectedCustomer = customer,
@@ -240,7 +264,8 @@
 								onclick={() => {
 									helpers = helpers.filter((x) => x !== h);
 									start = null;
-								}}>{i + 1}. {names?.current?.rows.find((r) => r.id === h)?.name ?? '—'} ×</Button
+								}}
+								>{i + 1}. {names?.current?.helpers.rows.find((r) => r.id === h)?.name ?? '—'} ×</Button
 							>
 						{/each}
 					</Cluster>
@@ -274,20 +299,20 @@
 						}}
 					/>
 				</Stack>
-				{#if open?.error}<p role="alert" class="text-sm text-destructive">
-						{open.error.message}
+				{#if pool.error || refused}<p role="alert" class="text-sm text-destructive">
+						{refused ?? pool.error?.message}
 					</p>{/if}
 				{#if shown && shown.some((d) => d.starts.length > 0)}
 					<SlotPicker
 						days={shown}
-						minutes={chosenService?.current?.duration_minutes ?? 60}
+						minutes={chosenService?.duration_minutes ?? 60}
 						value={start}
 						locale={bolt.locale}
 						onPick={(s) => (start = s)}
 						{t}
 					/>
 				{:else if shown}<p class="text-caption">{t('app.schedule.not_free')}</p>
-				{:else if customer !== null && service !== null && !open?.error}<p
+				{:else if customer !== null && service !== null && !pool.error && refused === null}<p
 						role="status"
 						class="text-caption"
 					>

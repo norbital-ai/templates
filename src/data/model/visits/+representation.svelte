@@ -25,7 +25,7 @@
 		})
 	);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	/** Only dispatch reads warnings; a helper's catalogue has no such collection. */
+	/** Only dispatch reads warnings; a helper's catalogue has no such model. */
 	const dispatcher = $derived(kinds.catalog?.['helper_warnings'] !== undefined);
 	// when, where, who and what stay open; what dispatch must act on opens while the visit needs attention, completion
 	// while it is under way; the automatic checks and the map pin fold away
