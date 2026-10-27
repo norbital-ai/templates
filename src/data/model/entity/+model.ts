@@ -169,9 +169,16 @@ export default model('entity', {
 			where: { integration: { eq: 'whatsapp' } }
 		}
 	},
-	read: 'all',
+	read: {
+		entity: { fields: 'all' },
+		'entity.shift_definition': { fields: 'all' },
+		'entity.employment_contract': { fields: 'all' },
+		'entity.employment_contract.employee_id': { fields: 'all' },
+		'entity.employment_contract.roster_entry': { fields: 'all' },
+		'entity.employment_contract.leave_catalog_entry': { fields: 'all' }
+	},
 	create: {
-		columns,
+		columns: { entity: columns },
 		// For now every validation of a new entity only warns, until HR chooses otherwise.
 		transform: function* (rows) {
 			return rows.map((row) => ({
@@ -181,7 +188,7 @@ export default model('entity', {
 		}
 	},
 	update: {
-		columns,
+		columns: { entity: columns },
 		/**
 		 * An update records what it changed (never the disbursement account), so a duty can answer a re-registration. A
 		 * pay schedule change is history: refused when it would rewrite a period a salary run paid (`payScheduleRefusal`),
@@ -194,14 +201,12 @@ export default model('entity', {
 			const runs =
 				touched.length === 0
 					? []
-					: (yield* ctx.db.query('payroll_run', {
-							where: {
-								company_id: { in: touched },
-								kind: { in: [...SALARY_RUNS] }
-							},
-							select: { company_id: true, salary_to: true },
-							all: true
-						})).rows;
+					: (yield* ctx.db.query({
+							payroll_run: {
+								where: { company_id: { in: touched }, kind: { in: [...SALARY_RUNS] } },
+								fields: ['company_id', 'salary_to']
+							}
+						})).payroll_run.rows;
 			for (const [row, { before, set }] of changes.entries()) {
 				if (!reschedules(before, set)) continue;
 				const lastPaid =

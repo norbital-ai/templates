@@ -29,22 +29,20 @@
 	const contracts = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { company_id: { eq: scope.id } },
-					select: {
-						employee_number: true,
-						employee_id: { select: { name: true } },
-						effective_range: true
+			: bolt.query({
+					employment_contract: {
+						where: { company_id: { eq: scope.id } },
+						fields: ['employee_number', 'employee_id', 'effective_range'],
+						orderBy: { employee_number: 'asc' }
 					},
-					orderBy: { employee_number: 'asc' },
-					all: true
+					'employment_contract.employee_id': { fields: ['name'] }
 				})
 	);
 	/** The people employed at any time in the period. */
 	const people = $derived(
 		pay.window == null
 			? []
-			: (contracts?.current?.rows ?? [])
+			: (contracts?.current?.employment_contract.rows ?? [])
 					.filter(
 						(row) =>
 							row.effective_range.from <= pay.window!.end &&
@@ -89,7 +87,7 @@
 		{@const window = pay.window}
 		{#key `${companyId}:${window.start}:${window.end}`}
 			<CustomView
-				collection="roster_entry"
+				model="roster_entry"
 				of={people}
 				key="work"
 				fields={[

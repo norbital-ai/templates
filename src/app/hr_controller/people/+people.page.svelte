@@ -17,15 +17,16 @@
 	const employment_contracts = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { company_id: { eq: scope.id } },
-					select: { employee_id: true, effective_range: true },
-					all: true
+			: bolt.query({
+					employment_contract: {
+						where: { company_id: { eq: scope.id } },
+						fields: ['employee_id', 'effective_range']
+					}
 				})
 	);
 	// an open contract runs to the end of time
 	const ranges = $derived(
-		(employment_contracts?.current?.rows ?? []).map((row) => ({
+		(employment_contracts?.current?.employment_contract.rows ?? []).map((row) => ({
 			employee: row.employee_id,
 			start: row.effective_range.from,
 			end: row.effective_range.to ?? '9999-12-31'

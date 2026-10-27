@@ -22,7 +22,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'leave_catalog_entry');
+				const created = outcome.records.find((row) => row.model === 'leave_catalog_entry');
 				if (created) openRecord('leave_catalog_entry', created.id);
 			}}
 		>

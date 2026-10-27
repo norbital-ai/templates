@@ -1,7 +1,8 @@
 import { Array as EffectArray } from 'effect';
 import { Predicate } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
-import type { Act, DeclaredQuery, Id, MemberWhere, Page, Row as BoltRow } from '@norbital-ai/bolt';
+import type { Act, Id, ReadableName, Row as BoltRow, Where } from '@norbital-ai/bolt';
+import { inputSchema } from '@norbital-ai/std/kind';
 import { monthOf, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Cache, Duration, Effect, Exit, Request, RequestResolver, Result, Schema } from 'effect';
@@ -17,9 +18,10 @@ import {
 	triggerMatches
 } from './behaviours.js';
 import {
+	declaredRead,
+	type JsonRead,
 	type Read,
 	type ReadError,
-	type StoredWhere,
 	fieldValue,
 	isJsonObject,
 	type Json,
@@ -32,14 +34,14 @@ import {
 } from './foundation.js';
 import { chainStarts, leaveBalances } from './leave.js';
 import {
+	idsOf,
 	leaveState,
-	leaveStateMembers,
 	loadLeaveState,
 	type LeaveStateRead,
 	payrollRules,
 	versionOn
 } from './payslip/context.js';
-import { CATALOG, CONTRACT, LEAVE_CLASS, SETTINGS, RULE_SET } from './rows.js';
+import { CATALOG_DETAILS, CONTRACT, SETTINGS, RULE_SET } from './rows.js';
 import { staffingFrom } from './admit.js';
 export type Row = Readonly<Record<string, unknown>>;
 const Record_ = Schema.Record(Schema.String, Schema.Unknown);
@@ -53,75 +55,29 @@ export type Subject = {
 	readonly employment_id: Id<'employment_contract'> | null;
 	readonly employee_id: Id<'employment_profile'> | null;
 };
-/** An entry collection's catalogue. */
+/** An entry model's catalogue. */
 const CATALOGS = {
 	leave_catalog_entry: 'leave_catalog',
 	claim_catalog_entry: 'claim_catalog',
 	adhoc_catalog_entry: 'adhoc_catalog',
 	loan_catalog_entry: 'loan_catalog'
 } as const;
-const DESCRIBE_CATALOG = {
-	adhoc_catalog_entry: {
-		from: 'adhoc_catalog',
-		select: { ...CATALOG.adhoc_catalog, references: true }
-	},
-	claim_catalog_entry: {
-		from: 'claim_catalog',
-		select: { ...CATALOG.claim_catalog, references: true }
-	},
-	leave_catalog_entry: {
-		from: 'leave_catalog',
-		select: {
-			...CATALOG.leave_catalog,
-			...LEAVE_CLASS,
-			description: true,
-			references: true,
-			unit: true,
-			encash_on_exit: true,
-			encash_at_window_end: true
-		}
-	},
-	loan_catalog_entry: {
-		from: 'loan_catalog',
-		select: { ...CATALOG.loan_catalog, references: true }
-	}
-} as const;
 const isEntry = (collection: string): collection is keyof typeof CATALOGS => collection in CATALOGS;
-/** Stored time-off fields; catalogue codes are loaded by their actual foreign keys. */
-const leaveMember = (
-	where: StoredWhere<'leave_catalog_entry'> | MemberWhere<'leave_catalog_entry'>,
-	since?: string
-) =>
+/** The ids of `of` among stored values a trigger row carries: the next read's literal `{ in: [...] }`. */
+export const idsAs = <C extends ReadableName>(of: C, values: readonly unknown[]): Id<C>[] => {
+	const is = Schema.is(inputSchema({ kind: 'id', of }));
+	return [...new Set(values.filter((value): value is Id<C> => is(value)))];
+};
+/** Stored time-off movements; their catalogue codes are read by `leaveFrom` through their actual foreign keys. */
+export const leaveRequest = (where: Where<'leave_catalog_entry'>, since?: string) =>
 	({
-		from: 'leave_catalog_entry',
-		where: {
-			...where,
-			activity: { eq: 'TIME_OFF' },
-			...(since === undefined ? {} : { occurred_on: { gte: PlainDate(since) } })
-		},
-		select: {
-			id: true,
-			employment_id: true,
-			catalog_id: true,
-			occurred_on: true,
-			from: true,
-			to: true,
-			days: true,
-			facts: true
-		},
-		all: true
-	}) as const;
-export const leaveMembers = (
-	where: StoredWhere<'leave_catalog_entry'> | MemberWhere<'leave_catalog_entry'>,
-	since?: string
-) =>
-	({
-		describe_leave: leaveMember(where, since),
-		describe_leave_catalog: {
-			from: 'leave_catalog',
-			where: { id: { in: { member: 'describe_leave', field: 'catalog_id' } } },
-			select: { id: true, code: true },
-			all: true
+		leave_catalog_entry: {
+			where: {
+				...where,
+				activity: { eq: 'TIME_OFF' },
+				...(since === undefined ? {} : { occurred_on: { gte: PlainDate(since) } })
+			},
+			fields: ['employment_id', 'catalog_id', 'occurred_on', 'from', 'to', 'days', 'facts']
 		}
 	}) as const;
 type LeaveEntry = Pick<
@@ -137,11 +93,12 @@ export const leaveFrom = Effect.fnUntraced(function* (
 ) {
 	const classes =
 		catalogues ??
-		(yield* read('leave_catalog', {
-			where: { id: { in: [...new Set(rows.map((row) => row.catalog_id))] } },
-			select: { id: true, code: true },
-			all: true
-		})).rows;
+		(yield* read({
+			leave_catalog: {
+				where: { id: { in: [...new Set(rows.map((row) => row.catalog_id))] } },
+				fields: ['code']
+			}
+		})).leave_catalog.rows;
 	const codes = new Map(classes.map((row) => [row.id, row.code]));
 	const fromOf = (row: LeaveEntry) => row.from ?? row.occurred_on;
 	const coded: { readonly row: LeaveEntry; readonly code: string }[] = [];
@@ -183,12 +140,12 @@ export const leaveFrom = Effect.fnUntraced(function* (
 	return out;
 });
 /**
- * Many employments' leave balances, each on its own day, from one read (`leaveStateMembers`); an employment whose state
+ * Many employments' leave balances, each on its own day, from one leave-state read (`loadLeaveState`); an employment whose state
  * cannot be read has none. The reads its classes' attendance needs cross together, over one batched reader.
  */
 export const leaveBalancesFor = Effect.fnUntraced(function* (
 	read: Read,
-	wants: Parameters<typeof leaveStateMembers>[0],
+	wants: Parameters<typeof loadLeaveState>[1],
 	options: {
 		readonly withoutExitEffects?: boolean | undefined;
 		readonly prefetched?: LeaveStateRead | undefined;
@@ -232,143 +189,47 @@ const termsWritten = (row: Row): unknown[] => {
 	return terms(row['facts']).filter((term) => !prior.has(stableJson(term)));
 };
 /**
- * A trigger row as the rules read it (`event.row`): a contract carries its employment's time off (`leave[]`) and the
+ * Trigger rows as the rules read them (`event.row`): a contract carries its employment's time off (`leave[]`) and the
  * terms its write added or changed (`terms_written[]`); a payslip carries the day it was paid (`paid_on`, the UTC day of
  * `paid_at`), its line codes (`line_codes`, base and adjustments) and its run's `pay_date` and `pay_due_date` (a
  * late payment's days and interest); an entry carries its class (`catalog_code`, and the class row as `catalog`).
+ * Each enrichment is its own dependent read over the rows' actual foreign keys.
  */
-type DescribeRows = {
-	payslip: Row & Pick<BoltRow<'payslip'>, 'id'>;
-	employment_contract: Row & Pick<BoltRow<'employment_contract'>, 'id'>;
-	adhoc_catalog_entry: Row & Pick<BoltRow<'adhoc_catalog_entry'>, 'catalog_id'>;
-	claim_catalog_entry: Row & Pick<BoltRow<'claim_catalog_entry'>, 'catalog_id'>;
-	leave_catalog_entry: Row & Pick<BoltRow<'leave_catalog_entry'>, 'catalog_id' | 'employment_id'>;
-	loan_catalog_entry: Row & Pick<BoltRow<'loan_catalog_entry'>, 'catalog_id'>;
-};
-type DescribeInput = {
-	[C in keyof DescribeRows]: { readonly collection: C; readonly rows: readonly DescribeRows[C][] };
-}[keyof DescribeRows];
-/** Native members for trigger enrichment, using direct member field predicates. */
-export const describeMembers = (collection: string, member: string) => {
-	const ref = (field: string) => ({ in: { member, field } });
-	const none = { in: [] };
-	const catalog = isEntry(collection)
-		? DESCRIBE_CATALOG[collection]
-		: DESCRIBE_CATALOG.leave_catalog_entry;
-	return {
-		describe_lines: {
-			from: 'payslip',
-			where: { id: collection === 'payslip' ? ref('id') : none },
-			select: { id: true, base: true, adjustments: true, payroll_run_id: true },
-			all: true
-		},
-		describe_runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'describe_lines', field: 'payroll_run_id' } } },
-			select: { id: true, pay_date: true, pay_due_date: true },
-			all: true
-		},
-		...leaveMembers({
-			employment_id:
-				collection === 'employment_contract'
-					? ref('id')
-					: collection === 'leave_catalog_entry'
-						? ref('employment_id')
-						: none
-		}),
-		describe_catalog: {
-			...catalog,
-			where: { id: isEntry(collection) ? ref('catalog_id') : none },
-			all: true
-		}
-	} as const;
-};
-/** In-hand triggers carry their collection's native IDs; no text leaf is turned back into a branded predicate. */
-const describeInHand = (input: DescribeInput) => {
-	const employment =
-		input.collection === 'employment_contract'
-			? input.rows.map((row) => row.id)
-			: input.collection === 'leave_catalog_entry'
-				? input.rows.flatMap((row) => (row.employment_id === null ? [] : [row.employment_id]))
-				: [];
-	const common = {
-		describe_lines: {
-			from: 'payslip',
-			where: { id: { in: input.collection === 'payslip' ? input.rows.map((row) => row.id) : [] } },
-			select: { id: true, base: true, adjustments: true, payroll_run_id: true },
-			all: true
-		},
-		describe_runs: {
-			from: 'payroll_run',
-			where: { id: { in: { member: 'describe_lines', field: 'payroll_run_id' } } },
-			select: { id: true, pay_date: true, pay_due_date: true },
-			all: true
-		},
-		...leaveMembers({ employment_id: { in: employment } })
-	} as const;
-	if (input.collection === 'adhoc_catalog_entry')
-		return {
-			...common,
-			describe_catalog: {
-				...DESCRIBE_CATALOG.adhoc_catalog_entry,
-				where: { id: { in: input.rows.map((row) => row.catalog_id) } },
-				all: true
-			}
-		} as const;
-	if (input.collection === 'claim_catalog_entry')
-		return {
-			...common,
-			describe_catalog: {
-				...DESCRIBE_CATALOG.claim_catalog_entry,
-				where: { id: { in: input.rows.map((row) => row.catalog_id) } },
-				all: true
-			}
-		} as const;
-	if (input.collection === 'loan_catalog_entry')
-		return {
-			...common,
-			describe_catalog: {
-				...DESCRIBE_CATALOG.loan_catalog_entry,
-				where: { id: { in: input.rows.map((row) => row.catalog_id) } },
-				all: true
-			}
-		} as const;
-	return {
-		...common,
-		describe_catalog: {
-			...DESCRIBE_CATALOG.leave_catalog_entry,
-			where: {
-				id: {
-					in:
-						input.collection === 'leave_catalog_entry'
-							? input.rows.map((row) => row.catalog_id)
-							: []
-				}
-			},
-			all: true
-		}
-	} as const;
-};
-const readDescribe = (read: Read, input: DescribeInput) => read(describeInHand(input));
-type DescribeRead = Effect.Success<ReturnType<typeof readDescribe>>;
-/** Enrichment keeps native selected fields intact and attaches the actual related domain values. */
-export const describeFrom = Effect.fnUntraced(function* <
-	Catalog extends Pick<DescribeRead['describe_catalog']['rows'][number], 'id' | 'code'>
->(
+export const describeRows = Effect.fnUntraced(function* (
+	read: Read,
 	collection: string,
-	triggers: readonly Row[],
-	got: Omit<DescribeRead, 'describe_catalog'> & { readonly describe_catalog: Page<Catalog> },
-	read: Read
+	triggers: readonly Row[]
 ) {
 	if (collection === 'payslip') {
-		const lines = new Map<string, DescribeRead['describe_lines']['rows'][number]>(
-			got.describe_lines.rows.map((row) => [row.id, row])
+		const { payslip } = yield* read({
+			payslip: {
+				where: {
+					id: {
+						in: idsAs(
+							'payslip',
+							triggers.map((row) => row['id'])
+						)
+					}
+				},
+				fields: ['base', 'adjustments', 'payroll_run_id']
+			}
+		});
+		const { payroll_run } = yield* read({
+			payroll_run: {
+				where: { id: { in: idsOf(payslip.rows.map((row) => row.payroll_run_id)) } },
+				fields: ['pay_date', 'pay_due_date']
+			}
+		});
+		const lines = new Map<string, (typeof payslip.rows)[number]>(
+			payslip.rows.map((row) => [row.id, row])
 		);
-		const runs = new Map(got.describe_runs.rows.map((row) => [row.id, row]));
+		const runs = new Map<string, (typeof payroll_run.rows)[number]>(
+			payroll_run.rows.map((row) => [row.id, row])
+		);
 		return triggers.map((row) => {
 			const paid = text(row['paid_at']);
 			const held = lines.get(String(row['id']));
-			const run = held === undefined ? undefined : runs.get(held.payroll_run_id);
+			const run = held === undefined ? undefined : runs.get(String(held.payroll_run_id));
 			const codes = [...(held?.base ?? []), ...(held?.adjustments ?? [])].map(
 				(line) => line.component_code
 			);
@@ -382,7 +243,26 @@ export const describeFrom = Effect.fnUntraced(function* <
 			return described;
 		});
 	}
-	const leave = yield* leaveFrom(read, got.describe_leave.rows, got.describe_leave_catalog.rows);
+	const employment =
+		collection === 'employment_contract'
+			? idsAs(
+					'employment_contract',
+					triggers.map((row) => row['id'])
+				)
+			: collection === 'leave_catalog_entry'
+				? idsAs(
+						'employment_contract',
+						triggers.map((row) => row['employment_id'])
+					)
+				: [];
+	const leave =
+		employment.length === 0
+			? new Map<string, Row[]>()
+			: yield* leaveFrom(
+					read,
+					(yield* read(leaveRequest({ employment_id: { in: employment } }))).leave_catalog_entry
+						.rows
+				);
 	if (collection === 'employment_contract')
 		return triggers.map((row) => {
 			const details = {
@@ -401,11 +281,38 @@ export const describeFrom = Effect.fnUntraced(function* <
 				})
 			: triggers;
 	if (!isEntry(collection)) return rows;
-	const catalogues = new Map<string, Catalog>(
-		got.describe_catalog.rows.map((row) => [row.id, row])
-	);
+	const ids = triggers.map((row) => row['catalog_id']);
+	const catalogues: readonly { readonly id: string; readonly code: unknown }[] =
+		collection === 'leave_catalog_entry'
+			? (yield* read({
+					leave_catalog: {
+						where: { id: { in: idsAs('leave_catalog', ids) } },
+						fields: CATALOG_DETAILS.leave_catalog
+					}
+				})).leave_catalog.rows
+			: collection === 'claim_catalog_entry'
+				? (yield* read({
+						claim_catalog: {
+							where: { id: { in: idsAs('claim_catalog', ids) } },
+							fields: CATALOG_DETAILS.claim_catalog
+						}
+					})).claim_catalog.rows
+				: collection === 'adhoc_catalog_entry'
+					? (yield* read({
+							adhoc_catalog: {
+								where: { id: { in: idsAs('adhoc_catalog', ids) } },
+								fields: CATALOG_DETAILS.adhoc_catalog
+							}
+						})).adhoc_catalog.rows
+					: (yield* read({
+							loan_catalog: {
+								where: { id: { in: idsAs('loan_catalog', ids) } },
+								fields: CATALOG_DETAILS.loan_catalog
+							}
+						})).loan_catalog.rows;
+	const byId = new Map(catalogues.map((row) => [row.id, row]));
 	return rows.map((row) => {
-		const catalog = catalogues.get(text(row['catalog_id']) ?? '') ?? null;
+		const catalog = byId.get(text(row['catalog_id']) ?? '') ?? null;
 		const details = { catalog_code: catalog?.code ?? null, catalog };
 		const described: Row & typeof details = {
 			...row,
@@ -421,41 +328,33 @@ export const describeFrom = Effect.fnUntraced(function* <
 /** A `where` clause over an empty list: it matches nothing. */
 const emptyIn = (clause: unknown): boolean =>
 	isJsonObject(clause) && EffectArray.isArray(clause['in']) && clause['in'].length === 0;
-/** Entities, their approved contracts, their lineage versions and those versions' rules in one native statement. */
-export const entityMembers = (where: StoredWhere<'entity'> | MemberWhere<'entity'>) =>
-	({
-		entities: { from: 'entity', where, select: { id: true, settings_code: true }, all: true },
-		contracts: {
-			from: 'employment_contract',
-			where: { company_id: { in: { member: 'entities', field: 'id' } } },
-			select: CONTRACT,
-			all: true
-		},
-		versions: {
-			from: 'jurisdiction_settings',
+/**
+ * Entities, their contracts, their lineage versions (named by the entity's code: no relation) and those versions'
+ * PAYROLL rules: two dependent reads.
+ */
+export const readEntities = Effect.fnUntraced(function* (read: Read, where: Where<'entity'>) {
+	const first = yield* read({ entity: { where, fields: ['settings_code'] } });
+	const entityIds = first.entity.rows.map((row) => row.id);
+	const second = yield* read({
+		employment_contract: { where: { company_id: { in: entityIds } }, fields: CONTRACT },
+		jurisdiction_settings: {
 			where: {
-				code: { in: { member: 'entities', field: 'settings_code' } },
+				code: { in: idsOf(first.entity.rows.map((row) => row.settings_code)) },
 				voided_at: { isNull: true },
 				sealed_at: { isNull: false }
 			},
-			select: SETTINGS,
-			all: true
+			fields: SETTINGS
 		},
-		rules: {
-			from: 'rule_set',
-			where: {
-				settings_id: { in: { member: 'versions', field: 'id' } },
-				family: { eq: 'PAYROLL' }
-			},
-			select: RULE_SET,
-			all: true
-		}
-	}) as const;
-const readEntities = (read: Read, where: StoredWhere<'entity'>) => read(entityMembers(where));
+		'jurisdiction_settings.rule_set': { where: { family: { eq: 'PAYROLL' } }, fields: RULE_SET }
+	});
+	return {
+		entities: first.entity,
+		contracts: second.employment_contract,
+		versions: second.jurisdiction_settings
+	};
+});
 type EntityRead = Effect.Success<ReturnType<typeof readEntities>>;
-type BehaviourVersion = EntityRead['versions']['rows'][number] & {
-	readonly rule_set: EntityRead['rules']['rows'];
-};
+type BehaviourVersion = EntityRead['versions']['rows'][number];
 type EntityHeld = {
 	readonly settings_code: EntityRead['entities']['rows'][number]['settings_code'] | null;
 	readonly versions: readonly BehaviourVersion[];
@@ -466,12 +365,7 @@ const heldFrom = (got: EntityRead, id: Id<'entity'>): EntityHeld => {
 	const settings_code = entity?.settings_code ?? null;
 	return {
 		settings_code,
-		versions: got.versions.rows
-			.filter((row) => row.code === settings_code)
-			.map((row) => ({
-				...row,
-				rule_set: got.rules.rows.filter((rule) => rule.settings_id === row.id)
-			})),
+		versions: got.versions.rows.filter((row) => row.code === settings_code),
 		contracts: got.contracts.rows.filter((row) => row.company_id === id)
 	};
 };
@@ -660,7 +554,7 @@ export type BehaviourEvent = {
 	readonly row: Row;
 	readonly day: string;
 	readonly subjects: readonly Subject[];
-	/** The trigger row's extra fields the rules name, as the trigger collection carries them. */
+	/** The trigger row's extra fields the rules name, as the trigger model carries them. */
 	readonly fields: (names: readonly string[]) => Effect.Effect<Row, Refusal>;
 	readonly run?: unknown;
 	readonly leave_balances?: readonly unknown[];
@@ -669,14 +563,14 @@ type Shared = {
 	readonly collection: string;
 	readonly action: string;
 	readonly versionFor: VersionFor;
-	readonly read: Read;
+	readonly read: JsonRead;
 	readonly act: Pick<Act, 'checked'>;
 	/** A shared `staffingLookup`, so a tick computes each entity and day's staffing once. */
 	readonly staffing?: (company_id: Id<'entity'>, day: string) => Effect.Effect<Staffing, ReadError>;
 };
 /**
  * One trigger row through the governing version's behaviour rules, for each of its subjects: plan the rules whose
- * trigger is this collection and event, evaluate each `when`, load its declared reads and apply the writes its
+ * trigger is this model and event, evaluate each `when`, load its declared reads and apply the writes its
  * `effect` returns, in order. Every `entity` row a rule reads carries its `headcount` on the event day, as does
  * `event`, beside the entity's `separations`. Nothing here knows what any behaviour means; the row taps and the daily
  * tick share it.
@@ -693,9 +587,11 @@ const pinned = (clause: Json | undefined): readonly Json[] | undefined => {
 	if (op === 'in' && EffectArray.isArray<typeof operand>(operand)) return operand;
 	return undefined;
 };
+/** One rule-declared layer: its `where` and `fields` as the rule data states them (JSON, checked by the host). */
+type DeclaredLayer = { readonly where?: JsonObject; readonly fields?: readonly string[] };
 type DeclaredRead = (
 	collection: BehaviourRead['collection'],
-	query: DeclaredQuery
+	query: DeclaredLayer
 ) => Effect.Effect<
 	{
 		readonly rows: readonly Row[];
@@ -715,16 +611,17 @@ const readFor = Effect.fnUntraced(function* (
 	const collection = declared.collection;
 	const companies = new Map<string, Id<'entity'>>();
 	const once = (where: Json | undefined, extra?: string) => {
-		const query = {
-			mode: 'declared',
-			...(where === undefined ? {} : { where }),
+		// `id` always comes back
+		const query: DeclaredLayer = {
+			...(isJsonObject(where) ? { where } : {}),
 			...(declared.select === undefined
 				? {}
 				: {
-						select: [...declared.select, ...(extra === undefined ? [] : [extra])]
-					}),
-			all: true
-		} as const;
+						fields: [...declared.select, ...(extra === undefined ? [] : [extra])].filter(
+							(field) => field !== 'id'
+						)
+					})
+		};
 		return read(collection, query).pipe(
 			Effect.map((page) => {
 				for (const [key, id] of page.companies) companies.set(key, id);
@@ -928,7 +825,7 @@ const prepareStep = Effect.fnUntraced(function* (read: DeclaredRead, step: Behav
 	return { ...step, reads };
 });
 /**
- * Many trigger rows of one collection and event through their governing versions' rules (`runBehaviours` for each).
+ * Many trigger rows of one model and event through their governing versions' rules (`runBehaviours` for each).
  * Every operation reads up front: the entities and versions of every subject (one keyed read), then every declared
  * read of every rule planned for any subject in any round — the union, read once per shape — in one crossing. Rules
  * run in their declared order; each sees the writes of the rules (and subjects) before it, applied to what it read,
@@ -943,14 +840,14 @@ export const runBehaviourEvents = (
 		...input,
 		groups: [{ collection: input.collection, action: input.action, events: input.events }]
 	});
-/** One collection and event's trigger rows, for `runBehaviourGroups`. */
+/** One model and event's trigger rows, for `runBehaviourGroups`. */
 type BehaviourGroup = {
 	readonly collection: string;
 	readonly action: string;
 	readonly events: readonly BehaviourEvent[];
 };
 /**
- * `runBehaviourEvents` for several collections and events at once (the daily tick's entity calendar, open cases,
+ * `runBehaviourEvents` for several models and events at once (the daily tick's entity calendar, open cases,
  * employments in force and ended ones): one prefetch for every group, the groups' rules applied in group order (a
  * later group sees an earlier one's writes) and every write acted at the end.
  */
@@ -1065,7 +962,7 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 	// Identical declared queries share one native read across every rule and planning subject.
 	const queries = new Map<
 		string,
-		{ readonly collection: BehaviourRead['collection']; readonly query: DeclaredQuery }
+		{ readonly collection: BehaviourRead['collection']; readonly query: DeclaredLayer }
 	>();
 	const pages = yield* Cache.make({
 		lookup: (key: string) =>
@@ -1075,15 +972,21 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 					return yield* new Refusal({
 						message: 'The behaviour read needs its declared native query.'
 					});
-				if (request.collection === 'entity') {
-					const page = yield* input.read('entity', request.query);
-					return {
-						rows: page.rows,
-						companies: page.rows.map((entity) => [entity.id, entity.id] as const)
-					};
-				}
-				const page = yield* input.read(request.collection, request.query);
-				return { rows: page.rows, companies: [] };
+				// the rule data names the model and its JSON `where`/`fields`: a runtime-checked read request
+				const declared = yield* Effect.fromResult(
+					declaredRead({ [request.collection]: request.query })
+				);
+				const rows = (yield* input.read(declared))[request.collection]?.rows ?? [];
+				return {
+					rows,
+					companies:
+						request.collection === 'entity'
+							? idsAs(
+									'entity',
+									rows.map((entity) => entity.id)
+								).map((id) => [id, id] as const)
+							: []
+				};
 			}),
 		capacity: Number.MAX_SAFE_INTEGER,
 		timeToLive: Duration.infinity

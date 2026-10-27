@@ -29,9 +29,9 @@ export function governingPayroll(governing: () => Governing | null) {
 							voided_at: { isNull: true },
 							effective_range: { contains: clock.today }
 						};
-		return bolt.query('jurisdiction_settings', { where, select: { payroll: true }, limit: 1 });
+		return bolt.query({ jurisdiction_settings: { where, fields: ['payroll'], limit: 1 } });
 	});
-	return () => rows?.current?.rows?.[0]?.payroll;
+	return () => rows?.current?.jurisdiction_settings.rows[0]?.payroll;
 }
 
 export function versionMoney(governing: () => Governing | null) {

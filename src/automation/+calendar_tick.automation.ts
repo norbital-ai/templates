@@ -4,19 +4,19 @@ import { behavioursOf, triggerMatches } from '../lib/payroll_engine/behaviours.j
 import { payrollSetting } from '../lib/payroll_engine/foundation.js';
 import { classFromRow, windowEndsOn } from '../lib/payroll_engine/leave.js';
 import { addDays, PlainDate } from '@norbital-ai/std/date';
-import { LEAVE_CLASS } from '../lib/payroll_engine/rows.js';
+import { CONTRACT, LEAVE_CLASS, RULE_SET, SETTINGS } from '../lib/payroll_engine/rows.js';
+import { idsOf } from '../lib/payroll_engine/payslip/context.js';
 import {
 	type BehaviourEvent,
-	entityMembers,
 	leaveBalancesFor,
 	leaveFrom,
-	leaveMembers,
+	leaveRequest,
 	primeEntities,
 	runBehaviourGroups,
 	staffingLookup,
 	versionLookup
 } from '../lib/payroll_engine/behaviour_runner.js';
-/** A `TASKS` row's `rules.trigger`: the collection and the events it answers. */
+/** A `TASKS` row's `rules.trigger`: the model and the events it answers. */
 const TaskRules = Schema.Struct({
 	trigger: Schema.Struct({ collection: Schema.String, events: Schema.Array(Schema.String) })
 });
@@ -48,68 +48,67 @@ export default automation('calendar_tick', {
 			const staffing = yield* staffingLookup(versionFor);
 			// A local day is at most a day from UTC: read one extra day, then each entity keeps its own look-back.
 			const since = addDays(utcToday, -LEAVE_LOOKBACK_DAYS - 1);
-			const members = entityMembers({});
-			const timeOff = leaveMembers({}, PlainDate(since));
-			const got = yield* read({
-				...members,
-				entities: {
-					...members.entities,
-					select: {
-						...members.entities.select,
-						name: true,
-						registration_number: true,
-						region: true,
-						time_zone: true,
-						facts: true
-					}
-				},
-				rules: {
-					...members.rules,
-					where: { ...members.rules.where, family: { in: ['TASKS', 'PAYROLL'] } }
-				},
-				encashed: {
-					from: 'leave_catalog',
+			const entities = (yield* read({
+				entity: {
+					fields: ['settings_code', 'name', 'registration_number', 'region', 'time_zone', 'facts']
+				}
+			})).entity;
+			const entityIds = entities.rows.map((row) => row.id);
+			// the lineages are named by the entities' code (no relation): read after the entities
+			const held = yield* read({
+				employment_contract: { where: { company_id: { in: entityIds } }, fields: CONTRACT },
+				jurisdiction_settings: {
 					where: {
-						settings_id: { in: { member: 'versions', field: 'id' } },
-						encash_at_window_end: { eq: true }
+						code: { in: idsOf(entities.rows.map((row) => row.settings_code)) },
+						voided_at: { isNull: true },
+						sealed_at: { isNull: false }
 					},
-					select: { ...LEAVE_CLASS, settings_id: true },
-					all: true
+					fields: SETTINGS
 				},
-				cases: {
-					from: 'workplace_case',
-					where: {
-						company_id: { in: { member: 'entities', field: 'id' } },
-						closed_on: { isNull: true }
-					},
-					select: {
-						id: true,
-						company_id: true,
-						employment_id: true,
-						kind: true,
-						opened_on: true,
-						closed_on: true,
-						facts: true
-					},
-					all: true
+				'jurisdiction_settings.rule_set': {
+					where: { family: { in: ['TASKS', 'PAYROLL'] } },
+					fields: RULE_SET
 				},
-				case_contracts: {
-					from: 'employment_contract',
-					where: { id: { in: { member: 'cases', field: 'employment_id' } } },
-					select: { employee_id: true },
-					all: true
+				'jurisdiction_settings.leave_catalog': {
+					where: { encash_at_window_end: { eq: true } },
+					fields: LEAVE_CLASS
 				},
-				...timeOff,
-				describe_leave: {
-					...timeOff.describe_leave,
-					where: {
-						...timeOff.describe_leave.where,
-						employment_id: { in: { member: 'contracts', field: 'id' } }
-					}
+				workplace_case: {
+					where: { company_id: { in: entityIds }, closed_on: { isNull: true } },
+					fields: ['company_id', 'employment_id', 'kind', 'opened_on', 'closed_on', 'facts']
 				}
 			});
+			const caseContracts = yield* read({
+				employment_contract: {
+					where: { id: { in: idsOf(held.workplace_case.rows.map((row) => row.employment_id)) } },
+					fields: ['employee_id']
+				},
+				...leaveRequest(
+					{ employment_id: { in: held.employment_contract.rows.map((row) => row.id) } },
+					PlainDate(since)
+				)
+			});
+			const describedLeave = caseContracts.leave_catalog_entry.rows;
+			const leaveCatalogues = (yield* read({
+				leave_catalog: {
+					where: { id: { in: [...new Set(describedLeave.map((row) => row.catalog_id))] } },
+					fields: ['code']
+				}
+			})).leave_catalog.rows;
+			const got = {
+				entities,
+				contracts: held.employment_contract,
+				versions: held.jurisdiction_settings,
+				rules: { rows: held.jurisdiction_settings.rows.flatMap((version) => version.rule_set) },
+				encashed: {
+					rows: held.jurisdiction_settings.rows.flatMap((version) => version.leave_catalog)
+				},
+				cases: held.workplace_case
+			};
 			yield* primeEntities(versionFor, got);
-			const people = new Map(got.case_contracts.rows.map((held) => [held.id, held.employee_id]));
+			const people = new Map(
+				caseContracts.employment_contract.rows.map((row) => [row.id, row.employee_id])
+			);
 			// The contracts whose balances the pass asks for, each a list filled after the pass from one read for them all.
 			const wanted: {
 				employment_id: Parameters<typeof leaveBalancesFor>[1][number]['employment_id'];
@@ -209,11 +208,11 @@ export default automation('calendar_tick', {
 				const ids = new Set(contracts.map((row) => row.id));
 				const leave = yield* leaveFrom(
 					read,
-					got.describe_leave.rows.filter(
+					describedLeave.filter(
 						(row) =>
 							row.employment_id !== null && ids.has(row.employment_id) && row.occurred_on >= since
 					),
-					got.describe_leave_catalog.rows
+					leaveCatalogues
 				);
 				for (const contract of contracts) {
 					const range = contract.effective_range;

@@ -40,9 +40,9 @@ export default model('allowance_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { allowance_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { allowance_catalog: update_columns }
 	}
 });

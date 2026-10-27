@@ -1,6 +1,6 @@
 <!--
 	One person-day inside its `roster_entry` Form: what the calendar projects, what the roster plans and what the clock
-	recorded. The plan and the clocks write the form's own fields; Save is the record's, and the collection's transform
+	recorded. The plan and the clocks write the form's own fields; Save is the record's, and the model's transform
 	stays the judge. A day settled on a payslip arrives as a readonly form: it shows, never edits.
 -->
 <script lang="ts">

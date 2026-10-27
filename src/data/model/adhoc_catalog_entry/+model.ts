@@ -81,9 +81,13 @@ export default model('adhoc_catalog_entry', {
 		}
 	},
 	locked: { payslip_id: { isNull: false } },
-	read: 'all',
+	read: {
+		adhoc_catalog_entry: { fields: 'all' },
+		'adhoc_catalog_entry.catalog_id': { fields: 'all' },
+		'adhoc_catalog_entry.employment_id': { fields: 'all' }
+	},
 	create: {
-		columns: [
+		columns: { adhoc_catalog_entry: [
 			'catalog_id',
 			'employment_id',
 			'occurred_on',
@@ -92,7 +96,7 @@ export default model('adhoc_catalog_entry', {
 			'quantity',
 			'label',
 			'facts'
-		],
+		] },
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -106,7 +110,7 @@ export default model('adhoc_catalog_entry', {
 		}
 	},
 	update: {
-		columns: [
+		columns: { adhoc_catalog_entry: [
 			'catalog_id',
 			'occurred_on',
 			'activity',
@@ -115,7 +119,7 @@ export default model('adhoc_catalog_entry', {
 			'label',
 			'facts',
 			'payslip_id'
-		],
+		] },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

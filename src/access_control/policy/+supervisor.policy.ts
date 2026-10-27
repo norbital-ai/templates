@@ -3,8 +3,8 @@ import {
 	MEMBER_LIMITS,
 	SELF,
 	ROSTER_ENTRY_ATTENDANCE_FIELDS,
-	ROSTER_ENTRY_CREATE_APPROVAL,
-	ROSTER_ENTRY_UPDATE_APPROVAL
+	rosterCreateCheck,
+	rosterUnpinnedUpdateCheck
 } from './grants.js';
 
 /** Self-service, plus the shift's attendance: a supervisor records the clock, reviewed by the direct manager. */
@@ -20,13 +20,12 @@ export default policy({
 		roster_entry: {
 			read: true,
 			create: {
-				fields: ROSTER_ENTRY_ATTENDANCE_FIELDS,
-				approval: ROSTER_ENTRY_CREATE_APPROVAL
+				columns: { roster_entry: ROSTER_ENTRY_ATTENDANCE_FIELDS },
+				check: rosterCreateCheck
 			},
 			update: {
-				where: { payslip_id: { isNull: true } },
-				fields: ['worked_intervals', 'worksite'],
-				approval: ROSTER_ENTRY_UPDATE_APPROVAL
+				columns: { roster_entry: ['worked_intervals', 'worksite'] },
+				check: rosterUnpinnedUpdateCheck
 			}
 		}
 	},

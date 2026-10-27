@@ -1,7 +1,7 @@
 import { Array as EffectArray } from 'effect';
 import { Predicate } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
-import type { Act, CollectionName } from '@norbital-ai/bolt';
+import type { Act, ModelName } from '@norbital-ai/bolt';
 import { Effect, Result, Schema } from 'effect';
 import { evaluateStrict } from './expressions.js';
 import {
@@ -11,7 +11,7 @@ import {
 	isJsonObject,
 	Refusal
 } from './foundation.js';
-/** Collections a CEL effect is allowed to write: the pin targets, leave encashment, holds, obligations, tasks and
+/** Models a CEL effect is allowed to write: the pin targets, leave encashment, holds, obligations, tasks and
  * the holidays a version's calendar lists. */
 const WRITE_COLLECTIONS = [
 	'adhoc_catalog_entry',
@@ -23,7 +23,7 @@ const WRITE_COLLECTIONS = [
 	'obligation',
 	'regulatory_task',
 	'roster_entry'
-] as const satisfies readonly CollectionName[];
+] as const satisfies readonly ModelName[];
 const WRITE_OPERATIONS = ['create', 'update'] as const;
 /** The entries, roster days and open obligations an effect may withdraw (`delete`: a moved or undone exit's unpaid
  * encashment, a deleted run's unpaid remittances). */
@@ -41,7 +41,7 @@ type WriteCallable =
 	| `${(typeof WRITE_COLLECTIONS)[number]}.${(typeof WRITE_OPERATIONS)[number]}`
 	| `${(typeof DELETE_COLLECTIONS)[number]}.delete`
 	| 'loan_repayment_entry.update';
-/** Authored collections a behaviour may name in a declared read. */
+/** Authored models a behaviour may name in a declared read. */
 const READ_COLLECTIONS = [
 	'adhoc_catalog',
 	'adhoc_catalog_entry',
@@ -71,9 +71,9 @@ const READ_COLLECTIONS = [
 	'work_catalog',
 	'work_suspension',
 	'workplace_case'
-] as const satisfies readonly CollectionName[];
+] as const satisfies readonly ModelName[];
 /**
- * One declared read: a collection, a `where` whose every string leaf is a CEL expression over the event context, and
+ * One declared read: a model, a `where` whose every string leaf is a CEL expression over the event context, and
  * the fields beyond the scalar default to select (a stored `json` field must be named to come back).
  */
 export const BehaviourRead = Schema.Struct({
@@ -109,7 +109,7 @@ export type Behaviours = typeof Behaviours.Type;
 /** The stored JSON behaviours field: `undefined` when the value is not a version-1 rule set. */
 export const behavioursOf = (value: unknown): Behaviours | undefined =>
 	Schema.is(Behaviours)(value) ? value : undefined;
-/** One write an effect returned: the target collection, a native verb, and the act input verbatim. */
+/** One write an effect returned: the target model, a native verb, and the act input verbatim. */
 export type BehaviourWrite = {
 	readonly callable: WriteCallable;
 	readonly collection: WriteCollection;
@@ -130,7 +130,7 @@ type BehaviourTrigger =
 	  };
 /**
  * Whether one rule answers one trigger, before its `when` — what the executor reads the trigger row's fields for. A
- * row rule without `target_collection` answers its events on every collection the taps fire for.
+ * row rule without `target_collection` answers its events on every model the taps fire for.
  */
 export function triggerMatches(rule: Behaviour, trigger: BehaviourTrigger): boolean {
 	if (!rule.events.includes(trigger.event)) return false;
@@ -169,7 +169,7 @@ export function resolveWhere(
 	};
 	return walk(where);
 }
-/** One returned write before it is judged: the collection, the native verb and the act input. */
+/** One returned write before it is judged: the model, the native verb and the act input. */
 const Write = Schema.Union([
 	Schema.Struct({
 		collection: Schema.Literals(WRITE_COLLECTIONS),
@@ -219,10 +219,10 @@ export function effectWrites(rule: Behaviour, context: CelContext): readonly Beh
 	);
 }
 /**
- * A rule's writes through the automation act surface, in order. Updates of one collection go as one act over every
+ * A rule's writes through the automation act surface, in order. Updates of one model go as one act over every
  * target — consecutive ones, or all of them when the rule only updates (a run's pins move thousands of rows across
- * the entry and roster collections: one statement and one transform each, not one per row). Consecutive creates of
- * one collection go as one act too (a year's holiday calendar is one statement); a review then covers the batch. The
+ * the entry and roster models: one statement and one transform each, not one per row). Consecutive creates of
+ * one model go as one act too (a year's holiday calendar is one statement); a review then covers the batch. The
  * whole list is one native act: the batch's writes planned together and committed as one statement.
  */
 export function actBehaviourWrites(act: Pick<Act, 'checked'>, writes: readonly BehaviourWrite[]) {
@@ -253,31 +253,29 @@ export function actBehaviourWrites(act: Pick<Act, 'checked'>, writes: readonly B
 						data['target'] === undefined || Object.keys(data).some((key) => key !== 'target')
 				)
 			)
-				return run.map(({ callable, data }) => ({ callable, input: data }));
+				return run.map(({ callable, data }) => ({ callable, input: [data] }));
+			// Every generated write is a batch: one row per create, `{ target, set }` per update, `{ target }` per delete.
 			return [
 				{
 					callable: first.callable,
 					input:
-						run.length === 1
-							? first.data
-							: first.operation === 'delete'
-								? {
-										target: run.flatMap(({ data }) => {
-											const target = data['target'];
-											return target === undefined
-												? []
-												: EffectArray.isArray<typeof target>(target)
-													? target
-													: [target];
-										})
-									}
-								: run.flatMap(({ data }): JsonObject[] => {
-										const target = data['target'];
-										return first.operation === 'update' &&
-											EffectArray.isArray<typeof target>(target)
-											? target.map((id) => ({ ...data, target: id }))
-											: [data];
-									})
+						first.operation === 'delete'
+							? run.flatMap(({ data }): JsonObject[] => {
+									const target = data['target'];
+									return (
+										target === undefined
+											? []
+											: EffectArray.isArray<typeof target>(target)
+												? target
+												: [target]
+									).map((id) => ({ target: id }));
+								})
+							: run.flatMap(({ data }): JsonObject[] => {
+									const target = data['target'];
+									return first.operation === 'update' && EffectArray.isArray<typeof target>(target)
+										? target.map((id) => ({ ...data, target: id }))
+										: [data];
+								})
 				}
 			];
 		});

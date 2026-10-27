@@ -1,43 +1,13 @@
 import {
 	model,
 	type Id,
-	type QueryCtx,
 	type CreateRow,
 	type UpdateSet,
 	type StoredRow,
 	type WriteCtx
 } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { leaveState } from '../../../lib/payroll_engine/payslip/context.js';
 import { transformEntries } from '../../../lib/payroll_engine/admit.js';
-import * as Predicate from 'effect/Predicate';
-import { runEngine } from '../../../lib/payroll_engine/foundation.js';
-import { leaveBalances, previewLeave } from '../../../lib/payroll_engine/leave.js';
-import { requestDays } from '../../../lib/payroll_engine/leave_days.js';
-
-const BALANCE_FIELDS = {
-	catalog_id: { kind: 'id', of: 'leave_catalog' },
-	code: { kind: 'text' },
-	name: { kind: 'text' },
-	metered: { kind: 'bool' },
-	entitlement: { kind: 'number' },
-	carried: { kind: 'number' },
-	taken: { kind: 'number' },
-	available: { kind: 'number' },
-	window_key: { kind: 'text' }
-} as const;
-
-const REQUEST = {
-	employment_id: { kind: 'id', of: 'employment_contract' },
-	catalog_id: { kind: 'id', of: 'leave_catalog' },
-	from: { kind: 'date' },
-	to: { kind: 'date', optional: true },
-	half_day_start: { kind: 'bool', optional: true },
-	half_day_end: { kind: 'bool', optional: true }
-} as const;
-
-const leaveStateOf = (ctx: QueryCtx, employment_id: Id<'employment_contract'>, asOf: string) =>
-	runEngine(leaveState(employment_id, asOf), ctx.query, ctx.refuse);
 
 type WriteInput = Omit<UpdateSet<'leave_catalog_entry'>, 'id'> &
 	Partial<Omit<CreateRow<'leave_catalog_entry'>, 'id'>> & {
@@ -135,23 +105,28 @@ export default model('leave_catalog_entry', {
 		}
 	},
 	locked: { payslip_id: { isNull: false } },
-	read: 'all',
+	read: {
+		leave_catalog_entry: { fields: 'all' },
+		'leave_catalog_entry.catalog_id': { fields: 'all' }
+	},
 	create: {
-		columns: [
-			'catalog_id',
-			'employment_id',
-			'occurred_on',
-			'activity',
-			'days',
-			'half_day_start',
-			'half_day_end',
-			'from',
-			'to',
-			'amount',
-			'label',
-			'facts',
-			'reference'
-		],
+		columns: {
+			leave_catalog_entry: [
+				'catalog_id',
+				'employment_id',
+				'occurred_on',
+				'activity',
+				'days',
+				'half_day_start',
+				'half_day_end',
+				'from',
+				'to',
+				'amount',
+				'label',
+				'facts',
+				'reference'
+			]
+		},
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -165,21 +140,23 @@ export default model('leave_catalog_entry', {
 		}
 	},
 	update: {
-		columns: [
-			'catalog_id',
-			'occurred_on',
-			'activity',
-			'days',
-			'half_day_start',
-			'half_day_end',
-			'from',
-			'to',
-			'amount',
-			'label',
-			'facts',
-			'reference',
-			'payslip_id'
-		],
+		columns: {
+			leave_catalog_entry: [
+				'catalog_id',
+				'occurred_on',
+				'activity',
+				'days',
+				'half_day_start',
+				'half_day_end',
+				'from',
+				'to',
+				'amount',
+				'label',
+				'facts',
+				'reference',
+				'payslip_id'
+			]
+		},
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),
@@ -199,82 +176,6 @@ export default model('leave_catalog_entry', {
 				rows,
 				ctx
 			);
-		}
-	},
-	queries: {
-		leave_balances: {
-			description:
-				'Computed entitlement, committed days taken and remaining availability for each leave class in force on the day.',
-			input: {
-				employment_id: { kind: 'id', of: 'employment_contract' },
-				as_of: { kind: 'date' }
-			},
-			output: {
-				kind: 'object',
-				fields: {
-					balances: {
-						kind: 'list',
-						of: { kind: 'object', fields: BALANCE_FIELDS }
-					}
-				}
-			},
-			run: function* ({ employment_id, as_of }, ctx) {
-				const asOf = String(as_of);
-				const state = yield* leaveStateOf(ctx, employment_id, asOf);
-				// what the employee is offered: the classes their eligibility admits
-				return { balances: leaveBalances({ ...state, offeredOnly: true }) };
-			}
-		},
-		leave_days: {
-			description:
-				'What a time-off range charges, counted as the leave write counts it: over the employment’s own plan and the published holidays, in the class’s unit, with the days that charge nothing.',
-			input: REQUEST,
-			output: {
-				kind: 'object',
-				fields: {
-					days: { kind: 'number' },
-					unit: { kind: 'text' },
-					off: { kind: 'list', of: { kind: 'text' } }
-				}
-			},
-			run: function* (request, ctx) {
-				const charge = yield* requestDays(request, ctx.query);
-				return Predicate.isString(charge)
-					? yield* ctx.refuse(charge)
-					: { ...charge, off: [...charge.off] };
-			}
-		},
-		preview_leave: {
-			description:
-				'The same planner a leave write uses: the units the range charges, the remaining days after it and the calendar span it covers.',
-			input: { ...REQUEST, as_of: { kind: 'date' } },
-			output: {
-				kind: 'object',
-				fields: {
-					...BALANCE_FIELDS,
-					unit: { kind: 'text' },
-					requested: { kind: 'number' },
-					remaining: { kind: 'number' },
-					ok: { kind: 'bool' },
-					covered_from: { kind: 'text' },
-					covered_to: { kind: 'text' }
-				}
-			},
-			run: function* ({ as_of, ...request }, ctx) {
-				const charge = yield* requestDays(request, ctx.query);
-				if (Predicate.isString(charge)) return yield* ctx.refuse(charge);
-				const asOf = String(as_of);
-				const state = yield* leaveStateOf(ctx, request.employment_id, asOf);
-				const preview = previewLeave({
-					...state,
-					catalog_id: request.catalog_id,
-					days: charge.days,
-					from: request.from,
-					to: request.to
-				});
-				if (preview == null) return yield* ctx.refuse('Choose the entry’s class.');
-				return { ...preview, unit: charge.unit };
-			}
 		}
 	}
 });

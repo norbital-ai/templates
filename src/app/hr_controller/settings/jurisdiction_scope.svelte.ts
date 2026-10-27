@@ -30,22 +30,16 @@ type JurisdictionScopeNode = Readonly<{
 
 /** Every committed version of every lineage, live. Call during component initialisation. */
 export function jurisdictionVersions() {
-	return bolt.query('jurisdiction_settings', {
-		where: {},
-		select: {
-			code: true,
-			name: true,
-			effective_range: true,
-			sealed_at: true,
-			voided_at: true
-		},
-		orderBy: { code: 'asc' },
-		all: true
+	return bolt.query({
+		jurisdiction_settings: {
+			fields: ['code', 'name', 'effective_range', 'sealed_at', 'voided_at'],
+			orderBy: { code: 'asc' }
+		}
 	});
 }
 type JurisdictionScopeRow = NonNullable<
 	ReturnType<typeof jurisdictionVersions>['current']
->['rows'][number];
+>['jurisdiction_settings']['rows'][number];
 type Versions = readonly JurisdictionScopeRow[];
 
 /** Every version of every lineage, newest first within each, keyed by code and sorted by code. */

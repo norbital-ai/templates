@@ -83,14 +83,14 @@ export default model('work_suspension', {
 	},
 	read: 'all',
 	create: {
-		columns: [...update_columns, 'company_id'],
+		columns: { work_suspension: [...update_columns, 'company_id'] },
 		transform: function* (rows, ctx) {
 			yield* admit(rows, ctx);
 			return rows;
 		}
 	},
 	update: {
-		columns: update_columns,
+		columns: { work_suspension: update_columns },
 		transform: function* (changes, ctx) {
 			yield* admit(
 				changes.map(({ before, set }) => ({ ...before, ...set })),

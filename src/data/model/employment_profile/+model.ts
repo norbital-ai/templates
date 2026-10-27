@@ -290,7 +290,7 @@ export default model('employment_profile', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns,
+		columns: { employment_profile: create_columns },
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -304,7 +304,7 @@ export default model('employment_profile', {
 		}
 	},
 	update: {
-		columns: update_columns,
+		columns: { employment_profile: update_columns },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

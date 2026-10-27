@@ -381,4 +381,4 @@ export const assessStatutory = (input: {
 		}
 		return { lines: assessed, warnings };
 	});
-/** The host transform surface an entry collection hands to `transformEntries`. */
+/** The host transform surface an entry model hands to `transformEntries`. */

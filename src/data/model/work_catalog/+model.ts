@@ -32,9 +32,9 @@ export default model('work_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: [...columns, 'settings_id']
+		columns: { work_catalog: [...columns, 'settings_id'] }
 	},
 	update: {
-		columns
+		columns: { work_catalog: columns }
 	}
 });

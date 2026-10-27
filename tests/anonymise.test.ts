@@ -44,8 +44,19 @@ for (const [name, now, accepted] of [
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				const beforeProfile = yield* hr.query('employment_profile', { id: profile('a') });
-				const beforeContract = yield* hr.query('employment_contract', { id: employment('a') });
+				const records = () =>
+					hr
+						.query({
+							employment_profile: { where: { id: { eq: profile('a') } } },
+							employment_contract: { where: { id: { eq: employment('a') } } }
+						})
+						.pipe(
+							Effect.map((got) => ({
+								profile: got.employment_profile.rows[0],
+								contract: got.employment_contract.rows[0]
+							}))
+						);
+				const { profile: beforeProfile, contract: beforeContract } = yield* records();
 				const started = yield* hr.start('employment_profile_anonymise', { employee: profile('a') });
 				assert.equal(started.kind, 'committed');
 				if (started.kind !== 'committed') throw new Error('The anonymisation run was not queued.');
@@ -55,8 +66,7 @@ for (const [name, now, accepted] of [
 					params: [started.output.id]
 				});
 				assert.ok(run, 'The started automation has a native run.');
-				const afterProfile = yield* hr.query('employment_profile', { id: profile('a') });
-				const afterContract = yield* hr.query('employment_contract', { id: employment('a') });
+				const { profile: afterProfile, contract: afterContract } = yield* records();
 				if (!accepted) {
 					assert.equal(run.state, 'failed');
 					assert.match(run.error?.message ?? '', /The records are kept until 2026-03-31/);

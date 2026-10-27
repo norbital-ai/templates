@@ -1,6 +1,5 @@
 import { Effect, Option, Result, Schema } from 'effect';
-import { automation, jsonDiff } from '@norbital-ai/bolt';
-import { readAll, Reads, readsFrom } from '../lib/payroll_engine/foundation.js';
+import { automation, jsonDiff, type Cursor, type Page } from '@norbital-ai/bolt';
 import { cloneSettingsFields } from '../lib/payroll_engine/settings_version.js';
 import {
 	allowedUrl,
@@ -21,7 +20,6 @@ import {
 	mergeAgent,
 	snapshotFields,
 	snapshotProblem,
-	snapshotSelect,
 	SNAPSHOT_MODELS,
 	SNAPSHOT_OUTPUT,
 	STATUTORY_RESEARCH_ROLE,
@@ -34,6 +32,24 @@ import {
 } from '../lib/payroll_engine/research_agents.js';
 /** Catalogue rows per page: every page fits one crossing. */
 const SECTION_PAGE = 50;
+/** Every page of one root, a crossing each. */
+const allPages = Effect.fnUntraced(function* <A, E>(
+	page: (after: Cursor | undefined) => Effect.Effect<Page<A>, E>
+) {
+	const rows: A[] = [];
+	let after: Cursor | undefined;
+	do {
+		const got = yield* page(after);
+		rows.push(...got.rows);
+		after = got.next ?? undefined;
+	} while (after !== undefined);
+	return rows;
+});
+/** One catalogue section's request page: the version's rows, `SECTION_PAGE` at a time. */
+const paged = (after: Cursor | undefined) => ({
+	limit: SECTION_PAGE,
+	...(after === undefined ? {} : { after })
+});
 /**
  * Every Saturday at 03:00 UTC, and when started by payroll authority: one run researches every sealed in-force
  * jurisdiction lineage (or the one `code` given) one lineage at a time — six agents per lineage (catalog, contribution,
@@ -61,59 +77,59 @@ export default automation('statutory_drift', {
 	concurrency: { max: 1 },
 	run: function* (input, ctx) {
 		// the in-force lineages, light; each research reads its own snapshot
-		const { rows: inForce } = yield* ctx.query('jurisdiction_settings', {
-			where: {
-				...(input.code == null || input.code === '' ? {} : { code: { eq: input.code } }),
-				sealed_at: { isNull: false },
-				voided_at: { isNull: true },
-				effective_range: { contains: ctx.today }
-			},
-			select: { id: true, code: true },
-			all: true
+		const {
+			jurisdiction_settings: { rows: inForce }
+		} = yield* ctx.query({
+			jurisdiction_settings: {
+				where: {
+					...(input.code == null || input.code === '' ? {} : { code: { eq: input.code } }),
+					sealed_at: { isNull: false },
+					voided_at: { isNull: true },
+					effective_range: { contains: ctx.today }
+				},
+				fields: ['code']
+			}
 		});
 		// One lineage's snapshot (its first in-force version), or null when there is nothing to research.
 		const prepare = (code: string) =>
 			Effect.gen(function* () {
 				// the in-force versions and their open drafts, light; a lineage left out reads no catalogue
-				const { versions, held } = yield* ctx.query({
-					versions: {
-						from: 'jurisdiction_settings',
+				const { jurisdiction_settings: versions } = yield* ctx.query({
+					jurisdiction_settings: {
 						where: {
 							code: { eq: code },
 							sealed_at: { isNull: false },
 							voided_at: { isNull: true },
 							effective_range: { contains: ctx.today }
 						},
-						select: {
-							id: true,
-							code: true,
-							jurisdiction_code: true,
-							name: true,
-							employee_input_schema: true,
-							entity_input_schema: true,
-							behaviours: true,
-							references: true,
-							payroll: true,
-							suspension_kinds: true,
-							sources: true,
-							reference_tables: true,
-							change_summary: true,
-							effective_range: true,
-							sealed_at: true,
-							voided_at: true,
-							void_reason: true
-						},
-						all: true
-					},
-					held: {
-						from: 'jurisdiction_settings',
+						fields: [
+							'code',
+							'jurisdiction_code',
+							'name',
+							'employee_input_schema',
+							'entity_input_schema',
+							'behaviours',
+							'references',
+							'payroll',
+							'suspension_kinds',
+							'sources',
+							'reference_tables',
+							'change_summary',
+							'effective_range',
+							'sealed_at',
+							'voided_at',
+							'void_reason'
+						]
+					}
+				});
+				const { jurisdiction_settings: held } = yield* ctx.query({
+					jurisdiction_settings: {
 						where: {
-							cloned_from_id: { in: { member: 'versions', field: 'id' } },
+							cloned_from_id: { in: versions.rows.map((row) => row.id) },
 							sealed_at: { isNull: true },
 							voided_at: { isNull: true }
 						},
-						select: { id: true, cloned_from_id: true },
-						all: true
+						fields: ['cloned_from_id']
 					}
 				});
 				const version = versions.rows[0];
@@ -124,53 +140,50 @@ export default automation('statutory_drift', {
 				// The governing version's catalogues, a section at a time and a page per crossing: one rule set can outweigh a
 				// crossing, and every page passes through the workspace engine's own memory.
 				const where = { settings_id: { eq: version.id } };
-				const adhoc = yield* readAll(
-					'adhoc_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.adhoc_catalog.fields)
+				const adhoc = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ adhoc_catalog: { where, ...paged(after) } }),
+						(got) => got.adhoc_catalog
+					)
 				);
-				const allowance = yield* readAll(
-					'allowance_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.allowance_catalog.fields)
+				const allowance = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ allowance_catalog: { where, ...paged(after) } }),
+						(got) => got.allowance_catalog
+					)
 				);
-				const claim = yield* readAll(
-					'claim_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.claim_catalog.fields)
+				const claim = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ claim_catalog: { where, ...paged(after) } }),
+						(got) => got.claim_catalog
+					)
 				);
-				const leave = yield* readAll(
-					'leave_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.leave_catalog.fields)
+				const leave = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ leave_catalog: { where, ...paged(after) } }),
+						(got) => got.leave_catalog
+					)
 				);
-				const loan = yield* readAll(
-					'loan_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.loan_catalog.fields)
+				const loan = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ loan_catalog: { where, ...paged(after) } }),
+						(got) => got.loan_catalog
+					)
 				);
-				const work = yield* readAll(
-					'work_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.work_catalog.fields)
+				const work = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ work_catalog: { where, ...paged(after) } }),
+						(got) => got.work_catalog
+					)
 				);
-				const contribution = yield* readAll(
-					'statutory_contribution_catalog',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.statutory_contribution_catalog.fields)
+				const contribution = yield* allPages((after) =>
+					Effect.map(
+						ctx.query({ statutory_contribution_catalog: { where, ...paged(after) } }),
+						(got) => got.statutory_contribution_catalog
+					)
 				);
-				const rules = yield* readAll(
-					'rule_set',
-					where,
-					SECTION_PAGE,
-					snapshotSelect(SNAPSHOT_MODELS.rule_set.fields)
+				const rules = yield* allPages((after) =>
+					Effect.map(ctx.query({ rule_set: { where, ...paged(after) } }), (got) => got.rule_set)
 				);
 				const snapshot = yield* decodeSnapshot({
 					settings: snapshotFields(version, SNAPSHOT_MODELS.settings.fields),
@@ -199,7 +212,7 @@ export default automation('statutory_drift', {
 					}))
 				});
 				return { code, version, sources, snapshot };
-			}).pipe(Effect.provideService(Reads, readsFrom(ctx.query)));
+			});
 		type Prepared = Exclude<Effect.Success<ReturnType<typeof prepare>>, null>;
 		const json = Schema.decodeUnknownSync(Schema.Json);
 		// The rows a merged draft changed whose evidence holds: each cites a fresh quote that re-appears on its page on a
@@ -451,37 +464,39 @@ export default automation('statutory_drift', {
 				].join('\n\n');
 				// The governing version's research registry (`sources`) carries over through `version`, with each agent's
 				// admitted entries when one switched.
-				yield* ctx.act('jurisdiction_settings.create', {
-					...cloneSettingsFields(
-						{
-							...version,
-							...corrected.settings,
-							...(sourceNotes.length === 0
-								? {}
-								: {
-										sources: {
-											...version.sources,
-											entries: switched.flatMap((item) => item.entries)
-										}
-									}),
-							behaviours: {
-								version: 1,
-								rules: corrected.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
-							}
-						},
-						effective_from
-					),
-					change_summary: changeSummary(kept, summary),
-					adhoc_catalog: { create: corrected.adhoc_catalog },
-					allowance_catalog: { create: corrected.allowance_catalog },
-					claim_catalog: { create: corrected.claim_catalog },
-					leave_catalog: { create: corrected.leave_catalog },
-					loan_catalog: { create: corrected.loan_catalog },
-					work_catalog: { create: corrected.work_catalog },
-					statutory_contribution_catalog: { create: corrected.statutory_contribution_catalog },
-					suspension_kinds: corrected.suspension_kind,
-					rule_set: { create: corrected.rule_set }
-				});
+				yield* ctx.act('jurisdiction_settings.create', [
+					{
+						...cloneSettingsFields(
+							{
+								...version,
+								...corrected.settings,
+								...(sourceNotes.length === 0
+									? {}
+									: {
+											sources: {
+												...version.sources,
+												entries: switched.flatMap((item) => item.entries)
+											}
+										}),
+								behaviours: {
+									version: 1,
+									rules: corrected.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
+								}
+							},
+							effective_from
+						),
+						change_summary: changeSummary(kept, summary),
+						adhoc_catalog: corrected.adhoc_catalog,
+						allowance_catalog: corrected.allowance_catalog,
+						claim_catalog: corrected.claim_catalog,
+						leave_catalog: corrected.leave_catalog,
+						loan_catalog: corrected.loan_catalog,
+						work_catalog: corrected.work_catalog,
+						statutory_contribution_catalog: corrected.statutory_contribution_catalog,
+						suspension_kinds: corrected.suspension_kind,
+						rule_set: corrected.rule_set
+					}
+				]);
 				const reasons = [
 					...(Result.isFailure(checked)
 						? [checked.failure]

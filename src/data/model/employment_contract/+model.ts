@@ -338,9 +338,13 @@ export default model('employment_contract', {
 		company_id: { kind: 'ref', to: 'entity', inverse: 'employment_contract' }
 	},
 	search: { text: ['employee_number'] },
-	read: 'all',
+	read: {
+		employment_contract: { fields: 'all' },
+		'employment_contract.employee_id': { fields: 'all' },
+		'employment_contract.company_id': { fields: 'all' }
+	},
 	create: {
-		columns: create_columns,
+		columns: { employment_contract: create_columns },
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -354,7 +358,7 @@ export default model('employment_contract', {
 		}
 	},
 	update: {
-		columns: update_columns,
+		columns: { employment_contract: update_columns },
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

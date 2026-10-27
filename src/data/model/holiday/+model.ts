@@ -71,7 +71,7 @@ export default model('holiday', {
 	},
 	read: 'all',
 	create: {
-		columns,
+		columns: { holiday: columns },
 		transform: function* (rows, ctx) {
 			yield* admitKinds(
 				rows.map((row, at) => ({ ...row, at })),
@@ -81,7 +81,7 @@ export default model('holiday', {
 		}
 	},
 	update: {
-		columns,
+		columns: { holiday: columns },
 		// only a moved day or a changed kind is judged again
 		transform: function* (changes, ctx) {
 			yield* admitKinds(

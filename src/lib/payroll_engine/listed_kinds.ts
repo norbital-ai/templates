@@ -33,40 +33,46 @@ export type KindRequest = {
 	readonly code: string;
 	readonly day: string;
 };
-/** Every entity, version and kinds slot a write batch needs, in one statement. */
+/** Every entity, version and kinds slot a write batch needs, in two reads (the lineage is named by the entity's code). */
 export const refuseUnlistedKinds = Effect.fnUntraced(function* (
 	inputs: readonly KindRequest[],
 	read: Read
 ) {
 	if (inputs.length === 0) return [];
-	const got = yield* read({
+	const { entity } = yield* read({
 		entity: {
-			from: 'entity',
 			where: { id: { in: [...new Set(inputs.map((input) => input.company_id))] } },
-			select: { settings_code: true },
-			all: true
-		},
-		versions: {
-			from: 'jurisdiction_settings',
+			fields: ['settings_code']
+		}
+	});
+	const { jurisdiction_settings } = yield* read({
+		jurisdiction_settings: {
 			where: {
-				code: { in: { member: 'entity', field: 'settings_code' } },
+				code: {
+					in: [
+						...new Set(
+							entity.rows.flatMap((row) => (isString(row.settings_code) ? [row.settings_code] : []))
+						)
+					]
+				},
 				sealed_at: { isNull: false },
 				voided_at: { isNull: true }
 			},
-			select: { code: true, effective_range: true },
-			all: true
+			fields: ['code', 'effective_range']
 		},
-		rules: {
-			from: 'rule_set',
+		'jurisdiction_settings.rule_set': {
 			where: {
-				settings_id: { in: { member: 'versions', field: 'id' } },
 				family: { eq: 'PAYROLL' },
 				code: { in: [...new Set(inputs.map((input) => input.rule))] }
 			},
-			select: { settings_id: true, code: true, rules: true },
-			all: true
+			fields: ['settings_id', 'code', 'rules']
 		}
 	});
+	const got = {
+		entity,
+		versions: jurisdiction_settings,
+		rules: { rows: jurisdiction_settings.rows.flatMap((version) => version.rule_set) }
+	};
 	return inputs.map((input) => {
 		const lineage = got.entity.rows.find((row) => row.id === input.company_id)?.settings_code;
 		if (!isString(lineage)) return 'This needs its legal entity.';

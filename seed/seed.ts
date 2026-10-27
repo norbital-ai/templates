@@ -27,7 +27,7 @@ const TEAM_HANDLES: Readonly<Record<string, string>> = {
 	'3d52a68b-017f-57d9-8fd2-fa7db4ca5965': 'attendance_kiosk'
 };
 
-/** A bank row in the collection's current shape: a roster day's overtime and incentive derive from its clock past the
+/** A bank row in the model's current shape: a roster day's overtime and incentive derive from its clock past the
  * planned shift, so the hours the bank typed are not read. */
 export const bankRow = (collection: string, row: Row): Row => {
 	const field =
@@ -40,7 +40,7 @@ export const bankRow = (collection: string, row: Row): Row => {
 };
 
 /**
- * Parse each collection row separately from bytes, so a large collection never needs one whole-file string.
+ * Parse each model row separately from bytes, so a large model file never needs one whole-file string.
  * Structural bytes are ASCII and UTF-8 continuation bytes are never ASCII, so byte scanning is exact.
  */
 function parseRows(bytes: Buffer, path: string): Row[] {
@@ -92,20 +92,20 @@ function parseRows(bytes: Buffer, path: string): Row[] {
 		else if (char === 123 || char === 91) depth++;
 		else if (char === 125 || char === 93) {
 			if (--depth === 0) {
-				// repository-health:allow R6b -- the generic seed loader has no collection schema; rows are admitted by the engine's per-collection contracts after this build-time parse.
+				// repository-health:allow R6b -- the generic seed loader has no model schema; rows are admitted by the engine's per-model contracts after this build-time parse.
 				const parsed: unknown = JSON.parse(bytes.subarray(start, cursor + 1).toString('utf8'));
 				if (!isRecord(parsed)) throw new Error(`Seed row is not an object: ${path}`);
 				rows.push(parsed);
 				start = -1;
 				position = 'separator';
 			}
-		} // repository-health:allow R6b -- the generic seed loader has no collection schema; rows are admitted by the engine's per-collection contracts after this build-time parse.
+		} // repository-health:allow R6b -- the generic seed loader has no model schema; rows are admitted by the engine's per-model contracts after this build-time parse.
 	}
 	if (!opened || !ended || start >= 0) throw new Error(`Seed collection is incomplete: ${path}`);
 	return rows;
 }
 
-/** One plain `<collection>.json`. */
+/** One plain `<model>.json`. */
 export function readRows(path: string): Row[] {
 	return parseRows(readFileSync(path), path);
 }
@@ -158,7 +158,7 @@ export default {
 			const policy = overtimeRule(settings);
 			if (policy !== null) (rows['rule_set'] ??= []).push(policy);
 		}
-		// The private sample: `records/<entity>/<collection>.json`, rows already in the current collection shape. For now
+		// The private sample: `records/<entity>/<model>.json`, rows already in the current model shape. For now
 		// every validation of a sample entity only warns, as a new entity's does. Of the system files only members load:
 		// teams and their grants are source declarations.
 		for (const file of bank.files('records')) {

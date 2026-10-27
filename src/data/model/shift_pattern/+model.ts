@@ -11,12 +11,13 @@ const admitDays = Effect.fnUntraced(function* (
 	}[],
 	ctx: WriteCtx<'shift_pattern'>
 ) {
-	const { rows: shifts } = yield* ctx.db.query('shift_definition', {
-		where: {
-			company_id: { in: [...new Set(rows.map((row) => row.company_id))] }
-		},
-		select: { company_id: true },
-		all: true
+	const {
+		shift_definition: { rows: shifts }
+	} = yield* ctx.db.query({
+		shift_definition: {
+			where: { company_id: { in: [...new Set(rows.map((row) => row.company_id))] } },
+			fields: ['company_id']
+		}
 	});
 	const companyOf = new Map(shifts.map((row) => [String(row.id), row.company_id]));
 	for (const [at, row] of rows.entries())
@@ -72,14 +73,14 @@ export default model('shift_pattern', {
 	},
 	read: 'all',
 	create: {
-		columns: [...update_columns, 'company_id'],
+		columns: { shift_pattern: [...update_columns, 'company_id'] },
 		transform: function* (rows, ctx) {
 			yield* admitDays(rows, ctx);
 			return rows;
 		}
 	},
 	update: {
-		columns: update_columns,
+		columns: { shift_pattern: update_columns },
 		transform: function* (changes, ctx) {
 			yield* admitDays(
 				changes.map(({ before, set }) => ({ ...before, ...set })),

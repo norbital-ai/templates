@@ -29,160 +29,137 @@ import {
 	evaluate,
 	versionOn,
 	partsOf,
-	hoursStart
+	hoursStart,
+	idsOf
 } from './payslip/context.js';
 import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
 import { CYCLES, payrollWindow } from './frequency.js';
 import { admitPayrollRun, payrollRulesOf, validationsOf, reservedPinsFrom } from './admit.js';
 import { buildPayslip } from './payslip/lines.js';
-/** All runtime dependencies for a payroll write batch, fetched once after admission. */
-export const loadPayrollBuild = (read: Read, companyIds: readonly Id<'entity'>[]) =>
-	read({
+const contractSpan = (periods: readonly string[], lookbackMonths: number) => {
+	const months = [...new Set(periods.map((period) => period.slice(0, 7)))]
+		.filter((month) => /^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+		.map((month) => monthOf(`${month}-01`))
+		.sort((a, b) => (a.from < b.from ? -1 : 1));
+	if (months.length === 0) return undefined;
+	return {
+		from: addMonths(months[0]!.from, -lookbackMonths),
+		to: months.at(-1)!.to
+	};
+};
+/**
+ * All runtime dependencies for a payroll write batch, fetched after admission in three dependent reads: what the
+ * entities hold; the contracts' people, history and entries (and the lineages, by the entities' code); then the
+ * entries' classes, loans and the lineages' statutory rows.
+ */
+export const loadPayrollBuild = Effect.fnUntraced(function* (
+	read: Read,
+	companyIds: readonly Id<'entity'>[],
+	periods: readonly string[],
+	lookbackMonths: number = LONG_HISTORY_MONTHS
+) {
+	const span = contractSpan(periods, lookbackMonths);
+	const first = yield* read({
 		// Every committed ledger reserves its source before the asynchronous backlink is attached.
-		settlements: {
-			from: 'payroll_run',
-			where: {
-				company_id: { in: companyIds }
-			},
-			select: { company_id: true, pins: true },
-			all: true
-		},
-		contracts: {
-			from: 'employment_contract',
-			where: { company_id: { in: companyIds } },
-			select: CONTRACT,
-			all: true
-		},
-		people: {
-			from: 'employment_profile',
-			where: { id: { in: { member: 'contracts', field: 'employee_id' } } },
-			select: PROFILE,
-			all: true
-		},
-		history: {
-			from: 'payslip',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: HISTORY,
-			all: true
-		},
-		adhoc: {
-			from: 'adhoc_catalog_entry',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: ENTRY.adhoc_catalog_entry,
-			all: true
-		},
-		adhoc_codes: {
-			from: 'adhoc_catalog',
-			where: { id: { in: { member: 'adhoc', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
-		},
-		claim: {
-			from: 'claim_catalog_entry',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: ENTRY.claim_catalog_entry,
-			all: true
-		},
-		claim_codes: {
-			from: 'claim_catalog',
-			where: { id: { in: { member: 'claim', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
-		},
-		leave: {
-			from: 'leave_catalog_entry',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: ENTRY.leave_catalog_entry,
-			all: true
-		},
-		leave_codes: {
-			from: 'leave_catalog',
-			where: { id: { in: { member: 'leave', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
-		},
-		loan: {
-			from: 'loan_repayment_entry',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: ENTRY.loan_repayment_entry,
-			all: true
-		},
-		loan_principals: {
-			from: 'loan_catalog_entry',
-			where: { id: { in: { member: 'loan', field: 'loan_id' } } },
-			select: LOAN,
-			all: true
-		},
-		loan_codes: {
-			from: 'loan_catalog',
-			where: { id: { in: { member: 'loan', field: 'catalog_id' } } },
-			select: { code: true },
-			all: true
-		},
-		holidays: {
-			from: 'holiday',
+		payroll_run: { where: { company_id: { in: companyIds } }, fields: ['company_id', 'pins'] },
+		employment_contract: {
 			where: {
 				company_id: { in: companyIds },
-
-				published_at: { isNull: false }
+				// A contract that ended before the earnings lookback cannot price this run or feed its history.
+				...(span === undefined ? {} : { effective_range: { overlaps: span } })
 			},
-			select: HOLIDAY,
-			all: true
+			fields: CONTRACT
 		},
-		definitions: {
-			from: 'shift_definition',
+		holiday: {
+			where: { company_id: { in: companyIds }, published_at: { isNull: false } },
+			fields: HOLIDAY
+		},
+		shift_definition: {
 			where: { company_id: { in: companyIds } },
-			select: { company_id: true, code: true, variant: true },
-			all: true
+			fields: ['company_id', 'code', 'variant']
 		},
-		patterns: {
-			from: 'shift_pattern',
+		shift_pattern: {
 			where: { company_id: { in: companyIds } },
-			select: { company_id: true, pattern: true, effective_range: true },
-			all: true
+			fields: ['company_id', 'pattern', 'effective_range']
 		},
-		suspensions: {
-			from: 'work_suspension',
-			where: {
-				company_id: { in: companyIds }
-			},
-			select: {
-				company_id: true,
-				kind: true,
-				starts_on: true,
-				ends_on: true,
-				worksite: true,
-				employment_ids: true,
-				facts: true
-			},
-			all: true
+		work_suspension: {
+			where: { company_id: { in: companyIds } },
+			fields: ['company_id', 'kind', 'starts_on', 'ends_on', 'worksite', 'employment_ids', 'facts']
 		},
-		entities: {
-			from: 'entity',
-			where: { id: { in: companyIds } },
-			select: { settings_code: true },
-			all: true
+		entity: { where: { id: { in: companyIds } }, fields: ['settings_code'] },
+		allowance_catalog: { fields: ['code'] }
+	});
+	const contractIds = first.employment_contract.rows.map((row) => row.id);
+	const byContract = { employment_id: { in: contractIds } };
+	const second = yield* read({
+		employment_profile: {
+			where: { id: { in: idsOf(first.employment_contract.rows.map((row) => row.employee_id)) } },
+			fields: PROFILE
 		},
-		lineage_versions: {
-			from: 'jurisdiction_settings',
-			where: { code: { in: { member: 'entities', field: 'settings_code' } } },
-			select: { id: true },
-			all: true
+		payslip: { where: byContract, fields: HISTORY },
+		adhoc_catalog_entry: { where: byContract, fields: ENTRY.adhoc_catalog_entry },
+		claim_catalog_entry: { where: byContract, fields: ENTRY.claim_catalog_entry },
+		leave_catalog_entry: { where: byContract, fields: ENTRY.leave_catalog_entry },
+		loan_repayment_entry: { where: byContract, fields: ENTRY.loan_repayment_entry },
+		roster_entry: { where: byContract, fields: ROSTER },
+		jurisdiction_settings: {
+			where: { code: { in: idsOf(first.entity.rows.map((row) => row.settings_code)) } },
+			fields: ['code']
 		},
-		pay_rows: {
-			from: 'statutory_contribution_catalog',
-			where: { settings_id: { in: { member: 'lineage_versions', field: 'id' } } },
-			select: STATUTORY,
-			all: true
+		'jurisdiction_settings.statutory_contribution_catalog': { fields: STATUTORY }
+	});
+	const catalogIds = <T extends string>(
+		rows: readonly { readonly catalog_id: Parameters<typeof idsOf<T>>[0][number] }[]
+	) => idsOf(rows.map((row) => row.catalog_id));
+	const third = yield* read({
+		adhoc_catalog: {
+			where: { id: { in: catalogIds(second.adhoc_catalog_entry.rows) } },
+			fields: ['code']
 		},
-		captured_allowances: { from: 'allowance_catalog', select: { code: true }, all: true },
-		roster: {
-			from: 'roster_entry',
-			where: { employment_id: { in: { member: 'contracts', field: 'id' } } },
-			select: ROSTER,
-			all: true
+		claim_catalog: {
+			where: { id: { in: catalogIds(second.claim_catalog_entry.rows) } },
+			fields: ['code']
+		},
+		leave_catalog: {
+			where: { id: { in: catalogIds(second.leave_catalog_entry.rows) } },
+			fields: ['code']
+		},
+		loan_catalog_entry: {
+			where: { id: { in: idsOf(second.loan_repayment_entry.rows.map((row) => row.loan_id)) } },
+			fields: LOAN
+		},
+		loan_catalog: {
+			where: { id: { in: catalogIds(second.loan_repayment_entry.rows) } },
+			fields: ['code']
 		}
 	});
+	return {
+		settlements: first.payroll_run,
+		contracts: first.employment_contract,
+		people: second.employment_profile,
+		history: second.payslip,
+		adhoc: second.adhoc_catalog_entry,
+		adhoc_codes: third.adhoc_catalog,
+		claim: second.claim_catalog_entry,
+		claim_codes: third.claim_catalog,
+		leave: second.leave_catalog_entry,
+		leave_codes: third.leave_catalog,
+		loan: second.loan_repayment_entry,
+		loan_principals: third.loan_catalog_entry,
+		loan_codes: third.loan_catalog,
+		holidays: first.holiday,
+		definitions: first.shift_definition,
+		patterns: first.shift_pattern,
+		suspensions: first.work_suspension,
+		pay_rows: {
+			rows: second.jurisdiction_settings.rows.flatMap(
+				(version) => version.statutory_contribution_catalog
+			)
+		},
+		captured_allowances: first.allowance_catalog,
+		roster: second.roster_entry
+	};
+});
 type PayrollBuildRead = Effect.Success<ReturnType<typeof loadPayrollBuild>>;
 export const buildPayrollRun = (
 	request: PayrollRunRequest,
@@ -316,7 +293,14 @@ export const buildPayrollRun = (
 			JSON.stringify([governingRows, periodRows, validations, rules]).includes('suspended');
 		// One read: the entity's calendar and every contract in force with its person and entries. Each
 		// entry carries its class's code (`catalog`), whatever version holds that class.
-		const got = prefetched ?? (yield* loadPayrollBuild(hostRead, [request.company_id]));
+		const got =
+			prefetched ??
+			(yield* loadPayrollBuild(
+				hostRead,
+				[request.company_id],
+				[request.period],
+				Math.max(LONG_HISTORY_MONTHS, historyMonths, rollingMonths)
+			));
 		const payRows = got.pay_rows.rows.filter((row) => row.settings_id === payVersionId);
 		const statutoryRows = periodRows.map((row) =>
 			row.configuration?.governed_by === 'pay_date'

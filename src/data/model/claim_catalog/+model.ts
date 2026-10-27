@@ -44,9 +44,9 @@ export default model('claim_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { claim_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { claim_catalog: update_columns }
 	}
 });

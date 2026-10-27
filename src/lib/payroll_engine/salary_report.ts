@@ -15,30 +15,35 @@ type Lines<F extends LineField, K extends keyof Line<F>> =
 	| null
 	| undefined;
 
-export type SalaryColumn = {
-	readonly group: string;
-	readonly family: string;
-	readonly code: string;
-	readonly label: string;
-	readonly external: boolean;
-};
-export type SalaryReport = {
-	readonly company: string;
-	readonly period: string;
-	readonly currency: string;
-	readonly run_kind: string;
-	readonly pay_date: string;
-	readonly run_reference: string;
-	readonly minor_units: number;
-	readonly warnings: readonly string[];
-	readonly columns: readonly SalaryColumn[];
-	readonly rows: readonly {
-		readonly employee_number: string;
-		readonly name: string;
-		readonly status: string;
-		readonly amounts: readonly (number | null)[];
-	}[];
-};
+export const SalaryColumn = Schema.Struct({
+	group: Schema.String,
+	family: Schema.String,
+	code: Schema.String,
+	label: Schema.String,
+	external: Schema.Boolean
+});
+export type SalaryColumn = typeof SalaryColumn.Type;
+/** One salary listing: an entity's run in one currency. The payroll export carries it as JSON; the page decodes it. */
+export const SalaryReport = Schema.Struct({
+	company: Schema.String,
+	period: Schema.String,
+	currency: Schema.String,
+	run_kind: Schema.String,
+	pay_date: Schema.String,
+	run_reference: Schema.String,
+	minor_units: Schema.Number,
+	warnings: Schema.Array(Schema.String),
+	columns: Schema.Array(SalaryColumn),
+	rows: Schema.Array(
+		Schema.Struct({
+			employee_number: Schema.String,
+			name: Schema.String,
+			status: Schema.String,
+			amounts: Schema.Array(Schema.NullOr(Schema.Number))
+		})
+	)
+});
+export type SalaryReport = typeof SalaryReport.Type;
 export type SalaryCatalog = {
 	readonly family: string;
 	readonly code: string;

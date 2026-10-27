@@ -37,14 +37,14 @@ export default model('bank', {
 	},
 	read: 'all',
 	create: {
-		columns,
+		columns: { bank: columns },
 		transform: function* (rows, ctx) {
 			yield* admit(rows, ctx);
 			return rows;
 		}
 	},
 	update: {
-		columns,
+		columns: { bank: columns },
 		transform: function* (changes, ctx) {
 			yield* admit(
 				changes.map(({ before, set }) => ({ ...before, ...set })),

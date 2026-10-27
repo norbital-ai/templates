@@ -84,75 +84,78 @@ export const isWeekend = (date: string): boolean => {
 /* ── reads: one per source, shared by the board and the calendar ── */
 
 export const entryRead = (ids: readonly Id<'employment_contract'>[], from: string, to: string) =>
-	bolt.query('roster_entry', {
-		where: {
-			employment_id: { in: [...ids] },
-			work_date: { gte: PlainDate(from), lte: PlainDate(to) }
-		},
-		select: {
-			employment_id: true,
-			work_date: true,
-			shift_definition_id: true,
-			planned_overtime_hours: true,
-			approved_overtime_intervals: true,
-			worked_intervals: true,
-			payslip_id: true
-		},
-		all: true
+	bolt.query({
+		roster_entry: {
+			where: {
+				employment_id: { in: [...ids] },
+				work_date: { gte: PlainDate(from), lte: PlainDate(to) }
+			},
+			fields: [
+				'employment_id',
+				'work_date',
+				'shift_definition_id',
+				'planned_overtime_hours',
+				'approved_overtime_intervals',
+				'worked_intervals',
+				'payslip_id'
+			]
+		}
 	});
 
 export const holidayRead = (companyId: Id<'entity'>, from: string, to: string) =>
-	bolt.query('holiday', {
-		where: {
-			company_id: { eq: companyId },
-			published_at: { isNull: false },
-			date: { gte: PlainDate(from), lte: PlainDate(to) }
-		},
-		select: { date: true, name: true },
-		all: true
+	bolt.query({
+		holiday: {
+			where: {
+				company_id: { eq: companyId },
+				published_at: { isNull: false },
+				date: { gte: PlainDate(from), lte: PlainDate(to) }
+			},
+			fields: ['date', 'name']
+		}
 	});
 
 export const leaveRead = (ids: readonly Id<'employment_contract'>[], from: string, to: string) =>
-	bolt.query('leave_catalog_entry', {
-		where: {
-			employment_id: { in: [...ids] },
-			activity: { eq: 'TIME_OFF' },
-			occurred_on: { lte: PlainDate(to) },
-			// A leave reaching into the window by its last day, however long ago it started.
-			or: [
-				{ to: { gte: PlainDate(from) } },
-				{
-					to: { isNull: true },
-					occurred_on: { gte: PlainDate(addDays(from, -LEAVE_LOOKBACK_DAYS)) }
-				}
+	bolt.query({
+		leave_catalog_entry: {
+			where: {
+				employment_id: { in: [...ids] },
+				activity: { eq: 'TIME_OFF' },
+				occurred_on: { lte: PlainDate(to) },
+				// A leave reaching into the window by its last day, however long ago it started.
+				or: [
+					{ to: { gte: PlainDate(from) } },
+					{
+						to: { isNull: true },
+						occurred_on: { gte: PlainDate(addDays(from, -LEAVE_LOOKBACK_DAYS)) }
+					}
+				]
+			},
+			fields: [
+				'employment_id',
+				'occurred_on',
+				'days',
+				'from',
+				'to',
+				'half_day_start',
+				'half_day_end',
+				'payslip_id',
+				'catalog_id'
 			]
 		},
-		select: {
-			employment_id: true,
-			occurred_on: true,
-			days: true,
-			from: true,
-			to: true,
-			half_day_start: true,
-			half_day_end: true,
-			payslip_id: true,
-			catalog_id: { select: { code: true, name: true } }
-		},
-		all: true
+		'leave_catalog_entry.catalog_id': { fields: ['code', 'name'] }
 	});
 
 export const shiftRead = (companyId: Id<'entity'>) =>
-	bolt.query('shift_definition', {
-		where: { company_id: { eq: companyId } },
-		select: { code: true, variant: true },
-		all: true
+	bolt.query({
+		shift_definition: { where: { company_id: { eq: companyId } }, fields: ['code', 'variant'] }
 	});
 
 export const patternRead = (companyId: Id<'entity'>) =>
-	bolt.query('shift_pattern', {
-		where: { company_id: { eq: companyId } },
-		select: { pattern: true, effective_range: true },
-		all: true
+	bolt.query({
+		shift_pattern: {
+			where: { company_id: { eq: companyId } },
+			fields: ['pattern', 'effective_range']
+		}
 	});
 
 /* ── cells ── */

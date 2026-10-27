@@ -166,15 +166,14 @@ const scripted = Effect.gen(function* () {
 				if (last.role === 'tool') return { content: 'Done.', toolCalls: [], finish: 'stop', usage };
 				const said = text(last.content);
 				if (/^(?:\[[^\]\n]*\] )?slips$/m.test(said))
-					return call('query', {
-						collection: 'payslip',
-						select: { net: true, salary_from: true, status: true }
+					return call('read', {
+						payslip: { fields: ['net', 'salary_from', 'status'] }
 					});
 				const hold = /^(?:\[[^\]\n]*\] )?hold (\S+)$/m.exec(said);
 				if (hold !== null)
 					return call('act', {
 						callable: 'payslip.update',
-						input: { target: present(hold[1]), set: { status: 'ON_HOLD' } }
+						input: [{ target: present(hold[1]), set: { status: 'ON_HOLD' } }]
 					});
 				return { content: `echo: ${said}`, toolCalls: [], finish: 'stop', usage };
 			}
@@ -185,7 +184,9 @@ const scripted = Effect.gen(function* () {
 
 const Row = Schema.Record(Schema.String, Schema.Json);
 const PayslipResult = Schema.Struct({
-	rows: Schema.Array(Schema.Struct({ net: Schema.Struct({ $dec: Schema.String }) }))
+	payslip: Schema.Struct({
+		rows: Schema.Array(Schema.Struct({ net: Schema.Struct({ $dec: Schema.String }) }))
+	})
 });
 const Notice = Schema.Struct({ to: Schema.String, text: Schema.String });
 const setup = Effect.gen(function* () {
@@ -204,16 +205,20 @@ const setup = Effect.gen(function* () {
 				seed.sys_integration.some((row) => row.id === value && row.integration === 'whatsapp')
 		)
 	)(HOTLINE_B);
-	const attached = yield* hr.act('entity.update', {
-		target: nativeId('entity', B),
-		set: { hotline }
-	});
+	const attached = yield* hr.act('entity.update', [
+		{
+			target: nativeId('entity', B),
+			set: { hotline }
+		}
+	]);
 	expect(attached.kind, JSON.stringify(attached)).toBe('committed');
 	for (const target of [HOTLINE_A, HOTLINE_B]) {
-		const deployed = yield* hr.act('sys_integration.update', {
-			target: nativeId('sys_integration', target),
-			set: { envoy: 'payroll_hotline' }
-		});
+		const deployed = yield* hr.act('sys_integration.update', [
+			{
+				target: nativeId('sys_integration', target),
+				set: { envoy: 'payroll_hotline' }
+			}
+		]);
 		expect(deployed.kind, JSON.stringify(deployed)).toBe('committed');
 	}
 	let seq = 0;
@@ -254,7 +259,7 @@ const setup = Effect.gen(function* () {
 /** The canonical tool result carries decimal values as {$dec}; a malformed answer fails the scenario. */
 const nets = (result: Json | undefined) =>
 	Schema.decodeUnknownSync(PayslipResult)(result)
-		.rows.map((row) => row.net.$dec)
+		.payslip.rows.map((row) => row.net.$dec)
 		.sort();
 
 describe('payroll hotline', () => {
@@ -269,7 +274,7 @@ describe('payroll hotline', () => {
 				expect(nets(yield* lastResult)).toEqual(['2000.00']);
 				// Dee works for A only: B's number reads nothing of hers or anyone else's.
 				yield* say(HOTLINE_B, '6597654321', 'slips');
-				expect(yield* lastResult).toMatchObject({ rows: [] });
+				expect(yield* lastResult).toMatchObject({ payslip: { rows: [] } });
 				yield* say(HOTLINE_A, '6597654321', 'slips');
 				expect(nets(yield* lastResult)).toEqual(['4000.00']);
 				expect([...new Set(t.fakes.links.sent.map((sent) => sent.instance))].sort()).toEqual(
@@ -288,7 +293,12 @@ describe('payroll hotline', () => {
 				yield* say(HOTLINE_A, '6591234567', `hold ${SLIP_ADA_A}`);
 				expect(yield* lastResult).toEqual({ error: "No tool 'act'." });
 				expect(
-					(yield* t.as(t.admin).query('payslip', { id: nativeId('payslip', SLIP_ADA_A) }))?.status
+					(
+						(yield* t
+							.as(t.admin)
+							.query({ payslip: { where: { id: { eq: nativeId('payslip', SLIP_ADA_A) } } } }))
+							.payslip.rows[0] ?? null
+					)?.status
 				).toBe('DRAFT');
 			})
 	);

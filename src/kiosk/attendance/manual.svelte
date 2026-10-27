@@ -37,38 +37,38 @@
 	const peopleQuery = $derived.by(() =>
 		companyId == null || term.trim().length < 2
 			? null
-			: bolt.query('employment_profile', {
-					search: term.trim(),
-					select: { name: true, email: true },
-					limit: 20
+			: bolt.query({
+					employment_profile: { search: term.trim(), fields: ['name', 'email'], limit: 20 }
 				})
 	);
-	const people = $derived(peopleQuery?.current?.rows ?? []);
+	const people = $derived(peopleQuery?.current?.employment_profile.rows ?? []);
 	const chosen = $derived(people.find((person) => person.id === chosenId) ?? null);
 
 	const employmentsQuery = $derived.by(() =>
 		chosen === null || companyId == null
 			? null
-			: bolt.query('employment_contract', {
-					where: {
-						employee_id: { eq: chosen.id },
-						company_id: { eq: companyId }
-					},
-					select: { company_id: true, employee_number: true, effective_range: true },
-					limit: 1_000
+			: bolt.query({
+					employment_contract: {
+						where: {
+							employee_id: { eq: chosen.id },
+							company_id: { eq: companyId }
+						},
+						fields: ['company_id', 'employee_number', 'effective_range'],
+						limit: 1_000
+					}
 				})
 	);
 	const employments = $derived(
-		(employmentsQuery?.current?.rows ?? []).filter(
+		(employmentsQuery?.current?.employment_contract.rows ?? []).filter(
 			(row) => row.company_id === companyId && coversToday(row.effective_range)
 		)
 	);
 	const employmentsSettled = $derived(
 		chosen !== null && companyId != null && !employmentsQuery?.loading
 	);
-	const companies = $derived.by(() => bolt.query('entity', { select: { name: true }, limit: 200 }));
+	const companies = $derived.by(() => bolt.query({ entity: { fields: ['name'], limit: 200 } }));
 	const companyById = $derived(
-		new Map((companies?.current?.rows ?? []).map((company) => [company.id, company.name]))
+		new Map((companies?.current?.entity.rows ?? []).map((company) => [company.id, company.name]))
 	);
 
 	const acceptPunch = (outcome: PunchResult) => {
@@ -222,7 +222,7 @@
 					{bolt.t('kiosk.no_active_contract_in_entity')}
 				</p>
 			{/if}
-			{#if employments.length > 1 || (employmentsQuery?.current?.rows?.length ?? 0) >= 1_000}
+			{#if employments.length > 1 || (employmentsQuery?.current?.employment_contract.rows?.length ?? 0) >= 1_000}
 				<p role="alert" class="text-sm text-destructive">
 					{bolt.t('kiosk.contract_scope_conflict')}
 				</p>

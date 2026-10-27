@@ -93,7 +93,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'rule_set');
+				const created = outcome.records.find((row) => row.model === 'rule_set');
 				if (created) openRecord('rule_set', created.id);
 			}}
 		>

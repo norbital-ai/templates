@@ -106,8 +106,11 @@
 		id: Id<'jurisdiction_settings'>,
 		startsOn: string
 	) {
-		const full = yield* bolt.query('jurisdiction_settings', { id: id });
-		if (full === null)
+		const { jurisdiction_settings } = yield* bolt.query({
+			jurisdiction_settings: { where: { id: { eq: id } }, limit: 1 }
+		});
+		const full = jurisdiction_settings.rows[0];
+		if (full === undefined)
 			return yield* Effect.fail(new VersionChangeFailed({ message: bolt.t('component.error') }));
 		const payload = yield* Effect.try({
 			try: () =>
@@ -117,7 +120,7 @@
 				),
 			catch: (cause) => new VersionChangeFailed({ message: String(cause) })
 		});
-		return yield* bolt.act('jurisdiction_settings.create', payload);
+		return yield* bolt.act('jurisdiction_settings.create', [payload]);
 	});
 	function cloneVersion(): void {
 		if (version == null || startsOn == null || startsOn === '' || saving) return;
@@ -135,7 +138,7 @@
 						else toast.success(bolt.t('settings_version.cloned'));
 						// a held clone is written too: open it either way
 						const id = outcome.records.find(
-							(record) => record.collection === 'jurisdiction_settings'
+							(record) => record.model === 'jurisdiction_settings'
 						)?.id;
 						if (id != null) onCreated(id);
 						newOpen = false;
@@ -174,10 +177,9 @@
 		finish(
 			Effect.gen(function* () {
 				const now = yield* Clock.currentTimeMillis;
-				const outcome = yield* bolt.act('jurisdiction_settings.update', {
-					target: selected,
-					set: { voided_at: Instant(new Date(now)), void_reason: note }
-				});
+				const outcome = yield* bolt.act('jurisdiction_settings.update', [
+					{ target: selected, set: { voided_at: Instant(new Date(now)), void_reason: note } }
+				]);
 				// past the person-wait the write runs on: its run reports the outcome
 				if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
 				else if (outcome.kind === 'pendingApproval')

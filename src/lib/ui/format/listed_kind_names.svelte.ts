@@ -8,15 +8,13 @@ import { kindsOf } from '../../payroll_engine/listed_kinds.js';
  */
 export function listedKindNames(rule: 'exit_grounds' | 'case_kinds') {
 	const rows = $derived.by(() =>
-		bolt.query('rule_set', {
-			where: { family: { eq: 'PAYROLL' }, code: { eq: rule } },
-			select: { rules: true },
-			all: true
+		bolt.query({
+			rule_set: { where: { family: { eq: 'PAYROLL' }, code: { eq: rule } }, fields: ['rules'] }
 		})
 	);
 	const names = $derived(
 		new Map(
-			(rows?.current?.rows ?? []).flatMap((row) =>
+			(rows?.current?.rule_set.rows ?? []).flatMap((row) =>
 				kindsOf(row.rules).map((kind) => [kind.code, kind.name] as const)
 			)
 		)

@@ -64,7 +64,7 @@
 		bank_account_name: ''
 	});
 	const entities = $derived.by(() =>
-		sheetOpen ? bolt.query('entity', { select: { id: true, name: true }, all: true }) : null
+		sheetOpen ? bolt.query({ entity: { fields: ['name'] } }) : null
 	);
 	/** The version governing the start day: its term schema is the form, its payroll currency the salary's. */
 	const version = governingVersion(
@@ -76,10 +76,8 @@
 	const currency = $derived(version.current?.payroll?.currency ?? '');
 	const patterns = $derived.by(() =>
 		sheetOpen && companyId != null
-			? bolt.query('shift_pattern', {
-					where: { company_id: { eq: companyId } },
-					select: { id: true, code: true, name: true },
-					all: true
+			? bolt.query({
+					shift_pattern: { where: { company_id: { eq: companyId } }, fields: ['code', 'name'] }
 				})
 			: null
 	);
@@ -138,7 +136,7 @@
 		saving = true;
 		fork(
 			Effect.gen(function* () {
-				const payload: ActInput<'employment_contract.create'> = {
+				const payload: ActInput<'employment_contract.create'>[number] = {
 					employee_id: employeeId,
 					company_id: selectedCompanyId,
 					employee_number: set.employee_number,
@@ -156,7 +154,7 @@
 							}
 						: {})
 				};
-				const outcome = yield* bolt.act('employment_contract.create', payload);
+				const outcome = yield* bolt.act('employment_contract.create', [payload]);
 				{
 					// past the person-wait the write runs on: its run reports the outcome
 					if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
@@ -168,7 +166,7 @@
 						);
 					const created =
 						outcome.kind === 'committed'
-							? outcome.records.find((row) => row.collection === 'employment_contract')
+							? outcome.records.find((row) => row.model === 'employment_contract')
 							: undefined;
 					if (created) openRecord('employment_contract', created.id);
 					sheetOpen = false;
@@ -211,7 +209,7 @@
 			<Combobox
 				id="hire-company"
 				class="w-full"
-				options={(entities?.current?.rows ?? []).map((row) => ({
+				options={(entities?.current?.entity.rows ?? []).map((row) => ({
 					value: row.id,
 					label: row.name ?? row.id
 				}))}
@@ -251,6 +249,7 @@
 		{#if termForm != null}
 			<StructuredData
 				mode="edit"
+				create
 				schema={termForm}
 				value={formValue(values, TERM_KEYS)}
 				onChange={(next) => (values = fromForm(values, TERM_KEYS, next))}
@@ -259,13 +258,13 @@
 				disabled={saving}
 			/>
 		{/if}
-		{#if (patterns?.current?.rows ?? []).length > 0}
+		{#if (patterns?.current?.shift_pattern.rows ?? []).length > 0}
 			<Stack gap="xs">
 				<Label for="hire-pattern">{bolt.t('component.shift_pattern')}</Label>
 				<Combobox
 					id="hire-pattern"
 					class="w-full"
-					options={(patterns?.current?.rows ?? []).map((row) => ({
+					options={(patterns?.current?.shift_pattern.rows ?? []).map((row) => ({
 						value: row.id,
 						label: row.name ?? row.code ?? row.id
 					}))}

@@ -1,9 +1,24 @@
 import { policy } from '@norbital-ai/bolt';
 import { MEMBER_LIMITS } from './grants.js';
 
+const PROFILE_FIELDS = [
+	'name',
+	'email',
+	'phone',
+	'face_embedding',
+	'face_photo',
+	'face_enrollment_status',
+	'face_enrolled_at',
+	'face_match_count',
+	'face_last_match_at'
+] as const;
+const CONTRACT_FIELDS = ['employee_id', 'company_id', 'employee_number', 'effective_range'] as const;
+const ENTITY_FIELDS = ['name', 'settings_code'] as const;
+const ROSTER_FIELDS = ['employment_id', 'work_date', 'worked_intervals'] as const;
+
 /**
- * The attendance-kiosk device: the attendance kiosk (opening it and running inside it), punches for people, and enrolments that land PENDING for HR. `previous`
- * keeps APPROVED out of kiosk reach: it may enrol NONE → APPROVED or refresh an APPROVED face, never undo one.
+ * The attendance-kiosk device: the attendance kiosk (opening it and running inside it), punches for people, and enrolments that land PENDING for HR. The update
+ * check keeps APPROVED out of kiosk reach: it may enrol NONE → APPROVED or refresh an APPROVED face, never undo one.
  */
 export default policy({
 	description:
@@ -12,68 +27,94 @@ export default policy({
 	grants: {
 		sys_file: {
 			read: {
-				where: { field: { eq: 'employment_profile.face_photo' } },
-				fields: ['id', 'field', 'size', 'sha256', 'created_at']
+				sys_file: {
+					where: { field: { eq: 'employment_profile.face_photo' } },
+					fields: ['field', 'size', 'sha256', 'created_at']
+				}
 			}
 		},
 		employment_profile: {
-			read: {
-				fields: [
-					'id',
-					'name',
-					'email',
-					'phone',
-					'face_embedding',
-					'face_photo',
-					'face_enrollment_status',
-					'face_enrolled_at',
-					'face_match_count',
-					'face_last_match_at'
-				]
-			},
+			read: { employment_profile: { fields: PROFILE_FIELDS } },
 			create: {
-				where: { face_enrollment_status: { eq: 'PENDING' } },
-				fields: [
-					'name',
-					'email',
-					'phone',
-					'face_embedding',
-					'face_photo',
-					'face_enrollment_status',
-					'face_consent_at',
-					'face_enrolled_at'
-				]
+				columns: {
+					employment_profile: [
+						'name',
+						'email',
+						'phone',
+						'face_embedding',
+						'face_photo',
+						'face_enrollment_status',
+						'face_consent_at',
+						'face_enrolled_at'
+					]
+				},
+				check: function* (rows, ctx) {
+					return rows.every((row) => row.face_enrollment_status === 'PENDING')
+						? ctx.allow()
+						: ctx.deny('A kiosk enrolment waits for HR review.', {
+								field: 'face_enrollment_status'
+							});
+				}
 			},
 			update: {
-				previous: { face_enrollment_status: { in: ['NONE', 'APPROVED'] } },
-				where: { face_enrollment_status: { eq: 'APPROVED' } },
-				fields: [
-					'face_embedding',
-					'face_photo',
-					'face_enrollment_status',
-					'face_consent_at',
-					'face_enrolled_at',
-					'face_last_match_at',
-					'face_match_count'
-				]
+				columns: {
+					employment_profile: [
+						'face_embedding',
+						'face_photo',
+						'face_enrollment_status',
+						'face_consent_at',
+						'face_enrolled_at',
+						'face_last_match_at',
+						'face_match_count'
+					]
+				},
+				check: function* (changes, ctx) {
+					return changes.every(
+						({ before, set }) =>
+							(before.face_enrollment_status === 'NONE' ||
+								before.face_enrollment_status === 'APPROVED') &&
+							(set.face_enrollment_status ?? before.face_enrollment_status) === 'APPROVED'
+					)
+						? ctx.allow()
+						: ctx.deny('A kiosk enrols or refreshes a face; it never undoes an approval.', {
+								field: 'face_enrollment_status'
+							});
+				}
 			}
 		},
 		employment_contract: {
 			read: {
-				fields: ['id', 'employee_id', 'company_id', 'employee_number', 'effective_range']
+				employment_contract: { fields: CONTRACT_FIELDS },
+				'employment_contract.employee_id': { fields: PROFILE_FIELDS },
+				'employment_contract.company_id': { fields: ENTITY_FIELDS }
 			},
-			create: { fields: ['employee_id', 'company_id', 'employee_number', 'effective_range'] }
+			create: {
+				columns: {
+					employment_contract: ['employee_id', 'company_id', 'employee_number', 'effective_range']
+				}
+			}
 		},
-		entity: { read: { fields: ['id', 'name', 'settings_code'] } },
+		entity: {
+			read: {
+				entity: { fields: ENTITY_FIELDS },
+				'entity.employment_contract': { fields: CONTRACT_FIELDS },
+				'entity.employment_contract.employee_id': { fields: PROFILE_FIELDS },
+				'entity.employment_contract.roster_entry': { fields: ROSTER_FIELDS },
+				// the kiosk reads no leave
+				'entity.employment_contract.leave_catalog_entry': { where: { id: { in: [] } } }
+			}
+		},
 		jurisdiction_settings: {
 			read: {
-				fields: ['id', 'code', 'name', 'sealed_at', 'voided_at', 'effective_range', 'payroll']
+				jurisdiction_settings: {
+					fields: ['code', 'name', 'sealed_at', 'voided_at', 'effective_range', 'payroll']
+				}
 			}
 		},
 		roster_entry: {
-			read: { fields: ['id', 'employment_id', 'work_date', 'worked_intervals'] },
-			create: { fields: ['employment_id', 'work_date', 'worked_intervals'] },
-			update: { fields: ['worked_intervals'] }
+			read: { roster_entry: { fields: ROSTER_FIELDS } },
+			create: { columns: { roster_entry: ['employment_id', 'work_date', 'worked_intervals'] } },
+			update: { columns: { roster_entry: ['worked_intervals'] } }
 		}
 	},
 	limits: MEMBER_LIMITS

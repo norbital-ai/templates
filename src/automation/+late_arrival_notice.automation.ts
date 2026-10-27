@@ -27,49 +27,29 @@ export default automation('late_arrival_notice', {
 		// One read through the relations: each entity with its shifts and the contracts that have a recent roster day —
 		// each with its person's name, its recent roster days and the time off reaching the window.
 		const recent = { work_date: { gte: since } } as const;
-		const { rows: entities } = yield* ctx.query('entity', {
-			select: {
-				late_arrival_grace_minutes: true,
-				late_arrival_team: true,
-				settings_code: true,
-				time_zone: true,
-				shift_definition: { select: { code: true, variant: true }, all: true },
-				employment_contract: {
-					select: {
-						employee_number: true,
-						employee_id: { select: { name: true } },
-						roster_entry: {
-							select: {
-								employment_id: true,
-								work_date: true,
-								worked_intervals: true,
-								shift_definition_id: true
-							},
-							where: recent,
-							all: true
-						},
-						leave_catalog_entry: {
-							select: {
-								catalog_id: true,
-								employment_id: true,
-								activity: true,
-								occurred_on: true,
-								days: true,
-								from: true,
-								to: true
-							},
-							where: {
-								activity: { eq: 'TIME_OFF' },
-								or: [{ to: { gte: since } }, { occurred_on: { gte: since } }]
-							},
-							all: true
-						}
-					},
-					where: { roster_entry: { some: recent } },
-					all: true
-				}
+		const {
+			entity: { rows: entities }
+		} = yield* ctx.query({
+			entity: {
+				fields: ['late_arrival_grace_minutes', 'late_arrival_team', 'settings_code', 'time_zone']
 			},
-			all: true
+			'entity.shift_definition': { fields: ['code', 'variant'] },
+			'entity.employment_contract': {
+				fields: ['employee_number'],
+				where: { roster_entry: { some: recent } }
+			},
+			'entity.employment_contract.employee_id': { fields: ['name'] },
+			'entity.employment_contract.roster_entry': {
+				fields: ['employment_id', 'work_date', 'worked_intervals', 'shift_definition_id'],
+				where: recent
+			},
+			'entity.employment_contract.leave_catalog_entry': {
+				fields: ['catalog_id', 'employment_id', 'activity', 'occurred_on', 'days', 'from', 'to'],
+				where: {
+					activity: { eq: 'TIME_OFF' },
+					or: [{ to: { gte: since } }, { occurred_on: { gte: since } }]
+				}
+			}
 		});
 		// An entity without a zone counts its shifts in its version's `payroll.timezone`: one read of those lineages.
 		const codes = [
@@ -80,21 +60,16 @@ export default automation('late_arrival_notice', {
 		const versions =
 			codes.length === 0
 				? []
-				: (yield* ctx.query('jurisdiction_settings', {
-						select: {
-							code: true,
-							sealed_at: true,
-							voided_at: true,
-							effective_range: true,
-							payroll: true
-						},
-						where: {
-							code: { in: codes },
-							sealed_at: { isNull: false },
-							voided_at: { isNull: true }
-						},
-						all: true
-					})).rows;
+				: (yield* ctx.query({
+						jurisdiction_settings: {
+							fields: ['code', 'sealed_at', 'voided_at', 'effective_range', 'payroll'],
+							where: {
+								code: { in: codes },
+								sealed_at: { isNull: false },
+								voided_at: { isNull: true }
+							}
+						}
+					})).jurisdiction_settings.rows;
 		const leave = {
 			rows: entities.flatMap((entity) =>
 				entity.employment_contract.flatMap((contract) => contract.leave_catalog_entry)
@@ -174,7 +149,7 @@ export default automation('late_arrival_notice', {
 									to: [{ team }],
 									once: notice.once,
 									link: {
-										collection: 'roster_entry' as const,
+										model: 'roster_entry' as const,
 										id: notice.roster_entry_id
 									}
 								}

@@ -15,6 +15,50 @@ import { COMPANY, WORK, employer, employment, runOf, world } from './jurisdictio
 const MARCH = { company_id: COMPANY, period: '2026-03', kind: 'REGULAR' } as const;
 
 it.effect(
+	'payroll prices only the requested period without returning historical catalogues over the read limit',
+	() => {
+		const rows = employer([{ key: 'a', salary: 3000 }]);
+		const versions = rows.get('jurisdiction_settings') ?? [];
+		const current = versions[0];
+		assert.ok(current);
+		const old = nativeId('jurisdiction_settings', fixtureId('xx-large-historical-version'));
+		rows.set('jurisdiction_settings', [
+			...versions,
+			{
+				...current,
+				id: old,
+				effective_range: { from: '2010-01-01', to: '2019-12-31' }
+			}
+		]);
+		const work = rows.get('work_catalog') ?? [];
+		const basic = work.find((row) => row.code === 'BASIC');
+		assert.ok(basic);
+		rows.set('work_catalog', [
+			...work,
+			...Array.from({ length: 6 }, (_, index) => ({
+				...basic,
+				id: nativeId('work_catalog', fixtureId(`xx-large-history-${index}`)),
+				settings_id: old,
+				code: `HISTORICAL_${index}`,
+				quantity: `1${' '.repeat(900_000)}`
+			}))
+		]);
+		return world(rows).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				assert.equal((yield* hr.act('payroll_run.create', [MARCH])).kind, 'committed');
+				const run = yield* runOf(hr, MARCH.period);
+				assert.equal(run.count, 1, String(run.warnings));
+				assert.equal(run.slip('a').gross, 3000);
+				assert.equal(run.slip('a').net, 2350);
+			})
+		);
+	},
+	90_000
+);
+
+it.effect(
 	'a slip is its configured lines and schemes: prorated, banded at the seam, withheld from a minimum, laddered monthly',
 	() =>
 		world(
@@ -29,7 +73,7 @@ it.effect(
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				assert.equal((yield* hr.act('payroll_run.create', MARCH)).kind, 'committed');
+				assert.equal((yield* hr.act('payroll_run.create', [MARCH])).kind, 'committed');
 				const run = yield* runOf(hr, '2026-03');
 				assert.equal(run.count, 4, String(run.warnings));
 				const a = run.slip('a');
@@ -80,7 +124,7 @@ it.effect(
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				yield* hr.act('payroll_run.create', MARCH);
+				yield* hr.act('payroll_run.create', [MARCH]);
 				const run = yield* runOf(hr, '2026-03');
 				const a = run.slip('a');
 				assert.equal(a.quantities['OVERTIME'], 3);
@@ -113,12 +157,12 @@ it.effect(
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				yield* hr.act('payroll_run.create', MARCH);
+				yield* hr.act('payroll_run.create', [MARCH]);
 				const published = yield* runOf(hr, '2026-03');
 				assert.deepEqual(published.slip('a').lines, { BASIC: 3000, HOLIDAY: 100 });
-				yield* hr.act('payroll_run.delete', { target: [published.id] });
-				yield* hr.act('holiday.update', { target: holiday, set: { published_at: null } });
-				yield* hr.act('payroll_run.create', MARCH);
+				yield* hr.act('payroll_run.delete', [{ target: published.id }]);
+				yield* hr.act('holiday.update', [{ target: holiday, set: { published_at: null } }]);
+				yield* hr.act('payroll_run.create', [MARCH]);
 				assert.deepEqual((yield* runOf(hr, '2026-03')).slip('a').lines, { BASIC: 3000 });
 			})
 		);

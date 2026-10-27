@@ -24,19 +24,15 @@
 	const loans = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query('loan_catalog_entry', {
-					where: { company_id: { eq: scope.id } },
-					select: {
-						principal_amount: true,
-						repayments: {
-							select: { amount: true, activity: true, payslip_id: true },
-							all: true
-						}
+			: bolt.query({
+					loan_catalog_entry: {
+						where: { company_id: { eq: scope.id } },
+						fields: ['principal_amount']
 					},
-					all: true
+					'loan_catalog_entry.repayments': { fields: ['amount', 'activity', 'payslip_id'] }
 				})
 	);
-	const balances = $derived(loanBalances(loans?.current?.rows ?? []));
+	const balances = $derived(loanBalances(loans?.current?.loan_catalog_entry.rows ?? []));
 </script>
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}

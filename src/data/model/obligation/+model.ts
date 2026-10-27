@@ -90,31 +90,35 @@ export default model('obligation', {
 	},
 	read: 'all',
 	create: {
-		columns: [
-			'duty_code',
-			'references',
-			'occurrence_key',
-			'trigger_ref',
-			'triggered_on',
-			'due_on',
-			'amount_due',
-			'amount_settled',
-			'state',
-			'fulfilled_on',
-			'waive_reason',
-			'reference',
-			'evidence_file',
-			'facts',
-			'company_id',
-			'settings_id'
-		],
-		filled: ['currency'],
+		columns: {
+			obligation: [
+				'duty_code',
+				'references',
+				'occurrence_key',
+				'trigger_ref',
+				'triggered_on',
+				'due_on',
+				'amount_due',
+				'amount_settled',
+				'state',
+				'fulfilled_on',
+				'waive_reason',
+				'reference',
+				'evidence_file',
+				'facts',
+				'company_id',
+				'settings_id'
+			]
+		},
 		// The amounts are money in the raising version's payroll currency, so a new obligation takes that currency.
 		transform: function* (rows, ctx) {
-			const { rows: versions } = yield* ctx.db.query('jurisdiction_settings', {
-				where: { id: { in: [...new Set(rows.map((row) => row.settings_id))] } },
-				select: { id: true, payroll: true },
-				all: true
+			const {
+				jurisdiction_settings: { rows: versions }
+			} = yield* ctx.db.query({
+				jurisdiction_settings: {
+					where: { id: { in: [...new Set(rows.map((row) => row.settings_id))] } },
+					fields: ['payroll']
+				}
 			});
 			const currencyOf = new Map(
 				versions.map((row) => [
@@ -129,17 +133,19 @@ export default model('obligation', {
 		}
 	},
 	update: {
-		columns: [
-			'due_on',
-			'amount_due',
-			'amount_settled',
-			'state',
-			'fulfilled_on',
-			'waive_reason',
-			'reference',
-			'evidence_file',
-			'facts'
-		]
+		columns: {
+			obligation: [
+				'due_on',
+				'amount_due',
+				'amount_settled',
+				'state',
+				'fulfilled_on',
+				'waive_reason',
+				'reference',
+				'evidence_file',
+				'facts'
+			]
+		}
 	},
 	delete: {
 		// an open obligation is withdrawn when the run that raised it is deleted (`withdraw-run-duties`); a settled or

@@ -4,21 +4,21 @@ import { label, type Kind, type ViewBolt } from '@norbital-ai/ui';
 const words = (key: string) => key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
 /**
- * A json shape named from the catalog at every depth: `models.<collection>.fields.<path>` labels a nested field
+ * A json shape named from the catalog at every depth: `models.<model>.fields.<path>` labels a nested field
  * (`payroll.attendance.step_hours`) and `<path>.help` replaces its declared help. `Show` and the structure editors
  * read a nested field's words only from its kind.
  */
 export function labelled(
 	bolt: Pick<ViewBolt, 't'>,
-	collection: string,
+	model: string,
 	path: string,
 	kind: Kind
 ): Kind {
-	const helpKey = `models.${collection}.fields.${path}.help`;
+	const helpKey = `models.${model}.fields.${path}.help`;
 	const help = bolt.t(helpKey);
 	const own = {
 		...kind,
-		label: label(bolt, collection, path, words(path.slice(path.lastIndexOf('.') + 1))),
+		label: label(bolt, model, path, words(path.slice(path.lastIndexOf('.') + 1))),
 		...(help === helpKey ? {} : { help })
 	};
 	if (own.kind === 'object')
@@ -27,13 +27,13 @@ export function labelled(
 			fields: Object.fromEntries(
 				Object.entries(own.fields).map(([f, k]) => [
 					f,
-					labelled(bolt, collection, `${path}.${f}`, k)
+					labelled(bolt, model, `${path}.${f}`, k)
 				])
 			)
 		};
-	if (own.kind === 'list') return { ...own, of: labelled(bolt, collection, path, own.of) };
+	if (own.kind === 'list') return { ...own, of: labelled(bolt, model, path, own.of) };
 	if (own.kind === 'json' && own.shape !== undefined)
-		return { ...own, shape: labelled(bolt, collection, path, own.shape) };
+		return { ...own, shape: labelled(bolt, model, path, own.shape) };
 	return own;
 }
 

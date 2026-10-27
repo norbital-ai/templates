@@ -107,7 +107,7 @@
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
 				const created = outcome.records.find(
-					(row) => row.collection === 'statutory_contribution_catalog'
+					(row) => row.model === 'statutory_contribution_catalog'
 				);
 				if (created) openRecord('statutory_contribution_catalog', created.id);
 			}}

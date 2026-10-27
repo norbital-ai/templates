@@ -346,16 +346,18 @@
 			const file = yield* canvasToFile(photo.canvas);
 			const facePhoto = yield* upload(file, 'employment_profile.face_photo');
 			const now = Instant(new Date(yield* Clock.currentTimeMillis));
-			const payload: ActInput<'employment_profile.update'> = {
-				target,
-				set: {
-					face_embedding: embedding,
-					face_photo: fileRef(facePhoto),
-					face_consent_at: now,
-					face_enrolled_at: now,
-					face_enrollment_status: 'APPROVED'
+			const payload: ActInput<'employment_profile.update'> = [
+				{
+					target,
+					set: {
+						face_embedding: embedding,
+						face_photo: fileRef(facePhoto),
+						face_consent_at: now,
+						face_enrolled_at: now,
+						face_enrollment_status: 'APPROVED'
+					}
 				}
-			};
+			];
 			const outcome = yield* bolt.act('employment_profile.update', payload);
 			if (handles.disposed) return;
 			if (outcome.kind === 'pendingApproval') {

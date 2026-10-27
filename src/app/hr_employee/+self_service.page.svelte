@@ -18,29 +18,22 @@
 	const today = todayKey();
 
 	const employee = $derived.by(() =>
-		bolt.query('employment_profile', {
-			where: { email: { eq: { actor: 'email' } } },
-			limit: 1
+		bolt.query({
+			employment_profile: { where: { email: { eq: { actor: 'email' } } }, limit: 1 },
+			entity: {}
 		})
 	);
-	const me = $derived(employee?.current?.rows?.[0] ?? null);
-	const entities = $derived.by(() =>
-		bolt.query('entity', {
-			where: {},
-			all: true
-		})
+	const me = $derived(employee?.current?.employment_profile.rows[0] ?? null);
+	const entityById = $derived(
+		new Map((employee?.current?.entity.rows ?? []).map((row) => [row.id, row]))
 	);
-	const entityById = $derived(new Map((entities?.current?.rows ?? []).map((row) => [row.id, row])));
 	const contracts = $derived.by(() =>
 		me == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { employee_id: { eq: me.id } },
-					all: true
-				})
+			: bolt.query({ employment_contract: { where: { employee_id: { eq: me.id } } } })
 	);
 	const active = $derived(
-		(contracts?.current?.rows ?? []).filter(
+		(contracts?.current?.employment_contract.rows ?? []).filter(
 			(row) =>
 				row.effective_range.from <= today &&
 				(row.effective_range.to == null || row.effective_range.to >= today)
@@ -54,7 +47,8 @@
 	const employmentId = $derived(employment?.id ?? null);
 	/** The active contract: the Home tab shows its number and effective period. */
 	const contract = $derived(
-		(contracts?.current?.rows ?? []).find((row) => row.id === employmentId) ?? null
+		(contracts?.current?.employment_contract.rows ?? []).find((row) => row.id === employmentId) ??
+			null
 	);
 	const company = $derived(employment == null ? undefined : entityById.get(employment.company_id));
 	const money = versionMoney(() => {
@@ -64,6 +58,8 @@
 	const needsChoice = $derived(active.length > 1 && employment == null);
 	/** Held false while a read is in flight, so the explanation cannot flash before the rows that contradict it. */
 	const noEmployment = $derived(!employee?.loading && !contracts?.loading && active.length === 0);
+	/** The choice gate above a table exists only when there is something to say; otherwise its empty row leaves a gap. */
+	const needsGate = $derived(noEmployment || active.length > 1);
 	const employmentLabel = (row: { company_id: Id<'entity'>; employee_number: string }) =>
 		`${entityById.get(row.company_id)?.name ?? bolt.t('app.hr_employee.company_fallback')}${bolt.t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
 	const choices = $derived(active.map((row) => ({ value: row.id, label: employmentLabel(row) })));
@@ -187,19 +183,8 @@
 	</Scroll>
 {/snippet}
 
-{#snippet scheduleIntro()}
-	<Stack gap="md">
-		{@render gate()}
-		<Stack gap="none">
-			<h2 class="text-heading">{bolt.t('app.hr_employee.my_schedule_title')}</h2>
-			<p class="text-sm text-muted-foreground">
-				{bolt.t('app.hr_employee.my_schedule_description')}
-			</p>
-		</Stack>
-	</Stack>
-{/snippet}
 {#snippet schedule()}
-	<Cover gap="md" top={scheduleIntro}>
+	<Cover gap="md" top={needsGate ? gate : undefined}>
 		{#if employmentId != null}
 			<Table
 				of="roster_entry"
@@ -214,7 +199,7 @@
 {/snippet}
 
 {#snippet leave()}
-	<Cover gap="md" top={gate}>
+	<Cover gap="md" top={needsGate ? gate : undefined}>
 		{#if requesting && employmentId != null && contract?.company_id != null}
 			<LeaveRequest
 				{employmentId}
@@ -242,7 +227,7 @@
 	</Cover>
 {/snippet}
 {#snippet claims()}
-	<Cover gap="md" top={gate}>
+	<Cover gap="md" top={needsGate ? gate : undefined}>
 		<Table
 			of="claim_catalog_entry"
 			key="my-claims"
@@ -258,7 +243,7 @@
 	</Cover>
 {/snippet}
 {#snippet loans()}
-	<Cover gap="md" top={gate}>
+	<Cover gap="md" top={needsGate ? gate : undefined}>
 		<Table
 			of="loan_catalog_entry"
 			key="my-loans"
@@ -285,7 +270,7 @@
 	/>
 {/snippet}
 {#snippet payslips()}
-	<Cover gap="md" top={gate}>
+	<Cover gap="md" top={needsGate ? gate : undefined}>
 		<Table
 			of="payslip"
 			key="my-payslips"

@@ -52,14 +52,16 @@
 	const allowances = $derived.by(() =>
 		allowanceCodes.length === 0
 			? null
-			: bolt.query('allowance_catalog', {
-					where: { code: { in: allowanceCodes } },
-					select: { code: true, name: true },
-					all: true
+			: bolt.query({
+					allowance_catalog: { where: { code: { in: allowanceCodes } }, fields: ['code', 'name'] }
 				})
 	);
 	const allowanceName = $derived(
-		new Map((allowances?.current?.rows ?? []).map((row) => [row.code, row.name] as const))
+		new Map(
+			(allowances?.current?.allowance_catalog.rows ?? []).map(
+				(row) => [row.code, row.name] as const
+			)
+		)
 	);
 	const history = $derived(
 		terms
@@ -122,7 +124,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'employment_contract');
+				const created = outcome.records.find((row) => row.model === 'employment_contract');
 				if (created) openRecord('employment_contract', created.id);
 			}}
 		>

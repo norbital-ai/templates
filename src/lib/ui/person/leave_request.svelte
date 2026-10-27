@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Effect } from 'effect';
-	import { fork } from '@norbital-ai/ui/effect';
+	import { fork, observeOnce } from '@norbital-ai/ui/effect';
 	/**
 	 * A leave request as a month calendar: pick a class, the first and last day, half a day at either end if it is.
-	 * What the range charges is the server's count (`leave_days`, `preview_leave`) over this person's own plan, the
+	 * What the range charges is the leave write's own count (`leaveDays`, `previewLeaveOn`) over this person's own plan, the
 	 * published holidays and the class's unit; the grid marks the days that charge nothing and the form only shows it.
 	 */
 	import { bolt } from '$bolt';
@@ -13,6 +13,7 @@
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { datesBetween, weeksOf } from '../roster/month_board.js';
 	import { todayKey } from '../format/calendar.js';
+	import { leaveBalancesOn, leaveDays, pageRead, previewLeaveOn } from '../../leave_reads.js';
 	let {
 		employmentId,
 		companyId,
@@ -45,66 +46,65 @@
 	const first = $derived(`${month}-01`);
 	const last = $derived(String(monthOf(first).to));
 	const dates = $derived(datesBetween(first, last));
+	const read = pageRead(bolt.query);
 	const holidays = $derived.by(() =>
-		bolt.query('holiday', {
-			where: { company_id: { eq: companyId }, published_at: { isNull: false } },
-			select: { date: true, name: true },
-			all: true
+		bolt.query({
+			holiday: {
+				where: { company_id: { eq: companyId }, published_at: { isNull: false } },
+				fields: ['date', 'name']
+			}
 		})
 	);
 	const taken = $derived.by(() =>
-		bolt.query('leave_catalog_entry', {
-			where: { employment_id: { eq: employmentId }, activity: { eq: 'TIME_OFF' } },
-			select: { occurred_on: true, from: true, to: true },
-			all: true
+		bolt.query({
+			leave_catalog_entry: {
+				where: { employment_id: { eq: employmentId }, activity: { eq: 'TIME_OFF' } },
+				fields: ['occurred_on', 'from', 'to']
+			}
 		})
 	);
-	const balances = $derived.by(() =>
-		bolt.query('leave_catalog_entry.leave_balances', {
-			employment_id: employmentId,
-			as_of: clock.today
-		})
-	);
+	const balances = observeOnce(() => leaveBalancesOn(read, employmentId, clock.today));
 	/** The shown month as the chosen class counts it: the days that charge nothing. */
-	const monthDays = $derived.by(() =>
+	const monthDays = observeOnce(() =>
 		catalogId == null
 			? null
-			: bolt.query('leave_catalog_entry.leave_days', {
+			: leaveDays(read, {
 					employment_id: employmentId,
 					catalog_id: catalogId,
 					from: PlainDate(first),
 					to: PlainDate(last)
 				})
 	);
-	/** The selection as the server charges it, and the balance after it. */
-	const preview = $derived.by(() =>
+	/** The selection as the write charges it, and the balance after it. */
+	const preview = observeOnce(() =>
 		catalogId == null || from == null
 			? null
-			: bolt.query('leave_catalog_entry.preview_leave', {
-					as_of: clock.today,
-					employment_id: employmentId,
-					catalog_id: catalogId,
-					from: PlainDate(from),
-					to: PlainDate(to ?? from),
-					half_day_start: halfStart,
-					half_day_end: halfEnd
-				})
+			: previewLeaveOn(
+					read,
+					{
+						employment_id: employmentId,
+						catalog_id: catalogId,
+						from: PlainDate(from),
+						to: PlainDate(to ?? from),
+						half_day_start: halfStart,
+						half_day_end: halfEnd
+					},
+					clock.today
+				)
 	);
-	const nonWorking = $derived(new Set(monthDays?.current?.off ?? []));
-	const chargeable = $derived(preview?.current?.requested ?? 0);
-	const unit = $derived(preview?.current?.unit ?? monthDays?.current?.unit ?? 'DAY');
+	const nonWorking = $derived(new Set(monthDays.current?.off ?? []));
+	const chargeable = $derived(preview.current?.requested ?? 0);
+	const unit = $derived(preview.current?.unit ?? monthDays.current?.unit ?? 'DAY');
 	const takenOn = $derived(
 		new Set(
-			(taken?.current?.rows ?? []).flatMap((row) => {
+			(taken.current?.leave_catalog_entry.rows ?? []).flatMap((row) => {
 				const start = String(row.from ?? row.occurred_on ?? first).slice(0, 10);
 				return datesBetween(start, String(row.to ?? start).slice(0, 10));
 			})
 		)
 	);
 	/** Every class of the version in force (its own view), metered or not. */
-	const classBalances = $derived(
-		(balances?.current?.balances ?? []).filter((row) => row.window_key === '')
-	);
+	const classBalances = $derived((balances.current ?? []).filter((row) => row.window_key === ''));
 	const chosen = $derived(classBalances.find((row) => row.catalog_id === catalogId) ?? null);
 	const remaining = $derived(chosen?.metered === true ? chosen.available : null);
 	function select(date: string): void {
@@ -124,7 +124,7 @@
 	function submit(): void {
 		if (saving || from == null || catalogId == null || !(chargeable > 0)) return;
 		saving = true;
-		const payload: ActInput<'leave_catalog_entry.create'> = {
+		const payload: ActInput<'leave_catalog_entry.create'>[number] = {
 			catalog_id: catalogId,
 			employment_id: employmentId,
 			occurred_on: PlainDate(from),
@@ -139,7 +139,7 @@
 		fork(
 			Effect.gen(function* () {
 				// `days` is the server's count; the write counts it again and keeps its own.
-				const outcome = yield* bolt.act('leave_catalog_entry.create', payload);
+				const outcome = yield* bolt.act('leave_catalog_entry.create', [payload]);
 				// past the person-wait the write runs on: its run reports the outcome
 				if (outcome.kind === 'running') notifyOutcome(bolt, outcome);
 				else toast.success(bolt.t('leave.requested'));
@@ -198,7 +198,7 @@
 					{#if date == null}
 						<span></span>
 					{:else}
-						{@const holiday = (holidays?.current?.rows ?? []).find(
+						{@const holiday = (holidays.current?.holiday.rows ?? []).find(
 							(row) => String(row.date ?? '').slice(0, 10) === date
 						)}
 						{@const off = nonWorking.has(date)}
@@ -240,8 +240,8 @@
 			{/if}
 		</Cluster>
 
-		{#if preview?.error?.message != null}
-			<p class="text-sm text-destructive">{preview?.error?.message}</p>
+		{#if preview.error?.message != null}
+			<p class="text-sm text-destructive">{preview.error.message}</p>
 		{/if}
 
 		<Cluster gap="md">

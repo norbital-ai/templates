@@ -35,18 +35,12 @@
 	const stored = $derived.by(() =>
 		record == null || historical
 			? null
-			: bolt.query('loan_repayment_entry', {
-					where: { loan_id: { eq: record.id } },
-					select: {
-						occurred_on: true,
-						amount: true,
-						activity: true,
-						payslip_id: true,
-						sequence: true,
-						revision: true
-					},
-					orderBy: { occurred_on: 'asc' },
-					all: true
+			: bolt.query({
+					loan_repayment_entry: {
+						where: { loan_id: { eq: record.id } },
+						fields: ['occurred_on', 'amount', 'activity', 'payslip_id', 'sequence', 'revision'],
+						orderBy: { occurred_on: 'asc' }
+					}
 				})
 	);
 	type Draft = {
@@ -72,10 +66,12 @@
 	const loanClass = $derived.by(() =>
 		catalogId == null || catalogId === ''
 			? null
-			: bolt.query('loan_catalog', { id: catalogId, select: { settings_id: true } })
+			: bolt.query({
+					loan_catalog: { where: { id: { eq: catalogId } }, fields: ['settings_id'], limit: 1 }
+				})
 	);
 	const payroll = governingPayroll(() => {
-		const version = loanClass?.current?.settings_id;
+		const version = loanClass?.current?.loan_catalog.rows[0]?.settings_id;
 		return version == null ? null : { version };
 	});
 	const calendar = $derived(loanCalendar(payroll()));
@@ -107,12 +103,12 @@
 				form.get('repayment_frequency') === 'SEMI_MONTHLY' ? 'SEMI_MONTHLY' : 'MONTHLY'
 		};
 	});
-	const ready = $derived(record == null || stored?.current?.rows != null);
+	const ready = $derived(record == null || stored?.current?.loan_repayment_entry.rows != null);
 	const queued = $derived(form.children['repayments'] ?? []);
 	const automatic = $derived.by(() => {
 		if (
 			!ready ||
-			(stored?.current?.rows?.length ?? 0) !== 0 ||
+			(stored?.current?.loan_repayment_entry.rows?.length ?? 0) !== 0 ||
 			queued.length !== 0 ||
 			parameters == null
 		)
@@ -123,7 +119,7 @@
 	const rows = $derived.by((): readonly Draft[] => {
 		if (automatic != null) return automatic.map((row, index) => ({ ...row, key: `new:${index}` }));
 		const deleted = new Set(queued.flatMap((op) => (op.action === 'delete' ? [op.id] : [])));
-		const entries: Draft[] = (stored?.current?.rows ?? [])
+		const entries: Draft[] = (stored?.current?.loan_repayment_entry.rows ?? [])
 			.filter((row) => !deleted.has(row.id))
 			.map((row) => {
 				const edit = queued.find((op) => op.action === 'update' && op.id === row.id);
@@ -236,7 +232,7 @@
 	function queue(draft: readonly Draft[]) {
 		const operations: Parameters<FormState['queueChildren']>[1][number][] = [];
 		const retained = new Set(draft.flatMap((row) => (row.id == null ? [] : [row.id])));
-		for (const row of stored?.current?.rows ?? [])
+		for (const row of stored?.current?.loan_repayment_entry.rows ?? [])
 			if (!retained.has(row.id)) {
 				const prior = queued.find(
 					(op) => (op.action === 'delete' || op.action === 'update') && op.id === row.id
@@ -254,7 +250,9 @@
 					values: { occurred_on: row.occurred_on, amount: row.amount }
 				});
 			else {
-				const original = stored?.current?.rows?.find((old) => old.id === row.id);
+				const original = stored?.current?.loan_repayment_entry.rows?.find(
+					(old) => old.id === row.id
+				);
 				if (
 					original != null &&
 					row.revision != null &&

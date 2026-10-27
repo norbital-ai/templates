@@ -217,7 +217,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'jurisdiction_settings');
+				const created = outcome.records.find((row) => row.model === 'jurisdiction_settings');
 				if (created) openRecord('jurisdiction_settings', created.id);
 			}}
 		>

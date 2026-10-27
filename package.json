@@ -14,26 +14,26 @@
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.4",
 		"@marcbachmann/cel-js": "8.0.0",
-		"@norbital-ai/bolt": "0.0.4",
-		"@norbital-ai/std": "0.0.4",
-		"@norbital-ai/ui": "0.0.4",
+		"@norbital-ai/bolt": "0.0.6",
+		"@norbital-ai/std": "0.0.6",
+		"@norbital-ai/ui": "0.0.6",
 		"@vladmandic/human": "3.3.6",
-		"effect": "4.0.0-rc.112",
+		"effect": "4.0.6",
 		"exceljs": "4.4.0",
 		"onnxruntime-web": "1.23.2",
 		"runed": "^0.37.1",
 		"svelte": "^5.57.1",
 		"vite": "^8.3.2",
-		"@effect/platform-node": "4.0.0-rc.112"
+		"@effect/platform-node": "4.0.6"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.4",
+		"@norbital-ai/bolt-server": "0.0.6",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.6.4",
 		"happy-dom": "^20.14.5",
 		"prettier": "^3.9.9",
 		"prettier-plugin-svelte": "^4.1.1",
-		"vitest": "4.1.11",
-		"@effect/vitest": "4.0.0-rc.112"
+		"vitest": "5.0.5",
+		"@effect/vitest": "4.0.6"
 	}
 }

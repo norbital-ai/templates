@@ -33,39 +33,41 @@ export type JsonSchemaNode = {
 	readonly allOf?: readonly JsonSchemaNode[];
 	readonly if?: JsonSchemaNode;
 	readonly then?: JsonSchemaNode;
+	readonly [keyword: string]: unknown;
 };
 
 const JsonSchemaNode: Schema.Codec<JsonSchemaNode> = Schema.suspend(() =>
-	Schema.Struct({
-		$ref: Schema.optionalKey(Schema.String),
-		type: Schema.optionalKey(Schema.Union([Schema.String, Schema.Array(Schema.String)])),
-		title: Schema.optionalKey(Schema.String),
-		description: Schema.optionalKey(Schema.String),
-		properties: Schema.optionalKey(Schema.Record(Schema.String, JsonSchemaNode)),
-		required: Schema.optionalKey(Schema.Array(Schema.String)),
-		items: Schema.optionalKey(JsonSchemaNode),
-		enum: Schema.optionalKey(Schema.Array(Schema.Json)),
-		const: Schema.optionalKey(Schema.Json),
-		default: Schema.optionalKey(Schema.Json),
-		readOnly: Schema.optionalKey(Schema.Boolean),
-		'x-norbital': Schema.optionalKey(
-			Schema.Struct({
-				datatype: Schema.optionalKey(Schema.String),
-				section: Schema.optionalKey(Schema.String),
-				advanced: Schema.optionalKey(Schema.Boolean),
-				order: Schema.optionalKey(Schema.Number)
-			})
-		),
-		allOf: Schema.optionalKey(Schema.Array(JsonSchemaNode)),
-		if: Schema.optionalKey(JsonSchemaNode),
-		then: Schema.optionalKey(JsonSchemaNode)
-	})
+	Schema.StructWithRest(
+		Schema.Struct({
+			$ref: Schema.optionalKey(Schema.String),
+			type: Schema.optionalKey(Schema.Union([Schema.String, Schema.Array(Schema.String)])),
+			title: Schema.optionalKey(Schema.String),
+			description: Schema.optionalKey(Schema.String),
+			properties: Schema.optionalKey(Schema.Record(Schema.String, JsonSchemaNode)),
+			required: Schema.optionalKey(Schema.Array(Schema.String)),
+			items: Schema.optionalKey(JsonSchemaNode),
+			enum: Schema.optionalKey(Schema.Array(Schema.Json)),
+			const: Schema.optionalKey(Schema.Json),
+			default: Schema.optionalKey(Schema.Json),
+			readOnly: Schema.optionalKey(Schema.Boolean),
+			'x-norbital': Schema.optionalKey(
+				Schema.Struct({
+					datatype: Schema.optionalKey(Schema.String),
+					section: Schema.optionalKey(Schema.String),
+					advanced: Schema.optionalKey(Schema.Boolean),
+					order: Schema.optionalKey(Schema.Number)
+				})
+			),
+			allOf: Schema.optionalKey(Schema.Array(JsonSchemaNode)),
+			if: Schema.optionalKey(JsonSchemaNode),
+			then: Schema.optionalKey(JsonSchemaNode)
+		}),
+		// every other keyword is kept as stored, for the kit's validator
+		[Schema.Record(Schema.String, Schema.Json)]
+	)
 );
 
-const decodeJsonSchema = Schema.decodeUnknownOption(JsonSchemaNode, {
-	onExcessProperty: 'preserve',
-	propertyOrder: 'original'
-});
+const decodeJsonSchema = Schema.decodeUnknownOption(JsonSchemaNode);
 /** A stored input schema as its typed tree, every keyword kept; null when it is absent, masked or not one. */
 export const jsonSchemaOf = (
 	value: Row<'jurisdiction_settings'>['employee_input_schema'] | undefined

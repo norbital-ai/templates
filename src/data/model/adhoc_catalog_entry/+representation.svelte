@@ -22,7 +22,7 @@
 			{values}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'adhoc_catalog_entry');
+				const created = outcome.records.find((row) => row.model === 'adhoc_catalog_entry');
 				if (created) openRecord('adhoc_catalog_entry', created.id);
 			}}
 		>

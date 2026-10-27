@@ -49,6 +49,6 @@ export default model('shift_definition', {
 		company_id: { kind: 'ref', to: 'entity', inverse: 'shift_definition' }
 	},
 	read: 'all',
-	create: { columns: [...update_columns, 'company_id'] },
-	update: { columns: update_columns }
+	create: { columns: { shift_definition: [...update_columns, 'company_id'] } },
+	update: { columns: { shift_definition: update_columns } }
 });

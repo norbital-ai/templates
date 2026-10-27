@@ -55,28 +55,29 @@
 	const contract = $derived.by(() =>
 		employmentId == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { id: { eq: employmentId } },
-					select: {
-						company_id: true,
-						employee_number: true,
-						employee_id: { select: { name: true } },
-						effective_range: true,
-						facts: true
+			: bolt.query({
+					employment_contract: {
+						where: { id: { eq: employmentId } },
+						fields: ['company_id', 'employee_number', 'employee_id', 'effective_range', 'facts'],
+						limit: 1
 					},
-					limit: 1
+					'employment_contract.employee_id': { fields: ['name'] }
 				})
 	);
-	const employment = $derived(contract?.current?.rows?.[0] ?? null);
+	const employment = $derived(contract?.current?.employment_contract.rows[0] ?? null);
 	const companyId = $derived(employment?.company_id ?? null);
 	const entity = $derived.by(() =>
-		companyId == null ? null : bolt.query('entity', { id: companyId, select: { time_zone: true } })
+		companyId == null
+			? null
+			: bolt.query({
+					entity: { where: { id: { eq: companyId } }, fields: ['time_zone'], limit: 1 }
+				})
 	);
 	const version = governingVersion(
 		() => companyId,
 		() => date
 	);
-	const timeZone = $derived(entityTimeZone(entity?.current, version.current));
+	const timeZone = $derived(entityTimeZone(entity?.current?.entity.rows[0], version.current));
 	const policy = $derived(version.current?.payroll?.attendance ?? null);
 	const holidays = $derived.by(() =>
 		companyId == null || date == null ? null : holidayRead(companyId, date, date)
@@ -89,8 +90,8 @@
 	const shiftOf = $derived(
 		plannedShiftOf({
 			contracts: employment == null ? [] : [employment],
-			definitions: shifts?.current?.rows ?? [],
-			patterns: patterns?.current?.rows ?? []
+			definitions: shifts?.current?.shift_definition.rows ?? [],
+			patterns: patterns?.current?.shift_pattern.rows ?? []
 		})
 	);
 	/** The stored day as the board draws it: the projection, leave, holiday and payroll lock. */
@@ -98,10 +99,10 @@
 		if (
 			employment == null ||
 			date == null ||
-			holidays?.current?.rows === undefined ||
-			leave?.current?.rows === undefined ||
-			shifts?.current?.rows === undefined ||
-			patterns?.current?.rows === undefined
+			holidays?.current?.holiday.rows === undefined ||
+			leave?.current?.leave_catalog_entry.rows === undefined ||
+			shifts?.current?.shift_definition.rows === undefined ||
+			patterns?.current?.shift_pattern.rows === undefined
 		)
 			return null;
 		return (
@@ -115,8 +116,8 @@
 					}
 				],
 				entries: record == null ? [] : [record],
-				holidays: holidays?.current?.rows,
-				leave: leave?.current?.rows,
+				holidays: holidays?.current?.holiday.rows,
+				leave: leave?.current?.leave_catalog_entry.rows,
 				timeZone,
 				policy,
 				shiftOf
@@ -146,7 +147,7 @@
 			readonly={day?.locked === true}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.collection === 'roster_entry');
+				const created = outcome.records.find((row) => row.model === 'roster_entry');
 				if (created) openRecord('roster_entry', created.id);
 			}}
 		>

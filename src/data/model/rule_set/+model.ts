@@ -27,6 +27,6 @@ export default model('rule_set', {
 		}
 	},
 	read: 'all',
-	create: { columns: [...update_columns, 'settings_id'] },
-	update: { columns: update_columns }
+	create: { columns: { rule_set: [...update_columns, 'settings_id'] } },
+	update: { columns: { rule_set: update_columns } }
 });

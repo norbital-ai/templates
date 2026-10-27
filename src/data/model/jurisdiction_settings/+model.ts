@@ -19,14 +19,10 @@ const rule_columns = columnsOf(STATUTORY_FIELDS.rule_set);
 /** A new version is a draft: unsealed and live. */
 const DRAFT = { sealed_at: null, voided_at: null, void_reason: null } as const;
 /** The cloned version's rows of one child, narrowed to the columns its nested create declares. */
-const copied = <
-	R extends { readonly settings_id: unknown },
-	const K extends readonly (string & keyof R)[]
->(
+const copied = <R extends object, const K extends readonly (string & keyof R)[]>(
 	rows: readonly R[],
-	settings_id: unknown,
 	columns: K
-) => rows.filter((row) => row.settings_id === settings_id).map((row) => stripRow(row, columns));
+) => rows.map((row) => stripRow(row, columns));
 
 export default model('jurisdiction_settings', {
 	description:
@@ -43,20 +39,28 @@ export default model('jurisdiction_settings', {
 			onDelete: 'setNull'
 		}
 	},
-	read: 'all',
+	read: {
+		jurisdiction_settings: { fields: 'all' },
+		'jurisdiction_settings.statutory_contribution_catalog': { fields: 'all' },
+		'jurisdiction_settings.work_catalog': { fields: 'all' },
+		'jurisdiction_settings.allowance_catalog': { fields: 'all' },
+		'jurisdiction_settings.adhoc_catalog': { fields: 'all' },
+		'jurisdiction_settings.claim_catalog': { fields: 'all' },
+		'jurisdiction_settings.leave_catalog': { fields: 'all' },
+		'jurisdiction_settings.loan_catalog': { fields: 'all' },
+		'jurisdiction_settings.rule_set': { fields: 'all' }
+	},
 	create: {
-		columns,
-		with: {
-			leave_catalog: { create: { columns: leave_columns } },
-			claim_catalog: { create: { columns: claim_columns } },
-			allowance_catalog: { create: { columns: allowance_columns } },
-			adhoc_catalog: { create: { columns: adhoc_columns } },
-			loan_catalog: { create: { columns: loan_columns } },
-			work_catalog: { create: { columns: work_columns } },
-			statutory_contribution_catalog: {
-				create: { columns: contribution_columns }
-			},
-			rule_set: { create: { columns: rule_columns } }
+		columns: {
+			jurisdiction_settings: columns,
+			'jurisdiction_settings.leave_catalog': leave_columns,
+			'jurisdiction_settings.claim_catalog': claim_columns,
+			'jurisdiction_settings.allowance_catalog': allowance_columns,
+			'jurisdiction_settings.adhoc_catalog': adhoc_columns,
+			'jurisdiction_settings.loan_catalog': loan_columns,
+			'jurisdiction_settings.work_catalog': work_columns,
+			'jurisdiction_settings.statutory_contribution_catalog': contribution_columns,
+			'jurisdiction_settings.rule_set': rule_columns
 		},
 		/**
 		 * A clone (`cloned_from_id`) carries every child of the version it clones, unless the writer sends that child
@@ -67,74 +71,49 @@ export default model('jurisdiction_settings', {
 				...new Set(rows.flatMap((row) => (row.cloned_from_id == null ? [] : [row.cloned_from_id])))
 			];
 			if (sources.length === 0) return rows.map((row) => ({ ...row, ...DRAFT }));
-			const where = { settings_id: { in: sources } };
-			const got = yield* ctx.db.query({
-				versions: {
-					from: 'jurisdiction_settings',
-					where: { id: { in: sources } },
-					select: { id: true, suspension_kinds: true },
-					all: true
-				},
-				leave: { from: 'leave_catalog', where, all: true },
-				claim: { from: 'claim_catalog', where, all: true },
-				allowance: { from: 'allowance_catalog', where, all: true },
-				adhoc: { from: 'adhoc_catalog', where, all: true },
-				loan: { from: 'loan_catalog', where, all: true },
-				work: { from: 'work_catalog', where, all: true },
-				statutory_contribution: {
-					from: 'statutory_contribution_catalog',
-					where,
-					all: true
-				},
-				rule_set: { from: 'rule_set', where, all: true }
+			const { jurisdiction_settings: versions } = yield* ctx.db.query({
+				jurisdiction_settings: { where: { id: { in: sources } } },
+				'jurisdiction_settings.leave_catalog': {},
+				'jurisdiction_settings.claim_catalog': {},
+				'jurisdiction_settings.allowance_catalog': {},
+				'jurisdiction_settings.adhoc_catalog': {},
+				'jurisdiction_settings.loan_catalog': {},
+				'jurisdiction_settings.work_catalog': {},
+				'jurisdiction_settings.statutory_contribution_catalog': {},
+				'jurisdiction_settings.rule_set': {}
 			});
 			const gone = rows.findIndex(
 				(row) =>
-					row.cloned_from_id != null &&
-					!got.versions.rows.some((version) => version.id === row.cloned_from_id)
+					row.cloned_from_id != null && !versions.rows.some((version) => version.id === row.cloned_from_id)
 			);
 			if (gone >= 0)
 				return yield* ctx.refuse('The version this draft clones is gone.', {
 					row: gone
 				});
 			return rows.map((row) => {
-				const id = row.cloned_from_id;
-				const source = got.versions.rows.find((version) => version.id === id);
-				if (id == null || source === undefined) return { ...row, ...DRAFT };
+				const source = versions.rows.find((version) => version.id === row.cloned_from_id);
+				if (source === undefined) return { ...row, ...DRAFT };
 				return {
 					...row,
 					...DRAFT,
-					leave_catalog: row.leave_catalog ?? {
-						create: copied(got.leave.rows, id, leave_columns)
-					},
-					claim_catalog: row.claim_catalog ?? {
-						create: copied(got.claim.rows, id, claim_columns)
-					},
-					allowance_catalog: row.allowance_catalog ?? {
-						create: copied(got.allowance.rows, id, allowance_columns)
-					},
-					adhoc_catalog: row.adhoc_catalog ?? {
-						create: copied(got.adhoc.rows, id, adhoc_columns)
-					},
-					loan_catalog: row.loan_catalog ?? {
-						create: copied(got.loan.rows, id, loan_columns)
-					},
-					work_catalog: row.work_catalog ?? {
-						create: copied(got.work.rows, id, work_columns)
-					},
-					statutory_contribution_catalog: row.statutory_contribution_catalog ?? {
-						create: copied(got.statutory_contribution.rows, id, contribution_columns)
-					},
-					rule_set: row.rule_set ?? {
-						create: copied(got.rule_set.rows, id, rule_columns)
-					},
+					leave_catalog: row.leave_catalog ?? copied(source.leave_catalog, leave_columns),
+					claim_catalog: row.claim_catalog ?? copied(source.claim_catalog, claim_columns),
+					allowance_catalog:
+						row.allowance_catalog ?? copied(source.allowance_catalog, allowance_columns),
+					adhoc_catalog: row.adhoc_catalog ?? copied(source.adhoc_catalog, adhoc_columns),
+					loan_catalog: row.loan_catalog ?? copied(source.loan_catalog, loan_columns),
+					work_catalog: row.work_catalog ?? copied(source.work_catalog, work_columns),
+					statutory_contribution_catalog:
+						row.statutory_contribution_catalog ??
+						copied(source.statutory_contribution_catalog, contribution_columns),
+					rule_set: row.rule_set ?? copied(source.rule_set, rule_columns),
 					suspension_kinds: row.suspension_kinds ?? source.suspension_kinds
 				};
 			});
 		}
 	},
 	update: {
-		columns,
+		columns: { jurisdiction_settings: columns },
 		// a sealed version only shortens or voids, once
 		transform: function* (changes, ctx) {
 			for (const [row, { before, set }] of changes.entries()) {

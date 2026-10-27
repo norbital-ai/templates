@@ -155,10 +155,13 @@ export default model('payslip', {
 			initial: 'DRAFT',
 			states: {
 				DRAFT: {
-					to: ['ON_HOLD', 'PAID']
+					to: ['ON_HOLD', 'PAID'],
+					// a payslip is a calculated settlement: only its payment state may move after creation
+					edit: ['status', 'paid_at', 'bank_charges']
 				},
 				ON_HOLD: {
-					to: ['DRAFT', 'PAID']
+					to: ['DRAFT', 'PAID'],
+					edit: ['status', 'paid_at', 'bank_charges']
 				},
 				PAID: {
 					edit: 'none'
@@ -207,11 +210,13 @@ export default model('payslip', {
 			inverse: 'payslip'
 		}
 	},
-	read: 'all',
+	read: { payslip: { fields: 'all' }, 'payslip.payroll_run_id': { fields: 'all' } },
+	// a paid settlement is sealed; deleting its run remains the only way to replace it, and that refuses once paid
+	locked: { status: { eq: 'PAID' } },
 	create: {
-		columns: create_columns
+		columns: { payslip: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { payslip: update_columns }
 	}
 });

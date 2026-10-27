@@ -26,7 +26,7 @@ const draft = {
 	sources: { entries: [] },
 	effective_range: { from: '2026-01-01', to: null },
 	suspension_kinds: kinds
-} satisfies ActInput<'jurisdiction_settings.create'>;
+} satisfies ActInput<'jurisdiction_settings.create'>[number];
 
 it.live(
 	'stores validated suspension kinds on their version, clones them and refuses sealed changes',
@@ -34,23 +34,24 @@ it.live(
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
-			const created = yield* admin.act('jurisdiction_settings.create', draft);
+			const created = yield* admin.act('jurisdiction_settings.create', [draft]);
 			expect(created.kind, JSON.stringify(created)).toBe('committed');
 			if (created.kind !== 'committed') throw new Error('The draft did not commit.');
-			const id = created.records.find((row) => row.collection === 'jurisdiction_settings')?.id;
+			const id = created.records.find((row) => row.model === 'jurisdiction_settings')?.id;
 			if (id === undefined) throw new Error('The draft record is absent.');
 			expect(
-				(yield* admin.query('jurisdiction_settings', {
-					id: id,
-					...{ select: { suspension_kinds: true } }
-				}))?.suspension_kinds
+				(yield* admin.query({
+					jurisdiction_settings: { where: { id: { eq: id } }, fields: ['suspension_kinds'] }
+				})).jurisdiction_settings.rows[0]?.suspension_kinds
 			).toEqual(kinds);
 			for (const invalid of [[...kinds, ...kinds], [{ code: ' ', name: 'Blank' }]]) {
 				const refused = yield* Effect.flip(
-					admin.act('jurisdiction_settings.update', {
-						target: id,
-						set: { suspension_kinds: invalid }
-					})
+					admin.act('jurisdiction_settings.update', [
+						{
+							target: id,
+							set: { suspension_kinds: invalid }
+						}
+					])
 				);
 				expect(refused).toMatchObject({
 					_tag: 'ActRefused',
@@ -58,48 +59,54 @@ it.live(
 				});
 			}
 			expect(
-				(yield* admin.act('jurisdiction_settings.update', { target: id, set: { sealed_at: NOW } }))
-					.kind
+				(yield* admin.act('jurisdiction_settings.update', [
+					{ target: id, set: { sealed_at: NOW } }
+				])).kind
 			).toBe('committed');
 			expect(
 				yield* Effect.flip(
-					admin.act('jurisdiction_settings.update', {
-						target: id,
-						set: { suspension_kinds: [] }
-					})
+					admin.act('jurisdiction_settings.update', [
+						{
+							target: id,
+							set: { suspension_kinds: [] }
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			const { suspension_kinds, ...cloneFields } = draft;
-			const cloned = yield* admin.act('jurisdiction_settings.create', {
-				...cloneFields,
-				cloned_from_id: id,
-				effective_range: { from: '2027-01-01', to: null }
-			});
+			const cloned = yield* admin.act('jurisdiction_settings.create', [
+				{
+					...cloneFields,
+					cloned_from_id: id,
+					effective_range: { from: '2027-01-01', to: null }
+				}
+			]);
 			expect(cloned.kind, JSON.stringify(cloned)).toBe('committed');
 			if (cloned.kind !== 'committed') throw new Error('The successor did not commit.');
 			const successor = cloned.records.find(
-				(row) => row.collection === 'jurisdiction_settings'
+				(row) => row.model === 'jurisdiction_settings'
 			)?.id;
 			if (successor === undefined) throw new Error('The successor record is absent.');
 			expect(
-				yield* admin.query('jurisdiction_settings', {
-					id: successor,
-					...{
-						select: { suspension_kinds: true, sealed_at: true }
+				(yield* admin.query({
+					jurisdiction_settings: {
+						where: { id: { eq: successor } },
+						fields: ['suspension_kinds', 'sealed_at']
 					}
-				})
+				})).jurisdiction_settings.rows[0]
 			).toMatchObject({ suspension_kinds: kinds, sealed_at: null });
 			expect(
-				(yield* admin.act('jurisdiction_settings.update', {
-					target: successor,
-					set: { suspension_kinds: [] }
-				})).kind
+				(yield* admin.act('jurisdiction_settings.update', [
+					{
+						target: successor,
+						set: { suspension_kinds: [] }
+					}
+				])).kind
 			).toBe('committed');
 			expect(
-				(yield* admin.query('jurisdiction_settings', {
-					id: id,
-					...{ select: { suspension_kinds: true } }
-				}))?.suspension_kinds
+				(yield* admin.query({
+					jurisdiction_settings: { where: { id: { eq: id } }, fields: ['suspension_kinds'] }
+				})).jurisdiction_settings.rows[0]?.suspension_kinds
 			).toEqual(kinds);
 		}).pipe(Effect.provide(workspace({ seed: 'none', now: NOW })), Effect.scoped),
 	{ timeout: 600_000 }
@@ -130,18 +137,21 @@ it.live(
 			expect((yield* authorities.member(t.db, employee.id))?.policies).toEqual(['employee']);
 			if (authority === null || controllerAuthority === null)
 				throw new Error('Seeded staff authority is absent.');
-			const created = yield* t.as(controllerAuthority).act('jurisdiction_settings.create', draft);
+			const created = yield* t.as(controllerAuthority).act('jurisdiction_settings.create', [draft]);
 			expect(created.kind, JSON.stringify(created)).toBe('committed');
 			if (created.kind !== 'committed') throw new Error('The controller draft did not commit.');
-			const id = created.records.find((row) => row.collection === 'jurisdiction_settings')?.id;
+			const id = created.records.find((row) => row.model === 'jurisdiction_settings')?.id;
 			if (id === undefined) throw new Error('The controller draft is absent.');
 			const approvals = yield* Approvals;
 			const sealedAt = () =>
-				t.as(authority).query('jurisdiction_settings', { id, select: { sealed_at: true } });
+				t
+					.as(authority)
+					.query({ jurisdiction_settings: { where: { id: { eq: id } }, fields: ['sealed_at'] } })
+					.pipe(Effect.map((answer) => answer.jurisdiction_settings.rows[0] ?? null));
 			const seal = Effect.fnUntraced(function* () {
 				const held = yield* t
 					.as(controllerAuthority)
-					.act('jurisdiction_settings.update', { target: id, set: { sealed_at: NOW } });
+					.act('jurisdiction_settings.update', [{ target: id, set: { sealed_at: NOW } }]);
 				expect(held.kind, JSON.stringify(held)).toBe('pendingApproval');
 				if (held.kind !== 'pendingApproval') throw new Error('The seal was not routed.');
 				return held.requestId;
@@ -159,10 +169,12 @@ it.live(
 			expect(yield* sealedAt()).toMatchObject({ sealed_at: NOW });
 			expect(
 				yield* Effect.flip(
-					admin.act('jurisdiction_settings.update', {
-						target: id,
-						set: { voided_at: NOW, void_reason: 'Around the review' }
-					})
+					admin.act('jurisdiction_settings.update', [
+						{
+							target: id,
+							set: { voided_at: NOW, void_reason: 'Around the review' }
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused', code: 'locked' });
 			// A rejection rolls the seal back.
@@ -177,10 +189,12 @@ it.live(
 				status: 'ChangesRequested'
 			});
 			expect(yield* sealedAt()).toMatchObject({ sealed_at: NOW });
-			const resubmitted = yield* t.as(controllerAuthority).act('jurisdiction_settings.update', {
-				target: id,
-				set: { sealed_at: NOW }
-			});
+			const resubmitted = yield* t.as(controllerAuthority).act('jurisdiction_settings.update', [
+				{
+					target: id,
+					set: { sealed_at: NOW }
+				}
+			]);
 			expect(resubmitted).toMatchObject({ kind: 'pendingApproval', requestId });
 			const decision = yield* move(requestId, 'approve');
 			expect(decision, JSON.stringify(decision)).toMatchObject({

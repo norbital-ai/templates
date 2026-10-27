@@ -40,47 +40,53 @@
 	const contracts = $derived.by(() =>
 		record == null
 			? null
-			: bolt.query('employment_contract', {
-					where: { employee_id: { eq: record.id } },
-					select: {
-						id: true,
-						employee_number: true,
-						effective_range: true,
-						exit_ground: true,
-						exit_facts: true,
-						signed_contract_end: true,
-						company_id: { select: { name: true } },
-						facts: true
+			: bolt.query({
+					employment_contract: {
+						where: { employee_id: { eq: record.id } },
+						fields: [
+							'employee_number',
+							'effective_range',
+							'exit_ground',
+							'exit_facts',
+							'signed_contract_end',
+							'company_id',
+							'facts'
+						]
 					},
-					all: true
+					'employment_contract.company_id': { fields: ['name'] }
 				})
 	);
 	const today = $derived(new Date().toISOString().slice(0, 10));
 	const exitName = listedKindNames('exit_grounds');
 	const ordered = $derived(
-		(contracts?.current?.rows ?? [])
-			.map((row) => {
+		(contracts?.current?.employment_contract.rows ?? [])
+			.flatMap((row) => {
+				// an employment whose entity the viewer cannot read is not listed
+				const company = row.company_id;
+				if (company == null) return [];
 				const to = row.effective_range?.to == null ? null : String(row.effective_range.to);
 				const current = to == null || to >= today;
 				const exit = row.exit_ground ?? null;
-				return {
-					id: row.id,
-					companyId: row.company_id.id,
-					number: row.employee_number,
-					entity: row.company_id.name,
-					period: formatTermsDates(row, t),
-					from: String(row.effective_range?.from ?? ''),
-					to,
-					current,
-					status: current
-						? t('section.employment_current')
-						: t('section.employment_ended', { date: formatCalendarDate(to) }),
-					exit,
-					exitLabel: exit == null || exit === '' ? '—' : exitName(exit),
-					exitFacts: row.exit_facts ?? null,
-					plannedEnd: row.signed_contract_end == null ? null : String(row.signed_contract_end),
-					terms: termsFromFacts(row.facts)
-				};
+				return [
+					{
+						id: row.id,
+						companyId: company.id,
+						number: row.employee_number,
+						entity: company.name,
+						period: formatTermsDates(row, t),
+						from: String(row.effective_range?.from ?? ''),
+						to,
+						current,
+						status: current
+							? t('section.employment_current')
+							: t('section.employment_ended', { date: formatCalendarDate(to) }),
+						exit,
+						exitLabel: exit == null || exit === '' ? '—' : exitName(exit),
+						exitFacts: row.exit_facts ?? null,
+						plannedEnd: row.signed_contract_end == null ? null : String(row.signed_contract_end),
+						terms: termsFromFacts(row.facts)
+					}
+				];
 			})
 			.toSorted((left, right) => (right.from < left.from ? -1 : 1))
 	);
@@ -101,7 +107,7 @@
 		{values}
 		onOutcome={(outcome) => {
 			if (outcome.kind !== 'committed' || record) return;
-			const mine = outcome.records.find((row) => row.collection === 'employment_profile');
+			const mine = outcome.records.find((row) => row.model === 'employment_profile');
 			if (mine) openRecord('employment_profile', mine.id);
 		}}
 	>

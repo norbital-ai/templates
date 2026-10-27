@@ -13,32 +13,30 @@ export function governingVersion(companyId: () => Id<'entity'> | null, day: () =
 		const id = companyId();
 		return id == null
 			? null
-			: bolt.query('entity', {
-					where: { id: { eq: id } },
-					select: { settings_code: true },
-					limit: 1
-				});
+			: bolt.query({ entity: { where: { id: { eq: id } }, fields: ['settings_code'], limit: 1 } });
 	});
-	const code = $derived(entity?.current?.rows?.[0]?.settings_code ?? null);
+	const code = $derived(entity?.current?.entity.rows[0]?.settings_code ?? null);
 	const versions = $derived.by(() =>
 		code == null
 			? null
-			: bolt.query('jurisdiction_settings', {
-					where: { code: { eq: code }, sealed_at: { isNull: false }, voided_at: { isNull: true } },
-					select: {
-						id: true,
-						effective_range: true,
-						payroll: true,
-						employee_input_schema: true
-					},
-					all: true
+			: bolt.query({
+					jurisdiction_settings: {
+						where: {
+							code: { eq: code },
+							sealed_at: { isNull: false },
+							voided_at: { isNull: true }
+						},
+						fields: ['effective_range', 'payroll', 'employee_input_schema']
+					}
 				})
 	);
 	const current = $derived.by(() => {
 		const on = day();
 		if (on == null || on === '') return null;
 		return (
-			(versions?.current?.rows ?? []).find((row) => covers_day(row.effective_range, on)) ?? null
+			(versions?.current?.jurisdiction_settings.rows ?? []).find((row) =>
+				covers_day(row.effective_range, on)
+			) ?? null
 		);
 	});
 	const schema = $derived(jsonSchemaOf(current?.employee_input_schema));

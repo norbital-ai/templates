@@ -40,9 +40,9 @@ export default model('loan_catalog', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { loan_catalog: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { loan_catalog: update_columns }
 	}
 });

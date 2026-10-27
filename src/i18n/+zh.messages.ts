@@ -18,8 +18,6 @@ export default messages({
 	'app.hr_employee.my_loans_title': '我的贷款',
 	'app.hr_employee.my_payslips_title': '我的工资单',
 	'app.hr_employee.my_profile': '我的档案',
-	'app.hr_employee.my_schedule_description':
-		'您的排班、出勤与休假在同一份日历上。待审批的打卡记录将交由经理审核。',
 	'app.hr_employee.my_schedule_title': '我的排班',
 	'app.hr_employee.no_active_company': '无有效公司',
 	'app.hr_employee.no_active_employment': '您的档案中没有有效任职',

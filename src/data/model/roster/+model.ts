@@ -21,9 +21,9 @@ export default model('roster', {
 	},
 	read: 'all',
 	create: {
-		columns: create_columns
+		columns: { roster: create_columns }
 	},
 	update: {
-		columns: update_columns
+		columns: { roster: update_columns }
 	}
 });
