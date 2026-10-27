@@ -85,7 +85,7 @@
 				{
 					id: String(row.id),
 					name: file.name,
-					url: bolt.fileUrl(file),
+					url: bolt.fileUrl(file, { preview: 1024 }),
 					flags,
 					sender:
 						message?.sender_id ??
