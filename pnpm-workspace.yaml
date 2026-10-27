@@ -20,14 +20,14 @@ patchedDependencies:
 # `bolt templates check` enforces it. Forgetting surfaces as
 # ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION inside a tenant sandbox build.
 minimumReleaseAgeExclude:
-  - '@norbital-ai/app-shell@0.0.5'
-  - '@norbital-ai/bolt@0.0.5'
-  - '@norbital-ai/bolt-server@0.0.5'
-  - '@norbital-ai/doctor@0.0.5'
-  - '@norbital-ai/providers@0.0.5'
-  - '@norbital-ai/std@0.0.5'
-  - '@norbital-ai/store@0.0.5'
-  - '@norbital-ai/ui@0.0.5'
+  - '@norbital-ai/app-shell@0.0.6'
+  - '@norbital-ai/bolt@0.0.6'
+  - '@norbital-ai/bolt-server@0.0.6'
+  - '@norbital-ai/doctor@0.0.6'
+  - '@norbital-ai/providers@0.0.6'
+  - '@norbital-ai/std@0.0.6'
+  - '@norbital-ai/store@0.0.6'
+  - '@norbital-ai/ui@0.0.6'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.
 supportedArchitectures:
@@ -53,3 +53,12 @@ verifyDepsBeforeRun: false
 # Match the pinned Effect release; the platform package's prerelease range also admits stable 4.x.
 overrides:
   '@effect/platform-node-shared': 4.0.0-rc.112
+
+packageExtensions:
+  # GitHub Packages omits optional peer metadata from registry responses.
+  '@norbital-ai/bolt':
+    peerDependenciesMeta:
+      svelte2tsx:
+        optional: true
+      typescript:
+        optional: true
