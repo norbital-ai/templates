@@ -24,9 +24,9 @@ export default model('contacts', {
 	},
 	read: 'all',
 	create: {
-		columns: ['party', 'name', 'email', 'phone', 'job_title']
+		columns: { contacts: ['party', 'name', 'email', 'phone', 'job_title'] }
 	},
 	update: {
-		columns: ['name', 'email', 'phone', 'job_title']
+		columns: { contacts: ['name', 'email', 'phone', 'job_title'] }
 	}
 });

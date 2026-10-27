@@ -5,7 +5,7 @@ import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
 import {
 	agreements,
-	agreementSelect,
+	agreementFields,
 	currentAgreement,
 	executableAgreement,
 	operationalLines,
@@ -119,19 +119,18 @@ export const readContractVersions = Effect.fnUntraced(function* (
 	ctx: OrderSourceContext
 ) {
 	const observed = yield* observation(ctx);
-	const { orders, products, editorLines } = yield* ctx.db.query({
+	const owned = { ledger: { eq: instance }, direction: { eq: 'sales' } } as const;
+	const {
+		orders,
+		products,
+		order_lines: editorLines
+	} = yield* ctx.db.query({
 		orders: {
-			from: 'orders',
-			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-			select: { ...agreementSelect, id: true, number: true, source_order_key: true },
-			all: true
+			where: owned,
+			fields: [...agreementFields, 'number', 'source_order_key']
 		},
-		products: { from: 'products', where: { source: { eq: instance } }, all: true },
-		editorLines: {
-			from: 'order_lines',
-			where: { order: { in: { member: 'orders', field: 'id' } } },
-			all: true
-		}
+		products: { where: { source: { eq: instance } } },
+		order_lines: { where: { order: { is: owned } } }
 	});
 	const owners = orders.rows.flatMap((order) =>
 		agreements(order).map((agreement) => ({ order: order.id, agreement }))

@@ -14,11 +14,11 @@ test.live(
 				throw new Error('Member required');
 			const historyOf = Effect.fnUntraced(function* (
 				holder: typeof sales,
-				collection: string,
+				model: string,
 				id: string
 			) {
 				const answers = yield* Context.get(t.services, Reads).run(
-					[{ kind: 'history', collection, id }],
+					[{ kind: 'history', model, id }],
 					{ as: 'caller', authority: t.as(holder).authority },
 					{ now: t.clock.now(), today: '2026-10-10', tz: t.manifest.workspace.tz, params: {} }
 				);
@@ -30,17 +30,21 @@ test.live(
 			const foreign = yield* draft(t, 'sales', fixtureId('sys_user', other.actor.id));
 			const activity = committed(
 				'activities',
-				yield* t.as(sales).act('activities.create', {
-					order: own.order,
-					title: 'Follow up',
-					owner: fixtureId('sys_user', sales.actor.id)
-				})
+				yield* t.as(sales).act('activities.create', [
+					{
+						order: own.order,
+						title: 'Follow up',
+						owner: fixtureId('sys_user', sales.actor.id)
+					}
+				])
 			);
 			expect(
-				yield* t.as(sales).act('activities.update', {
-					target: activity,
-					set: { done: true, notes: 'Customer called' }
-				})
+				yield* t.as(sales).act('activities.update', [
+					{
+						target: activity,
+						set: { done: true, notes: 'Customer called' }
+					}
+				])
 			).toMatchObject({ kind: 'committed' });
 			const history = yield* historyOf(sales, 'activities', activity);
 			expect(history).toHaveLength(2);

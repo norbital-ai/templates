@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { attach, fork, bolt } from '$bolt';
-	import { Effect, Schema, Scope } from 'effect';
+	import { Effect, Result, Schema, Scope } from 'effect';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { agreements, currentAgreement } from '../../../lib/agreements.js';
 	import { isMasked } from '@norbital-ai/bolt';
+	import {
+		confirmationCheck,
+		confirmationHash,
+		confirmationRead
+	} from '../../../lib/confirmation.js';
 	import {
 		selectedContractDocuments,
 		retainedContractDocuments
@@ -69,14 +74,18 @@
 	const draftSetup = $derived(view.mode !== 'create' && Boolean(view.record.draft_setup));
 	// credit freshness is judged against the minute, so the check re-answers as the minute turns
 	const clock = bolt.clock('minute');
-	const check = $derived(
+	const checkRead = $derived(
 		id &&
 			view.mode !== 'create' &&
 			view.record.status === 'draft' &&
 			!draftSetup &&
 			!isMasked(view.record.currency)
-			? bolt.query('orders.confirmation_check', {
-					order: id,
+			? bolt.query(confirmationRead(id))
+			: null
+	);
+	const check = $derived(
+		checkRead?.current && view.mode !== 'create'
+			? confirmationCheck(checkRead.current, {
 					revision: view.record.revision,
 					as_of: clock.now
 				})
@@ -98,24 +107,37 @@
 			? undefined
 			: (versions.find((v) => String(v.version) === selectedVersion) ?? versions.at(-1))
 	);
-	const confirmationCollection = $derived(
+	const confirmationModel = $derived(
 		view.mode !== 'create' && view.record.direction === 'purchasing'
 			? 'ext_purchase_orders'
 			: 'ext_sales_orders'
 	);
+	const confirmationWhere = $derived({
+		...(id ? { order: { eq: id } } : {}),
+		...((selectedContract ?? versions.at(-1))
+			? { agreement_hash: { eq: (selectedContract ?? versions.at(-1))!.seal_hash } }
+			: {})
+	});
+	const receiptRead = $derived(
+		!id
+			? null
+			: confirmationModel === 'ext_purchase_orders'
+				? bolt.query({
+						ext_purchase_orders: { where: confirmationWhere, fields: ['reference', 'status'] }
+					})
+				: bolt.query({
+						ext_sales_orders: { where: confirmationWhere, fields: ['reference', 'status'] }
+					})
+	);
 	const confirmationRows = $derived(
-		id
-			? bolt.query(confirmationCollection, {
-					where: {
-						order: { eq: id },
-						...((selectedContract ?? versions.at(-1))
-							? { agreement_hash: { eq: (selectedContract ?? versions.at(-1))!.seal_hash } }
-							: {})
-					},
-					select: { reference: true, status: true },
-					all: true
-				})
-			: null
+		receiptRead && {
+			error: receiptRead.error,
+			current: receiptRead.current
+				? 'ext_purchase_orders' in receiptRead.current
+					? receiptRead.current.ext_purchase_orders
+					: receiptRead.current.ext_sales_orders
+				: undefined
+		}
 	);
 	const pushFailed = $derived(
 		selectedContract?.seal_hash === versions.at(-1)?.seal_hash &&
@@ -167,7 +189,7 @@
 						: status === 'issued'
 							? 'component.confirmation_confirmed'
 							: status === 'void'
-								? `models.${confirmationCollection}.fields.status.void`
+								? `models.${confirmationModel}.fields.status.void`
 								: status === 'draft'
 									? 'component.confirmation_pending'
 									: pushFailed || confirmationRows?.error
@@ -200,21 +222,20 @@
 		})
 	);
 	const confirmOrder = Effect.fn('Trading.confirmOrder')(function* () {
-		const readiness = check?.current;
-		if (!id || !readiness || pending || archived || draftSetup) return;
+		if (!id || !check || Result.isFailure(check) || pending || archived || draftSetup) return;
+		const check_hash = yield* confirmationHash(check.success);
 		const target = id;
 		const awaiting = bolt.t('component.awaiting_approval');
 		const uncertain = bolt.t('component.seal_uncertain');
 		pending = true;
-		const result = yield* bolt.act('orders.update', {
-			target,
-			set: { status: 'confirmed', check_hash: readiness.check_hash }
-		});
+		const result = yield* bolt.act('orders.update', [
+			{ target, set: { status: 'confirmed', check_hash } }
+		]);
 		const controller = recordController?.current;
 		if (
 			result.kind === 'committed' &&
-			controller?.spec.target.of === 'collection' &&
-			controller.spec.target.collection === 'orders' &&
+			controller?.spec.target.of === 'model' &&
+			controller.spec.target.model === 'orders' &&
 			controller.spec.target.id === target
 		)
 			controller.view();
@@ -260,10 +281,7 @@
 		}
 		const result = yield* bolt.act(
 			'orders.update',
-			{
-				target: id,
-				set: { archived: change === 'archive' }
-			},
+			[{ target: id, set: { archived: change === 'archive' } }],
 			{ observed: { [id]: view.record.revision } }
 		);
 		if (result.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
@@ -369,14 +387,14 @@
 		/>{/if}
 {/snippet}
 {#snippet confirmation(form: FormState)}
-	{#if check && draftContract}<Stack gap="sm">
+	{#if checkRead && draftContract}<Stack gap="sm">
 			{#if form.dirty}<p class="text-sm text-muted-foreground">
 					{bolt.t('component.seal_explanation')}
 				</p>{/if}
 
-			{#if check.current}
-				{#if check.current.below_inventory_cost.length}<p class="text-sm">
-						{bolt.t('component.below_inventory_cost')}: {check.current.below_inventory_cost.join(
+			{#if check && Result.isSuccess(check)}
+				{#if check.success.below_inventory_cost.length}<p class="text-sm">
+						{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(
 							', '
 						)}
 					</p>{/if}
@@ -385,7 +403,9 @@
 					onclick={confirm}>{bolt.t('component.confirm_seal')}</Button
 				>
 			{:else}<p>
-					{check.error ? check.error.message : bolt.t('component.check_loading')}
+					{check && Result.isFailure(check)
+						? translate(check.failure)
+						: (checkRead.error?.message ?? bolt.t('component.check_loading'))}
 				</p>{/if}
 		</Stack>{/if}
 {/snippet}
@@ -738,7 +758,7 @@
 							type="button"
 							aria-label={receiptInfo}
 							class="inline-flex rounded-full focus-visible:outline-2 focus-visible:outline-ring"
-							onclick={() => openRecord(confirmationCollection, receipt.id)}
+							onclick={() => openRecord(confirmationModel, receipt.id)}
 						>
 							<Badge variant={presentation.variant}>{presentation.label}</Badge>
 						</button>
@@ -872,7 +892,7 @@
 						...(view.mode !== 'create' && !isMasked(view.record.currency)
 							? ['source_payments', 'source_sales_lines']
 							: [])
-					].map((of) => ({ of, query: { where: { order: { eq: id } }, all: true } }))
+					].map((of) => ({ of, where: { order: { eq: id } } }))
 				]
 			: []
 	}}

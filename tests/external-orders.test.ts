@@ -13,7 +13,8 @@ const receipt = Effect.fnUntraced(function* (
 	order: Id<'orders'>,
 	external_id: string = randomUUID()
 ) {
-	const seal = yield* t.as(t.admin).query('orders', { id: order });
+	const seal = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+		.orders.rows[0];
 	return {
 		order,
 		external_id,
@@ -38,7 +39,7 @@ test.live(
 			// only the sync's own page writes a synced model, whatever the actor
 			expect(
 				yield* direct(t, t.as(t.admin).authority, {
-					collection: 'ext_sales_orders',
+					model: 'ext_sales_orders',
 					verb: 'create',
 					input: [sales]
 				})
@@ -61,14 +62,14 @@ test.live(
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* direct(t, t.as(t.admin).authority, {
-					collection: 'ext_sales_orders',
+					model: 'ext_sales_orders',
 					verb: 'create',
 					input: [{ ...sales, external_id: 'manual' }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* direct(t, t.as(t.admin).authority, {
-					collection: 'ext_sales_orders',
+					model: 'ext_sales_orders',
 					verb: 'update',
 					input: [{ target: id, set: { reference: 'manual edit' } }]
 				})
@@ -90,9 +91,9 @@ test.live(
 			expect(yield* write(t, 'ext_sales_orders', [foreign], 'upsert')).not.toMatchObject({
 				kind: 'committed'
 			});
-			expect((yield* t.as(t.admin).query('ext_sales_orders', { all: true })).rows[0]?.order).toBe(
-				first.order
-			);
+			expect(
+				(yield* t.as(t.admin).query({ ext_sales_orders: {} })).ext_sales_orders.rows[0]?.order
+			).toBe(first.order);
 		})
 );
 test.live(
@@ -116,7 +117,9 @@ test.live(
 				'ext_sales_orders',
 				yield* write(t, 'ext_sales_orders', yield* receipt(t, 'ext_sales_orders', own.order))
 			);
-			const order = yield* t.as(t.admin).query('orders', { id: own.order });
+			const order = (yield* t
+				.as(t.admin)
+				.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0];
 			const row = {
 				erp_id: 'INV-1',
 				order: own.order,
@@ -169,16 +172,14 @@ test.live(
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* direct(t, t.as(t.admin).authority, {
-					collection: 'transactions',
+					model: 'transactions',
 					verb: 'create',
 					input: [{ ...row, source: 'kingdee' }]
 				})
 			).toMatchObject({ kind: 'refused' });
 			expect(
-				(yield* t
-					.as(t.admin)
-					.query('transactions', { where: { erp_id: { eq: 'INV-1' } }, all: true })).rows[0]
-					?.ext_sales_order
+				(yield* t.as(t.admin).query({ transactions: { where: { erp_id: { eq: 'INV-1' } } } }))
+					.transactions.rows[0]?.ext_sales_order
 			).toBe(parent);
 		})
 );
@@ -202,11 +203,15 @@ test.live('external confirmations follow sales/procurement order ownership', () 
 			'ext_purchase_orders',
 			yield* write(t, 'ext_purchase_orders', yield* receipt(t, 'ext_purchase_orders', po.order))
 		);
-		expect((yield* t.as(sales).query('ext_sales_orders', { all: true })).rows).toHaveLength(1);
-		expect((yield* t.as(other).query('ext_sales_orders', { all: true })).rows).toHaveLength(0);
-		expect((yield* t.as(purchasing).query('ext_purchase_orders', { all: true })).rows).toHaveLength(
+		expect((yield* t.as(sales).query({ ext_sales_orders: {} })).ext_sales_orders.rows).toHaveLength(
 			1
 		);
+		expect((yield* t.as(other).query({ ext_sales_orders: {} })).ext_sales_orders.rows).toHaveLength(
+			0
+		);
+		expect(
+			(yield* t.as(purchasing).query({ ext_purchase_orders: {} })).ext_purchase_orders.rows
+		).toHaveLength(1);
 	})
 );
 for (const direction of ['sales', 'purchasing'] as const) {
@@ -217,9 +222,9 @@ for (const direction of ['sales', 'purchasing'] as const) {
 				const t = yield* workspace();
 				const local = yield* draft(t, direction);
 				yield* confirm(t, local.order);
-				const collection = direction === 'sales' ? 'ext_sales_orders' : 'ext_purchase_orders';
-				const source = yield* receipt(t, collection, local.order);
-				const parent = writtenId(collection, yield* write(t, collection, source));
+				const model = direction === 'sales' ? 'ext_sales_orders' : 'ext_purchase_orders';
+				const source = yield* receipt(t, model, local.order);
+				const parent = writtenId(model, yield* write(t, model, source));
 				const row = {
 					erp_id: 'CANCEL-1',
 					order: local.order,
@@ -249,8 +254,8 @@ for (const direction of ['sales', 'purchasing'] as const) {
 				};
 				writtenId('transactions', yield* write(t, 'transactions', [row], 'upsert'));
 				writtenId(
-					collection,
-					yield* write(t, collection, [{ ...source, status: 'void' }], 'upsert')
+					model,
+					yield* write(t, model, [{ ...source, status: 'void' }], 'upsert')
 				);
 				writtenId(
 					'transactions',
@@ -261,7 +266,7 @@ for (const direction of ['sales', 'purchasing'] as const) {
 				});
 				const saved = (yield* t
 					.as(t.admin)
-					.query('transactions', { where: { erp_id: { eq: row.erp_id } }, all: true })).rows[0];
+					.query({ transactions: { where: { erp_id: { eq: row.erp_id } } } })).transactions.rows[0];
 				expect(saved?.status).toBe('void');
 				expect(direction === 'sales' ? saved?.ext_sales_order : saved?.ext_purchase_order).toBe(
 					parent

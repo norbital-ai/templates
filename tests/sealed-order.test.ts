@@ -4,6 +4,7 @@ import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { committed } from './kit.js';
+import { confirmationOf } from './reads.js';
 const sealingWorkspace = () =>
 	acquireWorkspace({
 		root: process.cwd(),
@@ -64,26 +65,30 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 		const as = t.as(t.admin);
 		const order = committed(
 			'orders',
-			yield* as.act('orders.create', {
-				title: 'Sealed SO',
-				direction: 'sales',
-				party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
-				currency: 'SGD',
-				payment_terms: 'Net 30'
-			})
+			yield* as.act('orders.create', [
+				{
+					title: 'Sealed SO',
+					direction: 'sales',
+					party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
+					currency: 'SGD',
+					payment_terms: 'Net 30'
+				}
+			])
 		);
 		const line = committed(
 			'order_lines',
-			yield* as.act('order_lines.create', {
-				order,
-				product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-				quantity: Decimal.of('10'),
-				unit_price: Decimal.of('2'),
-				discount_pct: Decimal.of('0'),
-				tax_rate: Decimal.of('9')
-			})
+			yield* as.act('order_lines.create', [
+				{
+					order,
+					product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+					quantity: Decimal.of('10'),
+					unit_price: Decimal.of('2'),
+					discount_pct: Decimal.of('0'),
+					tax_rate: Decimal.of('9')
+				}
+			])
 		);
-		const check = yield* as.query('orders.confirmation_check', {
+		const check = yield* confirmationOf(as, {
 			as_of: Instant(t.clock.now()),
 			order
 		});
@@ -91,12 +96,15 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 		const checked = check;
 		committed(
 			'orders',
-			yield* as.act('orders.update', {
-				target: order,
-				set: { status: 'confirmed', check_hash: checked.check_hash }
-			})
+			yield* as.act('orders.update', [
+				{
+					target: order,
+					set: { status: 'confirmed', check_hash: checked.check_hash }
+				}
+			])
 		);
-		const before = yield* as.query('orders', { id: order });
+		const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+			.rows[0];
 		expect(before).toMatchObject({ status: 'confirmed', sealed_contract_version: '1' });
 		expect(before?.sealed_snapshot).toMatchObject({ total: '21.80', payment_terms: 'Net 30' });
 		expect(before?.sealed_contract).toContain('Net 30');
@@ -104,35 +112,40 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 		expect(before?.sealed_contract).not.toContain(order);
 		expect(
 			yield* Effect.flip(
-				as.act('orders.update', { target: order, set: { payment_terms: 'Net 90' } })
+				as.act('orders.update', [{ target: order, set: { payment_terms: 'Net 90' } }])
 			)
 		).toMatchObject({ _tag: 'ActRefused' });
 		expect(
 			yield* Effect.flip(
-				as.act('order_lines.update', { target: line, set: { unit_price: Decimal.of('99') } })
+				as.act('order_lines.update', [{ target: line, set: { unit_price: Decimal.of('99') } }])
 			)
 		).toMatchObject({ _tag: 'ActRefused' });
-		expect(yield* Effect.flip(as.act('order_lines.delete', { target: line }))).toMatchObject({
+		expect(yield* Effect.flip(as.act('order_lines.delete', [{ target: line }]))).toMatchObject({
 			_tag: 'ActRefused'
 		});
 		const nextTemplate = committed(
 			'document_templates',
-			yield* as.act('document_templates.create', {
-				kind: 'contract',
-				locale: 'en',
-				version: '2',
-				title: 'New terms',
-				body: '{agreement}\nNew contract wording'
-			})
+			yield* as.act('document_templates.create', [
+				{
+					kind: 'contract',
+					locale: 'en',
+					version: '2',
+					title: 'New terms',
+					body: '{agreement}\nNew contract wording'
+				}
+			])
 		);
 		committed(
 			'document_templates',
-			yield* as.act('document_templates.update', {
-				target: nextTemplate,
-				set: { status: 'published' }
-			})
+			yield* as.act('document_templates.update', [
+				{
+					target: nextTemplate,
+					set: { status: 'published' }
+				}
+			])
 		);
-		const after = yield* as.query('orders', { id: order });
+		const after = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+			.rows[0];
 		expect(after?.seal_hash).toEqual(before?.seal_hash);
 		expect(after?.sealed_snapshot).toEqual(before?.sealed_snapshot);
 		expect(after?.sealed_contract).toEqual(before?.sealed_contract);
@@ -145,78 +158,94 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 		const createOrder = Effect.fnUntraced(function* (title: string) {
 			return committed(
 				'orders',
-				yield* as.act('orders.create', {
-					title,
-					direction: 'sales',
-					party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
-					currency: 'SGD',
-					payment_terms: 'Net 30'
-				})
+				yield* as.act('orders.create', [
+					{
+						title,
+						direction: 'sales',
+						party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
+						currency: 'SGD',
+						payment_terms: 'Net 30'
+					}
+				])
 			);
 		});
 		const first = yield* createOrder('First SO');
 		const second = yield* createOrder('Second SO');
 		const line = committed(
 			'order_lines',
-			yield* as.act('order_lines.create', {
-				order: first,
-				product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-				quantity: Decimal.of('10'),
-				unit_price: Decimal.of('2'),
-				discount_pct: Decimal.of('0'),
-				tax_rate: Decimal.of('9')
-			})
+			yield* as.act('order_lines.create', [
+				{
+					order: first,
+					product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+					quantity: Decimal.of('10'),
+					unit_price: Decimal.of('2'),
+					discount_pct: Decimal.of('0'),
+					tax_rate: Decimal.of('9')
+				}
+			])
 		);
 		committed(
 			'order_lines',
-			yield* as.act('order_lines.create', {
-				order: second,
-				product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-				quantity: Decimal.of('10'),
-				unit_price: Decimal.of('2'),
-				discount_pct: Decimal.of('0'),
-				tax_rate: Decimal.of('9')
-			})
+			yield* as.act('order_lines.create', [
+				{
+					order: second,
+					product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+					quantity: Decimal.of('10'),
+					unit_price: Decimal.of('2'),
+					discount_pct: Decimal.of('0'),
+					tax_rate: Decimal.of('9')
+				}
+			])
 		);
-		const check = yield* as.query('orders.confirmation_check', {
+		const check = yield* confirmationOf(as, {
 			as_of: Instant(t.clock.now()),
 			order: first
 		});
 		expect(
 			yield* Effect.flip(
-				as.act('orders.update', {
-					target: second,
-					set: { status: 'confirmed', check_hash: check.check_hash }
-				})
+				as.act('orders.update', [
+					{
+						target: second,
+						set: { status: 'confirmed', check_hash: check.check_hash }
+					}
+				])
 			)
 		).toMatchObject({ _tag: 'ActRefused', message: 'errors.check_changed' });
 		committed(
 			'order_lines',
-			yield* as.act('order_lines.update', { target: line, set: { unit_price: Decimal.of('3') } })
+			yield* as.act('order_lines.update', [{ target: line, set: { unit_price: Decimal.of('3') } }])
 		);
 		expect(
 			yield* Effect.flip(
-				as.act('orders.update', {
-					target: first,
-					set: { status: 'confirmed', check_hash: check.check_hash }
-				})
+				as.act('orders.update', [
+					{
+						target: first,
+						set: { status: 'confirmed', check_hash: check.check_hash }
+					}
+				])
 			)
 		).toMatchObject({ _tag: 'ActRefused', message: 'errors.check_changed' });
-		const refreshed = yield* as.query('orders.confirmation_check', {
+		const refreshed = yield* confirmationOf(as, {
 			as_of: Instant(t.clock.now()),
 			order: first
 		});
 		committed(
 			'orders',
-			yield* as.act('orders.update', {
-				target: first,
-				set: { status: 'confirmed', check_hash: refreshed.check_hash }
-			})
+			yield* as.act('orders.update', [
+				{
+					target: first,
+					set: { status: 'confirmed', check_hash: refreshed.check_hash }
+				}
+			])
 		);
-		expect(yield* as.query('orders', { id: first })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: first } }, limit: 1 } })).orders.rows[0]
+		).toMatchObject({
 			sealed_snapshot: { total: '32.70' }
 		});
-		expect(yield* as.query('orders', { id: second })).toMatchObject({
+		expect(
+			(yield* as.query({ orders: { where: { id: { eq: second } }, limit: 1 } })).orders.rows[0]
+		).toMatchObject({
 			status: 'draft',
 			sealed_snapshot: null,
 			seal_hash: null

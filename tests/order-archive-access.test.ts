@@ -18,9 +18,12 @@ test.live.each(['sales', 'procurement', 'manager'] as const)(
 			for (const archived of [true, false]) {
 				committed(
 					'orders',
-					yield* caller.act('orders.update', { target: own.order, set: { archived } })
+					yield* caller.act('orders.update', [{ target: own.order, set: { archived } }])
 				);
-				expect(yield* caller.query('orders', { id: own.order })).toMatchObject({
+				expect(
+					(yield* caller.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders
+						.rows[0]
+				).toMatchObject({
 					archived,
 					status: 'draft'
 				});
@@ -36,14 +39,22 @@ test.live.each(['sales', 'procurement'] as const)(
 			const caller = t.as(t.member([policy]));
 			const admin = t.as(t.admin);
 			const hidden = yield* draft(t);
-			const before = yield* admin.query('orders', { id: hidden.order });
-			expect(yield* caller.query('orders', { id: hidden.order })).toBeNull();
+			const before = (yield* admin.query({
+				orders: { where: { id: { eq: hidden.order } }, limit: 1 }
+			})).orders.rows[0];
+			expect(
+				(yield* caller.query({ orders: { where: { id: { eq: hidden.order } }, limit: 1 } })).orders
+					.rows[0]
+			).toBeUndefined();
 			expect(
 				yield* caller
-					.act('orders.update', { target: hidden.order, set: { archived: true } })
+					.act('orders.update', [{ target: hidden.order, set: { archived: true } }])
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
-			expect(yield* admin.query('orders', { id: hidden.order })).toEqual(before);
+			expect(
+				(yield* admin.query({ orders: { where: { id: { eq: hidden.order } }, limit: 1 } })).orders
+					.rows[0]
+			).toEqual(before);
 		})
 );
 
@@ -53,29 +64,39 @@ test.live('archiving with a stale observed revision preserves the current order'
 		const caller = t.as(t.member(['manager']));
 		const admin = t.as(t.admin);
 		const own = yield* draft(t);
-		const previous = yield* admin.query('orders', { id: own.order });
+		const previous = (yield* admin.query({
+			orders: { where: { id: { eq: own.order } }, limit: 1 }
+		})).orders.rows[0];
 		if (!previous) throw new Error('Draft order required');
 		committed(
 			'orders',
-			yield* admin.act('orders.update', {
-				target: own.order,
-				set: { notes: 'Latest customer discussion' }
-			})
+			yield* admin.act('orders.update', [
+				{
+					target: own.order,
+					set: { notes: 'Latest customer discussion' }
+				}
+			])
 		);
 		yield* t.runDue();
-		const current = yield* admin.query('orders', { id: own.order });
+		const current = (yield* admin.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
 		expect(
 			yield* caller
 				.act(
 					'orders.update',
-					{
-						target: own.order,
-						set: { archived: true }
-					},
+					[
+						{
+							target: own.order,
+							set: { archived: true }
+						}
+					],
 					{ observed: { [own.order]: previous.revision } }
 				)
 				.pipe(Effect.flip)
-		).toMatchObject({ _tag: 'ActConflict', records: [{ collection: 'orders', id: own.order }] });
-		expect(yield* admin.query('orders', { id: own.order })).toEqual(current);
+		).toMatchObject({ _tag: 'ActConflict', records: [{ model: 'orders', id: own.order }] });
+		expect(
+			(yield* admin.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders
+				.rows[0]
+		).toEqual(current);
 	})
 );

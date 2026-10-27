@@ -4,6 +4,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { expect, it as test } from '@effect/vitest';
 import { workspace, draft, confirm } from './kit.js';
 import { sourceOrder, sourceTransaction, sync } from './synced-kit.js';
+import { progressOfParty } from './reads.js';
 test.live(
 	'finalizing an agreement does not create a duplicate order transaction or custom handoff',
 	() =>
@@ -12,7 +13,7 @@ test.live(
 				own = yield* draft(t);
 			yield* confirm(t, own.order);
 			yield* t.runDue();
-			expect((yield* t.as(t.admin).query('transactions', { all: true })).rows).toEqual([]);
+			expect((yield* t.as(t.admin).query({ transactions: {} })).transactions.rows).toEqual([]);
 		})
 );
 test.live('SQL invoices allow absent document files while retaining issued-evidence guards', () =>
@@ -44,7 +45,12 @@ test.live('SQL invoices allow absent document files while retaining issued-evide
 			expect(
 				yield* sync(t, 'transactions', [{ ...invoice.input, ...change }], 'upsert')
 			).not.toMatchObject({ kind: 'committed' });
-		expect(yield* t.as(t.admin).query('transactions', { id: invoice.id })).toMatchObject({
+		expect(
+			(yield* t
+				.as(t.admin)
+				.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } })).transactions
+				.rows[0]
+		).toMatchObject({
 			total: decimalText('21.80'),
 			issued_on: '2026-08-01',
 			documents: []
@@ -62,7 +68,7 @@ test.live(
 			const invoice = yield* sourceTransaction(t, own, parent, 'invoice', '6');
 			yield* sourceTransaction(t, own, parent, 'delivery', '12');
 			expect(
-				yield* t.as(t.admin).query('parties.progress', {
+				yield* progressOfParty(t.as(t.admin), {
 					party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
 					as_of: PlainDate('2026-10-10')
 				})

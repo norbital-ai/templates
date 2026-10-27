@@ -7,7 +7,7 @@
 		type RecordHistoryConfig,
 		type RecordTab
 	} from '@norbital-ai/ui';
-	import type { CollectionName } from '@norbital-ai/bolt';
+	import type { ModelName } from '@norbital-ai/bolt';
 	// Remember the tab when opening a related record, as RecordShell does.
 	const lastTab = new Map<string, string>();
 	/** One titled group of fields. */
@@ -26,7 +26,7 @@
 		body?: Snippet;
 	};
 	export type RecordFormProps = {
-		view: RecordView<CollectionName>;
+		view: RecordView<ModelName>;
 		/** The fields under the record's label, each shown by its kind. */
 		subtitle?: readonly string[];
 		/** Ordered sections; the shared controller keeps readable fields visible and makes permitted fields editable. */
@@ -53,7 +53,7 @@
 
 <script lang="ts">
 	/**
-	 * A collection's record view: the record frame with its subtitle, and the form in its sections; `status`
+	 * A model's record view: the record frame with its subtitle, and the form in its sections; `status`
 	 * offers the moves out of the stored state (the kit's form never edits a state). A record in a final state (no moves
 	 * out, nothing editable) is shown readonly.
 	 */
@@ -109,7 +109,7 @@
 	let added = $state(0);
 	const final = $derived.by(() => {
 		if (cells === null) return false;
-		const fields = kinds.catalog?.[view.collection]?.fields ?? {};
+		const fields = kinds.catalog?.[view.model]?.fields ?? {};
 		const state = Object.entries(fields).find(([, k]) => k.kind === 'state');
 		if (state?.[1].kind !== 'state') return false;
 		const at = state[1].states[String(cells[state[0]])];
@@ -119,12 +119,12 @@
 	const lockReason = $derived(readonlyReason ?? bolt.t('component.readonly'));
 	const catalog = $derived.by(() => {
 		const source = kinds.catalog;
-		const collection = source?.[view.collection];
-		if (!locked || !source || !collection?.update) return source;
-		const { update: _update, ...readable } = collection;
-		return { ...source, [view.collection]: readable };
+		const model = source?.[view.model];
+		if (!locked || !source || !model?.update) return source;
+		const { update: _update, ...readable } = model;
+		return { ...source, [view.model]: readable };
 	});
-	// Narrow this view's presentation only; backend permissions and other collections remain authoritative.
+	// Narrow this view's presentation only; backend permissions and other models remain authoritative.
 	provideKinds({
 		...kinds,
 		get catalog() {
@@ -137,8 +137,8 @@
 			if (
 				locked &&
 				mode === 'edit' &&
-				current?.spec.target.of === 'collection' &&
-				current.spec.target.collection === view.collection &&
+				current?.spec.target.of === 'model' &&
+				current.spec.target.model === view.model &&
 				current.spec.target.id === record?.id
 			)
 				current.view();
@@ -164,7 +164,7 @@
 		{#if stored && form.readable(name) && !stored.kind.hidden}
 			<Stack gap="xs" class={wide ? 'col-span-full' : undefined} data-field={name}>
 				<span class="text-xs font-medium text-muted-foreground"
-					>{translate(`models.${view.collection}.fields.${name}`)}</span
+					>{translate(`models.${view.model}.fields.${name}`)}</span
 				>
 				{#if viewers[name]}{@render viewers[name]!(form)}{:else}<Show
 						readonly
@@ -204,7 +204,7 @@
 {#snippet general()}
 	<Stack gap="md">
 		{#key added}<Form
-				of={view.collection}
+				of={view.model}
 				mode={locked && view.mode !== 'create' ? 'view' : view.mode}
 				readonly={locked}
 				{...formActions ? { actions: formActions } : {}}
@@ -213,7 +213,7 @@
 					// a new record opens once it exists
 					if (record || o.kind !== 'committed' || !o.records[0]) return;
 					if (scoped) added++;
-					else openRecord(view.collection, o.records[0].id);
+					else openRecord(view.model, o.records[0].id);
 				}}
 			>
 				{#snippet children(form)}
@@ -267,7 +267,7 @@
 	{/if}
 {/snippet}
 <RecordShell
-	of={view.collection}
+	of={view.model}
 	mode={view.mode}
 	{...record
 		? {
@@ -281,8 +281,8 @@
 	{...history === undefined ? {} : { history }}
 >
 	{#if mainTitle && record}<Tabs
-			value={lastTab.get(`${view.collection}/${record.id}`) ?? 'general'}
-			onValueChange={(value) => lastTab.set(`${view.collection}/${record!.id}`, value)}
+			value={lastTab.get(`${view.model}/${record.id}`) ?? 'general'}
+			onValueChange={(value) => lastTab.set(`${view.model}/${record!.id}`, value)}
 			tabs={[
 				{ name: 'general', title: mainTitle, body: general, keepAlive: true },
 				...(tabs ?? [])

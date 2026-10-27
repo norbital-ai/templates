@@ -1,4 +1,8 @@
 import { policy } from '@norbital-ai/bolt';
+import { memberOf, ordersIn, ownSales, reviewOrders } from '../../lib/order-review.js';
+const own = {
+	order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } }
+} as const;
 export default policy({
 	description: 'sales commercial work scoped by order.',
 	capabilities: {
@@ -7,21 +11,21 @@ export default policy({
 	automations: ['orders_revise'],
 	grants: {
 		ext_sales_orders: {
-			read: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } },
-			history: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } }
+			read: { ext_sales_orders: { where: own } },
+			history: own
 		},
-		document_templates: { read: { status: { eq: 'published' } } },
+		document_templates: {
+			read: { document_templates: { where: { status: { eq: 'published' } } } }
+		},
 		transactions: {
-			read: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } },
-			history: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } }
+			read: { transactions: { where: own } },
+			history: own
 		},
 		commission_statements: {
-			read: { owner: { eq: { actor: 'id' } } },
-			history: { owner: { eq: { actor: 'id' } } },
-			queries: ['board']
+			read: { commission_statements: { where: { owner: { eq: { actor: 'id' } } } } },
+			history: { owner: { eq: { actor: 'id' } } }
 		},
 		parties: {
-			queries: ['progress'],
 			read: true
 		},
 		products: {
@@ -31,7 +35,6 @@ export default policy({
 			read: true
 		},
 		stock_snapshots: {
-			queries: ['erp_availability'],
 			read: true
 		},
 		credit_snapshots: {
@@ -57,288 +60,100 @@ export default policy({
 			update: true
 		},
 		orders: {
+			// the layers under an own order (its party, lines and documents) are read with it
 			read: {
-				direction: {
-					eq: 'sales'
-				},
-				owner: {
-					eq: {
-						actor: 'id'
-					}
-				}
+				orders: { where: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } }
 			},
-			history: {
-				direction: {
-					eq: 'sales'
-				},
-				owner: {
-					eq: {
-						actor: 'id'
-					}
-				}
-			},
+			history: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } },
 			create: {
-				direction: {
-					eq: 'sales'
-				},
-				owner: {
-					eq: {
-						actor: 'id'
-					}
+				check: function* (rows, ctx) {
+					const away = rows.findIndex(
+						(row) =>
+							row.direction !== 'sales' || (row.owner !== undefined && row.owner !== memberOf(ctx))
+					);
+					return away >= 0
+						? ctx.deny('errors.sales_scope', { row: away, field: 'direction' })
+						: ctx.allow();
 				}
 			},
 			// a confirmation needs a commercial manager; any other edit of an unconfirmed order is direct
 			update: {
-				previous: {
-					direction: {
-						eq: 'sales'
-					},
-					owner: {
-						eq: {
-							actor: 'id'
-						}
-					}
-				},
-				where: {
-					direction: {
-						eq: 'sales'
-					},
-					owner: {
-						eq: {
-							actor: 'id'
-						}
-					}
-				},
-				approval: (write, flow) =>
-					write.record.status !== 'confirmed' ||
-					write.changed.every((field) => ['title', 'notes', 'archived'].includes(field))
-						? flow.allow()
-						: write.changed.includes('status')
-							? flow.step('Commercial review', { teams: ['commercial_managers'] })
-							: flow.deny('errors.order_sealed')
+				check: function* (changes, ctx) {
+					return reviewOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
+				}
 			},
-			moves: 'all',
-			queries: [
-				'document_preview',
-				'document_versions',
-				'confirmation_check',
-				'quotation_export',
-				'sealed_export',
-				'ar_aging',
-				'sales_analysis',
-				'sales_detail',
-				'commission'
-			]
+			moves: 'all'
 		},
 		order_lines: {
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			},
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			},
+			read: { order_lines: { where: own } },
+			history: own,
 			create: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
 				}
 			},
 			update: {
-				previous: {
-					order: {
-						is: {
-							direction: {
-								eq: 'sales'
-							},
-							owner: {
-								eq: {
-									actor: 'id'
-								}
-							}
-						}
-					}
-				},
-				where: {
-					order: {
-						is: {
-							direction: {
-								eq: 'sales'
-							},
-							owner: {
-								eq: {
-									actor: 'id'
-								}
-							}
-						}
-					}
+				check: function* (changes, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						changes.map((change) => change.before.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
 				}
 			},
 			delete: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
 				}
 			}
 		},
 		activities: {
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			},
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			},
+			read: { activities: { where: own } },
+			history: own,
 			create: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
 				}
 			},
 			update: {
-				previous: {
-					order: {
-						is: {
-							direction: {
-								eq: 'sales'
-							},
-							owner: {
-								eq: {
-									actor: 'id'
-								}
-							}
-						}
-					}
-				},
-				where: {
-					order: {
-						is: {
-							direction: {
-								eq: 'sales'
-							},
-							owner: {
-								eq: {
-									actor: 'id'
-								}
-							}
-						}
-					}
+				check: function* (changes, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						changes.map((change) => change.before.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
 				}
 			}
 		},
 		source_payments: {
-			queries: ['ledger'],
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			},
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			}
+			history: own,
+			read: { source_payments: { where: own } }
 		},
 		source_sales_lines: {
-			history: { order: { is: { direction: { eq: 'sales' }, owner: { eq: { actor: 'id' } } } } },
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'sales'
-						},
-						owner: {
-							eq: {
-								actor: 'id'
-							}
-						}
-					}
-				}
-			}
+			history: own,
+			read: { source_sales_lines: { where: own } }
 		}
 	}
 });

@@ -9,6 +9,7 @@ import { partnerProgress } from '../src/lib/partner-progress.js';
 import { agreements } from '../src/lib/agreements.js';
 import { sourceOrder, sourceTransaction } from './synced-kit.js';
 import { kingdeeDraft, kingdeeFixture, observeKingdeeOrder } from './kingdee-fixture.js';
+import { progressOfParty } from './reads.js';
 test.live(
 	'partner quota retains the current contract while a replacement draft is edited and archived',
 	() =>
@@ -19,22 +20,26 @@ test.live(
 			const own = yield* kingdeeDraft(t, fixture);
 			committed(
 				'orders',
-				yield* as.act('orders.update', {
-					target: own.order,
-					set: { valid_until: PlainDate('2026-09-30') }
-				})
+				yield* as.act('orders.update', [
+					{
+						target: own.order,
+						set: { valid_until: PlainDate('2026-09-30') }
+					}
+				])
 			);
 			yield* confirm(t, own.order);
 			yield* observeKingdeeOrder(t, fixture, own.order);
-			yield* as.act('sys_integration.update', {
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { active: false }
-			});
+			yield* as.act('sys_integration.update', [
+				{
+					target: fixtureId('sys_integration', 'kingdee'),
+					set: { active: false }
+				}
+			]);
 			const parent = yield* sourceOrder(t, own.order);
 			yield* sourceTransaction(t, own, parent, 'delivery', '4');
 			yield* sourceTransaction(t, own, parent, 'invoice', '4');
 			expect(
-				yield* as.query('parties.progress', {
+				yield* progressOfParty(as, {
 					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
 					party: own.party
 				})
@@ -48,20 +53,25 @@ test.live(
 					state: 'overdue'
 				}
 			]);
-			const sealed = yield* as.query('orders', { id: own.order });
+			const sealed = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			yield* revise(t, own.order);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', {
-					target: own.line,
-					set: { quantity: Decimal.of('20') }
-				})
+				yield* as.act('order_lines.update', [
+					{
+						target: own.line,
+						set: { quantity: Decimal.of('20') }
+					}
+				])
 			);
 			committed(
 				'orders',
-				yield* as.act('orders.update', { target: own.order, set: { archived: true } })
+				yield* as.act('orders.update', [{ target: own.order, set: { archived: true } }])
 			);
-			expect(yield* as.query('orders', { id: own.order })).toMatchObject({
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				status: 'draft',
 				archived: true,
 				seal_hash: sealed?.seal_hash,
@@ -69,7 +79,7 @@ test.live(
 				sealed_contract: sealed?.sealed_contract
 			});
 			expect(
-				yield* as.query('parties.progress', {
+				yield* progressOfParty(as, {
 					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
 					party: own.party
 				})
@@ -88,7 +98,8 @@ test.live(
 			yield* confirm(t, own.order);
 			const parent = yield* sourceOrder(t, own.order);
 			yield* sourceTransaction(t, own, parent, 'delivery', '4');
-			const original = yield* as.query('orders', { id: own.order });
+			const original = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!original) throw new Error('Order missing');
 			// Historical imported versions are projection fixtures; this does not reopen the native sealed SO.
 			const order: Parameters<typeof partnerProgress>[0][number] = original;
@@ -113,17 +124,11 @@ test.live(
 				...order,
 				contract_versions: [{ ...previous, lifecycle: 'superseded' as const }, replacement]
 			};
-			const documents = (yield* as.query('transactions', {
-				all: true,
-				select: {
-					order: true,
-					seal_hash: true,
-					status: true,
-					kind: true,
-					items: true,
-					issued_on: true
+			const documents = (yield* as.query({
+				transactions: {
+					fields: ['order', 'seal_hash', 'status', 'kind', 'items', 'issued_on']
 				}
-			})).rows;
+			})).transactions.rows;
 			const pending = {
 				...order,
 				contract_versions: [previous, { ...replacement, lifecycle: 'pending' as const }]
@@ -206,7 +211,7 @@ test.live(
 				]
 			});
 			expect(
-				yield* as.query('parties.progress', {
+				yield* progressOfParty(as, {
 					as_of: PlainDate(localOf(Date.parse(t.clock.now()), t.manifest.workspace.tz).date),
 					party: fixtureId('parties', '00000000-0000-4000-8000-000000000102')
 				})

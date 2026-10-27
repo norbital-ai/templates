@@ -27,14 +27,17 @@ it.live('an initial unapproved NULL-checker SO cannot block another contract tra
 		yield* t.pull('orders');
 		yield* t.pull('ext_sales_orders');
 		const as = t.as(t.admin);
-		const closed = yield* as.query('orders', { id: first.order });
-		const unapproved = yield* as.query('orders', { id: second.order });
+		const closed = (yield* as.query({ orders: { where: { id: { eq: first.order } }, limit: 1 } }))
+			.orders.rows[0];
+		const unapproved = (yield* as.query({
+			orders: { where: { id: { eq: second.order } }, limit: 1 }
+		})).orders.rows[0];
 		if (!closed || !unapproved) throw new Error('Both local SOs must remain available');
 		expect(currentAgreement(closed)?.kingdee).toMatchObject({ status: 'issued', closed: true });
 		expect(currentAgreement(unapproved)?.kingdee).toMatchObject({ status: 'draft', closed: false });
 		expect(
-			(yield* as.query('ext_sales_orders', { where: { order: { eq: second.order } }, all: true }))
-				.rows
+			(yield* as.query({ ext_sales_orders: { where: { order: { eq: second.order } } } }))
+				.ext_sales_orders.rows
 		).toMatchObject([{ status: 'draft' }]);
 	})
 );
@@ -117,7 +120,8 @@ it.live(
 		Effect.gen(function* () {
 			const { t, own, source, as } = yield* issued();
 			yield* t.pull('orders');
-			const before = yield* as.query('orders', { id: own.order });
+			const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!before) throw new Error('The initial local order is required');
 			const first = agreements(before)[0];
 			if (!first?.kingdee) throw new Error('The tracker must record the initial source identity');
@@ -126,7 +130,8 @@ it.live(
 				!row.archive ? { ...row, checker: '0', checked_on: null } : row
 			);
 			yield* t.pull('orders');
-			const pending = yield* as.query('orders', { id: own.order });
+			const pending = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!pending) throw new Error('The pending source revision must preserve its local order');
 			expect(currentAgreement(pending)?.seal_hash).toBe(first.seal_hash);
 			expect(agreements(pending).filter((version) => version.lifecycle === 'current')).toHaveLength(
@@ -137,7 +142,8 @@ it.live(
 				!row.archive ? { ...row, checker: '1', checked_on: '2026-10-10' } : row
 			);
 			yield* t.pull('orders');
-			const after = yield* as.query('orders', { id: own.order });
+			const after = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!after) throw new Error('The local order must survive source amendment');
 			const versions = agreements(after);
 			expect(versions).toHaveLength(2);
@@ -159,10 +165,11 @@ it.live(
 				kingdee: { source_version: '001', archived: false, binding_id: first.kingdee.binding_id },
 				snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
 			});
-			expect((yield* as.query('orders', { all: true })).rows).toHaveLength(1);
+			expect((yield* as.query({ orders: {} })).orders.rows).toHaveLength(1);
 			const captured = versions.map((version) => version.events?.length);
 			yield* t.pull('orders');
-			const repeated = yield* as.query('orders', { id: own.order });
+			const repeated = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!repeated) throw new Error('The repeated source read must preserve its order');
 			expect(agreements(repeated).map((version) => version.events?.length)).toEqual(captured);
 		})
@@ -179,7 +186,8 @@ it.live(
 				row === line ? { ...row, quantity: '99' } : row
 			);
 			yield* t.pull('orders');
-			const order = yield* as.query('orders', { id: own.order });
+			const order = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			if (!order) throw new Error('The original contract must be retained');
 			expect(agreements(order)).toMatchObject([
 				{
@@ -188,7 +196,10 @@ it.live(
 				}
 			]);
 			expect(agreements(order)).toHaveLength(1);
-			expect(yield* as.query('sys_integration', { id: instance })).toMatchObject({
+			expect(
+				(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
+					.sys_integration.rows[0]
+			).toMatchObject({
 				status: { health: { state: 'attention', code: 'contractSourceConflict' } }
 			});
 		})
@@ -203,24 +214,30 @@ it.live(
 			yield* t.pull('ext_sales_orders');
 			delivery(source, '22001', String(head.fid));
 			yield* t.pull('transactions');
-			const parent = (yield* as.query('ext_sales_orders', { all: true })).rows[0];
-			const transaction = (yield* as.query('transactions', { all: true })).rows[0];
+			const parent = (yield* as.query({ ext_sales_orders: {} })).ext_sales_orders.rows[0];
+			const transaction = (yield* as.query({ transactions: {} })).transactions.rows[0];
 			if (!parent || !transaction) throw new Error('Initial issued evidence is required');
 			amend(source);
 			yield* t.pull('orders');
 			yield* t.pull('ext_sales_orders');
 			yield* t.pull('transactions');
-			expect(yield* as.query('ext_sales_orders', { id: parent.id })).toMatchObject({
+			expect(
+				(yield* as.query({ ext_sales_orders: { where: { id: { eq: parent.id } }, limit: 1 } }))
+					.ext_sales_orders.rows[0]
+			).toMatchObject({
 				external_id: parent.external_id,
 				agreement_hash: parent.agreement_hash,
 				status: 'issued'
 			});
-			expect(yield* as.query('transactions', { id: transaction.id })).toMatchObject({
+			expect(
+				(yield* as.query({ transactions: { where: { id: { eq: transaction.id } }, limit: 1 } }))
+					.transactions.rows[0]
+			).toMatchObject({
 				erp_id: transaction.erp_id,
 				seal_hash: transaction.seal_hash,
 				status: 'issued'
 			});
-			expect((yield* as.query('transactions', { all: true })).rows).toHaveLength(1);
+			expect((yield* as.query({ transactions: {} })).transactions.rows).toHaveLength(1);
 			delivery(source, '22002', String(head.fid));
 			const refused = yield* Effect.flip(t.pull('transactions'));
 			expect(refused).toMatchObject({
@@ -229,6 +246,6 @@ it.live(
 				phase: 'guest',
 				cause: { name: 'SourceRowInvalid', message: expect.stringContaining('contractVersion:') }
 			});
-			expect((yield* as.query('transactions', { all: true })).rows).toHaveLength(1);
+			expect((yield* as.query({ transactions: {} })).transactions.rows).toHaveLength(1);
 		})
 );

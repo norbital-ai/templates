@@ -1,4 +1,6 @@
 import { policy } from '@norbital-ai/bolt';
+import { ordersIn, purchasing, reviewOrders } from '../../lib/order-review.js';
+const own = { order: { is: { direction: { eq: 'purchasing' } } } } as const;
 export default policy({
 	description: 'procurement commercial work scoped by order.',
 	capabilities: {
@@ -7,20 +9,17 @@ export default policy({
 	automations: ['orders_revise'],
 	grants: {
 		ext_purchase_orders: {
-			read: { order: { is: { direction: { eq: 'purchasing' }, owner: { eq: { actor: 'id' } } } } },
-			history: {
-				order: { is: { direction: { eq: 'purchasing' }, owner: { eq: { actor: 'id' } } } }
-			}
+			read: { ext_purchase_orders: { where: own } },
+			history: own
 		},
-		document_templates: { read: { status: { eq: 'published' } } },
+		document_templates: {
+			read: { document_templates: { where: { status: { eq: 'published' } } } }
+		},
 		transactions: {
-			read: { order: { is: { direction: { eq: 'purchasing' }, owner: { eq: { actor: 'id' } } } } },
-			history: {
-				order: { is: { direction: { eq: 'purchasing' }, owner: { eq: { actor: 'id' } } } }
-			}
+			read: { transactions: { where: own } },
+			history: own
 		},
 		parties: {
-			queries: ['progress'],
 			read: true
 		},
 		products: {
@@ -30,7 +29,6 @@ export default policy({
 			read: true
 		},
 		stock_snapshots: {
-			queries: ['erp_availability'],
 			read: true
 		},
 		credit_snapshots: {
@@ -56,193 +54,95 @@ export default policy({
 			update: true
 		},
 		orders: {
-			read: {
-				direction: {
-					eq: 'purchasing'
-				}
-			},
-			history: {
-				direction: {
-					eq: 'purchasing'
-				}
-			},
+			// the layers under a purchasing order (its party, lines and documents) are read with it
+			read: { orders: { where: { direction: { eq: 'purchasing' } } } },
+			history: { direction: { eq: 'purchasing' } },
 			create: {
-				direction: {
-					eq: 'purchasing'
+				check: function* (rows, ctx) {
+					const away = rows.findIndex((row) => row.direction !== 'purchasing');
+					return away >= 0
+						? ctx.deny('errors.purchasing_scope', { row: away, field: 'direction' })
+						: ctx.allow();
 				}
 			},
 			// a confirmation needs a commercial manager; any other edit of an unconfirmed order is direct
 			update: {
-				previous: {
-					direction: {
-						eq: 'purchasing'
-					}
-				},
-				where: {
-					direction: {
-						eq: 'purchasing'
-					}
-				},
-				approval: (write, flow) =>
-					write.record.status !== 'confirmed' ||
-					write.changed.every((field) => ['title', 'notes', 'archived'].includes(field))
-						? flow.allow()
-						: write.changed.includes('status')
-							? flow.step('Commercial review', { teams: ['commercial_managers'] })
-							: flow.deny('errors.order_sealed')
+				check: function* (changes, ctx) {
+					return reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope');
+				}
 			},
-			moves: 'all',
-			queries: [
-				'document_preview',
-				'document_versions',
-				'confirmation_check',
-				'quotation_export',
-				'sealed_export',
-				'ar_aging',
-				'sales_analysis',
-				'sales_detail',
-				'commission'
-			]
+			moves: 'all'
 		},
 		order_lines: {
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			},
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			},
+			read: { order_lines: { where: own } },
+			history: own,
 			create: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
 				}
 			},
 			update: {
-				previous: {
-					order: {
-						is: {
-							direction: {
-								eq: 'purchasing'
-							}
-						}
-					}
-				},
-				where: {
-					order: {
-						is: {
-							direction: {
-								eq: 'purchasing'
-							}
-						}
-					}
+				check: function* (changes, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						changes.map((change) => change.before.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
 				}
 			},
 			delete: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
 				}
 			}
 		},
 		activities: {
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			},
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			},
+			read: { activities: { where: own } },
+			history: own,
 			create: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
 				}
 			},
 			update: {
-				previous: {
-					order: {
-						is: {
-							direction: {
-								eq: 'purchasing'
-							}
-						}
-					}
-				},
-				where: {
-					order: {
-						is: {
-							direction: {
-								eq: 'purchasing'
-							}
-						}
-					}
+				check: function* (changes, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						changes.map((change) => change.before.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
 				}
 			}
 		},
 		source_payments: {
-			queries: ['ledger'],
-			history: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			},
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			}
+			history: own,
+			read: { source_payments: { where: own } }
 		},
 		source_sales_lines: {
-			history: { order: { is: { direction: { eq: 'purchasing' } } } },
-			read: {
-				order: {
-					is: {
-						direction: {
-							eq: 'purchasing'
-						}
-					}
-				}
-			}
+			history: own,
+			read: { source_sales_lines: { where: own } }
 		}
 	}
 });

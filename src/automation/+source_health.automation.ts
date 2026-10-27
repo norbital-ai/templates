@@ -20,11 +20,9 @@ export default automation('source_health', {
 	runAs: ['configuration'],
 	run: function* ({ ids }, ctx) {
 		if (ids === undefined || ids.length === 0) return;
-		const { rows } = yield* ctx.query('sys_integration', {
-			where: { id: { in: ids } },
-			select: { name: true, status: true, revision: true },
-			all: true
-		});
+		const { rows } = (yield* ctx.query({
+			sys_integration: { where: { id: { in: ids } }, fields: ['name', 'status', 'revision'] }
+		})).sys_integration;
 		yield* ctx.notify(
 			rows.flatMap((row) => {
 				if (!Schema.is(Attention)(row.status)) return [];
@@ -35,7 +33,7 @@ export default automation('source_health', {
 						title: `${row.name} needs attention`,
 						description:
 							message ?? (code === undefined ? undefined : reasons[code]) ?? 'Check its status.',
-						link: { collection: 'sys_integration' as const, id: row.id },
+						link: { model: 'sys_integration' as const, id: row.id },
 						once: `${row.id}:${row.revision}`
 					}
 				];

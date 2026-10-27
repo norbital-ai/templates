@@ -11,17 +11,17 @@ import { randomUUID } from 'node:crypto';
 import { type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
 import type { Id } from '@norbital-ai/bolt';
-export function writtenId<C extends string>(collection: C, outcome: Outcome) {
+export function writtenId<C extends string>(model: C, outcome: Outcome) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
-	const record = outcome.records.find((record) => record.collection === collection);
-	if (record === undefined) throw new Error(`The sync committed no ${collection} record`);
-	return fixtureId(collection, record.id);
+	const record = outcome.records.find((record) => record.model === model);
+	if (record === undefined) throw new Error(`The sync committed no ${model} record`);
+	return fixtureId(model, record.id);
 }
 /** Invalid and forbidden wire requests cannot be expressed by the typed caller catalogue. */
 export const direct = Effect.fnUntraced(function* (
 	t: T,
 	authority: Authority,
-	request: Pick<ActRequest, 'collection' | 'verb' | 'input'>
+	request: Pick<ActRequest, 'model' | 'verb' | 'input'>
 ) {
 	const key = randomUUID();
 	return (yield* Context.get(t.services, Writes).act({
@@ -61,23 +61,23 @@ const written = new WeakMap<T, Map<string, string>>();
  */
 export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 	t: T,
-	collection: C,
+	model: C,
 	row: Record<string, Json> | Record<string, Json>[],
 	verb: 'create' | 'upsert' = 'create'
 ) {
 	const key = randomUUID();
-	const name = `${collection}.sync.kingdee`;
+	const name = `${model}.sync.kingdee`;
 	const ids = written.get(t) ?? new Map<string, string>();
 	written.set(t, ids);
 	const existing =
 		verb === 'upsert'
 			? yield* t.db.rows(Schema.Struct({ id: Schema.String, remote: Schema.String }), {
-					text: `SELECT id, "${remote[collection]}" AS remote FROM "${collection}" WHERE source = $1`,
+					text: `SELECT id, "${remote[model]}" AS remote FROM "${model}" WHERE source = $1`,
 					params: ['kingdee']
 				})
 			: [];
 	const rows = (Array.isArray(row) ? row : [row]).map((value) => {
-		const identity = `${collection}:${String(value[remote[collection]])}`;
+		const identity = `${model}:${String(value[remote[model]])}`;
 		return {
 			identity,
 			value: {
@@ -85,7 +85,7 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 				id:
 					(verb === 'upsert'
 						? (ids.get(identity) ??
-							existing.find((row) => row.remote === String(value[remote[collection]]))?.id)
+							existing.find((row) => row.remote === String(value[remote[model]]))?.id)
 						: undefined) ?? randomUUID(),
 				source: 'kingdee'
 			}
@@ -97,7 +97,7 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 		admin: false
 	});
 	const outcome = (yield* Context.get(t.services, Writes).act({
-		collection,
+		model,
 		verb: 'upsert',
 		onConflict: 'update',
 		input: rows.map(({ value }) => value),
@@ -127,10 +127,12 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 	return outcome;
 });
 export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const agreement = yield* t.as(t.admin).query('orders', { id: order });
+	const agreement = (yield* t
+		.as(t.admin)
+		.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0];
 	if (typeof agreement?.seal_hash !== 'string' || typeof agreement.currency !== 'string')
 		throw new Error('Sealed agreement required');
-	const collection: 'ext_sales_orders' | 'ext_purchase_orders' =
+	const model: 'ext_sales_orders' | 'ext_purchase_orders' =
 		agreement.direction === 'sales' ? 'ext_sales_orders' : 'ext_purchase_orders';
 	const input = {
 		order,
@@ -142,8 +144,8 @@ export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'
 		source_updated_at: '2026-10-10T00:00:00Z'
 	};
 	return {
-		id: writtenId(collection, yield* sync(t, collection, input)),
-		collection,
+		id: writtenId(model, yield* sync(t, model, input)),
+		model,
 		input,
 		agreement
 	};
@@ -162,7 +164,7 @@ export const sourceTransaction = Effect.fnUntraced(function* (
 	const input = {
 		erp_id: randomUUID(),
 		order: own.order,
-		[parent.collection === 'ext_sales_orders' ? 'ext_sales_order' : 'ext_purchase_order']:
+		[parent.model === 'ext_sales_orders' ? 'ext_sales_order' : 'ext_purchase_order']:
 			parent.id,
 		kind,
 		reference: kind === 'invoice' ? 'INV-1' : 'DO-1',

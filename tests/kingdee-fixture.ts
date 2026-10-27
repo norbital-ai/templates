@@ -382,49 +382,59 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 	for (const model of ['parties', 'products', 'warehouses'] as const)
 		yield* t.pull(model, instance);
 	const as = t.as(t.admin);
-	const party = (yield* as.query('parties', {
-		where: { source: { eq: instance }, external_code: { eq: '101' } },
-		all: true
-	})).rows[0];
-	const product = (yield* as.query('products', {
-		where: { source: { eq: instance }, external_code: { eq: '301' } },
-		all: true
-	})).rows[0];
-	const warehouse = (yield* as.query('warehouses', {
-		where: { source: { eq: instance }, external_code: { eq: '502' } },
-		all: true
-	})).rows[0];
+	const party = (yield* as.query({
+		parties: {
+			where: { source: { eq: instance }, external_code: { eq: '101' } }
+		}
+	})).parties.rows[0];
+	const product = (yield* as.query({
+		products: {
+			where: { source: { eq: instance }, external_code: { eq: '301' } }
+		}
+	})).products.rows[0];
+	const warehouse = (yield* as.query({
+		warehouses: {
+			where: { source: { eq: instance }, external_code: { eq: '502' } }
+		}
+	})).warehouses.rows[0];
 	if (!party || !product || !warehouse)
 		throw new Error('A complete physical source catalogue is required');
 	const order = committed(
 		'orders',
-		yield* as.act('orders.create', {
-			title: 'Kingdee integration sale',
-			direction: 'sales',
-			party: party.id,
-			currency: 'CNY',
-			payment_terms: 'PROBE-NET30',
-			ordered_on: PlainDate('2026-10-10'),
-			tax_inclusive: false
-		})
+		yield* as.act('orders.create', [
+			{
+				title: 'Kingdee integration sale',
+				direction: 'sales',
+				party: party.id,
+				currency: 'CNY',
+				payment_terms: 'PROBE-NET30',
+				ordered_on: PlainDate('2026-10-10'),
+				tax_inclusive: false
+			}
+		])
 	);
 	const line = committed(
 		'order_lines',
-		yield* as.act('order_lines.create', {
-			order,
-			product: product.id,
-			quantity: Decimal.of(10),
-			unit_price: Decimal.of(2),
-			discount_pct: Decimal.of(0),
-			tax_rate: Decimal.of(13)
-		})
+		yield* as.act('order_lines.create', [
+			{
+				order,
+				product: product.id,
+				quantity: Decimal.of(10),
+				unit_price: Decimal.of(2),
+				discount_pct: Decimal.of(0),
+				tax_rate: Decimal.of(13)
+			}
+		])
 	);
-	const header = yield* as.query('orders', { id: order });
+	const header = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+		.rows[0];
 	if (!header) throw new Error('The draft was not committed');
-	yield* as.act('sys_integration.update', {
-		target: instance,
-		set: { configuration: fixture.configuration(header.owner) }
-	});
+	yield* as.act('sys_integration.update', [
+		{
+			target: instance,
+			set: { configuration: fixture.configuration(header.owner) }
+		}
+	]);
 	return { order, line, party: party.id, product: product.id, warehouse: warehouse.id };
 });
 export const kingdeeSale = Effect.fnUntraced(function* (
@@ -434,7 +444,9 @@ export const kingdeeSale = Effect.fnUntraced(function* (
 ) {
 	const created = yield* kingdeeDraft(t, fixture, instance);
 	yield* confirm(t, created.order);
-	const sealed = yield* t.as(t.admin).query('orders', { id: created.order });
+	const sealed = (yield* t
+		.as(t.admin)
+		.query({ orders: { where: { id: { eq: created.order } }, limit: 1 } })).orders.rows[0];
 	if (typeof sealed?.seal_hash !== 'string') throw new Error('A sealed sale is required');
 	return { ...created, seal: sealed.seal_hash };
 });
@@ -446,7 +458,8 @@ export const observeKingdeeOrder = Effect.fnUntraced(function* (
 	order: Id<'orders'>
 ) {
 	yield* t.deliver();
-	const local = yield* t.as(t.admin).query('orders', { id: order });
+	const local = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+		.orders.rows[0];
 	if (!local) throw new Error('The local SO is required');
 	const header = fixture.tables.SEOrder?.find(
 		(row) => row.reference === local.number && !row.archive

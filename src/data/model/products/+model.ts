@@ -77,7 +77,7 @@ export default model('products', {
 		}
 	},
 	read: 'all',
-	update: { columns: ['commission_factor', 'commission_basis_unit'] },
+	update: { columns: { products: ['commission_factor', 'commission_basis_unit'] } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',

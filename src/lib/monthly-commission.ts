@@ -4,12 +4,36 @@ import { minorDigits, sum } from '@norbital-ai/std/decimal';
 import {
 	AgreementUnavailable,
 	commissionCalculation,
-	reportSelect,
-	type CommissionFact
+	commissionFactFields,
+	reportFields,
+	type CommissionFact,
+	type ReportOrder
 } from './reports.js';
-import { isMasked, type Row } from '@norbital-ai/bolt';
+import { isMasked, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+import { PlainDate } from '@norbital-ai/std/date';
 import { hash } from './commercial.js';
-type MonthlyOrder = Pick<Row<'orders'>, 'id' | keyof typeof reportSelect>;
+type MonthlyOrder = ReportOrder;
+/** The fields a statement's sign-off compares (the board and the statement create read them). */
+export const statementFields = [
+	'number',
+	'owner',
+	'period',
+	'currency',
+	'calculation_hash',
+	'amount',
+	'order_count',
+	'acknowledged_at',
+	'acknowledged_by',
+	'snapshot'
+] as const;
+/** The board's read for one month (`period`, its first day): sales orders, statements, salespeople and sales facts. */
+export const boardRead = (period: PlainDate) =>
+	({
+		orders: { where: { direction: { eq: 'sales' } }, fields: reportFields },
+		commission_statements: { where: { period: { eq: period } }, fields: statementFields },
+		sys_user: { fields: ['name'] },
+		source_sales_lines: { fields: commissionFactFields }
+	}) as const;
 export const monthlyCommission = Effect.fnUntraced(function* (
 	orders: readonly MonthlyOrder[],
 	statements: readonly Pick<
@@ -142,3 +166,21 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		{ concurrency: 'unbounded' }
 	);
 });
+/** The monthly commission board: per salesperson and currency, the amount to sign off and how it stands. */
+export const commissionBoard = (
+	answer: ReadAnswer<ReturnType<typeof boardRead>>,
+	period: PlainDate
+) =>
+	monthlyCommission(
+		answer.orders.rows,
+		answer.commission_statements.rows,
+		answer.sys_user.rows,
+		period,
+		answer.source_sales_lines.rows
+	).pipe(
+		Effect.map((rows) =>
+			rows.map(({ snapshot, ...row }) => ({ ...row, period: PlainDate(row.period) }))
+		)
+	);
+/** The first day of `on`'s month: the period a board and a statement name. */
+export const monthOf = (on: string) => PlainDate(on.slice(0, 7) + '-01');

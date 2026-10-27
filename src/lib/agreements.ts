@@ -1,20 +1,21 @@
 import type { snapshot } from './commercial.js';
 import { isMasked, type Row, type StoredRow } from '@norbital-ai/bolt';
 import { currency } from '@norbital-ai/std/decimal';
-export const agreementSelect = {
-	seal_hash: true,
-	sealed_snapshot: true,
-	sealed_contract: true,
-	sealed_commission: true,
-	sealed_at: true,
-	sealed_by: true,
-	contract_version: true,
-	contract_versions: true,
-	ordered_on: true,
-	freight_treatment: true,
-	status: true,
-	supporting_documents: true
-} as const;
+/** The order fields every agreement helper reads (a read request's `fields`). */
+export const agreementFields = [
+	'seal_hash',
+	'sealed_snapshot',
+	'sealed_contract',
+	'sealed_commission',
+	'sealed_at',
+	'sealed_by',
+	'contract_version',
+	'contract_versions',
+	'ordered_on',
+	'freight_treatment',
+	'status',
+	'supporting_documents'
+] as const;
 export type AgreementOrder = Pick<
 	Row<'orders'>,
 	| 'seal_hash'

@@ -13,16 +13,18 @@ test.live(
 			const manager = t.as(t.member(['manager']));
 			committed(
 				'products',
-				yield* manager.act('products.update', {
-					target: PRODUCT,
-					set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
-				})
+				yield* manager.act('products.update', [
+					{
+						target: PRODUCT,
+						set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
+					}
+				])
 			);
 			expect(
 				yield* direct(t, manager.authority, {
-					collection: 'products',
+					model: 'products',
 					verb: 'update',
-					input: { target: PRODUCT, set: { name: 'Overwrite source' } }
+					input: [{ target: PRODUCT, set: { name: 'Overwrite source' } }]
 				})
 			).not.toMatchObject({ kind: 'committed' });
 			yield* businessRows(t, 'products', [
@@ -37,7 +39,10 @@ test.live(
 					source_updated_at: '2026-10-10T00:00:00Z'
 				}
 			]);
-			expect(yield* manager.query('products', { id: PRODUCT })).toMatchObject({
+			expect(
+				(yield* manager.query({ products: { where: { id: { eq: PRODUCT } }, limit: 1 } })).products
+					.rows[0]
+			).toMatchObject({
 				name: 'Updated resin',
 				commission_factor: decimalText('0.002'),
 				commission_basis_unit: 't'

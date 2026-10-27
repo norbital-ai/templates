@@ -30,9 +30,9 @@ export default model('activities', {
 	},
 	read: 'all',
 	create: {
-		columns: ['order', 'owner', 'title', 'kind', 'due_on', 'done', 'notes']
+		columns: { activities: ['order', 'owner', 'title', 'kind', 'due_on', 'done', 'notes'] }
 	},
 	update: {
-		columns: ['title', 'kind', 'due_on', 'done', 'notes']
+		columns: { activities: ['title', 'kind', 'due_on', 'done', 'notes'] }
 	}
 });

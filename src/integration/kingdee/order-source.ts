@@ -3,7 +3,7 @@ import type { CreateRow, Id, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { Decimal, currency, sum } from '@norbital-ai/std/decimal';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
-import { agreements, agreementSelect } from '../../lib/agreements.js';
+import { agreements, agreementFields } from '../../lib/agreements.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import {
@@ -562,10 +562,8 @@ const graphOrders = Effect.fnUntraced(function* (
 ) {
 	const { orders } = yield* ctx.db.query({
 		orders: {
-			from: 'orders',
 			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-			select: { ...agreementSelect, direction: true },
-			all: true
+			fields: [...agreementFields, 'direction']
 		}
 	});
 	return yield* readOwnedSales(
@@ -754,19 +752,12 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 ) {
 	const decoded = yield* observation(ctx);
 	const owned = yield* graphOrders(instance, ctx);
-	const { parents, retained } = yield* ctx.db.query({
-		parents: {
-			from: 'ext_sales_orders',
+	const { ext_sales_orders: parents, transactions: retained } = yield* ctx.db.query({
+		ext_sales_orders: {
 			where: { source: { eq: instance } },
-			select: { order: true, agreement_hash: true, external_id: true },
-			all: true
+			fields: ['order', 'agreement_hash', 'external_id']
 		},
-		retained: {
-			from: 'transactions',
-			where: { source: { eq: instance } },
-			select: { erp_id: true, seal_hash: true },
-			all: true
-		}
+		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'seal_hash'] }
 	});
 	const orders = owned.orders.map((order) => ({
 		...order,
@@ -786,10 +777,8 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 		...invoice.pendingIds.map((id) => `invoice:${id}:`)
 	];
 	if (pending.length > 0) {
-		const retained = yield* ctx.db.query('transactions', {
-			where: { source: { eq: instance } },
-			select: { erp_id: true },
-			all: true
+		const { transactions: retained } = yield* ctx.db.query({
+			transactions: { where: { source: { eq: instance } }, fields: ['erp_id'] }
 		});
 		if (retained.rows.some((row) => pending.some((prefix) => row.erp_id.startsWith(prefix))))
 			return yield* new SourceRowInvalid({
@@ -870,12 +859,10 @@ export const readSalesOrders = Effect.fnUntraced(function* (
 		ctx.configuration.branchNo,
 		owned.ownership
 	);
-	const { existing } = yield* ctx.db.query({
-		existing: {
-			from: 'ext_sales_orders',
+	const { ext_sales_orders: existing } = yield* ctx.db.query({
+		ext_sales_orders: {
 			where: { source: { eq: instance } },
-			select: { external_id: true, order: true, agreement_hash: true },
-			all: true
+			fields: ['external_id', 'order', 'agreement_hash']
 		}
 	});
 	const stable = owned.orders.map((order) => ({
@@ -914,10 +901,8 @@ export const readPurchaseOrders = Effect.fnUntraced(function* (
 ) {
 	const { orders } = yield* ctx.db.query({
 		orders: {
-			from: 'orders',
 			where: { ledger: { eq: instance }, direction: { eq: 'purchasing' } },
-			select: agreementSelect,
-			all: true
+			fields: agreementFields
 		}
 	});
 	if (orders.rows.some((order) => agreements(order).length > 0))
@@ -938,19 +923,12 @@ export const readTransactions = Effect.fnUntraced(function* (
 	ctx: OrderSourceContext
 ) {
 	const graph = yield* readSalesGraph(instance, ctx);
-	const { parents, existing } = yield* ctx.db.query({
-		parents: {
-			from: 'ext_sales_orders',
+	const { ext_sales_orders: parents, transactions: existing } = yield* ctx.db.query({
+		ext_sales_orders: {
 			where: { source: { eq: instance } },
-			select: { external_id: true, status: true, order: true, agreement_hash: true },
-			all: true
+			fields: ['external_id', 'status', 'order', 'agreement_hash']
 		},
-		existing: {
-			from: 'transactions',
-			where: { source: { eq: instance } },
-			select: { erp_id: true },
-			all: true
-		}
+		transactions: { where: { source: { eq: instance } }, fields: ['erp_id'] }
 	});
 	const documents = [
 		...graph.deliveries.map((document) => ({ kind: 'delivery' as const, document })),

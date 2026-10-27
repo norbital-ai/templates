@@ -3,12 +3,12 @@
 	"key": "norbital_trade_operations",
 	"name": "Trade Operations",
 	"industry": "Trading and Manufacturing",
-	"description": "Order-centered B2B trading, distribution and manufacturing commerce with sealed pricing and contracts, purchasing, fulfillment and ERP collection integrations.",
+	"description": "Order-centered B2B trading, distribution and manufacturing commerce with sealed pricing and contracts, purchasing, fulfillment and ERP-synced models.",
 	"visibility": "public",
 	"counts": {
 		"models": 19,
 		"apps": 5,
-		"automations": 3
+		"automations": 2
 	},
 	"tags": [
 		"Trading",
@@ -18,5 +18,5 @@
 		"Procurement"
 	],
 	"name_zh": "贸易运营",
-	"description_zh": "以订单为核心的商务工作区，封存合同与定价，整合采购、履约和ERP集合。"
+	"description_zh": "以订单为核心的商务工作区，封存合同与定价，整合采购、履约和ERP同步模型。"
 }

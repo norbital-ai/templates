@@ -1,6 +1,6 @@
-<script lang="ts" generics="C extends CollectionName">
+<script lang="ts" generics="C extends ModelName">
 	import type { Snippet } from 'svelte';
-	import type { CollectionName } from '@norbital-ai/bolt';
+	import type { ModelName } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import {
 		Table as NativeTable,
@@ -47,7 +47,7 @@
 			>+ {singular(bolt, props.of)}</Button
 		>{/if}
 {/snippet}
-<Stack class="create-table min-h-0 flex-1" data-collection={props.of}>
+<Stack class="create-table min-h-0 flex-1" data-model={props.of}>
 	<Table {...props} toolbar={{ ...config, new: false, controls }} />
 </Stack>
 <Dialog.Root bind:open

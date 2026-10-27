@@ -15,10 +15,13 @@
 		view: RecordView<'order_lines'>;
 	} = $props();
 	const parent = $derived(view.mode !== 'create' ? view.record.order : view.values.order);
-	const header = $derived(parent ? bolt.query('orders', { id: parent }) : null);
+	const order = $derived(
+		parent ? bolt.query({ orders: { where: { id: { eq: parent } }, limit: 1 } }) : null
+	);
+	const header = $derived(order?.current?.orders.rows[0]);
 	let chosenCurrency = $state<string | undefined>(undefined);
 	const currency = $derived(
-		view.mode !== 'create' ? view.record.currency : (header?.current?.currency ?? chosenCurrency)
+		view.mode !== 'create' ? view.record.currency : (header?.currency ?? chosenCurrency)
 	);
 </script>
 
@@ -57,12 +60,11 @@
 {/snippet}
 <RecordForm
 	{view}
-	readonly={header?.current?.status !== 'draft' ||
-		Boolean(header?.current?.archived || header?.current?.draft_setup)}
+	readonly={header?.status !== 'draft' || Boolean(header?.archived || header?.draft_setup)}
 	readonlyReason={bolt.t(
-		header?.current?.archived
+		header?.archived
 			? 'component.order_archived'
-			: header?.current?.draft_setup
+			: header?.draft_setup
 				? 'errors.contract_setup'
 				: 'component.sealed'
 	)}

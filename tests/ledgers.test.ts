@@ -13,6 +13,7 @@ import {
 	kingdeeSale,
 	stockKey
 } from './kingdee-fixture.js';
+import { quotationOf } from './reads.js';
 
 const first = fixtureId('sys_integration', 'kingdee');
 const ledgers = Effect.fnUntraced(function* () {
@@ -26,7 +27,7 @@ const ledgers = Effect.fnUntraced(function* () {
 		'sys_integration',
 		yield* t
 			.as(t.admin)
-			.act('sys_integration.create', { integration: 'kingdee', name: 'Second ledger' })
+			.act('sys_integration.create', [{ integration: 'kingdee', name: 'Second ledger' }])
 	);
 	t.fakes.links.answer = (instance, operation) =>
 		Schema.decodeUnknownEffect(DatabaseRequest)(operation).pipe(
@@ -70,20 +71,29 @@ test.live('identical Kingdee item IDs resolve stock references within their own 
 			[first, '100', 'First resin'],
 			[second, '7', 'Second resin']
 		] as const) {
-			const stocks = yield* t
+			const stocks = (yield* t
 				.as(t.admin)
-				.query('stock_snapshots', { where: { source: { eq: instance } }, all: true });
+				.query({ stock_snapshots: { where: { source: { eq: instance } } } })).stock_snapshots;
 			expect(stocks.rows).toHaveLength(1);
 			const stock = firstRow(stocks.rows);
 			expect(stock.on_hand.eq(amount)).toBe(true);
 			expect(stock.currency).toBeNull();
 			expect(stock.unit_cost).toBeNull();
-			expect(yield* t.as(t.admin).query('products', { id: stock.product })).toMatchObject({
+			expect(
+				(yield* t
+					.as(t.admin)
+					.query({ products: { where: { id: { eq: stock.product } }, limit: 1 } })).products.rows[0]
+			).toMatchObject({
 				source: instance,
 				external_code: '301',
 				name
 			});
-			expect(yield* t.as(t.admin).query('warehouses', { id: stock.warehouse })).toMatchObject({
+			expect(
+				(yield* t
+					.as(t.admin)
+					.query({ warehouses: { where: { id: { eq: stock.warehouse } }, limit: 1 } })).warehouses
+					.rows[0]
+			).toMatchObject({
 				source: instance,
 				external_code: '502'
 			});
@@ -98,15 +108,21 @@ test.live(
 			const { t, second, records, pull } = yield* ledgers();
 			yield* pull('products');
 			const read = (instance: typeof first) =>
-				t.as(t.admin).query('products', {
-					where: { source: { eq: instance }, external_code: { eq: '301' } },
-					all: true
-				});
+				t
+					.as(t.admin)
+					.query({
+						products: {
+							where: { source: { eq: instance }, external_code: { eq: '301' } }
+						}
+					})
+					.pipe(Effect.map((answer) => answer.products));
 			const original = firstRow((yield* read(first)).rows);
-			yield* t.as(t.admin).act('products.update', {
-				target: original.id,
-				set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
-			});
+			yield* t.as(t.admin).act('products.update', [
+				{
+					target: original.id,
+					set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
+				}
+			]);
 			records.first['/products'] = (records.first['/products'] ?? []).map((row) => {
 				return {
 					...Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(row),
@@ -149,7 +165,8 @@ test.live(
 				const parent = firstRow(
 					(yield* t
 						.as(t.admin)
-						.query('ext_sales_orders', { where: { source: { eq: instance } }, all: true })).rows
+						.query({ ext_sales_orders: { where: { source: { eq: instance } } } })).ext_sales_orders
+						.rows
 				);
 				expect(parent).toMatchObject({
 					source: instance,
@@ -160,43 +177,50 @@ test.live(
 				expect(parent.external_id).toBe(`sales:0:9002:${own.seal}`);
 			}
 			const mixedParty = firstRow(
-				(yield* t.as(t.admin).query('parties', {
-					where: { source: { eq: second }, external_code: { eq: '101' } },
-					all: true
-				})).rows
+				(yield* t.as(t.admin).query({
+					parties: {
+						where: { source: { eq: second }, external_code: { eq: '101' } }
+					}
+				})).parties.rows
 			);
 			expect(
 				yield* Effect.flip(
-					t.as(t.admin).act('orders.create', {
-						title: 'Mixed warehouse',
-						direction: 'sales',
-						party: mixedParty.id,
-						warehouse: firstSale.warehouse,
-						currency: 'CNY',
-						payment_terms: 'PROBE-NET30'
-					})
+					t.as(t.admin).act('orders.create', [
+						{
+							title: 'Mixed warehouse',
+							direction: 'sales',
+							party: mixedParty.id,
+							warehouse: firstSale.warehouse,
+							currency: 'CNY',
+							payment_terms: 'PROBE-NET30'
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
 			const mixedOrder = committed(
 				'orders',
-				yield* t.as(t.admin).act('orders.create', {
-					title: 'Mixed product',
-					direction: 'sales',
-					party: mixedParty.id,
-					currency: 'CNY',
-					payment_terms: 'PROBE-NET30'
-				})
+				yield* t.as(t.admin).act('orders.create', [
+					{
+						title: 'Mixed product',
+						direction: 'sales',
+						party: mixedParty.id,
+						currency: 'CNY',
+						payment_terms: 'PROBE-NET30'
+					}
+				])
 			);
 			expect(
 				yield* Effect.flip(
-					t.as(t.admin).act('order_lines.create', {
-						order: mixedOrder,
-						product: firstSale.product,
-						quantity: Decimal.of(1),
-						unit_price: Decimal.of(2),
-						discount_pct: Decimal.of(0),
-						tax_rate: Decimal.of(13)
-					})
+					t.as(t.admin).act('order_lines.create', [
+						{
+							order: mixedOrder,
+							product: firstSale.product,
+							quantity: Decimal.of(1),
+							unit_price: Decimal.of(2),
+							discount_pct: Decimal.of(0),
+							tax_rate: Decimal.of(13)
+						}
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
 		})
@@ -278,8 +302,7 @@ test.live(
 			expect(fixture.calls).toHaveLength(calls);
 			expect(fixture.submissions.size).toBe(0);
 			expect(
-				(yield* t.as(t.admin).query('orders.quotation_export', { order: own.order })).contract
-					.length
+				(yield* quotationOf(t.as(t.admin), { order: own.order })).contract.length
 			).toBeGreaterThan(20);
 			yield* confirm(t, own.order);
 			yield* t.deliver();
@@ -315,7 +338,10 @@ test.live('a ledger needing attention notifies configuration holders once', () =
 		});
 		const sales = t.member(['sales'], { teams: ['sales'], teamPath: ['sales'] });
 		yield* t.pull('parties');
-		expect(yield* t.as(t.admin).query('sys_integration', { id: first })).toMatchObject({
+		expect(
+			(yield* t.as(t.admin).query({ sys_integration: { where: { id: { eq: first } }, limit: 1 } }))
+				.sys_integration.rows[0]
+		).toMatchObject({
 			status: { health: { state: 'attention', code: 'windowLag' } }
 		});
 		yield* t.runDue();

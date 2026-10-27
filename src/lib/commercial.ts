@@ -1,4 +1,5 @@
-import { Effect, Encoding, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import * as Hex from 'effect/encoding/Hex';
 import { Decimal, minorDigits, sum, type DecimalLike } from '@norbital-ai/std/decimal';
 import type { Row } from '@norbital-ai/bolt';
 
@@ -41,7 +42,7 @@ export const sha256Hex = (text: string) =>
 	Effect.tryPromise({
 		try: () => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)),
 		catch: (cause) => new DigestUnavailable({ message: String(cause) })
-	}).pipe(Effect.map((bytes) => Encoding.encodeHex(new Uint8Array(bytes))));
+	}).pipe(Effect.map((bytes) => Hex.encode(new Uint8Array(bytes))));
 export const hash = (value: unknown) => sha256Hex(canonical(value));
 type Header = Pick<
 	Row<'orders'>,

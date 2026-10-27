@@ -19,12 +19,12 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;
 /** Named integration slots use the catalogue's text identity; other fixture references use UUIDs. */
-export const fixtureId = <C extends string>(collection: C, value: string) =>
+export const fixtureId = <C extends string>(model: C, value: string) =>
 	Schema.decodeUnknownSync(
 		Schema.declare<Id<C>>((input): input is Id<C> =>
 			Schema.is(
 				inputSchema(
-					collection === 'sys_integration' ? { kind: 'text' } : { kind: 'id', of: collection }
+					model === 'sys_integration' ? { kind: 'text' } : { kind: 'id', of: model }
 				)
 			)(input)
 		)

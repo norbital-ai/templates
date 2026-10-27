@@ -23,21 +23,23 @@ const priced = Effect.fnUntraced(function* (
 	lines: readonly Pricing[]
 ) {
 	const productIds = lines.map((l) => l.product);
-	const { products, floors, warehouses, salesOrders, purchaseOrders } = yield* ctx.db.query({
-		products: { from: 'products', where: { id: { in: productIds } }, all: true },
-		floors: { from: 'pricing_floors', where: { product: { in: productIds } }, all: true },
-		warehouses: { from: 'warehouses', where: {}, all: true },
-		salesOrders: {
-			from: 'ext_sales_orders',
+	const {
+		products,
+		pricing_floors: floors,
+		warehouses,
+		ext_sales_orders: salesOrders,
+		ext_purchase_orders: purchaseOrders
+	} = yield* ctx.db.query({
+		products: { where: { id: { in: productIds } } },
+		pricing_floors: { where: { product: { in: productIds } } },
+		warehouses: {},
+		ext_sales_orders: {
 			where: { order: { in: lines.map((line) => line.order) } },
-			select: { order: true },
-			all: true
+			fields: ['order']
 		},
-		purchaseOrders: {
-			from: 'ext_purchase_orders',
+		ext_purchase_orders: {
 			where: { order: { in: lines.map((line) => line.order) } },
-			select: { order: true },
-			all: true
+			fields: ['order']
 		}
 	});
 	const orders = yield* ctx.db.after('orders', { id: { in: lines.map((l) => l.order) } });
@@ -261,10 +263,10 @@ export default model('order_lines', {
 		}
 	},
 	read: 'all',
-	// a line created through its order's `with` runs this after the order's own `create.transform`
+	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
-		columns: ['order', 'product', ...cells, 'source_entry_id'],
-		filled: ['unit_price', 'tax_rate'],
+		columns: { order_lines: ['order', 'product', ...cells, 'source_entry_id'] },
+		filled: { order_lines: ['unit_price', 'tax_rate'] },
 		transform: function* (rows, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -280,7 +282,7 @@ export default model('order_lines', {
 		}
 	},
 	update: {
-		columns: [...cells, 'source_entry_id'],
+		columns: { order_lines: [...cells, 'source_entry_id'] },
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -299,10 +301,11 @@ export default model('order_lines', {
 		check: function* (rows, ctx) {
 			const orders = rows.map((row) => row.order);
 			const parents = yield* ctx.db.after('orders', { id: { in: orders } });
-			const { salesOrders, purchaseOrders } = yield* ctx.db.query({
-				salesOrders: { from: 'ext_sales_orders', where: { order: { in: orders } }, limit: 1 },
-				purchaseOrders: { from: 'ext_purchase_orders', where: { order: { in: orders } }, limit: 1 }
-			});
+			const { ext_sales_orders: salesOrders, ext_purchase_orders: purchaseOrders } =
+				yield* ctx.db.query({
+					ext_sales_orders: { where: { order: { in: orders } }, limit: 1 },
+					ext_purchase_orders: { where: { order: { in: orders } }, limit: 1 }
+				});
 			for (const row of rows) {
 				const parent = parents.find((order) => order.id === row.order);
 				if (!parent?.draft_setup) continue;

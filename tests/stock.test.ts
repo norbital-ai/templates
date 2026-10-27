@@ -4,13 +4,14 @@ import { Schema, Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { Instant } from '@norbital-ai/std/date';
 
-import { availability } from '../src/lib/stock.js';
-import { workspace } from './kit.js';
+import { availability, projectedRead } from '../src/lib/stock.js';
+import { draft, workspace } from './kit.js';
 import { businessRows } from './business-source.js';
+import { confirmationOf, erpAvailabilityOf, projectedAvailabilityOf } from './reads.js';
 const id = <C extends 'products' | 'warehouses' | 'orders' | 'order_lines'>(
-	collection: C,
+	model: C,
 	suffix: string
-) => fixtureId(collection, `00000000-0000-4000-8000-${suffix.padStart(12, '0')}`);
+) => fixtureId(model, `00000000-0000-4000-8000-${suffix.padStart(12, '0')}`);
 const now = Instant('2026-10-10T00:00:00Z');
 const source = {
 	product: id('products', '201'),
@@ -132,28 +133,25 @@ test('unknown, stale, mixed units and unreconciled delivery never fabricate avai
 	});
 });
 test.live(
-	'sales cannot invoke the global commitment projection while logistics and managers can',
+	'sales projects commitments of its own orders only while logistics and managers see them all',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
 			const sales = t.member(['sales']);
-			expect(yield* t.as(sales).query('stock_snapshots.erp_availability', { as_of: now })).toEqual(
-				[]
-			);
-			yield* Effect.tryPromise({
-				try: () =>
-					expect(
-						Effect.runPromise(
-							t.as(sales).query('stock_snapshots.projected_availability', { as_of: now })
-						)
-					).rejects.toThrow(),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			});
+			expect(yield* erpAvailabilityOf(t.as(sales), { as_of: now })).toEqual([]);
+			// the projection's `orders` root is read under the sales order scope: another rep's draft never counts
+			const foreign = yield* draft(t);
+			expect(
+				(yield* t.as(sales).query(projectedRead)).orders.rows.map((order) => order.id)
+			).not.toContain(foreign.order);
+			expect(
+				(yield* t.as(t.member(['logistics'])).query(projectedRead)).orders.rows.map(
+					(order) => order.id
+				)
+			).toContain(foreign.order);
 			for (const policy of ['manager', 'logistics', 'finance']) {
 				const actor = t.member([policy]);
-				expect(
-					yield* t.as(actor).query('stock_snapshots.projected_availability', { as_of: now })
-				).toEqual([]);
+				expect(yield* projectedAvailabilityOf(t.as(actor), { as_of: now })).toEqual([]);
 			}
 		})
 );
@@ -191,7 +189,7 @@ test.live(
 				}
 			});
 			const as = t.as(t.member(['logistics']));
-			const rows = yield* as.query('stock_snapshots.projected_availability', { as_of: now });
+			const rows = yield* projectedAvailabilityOf(as, { as_of: now });
 			expect(rows).toMatchObject([
 				{
 					product: source.product,
@@ -254,7 +252,7 @@ test.live('sales get a below-average lot cost warning without blocking an editab
 		const own = yield* draft(t);
 		const as = t.as(t.admin);
 		expect(
-			yield* as.query('orders.confirmation_check', {
+			yield* confirmationOf(as, {
 				as_of: Instant(t.clock.now()),
 				order: own.order
 			})
@@ -263,13 +261,15 @@ test.live('sales get a below-average lot cost warning without blocking an editab
 		});
 		committed(
 			'order_lines',
-			yield* as.act('order_lines.update', {
-				target: own.line,
-				set: { unit_price: Decimal.of('4') }
-			})
+			yield* as.act('order_lines.update', [
+				{
+					target: own.line,
+					set: { unit_price: Decimal.of('4') }
+				}
+			])
 		);
 		expect(
-			yield* as.query('orders.confirmation_check', {
+			yield* confirmationOf(as, {
 				as_of: Instant(t.clock.now()),
 				order: own.order
 			})
@@ -278,7 +278,7 @@ test.live('sales get a below-average lot cost warning without blocking an editab
 		});
 		expect(
 			yield* Effect.flip(
-				as.act('orders.update', { target: own.order, set: { direction: 'purchasing' } })
+				as.act('orders.update', [{ target: own.order, set: { direction: 'purchasing' } }])
 			)
 		).toMatchObject({ _tag: 'ActRefused' });
 	})

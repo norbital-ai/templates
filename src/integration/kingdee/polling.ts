@@ -106,10 +106,10 @@ export function columns(row: SqlRow) {
 	};
 	const same = <S>(value: S) => value;
 	return {
-		id: <C extends string>(name: string, _collection: C) =>
+		id: <C extends string>(name: string, _model: C) =>
 			reader(
 				Schema.declare<Id<C>>((input): input is Id<C> =>
-					Schema.is(inputSchema({ kind: 'id', of: _collection }))(input)
+					Schema.is(inputSchema({ kind: 'id', of: _model }))(input)
 				),
 				same,
 				'an id'

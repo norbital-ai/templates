@@ -6,6 +6,7 @@
 	import { Chart, Table, Show, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
 		view
 	}: {
@@ -13,20 +14,16 @@
 	} = $props();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const kinds = useKinds();
-	const sales = $derived(
-		id && kinds.catalog?.orders?.queries?.sales_detail
-			? bolt.query('orders.sales_detail', {})
-			: null
-	);
+	const sales = $derived(id && kinds.catalog?.source_sales_lines ? bolt.query(salesRead) : null);
 	const rows = $derived(
-		(sales?.current ?? [])
+		(sales?.current ? salesDetail(sales.current) : [])
 			.filter((r) => r.product === id && r.kind !== 'return')
 			.sort((a, b) => a.business_on.localeCompare(b.business_on))
 	);
 	const floors = $derived(
-		id ? bolt.query('pricing_floors', { where: { product: { eq: id } }, all: true }) : null
+		id ? bolt.query({ pricing_floors: { where: { product: { eq: id } } } }) : null
 	);
-	const floorPage = $derived(floors?.current);
+	const floorPage = $derived(floors?.current?.pricing_floors);
 	const loadFloorHistory = Effect.fnUntraced(function* (current: NonNullable<typeof floorPage>) {
 		const rows = yield* Effect.forEach(
 			current.rows,
@@ -37,10 +34,10 @@
 						revisions,
 						(revision) =>
 							Effect.gen(function* () {
-								const rate = yield* bolt.query('pricing_floors', {
-									id: floor.id,
-									revision: revision.revision
-								});
+								// the floor as this revision left it
+								const [rate] = (yield* bolt.query({
+									pricing_floors: { where: { id: { eq: floor.id } }, limit: 1, asOf: revision.at }
+								})).pricing_floors.rows;
 								if (!rate) return null;
 								const value = Decimal.of(String(rate.floor_price)).div(
 									rate.tax_inclusive

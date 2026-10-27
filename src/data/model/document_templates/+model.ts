@@ -21,7 +21,7 @@ export default model('document_templates', {
 	key: ['kind', 'locale', 'version'],
 	read: 'all',
 	create: {
-		columns: ['kind', 'locale', 'version', 'title', 'body'],
+		columns: { document_templates: ['kind', 'locale', 'version', 'title', 'body'] },
 		transform: function* (rows, ctx) {
 			if (rows.some((row) => !valid(row.body)))
 				return yield* ctx.refuse('errors.document_template_invalid');
@@ -29,7 +29,7 @@ export default model('document_templates', {
 		}
 	},
 	update: {
-		columns: ['title', 'body', 'status'],
+		columns: { document_templates: ['title', 'body', 'status'] },
 		transform: function* (changes, ctx) {
 			const out: UpdateSet<'document_templates'>[] = [];
 			for (const { before, set } of changes) {

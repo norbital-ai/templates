@@ -8,6 +8,7 @@ import { fixtureId } from './test-runtime.js';
 import { direct } from './synced-kit.js';
 import { kingdeeFixture } from './kingdee-fixture.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
+import { confirmationOf } from './reads.js';
 
 const padded = (id: string) => id.padStart(20, '0');
 const instance = fixtureId('sys_integration', 'kingdee');
@@ -27,53 +28,64 @@ const ownedSale = Effect.fnUntraced(function* (mirrorApproval = true) {
 	});
 	const as = t.as(t.admin);
 	for (const model of ['parties', 'products', 'warehouses'] as const) yield* t.pull(model);
-	const party = (yield* as.query('parties', {
-		where: { source: { eq: instance }, external_code: { eq: '101' } },
-		all: true
-	})).rows[0];
-	const product = (yield* as.query('products', {
-		where: { source: { eq: instance }, external_code: { eq: '301' } },
-		all: true
-	})).rows[0];
+	const party = (yield* as.query({
+		parties: {
+			where: { source: { eq: instance }, external_code: { eq: '101' } }
+		}
+	})).parties.rows[0];
+	const product = (yield* as.query({
+		products: {
+			where: { source: { eq: instance }, external_code: { eq: '301' } }
+		}
+	})).products.rows[0];
 	if (!party || !product) throw new Error('Physical Kingdee masters must synchronize first');
 	const order = committed(
 		'orders',
-		yield* as.act('orders.create', {
-			title: 'Owned document synchronization',
-			direction: 'sales',
-			party: party.id,
-			currency: 'CNY',
-			payment_terms: 'PROBE-NET30',
-			ordered_on: PlainDate('2026-10-26')
-		})
+		yield* as.act('orders.create', [
+			{
+				title: 'Owned document synchronization',
+				direction: 'sales',
+				party: party.id,
+				currency: 'CNY',
+				payment_terms: 'PROBE-NET30',
+				ordered_on: PlainDate('2026-10-26')
+			}
+		])
 	);
 	const line = committed(
 		'order_lines',
-		yield* as.act('order_lines.create', {
-			order,
-			product: product.id,
-			quantity: Decimal.of(10),
-			unit_price: Decimal.of(2),
-			discount_pct: Decimal.of(0),
-			tax_rate: Decimal.of(13)
-		})
+		yield* as.act('order_lines.create', [
+			{
+				order,
+				product: product.id,
+				quantity: Decimal.of(10),
+				unit_price: Decimal.of(2),
+				discount_pct: Decimal.of(0),
+				tax_rate: Decimal.of(13)
+			}
+		])
 	);
-	const draft = yield* as.query('orders', { id: order });
+	const draft = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+		.rows[0];
 	if (!draft) throw new Error('Native draft missing');
-	yield* as.act('sys_integration.update', {
-		target: instance,
-		set: { configuration: source.configuration(draft.owner) }
-	});
-	const check = yield* as.query('orders.confirmation_check', {
+	yield* as.act('sys_integration.update', [
+		{
+			target: instance,
+			set: { configuration: source.configuration(draft.owner) }
+		}
+	]);
+	const check = yield* confirmationOf(as, {
 		order,
 		as_of: Instant(t.clock.now())
 	});
 	committed(
 		'orders',
-		yield* as.act('orders.update', {
-			target: order,
-			set: { status: 'confirmed', check_hash: check.check_hash }
-		})
+		yield* as.act('orders.update', [
+			{
+				target: order,
+				set: { status: 'confirmed', check_hash: check.check_hash }
+			}
+		])
 	);
 	yield* t.deliver();
 	const submission = [...source.submissions.values()][0];
@@ -85,7 +97,8 @@ const ownedSale = Effect.fnUntraced(function* (mirrorApproval = true) {
 		checked_on: '2026-10-26'
 	}));
 	if (mirrorApproval) yield* t.pull('ext_sales_orders');
-	const sealed = yield* as.query('orders', { id: order });
+	const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+		.rows[0];
 	if (!sealed?.seal_hash || !sealed.sealed_contract) throw new Error('Sealed agreement missing');
 	return { t, as, source, order, line, fid: submission.remote, sealed, clock };
 });
@@ -174,21 +187,26 @@ it.live(
 			addInvoice(source, '32001', ['22001']);
 			yield* t.pull('transactions');
 			expect(
-				(yield* as.query('transactions', { where: { order: { eq: order } }, all: true })).rows
+				(yield* as.query({ transactions: { where: { order: { eq: order } } } })).transactions.rows
 			).toEqual([]);
-			expect(yield* as.query('sys_integration', { id: instance })).toMatchObject({
+			expect(
+				(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
+					.sys_integration.rows[0]
+			).toMatchObject({
 				status: { health: { state: 'attention', code: 'parentPending' } }
 			});
 			clock.at = '2026-10-26T00:01:00.000Z';
 			yield* t.pull('ext_sales_orders');
 			yield* t.pull('transactions');
 			expect(
-				(yield* as.query('transactions', { where: { order: { eq: order } }, all: true })).rows
+				(yield* as.query({ transactions: { where: { order: { eq: order } } } })).transactions.rows
 			).toMatchObject([
 				expect.objectContaining({ status: 'issued', seal_hash: sealed.seal_hash }),
 				expect.objectContaining({ status: 'issued', seal_hash: sealed.seal_hash })
 			]);
-			expect(yield* as.query('orders', { id: order })).toMatchObject({
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
+			).toMatchObject({
 				status: 'confirmed',
 				seal_hash: sealed.seal_hash,
 				sealed_snapshot: sealed.sealed_snapshot
@@ -207,14 +225,17 @@ it.live(
 				addInvoice(source, '30001', ['20001', '20002']);
 				yield* t.pull('transactions');
 				yield* t.pull('source_sales_lines');
-				const documents = (yield* as.query('transactions', {
-					where: { order: { eq: order } },
-					all: true
-				})).rows;
+				const documents = (yield* as.query({
+					transactions: {
+						where: { order: { eq: order } }
+					}
+				})).transactions.rows;
 				expect(documents).toHaveLength(3);
 				const listed = documents.find((row) => row.kind === 'invoice');
 				if (!listed) throw new Error('Owned invoice missing');
-				const invoice = yield* as.query('transactions', { id: listed.id });
+				const invoice = (yield* as.query({
+					transactions: { where: { id: { eq: listed.id } }, limit: 1 }
+				})).transactions.rows[0];
 				if (!invoice) throw new Error('Owned invoice detail missing');
 				expect(invoice).toMatchObject({
 					status: 'issued',
@@ -234,10 +255,11 @@ it.live(
 				expect(item).toMatchObject({ order_line_id: line, unit: 'kg', lot_number: 'LOT-A' });
 				expect(item.quantity.eq(10)).toBe(true);
 				expect(item.net_amount?.eq(20)).toBe(true);
-				const facts = (yield* as.query('source_sales_lines', {
-					where: { order: { eq: order } },
-					all: true
-				})).rows;
+				const facts = (yield* as.query({
+					source_sales_lines: {
+						where: { order: { eq: order } }
+					}
+				})).source_sales_lines.rows;
 				expect(facts).toHaveLength(2);
 				expect(
 					facts.every(
@@ -256,21 +278,25 @@ it.live(
 				const ids = documents.map((row) => row.id).sort();
 				yield* t.pull('transactions');
 				expect(
-					(yield* as.query('transactions', { where: { order: { eq: order } }, all: true })).rows
+					(yield* as.query({ transactions: { where: { order: { eq: order } } } })).transactions.rows
 						.map((row) => row.id)
 						.sort()
 				).toEqual(ids);
 				expect(
 					yield* direct(t, as.authority, {
-						collection: 'transactions',
+						model: 'transactions',
 						verb: 'update',
 						input: [{ target: invoice.id, set: { reference: 'tampered' } }]
 					})
 				).toMatchObject({ kind: 'refused' });
-				expect(yield* as.query('transactions', { id: invoice.id })).toMatchObject({
+				expect(
+					(yield* as.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } }))
+						.transactions.rows[0]
+				).toMatchObject({
 					reference: 'INV-30001'
 				});
-				const unchanged = yield* as.query('orders', { id: order });
+				const unchanged = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+					.orders.rows[0];
 				expect(unchanged).toMatchObject({
 					seal_hash: sealed.seal_hash,
 					sealed_contract: sealed.sealed_contract,
@@ -292,29 +318,37 @@ it.live(
 				addDelivery(source, '21002', fid, '');
 				addInvoice(source, '31001', ['21001'], '');
 				yield* t.pull('transactions');
-				let documents = (yield* as.query('transactions', {
-					where: { order: { eq: order } },
-					all: true
-				})).rows;
+				let documents = (yield* as.query({
+					transactions: {
+						where: { order: { eq: order } }
+					}
+				})).transactions.rows;
 				expect(documents.map((row) => row.reference)).toEqual(['DO-21001']);
 				replaceHeader(source, 'ICStockBill', '21002', { checked_on: '2026-10-26' });
 				replaceHeader(source, 'ICSale', '31001', { checked_on: '2026-10-26' });
 				yield* t.pull('transactions');
-				documents = (yield* as.query('transactions', {
-					where: { order: { eq: order } },
-					all: true
-				})).rows;
+				documents = (yield* as.query({
+					transactions: {
+						where: { order: { eq: order } }
+					}
+				})).transactions.rows;
 				expect(documents).toHaveLength(3);
 				const invoice = documents.find((row) => row.kind === 'invoice');
 				if (!invoice) throw new Error('Approved invoice missing');
 				replaceHeader(source, 'ICSale', '31001', { checked_on: null });
 				expect(yield* Effect.result(t.pull('transactions'))).toMatchObject({ _tag: 'Failure' });
-				expect(yield* as.query('transactions', { id: invoice.id })).toMatchObject({
+				expect(
+					(yield* as.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } }))
+						.transactions.rows[0]
+				).toMatchObject({
 					status: 'issued'
 				});
 				replaceHeader(source, 'ICSale', '31001', { checked_on: '2026-10-26', cancelled: true });
 				yield* t.pull('transactions');
-				expect(yield* as.query('transactions', { id: invoice.id })).toMatchObject({
+				expect(
+					(yield* as.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } }))
+						.transactions.rows[0]
+				).toMatchObject({
 					status: 'void'
 				});
 			})

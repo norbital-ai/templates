@@ -53,7 +53,7 @@ const withOrderState = (row: Record<string, Schema.Json>, id: string) => {
 			: {})
 	};
 };
-const collections = [
+const models = [
 	'sys_user',
 	'parties',
 	'products',
@@ -71,20 +71,20 @@ const source = {
 	bank: 'trade-operations',
 	rows(bank: Pick<BankReader, 'has'> & { json(path: string): unknown }) {
 		const rows: Record<string, readonly Record<string, Schema.Json>[]> = { ...PUBLIC };
-		for (const collection of collections) {
-			const file = `${collection}.json`;
+		for (const model of models) {
+			const file = `${model}.json`;
 			if (!bank.has(file)) continue;
 			const decoded = Schema.decodeUnknownSync(Rows)(bank.json(file));
-			const supplied = collection === 'sys_user' ? decoded.map(withHandle) : decoded;
-			const merged = new Map((rows[collection] ?? []).map((row) => [row.id, row]));
+			const supplied = model === 'sys_user' ? decoded.map(withHandle) : decoded;
+			const merged = new Map((rows[model] ?? []).map((row) => [row.id, row]));
 			const ids = new Set<string>();
 			for (const row of supplied) {
 				const id = Schema.decodeUnknownSync(Schema.String)(row.id);
-				if (ids.has(id)) throw new Error(`Duplicate sample identity in ${collection}.`);
+				if (ids.has(id)) throw new Error(`Duplicate sample identity in ${model}.`);
 				ids.add(id);
-				merged.set(id, collection === 'orders' ? withOrderState(row, id) : row);
+				merged.set(id, model === 'orders' ? withOrderState(row, id) : row);
 			}
-			rows[collection] = [...merged.values()];
+			rows[model] = [...merged.values()];
 		}
 		return rows;
 	}

@@ -1,7 +1,7 @@
 import { decimalText } from './test-runtime.js';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { Schema, Effect } from 'effect';
+import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import {
 	commissionContext,
@@ -10,6 +10,7 @@ import {
 } from '../src/lib/commission-expressions.js';
 import { configuredCommission } from './commission-kit.js';
 import { committed, confirm, draft, workspace } from './kit.js';
+import { commissionOf, previewOf } from './reads.js';
 const context = (over: Partial<Parameters<typeof commissionContext>[0]> = {}) =>
 	commissionContext({
 		quantity: '1000',
@@ -73,21 +74,23 @@ test.live(
 			const { t, as, own, rule } = yield* configuredCommission({ confirmOrder: false });
 			committed(
 				'commission_rules',
-				yield* as.act('commission_rules.update', {
-					target: rule,
-					set: {
-						amount_expression: 'min(net * params.rate, params.cap)',
-						eligibility_expression: 'product.unit == "kg"',
-						parameters: [
-							{ name: 'rate', value: '0.15' },
-							{ name: 'cap', value: '250' }
-						]
+				yield* as.act('commission_rules.update', [
+					{
+						target: rule,
+						set: {
+							amount_expression: 'min(net * params.rate, params.cap)',
+							eligibility_expression: 'product.unit == "kg"',
+							parameters: [
+								{ name: 'rate', value: '0.15' },
+								{ name: 'cap', value: '250' }
+							]
+						}
 					}
-				})
+				])
 			);
 			const configuration = t.as(t.member(['configuration']));
 			expect(
-				yield* configuration.query('commission_rules.preview', {
+				yield* previewOf(configuration, {
 					rule,
 					quantity: Decimal.of('1000'),
 					net: Decimal.of('2000'),
@@ -96,7 +99,7 @@ test.live(
 				})
 			).toMatchObject({ currency: 'SGD', amount: decimalText('250.00'), reason: 'resolved' });
 			expect(
-				yield* configuration.query('commission_rules.preview', {
+				yield* previewOf(configuration, {
 					rule,
 					quantity: Decimal.of('1000'),
 					net: Decimal.of('2000'),
@@ -104,22 +107,18 @@ test.live(
 					ordered_on: PlainDate('2026-10-10')
 				})
 			).toMatchObject({ amount: decimalText('0.00'), reason: 'ineligible' });
-			yield* Effect.tryPromise({
-				try: () =>
-					expect(
-						Effect.runPromise(
-							t.as(t.member(['sales'])).query('commission_rules.preview', {
-								rule,
-								quantity: Decimal.of('1000'),
-								net: Decimal.of('2000'),
-								ordered_on: PlainDate('2026-10-10')
-							})
-						)
-					).rejects.toThrow(),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			});
+			// a preview is computed from the rule the caller already reads: no authority beyond `commission_rules.read`
+			expect(
+				yield* previewOf(t.as(t.member(['sales'])), {
+					rule,
+					quantity: Decimal.of('1000'),
+					net: Decimal.of('2000'),
+					ordered_on: PlainDate('2026-10-10')
+				})
+			).toMatchObject({ currency: 'SGD' });
 			yield* confirm(t, own.order);
-			const sealed = yield* as.query('orders', { id: own.order });
+			const sealed = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+				.orders.rows[0];
 			expect(sealed?.sealed_commission).toMatchObject({
 				engine_version: 'cel-decimal-v1',
 				amount_expression: 'min(net * params.rate, params.cap)',
@@ -129,36 +128,44 @@ test.live(
 				]
 			});
 			const f = t.as(t.member(['finance']));
-			expect(yield* f.query('orders.commission', {})).toMatchObject([
+			expect(yield* commissionOf(f, {})).toMatchObject([
 				{ order: own.order, amount: decimalText('250.00') }
 			]);
 			committed(
 				'commission_rules',
-				yield* as.act('commission_rules.update', {
-					target: rule,
-					set: { amount_expression: 'net', parameters: [] }
-				})
+				yield* as.act('commission_rules.update', [
+					{
+						target: rule,
+						set: { amount_expression: 'net', parameters: [] }
+					}
+				])
 			);
-			expect(yield* f.query('orders.commission', {})).toMatchObject([
+			expect(yield* commissionOf(f, {})).toMatchObject([
 				{ order: own.order, amount: decimalText('250.00') }
 			]);
-			expect(yield* as.query('orders', { id: own.order })).toEqual(sealed);
+			expect(
+				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+			).toEqual(sealed);
 			expect(
 				yield* Effect.flip(
-					as.act('commission_rules.update', { target: rule, set: { amount_expression: 'net * (' } })
+					as.act('commission_rules.update', [
+						{ target: rule, set: { amount_expression: 'net * (' } }
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* Effect.flip(
-					as.act('commission_rules.update', {
-						target: rule,
-						set: {
-							parameters: [
-								{ name: 'rate', value: '0.1' },
-								{ name: 'rate', value: '0.2' }
-							]
+					as.act('commission_rules.update', [
+						{
+							target: rule,
+							set: {
+								parameters: [
+									{ name: 'rate', value: '0.1' },
+									{ name: 'rate', value: '0.2' }
+								]
+							}
 						}
-					})
+					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 		})
@@ -171,24 +178,23 @@ test.live(
 			const as = t.as(t.admin);
 			committed(
 				'commission_rules',
-				yield* as.act('commission_rules.create', {
-					currency: 'SGD',
-					effective_on: PlainDate('2026-10-10'),
-					eligibility_expression: 'true',
-					amount_expression: 'net * decimal("0.05")',
-					parameters: [],
-					fixed_rate: Decimal.of('0'),
-					spread_pct: Decimal.of('0'),
-					active: true
-				})
+				yield* as.act('commission_rules.create', [
+					{
+						currency: 'SGD',
+						effective_on: PlainDate('2026-10-10'),
+						eligibility_expression: 'true',
+						amount_expression: 'net * decimal("0.05")',
+						parameters: [],
+						fixed_rate: Decimal.of('0'),
+						spread_pct: Decimal.of('0'),
+						active: true
+					}
+				])
 			);
 			const own = yield* draft(t);
 			yield* confirm(t, own.order);
-			expect(yield* as.query('orders.commission', {})).toMatchObject([
+			expect(yield* commissionOf(as, {})).toMatchObject([
 				{ order: own.order, amount: decimalText('1.00') }
 			]);
 		})
 );
-class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {
-	message: Schema.String
-}) {}

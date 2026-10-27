@@ -12,6 +12,7 @@ import warehouses from '../seed/warehouses.json';
 import { Instant } from '@norbital-ai/std/date';
 import { committed, CUSTOMER, workspace } from './kit.js';
 import { decimalText, firstRow, fixtureId } from './test-runtime.js';
+import { confirmationOf, sealedExportOf } from './reads.js';
 
 const NOW = '2026-10-10T00:00:00Z';
 const SALES = fixtureId('sys_user', '00000000-0000-4000-8000-000000000901');
@@ -57,7 +58,7 @@ test.live(
 					warehouses
 				});
 				expect(
-					Object.values(rows).reduce((count, collection) => count + collection.length, 0)
+					Object.values(rows).reduce((count, model) => count + model.length, 0)
 				).toBe(9);
 				writeFileSync(
 					join(bank.directory, 'sys_user.json'),
@@ -189,39 +190,37 @@ test.live(
 						}
 					]
 				} satisfies Record<string, readonly Record<string, Schema.Json>[]>;
-				for (const [collection, rows] of Object.entries(fixtures))
-					writeFileSync(join(bank.directory, `${collection}.json`), JSON.stringify(rows));
+				for (const [model, rows] of Object.entries(fixtures))
+					writeFileSync(join(bank.directory, `${model}.json`), JSON.stringify(rows));
 				const rows = source.rows(bank);
 				expect(rows.parties).toHaveLength(2);
 				expect(rows.products).toHaveLength(2);
 				expect(rows.document_templates).toEqual(document_templates);
 				const t = yield* workspace({ seed: rows, now: NOW });
 				const as = t.as(t.admin);
-				expect((yield* as.query('parties', { all: true })).rows).toHaveLength(2);
-				expect((yield* as.query('products', { all: true })).rows).toHaveLength(2);
-				expect((yield* as.query('orders', { all: true })).rows).toHaveLength(1);
+				expect((yield* as.query({ parties: {} })).parties.rows).toHaveLength(2);
+				expect((yield* as.query({ products: {} })).products.rows).toHaveLength(2);
+				expect((yield* as.query({ orders: {} })).orders.rows).toHaveLength(1);
 				// the bank names the team by label; the seed maps it to the workspace's handle
-				expect(yield* as.query('sys_user', { id: SALES })).toMatchObject({
+				expect(
+					(yield* as.query({ sys_user: { where: { id: { eq: SALES } }, limit: 1 } })).sys_user
+						.rows[0]
+				).toMatchObject({
 					team: 'sales',
 					admin: false,
 					active: true
 				});
-				expect(
-					yield* as.query('orders', {
-						id: ORDER,
-						select: {
-							number: true,
-							ledger: true,
-							owner: true,
-							line_count: true,
-							net: true,
-							tax: true,
-							total: true,
-							party: { select: { name: true } },
-							lines: { all: true, select: { total: true, product: { select: { name: true } } } }
-						}
-					})
-				).toMatchObject({
+				const seeded = yield* as.query({
+					orders: {
+						where: { id: { eq: ORDER } },
+						fields: ['number', 'ledger', 'owner', 'line_count', 'net', 'tax', 'total', 'party'],
+						limit: 1
+					},
+					'orders.party': { fields: ['name'] },
+					'orders.lines': { fields: ['total', 'product'] },
+					products: { where: { id: { eq: PRODUCT } }, fields: ['name'] }
+				});
+				expect(seeded.orders.rows[0]).toMatchObject({
 					number: 'TR-2026-0042',
 					ledger: 'kingdee',
 					owner: SALES,
@@ -230,26 +229,31 @@ test.live(
 					tax: decimalText('2.70'),
 					total: decimalText('32.70'),
 					party: { id: CUSTOMER, name: 'Sample customer' },
-					lines: [
-						{
-							id: LINE,
-							total: decimalText('32.70'),
-							product: { id: PRODUCT, name: 'Sample polymer' }
-						}
-					]
+					lines: [{ id: LINE, total: decimalText('32.70'), product: PRODUCT }]
 				});
-				expect(yield* as.query('stock_snapshots', { id: STOCK })).toMatchObject({
+				// a line's product is not a declared layer of orders: its name is read beside the order
+				expect(seeded.products.rows).toMatchObject([{ id: PRODUCT, name: 'Sample polymer' }]);
+				expect(
+					(yield* as.query({ stock_snapshots: { where: { id: { eq: STOCK } }, limit: 1 } }))
+						.stock_snapshots.rows[0]
+				).toMatchObject({
 					product: PRODUCT,
 					warehouse: WAREHOUSE,
 					source: 'kingdee'
 				});
-				expect(yield* as.query('credit_snapshots', { id: CREDIT })).toMatchObject({
+				expect(
+					(yield* as.query({ credit_snapshots: { where: { id: { eq: CREDIT } }, limit: 1 } }))
+						.credit_snapshots.rows[0]
+				).toMatchObject({
 					party: CUSTOMER
 				});
-				expect(yield* as.query('pricing_floors', { id: FLOOR })).toMatchObject({
+				expect(
+					(yield* as.query({ pricing_floors: { where: { id: { eq: FLOOR } }, limit: 1 } }))
+						.pricing_floors.rows[0]
+				).toMatchObject({
 					product: PRODUCT
 				});
-				const check = yield* as.query('orders.confirmation_check', {
+				const check = yield* confirmationOf(as, {
 					order: ORDER,
 					as_of: Instant(NOW)
 				});
@@ -262,13 +266,16 @@ test.live(
 				expect(
 					committed(
 						'orders',
-						yield* as.act('orders.update', {
-							target: ORDER,
-							set: { status: 'confirmed', check_hash: check.check_hash }
-						})
+						yield* as.act('orders.update', [
+							{
+								target: ORDER,
+								set: { status: 'confirmed', check_hash: check.check_hash }
+							}
+						])
 					)
 				).toBe(ORDER);
-				const sealed = yield* as.query('orders', { id: ORDER });
+				const sealed = (yield* as.query({ orders: { where: { id: { eq: ORDER } }, limit: 1 } }))
+					.orders.rows[0];
 				expect(sealed).toMatchObject({
 					status: 'confirmed',
 					sealed_snapshot: {
@@ -277,7 +284,7 @@ test.live(
 						lines: [{ id: LINE, product: PRODUCT }]
 					}
 				});
-				const exported = yield* as.query('orders.sealed_export', { order: ORDER });
+				const exported = yield* sealedExportOf(as, { order: ORDER });
 				expect(exported.number).toBe('TR-2026-0042');
 				expect(exported.seal_hash).toBe(sealed?.seal_hash);
 				expect(exported.contract).toContain('Sample customer');

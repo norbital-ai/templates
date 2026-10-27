@@ -1,5 +1,6 @@
 import { currency, Decimal, sum } from '@norbital-ai/std/decimal';
 import {
+	agreementFields,
 	agreements,
 	currentAgreement,
 	executableAgreement,
@@ -7,7 +8,40 @@ import {
 } from './agreements.js';
 
 import { PlainDate } from '@norbital-ai/std/date';
-import { isMasked, type Row } from '@norbital-ai/bolt';
+import { isMasked, type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+/** A party's progress read: its orders with their documents, and the sales facts of those orders. */
+export const progressRead = (party: Id<'parties'>) =>
+	({
+		orders: {
+			where: { party: { eq: party } },
+			fields: [...agreementFields, 'number', 'currency']
+		},
+		'orders.transactions': { fields: ['seal_hash', 'status', 'kind', 'items', 'issued_on'] },
+		source_sales_lines: {
+			where: { order: { is: { party: { eq: party } } } },
+			fields: [
+				'order',
+				'active',
+				'order_line',
+				'seal_hash',
+				'unit',
+				'quantity',
+				'kind',
+				'business_on',
+				'net_amount'
+			]
+		}
+	}) as const;
+/** Approved agreement quotas against observed fulfillment on `today`, from a party's progress read. */
+export const progressOf = (answer: ReadAnswer<ReturnType<typeof progressRead>>, today: string) =>
+	partnerProgress(
+		answer.orders.rows,
+		answer.orders.rows.flatMap((order) =>
+			order.transactions.map((doc) => ({ ...doc, order: order.id }))
+		),
+		answer.source_sales_lines.rows,
+		today
+	);
 /** Latest approved quota per order; documents and sales facts retain their own approved SKU identity. */
 export function partnerProgress(
 	orders: readonly (AgreementOrder & Pick<Row<'orders'>, 'id' | 'number' | 'currency'>)[],
