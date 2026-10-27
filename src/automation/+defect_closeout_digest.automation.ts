@@ -9,10 +9,14 @@ export default automation('defect_closeout_digest', {
 	runAs: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
-		const { rows } = yield* ctx.query('defects', {
-			where: { status: { in: ['open', 'in_review', 'ready_for_closeout'] } },
-			orderBy: { due_date: 'asc' },
-			limit: 25
+		const {
+			defects: { rows }
+		} = yield* ctx.query({
+			defects: {
+				where: { status: { in: ['open', 'in_review', 'ready_for_closeout'] } },
+				orderBy: { due_date: 'asc' },
+				limit: 25
+			}
 		});
 		return { generated_at: ctx.now, count: rows.length, rows };
 	}

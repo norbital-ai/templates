@@ -9,8 +9,8 @@ export const workspace = Effect.fnUntraced(function* (options: TestOptions) {
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;
 /** A declared fixture ID passes the same UUID boundary as a host record reference. */
-export function fixtureId<const C extends string>(collection: C, value: string): Id<C> {
-	const codec = inputSchema({ kind: 'id', of: collection });
+export function fixtureId<const C extends string>(model: C, value: string): Id<C> {
+	const codec = inputSchema({ kind: 'id', of: model });
 	const decoded = Schema.decodeUnknownSync(codec)(value);
 	const branded = Schema.declare<Id<C>>(
 		(input): input is Id<C> => typeof input === 'string' && Schema.is(Schema.toType(codec))(input)

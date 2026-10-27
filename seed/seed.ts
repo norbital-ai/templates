@@ -62,8 +62,8 @@ function period(value: { start: string; end: string | null }) {
 	return { from: day(value.start), to };
 }
 
-function convert(collection: string, row: Row): Row {
-	const fields = FIELDS.get(collection) ?? {};
+function convert(model: string, row: Row): Row {
+	const fields = FIELDS.get(model) ?? {};
 	const out: { [field: string]: Row[string] } = { ...row };
 	for (const [name, kind] of Object.entries(fields)) {
 		const value = row[name];
@@ -110,7 +110,7 @@ const PUBLIC = import.meta.glob<unknown>('./*.json', { eager: true, import: 'def
 export default {
 	bank: 'construction',
 	rows(bank: BankReader) {
-		const out: { [collection: string]: Row[] } = {};
+		const out: { [model: string]: Row[] } = {};
 		const files: [string, readonly Row[]][] = bank.has('projects.json')
 			? bank
 					.files()

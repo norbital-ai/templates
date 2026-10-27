@@ -2,27 +2,23 @@ import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { joinName } from '../../../lib/join-name.js';
 const columns = ['job_id', 'certification_type_id'] as const;
-/** Each row's `name`: its two sides' labels, read in one keyed batch for the whole write. */
+/** Each row's `name`: its two sides' labels, read once for the whole write. */
 const names = Effect.fnUntraced(function* (
 	sides: readonly { readonly a: Id<'jobs'>; readonly b: Id<'certification_types'> }[],
 	ctx: WriteCtx<'jobs_certification_types'>
 ) {
-	const { a, b } = yield* ctx.db.query({
-		a: {
-			from: 'jobs',
+	const { jobs, certification_types } = yield* ctx.db.query({
+		jobs: {
 			where: { id: { in: sides.map((s) => s.a) } },
-			select: { job_title: true },
-			all: true
+			fields: ['job_title']
 		},
-		b: {
-			from: 'certification_types',
+		certification_types: {
 			where: { id: { in: sides.map((s) => s.b) } },
-			select: { certification_name: true },
-			all: true
+			fields: ['certification_name']
 		}
 	});
-	const aName = new Map(a.rows.map((r) => [r.id, r.job_title]));
-	const bName = new Map(b.rows.map((r) => [r.id, r.certification_name]));
+	const aName = new Map(jobs.rows.map((r) => [r.id, r.job_title]));
+	const bName = new Map(certification_types.rows.map((r) => [r.id, r.certification_name]));
 	return sides.map((s) => joinName(aName.get(s.a), bName.get(s.b)));
 });
 /** A join row: both sides are `ref` fields; its name is theirs, derived on every create and update. */
@@ -41,7 +37,7 @@ export default model('jobs_certification_types', {
 	},
 	read: 'all',
 	create: {
-		columns,
+		columns: { jobs_certification_types: columns },
 		transform: function* (rows, ctx) {
 			const name = yield* names(
 				rows.map((r) => ({ a: r.job_id, b: r.certification_type_id })),
@@ -51,7 +47,7 @@ export default model('jobs_certification_types', {
 		}
 	},
 	update: {
-		columns,
+		columns: { jobs_certification_types: columns },
 		transform: function* (changes, ctx) {
 			const name = yield* names(
 				changes.map(({ before, set }) => ({

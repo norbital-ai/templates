@@ -12,8 +12,8 @@ it.live('runs all four daily digests', () =>
 	Effect.gen(function* () {
 		const t = yield* acquireWorkspace({ root });
 		const admin = t.as(t.admin);
-		const created = yield* admin.act('projects.create', { project_name: 'Synthetic project' });
-		const project = created.records.find((record) => record.collection === 'projects');
+		const created = yield* admin.act('projects.create', [{ project_name: 'Synthetic project' }]);
+		const project = created.records.find((record) => record.model === 'projects');
 		if (project === undefined) throw new Error('Missing synthetic project');
 		const digests = [
 			'defect_closeout_digest',
@@ -26,11 +26,13 @@ it.live('runs all four daily digests', () =>
 				on: { cron: '0 6 * * *' },
 				runAs: ['construction_read']
 			});
-		yield* admin.act('permits_to_work.create', {
-			permit_number: 'PTW-1',
-			project_id: fixtureId('projects', project.id),
-			status: 'active'
-		});
+		yield* admin.act('permits_to_work.create', [
+			{
+				permit_number: 'PTW-1',
+				project_id: fixtureId('projects', project.id),
+				status: 'active'
+			}
+		]);
 		const runs = Context.get(t.services, Runs);
 		if (runs === undefined) throw new Error('Test workspace has no runs driver.');
 		for (const digest of digests) {

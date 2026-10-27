@@ -9,10 +9,14 @@ export default automation('permit_expiry_watch', {
 	runAs: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
-		const { rows } = yield* ctx.query('permits_to_work', {
-			where: { status: { in: ['active', 'expiring_soon'] } },
-			orderBy: { requested_date: 'asc' },
-			limit: 25
+		const {
+			permits_to_work: { rows }
+		} = yield* ctx.query({
+			permits_to_work: {
+				where: { status: { in: ['active', 'expiring_soon'] } },
+				orderBy: { requested_date: 'asc' },
+				limit: 25
+			}
 		});
 		return { generated_at: ctx.now, count: rows.length, rows };
 	}

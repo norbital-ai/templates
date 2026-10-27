@@ -42,6 +42,6 @@ export default model('bim_reference_matrix', {
 	},
 	search: { text: ['reference_name'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { bim_reference_matrix: columns } },
+	update: { columns: { bim_reference_matrix: columns } }
 });

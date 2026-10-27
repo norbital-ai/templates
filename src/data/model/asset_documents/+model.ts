@@ -51,6 +51,6 @@ export default model('asset_documents', {
 	},
 	search: { text: ['title'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { asset_documents: columns } },
+	update: { columns: { asset_documents: columns } }
 });

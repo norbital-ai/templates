@@ -49,6 +49,6 @@ export default model('jobs', {
 	},
 	search: { text: ['job_title'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { jobs: columns } },
+	update: { columns: { jobs: columns } }
 });

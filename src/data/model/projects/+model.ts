@@ -37,6 +37,6 @@ export default model('projects', {
 	},
 	search: { text: ['project_name'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { projects: columns } },
+	update: { columns: { projects: columns } }
 });

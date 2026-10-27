@@ -69,6 +69,6 @@ export default model('permits_to_work', {
 	},
 	search: { text: ['permit_number'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { permits_to_work: columns } },
+	update: { columns: { permits_to_work: columns } }
 });

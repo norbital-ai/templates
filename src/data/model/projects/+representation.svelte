@@ -31,29 +31,35 @@
 	const text = (value: string | null, fallback: string) => value || fallback;
 	const sites = $derived(
 		record &&
-			bolt.query('site_locations', {
-				where: { project_id: { eq: record.id } },
-				select: { location_name: true, location_code: true, location_type: true },
-				orderBy: { location_name: 'asc' },
-				all: true
+			bolt.query({
+				site_locations: {
+					where: { project_id: { eq: record.id } },
+					fields: ['location_name', 'location_code', 'location_type'],
+					orderBy: { location_name: 'asc' }
+				}
 			})
 	);
 	const assignments = $derived(
 		record &&
-			bolt.query('job_assignments', {
-				where: { site_location_id: { is: { project_id: { eq: record.id } } } },
-				select: { id: true },
-				orderBy: { updated_at: 'desc' },
-				all: true
+			bolt.query({
+				job_assignments: {
+					where: { site_location_id: { is: { project_id: { eq: record.id } } } },
+					fields: ['assignment_code'],
+					orderBy: { updated_at: 'desc' }
+				}
 			})
 	);
 	const documents = $derived(
 		record &&
-			bolt.query('asset_documents', {
-				where: { project_id: { eq: record.id }, status: { in: ['draft', 'in_review', 'issued'] } },
-				select: { title: true, document_type: true, document_url: true },
-				orderBy: { updated_at: 'desc' },
-				all: true
+			bolt.query({
+				asset_documents: {
+					where: {
+						project_id: { eq: record.id },
+						status: { in: ['draft', 'in_review', 'issued'] }
+					},
+					fields: ['title', 'document_type', 'document_url'],
+					orderBy: { updated_at: 'desc' }
+				}
 			})
 	);
 	/** Claimed and certified per currency: `{ key: { currency }, sum: { claimed_amount, certified_amount } }` rows. */
@@ -67,7 +73,7 @@
 			})
 	);
 	const ifc = $derived(
-		documents?.current?.rows.find(
+		documents?.current?.asset_documents.rows.find(
 			(d) =>
 				d.document_type === 'ifc_model' ||
 				String(d.document_url ?? '')
@@ -168,7 +174,7 @@
 	<Stack gap="md" class="border-t pt-4">
 		<p class="text-overline">{t('component.delivery_pulse')}</p>
 		<Stack as="dl" gap="none" divided class="text-sm">
-			{#each [['component.work_fronts', sites?.current?.rows.length], ['component.allocated_workers', assignments?.current?.rows.length], ['component.project_documents', documents?.current?.rows.length]] as const as [label, count] (label)}
+			{#each [['component.work_fronts', sites?.current?.site_locations.rows.length], ['component.allocated_workers', assignments?.current?.job_assignments.rows.length], ['component.project_documents', documents?.current?.asset_documents.rows.length]] as const as [label, count] (label)}
 				<Inline as="div" justify="between" class="py-2">
 					<dt>{t(label)}</dt>
 					<dd class="font-medium tabular-nums">{count ?? 0}</dd>
@@ -277,7 +283,9 @@
 				{/each}
 				<Stack class="border-b pb-3" gap="xs">
 					<p class="text-meta">{t('component.documents')}</p>
-					<p class="text-heading tabular-nums">{documents?.current?.rows.length ?? 0}</p>
+					<p class="text-heading tabular-nums">
+						{documents?.current?.asset_documents.rows.length ?? 0}
+					</p>
 				</Stack>
 			</Grid>
 			<Stack gap="lg">

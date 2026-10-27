@@ -57,6 +57,6 @@ export default model('defects', {
 	},
 	search: { text: ['title'] },
 	read: 'all',
-	create: { columns },
-	update: { columns }
+	create: { columns: { defects: columns } },
+	update: { columns: { defects: columns } }
 });

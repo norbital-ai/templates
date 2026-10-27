@@ -9,10 +9,14 @@ export default automation('rfi_followup_watch', {
 	runAs: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
-		const { rows } = yield* ctx.query('rfis', {
-			where: { status: { eq: 'open' } },
-			orderBy: { due_date: 'asc' },
-			limit: 25
+		const {
+			rfis: { rows }
+		} = yield* ctx.query({
+			rfis: {
+				where: { status: { eq: 'open' } },
+				orderBy: { due_date: 'asc' },
+				limit: 25
+			}
 		});
 		return { generated_at: ctx.now, count: rows.length, rows };
 	}
