@@ -17,7 +17,7 @@ matter and blank cells are ignored.
 | `title`            | yes      | The work order's title, shown on the dispatch board.                                                    |
 | `nature`           | no       | What kind of work it is, for example `Survey` or `Installation`.                                        |
 | `description`      | no       | The work scope.                                                                                         |
-| `assignee_contact` | no       | The contractor's email or phone number. The job links the member holding it; otherwise no contractor.  |
+| `assignee_contact` | no       | The contractor's email or phone number. The job links the member holding it; otherwise no contractor.   |
 | `external_ref`     | no       | The dispatch system's own reference. It must be unique across assignments.                              |
 
 A site is matched by its code, or by its address and unit key: the postal code plus the unit (`#05-12`) when

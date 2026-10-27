@@ -87,8 +87,7 @@
 			(open?.current?.suspicious_activity_logs.rows ?? []).map((log) => log.job_assignment_id)
 		)
 	);
-	const statusLabel = (status: 'pending' | 'completed') =>
-		t(`component.status_${status}`);
+	const statusLabel = (status: 'pending' | 'completed') => t(`component.status_${status}`);
 	let message = $state<string | null>(null);
 	let importing = $state(false);
 	let picker = $state<HTMLInputElement>();

@@ -253,10 +253,7 @@ for (const direction of ['sales', 'purchasing'] as const) {
 					source_updated_at: NOW
 				};
 				writtenId('transactions', yield* write(t, 'transactions', [row], 'upsert'));
-				writtenId(
-					model,
-					yield* write(t, model, [{ ...source, status: 'void' }], 'upsert')
-				);
+				writtenId(model, yield* write(t, model, [{ ...source, status: 'void' }], 'upsert'));
 				writtenId(
 					'transactions',
 					yield* write(t, 'transactions', [{ ...row, status: 'void' }], 'upsert')

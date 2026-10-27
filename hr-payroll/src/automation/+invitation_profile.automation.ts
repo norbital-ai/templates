@@ -117,11 +117,8 @@ export default automation('invitation_profile', {
 					email: person.email,
 					phone: person.phone,
 					invitation_id:
-						input.model === 'sys_invitation'
-							? input.ids.find((id) => id === person.id)!
-							: null,
-					user_id:
-						input.model === 'sys_user' ? input.ids.find((id) => id === person.id)! : null
+						input.model === 'sys_invitation' ? input.ids.find((id) => id === person.id)! : null,
+					user_id: input.model === 'sys_user' ? input.ids.find((id) => id === person.id)! : null
 				});
 			}
 			if (creates.length > 0 || updates.length > 0)

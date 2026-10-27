@@ -209,7 +209,8 @@ export const rosterUpdateCheck = function* (
 ) {
 	return changes.some(
 		({ before, set }) =>
-			set.worked_intervals !== undefined && !sameValue(set.worked_intervals, before.worked_intervals)
+			set.worked_intervals !== undefined &&
+			!sameValue(set.worked_intervals, before.worked_intervals)
 	)
 		? ctx.approve(attendanceReview)
 		: ctx.allow();
@@ -225,10 +226,7 @@ export const rosterUnpinnedUpdateCheck = function* (
 
 // ── shared checks ──
 /** Only entries no run has settled change or go; a consumed one is released by deleting that payroll run. */
-const unpinnedUpdate = function* (
-	changes: readonly { readonly before: Pinned }[],
-	ctx: Judge
-) {
+const unpinnedUpdate = function* (changes: readonly { readonly before: Pinned }[], ctx: Judge) {
 	return pinned(changes.map(({ before }) => before)) ? ctx.deny(SETTLED) : ctx.allow();
 };
 const unpinnedDelete = function* (rows: readonly Pinned[], ctx: Judge) {
@@ -258,10 +256,7 @@ const draftRowCreate = function* (rows: readonly Governed[], ctx: Reading) {
 		? ctx.allow()
 		: ctx.deny(DRAFT_ONLY);
 };
-const draftRowUpdate = function* (
-	changes: readonly { readonly before: Governed }[],
-	ctx: Reading
-) {
+const draftRowUpdate = function* (changes: readonly { readonly before: Governed }[], ctx: Reading) {
 	return (yield* draftsAll(
 		ctx,
 		changes.map(({ before }) => before.settings_id)
@@ -328,9 +323,7 @@ const JURISDICTION_EDIT = {
 			) {
 				if (changes.some(({ before }) => before.voided_at != null))
 					return ctx.deny('A voided version is final.');
-				return changes.some(
-					({ set }) => set.sealed_at !== undefined || set.voided_at !== undefined
-				)
+				return changes.some(({ set }) => set.sealed_at !== undefined || set.voided_at !== undefined)
 					? ctx.approve(payReview)
 					: ctx.allow();
 			}
@@ -527,7 +520,9 @@ export const HR_ADMIN = {
 	bank: { read: true, create: true, update: true },
 	/** The workspace's WhatsApp numbers: an entity names its hotline, and HR deploys the payroll hotline on it. */
 	sys_integration: {
-		read: { sys_integration: { where: { integration: { eq: 'whatsapp' }, owner: { isNull: true } } } },
+		read: {
+			sys_integration: { where: { integration: { eq: 'whatsapp' }, owner: { isNull: true } } }
+		},
 		update: {
 			columns: { sys_integration: ['envoy'] },
 			check: function* (

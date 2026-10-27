@@ -140,9 +140,12 @@
 		kind={{ kind: 'date' }}
 		{value}
 	/>{/snippet}
-{#snippet agingOrder({ row }: { row: { order: string | null; order_number: string } })}{#if row.order}<Button
-			variant="link"
-			onclick={() => openRecord('orders', row.order!)}>{row.order_number}</Button
+{#snippet agingOrder({
+	row
+}: {
+	row: { order: string | null; order_number: string };
+})}{#if row.order}<Button variant="link" onclick={() => openRecord('orders', row.order!)}
+			>{row.order_number}</Button
 		>{:else}{row.order_number}{/if}{/snippet}
 {#snippet agingBill({
 	row

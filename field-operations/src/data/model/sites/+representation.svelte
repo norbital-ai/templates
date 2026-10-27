@@ -21,10 +21,7 @@
 			toolbar={{ title: t('component.upcoming_scheduled_jobs') }}
 			where={{
 				site_id: { eq: record.id },
-				or: [
-					{ scheduled_for: { gte: clock.today } },
-					{ status: { eq: 'pending' } }
-				]
+				or: [{ scheduled_for: { gte: clock.today } }, { status: { eq: 'pending' } }]
 			}}
 			orderBy={{ scheduled_for: 'asc' }}
 			columns={[

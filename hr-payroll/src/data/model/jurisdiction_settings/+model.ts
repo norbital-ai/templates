@@ -84,7 +84,8 @@ export default model('jurisdiction_settings', {
 			});
 			const gone = rows.findIndex(
 				(row) =>
-					row.cloned_from_id != null && !versions.rows.some((version) => version.id === row.cloned_from_id)
+					row.cloned_from_id != null &&
+					!versions.rows.some((version) => version.id === row.cloned_from_id)
 			);
 			if (gone >= 0)
 				return yield* ctx.refuse('The version this draft clones is gone.', {

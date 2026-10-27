@@ -7,7 +7,7 @@ export const SETTINGS = [
 	'voided_at',
 	'payroll',
 	'behaviours',
-	'suspension_kinds',
+	'suspension_kinds'
 ] as const satisfies Fields<'jurisdiction_settings'>;
 
 export const ENTITY = [
@@ -20,7 +20,7 @@ export const ENTITY = [
 	'risk_class',
 	'time_zone',
 	'facts',
-	'validation_severity',
+	'validation_severity'
 ] as const satisfies Fields<'entity'>;
 
 export const CONTRACT = [
@@ -31,7 +31,7 @@ export const CONTRACT = [
 	'engagement',
 	'exit_ground',
 	'exit_facts',
-	'facts',
+	'facts'
 ] as const satisfies Fields<'employment_contract'>;
 
 export const PROFILE = [
@@ -41,7 +41,7 @@ export const PROFILE = [
 	'gender',
 	'marital_status',
 	'children',
-	'facts',
+	'facts'
 ] as const satisfies Fields<'employment_profile'>;
 /** Each family's own columns beside the common ones: a read naming a column its model lacks is refused. */
 
@@ -56,7 +56,7 @@ export const ENTRY = {
 		'label',
 		'facts',
 		'payslip_id',
-		'quantity',
+		'quantity'
 	],
 	claim_catalog_entry: [
 		'catalog_id',
@@ -70,7 +70,7 @@ export const ENTRY = {
 		'payslip_id',
 		'quantity',
 		'incurred_on',
-		'due_on',
+		'due_on'
 	],
 	leave_catalog_entry: [
 		'catalog_id',
@@ -85,7 +85,7 @@ export const ENTRY = {
 		'payslip_id',
 		'days',
 		'from',
-		'to',
+		'to'
 	],
 	loan_repayment_entry: [
 		'loan_id',
@@ -95,7 +95,7 @@ export const ENTRY = {
 		'occurred_on',
 		'activity',
 		'amount',
-		'payslip_id',
+		'payslip_id'
 	]
 } as const satisfies {
 	adhoc_catalog_entry: Fields<'adhoc_catalog_entry'>;
@@ -110,13 +110,13 @@ export const LOAN = [
 	'company_id',
 	'principal_amount',
 	'facts',
-	'advance_made_on',
+	'advance_made_on'
 ] as const satisfies Fields<'loan_catalog_entry'>;
 
 export const STATUTORY = [
 	'settings_id',
 	'code',
-	'configuration',
+	'configuration'
 ] as const satisfies Fields<'statutory_contribution_catalog'>;
 
 export const RULES = ['code', 'rules'] as const satisfies Fields<'rule_set'>;
@@ -124,7 +124,7 @@ export const RULE_SET = [
 	'settings_id',
 	'family',
 	'code',
-	'rules',
+	'rules'
 ] as const satisfies Fields<'rule_set'>;
 
 export const LEAVE_CLASS = [
@@ -137,7 +137,7 @@ export const LEAVE_CLASS = [
 	'consumes_code',
 	'entitlement',
 	'unit',
-	'unplanned_days',
+	'unplanned_days'
 ] as const satisfies Fields<'leave_catalog'>;
 
 export const ROSTER = [
@@ -152,7 +152,7 @@ export const ROSTER = [
 	'overtime_consented_at',
 	'worksite',
 	'facts',
-	'payslip_id',
+	'payslip_id'
 ] as const satisfies Fields<'roster_entry'>;
 
 export const HOLIDAY = [
@@ -162,7 +162,7 @@ export const HOLIDAY = [
 	'kind',
 	'published_at',
 	'replaces',
-	'given_to',
+	'given_to'
 ] as const satisfies Fields<'holiday'>;
 
 export const HISTORY = [
@@ -175,7 +175,7 @@ export const HISTORY = [
 	'base',
 	'adjustments',
 	'gross',
-	'net',
+	'net'
 ] as const satisfies Fields<'payslip'>;
 
 export const CATALOG = {
@@ -191,7 +191,7 @@ export const CATALOG = {
 		'bands',
 		'payable_after_exit',
 		'raise_on_exit',
-		'amount_required',
+		'amount_required'
 	],
 	claim_catalog: [
 		'settings_id',
@@ -203,7 +203,7 @@ export const CATALOG = {
 		'eligibility',
 		'qualifies_when',
 		'bands',
-		'amount_required',
+		'amount_required'
 	],
 	leave_catalog: [
 		'settings_id',
@@ -213,7 +213,7 @@ export const CATALOG = {
 		'is_npl',
 		'can_encash',
 		'pay_fraction',
-		'share_by',
+		'share_by'
 	],
 	loan_catalog: [
 		'settings_id',
@@ -223,7 +223,7 @@ export const CATALOG = {
 		'direction',
 		'eligibility',
 		'bands',
-		'amount_required',
+		'amount_required'
 	],
 	allowance_catalog: [
 		'settings_id',
@@ -233,7 +233,7 @@ export const CATALOG = {
 		'direction',
 		'counts_toward',
 		'eligibility',
-		'amount',
+		'amount'
 	],
 	work_catalog: [
 		'settings_id',
@@ -247,7 +247,7 @@ export const CATALOG = {
 		'denominator',
 		'destination',
 		'direction',
-		'counts_toward',
+		'counts_toward'
 	]
 } as const satisfies {
 	adhoc_catalog: Fields<'adhoc_catalog'>;
@@ -281,7 +281,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	payslip: [
 		'terms_through',
@@ -306,7 +306,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	employment_contract: [
 		'employee_number',
@@ -327,7 +327,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	employment_profile: [
 		'name',
@@ -350,7 +350,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	entity: [
 		'settings_code',
@@ -372,7 +372,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	leave_catalog_entry: [
 		'reference',
@@ -394,7 +394,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	claim_catalog_entry: [
 		'occurred_on',
@@ -413,7 +413,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	adhoc_catalog_entry: [
 		'occurred_on',
@@ -430,7 +430,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	loan_catalog_entry: [
 		'principal_amount',
@@ -445,7 +445,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	roster_entry: [
 		'work_date',
@@ -464,7 +464,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	obligation: [
 		'duty_code',
@@ -487,7 +487,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	regulatory_task: [
 		'code',
@@ -509,7 +509,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	workplace_case: [
 		'kind',
@@ -523,7 +523,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	],
 	work_suspension: [
 		'kind',
@@ -537,7 +537,7 @@ export const TRIGGER = {
 		'created_at',
 		'created_by',
 		'updated_at',
-		'updated_by',
+		'updated_by'
 	]
 } as const satisfies {
 	payroll_run: Fields<'payroll_run'>;
@@ -570,7 +570,7 @@ export const CATALOG_DETAILS = {
 		'amount_required',
 		'counts_toward',
 		'raise_on_exit',
-		'payable_after_exit',
+		'payable_after_exit'
 	],
 	claim_catalog: [
 		'code',
@@ -582,7 +582,7 @@ export const CATALOG_DETAILS = {
 		'eligibility',
 		'qualifies_when',
 		'amount_required',
-		'counts_toward',
+		'counts_toward'
 	],
 	leave_catalog: [
 		'code',
@@ -598,7 +598,7 @@ export const CATALOG_DETAILS = {
 		'is_npl',
 		'pay_fraction',
 		'share_by',
-		'consumes_code',
+		'consumes_code'
 	],
 	loan_catalog: [
 		'code',
@@ -608,7 +608,7 @@ export const CATALOG_DETAILS = {
 		'direction',
 		'bands',
 		'eligibility',
-		'amount_required',
+		'amount_required'
 	]
 } as const satisfies {
 	adhoc_catalog: Fields<'adhoc_catalog'>;

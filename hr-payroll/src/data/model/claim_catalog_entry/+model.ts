@@ -96,18 +96,20 @@ export default model('claim_catalog_entry', {
 		'claim_catalog_entry.employment_id': { fields: 'all' }
 	},
 	create: {
-		columns: { claim_catalog_entry: [
-			'catalog_id',
-			'employment_id',
-			'occurred_on',
-			'activity',
-			'amount',
-			'quantity',
-			'incurred_on',
-			'due_on',
-			'label',
-			'facts'
-		] },
+		columns: {
+			claim_catalog_entry: [
+				'catalog_id',
+				'employment_id',
+				'occurred_on',
+				'activity',
+				'amount',
+				'quantity',
+				'incurred_on',
+				'due_on',
+				'label',
+				'facts'
+			]
+		},
 		transform: function* (rows, ctx) {
 			const transformed = yield* transformRows(
 				rows,
@@ -121,18 +123,20 @@ export default model('claim_catalog_entry', {
 		}
 	},
 	update: {
-		columns: { claim_catalog_entry: [
-			'catalog_id',
-			'occurred_on',
-			'activity',
-			'amount',
-			'quantity',
-			'incurred_on',
-			'due_on',
-			'label',
-			'facts',
-			'payslip_id'
-		] },
+		columns: {
+			claim_catalog_entry: [
+				'catalog_id',
+				'occurred_on',
+				'activity',
+				'amount',
+				'quantity',
+				'incurred_on',
+				'due_on',
+				'label',
+				'facts',
+				'payslip_id'
+			]
+		},
 		transform: function* (changes, ctx) {
 			const transformed = yield* transformRows(
 				changes.map(({ set }) => set),

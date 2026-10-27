@@ -189,7 +189,10 @@ export const submitOrder = Effect.fnUntraced(function* (
 		});
 	yield* Effect.try({ try: () => sourceEntryIds(payload), catch: failure });
 	if (payload.previous && payload.previous.tax_inclusive !== payload.tax_inclusive)
-		return yield* new SourceRowInvalid({ column: 'tax_inclusive', reason: 'An amendment cannot change the approved tax basis' });
+		return yield* new SourceRowInvalid({
+			column: 'tax_inclusive',
+			reason: 'An amendment cannot change the approved tax basis'
+		});
 	if (key !== `${payload.order_id}:${payload.agreement_hash}`)
 		return yield* new SourceRowInvalid({
 			column: '$key',
@@ -229,7 +232,9 @@ export const submitOrder = Effect.fnUntraced(function* (
 		},
 		catch: failure
 	});
-	const correlation = payload.previous?.source_uuid ?? (yield* sourceOrderUuid(payload.order_id, payload.agreement_hash));
+	const correlation =
+		payload.previous?.source_uuid ??
+		(yield* sourceOrderUuid(payload.order_id, payload.agreement_hash));
 	const lookup = yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
@@ -262,7 +267,10 @@ export const submitOrder = Effect.fnUntraced(function* (
 			if (rate.lte(0) || (selected.denomination.base && !rate.eq(1)))
 				return invalid('currency', 'Source exchange rate is invalid for this currency binding');
 			if (payload.previous && !rate.eq(payload.previous.source_exchange_rate))
-				return invalid('currency', 'Source exchange rate changed since the previous contract observation');
+				return invalid(
+					'currency',
+					'Source exchange rate changed since the previous contract observation'
+				);
 			if (
 				one('employee').id !== selected.person.employeeId ||
 				one('department').id !== selected.person.departmentId
@@ -301,12 +309,19 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: 'lines',
 			reason: 'Source order exceeds its payload bound'
 		});
-	const previousDocument = payload.previous ? yield* Effect.try({ try: () => previousOrderDocument(payload, bindings), catch: failure }) : null;
+	const previousDocument = payload.previous
+		? yield* Effect.try({ try: () => previousOrderDocument(payload, bindings), catch: failure })
+		: null;
 	if (previousDocument !== null && previousDocument.length > 262144)
-		return yield* new SourceRowInvalid({ column: 'lines', reason: 'The previous source contract exceeds its payload bound' });
-	const fingerprint = yield* sha256Hex(payload.previous
-		? amendmentFingerprint(payload, batch)
-		: JSON.stringify({ key, header: batch.header, items: batch.items }));
+		return yield* new SourceRowInvalid({
+			column: 'lines',
+			reason: 'The previous source contract exceeds its payload bound'
+		});
+	const fingerprint = yield* sha256Hex(
+		payload.previous
+			? amendmentFingerprint(payload, batch)
+			: JSON.stringify({ key, header: batch.header, items: batch.items })
+	);
 	const result = yield* decode(
 		Receipt,
 		yield* ctx.request({
@@ -315,20 +330,25 @@ export const submitOrder = Effect.fnUntraced(function* (
 			arguments: {
 				stmt: payload.previous ? sourceAmendmentSql : sourceOrderSql,
 				params:
-					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64)' + (payload.previous ? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200)' : ''),
+					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64)' +
+					(payload.previous
+						? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200)'
+						: ''),
 				document,
 				branch: config.branchNo,
 				correlation,
 				resource: `norbital:trade:order:${correlation}`,
 				fingerprint,
-				...(payload.previous && previousDocument !== null ? {
-					previous_document: previousDocument,
-					source_id: payload.previous.source_id,
-					source_version: payload.previous.source_version,
-					source_exchange_rate: payload.previous.source_exchange_rate,
-					biller: config.billerId,
-					change_cause: `Colony contract ${payload.version} [${payload.agreement_hash}]`
-				} : {})
+				...(payload.previous && previousDocument !== null
+					? {
+							previous_document: previousDocument,
+							source_id: payload.previous.source_id,
+							source_version: payload.previous.source_version,
+							source_exchange_rate: payload.previous.source_exchange_rate,
+							biller: config.billerId,
+							change_cause: `Colony contract ${payload.version} [${payload.agreement_hash}]`
+						}
+					: {})
 			},
 			transaction: 'serializable',
 			maxRows: 1
@@ -340,5 +360,8 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: '$receipt',
 			reason: 'Source receipt does not match the sealed submission'
 		});
-	return payload.previous?.binding_id ?? `sales:${config.branchNo}:${receipt.remote}:${payload.agreement_hash}`;
+	return (
+		payload.previous?.binding_id ??
+		`sales:${config.branchNo}:${receipt.remote}:${payload.agreement_hash}`
+	);
 });
