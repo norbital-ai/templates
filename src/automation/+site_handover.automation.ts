@@ -67,13 +67,7 @@ export default automation('site_handover', {
 			photo_evidence: {
 				where: { job_assignment_id: { is: ON_SITES } },
 				// a read returns a file field only when named: the bundle carries each photo
-				fields: [
-					'job_assignment_id',
-					'photo',
-					'sha256',
-					'flags',
-					'matched_evidence_ids'
-				]
+				fields: ['job_assignment_id', 'photo', 'sha256', 'flags', 'matched_evidence_ids']
 			}
 		});
 		const files: StartOutput<'site_handover'>['files'][number][] = [];

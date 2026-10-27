@@ -170,9 +170,7 @@ it.live(
 			// The native resolver already combines the independent facts reads into one statement.
 			const factsReads = reads.mock.calls.filter(([statements]) =>
 				statements.some(({ text }) =>
-					['sites', 'communication_logs'].every((table) =>
-						text.includes(`FROM "${table}"`)
-					)
+					['sites', 'communication_logs'].every((table) => text.includes(`FROM "${table}"`))
 				)
 			);
 			expect(factsReads).toHaveLength(1);

@@ -1,5 +1,9 @@
 import { model } from '@norbital-ai/bolt';
-import { photoSourceKey, photoSummary, uninspectedPhotoFacts } from '../../../lib/photo-integrity.js';
+import {
+	photoSourceKey,
+	photoSummary,
+	uninspectedPhotoFacts
+} from '../../../lib/photo-integrity.js';
 const PROBE = { vector: { kind: 'list', of: { kind: 'number' } } } as const;
 /**
  * One photo filed against one job assignment, with its integrity facts. A photo is born

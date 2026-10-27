@@ -18,9 +18,9 @@ findings a controller resolves).
 
 ## Apps and roles
 
-| App                    | Audience                                                   | What it provides                                                                                                                                                                                                                          |
-| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, a job-assignment CSV import, and a sites tab.                                                                                                 |
+| App                    | Audience                                                   | What it provides                                                                                                                                                                                                              |
+| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, a job-assignment CSV import, and a sites tab.                                                                                     |
 | `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · scheduled date · status (plus the contractor for dispatchers). Opening a row shows the job scope, progress, dispatch time, location, assignment activity, and evidence photos. |
 
 Flag visibility is reserved for the controller dashboard: photo integrity flags, the review
@@ -36,12 +36,12 @@ Teams (`src/access_control/team/+team.ts`, handles `field_ops_controllers`, `con
 `field_ops_controller`; **Contractor** holds `field_ops_contractor`. A contractor is a role, not a
 record: a user whose team holds `field_ops_contractor`.
 
-| Policy                        | What it grants                                                                                                                                                                                                                                                                                           |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                      |
-| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own evidence (`read` + `create`). |
-| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read sites and assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                 |
-| `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                |
+| Policy                        | What it grants                                                                                                                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                       |
+| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own evidence (`read` + `create`).                                                                                           |
+| `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read sites and assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.        |
+| `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review. |
 
 ## Operating walkthrough
 
@@ -372,7 +372,7 @@ site → job assignment → user (the assignee)
 | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `inspect_photo_evidence`          | photo filed                                                      | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
 | `review_job_assignment_suspicion` | assignment filed or its check cleared; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
-| `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                     |
+| `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                                 |
 
 ### Photo integrity
 
