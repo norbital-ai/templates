@@ -11,7 +11,7 @@ import {
 } from '../../payroll_engine/foundation.js';
 
 /** The governing version's pay calendar: `payroll.week_start`, `semi_monthly_split`, `ten_day_splits`. */
-export type PayCalendar = Parameters<typeof periodsIn>[2];
+type PayCalendar = Parameters<typeof periodsIn>[2];
 export type PayingEntity = {
 	readonly pay_frequency?: string | null;
 	readonly pay_frequency_changes?: readonly FrequencyChange[] | null;

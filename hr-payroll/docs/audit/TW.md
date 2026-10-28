@@ -271,4 +271,4 @@ Kept: the 29,500 / 196 minimum wage (30,900 / 205 not yet 核定, recorded in TW
 
 ### Test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_tw.test.ts`: Test Files 1 passed (1); Tests 56 passed (56).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_tw.test.ts`: Test Files 1 passed (1); Tests 56 passed (56).

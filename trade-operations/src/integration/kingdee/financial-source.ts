@@ -151,7 +151,7 @@ export function mapSalesFacts(
 
 const idsSql = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS keys(n))";
 /** All header entries are re-read before using its amount; the amount is not a per-line allocation. */
-export const paymentProjection: NativeProjection = {
+const paymentProjection: NativeProjection = {
 	sql: `
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
  CONVERT(varchar(30),ce.FDetailID) AS detail_id,CONVERT(varchar(30),ce.FInterID) AS check_id,

@@ -82,7 +82,7 @@ export const plannedShift = (row: {
 };
 
 /** How a version counts credited attendance (`payroll.attendance`): a positive step in hours and a direction. */
-export type HoursRounding = {
+type HoursRounding = {
 	readonly step_hours: number;
 	readonly rounding: 'DOWN' | 'UP' | 'HALF_UP';
 };

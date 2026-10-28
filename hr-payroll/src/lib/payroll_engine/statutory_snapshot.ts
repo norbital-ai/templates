@@ -294,7 +294,7 @@ export function agentView(
 }
 
 /** A draft as one agent holds it: `settings` only for the settings agent. */
-export type AgentSnapshot = ValueOf<typeof SNAPSHOT_OUTPUT.fields.snapshot>;
+type AgentSnapshot = ValueOf<typeof SNAPSHOT_OUTPUT.fields.snapshot>;
 /**
  * What an agent drafts from: its own rows, every other section empty. The draft lives in the engine for the whole
  * inference, once per agent, so no agent carries another's rule sets.

@@ -54,7 +54,7 @@ const withoutStandingIds = (row: Row): Row => {
 
 /** A bank row in the model's current shape: a roster day's overtime and incentive derive from its clock past the
  * planned shift, so the hours the bank typed are not read. */
-export const bankRow = (collection: string, row: Row): Row => {
+const bankRow = (collection: string, row: Row): Row => {
 	const field =
 		collection === 'sys_user' ? 'team' : collection === 'entity' ? 'late_arrival_team' : null;
 	if (field !== null && typeof row[field] === 'string')
@@ -132,7 +132,7 @@ function parseRows(bytes: Buffer, path: string): Row[] {
 }
 
 /** One plain `<model>.json`. */
-export function readRows(path: string): Row[] {
+function readRows(path: string): Row[] {
 	return parseRows(readFileSync(path), path);
 }
 

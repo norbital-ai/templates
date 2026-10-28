@@ -1,0 +1,32 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000005",
+		"number": "BK-2026-0005",
+		"customer": "0d5000ff-0000-4000-8000-000000000004",
+		"service": "0d5000ff-0000-4000-8000-000000000001",
+		"address": "1 Example Avenue, Singapore 400001",
+		"location": {
+			"lat": 1.3236,
+			"lng": 103.9273
+		},
+		"area": "east",
+		"preference": "any",
+		"repeat": "once",
+		"status": "active"
+	},
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000006",
+		"number": "BK-2026-0006",
+		"customer": "0d5000ff-0000-4000-8000-000000000004",
+		"service": "0d5000ff-0000-4000-8000-000000000001",
+		"address": "1 Example Avenue, Singapore 400001",
+		"location": {
+			"lat": 1.3236,
+			"lng": 103.9273
+		},
+		"area": "east",
+		"preference": "any",
+		"repeat": "once",
+		"status": "active"
+	}
+]

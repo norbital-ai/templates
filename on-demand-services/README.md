@@ -281,12 +281,12 @@ preferred helpers, and each operation's customer notices, commit in the same gua
 
 ## Checks
 
-Requires Node 26 or newer and pnpm. Run inside this directory:
+Requires Node 26 or newer and bun. Run inside this directory:
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm exec bolt check   # types, Svelte warnings, layout and declarations
-pnpm test    # bolt build, then bolt test (including tests/e2e)
+bun install --frozen-lockfile
+bunx bolt check   # types, Svelte warnings, layout and declarations
+bun run test    # bolt build, then bolt test (including tests/e2e)
 ```
 
 `bolt build` generates the artifact and seed packs under `.norbital/`; that output is not committed.

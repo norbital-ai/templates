@@ -1,16 +1,9 @@
 import type { Committed, PendingApproval, Id, Insert } from '@norbital-ai/bolt';
-import {
-	Ai,
-	Port,
-	Writes,
-	type ActRequest,
-	type Authority,
-	type Json
-} from '@norbital-ai/bolt/engine';
+import { Ai, Port, type Json } from '@norbital-ai/bolt/engine';
 import { Unavailable } from '@norbital-ai/bolt/errors';
-import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type Kit, type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-import { Context, Effect, Layer, Schema, Stream } from 'effect';
+import { Effect, Layer, Schema, Stream } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';
 /** The template root: `bolt test` runs from it. */
 const root = `${process.cwd()}/`;
@@ -34,29 +27,17 @@ export const workspace = <P extends TestPorts = never>(options: Options<P> = {})
 	options.ports === undefined
 		? acquireWorkspace({ root, seed: 'none', ...options, ports: TestAi })
 		: acquireWorkspace({ root, seed: 'none', ...options });
+/** One workspace a whole file shares through `layer(...)`: its tests read it with `yield* TestWorkspace`. */
+export const shared = <P extends TestPorts = never>(options: Options<P> = {}) =>
+	options.ports === undefined
+		? TestWorkspace.layer({ root, seed: 'none', ...options, ports: TestAi })
+		: TestWorkspace.layer({ root, seed: 'none', ...options });
 /** The ids an act committed, or the outcome as the failure. */
 export function committed<O, N extends string>(outcome: Committed<O, N> | PendingApproval<N>) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	return outcome.records.map((record) => record.id);
 }
-export type T = Effect.Success<ReturnType<typeof workspace>>;
-/** Deliberately invalid inputs exercise the native wire refusal without claiming a typed callable input. */
-export const wireAct = Effect.fnUntraced(function* (
-	t: T,
-	authority: Authority,
-	request: Pick<ActRequest, 'model' | 'verb' | 'input'>
-) {
-	const now = t.clock.now();
-	return (yield* Context.get(t.services, Writes).act({
-		...request,
-		mode: { _tag: 'Direct' },
-		authority,
-		key: crypto.randomUUID(),
-		invocationId: crypto.randomUUID(),
-		issuedAt: now,
-		bindings: { now, today: now.slice(0, 10), tz: 'Asia/Singapore' }
-	})).outcome;
-});
+export type T = Kit;
 let postal = 500000;
 /** A site (at a fresh postal code) and a pending job on it, as a controller files them. */
 export const siteWithJob = Effect.fnUntraced(function* (

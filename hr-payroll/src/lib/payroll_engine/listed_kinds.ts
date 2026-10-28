@@ -26,7 +26,7 @@ export function kindsOf(rules: unknown): readonly {
 		? []
 		: decoded.value.kinds.map(({ code, name }) => ({ code, name: name ?? code }));
 }
-export type KindRequest = {
+type KindRequest = {
 	readonly rule: string;
 	readonly noun: string;
 	readonly company_id: Id<'entity'>;

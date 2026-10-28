@@ -304,4 +304,4 @@ Open note (not a wrong row): the IRAS 24 % non-resident director withholding cov
 
 ### Test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_sg.test.ts` (2026-10-22): `Test Files  1 passed (1)`, `Tests  174 passed (174)`. The run includes the 2 new cases.
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_sg.test.ts` (2026-10-22): `Test Files  1 passed (1)`, `Tests  174 passed (174)`. The run includes the 2 new cases.

@@ -18,7 +18,7 @@ export const dispatchFacts = <T>(
  * and without Singapore's 65 (an 8-digit local number and its +65 form are one member, as `sys_user.phone_key` stores
  * whichever was entered).
  */
-export const contactKeys = (contact: string | null | undefined): readonly string[] => {
+const contactKeys = (contact: string | null | undefined): readonly string[] => {
 	const value = contact?.trim() ?? '';
 	if (value === '') return [];
 	if (value.includes('@')) return [value.toLowerCase()];

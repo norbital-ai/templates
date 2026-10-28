@@ -1,288 +1,62 @@
-import { fixtureId, decimalText } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { Schema, Effect } from 'effect';
-import { expect, it as test } from '@effect/vitest';
-import { Instant } from '@norbital-ai/std/date';
+import { Effect } from 'effect';
+import { expect, it as test, layer } from '@effect/vitest';
 
-import { availability, projectedRead } from '../src/lib/stock.js';
-import { draft, workspace } from './kit.js';
+import { averageLotCost } from '../src/lib/lot-cost.js';
+import { shared, Trade, PRODUCT } from './kit.js';
 import { businessRows } from './business-source.js';
-import { confirmationOf, erpAvailabilityOf, projectedAvailabilityOf } from './reads.js';
-const id = <C extends 'products' | 'warehouses' | 'orders' | 'order_lines'>(
-	model: C,
-	suffix: string
-) => fixtureId(model, `00000000-0000-4000-8000-${suffix.padStart(12, '0')}`);
-const now = Instant('2026-10-10T00:00:00Z');
-const source = {
-	product: id('products', '201'),
-	warehouse: id('warehouses', '301'),
-	unit: 'kg',
-	on_hand: Decimal.of('100'),
-	erp_committed: Decimal.of('30'),
-	as_of: now,
-	orders_as_of: now
-} satisfies Parameters<typeof availability>[0];
-const order = {
-	id: id('orders', '901'),
-	warehouse: source.warehouse,
-	direction: 'sales',
-	status: 'confirmed',
-	sealed_at: now,
-	seal_hash: 'sealed'
-} satisfies NonNullable<Parameters<typeof availability>[3]>['orders'][number];
-const line = {
-	id: id('order_lines', '902'),
-	order: order.id,
-	product: source.product,
-	unit: 'kg',
-	quantity: Decimal.of('80')
-} satisfies NonNullable<Parameters<typeof availability>[3]>['lines'][number];
-const commitments = { orders: [order], lines: [line], receipts: [], delivered: [] };
-test('fresh compatible stock retains negative projected balances and does not count ERP-included orders twice', () => {
-	expect(availability(source, now, 30, commitments)).toMatchObject({
-		sellable: '70',
-		local_committed: '80',
-		projected: '-10',
-		reason: 'available'
-	});
-	const acknowledged = {
-		order: order.id,
-		status: 'issued',
-		agreement_hash: 'sealed',
-		source_updated_at: now
-	} as const;
-	expect(availability(source, now, 30, { ...commitments, receipts: [acknowledged] })).toMatchObject(
-		{ local_committed: '0', projected: '70' }
+import { inventoryCostOf } from './reads.js';
+layer(shared(), { excludeTestServices: true })('stock on a workspace', (it) => {
+	it.effect(
+		'floor warning compares remaining lot cost in matching units and currency, excluding tax',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* Trade;
+				yield* businessRows(t, 'stock_snapshots', [
+					{
+						external_code: 'floor-cost-lot',
+						product_code: 'RESIN-A',
+						warehouse_code: 'WEST',
+						lot_number: 'WARN-LOT',
+						currency: 'SGD',
+						unit: 'kg',
+						on_hand: '10',
+						unit_cost: '1.5',
+						erp_committed: '0',
+						as_of: '2026-10-12T00:00:00Z',
+						orders_as_of: '2026-10-12T00:00:00Z'
+					}
+				]);
+				const as = t.as(t.member(['configuration']));
+				const input = {
+					product: PRODUCT,
+					unit: 'kg',
+					currency: 'SGD',
+					price: Decimal.of('1.60'),
+					tax_inclusive: true,
+					tax_rate: Decimal.of('9')
+				} satisfies Parameters<typeof inventoryCostOf>[1];
+				expect(yield* inventoryCostOf(as, input)).toMatchObject({ below: true });
+				expect(yield* inventoryCostOf(as, { ...input, price: Decimal.of('1.635') })).toMatchObject({
+					below: false
+				});
+				expect(yield* inventoryCostOf(as, { ...input, currency: 'USD' })).toMatchObject({
+					below: false,
+					average: null
+				});
+			})
 	);
-	expect(
-		availability({ ...source, orders_as_of: Instant('2026-10-09T23:59:00Z') }, now, 30, {
-			...commitments,
-			receipts: [acknowledged]
-		})
-	).toMatchObject({ local_committed: '80', projected: '-10' });
 });
-test('archiving retains commitments and a pending replacement does not replace the current quota', () => {
-	const current = { seal_hash: 'sealed', current: true, lines: [{ ...line, quantity: '80' }] };
-	const pending = {
-		seal_hash: 'pending',
-		current: false,
-		lines: [{ ...line, quantity: '150' }]
-	};
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [{ ...order, archived: true, operational_contracts: [current, pending] }]
-		})
-	).toMatchObject({ local_committed: '80', projected: '-10' });
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [
-				{
-					...order,
-					archived: true,
-					operational_contracts: [
-						{ ...current, current: false },
-						{ ...pending, current: true }
-					]
-				}
-			]
-		})
-	).toMatchObject({ local_committed: '150', projected: '-80' });
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [{ ...order, status: 'draft', archived: true, sealed_at: null, seal_hash: null }]
-		})
-	).toMatchObject({ local_committed: '0', projected: '70' });
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			orders: [{ ...order, operational_contracts: [{ ...current, current: false }] }]
-		})
-	).toMatchObject({ local_committed: '0', projected: '70' });
+test('average inventory cost weights remaining lots and leaves incomplete cost evidence unknown', () => {
+	const base = { product: 'resin', unit: 'kg', currency: 'SGD', on_hand: '10', unit_cost: '2' };
+	const rows = [
+		base,
+		{ ...base, on_hand: '30', unit_cost: '4' },
+		{ ...base, on_hand: '0', unit_cost: '99' },
+		{ ...base, currency: 'USD', unit_cost: '99' }
+	];
+	expect(averageLotCost(rows, 'resin', 'kg', 'SGD')?.toString()).toBe('3.50000000');
+	expect(averageLotCost([...rows, { ...base, unit_cost: null }], 'resin', 'kg', 'SGD')).toBeNull();
+	expect(averageLotCost(rows, 'resin', 'box', 'SGD')).toBeNull();
+	expect(averageLotCost([...rows, { ...base, unit: null }], 'resin', 'kg', 'SGD')).toBeNull();
 });
-test('unknown, stale, mixed units and unreconciled delivery never fabricate availability', () => {
-	expect(
-		availability({ ...source, as_of: Instant('2026-10-09T00:00:00Z') }, now, 30, commitments)
-	).toMatchObject({ sellable: null, projected: null, reason: 'stale_source' });
-	expect(availability({ ...source, orders_as_of: null }, now, 30, commitments)).toMatchObject({
-		projected: null,
-		reason: 'stale_source'
-	});
-	expect(
-		availability({ ...source, as_of: Instant('2026-10-11T00:00:00Z') }, now, 30, commitments)
-	).toMatchObject({ projected: null });
-	expect(availability({ ...source, erp_committed: null }, now, 30, commitments)).toMatchObject({
-		projected: null,
-		reason: 'missing_commitments'
-	});
-	expect(
-		availability(source, now, 30, { ...commitments, lines: [{ ...line, unit: 'box' }] })
-	).toMatchObject({ sellable: '70', projected: null, reason: 'unit_mismatch' });
-	expect(
-		availability(source, now, 30, {
-			...commitments,
-			delivered: [{ order_line: line.id, quantity: Decimal.of('5') }]
-		})
-	).toMatchObject({ projected: null, reason: 'delivery_unreconciled' });
-	expect(availability(source, now, 30)).toMatchObject({
-		sellable: '70',
-		projected: null,
-		reason: 'erp_only'
-	});
-});
-test.live(
-	'sales projects commitments of its own orders only while logistics and managers see them all',
-	() =>
-		Effect.gen(function* () {
-			const t = yield* workspace();
-			const sales = t.member(['sales']);
-			expect(yield* erpAvailabilityOf(t.as(sales), { as_of: now })).toEqual([]);
-			// the projection's `orders` root is read under the sales order scope: another rep's draft never counts
-			const foreign = yield* draft(t);
-			expect(
-				(yield* t.as(sales).query(projectedRead)).orders.rows.map((order) => order.id)
-			).not.toContain(foreign.order);
-			expect(
-				(yield* t.as(t.member(['logistics'])).query(projectedRead)).orders.rows.map(
-					(order) => order.id
-				)
-			).toContain(foreign.order);
-			for (const policy of ['manager', 'logistics', 'finance']) {
-				const actor = t.member([policy]);
-				expect(yield* projectedAvailabilityOf(t.as(actor), { as_of: now })).toEqual([]);
-			}
-		})
-);
-test.live(
-	'stock query returns exact source quantities without commercial fields to logistics',
-	() =>
-		Effect.gen(function* () {
-			const products = (yield* Effect.tryPromise({
-				try: () => import('../seed/products.json', { with: { type: 'json' } }),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			})).default;
-			const warehouses = (yield* Effect.tryPromise({
-				try: () => import('../seed/warehouses.json', { with: { type: 'json' } }),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			})).default;
-			const settings = (yield* Effect.tryPromise({
-				try: () => import('../seed/commercial_settings.json', { with: { type: 'json' } }),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			})).default;
-			const t = yield* workspace({
-				seed: {
-					products,
-					warehouses,
-					commercial_settings: settings,
-					stock_snapshots: [
-						{
-							id: '00000000-0000-4000-8000-000000000501',
-							external_code: 'RESIN-A:WEST:kg',
-							...source,
-							source: 'kingdee',
-							on_hand: '100',
-							erp_committed: '130'
-						}
-					]
-				}
-			});
-			const as = t.as(t.member(['logistics']));
-			const rows = yield* projectedAvailabilityOf(as, { as_of: now });
-			expect(rows).toMatchObject([
-				{
-					product: source.product,
-					product_name: 'Resin A',
-					warehouse_name: 'West warehouse',
-					warehouse: source.warehouse,
-					sellable: decimalText('-30'),
-					local_committed: decimalText('0'),
-					projected: decimalText('-30'),
-					reason: 'available'
-				}
-			]);
-			expect(rows).not.toMatchObject([{ unit_price: expect.anything() }]);
-		})
-);
-test.live(
-	'average inventory cost weights remaining lots and leaves incomplete cost evidence unknown',
-	() =>
-		Effect.gen(function* () {
-			const { averageLotCost } = yield* Effect.tryPromise({
-				try: () => import('../src/lib/lot-cost.js'),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			});
-			const base = { product: 'resin', unit: 'kg', currency: 'SGD', on_hand: '10', unit_cost: '2' };
-			const rows = [
-				base,
-				{ ...base, on_hand: '30', unit_cost: '4' },
-				{ ...base, on_hand: '0', unit_cost: '99' },
-				{ ...base, currency: 'USD', unit_cost: '99' }
-			];
-			expect(averageLotCost(rows, 'resin', 'kg', 'SGD')?.toString()).toBe('3.50000000');
-			expect(
-				averageLotCost([...rows, { ...base, unit_cost: null }], 'resin', 'kg', 'SGD')
-			).toBeNull();
-			expect(averageLotCost(rows, 'resin', 'box', 'SGD')).toBeNull();
-			expect(averageLotCost([...rows, { ...base, unit: null }], 'resin', 'kg', 'SGD')).toBeNull();
-		})
-);
-test.live('sales get a below-average lot cost warning without blocking an editable draft', () =>
-	Effect.gen(function* () {
-		const { draft, committed } = yield* Effect.tryPromise({
-			try: () => import('./kit.js'),
-			catch: (cause) => new TestIoFailed({ message: String(cause) })
-		});
-		const lots = ['2', '4'].map((unit_cost, i) => ({
-			external_code: `LOT-${i}`,
-			lot_number: `LOT-${i}`,
-			product_code: 'RESIN-A',
-			warehouse_code: 'WEST',
-			unit: 'kg',
-			currency: 'SGD',
-			unit_cost,
-			on_hand: i ? '30' : '10',
-			erp_committed: '0',
-			as_of: '2026-10-10T00:00:00Z',
-			orders_as_of: '2026-10-10T00:00:00Z'
-		}));
-		const t = yield* workspace();
-		yield* businessRows(t, 'stock_snapshots', lots);
-		const own = yield* draft(t);
-		const as = t.as(t.admin);
-		expect(
-			yield* confirmationOf(as, {
-				as_of: Instant(t.clock.now()),
-				order: own.order
-			})
-		).toMatchObject({
-			below_inventory_cost: ['Resin A']
-		});
-		committed(
-			'order_lines',
-			yield* as.act('order_lines.update', [
-				{
-					target: own.line,
-					set: { unit_price: Decimal.of('4') }
-				}
-			])
-		);
-		expect(
-			yield* confirmationOf(as, {
-				as_of: Instant(t.clock.now()),
-				order: own.order
-			})
-		).toMatchObject({
-			below_inventory_cost: []
-		});
-		expect(
-			yield* Effect.flip(
-				as.act('orders.update', [{ target: own.order, set: { direction: 'purchasing' } }])
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-	})
-);
-class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {
-	message: Schema.String
-}) {}

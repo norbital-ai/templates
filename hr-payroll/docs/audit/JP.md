@@ -289,4 +289,4 @@ None. Known limit: `normal_pending` covers the MONTHLY 月額表 path only. On W
 
 ### Final test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_jp.test.ts` → Test Files 1 passed (1); Tests 69 passed (69).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_jp.test.ts` → Test Files 1 passed (1); Tests 69 passed (69).

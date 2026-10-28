@@ -4,11 +4,10 @@ node_modules/
 # Build output. Migrations are authored and stay tracked.
 **/build/
 **/.svelte-kit/
-**/.generated/
 **/.norbital/
 *.tsbuildinfo
 
-# Package-manager lockfiles other than the committed pnpm lockfiles
+# Package-manager lockfiles other than the committed bun lockfiles
 **/package-lock.json
 **/yarn.lock
 
@@ -19,10 +18,6 @@ node_modules/
 /dist/
 coverage/
 test-results/
-
-# Local yalc overlay. Committed package.json keeps an exact @norbital-ai/bolt pin.
-**/.yalc/
-**/yalc.lock
 
 # Environment and local files
 .env

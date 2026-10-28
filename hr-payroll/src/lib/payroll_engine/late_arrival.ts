@@ -31,7 +31,7 @@ type LateArrivalNotice = {
 	readonly body: string;
 };
 
-export function shiftStartMs(
+function shiftStartMs(
 	work_date: string,
 	start_time: string,
 	time_zone: string

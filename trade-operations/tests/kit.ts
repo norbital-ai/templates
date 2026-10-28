@@ -3,7 +3,7 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { PlainDate, Instant } from '@norbital-ai/std/date';
 import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
-import { Effect, Schema } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { confirmationOf } from './reads.js';
@@ -42,7 +42,6 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 	const t = yield* acquireWorkspace({
 		root: process.cwd(),
 		now: '2026-10-10T00:00:00Z',
-		seed: 'base',
 		...options
 	});
 	if (source !== undefined)
@@ -71,6 +70,10 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 	};
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;
+/** The workspace a file's tests share: `layer(shared(...), { excludeTestServices: true })`, then `yield* Trade`. */
+export class Trade extends Context.Service<Trade, T>()('trade-operations/Trade') {}
+export const shared = <P extends TestPorts = never>(options: Parameters<typeof workspace<P>>[0] = {}) =>
+	Layer.effect(Trade, workspace(options));
 export const draft = Effect.fnUntraced(function* (
 	t: T,
 	direction: Row<'orders'>['direction'] = 'sales',

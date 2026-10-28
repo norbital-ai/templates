@@ -5,7 +5,6 @@ import type { Context as CelContext } from '@marcbachmann/cel-js';
 import { context as formulaContext, compile, evaluate } from '@norbital-ai/std/formula';
 import { isPlainDate, addDays, addMonths, datePeriod, days, monthOf } from '@norbital-ai/std/date';
 import {
-	type DynObject,
 	type Json,
 	completedMonths,
 	getErrorMessage,
@@ -375,7 +374,7 @@ register('max_work_hours_between_breaks', [2], (intervals, minimumBreakMinutes) 
 // cel-js has `map`/`filter`/`all`/`exists`; `sum` is above.
 register('first', [1], (list) => argument(LIST, list, 'first')[0] ?? null);
 /** One expression against explicitly declared roots, in the payroll floating-point mode. */
-export function configuredProgram(expression: string): (context: CelContext) => Json {
+function configuredProgram(expression: string): (context: CelContext) => Json {
 	const source = Schema.decodeUnknownResult(Schema.String)(expression);
 	if (Result.isFailure(source) || source.success.trim() === '')
 		throw new Refusal({

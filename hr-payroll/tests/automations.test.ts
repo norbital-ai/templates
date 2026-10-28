@@ -1,17 +1,16 @@
 /**
  * Each automation the template declares, fired through the kit and judged by what it did: `behaviour_taps` applies a
- * run's pins and holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
+ * run's holds (its pins: `entries.test.ts`), `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
  * nobody clocked into. `invitation_profile` is `e2e/invitation-profile.test.ts`; `statutory_drift` is
  * `statutory-research.test.ts`.
  */
 import assert from 'node:assert/strict';
-import { it } from '@effect/vitest';
+import { layer } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { CATALOG, COMPANY, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
+import { COMPANY, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
 
 const Started = Schema.Struct({ id: Schema.String });
 const Run = Schema.Struct({
@@ -32,59 +31,60 @@ const finished = Effect.fnUntraced(function* (t: Kit, output: unknown) {
 	return run.output;
 });
 
-it.effect(
-	'behaviour_taps pins what a run settled onto its payslip and holds what a validation held',
-	() =>
-		world(
-			employer([
-				{ key: 'a', salary: 3000 },
-				// the version's HELD_PAY validation holds this person's pay
-				{ key: 'b', salary: 3000, facts: { held: true } }
-			])
-		).withRead(() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				const hr = t.as(t.member(['hr_manager']));
-				yield* hr.act('adhoc_catalog_entry.create', [
-					{
-						catalog_id: CATALOG.BONUS,
-						employment_id: employment('a'),
-						occurred_on: PlainDate('2026-03-10'),
-						amount: Decimal.of('100')
-					}
-				]);
-				yield* hr.act('payroll_run.create', [
-					{ company_id: COMPANY, period: '2026-03', kind: 'REGULAR' }
-				]);
-				const run = yield* runOf(hr, '2026-03');
-				const [bonus] = (yield* hr.query({ adhoc_catalog_entry: {} })).adhoc_catalog_entry.rows;
-				assert.ok(bonus);
-				// the run itself only records them
-				assert.equal(bonus.payslip_id, null);
-				assert.equal(run.slip('b').status, 'DRAFT');
-				yield* t.runDue();
-				const after = yield* hr.query({
-					adhoc_catalog_entry: { where: { id: { eq: bonus.id } }, fields: ['payslip_id'] },
-					payslip: {
-						where: { id: { in: [run.slip('a').id, run.slip('b').id] } },
-						fields: ['status']
-					}
-				});
-				assert.equal(after.adhoc_catalog_entry.rows[0]?.payslip_id, run.slip('a').id);
-				const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
-				assert.equal(status(run.slip('b').id), 'ON_HOLD');
-				assert.equal(status(run.slip('a').id), 'DRAFT');
-				const failed = yield* t.db.rows(Schema.Struct({ error: Schema.NullOr(Schema.Json) }), {
-					text: "SELECT error FROM sys_run WHERE automation = 'behaviour_taps' AND state = 'failed'",
-					params: []
-				});
-				assert.deepEqual(failed, []);
-			})
-		)
+const rows = employer([
+	{ key: 'a', salary: 3000 },
+	// the version's HELD_PAY validation holds this person's pay
+	{ key: 'b', salary: 3000, facts: { held: true } }
+]);
+rows.set(
+	'entity',
+	(rows.get('entity') ?? []).map((entity) => ({
+		...entity,
+		late_arrival_grace_minutes: 15,
+		// the Production Manager team
+		late_arrival_team: 'production_manager'
+	}))
 );
+const day = (key: string, worked_intervals: unknown) => ({
+	id: nativeId('roster_entry', fixtureId(`xx-late-${key}`)),
+	employment_id: employment(key),
+	work_date: PlainDate('2026-03-03'),
+	shift_definition_id: WORK,
+	worked_intervals
+});
+rows.set('roster_entry', [
+	day('a', null),
+	day('b', [
+		{ start: Instant('2026-03-03T09:05:00.000Z'), end: Instant('2026-03-03T18:00:00.000Z') }
+	])
+]);
 
-it.effect('calendar_tick writes the holidays the version lists, once', () =>
-	world(employer([{ key: 'a', salary: 3000 }])).withRead(() =>
+layer(world(rows).layer)('automations', (it) => {
+	it.effect('behaviour_taps holds the payslip a validation held', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			// February: the late-arrival days in March stay unsettled
+			yield* hr.act('payroll_run.create', [
+				{ company_id: COMPANY, period: '2026-02', kind: 'REGULAR' }
+			]);
+			const run = yield* runOf(hr, '2026-02');
+			// the run itself only records it
+			assert.equal(run.slip('b').status, 'DRAFT');
+			yield* t.runDue();
+			const after = yield* hr.query({
+				payslip: {
+					where: { id: { in: [run.slip('a').id, run.slip('b').id] } },
+					fields: ['status']
+				}
+			});
+			const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
+			assert.equal(status(run.slip('b').id), 'ON_HOLD');
+			assert.equal(status(run.slip('a').id), 'DRAFT');
+		})
+	);
+
+	it.effect('calendar_tick writes the holidays the version lists, once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const holidays = () =>
@@ -106,42 +106,15 @@ it.effect('calendar_tick writes the holidays the version lists, once', () =>
 				]);
 			}
 		})
-	)
-);
+	);
 
-it.effect(
-	'late_arrival_notice reminds for a rostered shift nobody clocked into past its grace',
-	() => {
-		const rows = employer([
-			{ key: 'a', salary: 3000 },
-			{ key: 'b', salary: 3000 }
-		]);
-		rows.set(
-			'entity',
-			(rows.get('entity') ?? []).map((entity) => ({
-				...entity,
-				late_arrival_grace_minutes: 15,
-				// the Production Manager team
-				late_arrival_team: 'production_manager'
-			}))
-		);
-		const day = (key: string, worked_intervals: unknown) => ({
-			id: nativeId('roster_entry', fixtureId(`xx-late-${key}`)),
-			employment_id: employment(key),
-			work_date: PlainDate('2026-03-03'),
-			shift_definition_id: WORK,
-			worked_intervals
-		});
-		rows.set('roster_entry', [
-			day('a', null),
-			day('b', [
-				{ start: Instant('2026-03-03T09:05:00.000Z'), end: Instant('2026-03-03T18:00:00.000Z') }
-			])
-		]);
-		// the 09:00 shift plus fifteen minutes' grace has passed
-		return world(rows, '2026-03-03T09:30:00.000Z').withRead(() =>
+	it.effect(
+		'late_arrival_notice reminds for a rostered shift nobody clocked into past its grace',
+		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
+				// the 09:00 shift plus fifteen minutes' grace has passed
+				t.clock.set('2026-03-03T09:30:00.000Z');
 				const started = yield* t.as(t.admin).start('late_arrival_notice', {});
 				assert.equal(started.kind, 'committed');
 				assert.deepEqual(yield* finished(t, started.kind === 'committed' ? started.output : null), {
@@ -149,6 +122,5 @@ it.effect(
 					reminded: 1
 				});
 			})
-		);
-	}
-);
+	);
+});

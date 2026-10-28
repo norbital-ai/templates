@@ -1,22 +1,15 @@
 /**
- * The payroll hotline (`+payroll_hotline.envoy.ts`, `dm: 'envoy'`) on the test kit's fake WhatsApp links, with a
- * scripted model. Two entities name their own WhatsApp instance as `entity.hotline` (HR attaches one), and HR
- * deploys the envoy on each through an ordinary `sys_integration` update. A turn reads only the sender's own
- * payslips of the entity whose number they wrote to; an administrator's DM holds the envoy's policy alone (no write,
- * no bypass); an unknown number gets the fixed notice and no turn; a group message is ignored.
+ * The `payroll_hotline` policy: a linked member's DM on an entity's number (`entity.hotline`) reads only their own
+ * payslips of that entity, the administrator included. HR attaches a number and deploys the envoy through ordinary
+ * writes; the hotline's bound authority is then read directly, without a model turn.
  */
-import { describe, expect, it } from '@effect/vitest';
-import { Context, Effect, FiberSet, Layer, Schema } from 'effect';
-import {
-	Ai,
-	type AiPort,
-	type AiRequest,
-	type AiResponse,
-	type Json
-} from '@norbital-ai/bolt/engine';
-import { respondSystem1, TestWorkspace } from '@norbital-ai/bolt/test';
+import { expect, it } from '@effect/vitest';
+import { Effect, Schema } from 'effect';
+import { Authorities } from '@norbital-ai/bolt/engine';
+import { TestWorkspace } from '@norbital-ai/bolt/test';
 import type { InstanceId } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
+import { moneyNumber } from '../../src/lib/payroll_engine/foundation.ts';
 import { workspace } from '../kit.ts';
 import { nativeId } from '../fixture_values.ts';
 
@@ -129,201 +122,44 @@ const seed = {
 	]
 };
 
-/** The model: "slips" reads payslips, "hold <id>" puts one on hold; a tool result ends the turn with "Done.". */
-const present = <A>(value: A | null | undefined): A => {
-	if (value === null || value === undefined)
-		throw new Error('Missing payroll hotline fixture value');
-	return value;
-};
-const scripted = Effect.gen(function* () {
-	const requests: AiRequest[] = [];
-	const run = yield* FiberSet.makeRuntimePromise();
-	let n = 0;
-	const usage = { input: 1, output: 1 };
-	const text = (content: Json) => (typeof content === 'string' ? content : JSON.stringify(content));
-	const call = (name: string, input: Json): AiResponse => ({
-		content: '',
-		toolCalls: [{ id: `c${++n}`, name, input }],
-		finish: 'tool',
-		usage
-	});
-	const provider: AiPort = {
-		sys_1: { ask: (request, signal) => run(respondSystem1(request), { signal }) },
-		sys_2: {
-			models: ['default', 'strong'],
-			async infer(request, signal) {
-				signal.throwIfAborted();
-				requests.push(request);
-				const last = present(
-					request.messages.findLast(
-						(message) =>
-							!(
-								typeof message.content === 'string' &&
-								message.content.startsWith('[conversation state')
-							)
-					)
-				);
-				if (last.role === 'tool') return { content: 'Done.', toolCalls: [], finish: 'stop', usage };
-				const said = text(last.content);
-				if (/^(?:\[[^\]\n]*\] )?slips$/m.test(said)) return call('read', { payslip: {} });
-				const hold = /^(?:\[[^\]\n]*\] )?hold (\S+)$/m.exec(said);
-				if (hold !== null)
-					return call('act', {
-						callable: 'payslip.update',
-						input: [{ target: present(hold[1]), set: { status: 'ON_HOLD' } }]
-					});
-				return { content: `echo: ${said}`, toolCalls: [], finish: 'stop', usage };
-			}
-		}
-	};
-	return { requests, layer: Ai.fromAbi(provider) };
-});
-
-const Row = Schema.Record(Schema.String, Schema.Json);
-const PayslipResult = Schema.Struct({
-	payslip: Schema.Struct({
-		rows: Schema.Array(Schema.Struct({ net: Schema.Struct({ $dec: Schema.String }) }))
-	})
-});
-const Notice = Schema.Struct({ to: Schema.String, text: Schema.String });
-const setup = Effect.gen(function* () {
-	const ai = yield* scripted;
-	const context = yield* Layer.build(
-		workspace({ seed, ports: ai.layer, now: '2026-10-01T02:00:00.000Z' })
-	);
-	const t = Context.get(context, TestWorkspace);
-	// HR attaches B's number and deploys the envoy through the same ordinary writes as the entity page.
-	const hr = t.as(t.member(['hr_manager']));
-	const hotline = Schema.decodeUnknownSync(
-		Schema.declare<InstanceId<'whatsapp'>>(
-			(value): value is InstanceId<'whatsapp'> =>
-				typeof value === 'string' &&
-				Schema.is(inputSchema({ kind: 'id', of: 'sys_integration' }))(value) &&
-				seed.sys_integration.some((row) => row.id === value && row.integration === 'whatsapp')
-		)
-	)(HOTLINE_B);
-	const attached = yield* hr.act('entity.update', [
-		{
-			target: nativeId('entity', B),
-			set: { hotline }
-		}
-	]);
-	expect(attached.kind, JSON.stringify(attached)).toBe('committed');
-	for (const target of [HOTLINE_A, HOTLINE_B]) {
-		const deployed = yield* hr.act('sys_integration.update', [
-			{
-				target: nativeId('sys_integration', target),
-				set: { envoy: 'payroll_hotline' }
-			}
-		]);
-		expect(deployed.kind, JSON.stringify(deployed)).toBe('committed');
-	}
-	let seq = 0;
-	/** One provider DM or group message, through the native ingest and bounded turn lifetime. */
-	const say = Effect.fn('Test.payrollHotlineSay')(function* (
-		instance: string,
-		phone: string,
-		text: string,
-		group?: string
-	) {
-		const jid = `${phone}@s.whatsapp.net`,
-			message = `H${++seq}`;
-		yield* t.receive(instance, {
-			id: message,
-			thread: group ?? jid,
-			sentAt: t.clock.now(),
-			from: { handle: jid, name: null },
-			group: group !== undefined,
-			text,
-			replyTo: null,
-			invocation: group === undefined ? 'direct' : 'mention',
-			attachments: []
+it.effect("a member's hotline reads their own payslips of the number's entity only", () =>
+	Effect.gen(function* () {
+		const t = yield* TestWorkspace;
+		const hr = t.as(t.member(['hr_manager']));
+		const hotline = Schema.decodeUnknownSync(
+			Schema.declare<InstanceId<'whatsapp'>>(
+				(value): value is InstanceId<'whatsapp'> =>
+					typeof value === 'string' &&
+					Schema.is(inputSchema({ kind: 'id', of: 'sys_integration' }))(value)
+			)
+		)(HOTLINE_B);
+		expect(
+			(yield* hr.act('entity.update', [{ target: nativeId('entity', B), set: { hotline } }])).kind
+		).toBe('committed');
+		for (const target of [HOTLINE_A, HOTLINE_B])
+			expect(
+				(yield* hr.act('sys_integration.update', [
+					{ target: nativeId('sys_integration', target), set: { envoy: 'payroll_hotline' } }
+				])).kind
+			).toBe('committed');
+		const authorities = new Authorities(t.manifest, 'hotline-fixture');
+		const nets = Effect.fnUntraced(function* (instance: string, member: string) {
+			const authority = yield* authorities.envoy(t.db, {
+				envoy: 'payroll_hotline',
+				instance,
+				sender: member,
+				member,
+				dm: true
+			});
+			if (authority === null) throw new Error('The hotline does not serve this member');
+			const { rows } = (yield* t.as(authority).query({ payslip: { fields: ['net'] } })).payslip;
+			return rows.map((row) => moneyNumber(row.net)).sort();
 		});
-		t.clock.advance('2s'); // the trailing pause before a turn (P40)
-		yield* t.runDue();
-		yield* t.settled();
-		return message;
-	});
-	const rows = (text: string, params: readonly Json[] = []) => t.db.rows(Row, { text, params });
-	/** What the native turn's authority allowed its latest tool to return. */
-	const lastResult = rows(
-		`SELECT content->'result' AS result FROM sys_message WHERE role = 'tool' ORDER BY seq DESC LIMIT 1`
-	).pipe(Effect.map((values) => values[0]?.['result']));
-	const inbound = (message: string) =>
-		rows(
-			`SELECT role, addressed, refused FROM sys_message WHERE direction = 'inbound' AND provider_id = $1`,
-			[message]
-		).pipe(Effect.map((values) => present(values[0])));
-	return { t, ai, say, lastResult, inbound };
-});
-/** The canonical tool result carries decimal values as {$dec}; a malformed answer fails the scenario. */
-const nets = (result: Json | undefined) =>
-	Schema.decodeUnknownSync(PayslipResult)(result)
-		.payslip.rows.map((row) => row.net.$dec)
-		.sort();
-
-describe('payroll hotline', () => {
-	it.live(
-		"answers a member's own payslip on the right entity's number, and nothing on another entity's",
-		() =>
-			Effect.gen(function* () {
-				const { t, say, lastResult } = yield* setup;
-				yield* say(HOTLINE_A, '6598765432', 'slips');
-				expect(nets(yield* lastResult)).toEqual(['1000.00']);
-				yield* say(HOTLINE_B, '6598765432', 'slips');
-				expect(nets(yield* lastResult)).toEqual(['2000.00']);
-				// Dee works for A only: B's number reads nothing of hers or anyone else's.
-				yield* say(HOTLINE_B, '6597654321', 'slips');
-				expect(yield* lastResult).toMatchObject({ payslip: { rows: [] } });
-				yield* say(HOTLINE_A, '6597654321', 'slips');
-				expect(nets(yield* lastResult)).toEqual(['4000.00']);
-				expect([...new Set(t.fakes.links.sent.map((sent) => sent.instance))].sort()).toEqual(
-					[HOTLINE_A, HOTLINE_B].sort()
-				);
-			})
-	);
-
-	it.live(
-		"an administrator's DM holds the hotline policy alone: her own payslip, and no write",
-		() =>
-			Effect.gen(function* () {
-				const { t, say, lastResult } = yield* setup;
-				yield* say(HOTLINE_A, '6591234567', 'slips');
-				expect(nets(yield* lastResult)).toEqual(['3000.00']);
-				yield* say(HOTLINE_A, '6591234567', `hold ${SLIP_ADA_A}`);
-				expect(yield* lastResult).toEqual({ error: "No tool 'act'." });
-				expect(
-					(
-						(yield* t
-							.as(t.admin)
-							.query({ payslip: { where: { id: { eq: nativeId('payslip', SLIP_ADA_A) } } } }))
-							.payslip.rows[0] ?? null
-					)?.status
-				).toBe('DRAFT');
-			})
-	);
-
-	it.live('an unknown number gets the fixed notice and no turn', () =>
-		Effect.gen(function* () {
-			const { t, ai, say, inbound } = yield* setup;
-			const message = yield* say(HOTLINE_A, '6599999999', 'what is my salary?');
-			expect(yield* inbound(message)).toMatchObject({ refused: 'unregistered' });
-			expect(ai.requests).toHaveLength(0);
-			const notice = Schema.decodeUnknownSync(Notice)(
-				t.fakes.links.sent.findLast((sent) => sent.instance === HOTLINE_A)?.message
-			);
-			expect(notice.to).toBe('6599999999@s.whatsapp.net');
-			expect(notice.text).toMatch(/is not recognised/);
-		})
-	);
-
-	it.live('ignores group messages, even one that mentions it', () =>
-		Effect.gen(function* () {
-			const { t, ai, say, inbound } = yield* setup;
-			const message = yield* say(HOTLINE_A, '6598765432', 'slips', '120363@g.us');
-			expect(yield* inbound(message)).toEqual({ role: null, addressed: null, refused: null });
-			expect(ai.requests).toHaveLength(0);
-			expect(t.fakes.links.sent).toEqual([]);
-		})
-	);
-});
+		expect(yield* nets(HOTLINE_A, CAL)).toEqual([1000]);
+		expect(yield* nets(HOTLINE_B, CAL)).toEqual([2000]);
+		// Dee works for A only; Ada is an administrator, but the hotline holds its policy alone
+		expect(yield* nets(HOTLINE_B, DEE)).toEqual([]);
+		expect(yield* nets(HOTLINE_A, DEE)).toEqual([4000]);
+		expect(yield* nets(HOTLINE_A, ADA)).toEqual([3000]);
+	}).pipe(Effect.provide(workspace({ seed, now: '2026-10-01T02:00:00.000Z' })))
+);

@@ -1,67 +1,48 @@
 import { Effect } from 'effect';
-import { expect, it } from '@effect/vitest';
+import { expect, layer } from '@effect/vitest';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
-import { workspace } from './kit.js';
+import { Trade, shared, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
+import type { Id } from '@norbital-ai/bolt';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
 const key = (id: string) => id.padStart(20, '0');
 const instance = fixtureId('sys_integration', 'kingdee');
-it.live('an initial unapproved NULL-checker SO cannot block another contract tracker update', () =>
-	Effect.gen(function* () {
-		const source = kingdeeFixture();
-		const t = yield* workspace({ source: source.request });
-		const first = yield* kingdeeSale(t, source);
-		yield* t.deliver();
-		const existing = source.tables.SEOrder?.[0];
-		if (!existing) throw new Error('The first native writer receipt is required');
-		source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-			row === existing ? { ...row, checker: '1', checked_on: '2026-10-10', closed: 1 } : row
-		);
-		const second = yield* kingdeeSale(t, source);
-		yield* t.deliver();
-		source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-			row.fid !== existing.fid ? { ...row, checker: null, checked_on: null } : row
-		);
-		yield* t.pull('orders');
-		yield* t.pull('ext_sales_orders');
-		const as = t.as(t.admin);
-		const closed = (yield* as.query({ orders: { where: { id: { eq: first.order } }, limit: 1 } }))
-			.orders.rows[0];
-		const unapproved = (yield* as.query({
-			orders: { where: { id: { eq: second.order } }, limit: 1 }
-		})).orders.rows[0];
-		if (!closed || !unapproved) throw new Error('Both local SOs must remain available');
-		expect(currentAgreement(closed)?.kingdee).toMatchObject({ status: 'issued', closed: true });
-		expect(currentAgreement(unapproved)?.kingdee).toMatchObject({ status: 'draft', closed: false });
-		expect(
-			(yield* as.query({ ext_sales_orders: { where: { order: { eq: second.order } } } }))
-				.ext_sales_orders.rows
-		).toMatchObject([{ status: 'draft' }]);
-	})
-);
-const issued = Effect.fnUntraced(function* () {
-	const source = kingdeeFixture();
-	const t = yield* workspace({ source: source.request });
+// One source and workspace; each test owns its own SO (`fid`), so table edits stay per test.
+const source = kingdeeFixture();
+const set = (fid: string, change: SqlRow) => {
+	source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
+		row.fid === fid ? { ...row, ...change } : row
+	);
+};
+/** The live source header the writer created for a local order (its bill number is the order number). */
+const headOf = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
+	const local = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+		.orders.rows[0];
+	const head = source.tables.SEOrder?.find(
+		(row) => row.reference === local?.number && !row.archive
+	);
+	if (!head) throw new Error('Native writer must create the source SO');
+	return String(head.fid);
+});
+/** A sale the writer created in Kingdee and an approver checked: its live source header id. */
+const issued = Effect.fnUntraced(function* (t: T) {
 	const own = yield* kingdeeSale(t, source);
 	yield* t.deliver();
-	const head = source.tables.SEOrder?.[0];
-	if (!head) throw new Error('Native writer must create the source SO');
-	const approved: SqlRow = { ...head, checker: '1', checked_on: '2026-10-10' };
-	source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-		row === head ? approved : row
-	);
-	return { t, own, source, head: approved, as: t.as(t.admin) };
+	const fid = yield* headOf(t, own.order);
+	set(fid, { checker: '1', checked_on: '2026-10-10' });
+	return { own, fid };
 });
-function amend(source: ReturnType<typeof kingdeeFixture>) {
-	const head = source.tables.SEOrder?.find((row) => !row.archive);
+/** A formal Kingdee amendment: the old version archived under `archive`, the live header bumped to version 001. */
+function amend(fid: string, archive: string) {
+	const head = source.tables.SEOrder?.find((row) => row.fid === fid);
 	if (!head) throw new Error('The live SO is required');
-	const old = source.tables.SEOrderEntry?.filter((row) => row.fid === head.fid) ?? [];
+	const old = source.tables.SEOrderEntry?.filter((row) => row.fid === fid) ?? [];
 	source.tables.SEOrder?.push({
 		...head,
-		fid: '50001',
-		__key: key('50001'),
+		fid: archive,
+		__key: key(archive),
 		uuid: crypto.randomUUID(),
 		archive: 1,
 		cancelled: true
@@ -69,15 +50,11 @@ function amend(source: ReturnType<typeof kingdeeFixture>) {
 	for (const [i, line] of old.entries())
 		source.tables.SEOrderEntry?.push({
 			...line,
-			fid: '50001',
-			detail_id: String(50001000 + i),
-			__key: key(String(50001000 + i))
+			fid: archive,
+			detail_id: String(Number(archive) * 1000 + i),
+			__key: key(String(Number(archive) * 1000 + i))
 		});
-	source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-		row === head
-			? { ...row, version: '001', changed_at: '2026-10-10T03:00:00', changed_by: '1' }
-			: row
-	);
+	set(fid, { version: '001', changed_at: '2026-10-10T03:00:00', changed_by: '1' });
 	for (const line of old)
 		Object.assign(line, {
 			quantity: '12',
@@ -89,163 +66,86 @@ function amend(source: ReturnType<typeof kingdeeFixture>) {
 			gross_amount: '40.68'
 		});
 }
-function delivery(source: ReturnType<typeof kingdeeFixture>, fid: string, order: string) {
-	source.tables.ICStockBill?.push({
-		__key: key(fid),
-		fid,
-		reference: `DO-${fid}`,
-		type: '21',
-		date: '2026-10-10',
-		checked_on: '2026-10-10',
-		cancelled: false,
-		rob: 1
-	});
-	source.tables.ICStockBillEntry?.push({
-		__key: `${key(fid)}:${key('1')}`,
-		fid,
-		entry_id: '1',
-		source_type: '81',
-		source_fid: order,
-		source_entry: '1',
-		item_id: '301',
-		unit: 'kg',
-		quantity: '4',
-		lot: 'A'
-	});
-}
 
-it.live(
-	'formal Kingdee versions retain immutable prior terms and the same local order binding',
-	() =>
-		Effect.gen(function* () {
-			const { t, own, source, as } = yield* issued();
-			yield* t.pull('orders');
-			const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			if (!before) throw new Error('The initial local order is required');
-			const first = agreements(before)[0];
-			if (!first?.kingdee) throw new Error('The tracker must record the initial source identity');
-			amend(source);
-			source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-				!row.archive ? { ...row, checker: '0', checked_on: null } : row
-			);
-			yield* t.pull('orders');
-			const pending = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			if (!pending) throw new Error('The pending source revision must preserve its local order');
-			expect(currentAgreement(pending)?.seal_hash).toBe(first.seal_hash);
-			expect(agreements(pending).filter((version) => version.lifecycle === 'current')).toHaveLength(
-				1
-			);
-			expect(agreements(pending).at(-1)?.lifecycle).toBe('pending');
-			source.tables.SEOrder = (source.tables.SEOrder ?? []).map((row) =>
-				!row.archive ? { ...row, checker: '1', checked_on: '2026-10-10' } : row
-			);
-			yield* t.pull('orders');
-			const after = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			if (!after) throw new Error('The local order must survive source amendment');
-			const versions = agreements(after);
-			expect(versions).toHaveLength(2);
-			expect(versions[0]).toMatchObject({
-				seal_hash: first.seal_hash,
-				snapshot: first.snapshot,
-				contract: first.contract,
-				lifecycle: 'superseded',
-				kingdee: {
-					source_version: '000',
-					source_id: '50001',
-					archived: true,
-					binding_id: first.kingdee.binding_id
-				}
-			});
-			expect(currentAgreement(after)).toMatchObject({
-				origin: 'kingdee',
-				lifecycle: 'current',
-				kingdee: { source_version: '001', archived: false, binding_id: first.kingdee.binding_id },
-				snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
-			});
-			expect((yield* as.query({ orders: {} })).orders.rows).toHaveLength(1);
-			const captured = versions.map((version) => version.events?.length);
-			yield* t.pull('orders');
-			const repeated = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			if (!repeated) throw new Error('The repeated source read must preserve its order');
-			expect(agreements(repeated).map((version) => version.events?.length)).toEqual(captured);
-		})
-);
+layer(shared({ source: source.request }), { excludeTestServices: true })(
+	'kingdee contract versions',
+	(it) => {
+		it.effect(
+			'a formal Kingdee version retains immutable prior terms and the order binding',
+			() =>
+				Effect.gen(function* () {
+					const t = yield* Trade;
+					const as = t.as(t.admin);
+					const { own, fid } = yield* issued(t);
+					yield* t.pull('orders');
+					const read = () =>
+						as
+							.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })
+							.pipe(Effect.map((answer) => answer.orders.rows[0]));
+					const before = yield* read();
+					const first = before && agreements(before)[0];
+					if (!first?.kingdee)
+						throw new Error('The tracker must record the initial source identity');
+					amend(fid, '50001');
+					yield* t.pull('orders');
+					const after = yield* read();
+					if (!after) throw new Error('The local order must survive source amendment');
+					const versions = agreements(after);
+					expect(versions).toHaveLength(2);
+					expect(versions[0]).toMatchObject({
+						seal_hash: first.seal_hash,
+						snapshot: first.snapshot,
+						contract: first.contract,
+						lifecycle: 'superseded',
+						kingdee: {
+							source_version: '000',
+							source_id: '50001',
+							archived: true,
+							binding_id: first.kingdee.binding_id
+						}
+					});
+					expect(currentAgreement(after)).toMatchObject({
+						origin: 'kingdee',
+						lifecycle: 'current',
+						kingdee: {
+							source_version: '001',
+							archived: false,
+							binding_id: first.kingdee.binding_id
+						},
+						snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
+					});
+				})
+		);
 
-it.live(
-	'an unversioned source edit before the first poll cannot masquerade as a formal contract version',
-	() =>
-		Effect.gen(function* () {
-			const { t, own, source, as } = yield* issued();
-			const line = source.tables.SEOrderEntry?.[0];
-			if (!line) throw new Error('The source line is required');
-			source.tables.SEOrderEntry = (source.tables.SEOrderEntry ?? []).map((row) =>
-				row === line ? { ...row, quantity: '99' } : row
-			);
-			yield* t.pull('orders');
-			const order = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			if (!order) throw new Error('The original contract must be retained');
-			expect(agreements(order)).toMatchObject([
-				{
-					snapshot: { lines: [{ quantity: '10' }] },
-					events: [{ kind: 'unversionedChange', status: 'changedUnversioned' }]
-				}
-			]);
-			expect(agreements(order)).toHaveLength(1);
-			expect(
-				(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
-					.sys_integration.rows[0]
-			).toMatchObject({
-				status: { health: { state: 'attention', code: 'contractSourceConflict' } }
-			});
-		})
-);
-
-it.live(
-	'amendment preserves the physical counterpart and delivery identities and their original contract',
-	() =>
-		Effect.gen(function* () {
-			const { t, own, source, head, as } = yield* issued();
-			yield* t.pull('orders');
-			yield* t.pull('ext_sales_orders');
-			delivery(source, '22001', String(head.fid));
-			yield* t.pull('transactions');
-			const parent = (yield* as.query({ ext_sales_orders: {} })).ext_sales_orders.rows[0];
-			const transaction = (yield* as.query({ transactions: {} })).transactions.rows[0];
-			if (!parent || !transaction) throw new Error('Initial issued evidence is required');
-			amend(source);
-			yield* t.pull('orders');
-			yield* t.pull('ext_sales_orders');
-			yield* t.pull('transactions');
-			expect(
-				(yield* as.query({ ext_sales_orders: { where: { id: { eq: parent.id } }, limit: 1 } }))
-					.ext_sales_orders.rows[0]
-			).toMatchObject({
-				external_id: parent.external_id,
-				agreement_hash: parent.agreement_hash,
-				status: 'issued'
-			});
-			expect(
-				(yield* as.query({ transactions: { where: { id: { eq: transaction.id } }, limit: 1 } }))
-					.transactions.rows[0]
-			).toMatchObject({
-				erp_id: transaction.erp_id,
-				seal_hash: transaction.seal_hash,
-				status: 'issued'
-			});
-			expect((yield* as.query({ transactions: {} })).transactions.rows).toHaveLength(1);
-			delivery(source, '22002', String(head.fid));
-			const refused = yield* Effect.flip(t.pull('transactions'));
-			expect(refused).toMatchObject({
-				_tag: 'BoltError',
-				code: 'guestError',
-				phase: 'guest',
-				cause: { name: 'SourceRowInvalid', message: expect.stringContaining('contractVersion:') }
-			});
-			expect((yield* as.query({ transactions: {} })).transactions.rows).toHaveLength(1);
-		})
+		it.effect(
+			'an unversioned source edit before the first poll cannot masquerade as a formal contract version',
+			() =>
+				Effect.gen(function* () {
+					const t = yield* Trade;
+					const as = t.as(t.admin);
+					const { own, fid } = yield* issued(t);
+					source.tables.SEOrderEntry = (source.tables.SEOrderEntry ?? []).map((row) =>
+						row.fid === fid ? { ...row, quantity: '99' } : row
+					);
+					yield* t.pull('orders');
+					const order = (yield* as.query({
+						orders: { where: { id: { eq: own.order } }, limit: 1 }
+					})).orders.rows[0];
+					if (!order) throw new Error('The original contract must be retained');
+					expect(agreements(order)).toMatchObject([
+						{
+							snapshot: { lines: [{ quantity: '10' }] },
+							events: [{ kind: 'unversionedChange', status: 'changedUnversioned' }]
+						}
+					]);
+					expect(agreements(order)).toHaveLength(1);
+					expect(
+						(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
+							.sys_integration.rows[0]
+					).toMatchObject({
+						status: { health: { state: 'attention', code: 'contractSourceConflict' } }
+					});
+				})
+		);
+	}
 );

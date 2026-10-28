@@ -17,7 +17,7 @@ const GROUP_FILLS = [
 const EDGE = { style: 'medium', color: { argb: 'FF18344F' } } as const;
 
 /** The salary listing follows the raw reports: grouped columns, one employee per row and company payment last. */
-export function salaryWorkbook(reports: readonly SalaryReport[]) {
+function salaryWorkbook(reports: readonly SalaryReport[]) {
 	const workbook = new ExcelJSBrowser.Workbook();
 	workbook.creator = 'Payroll';
 	for (const [index, report] of reports.entries()) {

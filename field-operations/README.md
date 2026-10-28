@@ -313,7 +313,7 @@ or attachment scenario.
 
 ### Envoy probe results (local, 21 October 2026)
 
-Manual probe of the persistent local workspace (`pnpm run env -- serve --template=field-operations
+Manual probe of the persistent local workspace (`bun run env -- serve --template=field-operations
 --port=4183`, origin `http://field-operations.localhost:4183`), signed in as the founder
 administrator. Phone numbers and names are covered with solid boxes.
 
@@ -515,9 +515,9 @@ The job-assignment import CSV template and its column reference live in `assets/
 ## Checks
 
 ```bash
-pnpm install
-pnpm exec bolt check   # types, Svelte warnings, layout and declarations
-pnpm test       # bolt test: builds the template standalone, then the suite and the mounted app sweep
+bun install
+bunx bolt check   # types, Svelte warnings, layout and declarations
+bun run test       # bolt test: builds the template standalone, then the suite and the mounted app sweep
 ```
 
 Use the private bank checkout read-only. `.norbital/` is generated and never committed. Schema

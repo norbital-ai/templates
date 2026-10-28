@@ -31,17 +31,6 @@ const string = (value: Json | undefined, name: string) => {
 	return value;
 };
 const padded = (value: string) => value.padStart(20, '0');
-export const stockKey = (item: string, warehouse: string, lot: string | null) =>
-	[item, warehouse, lot]
-		.map((part) =>
-			part === null
-				? 'N'
-				: `V${[...part]
-						.map((character) => character.charCodeAt(0).toString(16).padStart(4, '0'))
-						.join('')
-						.toUpperCase()}`
-		)
-		.join(':');
 
 /** Actual projection aliases and numeric FItemID identities, not the old normalized colony schema. */
 export function kingdeeCatalogue(name = 'Kingdee'): KingdeeRecords {
@@ -373,32 +362,20 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 	return { request, calls, submissions, tables, state, configuration };
 }
 
-/** Pull the real source adapter first; create the draft only from its ledger-scoped physical masters. */
+/** A draft over the source-bound party `101` and product `301` the test pack seeds (no master pull). */
 export const kingdeeDraft = Effect.fnUntraced(function* (
 	t: T,
 	fixture: ReturnType<typeof kingdeeFixture>,
 	instance: Id<'sys_integration'> = fixtureId('sys_integration', 'kingdee')
 ) {
-	for (const model of ['parties', 'products', 'warehouses'] as const)
-		yield* t.pull(model, instance);
 	const as = t.as(t.admin);
-	const party = (yield* as.query({
-		parties: {
-			where: { source: { eq: instance }, external_code: { eq: '101' } }
-		}
-	})).parties.rows[0];
-	const product = (yield* as.query({
-		products: {
-			where: { source: { eq: instance }, external_code: { eq: '301' } }
-		}
-	})).products.rows[0];
-	const warehouse = (yield* as.query({
-		warehouses: {
-			where: { source: { eq: instance }, external_code: { eq: '502' } }
-		}
-	})).warehouses.rows[0];
-	if (!party || !product || !warehouse)
-		throw new Error('A complete physical source catalogue is required');
+	const masters = yield* as.query({
+		parties: { where: { source: { eq: instance }, external_code: { eq: '101' } }, limit: 1 },
+		products: { where: { source: { eq: instance }, external_code: { eq: '301' } }, limit: 1 }
+	});
+	const party = masters.parties.rows[0];
+	const product = masters.products.rows[0];
+	if (!party || !product) throw new Error('seed/test must hold the source-bound party 101 and product 301');
 	const order = committed(
 		'orders',
 		yield* as.act('orders.create', [
@@ -435,7 +412,7 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 			set: { configuration: fixture.configuration(header.owner) }
 		}
 	]);
-	return { order, line, party: party.id, product: product.id, warehouse: warehouse.id };
+	return { order, line, party: party.id, product: product.id };
 });
 export const kingdeeSale = Effect.fnUntraced(function* (
 	t: T,
@@ -451,24 +428,24 @@ export const kingdeeSale = Effect.fnUntraced(function* (
 	return { ...created, seal: sealed.seal_hash };
 });
 
-/** Observe the real writer receipt and source approval before starting a replacement. */
+/** Observe the real writer receipts and source approval of each order before starting a replacement. */
 export const observeKingdeeOrder = Effect.fnUntraced(function* (
 	t: T,
 	fixture: ReturnType<typeof kingdeeFixture>,
-	order: Id<'orders'>
+	...orders: Id<'orders'>[]
 ) {
 	yield* t.deliver();
-	const local = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-		.orders.rows[0];
-	if (!local) throw new Error('The local SO is required');
-	const header = fixture.tables.SEOrder?.find(
-		(row) => row.reference === local.number && !row.archive
-	);
-	if (!header) throw new Error('The writer must create the owned Kingdee SO first');
-	fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
-		row === header ? { ...row, checker: '1', checked_on: '2026-10-10' } : row
-	);
+	const locals = (yield* t.as(t.admin).query({ orders: { where: { id: { in: orders } } } })).orders
+		.rows;
+	for (const order of orders) {
+		const local = locals.find((row) => row.id === order);
+		const header = fixture.tables.SEOrder?.find(
+			(row) => row.reference === local?.number && !row.archive
+		);
+		if (!header) throw new Error('The writer must create the owned Kingdee SO first');
+		fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
+			row === header ? { ...row, checker: '1', checked_on: '2026-10-10' } : row
+		);
+	}
 	yield* t.pull('orders');
-	yield* t.pull('ext_sales_orders');
-	return header;
 });

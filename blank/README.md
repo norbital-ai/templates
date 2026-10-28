@@ -45,9 +45,9 @@ None.
 ## Checks
 
 ```bash
-pnpm install
-pnpm exec bolt check   # types, Svelte warnings, layout and declarations
-pnpm test    # bolt test
+bun install
+bunx bolt check   # types, Svelte warnings, layout and declarations
+bun run test    # bolt test
 ```
 
 `tests/blank.test.ts` recomputes the model, app and automation counts from `src/` and fails when

@@ -1,15 +1,6 @@
 import type { Id } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
-import { Context, Effect, Layer, Schema } from 'effect';
-import { TestWorkspace, type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
-/** Each caller owns this workspace's scope and every engine service it acquired. */
-export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(
-	options: TestOptions<P>
-) {
-	const services = yield* Layer.build(TestWorkspace.layer(options));
-	return { ...Context.get(services, TestWorkspace), services };
-});
-export type T = Effect.Success<ReturnType<typeof workspace>>;
+import { Schema } from 'effect';
 /** A fixture must actually contain the row or selected value its assertion uses. */
 export const present = <A>(value: A | null | undefined): A => {
 	if (value === null || value === undefined) throw new Error('Missing expected fixture value');

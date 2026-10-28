@@ -106,7 +106,7 @@ export const poolRequest = (from: string, to: string, zone: string) => {
 };
 type Period = { readonly start: Instant; readonly end: Instant | null };
 /** What `poolOf` reads of a `poolRequest` answer. */
-export type PoolAnswer = {
+type PoolAnswer = {
 	readonly helpers: { readonly rows: readonly Helper[] };
 	readonly visits: {
 		readonly rows: readonly {

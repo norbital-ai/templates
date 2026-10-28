@@ -3,7 +3,7 @@
  * no country's law — so a test proves a mechanism over the values it states. `world` seeds a fresh workspace with them.
  */
 import assert from 'node:assert/strict';
-import { Cause, Effect, Exit, Layer, Schema } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 import { TestWorkspace, type Caller } from '@norbital-ai/bolt/test';
 import {
 	fieldValue,
@@ -457,14 +457,14 @@ export function employer(people: readonly Person[]): Tables {
 
 const SeedTable = Schema.Array(Schema.Record(Schema.String, Schema.Json));
 /** The tables as a seed pack: each row's omitted model defaults filled, every value plain JSON. */
-export const seedPack = (tables: Tables) =>
+const seedPack = (tables: Tables) =>
 	Object.fromEntries(
 		[...tables].map(([table, rows]): [string, typeof SeedTable.Type] => [
 			table,
 			Schema.decodeUnknownSync(SeedTable)(JSON.parse(JSON.stringify(fixtureRows(table, rows))))
 		])
 	);
-/** One fresh workspace seeded with `tables` per call, its clock at `now` when given; its reads are the real database's. */
+/** A workspace seeded with `tables`, its clock at `now` when given; `layer` shares one, `withRead` boots one per call. */
 export function world(tables: Tables, now?: string) {
 	const layer = Layer.unwrap(
 		Effect.sync(() =>
@@ -483,7 +483,7 @@ export function world(tables: Tables, now?: string) {
 			Effect.flatMap((t) => use(t.as(t.admin).query)),
 			Effect.provide(layer)
 		);
-	return { withRead };
+	return { layer, withRead };
 }
 
 const Pins = Schema.Array(
@@ -553,18 +553,4 @@ export const runOf = Effect.fnUntraced(function* (
 		},
 		count: slips.size
 	};
-});
-
-/** The same rejection predicate as node:assert, over an Effect failure rather than a Promise. */
-export const assertFailure = Effect.fnUntraced(function* <A, E, R>(
-	effect: Effect.Effect<A, E, R>,
-	expected?: Parameters<typeof assert.throws>[1]
-) {
-	const exit = yield* Effect.exit(effect);
-	if (Exit.isSuccess(exit)) assert.fail('Expected the operation to refuse.');
-	const raised = () => {
-		throw Cause.squash(exit.cause);
-	};
-	if (expected === undefined) assert.throws(raised);
-	else assert.throws(raised, expected);
 });

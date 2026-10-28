@@ -70,7 +70,6 @@ type LedgerPin = {
 	readonly id: string;
 };
 
-type Ledger = readonly LedgerPin[];
 
 const leaveId = inputSchema({ kind: 'id', of: 'leave_catalog_entry' });
 

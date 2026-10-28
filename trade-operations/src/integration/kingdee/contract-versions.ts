@@ -47,7 +47,7 @@ const sourceStatus = (header: SqlRow): 'draft' | 'issued' | 'void' =>
 			? 'issued'
 			: 'draft';
 /** Compare only mapped commercial substance; approval, archive FIDs and rowversions are observations. */
-export function sourceMatchesContract(
+function sourceMatchesContract(
 	version: ContractVersion,
 	header: SqlRow,
 	rows: readonly SqlRow[]

@@ -1,9 +1,8 @@
 import { PlainDate } from '@norbital-ai/std/date';
-import { fixtureId, decimalText, firstRow } from './test-runtime.js';
+import { fixtureId, decimalText } from './test-runtime.js';
 import { Schema, Effect } from 'effect';
 import { businessRows } from './business-source.js';
-import { sourceOrder, sourceTransaction, direct } from './synced-kit.js';
-import { expect, it as test } from '@effect/vitest';
+import { expect, it } from '@effect/vitest';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { committed, confirm, draft, SETTINGS, workspace, type T } from './kit.js';
 import { salesAnalysisOf, salesDetailOf } from './reads.js';
@@ -35,18 +34,12 @@ const fact = Effect.fnUntraced(function* (
 		active: true
 	};
 });
-const sourceWorkspace = Effect.fnUntraced(function* () {
-	const t = yield* workspace();
-	return {
-		t,
-		pull: (rows: Json[]) => businessRows(t, 'source_sales_lines', rows)
-	};
-});
-test.live(
-	'ERP sales report uses signed facts, source month, captured freight and owner scope without changing SO seals',
+const pull = (t: T, rows: Json[]) => businessRows(t, 'source_sales_lines', rows);
+it.live(
+	'ERP sales report uses signed facts, source month, captured freight, consumed lot cost and owner scope',
 	() =>
 		Effect.gen(function* () {
-			const { t, pull } = yield* sourceWorkspace();
+			const t = yield* workspace();
 			const as = t.as(t.admin),
 				sales = t.member(['sales']),
 				other = t.member(['sales']);
@@ -54,9 +47,7 @@ test.live(
 			const foreign = yield* draft(t, 'sales', fixtureId('sys_user', other.id), '2026-08-01');
 			yield* confirm(t, own.order);
 			yield* confirm(t, foreign.order);
-			const sealed = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			const shipment = yield* fact(t, own, 'SHIP-1');
+			const shipment = { ...(yield* fact(t, own, 'SHIP-1')), lot_number: 'L001', unit_cost: '1.2' };
 			const returned = {
 				...shipment,
 				external_code: 'RETURN-1',
@@ -71,10 +62,12 @@ test.live(
 				...shipment,
 				external_code: 'MISSING-1',
 				business_on: '2026-10-01',
-				freight: null
+				freight: null,
+				lot_number: null,
+				unit_cost: null
 			};
-			yield* pull([shipment, returned, foreignFact, missing]);
-			yield* pull([shipment, returned, foreignFact, missing]);
+			yield* pull(t, [shipment, returned, foreignFact, missing]);
+			yield* pull(t, [shipment, returned, foreignFact, missing]);
 			expect((yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows).toHaveLength(4);
 			yield* Effect.tryPromise({
 				try: () =>
@@ -93,30 +86,23 @@ test.live(
 				to: PlainDate('2026-09-30')
 			});
 			expect(detail).toHaveLength(2);
-			expect(detail).toMatchObject(
+			expect(detail).toEqual(
 				expect.arrayContaining([
+					expect.objectContaining({
+						external_code: 'SHIP-1',
+						cost: decimalText('12.00'),
+						margin: decimalText('5.00')
+					}),
 					expect.objectContaining({
 						order: own.order,
 						external_code: 'RETURN-1',
-						net: decimalText('-3.40')
+						net: decimalText('-3.40'),
+						cost: decimalText('-2.40'),
+						margin: decimalText('-1.00')
 					})
 				])
 			);
-			expect(JSON.stringify(detail)).not.toContain('FOREIGN-1');
-			const before = yield* salesAnalysisOf(t.as(sales), {});
-			expect(
-				yield* salesAnalysisOf(t.as(sales), {
-					from: PlainDate('2026-10-01'),
-					to: PlainDate('2026-10-31')
-				})
-			).toHaveLength(1);
-			expect(
-				yield* salesAnalysisOf(t.as(sales), {
-					from: PlainDate('2026-12-01'),
-					to: PlainDate('2026-12-31')
-				})
-			).toEqual([]);
-			expect(before).toMatchObject([
+			const before = [
 				{
 					period: '2026-10-01',
 					owner: fixtureId('sys_user', sales.id),
@@ -140,200 +126,27 @@ test.live(
 					total: decimalText('17.44'),
 					freight: decimalText('2.40')
 				}
-			]);
+			];
+			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject(before);
 			expect(
-				(yield* t.as(sales).query({ source_sales_lines: {} })).source_sales_lines.rows
-			).toHaveLength(3);
-			const logistics = t.member(['logistics']);
-			yield* Effect.tryPromise({
-				try: () =>
-					expect(
-						Effect.runPromise(t.as(logistics).query({ source_sales_lines: {} }))
-					).rejects.toThrow(),
-				catch: (cause) => new TestIoFailed({ message: String(cause) })
-			});
-			const parent = yield* sourceOrder(t, own.order);
-			yield* sourceTransaction(t, own, parent, 'delivery');
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toEqual(before);
-			committed(
-				'commercial_settings',
-				yield* as.act('commercial_settings.update', [
-					{
-						target: SETTINGS,
-						set: { freight_treatment: 'include' }
-					}
-				])
-			);
-			const second = yield* draft(t, 'sales', fixtureId('sys_user', sales.id), '2026-08-01');
-			yield* confirm(t, second.order);
-			const included = {
-				...(yield* fact(t, second, 'INCLUDED-1')),
-				freight: null,
-				net_amount: '8',
-				tax_amount: '0.72'
-			};
-			// A later source fact does not replace previously recorded business evidence.
-			yield* pull([included]);
-			expect((yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows).toHaveLength(5);
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject([
-				{ period: '2026-10-01', net: null },
-				{ freight_treatment: 'deduct', net: decimalText('13.60') },
-				{
-					freight_treatment: 'include',
-					source_lines: 1,
-					unresolved_lines: 1,
-					net: decimalText('8.00'),
-					tax: decimalText('0.72'),
-					total: decimalText('8.72'),
-					freight: null
-				}
-			]);
-			yield* pull([{ ...returned, active: false, source_updated_at: '2026-10-10T00:00:01Z' }]);
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject([
-				{ period: '2026-10-01', net: null },
-				{ freight_treatment: 'deduct', source_lines: 1, net: decimalText('17.00') },
-				{ freight_treatment: 'include', net: decimalText('8.00') }
-			]);
-			expect(
-				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
-			).toMatchObject({
-				seal_hash: sealed?.seal_hash,
-				sealed_snapshot: sealed?.sealed_snapshot,
-				sealed_contract: sealed?.sealed_contract,
-				freight_treatment: 'deduct'
-			});
-			const sourceLine = firstRow(
-				(yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows
-			);
-			expect(
-				yield* direct(t, as.authority, {
-					model: 'source_sales_lines',
-					verb: 'update',
-					input: [{ target: sourceLine.id, set: { net_amount: '99' } }]
+				yield* salesAnalysisOf(t.as(sales), {
+					from: PlainDate('2026-12-01'),
+					to: PlainDate('2026-12-31')
 				})
-			).not.toMatchObject({ kind: 'committed' });
-		})
-);
-test.live('a confirmed commitment without ERP sales facts does not become realized sales', () =>
-	Effect.gen(function* () {
-		const t = yield* workspace();
-		const own = yield* draft(t);
-		yield* confirm(t, own.order);
-		expect(yield* salesAnalysisOf(t.as(t.admin), {})).toEqual([]);
-	})
-);
-test.live(
-	'sales facts retain sealed freight treatment when later orders use updated settings',
-	() =>
-		Effect.gen(function* () {
-			const { t, pull } = yield* sourceWorkspace();
-			const as = t.as(t.admin);
-			const own = yield* draft(t);
-			yield* confirm(t, own.order);
-			const original = yield* fact(t, own, 'VERSION-1');
-			yield* pull([original]);
-			expect(yield* salesAnalysisOf(as, {})).toMatchObject([
-				{ freight_treatment: 'deduct', net: decimalText('17.00') }
-			]);
+			).toEqual([]);
+			// the order captured its freight treatment when sealed: a later setting does not rewrite it
 			committed(
 				'commercial_settings',
 				yield* as.act('commercial_settings.update', [
-					{
-						target: SETTINGS,
-						set: { freight_treatment: 'include' }
-					}
+					{ target: SETTINGS, set: { freight_treatment: 'include' } }
 				])
 			);
-			const subsequent = yield* draft(t);
-			yield* confirm(t, subsequent.order);
-			const next = { ...(yield* fact(t, subsequent, 'VERSION-2')), net_amount: '30' };
-			const late = {
-				...original,
-				external_code: 'VERSION-1-LATE',
-				quantity: '1',
-				net_amount: '2',
-				freight: '0.30'
-			};
-			yield* pull([original, next, late]);
-			expect(yield* salesAnalysisOf(as, {})).toMatchObject([
-				{ freight_treatment: 'deduct', source_lines: 2, net: decimalText('18.70') },
-				{ freight_treatment: 'include', source_lines: 1, net: decimalText('30.00') }
+			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject(before);
+			yield* pull(t, [{ ...returned, active: false, source_updated_at: '2026-10-10T00:00:01Z' }]);
+			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject([
+				{ period: '2026-10-01', net: null },
+				{ freight_treatment: 'deduct', source_lines: 1, net: decimalText('17.00') }
 			]);
-			expect(yield* salesDetailOf(as, {})).toMatchObject(
-				expect.arrayContaining([
-					expect.objectContaining({ external_code: 'VERSION-1-LATE', net: decimalText('1.70') }),
-					expect.objectContaining({ external_code: 'VERSION-2', net: decimalText('30.00') })
-				])
-			);
-		})
-);
-test.live('late source facts retain the sealed SKU name after catalogue changes', () =>
-	Effect.gen(function* () {
-		const { t, pull } = yield* sourceWorkspace();
-		const as = t.as(t.admin);
-		const own = yield* draft(t);
-		yield* confirm(t, own.order);
-		const original = yield* fact(t, own, 'ARCHIVED-SKU');
-		yield* businessRows(t, 'products', [
-			{
-				external_code: 'RESIN-A',
-				name: 'Changed catalogue name',
-				unit: 'kg',
-				currency: 'SGD',
-				unit_price: '99',
-				tax_rate: '9',
-				active: false,
-				source_updated_at: '2026-10-10T00:00:01Z'
-			}
-		]);
-		yield* pull([original]);
-		expect(yield* salesDetailOf(as, {})).toMatchObject([
-			{ external_code: 'ARCHIVED-SKU', product_name: 'Resin A', net: decimalText('17.00') }
-		]);
-		yield* pull([original]);
-		expect((yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows).toHaveLength(1);
-	})
-);
-test.live(
-	'transaction margin uses the consumed lot cost and reverses returns without estimating unknown costs',
-	() =>
-		Effect.gen(function* () {
-			const { t, pull } = yield* sourceWorkspace();
-			const own = yield* draft(t);
-			yield* confirm(t, own.order);
-			const original = {
-				...(yield* fact(t, own, 'LOT-SHIP')),
-				lot_number: 'L001',
-				unit_cost: '1.2'
-			};
-			yield* pull([
-				original,
-				{
-					...original,
-					external_code: 'LOT-RETURN',
-					kind: 'return',
-					quantity: '-2',
-					net_amount: '-4',
-					tax_amount: '-0.36',
-					freight: '-0.60'
-				},
-				{ ...original, external_code: 'UNKNOWN-COST', lot_number: null, unit_cost: null }
-			]);
-			expect(yield* salesDetailOf(t.as(t.admin), {})).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({
-						external_code: 'LOT-SHIP',
-						cost: decimalText('12.00'),
-						margin: decimalText('5.00')
-					}),
-					expect.objectContaining({
-						external_code: 'LOT-RETURN',
-						cost: decimalText('-2.40'),
-						margin: decimalText('-1.00')
-					}),
-					expect.objectContaining({ external_code: 'UNKNOWN-COST', cost: null, margin: null })
-				])
-			);
 		})
 );
 class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {

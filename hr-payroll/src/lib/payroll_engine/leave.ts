@@ -437,10 +437,6 @@ function signedDays(activity: string, days: number): number {
 	return 0;
 }
 
-function codesDebited(cls: LeaveClass): readonly string[] {
-	return cls.consumes_code == null ? [cls.code] : [cls.code, cls.consumes_code];
-}
-
 function debitFor(
 	code: string,
 	classes: readonly LeaveClass[],

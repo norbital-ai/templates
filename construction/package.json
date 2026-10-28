@@ -17,17 +17,33 @@
 		"@norbital-ai/ui": "0.0.5",
 		"effect": "4.0.6",
 		"runed": "^0.37.1",
-		"svelte": "^5.57.1",
-		"vite": "^8.2.2"
+		"svelte": "5.57.3",
+		"vite": "8.3.5"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.5",
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
-		"@types/node": "^26.4.0",
-		"happy-dom": "20.11.6",
-		"prettier": "^3.9.6",
-		"prettier-plugin-svelte": "^4.1.1",
+		"@types/node": "26.6.5",
+		"happy-dom": "20.14.5",
+		"prettier": "3.9.9",
+		"prettier-plugin-svelte": "4.1.1",
 		"vitest": "5.0.5",
+		"@effect/vitest": "4.0.6",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"svelte2tsx": "0.7.61",
+		"typescript": "6.0.3"
+	},
+	"trustedDependencies": [
+		"esbuild",
+		"isolated-vm",
+		"msgpackr-extract"
+	],
+	"patchedDependencies": {
+		"isolated-vm@7.0.1": "isolated-vm.patch"
+	},
+	"overrides": {
+		"effect": "4.0.6",
+		"@effect/platform-node": "4.0.6",
+		"@effect/platform-node-shared": "4.0.6",
 		"@effect/vitest": "4.0.6"
 	}
 }

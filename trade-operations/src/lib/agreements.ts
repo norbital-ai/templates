@@ -69,7 +69,7 @@ export function agreements(order: AgreementOrder): ContractVersion[] {
 	return versions;
 }
 /** Only source-accepted replacements displace the previous current agreement. */
-export const currentContractVersion = (versions: readonly ContractVersion[]) =>
+const currentContractVersion = (versions: readonly ContractVersion[]) =>
 	versions.find((version) => version.lifecycle === 'current') ??
 	versions.filter((version) => version.lifecycle == null).at(-1);
 /** The current contract's total: the order list's agreed total, written wherever the versions change. */

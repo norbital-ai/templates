@@ -198,9 +198,9 @@ messages are ignored. `envoys.receive` allows 10 messages a minute per sender an
 ## Checks
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm exec bolt check   # declarations, TypeScript and Svelte
-pnpm test              # standalone core mechanisms and edge cases; no Colony or private bank
+bun install --frozen-lockfile
+bunx bolt check   # declarations, TypeScript and Svelte
+bun run test              # standalone core mechanisms and edge cases; no Colony or private bank
 ```
 
 Tests use small synthetic fixtures for payroll mechanisms, guarded writes, state and failure paths. They do not

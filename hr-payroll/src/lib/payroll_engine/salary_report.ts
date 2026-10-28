@@ -15,7 +15,7 @@ type Lines<F extends LineField, K extends keyof Line<F>> =
 	| null
 	| undefined;
 
-export const SalaryColumn = Schema.Struct({
+const SalaryColumn = Schema.Struct({
 	group: Schema.String,
 	family: Schema.String,
 	code: Schema.String,
@@ -44,14 +44,14 @@ export const SalaryReport = Schema.Struct({
 	)
 });
 export type SalaryReport = typeof SalaryReport.Type;
-export type SalaryCatalog = {
+type SalaryCatalog = {
 	readonly family: string;
 	readonly code: string;
 	readonly direction?: string | null;
 	readonly destination?: string | null;
 	readonly name?: string | null;
 };
-export type SalaryEmployee = {
+type SalaryEmployee = {
 	readonly employee_number: string;
 	readonly name: string;
 	readonly status: string;
@@ -76,7 +76,7 @@ export type SalaryEmployee = {
 	}[];
 };
 
-export const SalaryReportConfiguration = Schema.Struct({
+const SalaryReportConfiguration = Schema.Struct({
 	group_order: Schema.optional(Schema.Array(Schema.String)),
 	items: Schema.optional(
 		Schema.Array(
@@ -107,7 +107,7 @@ const key = (family: string, code: string) => `${family}:${code}`;
 const humanised = (code: string): string =>
 	code.includes('_') ? code.charAt(0) + code.slice(1).toLowerCase().replaceAll('_', ' ') : code;
 /** A statutory catalogue row's presentation: its short label and display order. */
-export type SalaryScheme = {
+type SalaryScheme = {
 	readonly code: string;
 	readonly label?: string | null | undefined;
 	readonly display_order?: number | null | undefined;

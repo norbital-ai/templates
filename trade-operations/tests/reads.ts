@@ -18,7 +18,6 @@ import { boardRead, commissionBoard, monthOf } from '../src/lib/monthly-commissi
 import {
 	agreementRead,
 	documentRead,
-	documentVersions,
 	orderDocument,
 	sealedExport
 } from '../src/lib/order-document.js';
@@ -34,12 +33,6 @@ import {
 	salesDetail,
 	salesRead
 } from '../src/lib/reports.js';
-import {
-	erpAvailability,
-	projectedAvailability,
-	projectedRead,
-	stockRead
-} from '../src/lib/stock.js';
 type Reader = Pick<Caller, 'query'>;
 /** A helper's refusal surfaces as the message key the declared query refused with. */
 const settled = <A>(result: Result.Result<A, string>) =>
@@ -72,9 +65,6 @@ export const documentOf = Effect.fnUntraced(function* (
 		locale,
 		version: input.version ?? null
 	});
-});
-export const versionsOf = Effect.fnUntraced(function* (as: Reader, input: { order: Id<'orders'> }) {
-	return yield* settled(documentVersions(yield* as.query(agreementRead(input.order))));
 });
 export const sealedExportOf = Effect.fnUntraced(function* (
 	as: Reader,
@@ -127,18 +117,6 @@ export const progressOfParty = Effect.fnUntraced(function* (
 	input: { party: Id<'parties'>; as_of: string }
 ) {
 	return progressOf(yield* as.query(progressRead(input.party)), input.as_of);
-});
-export const erpAvailabilityOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { as_of: string }
-) {
-	return yield* settled(erpAvailability(yield* as.query(stockRead), input.as_of));
-});
-export const projectedAvailabilityOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { as_of: string }
-) {
-	return yield* settled(projectedAvailability(yield* as.query(projectedRead), input.as_of));
 });
 export const inventoryCostOf = Effect.fnUntraced(function* (
 	as: Reader,

@@ -160,7 +160,7 @@ function layout(root: ASTNode, source: string): string {
 	return prefix + render(root, '', columnAfter(prefix, 0)) + source.slice(root.end);
 }
 /** An expression's meaning without its source offsets: two texts with the same key are the same CEL. */
-export function celKey(node: ASTNode): string {
+function celKey(node: ASTNode): string {
 	switch (node.op) {
 		case 'value': {
 			const value = node.args;

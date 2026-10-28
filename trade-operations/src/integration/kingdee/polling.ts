@@ -206,7 +206,7 @@ export type SourcePage<R> = {
 	readonly snapshot?: 'begin' | 'end';
 	readonly health?: Health;
 };
-export type Reconciler<R extends object> = (after: string) => Effect.Effect<
+type Reconciler<R extends object> = (after: string) => Effect.Effect<
 	{
 		readonly rows: readonly (R & { readonly $id: string })[];
 		readonly after: string;

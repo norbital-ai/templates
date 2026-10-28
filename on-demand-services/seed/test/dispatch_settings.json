@@ -1,0 +1,11 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000007",
+		"name": "Dispatch",
+		"eta_limit_minutes": 30,
+		"eta_check_lead_minutes": 60,
+		"shift_check_lead_minutes": 150,
+		"shift_reply_minutes": 10,
+		"free_change_hours": 24
+	}
+]

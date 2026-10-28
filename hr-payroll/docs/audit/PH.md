@@ -266,7 +266,7 @@ Also noted, not changed: secondary sources say contributions continue during mat
 
 ### Test run (final)
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_ph.test.ts`: Test Files 1 passed (1); Tests 81 passed (81).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_ph.test.ts`: Test Files 1 passed (1); Tests 81 passed (81).
 
 ## Owner decision (2026-10-22)
 

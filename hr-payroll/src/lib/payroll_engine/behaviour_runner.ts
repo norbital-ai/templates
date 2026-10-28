@@ -410,7 +410,7 @@ const entityLoader = Effect.fnUntraced(function* (read: Read) {
 			)
 	}) satisfies Loader;
 });
-export type VersionFor = ((
+type VersionFor = ((
 	company_id: Id<'entity'>,
 	day: string
 ) => Effect.Effect<BehaviourVersion | null, ReadError>) & { readonly entities: Loader };
@@ -568,15 +568,6 @@ type Shared = {
 	/** A shared `staffingLookup`, so a tick computes each entity and day's staffing once. */
 	readonly staffing?: (company_id: Id<'entity'>, day: string) => Effect.Effect<Staffing, ReadError>;
 };
-/**
- * One trigger row through the governing version's behaviour rules, for each of its subjects: plan the rules whose
- * trigger is this model and event, evaluate each `when`, load its declared reads and apply the writes its
- * `effect` returns, in order. Every `entity` row a rule reads carries its `headcount` on the event day, as does
- * `event`, beside the entity's `separations`. Nothing here knows what any behaviour means; the row taps and the daily
- * tick share it.
- */
-export const runBehaviours = (input: Shared & BehaviourEvent) =>
-	runBehaviourEvents({ ...input, events: [input] });
 /** A declared read's clause that pins one subject: `{ eq: x }` or `{ in: [...] }` over plain values. */
 const pinned = (clause: Json | undefined): readonly Json[] | undefined => {
 	if (!isJsonObject(clause)) return undefined;

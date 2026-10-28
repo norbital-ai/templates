@@ -13,10 +13,9 @@ filesystem-first Bolt project that can be installed, checked, built and tested w
 | [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`        | Home-service bookings with helper matching, shift checks and ETA alerts                 |
 
 **Directory and handle are two different names.** The directory is a path in this repository: it is
-what `git subtree split` publishes as `refs/heads/templates/<directory>`, and what the website serves
-`norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
+what the website serves `norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
 template identity used by the catalogue and provisioning contract. It is not a runtime
-organization or member identity. Renaming a directory moves published refs and public URLs;
+organization or member identity. Renaming a directory moves public URLs;
 renaming a template handle changes its catalogue identity. They are allowed to differ and mostly do.
 
 Every template in this repository is public, and the website lists it automatically: the template
@@ -27,7 +26,7 @@ There is no rewritten marketing copy and no list to update — **publishing a te
 puts it on the website**.
 
 Templates that should not be advertised live in a separate private repository. Both repositories
-are resolved the same way by a Norbital host, so a private template is a first-class template in
+release the same way, so a private template is a first-class template in
 every respect except website discovery and its `visibility` setting.
 
 ## Choosing a template
@@ -54,20 +53,20 @@ generated product code.
 
 ## Working with a template
 
-A template is **not** a workspace member of this repository. It owns its own `pnpm-lock.yaml` and
+A template is **not** a workspace member of this repository. It owns its own `bun.lock` and
 resolves published `@norbital-ai/*` versions from the registry, exactly as a tenant sandbox does —
 so you install and run inside the template directory:
 
 ```bash
-pnpm --dir trade-operations install
-pnpm --dir trade-operations build
-pnpm --dir trade-operations test
+bun --cwd trade-operations install
+bun --cwd trade-operations build
+bun --cwd trade-operations test
 ```
 
 `build` validates the authored manifest, schema and permissions and emits the artifact and seed
 packs. When the schema changes, it generates the next editable SQL migration under `migrations/`
-and verifies the complete history against the declaration. Run `pnpm exec bolt check <template>`
-for a template's generated names, types and authoring checks. This repository's `pnpm check` runs the shared `bolt templates`
+and verifies the complete history against the declaration. Run `bunx bolt check <template>`
+for a template's generated names, types and authoring checks. This repository's `bun run check` runs the shared `bolt templates`
 checks, lock verification and template gates. Commit authored source, lockfiles and the migration
 SQL, `snapshot.json` and `migrations.lock.json`, never generated `.norbital/` output.
 
@@ -75,7 +74,7 @@ Because `@norbital-ai/*` come from GitHub Packages, an install needs a `NODE_AUT
 `read:packages`, or the equivalent entry in your `~/.npmrc`.
 
 Authored Effect bodies use generators and yield native operations. The Effect release line is
-`4.0.0-rc.112`; declare `effect` directly when the template's own source imports it. Template tests
+`4.0.6`; declare `effect` directly when the template's own source imports it. Template tests
 declare `@effect/vitest` at that exact version in `devDependencies` and import their test helpers
 from it directly. The Bolt kit provides scoped `TestWorkspace.layer(options)` and native callers
 under `t.as(t.admin)` or `t.as(member)`. Keep acquired resources inside the test's scope and assert
@@ -101,49 +100,38 @@ not a catalogue:
 ```
 
 Drop `assets/thumbnail.svg` once for website cards and `og:image` — no manifest field needed
-unless the path differs. `counts` are checked against the source tree by `pnpm templates:check`, so
+unless the path differs. `counts` are checked against the source tree by `bun run templates:check`, so
 they cannot drift. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
 in-product picker, and it is independent of which repository the template lives in.
 
 ## Release and tenant lifecycle
 
-Publishing advances the fast-forward-only `refs/heads/templates/<slug>` branch to a commit produced
-by `git subtree split` of the template directory, so the projected tree contains the standalone
-template and nothing above it. Before that ref moves, the release workflow installs, checks and builds
-the exact standalone projection. There is no prebuilt template package: Preview compiles the
-exact selected commit only when someone asks to see it.
-
-A remote Colony host enumerates `refs/heads/templates/*` on each configured template origin, fetches
-the exact advertised commit into its local cache, and starts a new tenant repository from that
-commit before recording Colony revision 0. The tenant therefore retains real ancestry with the
-projected template commit, but it does not track the moving ref and is not changed when a later
-template release appears. Local-directory origins are intentionally different: they read the live
-checkout and make no projected-ref claim.
+On `main`, CI builds each template once: `bolt check`, one `bolt build` and `bolt test` against that
+build. The build's release (bundle, source and seed, each by digest) uploads to R2 under `releases/`.
+Nothing reaches a tenant until `bun run env -- deploy promote --release=<bundle digest>` names it. A
+new tenant starts from the promoted release's source; an existing tenant is not changed when a later
+template release appears.
 
 The local framework-development overlay is managed from the **realm root** with
-`pnpm run env -- link`. It builds and packs OSS packages into the substrate's local registry,
+`bun run env -- link`. It builds and packs OSS packages into the substrate's local registry,
 then overlays their bytes and dependency links in installed template graphs. Committed package
-pins and lockfiles remain unchanged. Run `pnpm run env -- retreat` there before release to
+pins and lockfiles remain unchanged. Run `bun run env -- retreat` there before release to
 reinstall those frozen pins from the configured registry. The pinned versions must be available
 in that registry for retreat to complete.
 
 Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a
-developer runs `pnpm templates:lock` when they choose to move. Publishing a new Bolt version changes
+developer runs `bun run templates:lock` when they choose to move. Publishing a new Bolt version changes
 no template and rebuilds no tenant.
 
 ```bash
-pnpm templates:lock          # resolve and write each template's lockfile
-pnpm templates:lock:check    # fail on drift
-pnpm check                  # the one gate, local and CI: declarations, format, every lock, the audit, then each changed
-                             # template installed offline from its lock, type-checked, built and tested (NORBITAL_TEMPLATES_SINCE=all: every one)
+bun run templates:lock          # resolve and write each template's lockfile
+bun run templates:lock:check    # fail on drift
+bun run check                  # the one gate, local and CI: declarations, format, every lock, the audit, then each changed
+                             # template installed from its frozen lock, type-checked, built once and tested against that build
 ```
 
-No template archive or package tarball is committed here. Template source is distributed through
-ordinary Git refs, Preview builds are ephemeral and tied to the exact commit under review, and
-dependency bytes live in one shared content-addressed pnpm store.
-
-Editing this checkout never changes an existing tenant. Existing-tenant adoption of a later
-template release is not an automated workflow; the tenant's source history remains untouched.
+No template archive or package tarball is committed here; releases live in R2 and dependency bytes
+in the host's shared package store.
 
 ## License
 

@@ -18,7 +18,7 @@ import {
 export type OrderSourceContext = Pick<SyncCtx<'kingdee'>, 'db' | 'configuration' | 'request'>;
 type Agreement = ReturnType<typeof agreements>[number];
 type LocalLine = Agreement['snapshot']['lines'][number];
-export type SalesLine = {
+type SalesLine = {
 	readonly entryId: string;
 	readonly detailId: string;
 	readonly itemId: string;
@@ -30,7 +30,7 @@ export type SalesLine = {
 	readonly localLine: LocalLine;
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
-export type OwnedSales = {
+type OwnedSales = {
 	readonly fid: string;
 	readonly externalId: string;
 	readonly order: Id<'orders'>;
@@ -43,7 +43,7 @@ export type OwnedSales = {
 	readonly liveFid: string;
 	readonly lines: readonly SalesLine[];
 };
-export type SalesDocument = {
+type SalesDocument = {
 	readonly fid: string;
 	readonly reference: string;
 	readonly issuedOn: ReturnType<typeof PlainDate>;
@@ -54,7 +54,7 @@ export type SalesDocument = {
 	readonly lines: readonly SalesLine[];
 	readonly total: Decimal | null;
 };
-export type SalesGraph = {
+type SalesGraph = {
 	readonly orders: readonly OwnedSales[];
 	readonly deliveries: readonly SalesDocument[];
 	readonly invoices: readonly SalesDocument[];
@@ -104,7 +104,7 @@ export type NativeProjection = { readonly sql: string };
 const textId = (column: string) => `CONVERT(varchar(30),${column})`;
 const padded = (column: string) => `RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),${column}),20)`;
 const ids = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS key_list(n))";
-export const nativeSql = Effect.fnUntraced(function* (
+const nativeSql = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	statement: string,
 	values: {
@@ -165,7 +165,7 @@ const batches = <A>(values: readonly A[]) =>
 	Array.from({ length: Math.ceil(values.length / 200) }, (_, i) =>
 		values.slice(i * 200, (i + 1) * 200)
 	);
-export const selectByIds = Effect.fnUntraced(function* (
+const selectByIds = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	projection: NativeProjection,
 	values: readonly string[],
@@ -189,16 +189,7 @@ export const selectByIds = Effect.fnUntraced(function* (
 	return rows;
 });
 
-export const salesHeaderProjection: NativeProjection = {
-	sql: `
-SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
- CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,
- head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,
- ${textId('head.FCheckerID')} AS checker,CONVERT(varchar(10),head.FCheckDate,23) AS checked_on
-FROM dbo.SEOrder head LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID
-WHERE head.FBrNo=@branch AND head.FUUID IN ${ids}`
-};
-export const salesLineProjection: NativeProjection = {
+const salesLineProjection: NativeProjection = {
 	sql: `
 SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
  ${textId('line.FDetailID')} AS detail_id,${textId('line.FEntryID')} AS entry_id,
@@ -286,7 +277,7 @@ export function sourceContractLine<
 	return version.snapshot.lines[Number(position) - 1];
 }
 /** Families are discovered from an owned UUID first; a bill number alone never establishes ownership. */
-export const salesFamilyProjection: NativeProjection = {
+const salesFamilyProjection: NativeProjection = {
 	sql: `/* kingdee-contract-versions */
 SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
  CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,

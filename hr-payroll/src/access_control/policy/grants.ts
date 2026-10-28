@@ -203,7 +203,7 @@ export const rosterCreateCheck = function* (rows: readonly Clocked[], ctx: Judge
 		: ctx.allow();
 };
 /** Moving a plan needs no review; editing its clock does. */
-export const rosterUpdateCheck = function* (
+const rosterUpdateCheck = function* (
 	changes: readonly { readonly before: Clocked & Pinned; readonly set: Clocked }[],
 	ctx: Judge
 ) {

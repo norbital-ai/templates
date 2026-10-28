@@ -65,9 +65,9 @@
 ## 检查
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm exec bolt check   # 声明、TypeScript 与 Svelte
-pnpm test              # 独立运行核心机制与边界用例，不启动 Colony、不读取私有种子库
+bun install --frozen-lockfile
+bunx bolt check   # 声明、TypeScript 与 Svelte
+bun run test              # 独立运行核心机制与边界用例，不启动 Colony、不读取私有种子库
 ```
 
 测试使用小型合成数据验证核心机制、受控写入、状态及失败路径，不验证种子法规数值，也不重复辖区、版本或界面布局矩阵。

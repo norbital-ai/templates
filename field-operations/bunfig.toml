@@ -1,0 +1,7 @@
+# Third-party releases younger than a day never resolve: a compromised publish has that long to be noticed.
+# The platform's own packages are exactly pinned in package.json, so they skip the gate by name.
+[install]
+# One layout everywhere: every package at its own node_modules root, never a peer linked into another directory's tree.
+linker = "hoisted"
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = ["@norbital-ai/app-shell", "@norbital-ai/bolt", "@norbital-ai/bolt-server", "@norbital-ai/doctor", "@norbital-ai/providers", "@norbital-ai/std", "@norbital-ai/store", "@norbital-ai/ui"]

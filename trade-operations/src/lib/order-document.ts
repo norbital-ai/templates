@@ -61,7 +61,7 @@ export function agreementText(
 	validateDocumentTemplate(template.body);
 	return template.body.replace(/\{([^{}]+)\}/g, (_, key: string) => values[key] ?? '');
 }
-export class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>()(
+class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>()(
 	'DocumentUnavailable',
 	{ message: Schema.String }
 ) {}

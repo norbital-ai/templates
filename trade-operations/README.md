@@ -110,9 +110,9 @@ binding and unsupported document/write types remain explicitly unavailable.
 ## Checks
 
 ```bash
-pnpm install
-pnpm exec bolt check   # types, Svelte warnings, layout and declarations
-pnpm test    # bolt build, then bolt test (including tests/e2e)
+bun install
+bunx bolt check   # types, Svelte warnings, layout and declarations
+bun run test    # bolt build, then bolt test (including tests/e2e)
 ```
 
 `.norbital/` is generated and never committed.

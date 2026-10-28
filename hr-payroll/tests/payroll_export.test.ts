@@ -127,6 +127,5 @@ it.effect(
 				assert.equal(report.run_reference, run.id);
 				assert.deepEqual(report.rows.map((row) => row.employee_number).toSorted(), ['a', 'b']);
 			})
-		),
-	90_000
+		)
 );

@@ -325,4 +325,4 @@ Search notes: no 2025–2026 amendment to the Shanghai or Yunnan 人口与计划
 
 ### Final test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_cn.test.ts`: Test Files 1 passed (1); Tests 44 passed (44).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_cn.test.ts`: Test Files 1 passed (1); Tests 44 passed (44).

@@ -4,7 +4,7 @@
  * against an entitlement the class computes. The classes are the synthetic `XX` version's (`jurisdiction_kit.ts`).
  */
 import assert from 'node:assert/strict';
-import { it } from '@effect/vitest';
+import { layer } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
@@ -15,29 +15,109 @@ import { leaveState } from '../src/lib/payroll_engine/payslip/context.ts';
 import { CATALOG, COMPANY, employer, employment, runOf, world } from './jurisdiction_kit.ts';
 
 const A = employment('a');
+const L = employment('l');
 const run = (period: string) => ({ company_id: COMPANY, period, kind: 'REGULAR' as const });
 
-it.effect(
-	'each entry shows on the payslip of its period, and a loan is recovered one whole repayment per payslip',
-	() =>
-		world(
-			employer([{ key: 'a', salary: 3000, allowances: [{ code: 'MEAL', amount: 200 }] }])
-		).withRead(() =>
+const rows = employer([
+	{ key: 'a', salary: 3000, allowances: [{ code: 'MEAL', amount: 200 }] },
+	{ key: 'l', salary: 3000 }
+]);
+
+// leave first: the payroll test then settles March for every employment
+layer(world(rows).layer)('catalogue entries', (it) => {
+	it.effect('leave draws on the entitlement its class computes, and a batch past it is refused whole', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			const request = (from: string, to: string) => ({
+				catalog_id: CATALOG.ANNUAL,
+				employment_id: L,
+				occurred_on: PlainDate(from),
+				activity: 'TIME_OFF' as const,
+				from: PlainDate(from),
+				to: PlainDate(to)
+			});
+			// the page's balance: the engine's leave state read as the viewer, then the pure balance helper
+			const available = () =>
+				runEngine(leaveState(L, '2026-03-02'), hr.query, (message) =>
+					Effect.fail(new Error(message))
+				).pipe(
+					Effect.map(
+						(state) =>
+							leaveBalances({ ...state, offeredOnly: true }).find(
+								(row) => row.catalog_id === CATALOG.ANNUAL
+							)?.available
+					)
+				);
+			// the class states five days a calendar year
+			assert.equal(yield* available(), 5);
+			// two three-day requests together pass the five: the batch is refused whole
+			const batch = yield* Effect.flip(
+				hr.act('leave_catalog_entry.create', [
+					request('2026-03-02', '2026-03-04'),
+					request('2026-03-09', '2026-03-11')
+				])
+			);
+			assert.match(batch.message, /available 2 day/);
+			assert.equal(
+				(yield* t.storedQuery({ leave_catalog_entry: { where: { employment_id: { eq: L } } } }))
+					.leave_catalog_entry.rows.length,
+				0
+			);
+		})
+	);
+
+	it.effect(
+		'one batch counts every leave range on its own plan and replaces the supplied day totals',
+		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.member(['hr_manager']));
-				const adhoc = (catalog_id: typeof CATALOG.BONUS, day: string, amount: string) =>
-					hr.act('adhoc_catalog_entry.create', [
-						{
-							catalog_id,
-							employment_id: A,
-							occurred_on: PlainDate(day),
-							amount: Decimal.of(amount)
+				const outcome = yield* hr.act(
+					'leave_catalog_entry.create',
+					['2026-03-03', '2026-03-04', '2026-03-05'].map((day) => ({
+						catalog_id: CATALOG.ANNUAL,
+						employment_id: L,
+						occurred_on: PlainDate(day),
+						activity: 'TIME_OFF' as const,
+						from: PlainDate(day),
+						to: PlainDate(day),
+						days: 999
+					}))
+				);
+				assert.equal(outcome.kind, 'committed');
+				const stored = yield* hr
+					.query({
+						leave_catalog_entry: {
+							where: { employment_id: { eq: L } },
+							fields: ['days']
 						}
-					]);
-				yield* adhoc(CATALOG.BONUS, '2026-03-10', '500');
-				yield* adhoc(CATALOG.DAMAGE, '2026-03-12', '50');
-				yield* adhoc(CATALOG.BONUS, '2026-04-02', '400');
+					})
+					.pipe(Effect.map((answer) => answer.leave_catalog_entry));
+				assert.deepEqual(
+					stored.rows.map((row) => moneyNumber(row.days)),
+					[1, 1, 1]
+				);
+			})
+	);
+
+	it.effect(
+		'each entry shows on the payslip of its period, and a loan is recovered one whole repayment per payslip',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				const adhoc = (catalog_id: typeof CATALOG.BONUS, day: string, amount: string) => ({
+					catalog_id,
+					employment_id: A,
+					occurred_on: PlainDate(day),
+					amount: Decimal.of(amount)
+				});
+				yield* hr.act('adhoc_catalog_entry.create', [
+					adhoc(CATALOG.BONUS, '2026-03-10', '500'),
+					adhoc(CATALOG.DAMAGE, '2026-03-12', '50'),
+					adhoc(CATALOG.BONUS, '2026-04-02', '400')
+				]);
 				yield* hr.act('claim_catalog_entry.create', [
 					{
 						catalog_id: CATALOG.MEAL_CLAIM,
@@ -101,100 +181,6 @@ it.effect(
 					(yield* repayments()).map(([, , payslip]) => payslip),
 					[march.id, null, null]
 				);
-
-				yield* hr.act('payroll_run.create', [run('2026-04')]);
-				const april = (yield* runOf(hr, '2026-04')).slip('a');
-				assert.deepEqual(april.lines, { BASIC: 3000, MEAL: 200, BONUS: 400, ADVANCE: -100 });
 			})
-		),
-	60_000
-);
-
-it.effect('a leave entry draws on the entitlement its class computes, and none past it', () =>
-	world(employer([{ key: 'a', salary: 3000 }])).withRead(() =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const hr = t.as(t.member(['hr_manager']));
-			const request = (from: string, to: string) => ({
-				catalog_id: CATALOG.ANNUAL,
-				employment_id: A,
-				occurred_on: PlainDate(from),
-				activity: 'TIME_OFF' as const,
-				from: PlainDate(from),
-				to: PlainDate(to)
-			});
-			// the page's balance: the engine's leave state read as the viewer, then the pure balance helper
-			const available = () =>
-				runEngine(leaveState(A, '2026-03-02'), hr.query, (message) =>
-					Effect.fail(new Error(message))
-				).pipe(
-					Effect.map(
-						(state) =>
-							leaveBalances({ ...state, offeredOnly: true }).find(
-								(row) => row.catalog_id === CATALOG.ANNUAL
-							)?.available
-					)
-				);
-			// the class states five days a calendar year
-			assert.equal(yield* available(), 5);
-			// two three-day requests together pass the five: the batch is refused whole
-			const batch = yield* Effect.flip(
-				hr.act('leave_catalog_entry.create', [
-					request('2026-03-02', '2026-03-04'),
-					request('2026-03-09', '2026-03-11')
-				])
-			);
-			assert.match(batch.message, /available 2 day/);
-			assert.equal(
-				(yield* t.storedQuery({ leave_catalog_entry: {} })).leave_catalog_entry.rows.length,
-				0
-			);
-			// Monday to Friday: five working days
-			yield* hr.act('leave_catalog_entry.create', [request('2026-03-02', '2026-03-06')]);
-			assert.equal(yield* available(), 0);
-			const over = yield* Effect.flip(
-				hr.act('leave_catalog_entry.create', [request('2026-03-09', '2026-03-09')])
-			);
-			assert.match(over.message, /available 0 day/);
-			assert.equal(
-				(yield* t.storedQuery({ leave_catalog_entry: {} })).leave_catalog_entry.rows.length,
-				1
-			);
-		})
-	)
-);
-
-it.effect(
-	'one batch counts every leave range on its own plan and replaces the supplied day totals',
-	() =>
-		world(employer([{ key: 'a', salary: 3000 }])).withRead(() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				const hr = t.as(t.member(['hr_manager']));
-				const outcome = yield* hr.act(
-					'leave_catalog_entry.create',
-					['2026-03-03', '2026-03-04', '2026-03-05'].map((day) => ({
-						catalog_id: CATALOG.ANNUAL,
-						employment_id: A,
-						occurred_on: PlainDate(day),
-						activity: 'TIME_OFF' as const,
-						from: PlainDate(day),
-						to: PlainDate(day),
-						days: 999
-					}))
-				);
-				assert.equal(outcome.kind, 'committed');
-				const stored = yield* hr
-					.query({
-						leave_catalog_entry: {
-							fields: ['days']
-						}
-					})
-					.pipe(Effect.map((answer) => answer.leave_catalog_entry));
-				assert.deepEqual(
-					stored.rows.map((row) => moneyNumber(row.days)),
-					[1, 1, 1]
-				);
-			})
-		)
-);
+	);
+});

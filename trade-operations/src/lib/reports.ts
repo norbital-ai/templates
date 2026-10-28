@@ -161,7 +161,7 @@ function commissionLines(
 	});
 }
 export type ReportOrder = Pick<Row<'orders'>, 'id' | (typeof reportFields)[number]>;
-export function commissionRows(orders: readonly ReportOrder[], selectedVersion?: number | null) {
+function commissionRows(orders: readonly ReportOrder[], selectedVersion?: number | null) {
 	return orders.flatMap((record) => {
 		const version =
 			selectedVersion == null

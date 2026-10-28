@@ -1,0 +1,55 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000002",
+		"name": "Fixture Helper Alpha",
+		"phone": "+6590000001",
+		"home_area": "east",
+		"home_location": {
+			"lat": 1.3526,
+			"lng": 103.9447
+		},
+		"work_days": [
+			"mon",
+			"tue",
+			"wed",
+			"thu",
+			"fri",
+			"sat"
+		],
+		"day_start": "08:00",
+		"day_end": "18:00",
+		"skills": [
+			"home_cleaning",
+			"deep_cleaning"
+		]
+	},
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000003",
+		"name": "Fixture Helper Charlie",
+		"phone": "+6590000003",
+		"home_area": "central",
+		"home_location": {
+			"lat": 1.3048,
+			"lng": 103.8318
+		},
+		"work_days": [
+			"tue",
+			"wed",
+			"thu",
+			"fri",
+			"sat",
+			"sun"
+		],
+		"day_start": "07:00",
+		"day_end": "16:00",
+		"skills": [
+			"home_cleaning",
+			"deep_cleaning"
+		],
+		"last_location": {
+			"lat": 1.3404,
+			"lng": 103.65
+		},
+		"last_location_at": "2026-09-29T00:00:00.000Z"
+	}
+]

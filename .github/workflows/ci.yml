@@ -1,7 +1,8 @@
 name: CI
 
-# One workflow, one verdict: `check` is the same `pnpm check` a person runs locally, and on `main` the template refs
-# publish from that verdict — nothing is checked twice.
+# One workflow, one build per template: the repository's static checks, then each template's install, `bolt check`,
+# ONE `bolt build` and `bolt test` against that build, whose release (bundle, source, seed, each by digest) uploads to R2 under
+# `releases/` on `main`. Nothing reaches a tenant until `env deploy promote --release=<bundle digest>` names it.
 on:
   pull_request:
   push:
@@ -22,55 +23,80 @@ permissions:
 
 env:
   NORBITAL_PACKAGE_REGISTRY: ${{ vars.NORBITAL_PACKAGE_REGISTRY || 'https://npm.pkg.github.com' }}
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
 jobs:
-  # hotfix mode (owner 2026-10-22): the template refs publish on every push to main, unchecked
-  publish:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+  static:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: read
+    outputs:
+      templates: ${{ steps.templates.outputs.templates }}
     steps:
-      # `git subtree split` walks the history of each template directory, so a shallow checkout
-      # would project a different commit than the one already published and break fast-forward.
-      - name: Checkout complete history
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
-          cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@norbital-ai'
-
       - name: Install repository tooling
-        run: pnpm install --frozen-lockfile --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
-
-      # The atomic ref update is last and runs only on `check`'s verdict: no consumer observes source that failed it.
-      # Preview builds the exact selected commit on demand.
-      - name: Publish template refs
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Static checks
+        run: bun run check:static
+      - name: List templates
+        id: templates
         run: |
-          pnpm exec bolt templates publish \
-            --source-revision "$GITHUB_SHA" \
-            --repository "$SOURCE_REPOSITORY_URL" \
-            --output "$RUNNER_TEMP/template-revisions.json" \
-            --push origin
-        env:
-          SOURCE_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          echo "templates=$(ls -d */norbital.template.json | cut -d/ -f1 | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload resolved template revisions
-        uses: actions/upload-artifact@v7
+  template:
+    needs: static
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: ${{ fromJson(needs.static.outputs.templates) }}
+    steps:
+      - uses: actions/checkout@v7
+      # the private sample packs read the seed bank at build time; it never leaves this job except inside the seed
+      - name: Checkout the seed bank
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/checkout@v7
         with:
-          name: template-revisions-${{ github.sha }}
-          path: ${{ runner.temp }}/template-revisions.json
-          if-no-files-found: error
-          retention-days: 30
+          repository: norbital-ai/seed-bank
+          token: ${{ secrets.SEED_BANK_TOKEN }}
+          path: .seed-bank
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+      - name: Install
+        working-directory: ${{ matrix.template }}
+        run: bun install --frozen-lockfile
+      - name: bolt check
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt check .
+      # the one build: its bundle and seed packs are what the tests read and what the release uploads
+      - name: bolt build
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt build . $([ -d ../.seed-bank ] && echo "--bank=../.seed-bank")
+      - name: bolt test
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt test .
+      - name: Pack the release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: '"${{ matrix.template }}/node_modules/.bin/bolt" templates publish --filter "${{ matrix.template }}" --out "$RUNNER_TEMP/releases"'
+      # every object is named by its digest: an upload never replaces a different release
+      - name: Upload to R2
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_RELEASE_BUCKETS: ${{ vars.R2_RELEASE_BUCKETS }}
+        run: |
+          for bucket in $R2_RELEASE_BUCKETS; do
+            aws s3 sync "$RUNNER_TEMP/releases" "s3://$bucket/releases/" --endpoint-url "$R2_ENDPOINT" --size-only
+          done
+          cat "$RUNNER_TEMP"/releases/template/*/*.json

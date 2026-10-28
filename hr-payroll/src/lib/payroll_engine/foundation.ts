@@ -166,7 +166,7 @@ const sortValue = (value: unknown): unknown => {
 	return value;
 };
 /** The `jurisdiction_settings.payroll` keys the engine requires: every seed version states each (tests/payroll-slots). */
-export const REQUIRED_PAYROLL_SETTINGS = [
+const REQUIRED_PAYROLL_SETTINGS = [
 	'currency',
 	'timezone',
 	'pay_date',

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import type { Row } from '@norbital-ai/bolt';
 import type { ActFailure } from '@norbital-ai/bolt/errors';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
 import { layer } from '@effect/vitest';

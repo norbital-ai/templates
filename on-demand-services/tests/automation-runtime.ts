@@ -1,7 +1,8 @@
 import { Effect, Schema } from 'effect';
 import type { Committed, PendingApproval, RunHandle } from '@norbital-ai/bolt';
 import { ActRefused, type ActFailure } from '@norbital-ai/bolt/errors';
-import { present, type T } from './test-runtime.js';
+import type { Kit } from '@norbital-ai/bolt/test';
+import { present } from './test-runtime.js';
 
 const Run = Schema.Struct({
 	state: Schema.String,
@@ -21,7 +22,7 @@ const Run = Schema.Struct({
 
 /** Admission queues a run; assertions inspect its real native completion separately. */
 export const finished = Effect.fnUntraced(function* (
-	t: T,
+	t: Kit,
 	start: Effect.Effect<Committed<RunHandle<string>> | PendingApproval, ActFailure>
 ) {
 	const admitted = yield* start;

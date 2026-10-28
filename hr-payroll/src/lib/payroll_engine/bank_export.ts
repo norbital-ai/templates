@@ -6,7 +6,7 @@ import { getErrorMessage, isJsonObject, Refusal, type JsonObject } from './found
 import { bankAccountFrom, recordDocuments, type ExportDocument } from './export.js';
 
 type ExportRows = Parameters<typeof recordDocuments>[2];
-export type SharedPaymentBank = {
+type SharedPaymentBank = {
 	readonly code: string;
 	readonly name: string;
 	readonly bank_codes: readonly string[];

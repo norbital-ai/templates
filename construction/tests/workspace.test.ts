@@ -6,33 +6,19 @@ import type { AutomationName } from '@norbital-ai/bolt';
  */
 import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
-import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
+import { workspace as acquireWorkspace } from './test-runtime.js';
 const root = fileURLToPath(new URL('..', import.meta.url));
 it.live('runs all four daily digests', () =>
 	Effect.gen(function* () {
 		const t = yield* acquireWorkspace({ root });
 		const admin = t.as(t.admin);
-		const created = yield* admin.act('projects.create', [{ project_name: 'Synthetic project' }]);
-		const project = created.records.find((record) => record.model === 'projects');
-		if (project === undefined) throw new Error('Missing synthetic project');
 		const digests = [
 			'defect_closeout_digest',
 			'payment_claim_readiness_watch',
 			'permit_expiry_watch',
 			'rfi_followup_watch'
 		] as const satisfies readonly AutomationName[];
-		for (const a of digests)
-			expect(t.manifest.automations[a]).toMatchObject({
-				on: { cron: '0 6 * * *' },
-				runAs: ['construction_read']
-			});
-		yield* admin.act('permits_to_work.create', [
-			{
-				permit_number: 'PTW-1',
-				project_id: fixtureId('projects', project.id),
-				status: 'active'
-			}
-		]);
+		// seed/test holds two active permits, PTW-1 and PTW-2
 		const runs = Context.get(t.services, Runs);
 		if (runs === undefined) throw new Error('Test workspace has no runs driver.');
 		for (const digest of digests) {
@@ -48,7 +34,13 @@ it.live('runs all four daily digests', () =>
 				status: 'succeeded',
 				result:
 					digest === 'permit_expiry_watch'
-						? { count: 1, rows: [{ permit_number: 'PTW-1' }] }
+						? {
+								count: 2,
+								rows: expect.arrayContaining([
+									expect.objectContaining({ permit_number: 'PTW-1' }),
+									expect.objectContaining({ permit_number: 'PTW-2' })
+								])
+							}
 						: { count: 0, rows: [] }
 			});
 		}

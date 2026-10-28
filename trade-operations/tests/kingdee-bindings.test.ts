@@ -1,6 +1,6 @@
 import { expect, it as test } from '@effect/vitest';
 import { bindings, normalizeSourceRow } from '../src/integration/kingdee/source-bindings.js';
-import { SourceRowInvalid } from '../src/integration/kingdee/polling.js';
+import { columns, SourceRowInvalid } from '../src/integration/kingdee/polling.js';
 
 const configuration = { baseCurrency: 'CNY' };
 const observedAt = '2026-10-26T02:00:00.000Z';
@@ -205,4 +205,14 @@ test('invalid source identities, flags, classes, clocks and currency policy fail
 	expect(() =>
 		normalizeSourceRow('parties', customer, { baseCurrency: 'unknown' }, observedAt)
 	).toThrow(SourceRowInvalid);
+});
+
+test('names the invalid source column with SourceRowInvalid', () => {
+	expect(() => columns({ amount: 12.5 }).decimal('amount')).toThrow(
+		expect.objectContaining({
+			_tag: 'SourceRowInvalid',
+			column: 'amount',
+			reason: 'Precise amounts must be projected as text'
+		})
+	);
 });

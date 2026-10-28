@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
 import { expect, it as test } from '@effect/vitest';
-import { committed, confirm, workspace } from './kit.js';
+import { committed, confirm, workspace, PRODUCT } from './kit.js';
 
 const now = '2026-10-10T00:00:00Z';
 
@@ -128,4 +128,27 @@ test.live(
 				})
 			).not.toMatchObject({ kind: 'committed' });
 		})
+);
+
+test.live('a manager edits SKU commission settings but not source-owned product fields', () =>
+	Effect.gen(function* () {
+		const t = yield* workspace();
+		const manager = t.as(t.member(['manager']));
+		committed(
+			'products',
+			yield* manager.act('products.update', [
+				{
+					target: PRODUCT,
+					set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
+				}
+			])
+		);
+		expect(
+			yield* direct(t, manager.authority, {
+				model: 'products',
+				verb: 'update',
+				input: [{ target: PRODUCT, set: { name: 'Overwrite source' } }]
+			})
+		).not.toMatchObject({ kind: 'committed' });
+	})
 );

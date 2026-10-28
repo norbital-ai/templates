@@ -196,7 +196,7 @@ export const bindings = {
 } satisfies Record<string, SourceProjection>;
 
 export type SourceBindingName = keyof typeof bindings;
-export type SourceConfiguration = { readonly baseCurrency: string };
+type SourceConfiguration = { readonly baseCurrency: string };
 
 /** Translate verified source fields only; observation time is not a Kingdee modification time. */
 export function normalizeSourceRow(

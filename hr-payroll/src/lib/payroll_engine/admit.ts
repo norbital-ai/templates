@@ -5,7 +5,6 @@ import {
 	addDays,
 	addMonths,
 	contains,
-	days,
 	monthOf,
 	overlaps,
 	PlainDate
@@ -83,8 +82,6 @@ import {
 	evaluate,
 	evaluateBoolean,
 	versionOn,
-	governingVersion,
-	entityOf,
 	type Employment,
 	companyOf,
 	subjectContext,
@@ -116,7 +113,7 @@ import { settlementPeriod } from './frequency.js';
 import { cycleDays, plannedShift } from './shift_pattern.js';
 import { requestDays } from './leave_days.js';
 /** Internal admission input shared by the three native write verbs. */
-export type EntryWriteInput<C extends EntryCollection> = Omit<UpdateSet<C>, 'id'> & {
+type EntryWriteInput<C extends EntryCollection> = Omit<UpdateSet<C>, 'id'> & {
 	readonly id?: Id<C>;
 	readonly $delete?: true;
 };
@@ -939,13 +936,8 @@ type RosterFinding = {
 	readonly message: string;
 	readonly column: string;
 };
-/** The days a set of roster drafts spans: what `loadRoster` reads around. */
-const draftSpan = (drafts: readonly Pick<RosterDraft, 'work_date'>[]) => {
-	const days = [...new Set(drafts.map((draft) => draft.work_date))].toSorted();
-	return { from: days[0] ?? '9999-12-31', to: days.at(-1) ?? '9999-12-31' };
-};
 /**
- * What `rosterFindings` reads for entities over `span`, first read: the entities, their contracts, shifts, patterns
+ * What `rosterFindingsFrom` reads for entities over `span`, first read: the entities, their contracts, shifts, patterns
  * and published holidays. A caller may read more roots beside it (the plan check reads the stored days).
  */
 const rosterOne = (
@@ -1011,10 +1003,10 @@ const rosterFrom = (one: RosterOne, two: Effect.Success<ReturnType<typeof readRo
 	rules: { rows: two.jurisdiction_settings.rows.flatMap((version) => version.rule_set) }
 });
 /** What `rosterFindingsFrom` judges over (two reads, `loadRoster`); the versions' rules come as `rules`. */
-export type RosterRead = Omit<ReturnType<typeof rosterFrom>, 'versions'> & {
+type RosterRead = Omit<ReturnType<typeof rosterFrom>, 'versions'> & {
 	readonly versions: { readonly rows: readonly SettingsRow[] };
 };
-export const loadRoster = Effect.fnUntraced(function* (
+const loadRoster = Effect.fnUntraced(function* (
 	read: Read,
 	company_id: Id<'entity'>,
 	span: { readonly from: string; readonly to: string }
@@ -1022,24 +1014,7 @@ export const loadRoster = Effect.fnUntraced(function* (
 	const one = yield* readRosterOne(read, [company_id], span);
 	return rosterFrom(one, yield* readRosterTwo(read, one, span));
 });
-/**
- * A roster import's days against the `roster` validations of the version governing each day, in code order. The
- * context is the subject on the day plus `rules`, `day` (a `work.days[]` day as the import would store it, with
- * `leave_code` and `rest_hours_before` = hours from the previous day's last clock-out to this day's first clock-in,
- * null when either is unrecorded) and `week` (`worked_hours`, `overtime_hours`, `worked_days` over the seven days
- * ending on the day, `overtime_hours_by_day_type.<WORK|REST|OFF|HOLIDAY>`: by the planned type, holidays again,
- * `overtime_hours_holiday_by_day_type.<WORK|REST|OFF>`: holiday overtime alone by the type the holiday fell on, and
- * `holiday_worked_hours`: the normal hours worked on holidays; `holiday_or_rest_worked_hours`: the normal hours
- * on public holidays or planned rest days, counting an overlapping day once). Days outside the import read as unrecorded.
- */
-export const rosterFindings = (company_id: Id<'entity'>, drafts: readonly RosterDraft[]) =>
-	Effect.gen(function* () {
-		if (drafts.length === 0) return [];
-		const { read } = yield* Reads;
-		const got = yield* loadRoster(read, company_id, draftSpan(drafts));
-		return yield* rosterFindingsFrom(company_id, drafts, got);
-	});
-/** `rosterFindings` over `loadRoster`'s rows (`got`). */
+/** A roster import's days against the `roster` validations of the version governing each day, in code order, over `loadRoster`'s rows (`got`). */
 export const rosterFindingsFrom = (
 	company_id: Id<'entity'>,
 	drafts: readonly RosterDraft[],
@@ -1292,7 +1267,7 @@ export const rosterFindingsFrom = (
 	});
 type DayTypeCounts = { readonly WORK: number; readonly REST: number; readonly OFF: number };
 /** One whole pattern cycle around a touched day: the `cycle` root of a `cycle` validation. */
-export type PatternCycle = {
+type PatternCycle = {
 	readonly date: string;
 	readonly from: string;
 	readonly to: string;
@@ -2260,7 +2235,7 @@ export const admitEntry = <C extends EntryCollection>(input: {
 		};
 	});
 /** The part of a scheme one `counts_toward` target names: `CPF.ADDITIONAL` → CPF's `additional`; a bare code → `ordinary`. */
-export type EntryTransformCtx<C extends EntryCollection> = Pick<WriteCtx<C>, 'refuse'> & {
+type EntryTransformCtx<C extends EntryCollection> = Pick<WriteCtx<C>, 'refuse'> & {
 	readonly db: Pick<WriteCtx<C>['db'], 'query'>;
 };
 /**

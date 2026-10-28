@@ -359,4 +359,4 @@ None. Every task-1 rule is expressed in seed CEL.
 
 ### Test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_my.test.ts`: Test Files 1 passed (1), Tests 52 passed (52).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_my.test.ts`: Test Files 1 passed (1), Tests 52 passed (52).

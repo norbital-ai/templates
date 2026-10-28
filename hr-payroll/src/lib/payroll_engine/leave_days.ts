@@ -79,7 +79,7 @@ const readRequestDays = Effect.fnUntraced(function* (
 		holidays: two.holiday
 	};
 });
-export type RequestDaysRead = Effect.Success<ReturnType<typeof readRequestDays>>;
+type RequestDaysRead = Effect.Success<ReturnType<typeof readRequestDays>>;
 
 export function requestDays(
 	input: RequestDaysInput,

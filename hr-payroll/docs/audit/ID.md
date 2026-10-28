@@ -331,4 +331,4 @@ Before/after (Budi, K/1 → TER B, 10,000,000 salary, 10,000,000 THR_HOLIDAY bon
 
 ### Test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_id.test.ts`: Test Files 1 passed (1); Tests 72 passed (72); 31.4 s.
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_id.test.ts`: Test Files 1 passed (1); Tests 72 passed (72); 31.4 s.

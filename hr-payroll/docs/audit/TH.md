@@ -275,4 +275,4 @@ Engine-run numbers come from the test below (October 2026; p1 earns 200,000, is 
 
 ### Test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_th.test.ts` → Test Files 1 passed (1); Tests 59 passed (59).
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_th.test.ts` → Test Files 1 passed (1); Tests 59 passed (59).

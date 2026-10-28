@@ -268,4 +268,4 @@ None. Every rule above is expressed in CEL.
 
 ### Final test run
 
-`pnpm exec vitest run --config vitest.node.config.ts tests/jurisdiction_vn.test.ts`: **Test Files 1 passed (1); Tests 46 passed (46)**. One intermediate run timed out a work-day-sheet test (5,132 ms) under shared-machine load. That test was untouched and passed on the rerun.
+`bunx vitest run --config vitest.node.config.ts tests/jurisdiction_vn.test.ts`: **Test Files 1 passed (1); Tests 46 passed (46)**. One intermediate run timed out a work-day-sheet test (5,132 ms) under shared-machine load. That test was untouched and passed on the rerun.

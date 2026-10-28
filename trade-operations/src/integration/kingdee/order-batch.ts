@@ -3,7 +3,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { price } from '../../lib/commercial.js';
 import { SourceRowInvalid } from './polling.js';
 
-export type OrderLine = {
+type OrderLine = {
 	readonly id: string;
 	readonly source_entry_id?: string;
 	readonly product_code: string;

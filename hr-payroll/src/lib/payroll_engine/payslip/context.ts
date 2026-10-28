@@ -7,7 +7,6 @@ import {
 	addDays,
 	addMonths,
 	datePeriod,
-	days,
 	eachDay,
 	Instant,
 	monthOf,
@@ -141,7 +140,7 @@ export const inForce = (
 		}
 		return count;
 	});
-export type PayrollRunKind = 'REGULAR' | 'OFF_CYCLE';
+type PayrollRunKind = 'REGULAR' | 'OFF_CYCLE';
 /** Salary runs pay the contract; settlement runs pay only their selected entries. */
 export const SALARY_RUNS: readonly PayrollRunKind[] = ['REGULAR'];
 export const isSalaryRun = (kind: unknown): boolean =>
@@ -682,18 +681,6 @@ export const GOVERNED = {
 	'jurisdiction_settings.loan_catalog': { fields: CATALOG.loan_catalog },
 	'jurisdiction_settings.rule_set': { fields: ['code', 'family', 'rules', 'settings_id'] }
 } as const;
-/** The versions `ids` with every catalogue row a payroll build prices from: one read. */
-export const loadGoverned = Effect.fnUntraced(function* (
-	read: Read,
-	ids: readonly Id<'jurisdiction_settings'>[]
-) {
-	const { jurisdiction_settings } = yield* read({
-		jurisdiction_settings: { where: { id: { in: ids } }, fields: ['suspension_kinds'] },
-		...GOVERNED
-	});
-	return jurisdiction_settings.rows;
-});
-export type GovernedVersion = Effect.Success<ReturnType<typeof loadGoverned>>[number];
 /** One version of a governance read, with its catalogue layers. */
 export const governedFrom = <V extends { readonly id: string }>(
 	versions: readonly V[],
@@ -919,7 +906,7 @@ const subjectClassesOf = (waves: Effect.Success<ReturnType<typeof subjectWaves>>
 			fields: ['code']
 		}
 	}) as const;
-export const loadSubjects = Effect.fnUntraced(function* (
+const loadSubjects = Effect.fnUntraced(function* (
 	read: Read,
 	ids: readonly Id<'employment_contract'>[]
 ) {
@@ -1147,7 +1134,7 @@ export const partsOf = (rows: readonly CatalogRow[]): SchemeParts => {
 export const slipPeriod = (slip: PayslipRow): string => String(slip.salary_from ?? '').slice(0, 7);
 /** One set of stored payslips summed: each line's amount by its component or catalogue code, the gross and net,
  * and each scheme's employee and employer charge and assessed base (`base`, and by wage part) under `statutory`. */
-export const slipSums = (slips: readonly PayslipRow[]): DynObject => {
+const slipSums = (slips: readonly PayslipRow[]): DynObject => {
 	const lines: {
 		[code: string]: number;
 	} = {};
@@ -2028,7 +2015,7 @@ export const readAttendance = Effect.fnUntraced(function* (
 	};
 });
 /** The shared attendance window of a write batch (two reads), for every employment it touches. */
-export type AttendanceRead = Effect.Success<ReturnType<typeof readAttendance>>;
+type AttendanceRead = Effect.Success<ReturnType<typeof readAttendance>>;
 
 export const attendanceDays = (
 	contract: ContractRow,

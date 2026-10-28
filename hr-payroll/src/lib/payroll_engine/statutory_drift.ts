@@ -65,7 +65,7 @@ export function sourcesFrom(value: unknown): DriftSources {
  * ponytail: a short list of generic second-level labels, the Public Suffix List if a jurisdiction needs more.
  */
 const GENERIC = /^(or|co|com|ac|org|net|edu|ne|gob|govt|mil)$/;
-export function siteOf(url: string): string | null {
+function siteOf(url: string): string | null {
 	const host = URL_TEXT.test(url) ? URL.parse(url)?.hostname.toLowerCase() : undefined;
 	if (host == null) return null;
 	const labels = host.split('.');

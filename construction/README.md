@@ -179,10 +179,10 @@ the reference and baseline model, not a replacement for native BIM files.
 ## Checks
 
 ```bash
-pnpm install
-pnpm exec bolt check   # types, Svelte warnings, layout and declarations
-pnpm build   # bolt build (add --bank=<checkout> for the sample pack)
-pnpm test    # bolt test, including tests/e2e/surface-sweep.integration.test.ts
+bun install
+bunx bolt check   # types, Svelte warnings, layout and declarations
+bun run build   # bolt build (add --bank=<checkout> for the sample pack)
+bun run test    # bolt test, including tests/e2e/surface-sweep.integration.test.ts
 ```
 
 `.norbital/` is generated and never committed. Schema changes generate the next editable SQL

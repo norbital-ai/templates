@@ -1,0 +1,41 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000005",
+		"number": "V-2026-00005",
+		"booking": "0d5000ff-0000-4000-8000-000000000005",
+		"helper": "0d5000ff-0000-4000-8000-000000000002",
+		"slot": {
+			"start": "2026-09-29T02:00:00.000Z",
+			"end": "2026-09-29T05:00:00.000Z"
+		},
+		"address": "1 Example Avenue, Singapore 400001",
+		"location": {
+			"lat": 1.3236,
+			"lng": 103.9273
+		},
+		"area": "east",
+		"skill": "home_cleaning",
+		"status": "scheduled",
+		"shift_check": "asked",
+		"shift_asked_at": "2026-09-28T23:45:00.000Z"
+	},
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000006",
+		"number": "V-2026-00006",
+		"booking": "0d5000ff-0000-4000-8000-000000000006",
+		"helper": "0d5000ff-0000-4000-8000-000000000003",
+		"slot": {
+			"start": "2026-09-29T00:45:00.000Z",
+			"end": "2026-09-29T01:15:00.000Z"
+		},
+		"address": "1 Example Avenue, Singapore 400001",
+		"location": {
+			"lat": 1.3236,
+			"lng": 103.9273
+		},
+		"area": "east",
+		"skill": "home_cleaning",
+		"status": "scheduled",
+		"shift_check": "confirmed"
+	}
+]

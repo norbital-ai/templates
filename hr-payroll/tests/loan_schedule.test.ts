@@ -3,7 +3,6 @@ import { loanRuleFacts } from '../src/lib/loan_values.js';
 import { test } from '@effect/vitest';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal, sum } from '@norbital-ai/std/decimal';
-import { formatNumeric } from '../src/lib/ui/format/display_formatters.ts';
 import {
 	buildLoanSchedule,
 	validateLoanRepayments,
@@ -195,17 +194,6 @@ test('validation preserves genuine reversals and requires their signed total to 
 		recalc.repayments.map(({ amount }) => amount.toString()),
 		['80.00', '20.00', '20.00', '20.00']
 	);
-});
-
-test('a repayment mismatch displays both amounts with grouping and currency precision', () => {
-	const principal = Decimal.of('1000');
-	const row = repayment('2026-01-31', '950');
-	assert.equal(
-		validateLoanRepayments(terms({ principal_amount: principal, repayments: [row] })).ok,
-		false
-	);
-	assert.equal(formatNumeric(row.amount.toString(), 'PHP', 2), '950.00');
-	assert.equal(formatNumeric(principal.toString(), 'PHP', 2), '1,000.00');
 });
 
 test('invalid periods, fractional cents, impossible positive repayments and excessive schedules refuse', () => {

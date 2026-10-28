@@ -60,7 +60,7 @@ export function statutoryFactsFromFacts(facts: unknown): readonly StatutoryFact[
 	return out;
 }
 /** The election keys one `employee_input_schema` declares for a statutory standing. */
-export function electionKeysOf(schema: unknown): readonly string[] {
+function electionKeysOf(schema: unknown): readonly string[] {
 	let node: unknown = schema;
 	for (const key of [
 		'properties',
