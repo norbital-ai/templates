@@ -1029,12 +1029,6 @@
 						"type": "object",
 						"additionalProperties": false,
 						"properties": {
-							"id": {
-								"type": "string"
-							},
-							"employment_id": {
-								"type": "string"
-							},
 							"statutory_contribution_id": {
 								"type": "string"
 							},

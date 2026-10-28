@@ -1,6 +1,6 @@
 import type { snapshot } from './commercial.js';
 import { isMasked, type Row, type StoredRow } from '@norbital-ai/bolt';
-import { currency } from '@norbital-ai/std/decimal';
+import { currency, Decimal } from '@norbital-ai/std/decimal';
 /** The order fields every agreement helper reads (a read request's `fields`). */
 export const agreementFields = [
 	'seal_hash',
@@ -72,6 +72,11 @@ export function agreements(order: AgreementOrder): ContractVersion[] {
 export const currentContractVersion = (versions: readonly ContractVersion[]) =>
 	versions.find((version) => version.lifecycle === 'current') ??
 	versions.filter((version) => version.lifecycle == null).at(-1);
+/** The current contract's total: the order list's agreed total, written wherever the versions change. */
+export const agreedTotal = (versions: readonly ContractVersion[]) => {
+	const total = currentContractVersion(versions)?.snapshot.total;
+	return total === undefined ? null : Decimal.of(total);
+};
 export const currentAgreement = (order: AgreementOrder) =>
 	currentContractVersion(agreements(order));
 /** A source void or closure ends execution without deleting the retained contract. */

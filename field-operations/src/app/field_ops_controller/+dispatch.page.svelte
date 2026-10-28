@@ -87,7 +87,6 @@
 			(open?.current?.suspicious_activity_logs.rows ?? []).map((log) => log.job_assignment_id)
 		)
 	);
-	const statusLabel = (status: 'pending' | 'completed') => t(`component.status_${status}`);
 	let message = $state<string | null>(null);
 	let importing = $state(false);
 	let picker = $state<HTMLInputElement>();
@@ -223,6 +222,7 @@
 	title={t('app.field_ops_controller.header_title')}
 	description={t('app.field_ops_controller.header_description')}
 >
+	{#snippet actions()}{@render dayPicker()}{/snippet}
 	<Stack gap="sm" fill>
 		<!-- the sheet picker the import action opens -->
 		<input
@@ -264,7 +264,6 @@
 					where={{ scheduled_for: { eq: date } }}
 					orderBy={{ dispatched_at: 'asc' }}
 					toolbar={{
-						controls: dayPicker,
 						actions: [
 							{
 								icon: 'lucide:shield-alert',
@@ -281,10 +280,7 @@
 							}
 						]
 					}}
-					lanes={(['pending', 'completed'] as const).map((value) => ({
-						value,
-						label: statusLabel(value)
-					}))}
+					lanes={['pending', 'completed']}
 					{card}
 				/>
 			{/snippet}

@@ -11,7 +11,7 @@ export default model('openings', {
 		service: { kind: 'ref', to: 'services', inverse: 'openings', owned: true },
 		day: { kind: 'date' },
 		/** Instants, earliest first. */
-		starts: { kind: 'text', many: true }
+		starts: { kind: 'text', many: true, hidden: true }
 	},
 	unique: [{ fields: ['service', 'day'] }],
 	read: 'all',

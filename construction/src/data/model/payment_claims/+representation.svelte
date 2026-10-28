@@ -3,7 +3,6 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	import RefField from '../../../lib/ref-field.svelte';
 	let {
 		view
 	}: {
@@ -18,10 +17,10 @@
 		<Grid minimum="compact">
 			<Field name="claim_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<RefField name="project_id" ref="project" />
+				<Field name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.job_id == null}
-				<RefField name="job_id" ref="job" />
+				<Field name="job_id" />
 			{/if}
 			<Field name="claim_type" />
 			<Field name="status" />

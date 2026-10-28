@@ -62,7 +62,7 @@ export default model('ext_purchase_orders', {
 	description: 'Supplier order confirmation.',
 	label: 'reference',
 	fields: {
-		external_id: { kind: 'text' },
+		external_id: { kind: 'text', hidden: true },
 		reference: { kind: 'text' },
 		agreement_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },

@@ -131,7 +131,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -210,7 +210,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -290,7 +290,7 @@
 				},
 				"updated_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				}
@@ -314,7 +314,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -642,7 +642,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1218,7 +1218,7 @@
 				},
 				"started_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1354,7 +1354,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},

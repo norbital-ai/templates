@@ -20,7 +20,7 @@ test.live(
 				const answers = yield* Context.get(t.services, Reads).run(
 					[{ kind: 'history', model, id }],
 					{ as: 'caller', authority: t.as(holder).authority },
-					{ now: t.clock.now(), today: '2026-10-10', tz: t.manifest.workspace.tz, params: {} }
+					{ now: t.clock.now(), today: '2026-10-10', tz: t.manifest.workspace.tz }
 				);
 				return yield* Schema.decodeUnknownEffect(
 					Schema.Array(Schema.Struct({ changed: Schema.Record(Schema.String, Schema.Json) }))

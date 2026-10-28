@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { progressOf, progressRead } from '../../../lib/partner-progress.js';
-	import OrderCreateFields from '../../../lib/ui/order-create-fields.svelte';
-	import { type FormState, Table, Badge, format, useKinds, type RecordView } from '@norbital-ai/ui';
+	import { Table, Badge, format, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { bolt } from '$bolt';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import CreateTable from '../../../lib/ui/create-table.svelte';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
 		view
 	}: {
@@ -25,23 +24,28 @@
 	);
 </script>
 
-{#snippet orderFields(form: FormState)}<OrderCreateFields {form} scoped />{/snippet}
-{#snippet contacts()}{#if id}<CreateTable
+{#snippet contacts()}{#if id}<Table
 			of="contacts"
 			where={{ party: { eq: id } }}
 			columns={['name', 'email', 'phone', 'job_title']}
-			createValues={{ party: id }}
+			toolbar={{
+				new: kinds.catalog?.contacts?.create ? () => openCreate('contacts', { party: id }) : false
+			}}
 		/>{/if}{/snippet}
-{#snippet orders()}{#if id}<CreateTable
+{#snippet orders()}{#if id}<Table
 			of="orders"
 			where={{ party: { eq: id } }}
 			columns={['number', 'status', 'ordered_on', 'total']}
-			createValues={{
-				party: id,
-				direction: supplier ? 'purchasing' : 'sales',
-				...(view.mode !== 'create' ? { currency: view.record.currency } : {})
+			toolbar={{
+				new: !kinds.catalog?.orders?.create
+					? false
+					: () =>
+							openCreate('orders', {
+								party: id,
+								direction: supplier ? 'purchasing' : 'sales',
+								...(view.mode !== 'create' ? { currency: view.record.currency } : {})
+							})
 			}}
-			createForm={orderFields}
 		/>{/if}{/snippet}
 {#snippet progressState({
 	row

@@ -45,13 +45,12 @@
 		row.id
 	)}{#if left == null}—{:else}{money(left)}{/if}{/snippet}
 
-{#snippet companyControl()}<CompanyScope {scope} />{/snippet}
-
 <AppShell
 	icon="lucide:landmark"
 	title={bolt.t('app.loans.title')}
 	description={bolt.t('app.loans.description')}
 >
+	{#snippet actions()}<CompanyScope {scope} />{/snippet}
 	{#if scope.unknown}
 		<Skeleton class="h-40 w-full" />
 	{:else if scope.id == null}
@@ -62,7 +61,7 @@
 			key={`loans-${scope.id}`}
 			where={{ company_id: { eq: scope.id } }}
 			orderBy={{ created_at: 'desc' }}
-			toolbar={{ title: bolt.t('app.loans.title'), controls: companyControl }}
+			toolbar={{ title: bolt.t('app.loans.title') }}
 			columns={[
 				'catalog_id',
 				{ field: 'employment_id', label: bolt.t('component.person'), cell: personCell },

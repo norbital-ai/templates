@@ -6,7 +6,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
-	import { Form } from '@norbital-ai/ui';
+	import { EmptyState, enumText, Form, useBolt } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
@@ -20,6 +20,7 @@
 		findings?: boolean;
 	} = $props();
 	const t = bolt.t;
+	const ui = useBolt();
 	const photos = $derived(
 		bolt.query({
 			photo_evidence: {
@@ -93,9 +94,10 @@
 		<section class="rounded-md border p-3" aria-label={t('component.evidence_facts')}>
 			<h4 class="text-sm font-semibold">{t('component.evidence_facts')}</h4>
 			<p class="text-tiny text-muted-foreground">{t('component.evidence_facts_description')}</p>
-			{#if flagged.length === 0}<p class="text-tiny text-muted-foreground">
-					{t('component.evidence_facts_empty')}
-				</p>{/if}
+			{#if flagged.length === 0}<EmptyState
+					variant="inset"
+					title={t('component.evidence_facts_empty')}
+				/>{/if}
 			{#if flagged.length > 0}<Stack gap="sm" class="pt-2">
 					{#each flagged as photo (photo.id)}
 						<Inline
@@ -115,7 +117,11 @@
 								<Cluster gap="xs">
 									{#each photo.flags as flag (flag)}
 										<span class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
-											>{t(`component.flag_${flag}`)}</span
+											>{enumText(flag, {
+												t: (key) => ui.t(key),
+												model: 'photo_evidence',
+												field: 'flags'
+											})}</span
 										>
 									{/each}
 								</Cluster>
@@ -132,9 +138,10 @@
 			<p class="text-tiny text-muted-foreground">
 				{t('component.similar_photos_other_assignments_description')}
 			</p>
-			{#if pairs.length === 0}<p class="text-tiny text-muted-foreground">
-					{t('component.similar_photos_other_assignments_empty')}
-				</p>{/if}
+			{#if pairs.length === 0}<EmptyState
+					variant="inset"
+					title={t('component.similar_photos_other_assignments_empty')}
+				/>{/if}
 			{#if pairs.length > 0}<Stack gap="sm" class="pt-2">
 					{#each pairs as pair (pair.id)}
 						<article class="rounded-md border p-2">
@@ -174,11 +181,10 @@
 			{#if logs?.error}<p class="text-tiny text-destructive" role="alert">
 					{t('component.suspicion_load_failed')}
 				</p>{/if}
-			{#if (logs?.current?.suspicious_activity_logs.rows ?? []).length === 0}<p
-					class="text-tiny text-muted-foreground"
-				>
-					{t('component.suspicion_logs_empty')}
-				</p>{/if}
+			{#if logs?.current?.suspicious_activity_logs.rows.length === 0}<EmptyState
+					variant="inset"
+					title={t('component.suspicion_logs_empty')}
+				/>{/if}
 			<Stack gap="sm">
 				{#each logs?.current?.suspicious_activity_logs.rows ?? [] as log (log.id)}
 					<Stack

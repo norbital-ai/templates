@@ -46,7 +46,10 @@ export default model('adhoc_catalog', {
 			owned: true
 		}
 	},
-	read: 'all',
+	read: {
+		adhoc_catalog: { fields: 'all' },
+		'adhoc_catalog.settings_id': { fields: ['code', 'sealed_at', 'voided_at', 'effective_range'] }
+	},
 	create: {
 		columns: { adhoc_catalog: create_columns }
 	},

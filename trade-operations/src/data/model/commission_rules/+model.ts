@@ -83,6 +83,7 @@ export default model('commission_rules', {
 			}
 		}
 	},
+	search: { text: ['basis_unit'] },
 	read: 'all',
 	create: {
 		columns: {

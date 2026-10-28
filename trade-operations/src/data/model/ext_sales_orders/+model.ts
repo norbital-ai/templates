@@ -59,7 +59,7 @@ export default model('ext_sales_orders', {
 	description: 'Customer order confirmation.',
 	label: 'reference',
 	fields: {
-		external_id: { kind: 'text' },
+		external_id: { kind: 'text', hidden: true },
 		reference: { kind: 'text' },
 		agreement_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },

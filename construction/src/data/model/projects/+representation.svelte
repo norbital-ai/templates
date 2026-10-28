@@ -32,11 +32,7 @@
 	const sites = $derived(
 		record &&
 			bolt.query({
-				site_locations: {
-					where: { project_id: { eq: record.id } },
-					fields: ['location_name', 'location_code', 'location_type'],
-					orderBy: { location_name: 'asc' }
-				}
+				site_locations: { where: { project_id: { eq: record.id } }, aggregate: { count: true } }
 			})
 	);
 	const assignments = $derived(
@@ -44,8 +40,7 @@
 			bolt.query({
 				job_assignments: {
 					where: { site_location_id: { is: { project_id: { eq: record.id } } } },
-					fields: ['assignment_code'],
-					orderBy: { updated_at: 'desc' }
+					aggregate: { count: true }
 				}
 			})
 	);
@@ -174,7 +169,7 @@
 	<Stack gap="md" class="border-t pt-4">
 		<p class="text-overline">{t('component.delivery_pulse')}</p>
 		<Stack as="dl" gap="none" divided class="text-sm">
-			{#each [['component.work_fronts', sites?.current?.site_locations.rows.length], ['component.allocated_workers', assignments?.current?.job_assignments.rows.length], ['component.project_documents', documents?.current?.asset_documents.rows.length]] as const as [label, count] (label)}
+			{#each [['component.work_fronts', sites?.current?.site_locations.count], ['component.allocated_workers', assignments?.current?.job_assignments.count], ['component.project_documents', documents?.current?.asset_documents.rows.length]] as const as [label, count] (label)}
 				<Inline as="div" justify="between" class="py-2">
 					<dt>{t(label)}</dt>
 					<dd class="font-medium tabular-nums">{count ?? 0}</dd>

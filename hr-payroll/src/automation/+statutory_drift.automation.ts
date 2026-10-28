@@ -26,7 +26,7 @@ import {
 	type StatutorySnapshot
 } from '../lib/payroll_engine/statutory_snapshot.js';
 import {
-	AGENT_JOBS,
+	AGENT_BRIEFS,
 	AGENT_SECTIONS,
 	RESEARCH_AGENT_NAMES
 } from '../lib/payroll_engine/research_agents.js';
@@ -294,7 +294,9 @@ export default automation('statutory_drift', {
 								// Markdown, as the transcript renders it: headed sections, the sources a list, the index a fenced block
 								prompt: [
 									`# ${code} · ${agent}`,
-									`Review as of ${ctx.today}. You are the ${agent} agent: you own ${AGENT_JOBS[agent]} (snapshot sections: ${AGENT_SECTIONS[agent].map((section) => `\`${section}\``).join(', ')}).`,
+									`Review as of ${ctx.today}. You are the ${agent} agent (snapshot sections: ${AGENT_SECTIONS[agent].map((section) => `\`${section}\``).join(', ')}).`,
+									'## Your brief',
+									AGENT_BRIEFS[agent],
 									...(sources.agents[agent] === undefined
 										? []
 										: [`## Supplementary instructions for ${code}`, sources.agents[agent]]),

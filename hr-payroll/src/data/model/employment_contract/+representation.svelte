@@ -128,14 +128,17 @@
 				if (created) openRecord('employment_contract', created.id);
 			}}
 		>
-			<Section first name="identity" title={t('section.identity')}>
-				<Grid minimum="card">
-					<Field name="employee_number" />
-					<Field name="company_id" />
-					<Field name="employee_id" />
-				</Grid>
-			</Section>
-			<Section name="period" title={t('contract.employment_period')}>
+			<!-- who, where and the number are fixed once a contract exists (its title names it): only a new one asks -->
+			{#if !record}
+				<Section first name="identity" title={t('section.identity')}>
+					<Grid minimum="card">
+						<Field name="employee_number" />
+						<Field name="company_id" />
+						<Field name="employee_id" />
+					</Grid>
+				</Section>
+			{/if}
+			<Section first={!!record} name="period" title={t('contract.employment_period')}>
 				<Grid minimum="card">
 					<Field name="effective_range" />
 					<Field name="signed_contract_end" />

@@ -118,7 +118,7 @@ export default messages({
 	'component.marker_legend': '标记图例',
 	'component.highlights': '高亮',
 	'component.ifc_model_preview': 'IFC 模型预览',
-	'component.ifc_element_line': '模型 {modelId} · 元素 #{elementId}',
+	'component.ifc_element': '模型元素',
 	'component.ifc_html_instead_of_bytes':
 		'模型 URL 返回的是 HTML 而非 IFC 数据。这通常是因为链接使用了过期的应用源或端口。请刷新页面或重新打开记录，使 URL 与当前服务器一致。',
 	'component.ifc_download_failed': '无法下载 IFC 模型（{status}）。',

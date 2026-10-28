@@ -86,7 +86,7 @@ function scripted() {
 							usage
 						};
 					const last = request.messages.findLast(
-						(m) => !(typeof m.content === 'string' && m.content.startsWith('[conversation state]'))
+						(m) => !(typeof m.content === 'string' && m.content.startsWith('[conversation state'))
 					); // not the engine's closing note
 					if (last === undefined) throw new Error('Missing conversation message');
 					if (last.role === 'tool')

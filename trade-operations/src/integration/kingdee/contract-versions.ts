@@ -4,6 +4,7 @@ import type { Json } from '@norbital-ai/bolt/engine';
 import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
 import {
+	agreedTotal,
 	agreements,
 	agreementFields,
 	currentAgreement,
@@ -148,6 +149,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 			ledger: instance,
 			source_order_key: order.source_order_key ?? first.seal_hash,
 			contract_versions: versions,
+			agreed_total: agreedTotal(versions),
 			contract_version:
 				order.status === 'draft'
 					? Math.max(order.contract_version, ...versions.map((version) => version.version + 1))

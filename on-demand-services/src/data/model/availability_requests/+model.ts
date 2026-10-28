@@ -14,7 +14,7 @@ export default model('availability_requests', {
 		helper: { kind: 'ref', to: 'helpers', optional: true },
 		repeat: { kind: 'enum', values: REPEATS, default: 'once' },
 		location: { kind: 'point', optional: true },
-		starts: { kind: 'text', many: true, default: [] },
+		starts: { kind: 'text', many: true, default: [], hidden: true },
 		estimated: { kind: 'bool', default: true },
 		checked_at: { kind: 'instant', optional: true },
 		problem: { kind: 'text', optional: true },

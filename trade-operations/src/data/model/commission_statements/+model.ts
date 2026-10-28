@@ -7,15 +7,16 @@ export default model('commission_statements', {
 	label: 'number',
 	fields: {
 		owner: { kind: 'ref', to: 'sys_user' },
-		acknowledged_by: { kind: 'ref', to: 'sys_user', default: { actor: 'id' } },
+		acknowledged_by: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
 		number: { kind: 'seq', pattern: 'CS-{yyyy}-{0000}' },
 		period: { kind: 'date' },
 		currency: { kind: 'currency' },
-		calculation_hash: { kind: 'text' },
+		calculation_hash: { kind: 'text', hidden: true },
 		amount: { kind: 'money', currency: 'currency' },
 		order_count: { kind: 'int' },
 		acknowledged_at: { kind: 'instant' },
 		snapshot: {
+			hidden: true,
 			kind: 'json',
 			shape: {
 				kind: 'list',

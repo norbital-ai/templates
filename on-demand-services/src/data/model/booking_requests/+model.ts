@@ -38,6 +38,7 @@ export default model('booking_requests', {
 		outcome: { kind: 'text', optional: true }
 	},
 	index: ['status'],
+	search: { text: ['phone', 'address'] },
 	read: 'all',
 	create: {
 		columns: {

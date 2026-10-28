@@ -19,7 +19,7 @@
 		"test": "bolt templates test"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt": "0.0.2",
+		"@norbital-ai/bolt": "0.0.5",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"pg": "^8.23.0",
 		"prettier": "^3.9.6",

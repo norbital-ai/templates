@@ -31,7 +31,12 @@ export default model('credit_snapshots', {
 		party: { kind: 'ref', to: 'parties' }
 	},
 	key: ['source', 'external_code'],
-	read: 'all',
+	search: { text: ['party', 'external_code'] },
+	read: {
+		credit_snapshots: { fields: 'all' },
+		'credit_snapshots.party': { fields: ['name', 'external_code'] },
+		'credit_snapshots.party.orders': { fields: ['id'] }
+	},
 	syncs: {
 		kingdee: {
 			with: 'kingdee',

@@ -4,7 +4,6 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	import RefField from '../../../lib/ref-field.svelte';
 	let {
 		view
 	}: {
@@ -20,10 +19,10 @@
 			<Field name="title" />
 			<Field name="document_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<RefField name="project_id" ref="project" />
+				<Field name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.site_location_id == null}
-				<RefField name="site_location_id" ref="site" />
+				<Field name="site_location_id" />
 			{/if}
 			<Field name="document_type" />
 			<Field name="status" />

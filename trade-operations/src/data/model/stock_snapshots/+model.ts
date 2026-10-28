@@ -37,6 +37,7 @@ export default model('stock_snapshots', {
 	},
 	key: ['source', 'external_code'],
 	// availability names each snapshot's product and warehouse
+	search: { text: ['product', 'warehouse', 'lot_number', 'external_code'] },
 	read: {
 		stock_snapshots: { fields: 'all' },
 		'stock_snapshots.product': { fields: 'all' },

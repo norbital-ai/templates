@@ -7,10 +7,10 @@ import { model } from '@norbital-ai/bolt';
 export default model('drive_times', {
 	description: 'Google drive times between ~1 km squares, read by matching.',
 	icon: 'lucide:route',
-	label: 'leg',
+	label: 'minutes',
 	fields: {
 		/** `<lat>,<lng>><lat>,<lng>`, each rounded to 0.01°. */
-		leg: { kind: 'text', unique: true },
+		leg: { kind: 'text', unique: true, hidden: true },
 		minutes: { kind: 'int', min: 0 }
 	},
 	read: 'all',

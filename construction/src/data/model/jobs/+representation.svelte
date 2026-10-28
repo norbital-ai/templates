@@ -3,7 +3,6 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	import RefField from '../../../lib/ref-field.svelte';
 	let {
 		view
 	}: {
@@ -18,13 +17,13 @@
 			<Field name="job_title" />
 			<Field name="job_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<RefField name="project_id" ref="project" />
+				<Field name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.site_location_id == null}
-				<RefField name="site_location_id" ref="site" />
+				<Field name="site_location_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.bim_reference_id == null}
-				<RefField name="bim_reference_id" ref="bim" />
+				<Field name="bim_reference_id" />
 			{/if}
 			<Field name="job_type" />
 			<Field name="status" />

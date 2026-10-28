@@ -14,6 +14,7 @@ export default model('services', {
 		description: { kind: 'text', optional: true },
 		active: { kind: 'bool', default: true }
 	},
+	search: { text: ['name'] },
 	read: 'all',
 	create: { columns: { services: columns } },
 	update: { columns: { services: columns } },

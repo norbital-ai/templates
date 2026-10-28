@@ -322,8 +322,8 @@ it.live('unavailable metadata preserves the native fallback and visual budget', 
 		expect(requests).toHaveLength(1);
 		expect(requests[0]?.files?.[0]?.mime).toBe('image/jpeg');
 		expect(requests[0]?.files?.[0]?.bytes.byteLength).toBe(fileBytes);
-		expect(JSON.stringify(inferences[0])).toContain('file_size');
-		expect(JSON.stringify(inferences[0])).toContain(String(fileBytes));
+		// the native size earns the photo its visual slot; the compact prompt lists it as attached, not its byte count
+		expect(JSON.stringify(inferences[0])).toContain('Attached photos, in order (1 of 1):');
 		expect(
 			yield* rows(t, 'SELECT suspicious FROM suspicion_reviews WHERE job_assignment_id = $1', [job])
 		).toEqual([{ suspicious: false }]);

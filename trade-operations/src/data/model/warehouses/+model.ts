@@ -27,6 +27,7 @@ export default model('warehouses', {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
 	key: ['source', 'external_code'],
+	search: { text: ['name', 'external_code', 'group_code'] },
 	read: 'all',
 	syncs: {
 		kingdee: {

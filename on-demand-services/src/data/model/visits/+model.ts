@@ -96,6 +96,7 @@ export default model('visits', {
 		}
 	],
 	// the layers the desk, the helper's day and the portal show beside a visit; each policy narrows them for its holders
+	search: { text: ['number', 'address', 'helper', 'booking'] },
 	read: {
 		visits: { fields: 'all' },
 		'visits.helper': { fields: 'all' },

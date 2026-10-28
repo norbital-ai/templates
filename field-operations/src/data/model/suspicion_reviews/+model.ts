@@ -11,7 +11,7 @@ export default model('suspicion_reviews', {
 		/** The cited photo is a pointer into the evidence, never a hold on it: deleting the photo clears the citation. */
 		evidence_id: { kind: 'ref', to: 'photo_evidence', optional: true, onDelete: 'setNull' },
 		/** SHA-256 of `basis`. */
-		basis_hash: { kind: 'text' },
+		basis_hash: { kind: 'text', hidden: true },
 		/** Canonical snapshot of the facts supplied to inference. */
 		basis: { kind: 'json', shape: REVIEW_BASIS },
 		suspicious: { kind: 'bool' },
@@ -19,7 +19,7 @@ export default model('suspicion_reviews', {
 		model: { kind: 'text' },
 		reviewed_at: { kind: 'instant' },
 		/** One review per assignment and evidence basis, even when a run is retried. */
-		source_key: { kind: 'text', unique: true }
+		source_key: { kind: 'text', unique: true, hidden: true }
 	},
 	unique: [{ fields: ['job_assignment_id', 'basis_hash'] }],
 	index: ['reviewed_at'],

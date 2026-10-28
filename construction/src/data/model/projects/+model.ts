@@ -16,7 +16,7 @@ const columns = [
 export default model('projects', {
 	description: 'Construction projects and their operating context.',
 	icon: 'lucide:building-2',
-	label: 'project_name',
+	label: ['project_number', 'project_name'],
 	fields: {
 		project_name: { kind: 'text' },
 		project_number: { kind: 'text', optional: true, unique: true },
@@ -35,7 +35,7 @@ export default model('projects', {
 		project_manager: { kind: 'text', optional: true },
 		description: { kind: 'text', optional: true }
 	},
-	search: { text: ['project_name'] },
+	search: { text: ['project_name', 'project_number'] },
 	read: 'all',
 	create: { columns: { projects: columns } },
 	update: { columns: { projects: columns } }

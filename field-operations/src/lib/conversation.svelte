@@ -7,9 +7,10 @@
 	import { bolt } from '$bolt';
 	import { watch } from 'runed';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Button, useKinds } from '@norbital-ai/ui';
+	import { Button, EmptyState, useKinds } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { dayIn, timeIn, weekdayIn } from './format.js';
+	import { senderName } from './dispatch.js';
 	type Photo = {
 		id: string;
 		name: string;
@@ -37,6 +38,10 @@
 			}
 		})
 	);
+	/** Who sent each message, by name; a reader without members sees none. */
+	const members = bolt.query({ sys_user: { fields: ['name', 'email', 'phone'], limit: 1000 } });
+	const nameOf = (sender: string) =>
+		senderName(sender, members.current?.sys_user.rows ?? []) ?? '—';
 	/** A contractor's grant masks a photo's provenance: select it only where it is readable. */
 	const kinds = useKinds();
 	const locale = kinds.locale ?? bolt.locale;
@@ -87,11 +92,7 @@
 					name: file.name,
 					url: bolt.fileUrl(file, { preview: 1024 }),
 					flags,
-					sender:
-						message?.sender_id ??
-						(message
-							? t('component.integration_agent', { integration: message.integration ?? '' })
-							: t('component.workspace_upload')),
+					sender: message ? nameOf(message.sender_id) : t('component.workspace_upload'),
 					sentAt: message?.sent_at ?? String(row.created_at ?? ''),
 					messageId: message?.message_id ?? null,
 					system: message == null
@@ -115,7 +116,7 @@
 		const items: Item[] = [
 			...(logs.current?.communication_logs.rows ?? []).map((m) => ({
 				id: `message:${m.source_message_id}`,
-				sender: m.sender,
+				sender: nameOf(m.sender),
 				text: m.message,
 				sentAt: String(m.sent_at),
 				photos: byMessage.get(m.source_message_id) ?? [],
@@ -184,7 +185,7 @@
 		onscroll={() => port && (pinned = port.scrollHeight - port.scrollTop - port.clientHeight <= 24)}
 	>
 		{#if timeline.size === 0}
-			<p class="text-sm text-muted-foreground">{t('component.conversation_empty')}</p>
+			<EmptyState variant="inset" title={t('component.conversation_empty')} />
 		{/if}
 		<Stack as="ol" gap="sm">
 			{#each timeline as [day, items] (day)}

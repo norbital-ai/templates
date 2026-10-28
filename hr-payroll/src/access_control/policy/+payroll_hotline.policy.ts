@@ -2,8 +2,8 @@ import { policy } from '@norbital-ai/bolt';
 
 /**
  * The payroll hotline's whole authority (`src/agent/envoy/+payroll_hotline.envoy.ts`, `dm: 'envoy'`): a linked
- * member's own payslips of the entity whose WhatsApp number the message arrived on. `{ actor: 'id' }` is the member a
- * DM is bound to and `{ actor: 'instance' }` the number (`entity.hotline`); a turn with no linked member has no
+ * member's own payslips of the entity whose WhatsApp number the message arrived on. `{ var: 'requestor.id' }` is the member a
+ * DM is bound to and `{ var: 'requestor.instance' }` the number (`entity.hotline`); a turn with no linked member has no
  * `actor.id`, so reads nothing. No team holds it, and it grants no write.
  */
 export default policy({
@@ -16,8 +16,8 @@ export default policy({
 					where: {
 						employment_id: {
 							is: {
-								employee_id: { is: { user_id: { eq: { actor: 'id' } } } },
-								company_id: { is: { hotline: { eq: { actor: 'instance' } } } }
+								employee_id: { is: { user_id: { eq: { var: 'requestor.id' } } } },
+								company_id: { is: { hotline: { eq: { var: 'requestor.instance' } } } }
 							}
 						}
 					},

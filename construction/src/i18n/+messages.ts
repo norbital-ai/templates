@@ -121,7 +121,7 @@ export default messages({
 	'component.marker_legend': 'Marker legend',
 	'component.highlights': 'Highlights',
 	'component.ifc_model_preview': 'IFC model preview',
-	'component.ifc_element_line': 'Model {modelId} • Element #{elementId}',
+	'component.ifc_element': 'Model element',
 	'component.ifc_html_instead_of_bytes':
 		'The model URL returned HTML instead of IFC data. This often happens when the link used a stale app origin or port. Refresh the page or reopen the record so the URL matches the current server.',
 	'component.ifc_download_failed': 'Unable to download IFC model ({status}).',

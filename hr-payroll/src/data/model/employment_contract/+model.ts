@@ -337,7 +337,7 @@ export default model('employment_contract', {
 		},
 		company_id: { kind: 'ref', to: 'entity', inverse: 'employment_contract' }
 	},
-	search: { text: ['employee_number'] },
+	search: { text: ['employee_number', 'employee_id'] },
 	read: {
 		employment_contract: { fields: 'all' },
 		'employment_contract.employee_id': { fields: 'all' },

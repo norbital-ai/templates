@@ -48,7 +48,8 @@ export default model('jurisdiction_settings', {
 		'jurisdiction_settings.claim_catalog': { fields: 'all' },
 		'jurisdiction_settings.leave_catalog': { fields: 'all' },
 		'jurisdiction_settings.loan_catalog': { fields: 'all' },
-		'jurisdiction_settings.rule_set': { fields: 'all' }
+		'jurisdiction_settings.rule_set': { fields: 'all' },
+		'jurisdiction_settings.payroll_run': { fields: ['id'] }
 	},
 	create: {
 		columns: {

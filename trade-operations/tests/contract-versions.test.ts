@@ -215,6 +215,9 @@ test.live(
 			if (!replacement) throw new Error('Sealed replacement required');
 			expect(replacement.seal_hash).not.toBe(original.seal_hash);
 			expect(currentAgreement(replacement)?.seal_hash).toBe(original.seal_hash);
+			// the list's agreed total stays the accepted contract's while the replacement is pending
+			expect(original.agreed_total).not.toBeNull();
+			expect(String(replacement.agreed_total)).toBe(String(original.agreed_total));
 			const versions = agreements(replacement);
 			expect(versions).toHaveLength(2);
 			expect(versions.filter((version) => version.lifecycle === 'current')).toHaveLength(1);

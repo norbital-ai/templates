@@ -61,7 +61,16 @@ export default model('customer_notices', {
 		/** An out-of-office or other automatic answer: kept apart, never the customer's reply. */
 		auto_replied_at: { kind: 'instant', optional: true }
 	},
-	read: { customer_notices: { fields: 'all' }, 'customer_notices.customer': { fields: 'all' } },
+	search: { text: ['subject', 'visit'] },
+	read: {
+		customer_notices: { fields: 'all' },
+		'customer_notices.customer': { fields: 'all' },
+		'customer_notices.visit': { fields: ['number', 'address'] },
+		'customer_notices.visit.helper': { fields: ['name'] },
+		'customer_notices.visit.booking': { fields: ['number'] },
+		'customer_notices.visit.booking.customer': { fields: ['name', 'phone', 'email', 'address'] },
+		'customer_notices.visit.booking.service': { fields: ['name'] }
+	},
 	create: {
 		columns: { customer_notices: ['customer', 'visit', 'subject', 'body'] },
 		transform: function* (rows, ctx) {

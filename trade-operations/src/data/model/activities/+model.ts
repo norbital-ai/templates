@@ -4,7 +4,7 @@ export default model('activities', {
 	label: 'title',
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'activities' },
-		owner: { kind: 'ref', to: 'sys_user', default: { actor: 'id' } },
+		owner: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
 		title: {
 			kind: 'text'
 		},
@@ -15,9 +15,7 @@ export default model('activities', {
 		},
 		due_on: {
 			kind: 'date',
-			default: {
-				today: ''
-			}
+			default: { var: 'today' }
 		},
 		done: {
 			kind: 'bool',
@@ -28,6 +26,7 @@ export default model('activities', {
 			optional: true
 		}
 	},
+	search: { text: ['title', 'kind'] },
 	read: 'all',
 	create: {
 		columns: { activities: ['order', 'owner', 'title', 'kind', 'due_on', 'done', 'notes'] }

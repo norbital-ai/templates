@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { useKinds, Table } from '@norbital-ai/ui';
+	import { Table } from '@norbital-ai/ui';
 	/** Every helper: skills, working hours and area. Open one for their visits, time off and warnings. */
 	import { bolt } from '$bolt';
-	import { PlainDate } from '@norbital-ai/std/date';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
-	const today = PlainDate(new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date()));
+	const clock = bolt.clock('day');
 </script>
 
 <AppShell
@@ -22,7 +20,7 @@
 		columns={['name', 'phone', 'skills', 'work_days', 'day_start', 'day_end', 'status']}
 		actions={[
 			{
-				run: (row) => bolt.start('helpers_offboard', { targets: [row.id], last_day: today }),
+				run: (row) => bolt.start('helpers_offboard', { targets: [row.id], last_day: clock.today }),
 				label: t('app.helpers.offboard'),
 				confirm: t('app.helpers.offboard_confirm')
 			}

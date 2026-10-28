@@ -22,6 +22,7 @@ export default model('contacts', {
 			optional: true
 		}
 	},
+	search: { text: ['name', 'email', 'phone'] },
 	read: 'all',
 	create: {
 		columns: { contacts: ['party', 'name', 'email', 'phone', 'job_title'] }

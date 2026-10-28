@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { useKinds, Badge, EmptyState, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
+	import {
+		useKinds,
+		Badge,
+		EmptyState,
+		enumText,
+		Icon,
+		Label,
+		PhoneVerify,
+		useBolt
+	} from '@norbital-ai/ui';
 	/**
 	 * A customer's bookings (the policy scopes every read to their own record): the next visits with who is coming and how
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
@@ -11,6 +20,9 @@
 	let { data }: { data: typeof Data.Type } = $props();
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
+	const ui = useBolt();
+	const statusWord = (value: 'in_progress' | 'done') =>
+		enumText(value, { t: (key) => ui.t(key), model: 'visits', field: 'status' });
 	const me = bolt.actor?.kind === 'member';
 	const reads = me ? bolt.query(visitsReads) : null;
 	// the server's answer until the live one arrives
@@ -63,7 +75,7 @@
 									<Cluster gap="xs" justify="between" align="center">
 										<p class="font-semibold">{when(v.slot.start)}</p>
 										{#if v.status === 'in_progress'}
-											<Badge variant="info">{t('component.status_in_progress')}</Badge>
+											<Badge variant="info">{statusWord('in_progress')}</Badge>
 										{:else if v.eta_minutes !== null}
 											<Badge variant="outline"
 												>{t('app.portal.visits_on_the_way', { minutes: v.eta_minutes })}</Badge
@@ -88,7 +100,7 @@
 						{#each done as v (v.id)}
 							<Cluster gap="xs" justify="between">
 								<p class="text-sm">{when(v.slot.start)} · {v.booking?.service?.name ?? ''}</p>
-								<Badge variant="success">{t('component.status_done')}</Badge>
+								<Badge variant="success">{statusWord('done')}</Badge>
 							</Cluster>
 						{/each}
 					</Stack>

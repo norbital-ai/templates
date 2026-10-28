@@ -10,7 +10,7 @@
 				},
 				"due_on": {
 					"default": {
-						"today": ""
+						"var": "today"
 					},
 					"kind": "date"
 				},
@@ -35,7 +35,7 @@
 				},
 				"owner": {
 					"default": {
-						"actor": "id"
+						"var": "requestor.id"
 					},
 					"kind": "ref",
 					"to": "sys_user"
@@ -44,7 +44,13 @@
 					"kind": "text"
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"title",
+					"kind"
+				]
+			}
 		},
 		"approval_request": {
 			"fields": {
@@ -264,7 +270,12 @@
 				"code",
 				"currency",
 				"effective_on"
-			]
+			],
+			"search": {
+				"text": [
+					"basis_unit"
+				]
+			}
 		},
 		"commission_statements": {
 			"audit": true,
@@ -274,7 +285,7 @@
 				},
 				"acknowledged_by": {
 					"default": {
-						"actor": "id"
+						"var": "requestor.id"
 					},
 					"kind": "ref",
 					"to": "sys_user"
@@ -284,6 +295,7 @@
 					"kind": "money"
 				},
 				"calculation_hash": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"currency": {
@@ -304,6 +316,7 @@
 					"kind": "date"
 				},
 				"snapshot": {
+					"hidden": true,
 					"kind": "json",
 					"shape": {
 						"kind": "list",
@@ -376,7 +389,14 @@
 					"optional": true
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"name",
+					"email",
+					"phone"
+				]
+			}
 		},
 		"credit_snapshots": {
 			"audit": true,
@@ -422,12 +442,19 @@
 			"natural": [
 				"source",
 				"external_code"
-			]
+			],
+			"search": {
+				"text": [
+					"party",
+					"external_code"
+				]
+			}
 		},
 		"document_templates": {
 			"audit": true,
 			"fields": {
 				"body": {
+					"default": "{agreement}",
 					"kind": "text"
 				},
 				"kind": {
@@ -474,7 +501,13 @@
 				"kind",
 				"locale",
 				"version"
-			]
+			],
+			"search": {
+				"text": [
+					"title",
+					"kind"
+				]
+			}
 		},
 		"ext_purchase_orders": {
 			"audit": true,
@@ -487,6 +520,7 @@
 					"kind": "currency"
 				},
 				"external_id": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"order": {
@@ -536,6 +570,7 @@
 					"kind": "currency"
 				},
 				"external_id": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"order": {
@@ -667,11 +702,22 @@
 					"scale": 4
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"product",
+					"product_code"
+				]
+			}
 		},
 		"orders": {
 			"audit": true,
 			"fields": {
+				"agreed_total": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
 				"archived": {
 					"default": false,
 					"kind": "bool"
@@ -1174,13 +1220,13 @@
 				},
 				"ordered_on": {
 					"default": {
-						"today": ""
+						"var": "today"
 					},
 					"kind": "date"
 				},
 				"owner": {
 					"default": {
-						"actor": "id"
+						"var": "requestor.id"
 					},
 					"kind": "ref",
 					"to": "sys_user"
@@ -1277,6 +1323,7 @@
 					"optional": true
 				},
 				"sealed_snapshot": {
+					"hidden": true,
 					"kind": "json",
 					"optional": true,
 					"shape": {
@@ -1418,6 +1465,7 @@
 								"notes",
 								"archived",
 								"contract_versions",
+								"agreed_total",
 								"source_order_key",
 								"draft_setup",
 								"operational_contracts",
@@ -1625,7 +1673,14 @@
 				"currency",
 				"effective_on",
 				"minimum_quantity"
-			]
+			],
+			"search": {
+				"text": [
+					"product",
+					"group_code",
+					"unit"
+				]
+			}
 		},
 		"products": {
 			"audit": true,
@@ -1770,6 +1825,7 @@
 					"kind": "text"
 				},
 				"seal_hash": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"settled_on": {
@@ -1847,6 +1903,7 @@
 					"to": "orders"
 				},
 				"order_line": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"quantity": {
@@ -1857,6 +1914,7 @@
 					"kind": "text"
 				},
 				"seal_hash": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"source": {
@@ -1952,13 +2010,21 @@
 			"natural": [
 				"source",
 				"external_code"
-			]
+			],
+			"search": {
+				"text": [
+					"product",
+					"warehouse",
+					"lot_number",
+					"external_code"
+				]
+			}
 		},
 		"sys_api_key": {
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2037,7 +2103,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2117,7 +2183,7 @@
 				},
 				"updated_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				}
@@ -2141,7 +2207,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2469,7 +2535,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3045,7 +3111,7 @@
 				},
 				"started_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3181,7 +3247,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3278,6 +3344,7 @@
 					"optional": true
 				},
 				"erp_id": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"ext_purchase_order": {
@@ -3356,6 +3423,7 @@
 					"kind": "text"
 				},
 				"seal_hash": {
+					"hidden": true,
 					"kind": "text"
 				},
 				"source": {
@@ -3389,7 +3457,13 @@
 			"natural": [
 				"source",
 				"erp_id"
-			]
+			],
+			"search": {
+				"text": [
+					"reference",
+					"kind"
+				]
+			}
 		},
 		"warehouses": {
 			"audit": true,
@@ -3429,7 +3503,14 @@
 			"natural": [
 				"source",
 				"external_code"
-			]
+			],
+			"search": {
+				"text": [
+					"name",
+					"external_code",
+					"group_code"
+				]
+			}
 		}
 	},
 	"tz": "Asia/Singapore"

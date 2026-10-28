@@ -4,6 +4,7 @@
 		useKinds,
 		Button,
 		Combobox,
+		EmptyState,
 		TimeInput,
 		Label,
 		RunStatus,
@@ -66,7 +67,7 @@
 	let newTime = $state(false);
 	let picked = $state<string | null>(null);
 	let chosen = $state<Id<'helpers'> | null>(null);
-	let from = $state(new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date()));
+	let from = $state<string>(bolt.clock('day').today);
 	const start = $derived(newTime ? picked : (v?.slot.start ?? null));
 	// who could take it at `start`: the pool around that moment, ranked as `visits_rebook` ranks it
 	const around = livePool(
@@ -252,7 +253,10 @@
 						onclick={approve}>{t('app.recovery.approve', { name: best.name })}</Button
 					>
 				</Stack>
-			{:else if start !== null}<p>{t('app.recovery.no_match')}</p>{/if}
+			{:else if start !== null}<EmptyState
+					variant="inset"
+					title={t('app.recovery.no_match')}
+				/>{/if}
 			<Cluster gap="sm">
 				<Button variant="outline" disabled={busy} onclick={refresh}
 					>{t('app.recovery.refresh')}</Button

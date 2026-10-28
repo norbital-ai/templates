@@ -13,7 +13,7 @@ const columns = [
 export default model('site_locations', {
 	description: 'Work fronts and delivery zones within a project.',
 	icon: 'lucide:map-pin',
-	label: 'location_name',
+	label: ['location_code', 'location_name'],
 	fields: {
 		location_name: { kind: 'text' },
 		location_code: { kind: 'text', optional: true, unique: true },
@@ -32,7 +32,7 @@ export default model('site_locations', {
 			onDelete: 'setNull'
 		}
 	},
-	search: { text: ['location_name'] },
+	search: { text: ['location_code', 'location_name'] },
 	read: 'all',
 	create: { columns: { site_locations: columns } },
 	update: { columns: { site_locations: columns } }

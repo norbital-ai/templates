@@ -34,8 +34,7 @@ export const direct = Effect.fnUntraced(function* (
 		bindings: {
 			now: t.clock.now(),
 			today: t.clock.now().slice(0, 10),
-			tz: t.manifest.workspace.tz,
-			params: {}
+			tz: t.manifest.workspace.tz
 		}
 	})).outcome;
 });
@@ -107,8 +106,7 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 		bindings: {
 			now: '2026-10-10T00:00:00Z',
 			today: '2026-10-10',
-			tz: 'Asia/Singapore',
-			params: {}
+			tz: 'Asia/Singapore'
 		},
 		invocationId: key,
 		mode: {
