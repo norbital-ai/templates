@@ -60,7 +60,7 @@ export default model('photo_evidence', {
 			]
 		},
 		/** Photos under other assignments this one duplicates. */
-		matched_evidence_ids: { kind: 'text', many: true },
+		matched_evidence_ids: { kind: 'text', many: true, hidden: true },
 		/** The photo's title: where it came from. */
 		summary: { kind: 'text' }
 	},

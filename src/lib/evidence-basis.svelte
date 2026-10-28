@@ -5,10 +5,11 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { Id, Row } from '@norbital-ai/bolt';
-	import { Dialog, Section, Show, Table } from '@norbital-ai/ui';
+	import { enumText, Section, Show, Table, useBolt } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Conversation from './conversation.svelte';
 	import SuspicionPanel from './suspicion-panel.svelte';
+	import PhotoDialog from './photo-dialog.svelte';
 	let {
 		basis,
 		job
@@ -17,13 +18,17 @@
 		job: Id<'job_assignments'>;
 	} = $props();
 	const t = bolt.t;
+	const ui = useBolt();
+	const tk = (key: string) => ui.t(key);
 	let opened = $state<{ name: string; url: string } | null>(null);
 	const show = (photo: { name: string; url: string }) => (opened = photo);
 	const matches = $derived(
 		basis.candidates.map((candidate) => ({
 			id: candidate.id,
 			distance: candidate.distance.toFixed(3),
-			flags: candidate.flags.map((flag) => t(`component.flag_${flag}`)).join(', '),
+			flags: candidate.flags
+				.map((flag) => enumText(flag, { t: tk, model: 'photo_evidence', field: 'flags' }))
+				.join(', '),
 			matched: candidate.matched_photo_ids.length
 		}))
 	);
@@ -47,7 +52,9 @@
 		{@render fact(t('component.site'), basis.site?.name)}
 		{@render fact(
 			t('models.sites.fields.house_type'),
-			basis.site?.house_type ? t(`models.sites.fields.house_type.${basis.site.house_type}`) : null
+			basis.site?.house_type
+				? enumText(basis.site.house_type, { t: tk, model: 'sites', field: 'house_type' })
+				: null
 		)}
 		{@render fact(t('component.job_description_scope'), basis.job.description, true)}
 		{#if basis.assignment.summary}{@render fact(
@@ -77,15 +84,4 @@
 	</Section>
 </Stack>
 
-<Dialog.Root open={opened !== null} onOpenChange={(next) => !next && (opened = null)}>
-	<Dialog.Content class="max-w-5xl">
-		{#if opened}
-			<Dialog.Header><Dialog.Title>{opened.name}</Dialog.Title></Dialog.Header>
-			<img
-				src={opened.url}
-				alt={opened.name}
-				class="max-h-[75dvh] w-full rounded-md object-contain"
-			/>
-		{/if}
-	</Dialog.Content>
-</Dialog.Root>
+<PhotoDialog bind:photo={opened} />

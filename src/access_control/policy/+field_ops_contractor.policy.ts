@@ -1,6 +1,6 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 /** Their own assignments: the one model where the member appears as a column. */
-const OWN = { assignee_user_id: { eq: { actor: 'id' } } } as const;
+const OWN = { assignee_user_id: { eq: { var: 'requestor.id' } } } as const;
 const OWN_JOB = { job_assignment_id: { is: OWN } } as const;
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
 /**
@@ -50,8 +50,7 @@ export default policy({
 						'amount_charged',
 						'location',
 						'location_address',
-						'summary',
-						'search_text'
+						'summary'
 					]
 				}
 			},

@@ -7,7 +7,6 @@
 	import {
 		type RecordView,
 		Button,
-		Dialog,
 		Field,
 		Form,
 		RecordShell,
@@ -18,6 +17,7 @@
 	import Icon from '@iconify/svelte';
 	import Conversation from '../../../lib/conversation.svelte';
 	import SuspicionPanel from '../../../lib/suspicion-panel.svelte';
+	import PhotoDialog from '../../../lib/photo-dialog.svelte';
 	let {
 		view
 	}: {
@@ -145,8 +145,8 @@
 						<Field name="status" />
 						<Field name="assignee_contact" label={t('component.contractor_contact')} />
 						<Field name="assignee_user_id" label={t('component.contractor')} />
-						<Field name="dispatched_at" label={t('component.dispatched_at')} />
-						<Field name="completed_at" label={t('component.completed_at')} />
+						<Field name="dispatched_at" label={t('component.dispatched_at')} readonly />
+						<Field name="completed_at" label={t('component.completed_at')} readonly />
 					</Grid>
 				</Section>
 				<Section name="completion" title={t('section.completion')}>
@@ -174,15 +174,4 @@
 	</RecordShell>
 {/if}
 
-<Dialog.Root open={opened !== null} onOpenChange={(next) => !next && (opened = null)}>
-	<Dialog.Content class="max-w-5xl">
-		{#if opened}
-			<Dialog.Header><Dialog.Title>{opened.name}</Dialog.Title></Dialog.Header>
-			<img
-				src={opened.url}
-				alt={opened.name}
-				class="max-h-[75dvh] w-full rounded-md object-contain"
-			/>
-		{/if}
-	</Dialog.Content>
-</Dialog.Root>
+<PhotoDialog bind:photo={opened} />

@@ -54,7 +54,7 @@ export const wireAct = Effect.fnUntraced(function* (
 		key: crypto.randomUUID(),
 		invocationId: crypto.randomUUID(),
 		issuedAt: now,
-		bindings: { now, today: now.slice(0, 10), tz: 'Asia/Singapore', params: {} }
+		bindings: { now, today: now.slice(0, 10), tz: 'Asia/Singapore' }
 	})).outcome;
 });
 let postal = 500000;

@@ -1,6 +1,6 @@
 import { model, type WorkspaceQuery } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
-import { dispatchFacts, memberByContact, searchTextFor } from '../../../lib/dispatch.js';
+import { dispatchFacts, memberByContact } from '../../../lib/dispatch.js';
 const contacted = (contact: string | null | undefined) => (contact?.trim() ?? '') !== '';
 /** The members a batch's contacts may name, in one read (none when no row names a contact). */
 // ponytail: reads every member's email and phone; filter by contact key once membership nears the read limit
@@ -69,16 +69,16 @@ export default model('job_assignments', {
 		location: { kind: 'point', optional: true },
 		location_address: { kind: 'text', optional: true },
 		summary: { kind: 'text', optional: true },
-		/** Search copy of the title and the site's name and code; the write callbacks own it. */
-		search_text: { kind: 'text', optional: true, hidden: true },
 		/** The WhatsApp message a job came from; retries of one delivery file it once. */
-		source_message_id: { kind: 'text', optional: true, unique: true },
+		source_message_id: { kind: 'text', optional: true, unique: true, hidden: true },
 		/** Written by the suspicion review only; any other change clears it. */
 		suspicion_checked_at: { kind: 'instant', optional: true, hidden: true }
 	},
 	index: ['scheduled_for', 'suspicion_checked_at'],
 	search: {
-		text: ['title', 'summary', 'search_text'],
+		// `site_id` matches the site's own search text (name, address, unit, code, client); `external_ref` stays out, as
+		// the contractor's grant masks it and a masked field refuses the search
+		text: ['title', 'nature', 'summary', 'site_id'],
 		// `/semantic` in the jobs search box: the work described, on the host's default embedding model. `dim` is the width
 		// of the `bolt_embedding` column every job's vector and every probe are read at, so the host's model must honour it.
 		semantic: { fields: ['title', 'description', 'summary'], model: 'default', dim: 1536 }
@@ -86,16 +86,14 @@ export default model('job_assignments', {
 	read: {
 		job_assignments: { fields: 'all' },
 		/** The photos filed on a job: so a reader (a controller, the WhatsApp envoy) sees what was sent for it. */
-		'job_assignments.photo_evidence': { fields: ['photo', 'summary', 'flags', 'created_at'] }
+		'job_assignments.photo_evidence': { fields: ['photo', 'summary', 'flags', 'created_at'] },
+		'job_assignments.site_id': {
+			fields: ['name', 'address', 'unit_number', 'site_code', 'client_name', 'site_key']
+		}
 	},
 	create: {
 		columns: { job_assignments: ['external_ref', ...progress, 'source_message_id'] },
-		// a job filed under a new site (its `sites.job_assignments` layer, an import) reads that site from this act
 		transform: function* (rows, ctx) {
-			const sites = yield* ctx.db.after('sites', {
-				id: { in: [...new Set(rows.map((row) => row.site_id))] }
-			});
-			const siteOf = new Map(sites.map((site) => [site.id, site]));
 			const members = yield* membersFor(
 				ctx.db,
 				rows.map((row) => row.assignee_contact)
@@ -104,7 +102,7 @@ export default model('job_assignments', {
 				const linked = contacted(row.assignee_contact)
 					? { ...row, assignee_user_id: memberByContact(members, row.assignee_contact) }
 					: row;
-				return { ...linked, ...dispatchFacts(linked, siteOf.get(row.site_id), ctx.now) };
+				return { ...linked, ...dispatchFacts(linked, ctx.now) };
 			});
 		}
 	},
@@ -126,18 +124,6 @@ export default model('job_assignments', {
 					'An assignment files new photos and messages; it never changes or removes filed ones.',
 					{ row: rewrite }
 				);
-			// a new title or site (a link from the site's side included) re-derives the search copy
-			const retitled = (set: (typeof changes)[number]['set']) =>
-				set.title !== undefined || set.site_id !== undefined;
-			const siteIds = [
-				...new Set(
-					changes.flatMap(({ before, set }) =>
-						retitled(set) ? [set.site_id ?? before.site_id] : []
-					)
-				)
-			];
-			const sites = siteIds.length ? yield* ctx.db.after('sites', { id: { in: siteIds } }) : [];
-			const siteOf = new Map(sites.map((site) => [site.id, site]));
 			const members = yield* membersFor(
 				ctx.db,
 				changes.map(({ set }) => set.assignee_contact)
@@ -159,14 +145,6 @@ export default model('job_assignments', {
 						: {}),
 					...(status === 'completed' && (set.completed_at ?? before.completed_at) == null
 						? { completed_at: ctx.now }
-						: {}),
-					...(retitled(set)
-						? {
-								search_text: searchTextFor(
-									set.title ?? before.title,
-									siteOf.get(set.site_id ?? before.site_id)
-								)
-							}
 						: {}),
 					...(reviewStamp ? {} : { suspicion_checked_at: null })
 				};

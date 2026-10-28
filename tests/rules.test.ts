@@ -78,11 +78,8 @@ describe('sites', () => {
 					}
 				])
 			);
-			const [job] = yield* rows(t, `SELECT status, search_text FROM job_assignments`);
-			expect(job).toMatchObject({
-				status: 'pending',
-				search_text: 'Survey, 6 Sunset Vale, Singapore 597232'
-			});
+			const [job] = yield* rows(t, `SELECT status FROM job_assignments`);
+			expect(job).toMatchObject({ status: 'pending' });
 		})
 	);
 	it.live(
@@ -577,23 +574,26 @@ describe('the ledgers', () => {
 			})
 	);
 });
-it.live('a title-only edit keeps the site in the job search text', () =>
+it.live("a job is found by its own words and by its site's, a renamed one by its new title", () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
 		const { job } = yield* siteWithJob(t);
-		const before = present(
-			(yield* rows(t, 'SELECT search_text FROM job_assignments WHERE id = $1', [job]))[0]
-		);
+		const found = Effect.fnUntraced(function* (text: string) {
+			const { job_assignments } = yield* t
+				.as(t.member(CONTROLLER))
+				.query({ job_assignments: { where: { $search: text }, fields: ['title'] } });
+			return job_assignments.rows.map((row) => row.id);
+		});
+		expect(yield* found('Installation')).toEqual([job]);
+		// the site's address is in its own search text, never in the job's
+		expect(yield* found('Avenue')).toEqual([job]);
 		committed(
 			yield* t
 				.as(t.admin)
 				.act('job_assignments.update', [{ target: job, set: { title: 'Renamed' } }])
 		);
-		const after = present(
-			(yield* rows(t, 'SELECT search_text FROM job_assignments WHERE id = $1', [job]))[0]
-		);
-		expect(after.search_text).toBe(
-			`Renamed, ${String(before.search_text).split(', ').slice(1).join(', ')}`
-		);
+		expect(yield* found('renamed')).toEqual([job]);
+		expect(yield* found('Installation')).toEqual([]);
+		expect(yield* found('Kismis Avenue')).toEqual([job]);
 	})
 );

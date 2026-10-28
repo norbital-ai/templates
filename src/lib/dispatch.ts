@@ -1,39 +1,18 @@
-/** The board's searchable copy of a job: its own title plus the site's name and code. */
-export const searchTextFor = (
-	title: string,
-	site:
-		| {
-				readonly name: string;
-				readonly site_code?: string | null;
-		  }
-		| undefined
-): string => [title, site?.name, site?.site_code].filter((part) => part != null).join(', ');
 /**
- * What filing a job stamps on it: pending until completed, dispatched the moment a contractor is linked, and the
- * search copy. `job_assignments`' create callback runs it for every job filed, a job nested under its site included.
+ * What filing a job stamps on it: pending until completed, and dispatched the moment a contractor is linked.
+ * `job_assignments`' create callback runs it for every job filed, a job nested under its site included.
  */
 export const dispatchFacts = <T>(
 	job: {
-		readonly title?: string | undefined;
 		readonly assignee_user_id?: string | null | undefined;
 		readonly status?: 'pending' | 'completed' | null | undefined;
 		readonly dispatched_at?: T | null | undefined;
 	},
-	site:
-		| {
-				readonly name: string;
-				readonly site_code?: string | null;
-		  }
-		| undefined,
 	now: T
-) => {
-	const holder = job.assignee_user_id != null;
-	return {
-		status: job.status ?? 'pending',
-		dispatched_at: job.dispatched_at ?? (holder ? now : null),
-		search_text: searchTextFor(job.title ?? '', site)
-	};
-};
+) => ({
+	status: job.status ?? 'pending',
+	dispatched_at: job.dispatched_at ?? (job.assignee_user_id != null ? now : null)
+});
 /**
  * The keys a contractor's email or phone number matches a member by: a lower-cased email, or the phone's digits with
  * and without Singapore's 65 (an 8-digit local number and its +65 form are one member, as `sys_user.phone_key` stores
@@ -63,4 +42,29 @@ export const memberByContact = <I extends string>(
 		[...contactKeys(member.email), ...contactKeys(member.phone)].some((key) => keys.has(key))
 	);
 	return found.length === 1 ? found[0]!.id : null;
+};
+/** A WhatsApp identity: a phone number's JID, or a group, linked-device, broadcast or channel one. */
+const JID = /@(?:s\.whatsapp\.net|c\.us|g\.us|lid|broadcast|newsletter)$/;
+/**
+ * Who a message or photo came from, as a person reads it: the member it names (by member id, or by the phone or email
+ * it carries, `contactKeys`), else an unmatched phone JID's number, else the provider's display name. Another JID or a
+ * member id nobody reads is no name: `null`.
+ */
+export const senderName = (
+	sender: string,
+	members: readonly {
+		readonly id: string;
+		readonly name: string;
+		readonly email: string | null;
+		readonly phone: string | null;
+	}[]
+): string | null => {
+	const phone = /^(\d+)@(?:s\.whatsapp\.net|c\.us)$/.exec(sender)?.[1];
+	const id = members.some((m) => m.id === sender)
+		? sender
+		: memberByContact(members, phone ?? sender);
+	const member = members.find((m) => m.id === id);
+	if (member !== undefined) return member.name;
+	if (phone !== undefined) return `+${phone}`;
+	return JID.test(sender) || /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(sender) ? null : sender;
 };

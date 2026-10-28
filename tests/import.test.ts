@@ -104,7 +104,7 @@ it.live('imports the sample xlsx once, filing a site for every address the works
 			automation: 'job_assignments_import_work_orders',
 			runs: [{ id: crypto.randomUUID(), input: { rows: invalidRows } }],
 			authority: as.authority,
-			bindings: { now: t.clock.now(), today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
+			bindings: { now: t.clock.now(), today: '2026-09-25', tz: 'Asia/Singapore' }
 		});
 		expect(raw).toMatchObject({ kind: 'refused' });
 		if (raw.kind !== 'refused') throw new Error('Invalid raw sheet queued');

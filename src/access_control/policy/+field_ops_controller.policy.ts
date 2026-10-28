@@ -6,6 +6,7 @@ const JOB_FIELDS = [
 	'nature',
 	'scheduled_for',
 	'description',
+	'assignee_contact',
 	'assignee_user_id',
 	'dispatched_at',
 	'status',
